@@ -12,7 +12,7 @@
     os_keypair_name: "{{ os_network_name }}-keypair"
     os_launcher_flavor: r1.compute.gen0
     os_node_flavor: r2.compute.gen0
-    os_node_count: 7
+    os_node_count: 5
     # Not used when using MetalLB
     # os_security_groups:
     #   - ether_type: IPv6
