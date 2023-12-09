@@ -186,11 +186,7 @@ metallb_config:
   controller:
     nodeselector:
       kubernetes.io/os: linux
-    tolerations:
-    - key: "node-role.kubernetes.io/control-plane"
-      operator: "Equal"
-      value: ""
-      effect: "NoSchedule"
+    tolerations: []
   address_pools:
     primary:
       ip_range:

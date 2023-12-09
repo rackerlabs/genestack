@@ -1,0 +1,87 @@
+# TODO: Figure out how to make this work with the rabbitmq cluster and openstack
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: rabbitmq
+spec:
+  replicas: 3
+  resources:
+    requests:
+      cpu: 4
+      memory: 4Gi  # This should be changed to 10Gi for production
+    limits:
+      cpu: 4
+      memory: 4Gi  # This should be changed to 10Gi for production
+  rabbitmq:
+    additionalConfig: |
+      cluster_partition_handling = pause_minority
+      vm_memory_high_watermark_paging_ratio = 0.99
+      disk_free_limit.relative = 1.0
+      collect_statistics_interval = 10000
+    additionalPlugins:
+      - rabbitmq_mqtt
+      - rabbitmq_stomp
+      - rabbitmq_stream
+      - rabbitmq_web_mqtt
+      - rabbitmq_web_stomp
+  persistence:
+    storageClassName: general  # This should be changed to an ssd for production
+    storage: "5Gi"  # This should be changed to 500Gi for production
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: openstack-control-plane
+                operator: In
+                values:
+                  - enabled
+    # podAntiAffinity:
+    #   requiredDuringSchedulingIgnoredDuringExecution:
+    #   - labelSelector:
+    #       matchExpressions:
+    #         - key: app.kubernetes.io/name
+    #           operator: In
+    #           values:
+    #           - rabbitmq
+    #     topologyKey: kubernetes.io/hostname
+  override:
+    service:
+      spec:
+        ports:
+        - name: amqp
+          port: 5672
+          targetPort: 5672
+        - name: http
+          port: 15672
+          targetPort: 15672
+        - name: mqtt
+          port: 1883
+          targetPort: 1883
+        - name: mqtt-ssl
+          port: 8883
+          targetPort: 8883
+        - name: stomp
+          port: 61613
+          targetPort: 61613
+        - name: stomp-ssl
+          port: 61614
+          targetPort: 61614
+        - name: prometheus
+          port: 15692
+          targetPort: 15692
+        - name: prometheus-ssl
+          port: 15693
+          targetPort: 15693
+    statefulSet:
+      spec:
+        template:
+          spec:
+            containers: []
+            topologySpreadConstraints:
+            - maxSkew: 1
+              topologyKey: "topology.kubernetes.io/zone"
+              whenUnsatisfiable: ScheduleAnyway  # This should be changed to DoNotSchedule for production
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: rabbitmq

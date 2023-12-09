@@ -5,14 +5,15 @@
   hosts: localhost
   vars:
     ansible_python_interpreter: '{{ ansible_playbook_python }}'
+    deploy_bastion: true
     os_bastion_user: ubuntu
     os_image_id: jammy-raw
     os_cloud_name: "rxt-mvp"
     os_network_name: openstack-flex
     os_keypair_name: "{{ os_network_name }}-keypair"
-    os_launcher_flavor: r1.compute.gen0
-    os_node_flavor: r2.compute.gen0
-    os_node_count: 5
+    os_launcher_flavor: r1.gp.gen0
+    os_node_flavor: r3.compute.gen0
+    os_node_count: 9
     # Not used when using MetalLB
     # os_security_groups:
     #   - ether_type: IPv6
@@ -223,7 +224,7 @@
         image: "{{ os_image_id }}"
         key_name: "{{ os_keypair_name }}"
         flavor: "{{ os_node_flavor }}"
-        auto_ip: false
+        auto_ip: "{{ (not (deploy_bastion | bool)) and ((item | int) == 0) }}"
         security_groups: []
         nics:
           - net-id: "{{ _result_network_create.id }}"
@@ -236,6 +237,8 @@
       register: _node_create
       changed_when: false
     - name: Create bastion node
+      when:
+        - deploy_bastion | bool
       openstack.cloud.server:
         state: present
         cloud: "{{ os_cloud_name }}"
@@ -249,7 +252,7 @@
         meta:
           hostname: "{{ os_network_name }}-launcher"
           group: "{{ os_network_name }}"
-    - name: Check on an async task
+    - name: Check on async server task
       ansible.builtin.async_status:
         jid: "{{ item.ansible_job_id }}"
       register: job_result
@@ -261,50 +264,116 @@
       changed_when:
         - job_result.changed | bool
       loop: "{{ _node_create.results }}"
-    - name: Get info from the bastion
-      openstack.cloud.server_info:
-        cloud: "{{ os_cloud_name }}"
-        name: "{{ os_network_name }}-launcher"
-      register: _bastion_create
-    - name: Set fact for node ips
-      ansible.builtin.set_fact:
-        bastion_ip: "{{ _bastion_create.servers.0.addresses[os_network_name] |
-                        selectattr('OS-EXT-IPS:type', 'equalto', 'floating') |
-                        map(attribute='addr') |
-                        list |
-                        first }}"
-      loop: "{{ _node_create.results }}"
-    - name: Add new interactive host
-      ansible.builtin.add_host:
-        name: "{{ bastion_ip }}"
-        groups: bastion_node
-        ansible_user: "{{ os_bastion_user }}"
-      changed_when: false
-    - name: Create ssh-config
-      ansible.builtin.copy:
-        content: |
-          Host 172.31.0.*
-            ProxyJump {{ bastion_ip }}
-            User {{ os_bastion_user }}
-            IdentityFile {{ lookup('env', 'HOME') }}/.ssh/{{ os_keypair_name }}.key
+    - name: Bastion block
+      when:
+        - deploy_bastion | bool
+      block:
+        - name: Get info from the bastion
+          openstack.cloud.server_info:
+            cloud: "{{ os_cloud_name }}"
+            name: "{{ os_network_name }}-launcher"
+          register: _bastion_create
+        - name: Set fact for node ips
+          ansible.builtin.set_fact:
+            bastion_ip: "{{ _bastion_create.servers.0.addresses[os_network_name] |
+                            selectattr('OS-EXT-IPS:type', 'equalto', 'floating') |
+                            map(attribute='addr') |
+                            list |
+                            first }}"
+          loop: "{{ _node_create.results }}"
+        - name: Add new interactive host
+          ansible.builtin.add_host:
+            name: "{{ bastion_ip }}"
+            groups: bastion_node
+            ansible_user: "{{ os_bastion_user }}"
+          changed_when: false
+        - name: Create ssh-config
+          ansible.builtin.copy:
+            content: |
+              Host 172.31.0.*
+                ProxyJump {{ bastion_ip }}
+                User {{ os_bastion_user }}
+                IdentityFile {{ lookup('env', 'HOME') }}/.ssh/{{ os_keypair_name }}.key
 
-          Host {{ bastion_ip }}
-            User {{ os_bastion_user }}
-            IdentityFile {{ lookup('env', 'HOME') }}/.ssh/{{ os_keypair_name }}.key
-            ControlMaster auto
-            ControlPath ~/.ssh/ansible-{{ os_network_name }}-%r@%h:%p
-            ControlPersist 5m
-            StrictHostKeyChecking no
-            UserKnownHostsFile /dev/null
-            ServerAliveInterval 60
-            ServerAliveCountMax 30
-        dest: "{{ lookup('env', 'HOME') }}/.ssh/{{ os_keypair_name }}.config"
-        mode: "0640"
-    - name: Get info from the cluster
+              Host {{ bastion_ip }}
+                User {{ os_bastion_user }}
+                IdentityFile {{ lookup('env', 'HOME') }}/.ssh/{{ os_keypair_name }}.key
+                ControlMaster auto
+                ControlPath ~/.ssh/ansible-{{ os_network_name }}-%r@%h:%p
+                ControlPersist 5m
+                StrictHostKeyChecking no
+                UserKnownHostsFile /dev/null
+                ServerAliveInterval 60
+                ServerAliveCountMax 30
+            dest: "{{ lookup('env', 'HOME') }}/.ssh/{{ os_keypair_name }}.config"
+            mode: "0640"
+        - name: Wait 300 seconds for port 22 to become open and contain "OpenSSH"
+          ansible.builtin.wait_for:
+            port: 22
+            host: "{{ bastion_ip }}"
+            search_regex: OpenSSH
+            delay: 10
+    - name: Get server info from the cluster
       openstack.cloud.server_info:
         cloud: "{{ os_cloud_name }}"
         name: "{{ os_network_name }}*"
       register: _cluster_create
+    - name: Set volume product fact
+      ansible.builtin.set_fact:
+        _volumes_product: "{{ (_cluster_create.servers | map(attribute='name') | sort)[-3:] |
+                              product(range(3)) |
+                              list }}"
+    - name: Create 20g volumes for controllers
+      openstack.cloud.volume:
+        state: present
+        cloud: "{{ os_cloud_name }}"
+        size: 20
+        name: "{{ item.0 }}-volume-{{ item.1 }}"
+      loop: "{{ _volumes_product }}"
+      async: 1000
+      poll: 0
+      register: _volume_create
+      changed_when: false
+    - name: Check on async volume task
+      ansible.builtin.async_status:
+        jid: "{{ item.ansible_job_id }}"
+      register: job_result
+      until: job_result.finished
+      retries: 100
+      delay: 10
+      failed_when:
+        - job_result.failed != 0
+      changed_when:
+        - job_result.changed | bool
+      loop: "{{ _volume_create.results }}"
+    - name: Get volume info from the cluster
+      openstack.cloud.volume_info:
+        cloud: "{{ os_cloud_name }}"
+        name: "{{ os_network_name }}*"
+      register: _volumes_create
+    - name: Attaches a volume to a compute host
+      openstack.cloud.server_volume:
+        state: present
+        cloud: "{{ os_cloud_name }}"
+        server: "{{ item.0 }}"
+        volume: "{{ item.0 }}-volume-{{ item.1 }}"
+      loop: "{{ _volumes_product }}"
+      async: 1000
+      poll: 0
+      register: _volume_attach
+      changed_when: false
+    - name: Check on async volume attach task
+      ansible.builtin.async_status:
+        jid: "{{ item.ansible_job_id }}"
+      register: job_result
+      until: job_result.finished
+      retries: 100
+      delay: 10
+      failed_when:
+        - job_result.failed != 0
+      changed_when:
+        - job_result.changed | bool
+      loop: "{{ _volume_attach.results }}"
     - name: Create inventory
       ansible.builtin.copy:
         content: |
@@ -354,12 +423,6 @@
           kube_node
         dest: "{{ playbook_dir }}/{{ os_network_name }}/inventory.ini"
         mode: "0644"
-    - name: Wait 300 seconds for port 22 to become open and contain "OpenSSH"
-      ansible.builtin.wait_for:
-        port: 22
-        host: "{{ bastion_ip }}"
-        search_regex: OpenSSH
-        delay: 10
 
 - name: Create lab environment
   hosts: bastion_node
