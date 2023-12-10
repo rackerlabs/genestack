@@ -20,7 +20,7 @@ metadata:
   name: keystone-vhost
   namespace: openstack
 spec:
-  name: "/keystone" # vhost name; required and cannot be updated
+  name: "keystone" # vhost name; required and cannot be updated
   defaultQueueType: quorum # default queue type for this vhost; require RabbitMQ version 3.11.12 or above
   rabbitmqClusterReference:
     name: rabbitmq # rabbitmqCluster must exist in the same namespace as this resource
@@ -40,7 +40,7 @@ metadata:
   namespace: openstack
 spec:
   name: keystone-qq # name of the queue
-  vhost: "/keystone" # default to '/' if not provided
+  vhost: "keystone" # default to '/' if not provided
   type: quorum # without providing a queue type, rabbitmq creates a classic queue
   autoDelete: false
   durable: true # seting 'durable' to false means this queue won't survive a server restart
@@ -54,7 +54,7 @@ metadata:
   name: keystone-permission
   namespace: openstack
 spec:
-  vhost: "/keystone" # name of a vhost
+  vhost: "keystone" # name of a vhost
   userReference:
     name: "keystone" # name of a user.rabbitmq.com in the same namespace; must specify either spec.userReference or spec.user
   permissions:
