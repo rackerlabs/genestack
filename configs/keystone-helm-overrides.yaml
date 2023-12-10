@@ -7,14 +7,268 @@ secrets:
   oslo_messaging:
     admin: openstack-default-user
     keystone: keystone-rabbitmq-password
-
 conf:
   keystone:
     DEFAULT:
       oslo_messaging_rabbit:
         rabbit_ha_queues: false
-
-
+pod:
+  security_context:
+    keystone:
+      pod:
+        runAsUser: 42424
+      container:
+        keystone_api:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+    credential_setup:
+      pod:
+        runAsUser: 42424
+      container:
+        keystone_credential_setup:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+    fernet_setup:
+      pod:
+        runAsUser: 42424
+      container:
+        keystone_fernet_setup:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+    fernet_rotate:
+      pod:
+        runAsUser: 42424
+      container:
+        keystone_fernet_rotate:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+    domain_manage:
+      pod:
+        runAsUser: 42424
+      container:
+        keystone_domain_manage_init:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+        keystone_domain_manage:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+    test:
+      pod:
+        runAsUser: 42424
+      container:
+        keystone_test_ks_user:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+        keystone_test:
+          runAsUser: 65500
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+  affinity:
+    anti:
+      type:
+        default: preferredDuringSchedulingIgnoredDuringExecution
+      topologyKey:
+        default: kubernetes.io/hostname
+      weight:
+        default: 10
+  tolerations:
+    keystone:
+      enabled: false
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+  mounts:
+    keystone_db_init:
+      init_container: null
+      keystone_db_init:
+        volumeMounts:
+        volumes:
+    keystone_db_sync:
+      init_container: null
+      keystone_db_sync:
+        volumeMounts:
+        volumes:
+    keystone_api:
+      init_container: null
+      keystone_api:
+        volumeMounts:
+        volumes:
+    keystone_tests:
+      init_container: null
+      keystone_tests:
+        volumeMounts:
+        volumes:
+    keystone_bootstrap:
+      init_container: null
+      keystone_bootstrap:
+        volumeMounts:
+        volumes:
+    keystone_fernet_setup:
+      init_container: null
+      keystone_fernet_setup:
+        volumeMounts:
+        volumes:
+    keystone_fernet_rotate:
+      init_container: null
+      keystone_fernet_rotate:
+        volumeMounts:
+        volumes:
+    keystone_credential_setup:
+      init_container: null
+      keystone_credential_setup:
+        volumeMounts:
+        volumes:
+    keystone_credential_rotate:
+      init_container: null
+      keystone_credential_rotate:
+        volumeMounts:
+        volumes:
+    keystone_credential_cleanup:
+      init_container: null
+      keystone_credential_cleanup:
+        volumeMounts:
+        volumes:
+    keystone_domain_manage:
+      init_container: null
+      keystone_domain_manage:
+        volumeMounts:
+        volumes:
+  replicas:
+    api: 3
+  lifecycle:
+    upgrades:
+      deployments:
+        revision_history: 3
+        pod_replacement_strategy: RollingUpdate
+        rolling_update:
+          max_unavailable: 1
+          max_surge: 3
+    disruption_budget:
+      api:
+        min_available: 0
+    termination_grace_period:
+      api:
+        timeout: 30
+  resources:
+    enabled: false
+    api:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    jobs:
+      bootstrap:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      domain_manage:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      db_init:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      db_sync:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      db_drop:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      rabbit_init:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      tests:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      fernet_setup:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      fernet_rotate:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      credential_setup:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      credential_rotate:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      credential_cleanup:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      image_repo_sync:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+  probes:
+    api:
+      api:
+        readiness:
+          enabled: true
+          params:
+            initialDelaySeconds: 15
+            periodSeconds: 60
+            timeoutSeconds: 15
+        liveness:
+          enabled: true
+          params:
+            initialDelaySeconds: 50
+            periodSeconds: 60
+            timeoutSeconds: 15
 dependencies:
   dynamic:
     common:

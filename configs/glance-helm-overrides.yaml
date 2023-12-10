@@ -842,7 +842,7 @@ pod:
         volumeMounts:
         volumes:
   replicas:
-    api: 1
+    api: 1  # Set to 3 in production when attached to shared storage.
   lifecycle:
     upgrades:
       deployments:

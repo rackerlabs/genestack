@@ -7,6 +7,7 @@ Evaluating Kubespray in an environment. Deployment will include the following
 * Kube-OVN
 * MetalLB
 * Metric Collection
+* Deploy OpenStack
 
 ## Basic Setup
 

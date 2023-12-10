@@ -1049,10 +1049,10 @@ pod:
         volumeMounts:
         volumes:
   replicas:
-    api: 1
-    cfn: 1
-    cloudwatch: 1
-    engine: 1
+    api: 3
+    cfn: 3
+    cloudwatch: 3
+    engine: 3
   lifecycle:
     upgrades:
       deployments:
