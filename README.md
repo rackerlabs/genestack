@@ -95,9 +95,16 @@ cd ~/osh
 git clone https://opendev.org/openstack/openstack-helm.git
 git clone https://opendev.org/openstack/openstack-helm-infra.git
 git clone https://github.com/rook/rook.git
+git clone https://github.com/mariadb-operator/mariadb-operator
 ```
 
-Install rook
+Install the cert-manager
+
+``` shell
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/latest/cert-manager.yaml
+```
+
+Install rook operator
 
 ``` shell
 # Deploy the cluster, before we can deploy the cluster we need to setup the nodes and its devices.
@@ -161,6 +168,60 @@ kubectl label nodes $(kubectl get nodes -l '!node-role.kubernetes.io/control-pla
 kubectl get nodes -o wide
 ```
 
+Create our basic openstack namespace
+
+``` shell
+kubectl apply -f /tmp/ns-openstack.yaml
+```
+
+Install mariadb
+
+``` shell
+# Deploy the operator
+helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
+helm install mariadb-operator mariadb-operator/mariadb-operator --set webhook.cert.certManager.enabled=true --wait --namespace openstack
+
+# Install our configuration and management capabilities
+cd ~/osh/mariadb-operator
+kubectl apply --namespace openstack -f examples/manifests/config/mariabackup-pvc.yaml
+kubectl apply --namespace openstack -f examples/manifests/config/mariadb-configmap.yaml
+kubectl apply --namespace openstack -f examples/manifests/config/mariadb-my-cnf-configmap.yaml
+
+# Create secret
+kubectl --namespace openstack \
+        create secret generic mariadb \
+        --type Opaque \
+        --from-literal=root-password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)" \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+
+# Deploy the mariadb cluster
+kubectl apply --namespace openstack -f /tmp/mariadb-galera.yaml
+
+# Verify readiness with the following command
+kubectl --namespace openstack get mariadbs
+```
+
+Install RabbitMQ
+
+``` shell
+# Install rabbitmq
+kubectl apply -f https://github.com/rabbitmq/cluster-operator/releases/latest/download/cluster-operator.yml
+kubectl apply -f https://github.com/rabbitmq/messaging-topology-operator/releases/latest/download/messaging-topology-operator-with-certmanager.yaml
+kubectl apply -f /tmp/rabbitmq-cluster.yaml
+```
+
+Install memcached
+
+``` shell
+helm install memcached oci://registry-1.docker.io/bitnamicharts/memcached \
+                        --set architecture="high-availability" \
+                        --set autoscaling.enabled="true" \
+                        --namespace openstack \
+                        --wait
+```
+
+Now that the backend is all deployed, time to deploy openstack.
+
 Setup OSH and make everything
 
 ``` shell
@@ -176,107 +237,112 @@ make all
 
 cd ~/osh/openstack-helm-infra
 make all
+```
 
-# Generate required namespaces
-kubectl apply -f /tmp/ns-openstack.yaml
-kubectl apply -f /tmp/ns-osh-infra.yaml
+Deploy the ingress controllers
 
-# Run all namespace configurations
+``` shell
 cd ~/osh/openstack-helm-infra
 
-for NAMESPACE in kube-system openstack; do
-  helm upgrade --install ${NAMESPACE}-namespace-config ./namespace-config \
-    --wait \
-    --timeout 900s \
-    --namespace=${NAMESPACE}
-done
-
-# Deploy ingress
-cd ~/osh/openstack-helm-infra
-
-# Deploy namespace ingress-kube-system
+# First the global controller
 helm upgrade --install ingress-kube-system ./ingress \
   --namespace=kube-system \
   --wait \
   --timeout 900s \
   --values=/tmp/ingress-kube-system.yaml \
-  ${OSH_EXTRA_HELM_ARGS} \
-  ${OSH_EXTRA_HELM_ARGS_INGRESS:="$(./tools/deployment/common/get-values-overrides.sh ingress)"} \
-  ${OSH_EXTRA_HELM_ARGS_INGRESS_KUBE_SYSTEM}
+  $(./tools/deployment/common/get-values-overrides.sh ingress)
 
-# Deploy namespace ingress-openstack
+# Second the component openstack controller
 helm upgrade --install ingress-openstack ./ingress \
   --namespace=openstack \
   --wait \
   --timeout 900s \
   --values=/tmp/ingress-component.yaml \
   --set deployment.cluster.class=nginx \
-  ${OSH_EXTRA_HELM_ARGS} \
-  ${OSH_EXTRA_HELM_ARGS_INGRESS:="$(./tools/deployment/common/get-values-overrides.sh ingress)"} \
-  ${OSH_EXTRA_HELM_ARGS_INGRESS_OPENSTACK}
-
-helm upgrade --install ingress-rook-ceph ./ingress \
-  --namespace=rook-ceph \
-  --wait \
-  --timeout 900s \
-  --values=/tmp/ingress-component.yaml \
-  --set deployment.cluster.class=nginx-ceph \
-  ${OSH_EXTRA_HELM_ARGS} \
-  ${OSH_EXTRA_HELM_ARGS_INGRESS:="$(./tools/deployment/common/get-values-overrides.sh ingress)"} \
-  ${OSH_EXTRA_HELM_ARGS_INGRESS_CEPH}
+  $(./tools/deployment/common/get-values-overrides.sh ingress)
 ```
 
-Install backends
+Deploy Keystone
 
 ``` shell
-cd ~/osh/openstack-helm-infra
+kubectl --namespace openstack \
+        create secret generic keystone-rabbitmq-password \
+        --type Opaque \
+        --from-literal=username="keystone" \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-64};echo;)"
+kubectl --namespace openstack \
+        create secret generic keystone-db-password \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+kubectl --namespace openstack \
+        create secret generic keystone-admin \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+kubectl --namespace openstack \
+        create secret generic keystone-credential-keys \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
 
-# Install rabbitmq
-helm upgrade --install rabbitmq ./rabbitmq \
-    --namespace=openstack \
-    --set volume.enabled=false \
-    --set pod.replicas.server=1 \
-    ${OSH_EXTRA_HELM_ARGS:=} \
-    ${OSH_EXTRA_HELM_ARGS_RABBITMQ:="$(./tools/deployment/common/get-values-overrides.sh rabbitmq)"}
+kubectl apply -f /tmp/keystone-mariadb-database.yaml
 
-kubectl apply --namespace openstack -f https://github.com/rabbitmq/cluster-operator/releases/latest/download/cluster-operator.yml
-kubectl apply --namespace openstack -f /tmp/rabbitmq.yaml
-kubectl apply --namespace openstack -f /tmp/rabbitmq-pod-disruption-budget.yaml
-kubectl apply --namespace openstack -f /tmp/rabbitmq-allow-inter-node-traffic.yaml
-kubectl apply --namespace openstack -f /tmp/rabbitmq-allow-operator-traffic.yaml
-kubectl apply --namespace openstack -f /tmp/rabbitmq-allow-rabbitmq-traffic.yaml
+kubectl apply -f /tmp/keystone-rabbitmq-queue.yaml
 
-# Install mariadb
-helm upgrade --install mariadb ./mariadb \
-    --namespace=openstack \
-    --wait \
-    --timeout 900s \
-    --set volume.enabled=true \
-    --set pod.replicas.server=1 \
-    ${OSH_EXTRA_HELM_ARGS:=} \
-    ${OSH_INFRA_EXTRA_HELM_ARGS_MARIADB_CLUSTER:="$(./tools/deployment/common/get-values-overrides.sh mariadb)"}
-
-# Install memcached
-helm upgrade --install memcached ./memcached \
-    --namespace=openstack \
-    --wait \
-    --timeout 900s \
-    --set volume.enabled=true \
-    ${OSH_EXTRA_HELM_ARGS:=} \
-    ${OSH_EXTRA_HELM_ARGS_MEMCACHED:="$(./tools/deployment/common/get-values-overrides.sh memcached)"}
-```
-
-Now that the backend is all deployed, time to deploy openstack.
-
-First deploy Keystone
-
-``` shell
 cd ~/osh/openstack-helm
 
 helm upgrade --install keystone ./keystone \
     --namespace=openstack \
     --wait \
     --timeout 900s \
-    ${OSH_EXTRA_HELM_ARGS:=} \
-    ${OSH_EXTRA_HELM_ARGS_KEYSTONE:="$(./tools/deployment/common/get-values-overrides.sh keystone)"}
+    -f /tmp/keystone-helm-overrides.yaml \
+    --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
+    --set endpoints.oslo_db.auth.keystone.password="$(kubectl --namespace openstack get secret keystone-db-password -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace rabbitmq-service get secret openstack-default-user -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_messaging.auth.keystone.password="$(kubectl --namespace openstack get secret keystone-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
+    $(./tools/deployment/common/get-values-overrides.sh keystone)
 ```
+
+Deploy the openstack admin client pod (optional)
+
+``` shell
+kubectl --namespace openstack apply -f /tmp/utils-openstack-client-admin.yaml
+```
+
+Deploy Glance
+
+``` shell
+
+kubectl --namespace openstack \
+        create secret generic glance-rabbitmq-password \
+        --type Opaque \
+        --from-literal=username="glance" \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-64};echo;)"
+kubectl --namespace openstack \
+        create secret generic glance-db-password \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+kubectl --namespace openstack \
+        create secret generic glance-admin \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+
+kubectl apply -f /tmp/glance-mariadb-database.yaml
+
+kubectl apply -f /tmp/glance-rabbitmq-queue.yaml
+
+helm upgrade --install glance ./glance \
+    --namespace=openstack \
+    --wait \
+    --timeout 900s \
+    -f /tmp/glance-helm-overrides.yaml \
+    --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.identity.auth.glance.password="$(kubectl --namespace openstack get secret glance-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
+    --set endpoints.oslo_db.auth.glance.password="$(kubectl --namespace openstack get secret glance-db-password -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace rabbitmq-service get secret openstack-default-user -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_messaging.auth.glance.password="$(kubectl --namespace openstack get secret glance-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
+    $(./tools/deployment/common/get-values-overrides.sh glance)
+```
+
+> Note that the defaults disable `storage_init` because we're using **pvc** as the image backend
+  type. In production this should be changed to swift.

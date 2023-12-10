@@ -121,3 +121,7 @@ ansible_collections
 
 # Kubspray
 kubespray
+
+# OSH
+openstack-helm
+openstack-helm-infra

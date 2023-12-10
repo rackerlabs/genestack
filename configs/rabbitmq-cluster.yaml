@@ -1,8 +1,8 @@
-# TODO: Figure out how to make this work with the rabbitmq cluster and openstack
 apiVersion: rabbitmq.com/v1beta1
 kind: RabbitmqCluster
 metadata:
   name: rabbitmq
+  namespace: openstack
 spec:
   replicas: 3
   resources:
@@ -48,31 +48,6 @@ spec:
   override:
     service:
       spec:
-        ports:
-        - name: amqp
-          port: 5672
-          targetPort: 5672
-        - name: http
-          port: 15672
-          targetPort: 15672
-        - name: mqtt
-          port: 1883
-          targetPort: 1883
-        - name: mqtt-ssl
-          port: 8883
-          targetPort: 8883
-        - name: stomp
-          port: 61613
-          targetPort: 61613
-        - name: stomp-ssl
-          port: 61614
-          targetPort: 61614
-        - name: prometheus
-          port: 15692
-          targetPort: 15692
-        - name: prometheus-ssl
-          port: 15693
-          targetPort: 15693
     statefulSet:
       spec:
         template:
@@ -84,4 +59,15 @@ spec:
               whenUnsatisfiable: ScheduleAnyway  # This should be changed to DoNotSchedule for production
               labelSelector:
                 matchLabels:
-                  app.kubernetes.io/name: rabbitmq
+                  app.kubernetes.io/name: openstack
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: rabbitmq-disruption-budget
+  namespace: openstack
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: openstack

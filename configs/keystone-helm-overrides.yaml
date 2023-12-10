@@ -1,0 +1,291 @@
+secrets:
+  identity:
+    admin: keystone-keystone-admin
+  oslo_db:
+    admin: mariadb
+    keystone: keystone-db-password
+  oslo_messaging:
+    admin: openstack-default-user
+    keystone: keystone-rabbitmq-password
+
+conf:
+  keystone:
+    DEFAULT:
+      oslo_messaging_rabbit:
+        rabbit_ha_queues: false
+
+
+dependencies:
+  dynamic:
+    common:
+      local_image_registry:
+        jobs:
+          - keystone-image-repo-sync
+        services:
+          - endpoint: node
+            service: local_image_registry
+    rabbit_init:
+      services:
+        - service: oslo_messaging
+          endpoint: internal
+  static:
+    api:
+      jobs:
+        - keystone-db-sync
+        - keystone-credential-setup
+        - keystone-fernet-setup
+      services:
+        - endpoint: internal
+          service: oslo_cache
+        - endpoint: internal
+          service: oslo_db
+    bootstrap:
+      jobs:
+        - keystone-domain-manage
+      services:
+        - endpoint: internal
+          service: identity
+    credential_rotate:
+      jobs:
+        - keystone-credential-setup
+    credential_setup: null
+    credential_cleanup:
+      services:
+        - endpoint: internal
+          service: oslo_db
+    db_drop:
+      services:
+        - endpoint: internal
+          service: oslo_db
+    db_init:
+      services:
+        - endpoint: internal
+          service: oslo_db
+    db_sync:
+      jobs:
+        - keystone-credential-setup
+        - keystone-fernet-setup
+      services:
+        - endpoint: internal
+          service: oslo_db
+    domain_manage:
+      services:
+        - endpoint: internal
+          service: identity
+    fernet_rotate:
+      jobs:
+        - keystone-fernet-setup
+    fernet_setup: null
+    tests:
+      services:
+        - endpoint: internal
+          service: identity
+    image_repo_sync:
+      services:
+        - endpoint: internal
+          service: local_image_registry
+
+endpoints:
+  cluster_domain_suffix: cluster.local
+  local_image_registry:
+    name: docker-registry
+    namespace: docker-registry
+    hosts:
+      default: localhost
+      internal: docker-registry
+      node: localhost
+    host_fqdn_override:
+      default: null
+    port:
+      registry:
+        node: 5000
+  oci_image_registry:
+    name: oci-image-registry
+    namespace: oci-image-registry
+    auth:
+      enabled: false
+      keystone:
+        username: keystone
+        password: password
+    hosts:
+      default: localhost
+    host_fqdn_override:
+      default: null
+    port:
+      registry:
+        default: null
+  identity:
+    namespace: null
+    name: keystone
+    auth:
+      admin:
+        region_name: RegionOne
+        username: admin
+        # password: '{{ index (lookup "v1" "Secret" .Release.Namespace "keystone-admin").data "password" }}'
+        project_name: admin
+        user_domain_name: default
+        project_domain_name: default
+        default_domain_id: default
+    hosts:
+      default: keystone
+      internal: keystone-api
+    host_fqdn_override:
+      default: null
+      # NOTE(portdirect): this chart supports TLS for fqdn over-ridden public
+      # endpoints using the following format:
+      # public:
+      #   host: null
+      #   tls:
+      #     crt: null
+      #     key: null
+    path:
+      default: /v3
+    scheme:
+      default: http
+      service: http
+    port:
+      api:
+        default: 80
+        # NOTE(portdirect): to retain portability across images, and allow
+        # running under a unprivileged user simply, we default to a port > 1000.
+        internal: 5000
+        service: 5000
+  oslo_db:
+    namespace: null
+    auth:
+      admin:
+        username: root
+        # password: '{{ index (lookup "v1" "Secret" .Release.Namespace "mariadb").data "root-password" }}'
+        secret:
+          tls:
+            internal: mariadb-tls-direct
+      keystone:
+        username: keystone
+        # password: '{{ index (lookup "v1" "Secret" .Release.Namespace "keystone-db-password").data "password" }}'
+    hosts:
+      default: mariadb-galera-primary
+    host_fqdn_override:
+      default: null
+    path: /keystone
+    scheme: mysql+pymysql
+    port:
+      mysql:
+        default: 3306
+  oslo_messaging:
+    namespace: null
+    auth:
+      admin:
+        username: rabbitmq
+        # password: '{{ index (lookup "v1" "Secret" .Release.Namespace "rabbitmq-default-user").data "password" }}'
+        secret:
+          tls:
+            internal: rabbitmq-tls-direct
+      keystone:
+        username: keystone
+        # password: '{{ index (lookup "v1" "Secret" .Release.Namespace "keystone-rabbitmq-password").data "password" }}'
+    statefulset:
+      replicas: 3
+      name: rabbitmq-server
+    hosts:
+      default: rabbitmq
+    host_fqdn_override:
+      default: null
+    path: /keystone
+    scheme: rabbit
+    port:
+      amqp:
+        default: 5672
+      http:
+        default: 15672
+  oslo_cache:
+    namespace: null
+    hosts:
+      default: memcached
+    host_fqdn_override:
+      default: null
+    port:
+      memcache:
+        default: 11211
+  ldap:
+    auth:
+      client:
+        tls:
+          # NOTE(lamt): Specify a CA value here will place a LDAPS certificate at
+          # /etc/certs/tls.ca.  To ensure keystone uses LDAPS, the
+          # following key will need to be overrided under section [ldap] or the
+          # correct domain-specific setting, else it will not be enabled:
+          #
+          #   use_tls: true
+          #   tls_req_cert: allow # Valid values: demand, never, allow
+          #   tls_cacertfile: /etc/certs/tls.ca # abs path to the CA cert
+          ca: null
+  fluentd:
+    namespace: null
+    name: fluentd
+    hosts:
+      default: fluentd-logging
+    host_fqdn_override:
+      default: null
+    path:
+      default: null
+    scheme: 'http'
+    port:
+      service:
+        default: 24224
+      metrics:
+        default: 24220
+  # NOTE(tp6510): these endpoints allow for things like DNS lookups and ingress
+  # They are using to enable the Egress K8s network policy.
+  kube_dns:
+    namespace: kube-system
+    name: kubernetes-dns
+    hosts:
+      default: kube-dns
+    host_fqdn_override:
+      default: null
+    path:
+      default: null
+    scheme: http
+    port:
+      dns:
+        default: 53
+        protocol: UDP
+  ingress:
+    namespace: null
+    name: ingress
+    hosts:
+      default: ingress
+    port:
+      ingress:
+        default: 80
+
+manifests:
+  certificates: false
+  configmap_bin: true
+  configmap_etc: true
+  cron_credential_rotate: true
+  cron_fernet_rotate: true
+  deployment_api: true
+  ingress_api: true
+  job_bootstrap: true
+  job_credential_cleanup: true
+  job_credential_setup: true
+  job_db_init: false
+  job_db_sync: true
+  job_db_drop: false
+  job_domain_manage: true
+  job_fernet_setup: true
+  job_image_repo_sync: true
+  job_rabbit_init: false
+  pdb_api: true
+  pod_rally_test: false
+  network_policy: false
+  secret_credential_keys: false
+  secret_db: false
+  secret_fernet_keys: true
+  secret_ingress_tls: true
+  secret_keystone: true
+  secret_rabbitmq: false
+  secret_registry: true
+  service_ingress_api: true
+  service_api: true
