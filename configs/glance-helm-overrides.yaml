@@ -640,7 +640,7 @@ endpoints:
       replicas: 3
       name: rabbitmq-server
     hosts:
-      default: rabbitmq
+      default: rabbitmq-nodes
     host_fqdn_override:
       default: null
     path: /glance

@@ -48,7 +48,6 @@ ansible-playbook -i localhost, infra-deploy.yaml
 
 # Deployment
 
-
 Run the cluster deployment
 
 ``` shell
@@ -98,13 +97,13 @@ git clone https://github.com/rook/rook.git
 git clone https://github.com/mariadb-operator/mariadb-operator
 ```
 
-Install the cert-manager
+#### Install the cert-manager
 
 ``` shell
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/latest/cert-manager.yaml
 ```
 
-Install rook operator
+#### Install rook operator
 
 ``` shell
 # Deploy the cluster, before we can deploy the cluster we need to setup the nodes and its devices.
@@ -174,7 +173,7 @@ Create our basic openstack namespace
 kubectl apply -f /tmp/ns-openstack.yaml
 ```
 
-Install mariadb
+#### Install mariadb
 
 ``` shell
 # Deploy the operator
@@ -201,7 +200,7 @@ kubectl apply --namespace openstack -f /tmp/mariadb-galera.yaml
 kubectl --namespace openstack get mariadbs
 ```
 
-Install RabbitMQ
+#### Install RabbitMQ
 
 ``` shell
 # Install rabbitmq
@@ -210,7 +209,7 @@ kubectl apply -f https://github.com/rabbitmq/messaging-topology-operator/release
 kubectl apply -f /tmp/rabbitmq-cluster.yaml
 ```
 
-Install memcached
+#### Install memcached
 
 ``` shell
 helm install memcached oci://registry-1.docker.io/bitnamicharts/memcached \
@@ -222,7 +221,7 @@ helm install memcached oci://registry-1.docker.io/bitnamicharts/memcached \
 
 Now that the backend is all deployed, time to deploy openstack.
 
-Setup OSH and make everything
+#### Setup OSH and make everything
 
 ``` shell
 # Export OSH variables
@@ -239,7 +238,7 @@ cd ~/osh/openstack-helm-infra
 make all
 ```
 
-Deploy the ingress controllers
+#### Deploy the ingress controllers
 
 ``` shell
 cd ~/osh/openstack-helm-infra
@@ -262,7 +261,7 @@ helm upgrade --install ingress-openstack ./ingress \
   $(./tools/deployment/common/get-values-overrides.sh ingress)
 ```
 
-Deploy Keystone
+#### Deploy Keystone
 
 ``` shell
 kubectl --namespace openstack \
@@ -308,7 +307,14 @@ Deploy the openstack admin client pod (optional)
 kubectl --namespace openstack apply -f /tmp/utils-openstack-client-admin.yaml
 ```
 
-Deploy Glance
+Validate functionality
+
+``` shell
+kubectl --namespace openstack  exec -ti openstack-admin-client -- openstack user list
+```
+
+
+#### Deploy Glance
 
 ``` shell
 
@@ -346,3 +352,60 @@ helm upgrade --install glance ./glance \
 
 > Note that the defaults disable `storage_init` because we're using **pvc** as the image backend
   type. In production this should be changed to swift.
+
+Validate functionality
+
+``` shell
+kubectl --namespace openstack  exec -ti openstack-admin-client -- openstack image list
+```
+
+#### Deploy Heat
+
+``` shell
+kubectl --namespace openstack \
+        create secret generic heat-rabbitmq-password \
+        --type Opaque \
+        --from-literal=username="heat" \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-64};echo;)"
+kubectl --namespace openstack \
+        create secret generic heat-db-password \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+kubectl --namespace openstack \
+        create secret generic heat-admin \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+kubectl --namespace openstack \
+        create secret generic heat-trustee \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+kubectl --namespace openstack \
+        create secret generic heat-stack-user \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+
+kubectl apply -f /tmp/heat-mariadb-database.yaml
+
+kubectl apply -f /tmp/heat-rabbitmq-queue.yaml
+
+helm upgrade --install heat ./heat \
+  --namespace=openstack \
+    --wait \
+    --timeout 900s \
+    -f /tmp/heat-helm-overrides.yaml \
+    --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.identity.auth.heat.password="$(kubectl --namespace openstack get secret heat-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.identity.auth.heat_trustee.password="$(kubectl --namespace openstack get secret heat-trustee -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.identity.auth.heat_stack_user.password="$(kubectl --namespace openstack get secret heat-stack-user -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
+    --set endpoints.oslo_db.auth.heat.password="$(kubectl --namespace openstack get secret heat-db-password -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace rabbitmq-service get secret openstack-default-user -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_messaging.auth.heat.password="$(kubectl --namespace openstack get secret heat-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
+  $(./tools/deployment/common/get-values-overrides.sh heat)
+```
+
+Validate functionality
+
+``` shell
+kubectl --namespace openstack  exec -ti openstack-admin-client -- openstack --os-interface internal orchestration service list
+```
