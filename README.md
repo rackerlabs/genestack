@@ -294,13 +294,22 @@ helm upgrade --install keystone ./keystone \
     --wait \
     --timeout 900s \
     -f /tmp/keystone-helm-overrides.yaml \
+    $(./tools/deployment/common/get-values-overrides.sh keystone) \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.keystone.password="$(kubectl --namespace openstack get secret keystone-db-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace rabbitmq-service get secret openstack-default-user -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.keystone.password="$(kubectl --namespace openstack get secret keystone-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    $(./tools/deployment/common/get-values-overrides.sh keystone)
+    --set images.tags.keystone_db_sync="ghcr.io/cloudnull/keystone-rxt:${OPENSTACK_RELEASE}-ubuntu_jammy" \
+    --set images.tags.keystone_fernet_setup="ghcr.io/cloudnull/keystone-rxt:${OPENSTACK_RELEASE}-ubuntu_jammy" \
+    --set images.tags.keystone_fernet_rotate="ghcr.io/cloudnull/keystone-rxt:${OPENSTACK_RELEASE}-ubuntu_jammy" \
+    --set images.tags.keystone_credential_setup="ghcr.io/cloudnull/keystone-rxt:${OPENSTACK_RELEASE}-ubuntu_jammy" \
+    --set images.tags.keystone_credential_rotate="ghcr.io/cloudnull/keystone-rxt:${OPENSTACK_RELEASE}-ubuntu_jammy" \
+    --set images.tags.keystone_api="ghcr.io/cloudnull/keystone-rxt:${OPENSTACK_RELEASE}-ubuntu_jammy"
 ```
+
+> NOTE: The image used here allows the system to run with RXT global authentication federation.
+  The federated plugin can be seen here, https://github.com/cloudnull/keystone-rxt
 
 Deploy the openstack admin client pod (optional)
 
@@ -342,13 +351,13 @@ helm upgrade --install glance ./glance \
     --wait \
     --timeout 900s \
     -f /tmp/glance-helm-overrides.yaml \
+    $(./tools/deployment/common/get-values-overrides.sh glance) \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.glance.password="$(kubectl --namespace openstack get secret glance-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.glance.password="$(kubectl --namespace openstack get secret glance-db-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace rabbitmq-service get secret openstack-default-user -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.oslo_messaging.auth.glance.password="$(kubectl --namespace openstack get secret glance-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    $(./tools/deployment/common/get-values-overrides.sh glance)
+    --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_messaging.auth.glance.password="$(kubectl --namespace openstack get secret glance-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)"
 ```
 
 > Note that the defaults disable `storage_init` because we're using **pvc** as the image backend
@@ -394,15 +403,15 @@ helm upgrade --install heat ./heat \
     --wait \
     --timeout 900s \
     -f /tmp/heat-helm-overrides.yaml \
+    $(./tools/deployment/common/get-values-overrides.sh heat) \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.heat.password="$(kubectl --namespace openstack get secret heat-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.heat_trustee.password="$(kubectl --namespace openstack get secret heat-trustee -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.heat_stack_user.password="$(kubectl --namespace openstack get secret heat-stack-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.heat.password="$(kubectl --namespace openstack get secret heat-db-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace rabbitmq-service get secret openstack-default-user -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.oslo_messaging.auth.heat.password="$(kubectl --namespace openstack get secret heat-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-  $(./tools/deployment/common/get-values-overrides.sh heat)
+    --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_messaging.auth.heat.password="$(kubectl --namespace openstack get secret heat-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)"
 ```
 
 Validate functionality
