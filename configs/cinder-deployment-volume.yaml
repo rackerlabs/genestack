@@ -1,0 +1,383 @@
+---
+# Source: cinder/templates/deployment-volume.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cinder-volume
+  namespace: openstack
+---
+# Source: cinder/templates/deployment-volume.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cinder-openstack-cinder-volume
+  namespace: openstack
+rules:
+  - apiGroups:
+      - ""
+      - extensions
+      - batch
+      - apps
+    verbs:
+      - get
+      - list
+    resources:
+      - services
+      - endpoints
+      - jobs
+      - pods
+---
+# Source: cinder/templates/deployment-volume.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cinder-cinder-volume
+  namespace: openstack
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cinder-openstack-cinder-volume
+subjects:
+  - kind: ServiceAccount
+    name: cinder-volume
+    namespace: openstack
+---
+# Source: cinder/templates/deployment-volume.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cinder-volume
+  annotations:
+    "openstackhelm.openstack.org/release_uuid": ""
+  labels:
+    release_group: cinder
+    application: cinder
+    component: volume
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      release_group: cinder
+      application: cinder
+      component: volume
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 3
+  template:
+    metadata:
+      labels:
+        release_group: cinder
+        application: cinder
+        component: volume
+      annotations:
+        "openstackhelm.openstack.org/release_uuid": ""
+        configmap-bin-hash: "bf8a32be63b68f4371801964420d950f5b4e5d768c762a7d348d5df3846bb23d"
+        configmap-etc-hash: "0aa7ad0197d82da2742d846d423fd05a64ef33f9e395a31b1d0d952bed05b8d2"
+
+    spec:
+      serviceAccountName: cinder-volume
+      securityContext:
+        runAsUser: 0
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                  - key: release_group
+                    operator: In
+                    values:
+                    - cinder
+                  - key: application
+                    operator: In
+                    values:
+                    - cinder
+                  - key: component
+                    operator: In
+                    values:
+                    - volume
+              topologyKey: kubernetes.io/hostname
+            weight: 10
+
+      nodeSelector:
+        openstack-storage-node: enabled
+      hostIPC: true
+      initContainers:
+        - name: init
+          image: "quay.io/airshipit/kubernetes-entrypoint:v1.0.0"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsUser: 65534
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: INTERFACE_NAME
+              value: eth0
+            - name: PATH
+              value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/
+            - name: DEPENDENCY_SERVICE
+              value: "openstack:keystone-api,openstack:cinder-api"
+            - name: DEPENDENCY_JOBS
+              value: "cinder-db-sync,cinder-ks-user,cinder-ks-endpoints"
+            - name: DEPENDENCY_DAEMONSET
+              value: ""
+            - name: DEPENDENCY_CONTAINER
+              value: ""
+            - name: DEPENDENCY_POD_JSON
+              value: ""
+            - name: DEPENDENCY_CUSTOM_RESOURCE
+              value: ""
+          command:
+            - kubernetes-entrypoint
+          volumeMounts:
+            null
+
+        - name: init-cinder-conf
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsUser: 0
+          image: docker.io/openstackhelm/heat:2023.2-ubuntu_jammy
+          imagePullPolicy: IfNotPresent
+          command:
+            - /tmp/retrieve-internal-tenant.sh
+          volumeMounts:
+            - name: pod-tmp
+              mountPath: /tmp
+            - name: cinder-bin
+              mountPath: /tmp/retrieve-internal-tenant.sh
+              subPath: retrieve-internal-tenant.sh
+              readOnly: true
+            - name: pod-shared
+              mountPath: /tmp/pod-shared
+          env:
+            - name: OS_IDENTITY_API_VERSION
+              value: "3"
+            - name: OS_AUTH_URL
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-admin
+                  key: OS_AUTH_URL
+            - name: OS_REGION_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-admin
+                  key: OS_REGION_NAME
+            - name: OS_INTERFACE
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-admin
+                  key: OS_INTERFACE
+            - name: OS_ENDPOINT_TYPE
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-admin
+                  key: OS_INTERFACE
+            - name: OS_PROJECT_DOMAIN_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-admin
+                  key: OS_PROJECT_DOMAIN_NAME
+            - name: OS_PROJECT_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-admin
+                  key: OS_PROJECT_NAME
+            - name: OS_USER_DOMAIN_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-admin
+                  key: OS_USER_DOMAIN_NAME
+            - name: OS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-admin
+                  key: OS_USERNAME
+            - name: OS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-admin
+                  key: OS_PASSWORD
+            - name: OS_DEFAULT_DOMAIN
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-admin
+                  key: OS_DEFAULT_DOMAIN
+            - name: INTERNAL_PROJECT_NAME
+              value: "internal_cinder"
+            - name: INTERNAL_USER_NAME
+              value: "internal_cinder"
+            - name: SERVICE_OS_REGION_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-user
+                  key: OS_REGION_NAME
+            - name: SERVICE_OS_PROJECT_DOMAIN_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-user
+                  key: OS_PROJECT_DOMAIN_NAME
+            - name: SERVICE_OS_PROJECT_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-user
+                  key: OS_PROJECT_NAME
+            - name: SERVICE_OS_USER_DOMAIN_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-user
+                  key: OS_USER_DOMAIN_NAME
+            - name: SERVICE_OS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-user
+                  key: OS_USERNAME
+            - name: SERVICE_OS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-user
+                  key: OS_PASSWORD
+      containers:
+        - name: cinder-volume
+          image: "docker.io/openstackhelm/cinder:2023.2-ubuntu_jammy"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+            readOnlyRootFilesystem: true
+          command:
+            - /tmp/cinder-volume.sh
+          env:
+          terminationMessagePath: /var/log/termination-log
+          volumeMounts:
+            - name: run-lvm
+              mountPath: /run/lvm
+            - name: lvm-conf
+              mountPath: /etc/lvm/lvm.conf
+            - name: pod-tmp
+              mountPath: /tmp
+            - name: cinder-bin
+              mountPath: /tmp/cinder-volume.sh
+              subPath: cinder-volume.sh
+              readOnly: true
+            - name: pod-shared
+              mountPath: /tmp/pod-shared
+            - name: cinder-conversion
+              mountPath: /var/lib/cinder/conversion
+            - name: cinder-etc
+              mountPath: /etc/cinder/cinder.conf
+              subPath: cinder.conf
+              readOnly: true
+            - name: cinder-etc
+              mountPath: /etc/cinder/logging.conf
+              subPath: logging.conf
+              readOnly: true
+            - name: cinder-etc
+              mountPath: /etc/cinder/conf/backends.conf
+              subPath: backends.conf
+              readOnly: true
+            - name: cinder-coordination
+              mountPath: /var/lib/cinder/coordination
+            - name: cinder-etc
+              # NOTE (Portdirect): We mount here to override Kollas
+              # custom sudoers file when using Kolla images, this
+              # location will also work fine for other images.
+              mountPath: /etc/sudoers.d/kolla_cinder_sudoers
+              subPath: cinder_sudoers
+              readOnly: true
+            - name: cinder-etc
+              mountPath: /etc/sudoers.d/kolla_cinder_volume_sudoers
+              subPath: cinder_sudoers
+              readOnly: true
+            - name: cinder-etc
+              mountPath: /etc/cinder/rootwrap.conf
+              subPath: rootwrap.conf
+              readOnly: true
+            - name: cinder-etc
+              mountPath: /etc/cinder/rootwrap.d/volume.filters
+              subPath: volume.filters
+              readOnly: true
+            - name: host-rootfs
+              mountPath: /mnt/host-rootfs
+              mountPropagation: HostToContainer
+            - name: host-dev
+              mountPath: /dev
+              mountPropagation: HostToContainer
+            - name: runlock
+              mountPath: /run/lock
+            - name: etciscsi
+              mountPath: /etc/iscsi
+              mountPropagation: HostToContainer
+            - name: usrlocalsbin
+              mountPath: /usr/local/sbin
+            - name: cinder-bin
+              mountPath: /usr/local/sbin/iscsiadm
+              subPath: iscsiadm
+            - name: cinder-bin
+              mountPath: /usr/local/sbin/multipath
+              subPath: multipath
+            - name: cinder-bin
+              mountPath: /usr/local/sbin/multipathd
+              subPath: multipathd
+            - name: etcmultipath
+              mountPath: /etc/multipath
+              mountPropagation: Bidirectional
+            - name: sys
+              mountPath: /sys
+              mountPropagation: HostToContainer
+      volumes:
+        - name: pod-tmp
+          emptyDir: {}
+        - name: cinder-bin
+          configMap:
+            name: cinder-bin
+            defaultMode: 0555
+        - name: cinder-etc
+          secret:
+            secretName: cinder-etc
+            defaultMode: 0444
+        - name: pod-shared
+          emptyDir: {}
+        - name: cinder-conversion
+          emptyDir: {}
+        # NOTE (portdirect): this will need to be set to a shared mount amongst all cinder
+        # pods for the coordination backend to be fully functional.
+        - name: cinder-coordination
+          emptyDir: {}
+        - name: host-rootfs
+          hostPath:
+            path: /
+        - name: host-dev
+          hostPath:
+            path: /dev
+        - name: runlock
+          hostPath:
+            path: /run/lock
+        - name: run-lvm
+          hostPath:
+            path: /run/lvm
+        - name: lvm-conf
+          hostPath:
+            path: /etc/lvm/lvm.conf
+        - name: etciscsi
+          hostPath:
+            path: /etc/iscsi
+        - name: usrlocalsbin
+          emptyDir: {}
+        - name: etcmultipath
+          hostPath:
+            path: /etc/multipath
+        - name: sys
+          hostPath:
+            path: /sys

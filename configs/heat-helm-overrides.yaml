@@ -683,7 +683,7 @@ secrets:
     admin: mariadb
     heat: glance-db-password
   oslo_messaging:
-    admin: openstack-default-user
+    admin: rabbitmq-default-user
     heat: heat-rabbitmq-user
   tls:
     orchestration:

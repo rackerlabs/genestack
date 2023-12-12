@@ -419,3 +419,142 @@ Validate functionality
 ``` shell
 kubectl --namespace openstack  exec -ti openstack-admin-client -- openstack --os-interface internal orchestration service list
 ```
+
+#### Deploy Cinder
+
+Before we build our storage environment, make sure to label the storage nodes.
+
+``` shell
+kubectl label node openstack-flex-node-3 openstack-storage-node=enabled
+```
+
+
+``` shell
+kubectl --namespace openstack \
+        create secret generic cinder-rabbitmq-password \
+        --type Opaque \
+        --from-literal=username="cinder" \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-64};echo;)"
+kubectl --namespace openstack \
+        create secret generic cinder-db-password \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+kubectl --namespace openstack \
+        create secret generic cinder-admin \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+
+kubectl apply -f /tmp/cinder-mariadb-database.yaml
+
+kubectl apply -f /tmp/cinder-rabbitmq-queue.yaml
+
+helm upgrade --install cinder ./cinder \
+  --namespace=openstack \
+    --wait \
+    --timeout 900s \
+    -f /tmp/cinder-helm-overrides.yaml \
+    $(./tools/deployment/common/get-values-overrides.sh cinder) \
+    --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.identity.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
+    --set endpoints.oslo_db.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-db-password -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_messaging.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)"
+```
+
+Once the helm deployment is complete cinder and all of it's API services will be online. However, using this setup there will be no volume node at this point.
+The reason volume deployments have been disabled is because I didn't expose ceph to the openstack environment and OSH makes a lot of ceph related assumptions.
+For testing purposes we're wanting to run with the logical volume driver (reference) and manage the deployment of that driver in a hybrid way. As such there's
+a deployment outside of our normal K8S workflow will be needed on our volume host.
+
+> The LVM volume makes the assumption that the storage node has the required volume group setup `lvmdriver-1` on the node. This is not something that K8S is
+  handling at this time.
+
+The hybrid volume node needs a couple things to be able to communicate back to our K8S environment.
+
+1. DNS server, this is expected to be our coredns IP, in my case this is `169.254.25.10`.
+2. To find our service domains, make sure to add a domain search for `openstack.svc.cluster.local svc.cluster.local cluster.local`
+
+This is an example of my **systemd-resolved** conf found in `/etc/systemd/resolved.conf`
+``` conf
+[Resolve]
+DNS=169.254.25.10
+#FallbackDNS=
+Domains=openstack.svc.cluster.local svc.cluster.local cluster.local
+#LLMNR=no
+#MulticastDNS=no
+DNSSEC=no
+Cache=no-negative
+#DNSStubListener=yes
+```
+
+Restart your DNS service after changes are made.
+
+``` shell
+systemctl restart systemd-resolved.service
+```
+
+For ease of operation I've included my entire cinder configuration in this repo. Copy these files to your target node(s) at `/etc/cinder`.
+
+> This is not intended to work as is, you will need to change the files to use information from your cluster. This is just a POC which
+  highlights how we can get to a hybrid solution; this should be an automated deliverable.
+
+With the files in place, install your desired version of the cinder service.
+
+``` shell
+apt install build-essential python3-venv python3-dev
+python3 -m venv /opt/cinder
+/opt/cinder/bin/pip install pip pymysql --upgrade
+/opt/cinder/bin/pip install git+https://github.com/openstack/cinder@stable/2023.1
+```
+
+``` shell
+/opt/cinder/bin/cinder-volume --config-file /etc/cinder/cinder.conf --config-file /etc/cinder/conf/backends.conf --config-file /etc/cinder/internal_tenant.conf
+```
+
+After this deployment has completed the volume service will be operational, which we can see with the following command.
+
+``` shell
+kubectl --namespace openstack  exec -ti openstack-admin-client -- openstack volume service list
+```
+
+Now we can create the volume type to ensure we're able to deploy volumes with our volume driver.
+
+``` shell
+kubectl --namespace openstack  exec -ti openstack-admin-client -- openstack volume type set --public lvmdriver-1
+```
+
+Verify functionality by creating a volume
+
+``` shell
+kubectl --namespace openstack  exec -ti openstack-admin-client -- openstack volume create --size 1 test-lvm
+kubectl --namespace openstack  exec -ti openstack-admin-client -- openstack volume show test-lvm
++--------------------------------+--------------------------------------+
+| Field                          | Value                                |
++--------------------------------+--------------------------------------+
+| attachments                    | []                                   |
+| availability_zone              | nova                                 |
+| bootable                       | false                                |
+| consistencygroup_id            | None                                 |
+| created_at                     | 2023-12-12T04:40:41.000000           |
+| description                    | None                                 |
+| encrypted                      | False                                |
+| id                             | 70a07aa6-8cf1-4b74-9623-eefbf0bf6e2e |
+| migration_status               | None                                 |
+| multiattach                    | False                                |
+| name                           | test-lvm                             |
+| os-vol-host-attr:host          | cinder-volume-worker@lvmdriver-1#LVM |
+| os-vol-mig-status-attr:migstat | None                                 |
+| os-vol-mig-status-attr:name_id | None                                 |
+| os-vol-tenant-attr:tenant_id   | 7abed12be0ce4a828a35f400cd8e6f1e     |
+| properties                     |                                      |
+| replication_status             | None                                 |
+| size                           | 1                                    |
+| snapshot_id                    | None                                 |
+| source_volid                   | None                                 |
+| status                         | available                            |
+| type                           | lvmdriver-1                          |
+| updated_at                     | 2023-12-12T04:40:42.000000           |
+| user_id                        | 68718fb353c7446f9b7d3b3ca8c7ae28     |
++--------------------------------+--------------------------------------+
+```

@@ -1,0 +1,73 @@
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: User
+metadata:
+  name: cinder
+  namespace: openstack
+spec:
+  tags:
+  - management # available tags are 'management', 'policymaker', 'monitoring' and 'administrator'
+  - policymaker
+  rabbitmqClusterReference:
+    name: rabbitmq # rabbitmqCluster must exist in the same namespace as this resource
+    namespace: openstack
+  importCredentialsSecret:
+    name: cinder-rabbitmq-password
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Vhost
+metadata:
+  name: cinder-vhost
+  namespace: openstack
+spec:
+  name: "cinder" # vhost name; required and cannot be updated
+  defaultQueueType: quorum # default queue type for this vhost; require RabbitMQ version 3.11.12 or above
+  rabbitmqClusterReference:
+    name: rabbitmq # rabbitmqCluster must exist in the same namespace as this resource
+    namespace: openstack
+# status:
+#   conditions:
+#   - lastTransitionTime: ""
+#     status: "True" # true, false, or unknown
+#     type: Ready
+#     Reason: "SuccessfulCreateOrUpdate" # status false result in reason FailedCreateOrUpdate
+#     Message: "" # set when status is false
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Queue
+metadata:
+  name: cinder-queue
+  namespace: openstack
+spec:
+  name: cinder-qq # name of the queue
+  vhost: "cinder" # default to '/' if not provided
+  type: quorum # without providing a queue type, rabbitmq creates a classic queue
+  autoDelete: false
+  durable: true # seting 'durable' to false means this queue won't survive a server restart
+  rabbitmqClusterReference:
+    name: rabbitmq # rabbitmqCluster must exist in the same namespace as this resource
+    namespace: openstack
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: cinder-permission
+  namespace: openstack
+spec:
+  vhost: "cinder" # name of a vhost
+  userReference:
+    name: "cinder" # name of a user.rabbitmq.com in the same namespace; must specify either spec.userReference or spec.user
+  permissions:
+    write: ".*"
+    configure: ".*"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq # rabbitmqCluster must exist in the same namespace as this resource
+    namespace: openstack
+# status:
+#   conditions:
+#   - lastTransitionTime: ""
+#     status: "True" # true, false, or unknown
+#     type: Ready
+#     Reason: "SuccessfulCreateOrUpdate" # status false result in reason FailedCreateOrUpdate
+#     Message: "" # set when status is false
