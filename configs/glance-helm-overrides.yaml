@@ -494,7 +494,7 @@ secrets:
     glance: glance-db-password
   rbd: images-rbd-keyring
   oslo_messaging:
-    admin: openstack-default-user
+    admin: rabbitmq-default-user
     glance: glance-rabbitmq-user
   tls:
     image:
@@ -602,7 +602,7 @@ endpoints:
         username: glance
         password: password
     hosts:
-      default: mariadb-galera-primary
+      default: mariadb-galera
     host_fqdn_override:
       default: null
     path: /glance

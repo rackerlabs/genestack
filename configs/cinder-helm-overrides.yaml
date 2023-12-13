@@ -1340,7 +1340,7 @@ endpoints:
         username: cinder
         password: password
     hosts:
-      default: mariadb-galera-primary
+      default: mariadb-galera
     host_fqdn_override:
       default: null
     path: /cinder

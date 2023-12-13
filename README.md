@@ -58,9 +58,8 @@ ansible-playbook -i inventory/openstack-flex/inventory.ini -u ubuntu -b cluster.
 Copy the provided scripts to our controller
 
 ``` shell
-scp -F ~/.ssh/$NETWORK_NAME-keypair.config configs/* ubuntu@$NODE_IP:/tmp/
+rsync -avz -e 'ssh -F ~/.ssh/$NETWORK_NAME-keypair.config' configs/* ubuntu@$NODE_IP:/tmp/
 ```
-
 
 Login to the first controller node in the infrastructure to begin the OSH deployment
 
@@ -508,27 +507,31 @@ python3 -m venv /opt/cinder
 /opt/cinder/bin/pip install git+https://github.com/openstack/cinder@stable/2023.1
 ```
 
+Run cinder the Cinder volume service.
+
 ``` shell
-/opt/cinder/bin/cinder-volume --config-file /etc/cinder/cinder.conf --config-file /etc/cinder/conf/backends.conf --config-file /etc/cinder/internal_tenant.conf
+systemd-run /opt/cinder/bin/cinder-volume --config-file /etc/cinder/cinder.conf --config-file /etc/cinder/conf/backends.conf --config-file /etc/cinder/internal_tenant.conf
 ```
+
+> NOTE: The above command will run the `cinder-volume` service with systemd, but it won't survive a reboot.
 
 After this deployment has completed the volume service will be operational, which we can see with the following command.
 
 ``` shell
-kubectl --namespace openstack  exec -ti openstack-admin-client -- openstack volume service list
+kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume service list
 ```
 
 Now we can create the volume type to ensure we're able to deploy volumes with our volume driver.
 
 ``` shell
-kubectl --namespace openstack  exec -ti openstack-admin-client -- openstack volume type set --public lvmdriver-1
+kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume type set --public lvmdriver-1
 ```
 
 Verify functionality by creating a volume
 
 ``` shell
-kubectl --namespace openstack  exec -ti openstack-admin-client -- openstack volume create --size 1 test-lvm
-kubectl --namespace openstack  exec -ti openstack-admin-client -- openstack volume show test-lvm
+kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume create --size 1 test-lvm
+kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume show test-lvm
 +--------------------------------+--------------------------------------+
 | Field                          | Value                                |
 +--------------------------------+--------------------------------------+
@@ -558,3 +561,146 @@ kubectl --namespace openstack  exec -ti openstack-admin-client -- openstack volu
 | user_id                        | 68718fb353c7446f9b7d3b3ca8c7ae28     |
 +--------------------------------+--------------------------------------+
 ```
+
+#### Deploy Open vSwitch / OVN
+
+Note that we'er not deploying OVN / Openvswitch, however, we are using it. The implementation of this POC
+was done with Kubespray which deploys OVN as it's networking solution. Because those components are handled
+by our infrastructure there's nothing for us to manage / deploy in this environment. OpenStack will
+leverage ovn within openstack following the scaling/maintenance/management practices of kube-ovn.
+
+#### Deploy Neutron
+
+``` shell
+kubectl --namespace openstack \
+        create secret generic neutron-rabbitmq-password \
+        --type Opaque \
+        --from-literal=username="neutron" \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-64};echo;)"
+kubectl --namespace openstack \
+        create secret generic neutron-db-password \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+kubectl --namespace openstack \
+        create secret generic neutron-admin \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+
+kubectl apply -f /tmp/neutron-mariadb-database.yaml
+
+kubectl apply -f /tmp/neutron-rabbitmq-queue.yaml
+
+helm upgrade --install neutron ./neutron \
+  --namespace=openstack \
+    --wait \
+    --timeout 900s \
+    -f /tmp/neutron-helm-overrides.yaml \
+    $(./tools/deployment/common/get-values-overrides.sh neutron) \
+    --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.identity.auth.neutron.password="$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
+    --set endpoints.oslo_db.auth.neutron.password="$(kubectl --namespace openstack get secret neutron-db-password -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_messaging.auth.neutron.password="$(kubectl --namespace openstack get secret neutron-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
+    --set conf.neutron.ovn.neutron.ovn_nb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-nb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
+    --set conf.neutron.ovn.neutron.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-sb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
+    --set conf.plugins.ml2_conf.ovn.ovn_nb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-nb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
+    --set conf.plugins.ml2_conf.ovn.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-sb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')"
+```
+
+> The above command derives the OVN north/south bound database from our K8S environment. The insert `set` is making the assumption we're using **tcp** to connect.
+
+Verify functionality
+
+``` shell
+kubectl --namespace openstack  exec -ti openstack-admin-client -- openstack network agent list
++--------------------------------------+----------------------+-----------------------+-------------------+-------+-------+----------------+
+| ID                                   | Agent Type           | Host                  | Availability Zone | Alive | State | Binary         |
++--------------------------------------+----------------------+-----------------------+-------------------+-------+-------+----------------+
+| cf7e12f7-7304-4d45-ae7b-8a91631153a5 | OVN Controller agent | openstack-flex-node-0 |                   | :-)   | UP    | ovn-controller |
+| 2ed1b8c2-c5ca-499b-a932-43c170af3935 | OVN Controller agent | openstack-flex-node-2 |                   | :-)   | UP    | ovn-controller |
+| 1e733a41-5c73-4520-8b87-787ae2fd4cc3 | OVN Controller agent | openstack-flex-node-8 |                   | :-)   | UP    | ovn-controller |
+| fe9a3ac4-55e2-4f0d-9616-8745316bb792 | OVN Controller agent | openstack-flex-node-5 |                   | :-)   | UP    | ovn-controller |
+| b29ec612-5430-47e7-8528-295029a6c1fd | OVN Controller agent | openstack-flex-node-7 |                   | :-)   | UP    | ovn-controller |
+| 9612f275-1ac5-4385-bee1-4b47f9a22ff2 | OVN Controller agent | openstack-flex-node-3 |                   | :-)   | UP    | ovn-controller |
+| 4e45dc71-134b-4ef4-9ead-2d56af37bcb2 | OVN Controller agent | openstack-flex-node-4 |                   | :-)   | UP    | ovn-controller |
+| d3fb2d38-e99e-4bbf-b799-115111dd70b8 | OVN Controller agent | openstack-flex-node-6 |                   | :-)   | UP    | ovn-controller |
+| 0f7a99b9-263e-4ea9-a5ec-71ce6b3ed6e9 | OVN Controller agent | openstack-flex-node-1 |                   | :-)   | UP    | ovn-controller |
++--------------------------------------+----------------------+-----------------------+-------------------+-------+-------+----------------+
+```
+
+#### Deploy libvirt
+
+> NOTE IMPLEMENTED YET
+
+``` shell
+cd ~/osh/openstack-helm-infra
+
+helm upgrade --install libvirt ./libvirt \
+  --namespace=openstack \
+    --wait \
+    --timeout 900s \
+    -f /tmp/libvirt-helm-overrides.yaml \
+    $(./tools/deployment/common/get-values-overrides.sh libvirt)
+```
+
+#### Deploy Nova
+
+> NOTE IMPLEMENTED YET
+
+``` shell
+kubectl --namespace openstack \
+        create secret generic nova-db-password \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+
+helm upgrade --install nova ./nova \
+  --namespace=openstack \
+    --wait \
+    --timeout 900s \
+    -f /tmp/nova-helm-overrides.yaml \
+    $(./tools/deployment/common/get-values-overrides.sh nova) \
+    --set bootstrap.wait_for_computes.enabled=true \
+    --set conf.ceph.enabled=false \
+    --set conf.nova.libvirt.virt_type=qemu \
+    --set conf.nova.libvirt.cpu_mode=none
+```
+
+> NOTE: The above command is setting the ceph as disabled. While the K8S infrastructure has Ceph,
+  we're not exposing ceph to our openstack environment.
+
+> NOTE: The above command is setting the libvirt mode to software virt instead of leveraging hardware virt.
+  This is done for testing in virtual infrastructure.
+
+#### Deploy Placement
+
+> NOTE IMPLEMENTED YET
+
+``` shell
+kubectl --namespace openstack \
+        create secret generic placement-db-password \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+kubectl --namespace openstack \
+        create secret generic placement-admin \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+
+kubectl apply -f /tmp/placement-mariadb-database.yaml
+
+helm upgrade --install placement ./placement --namespace=openstack \
+  --namespace=openstack \
+    --wait \
+    --timeout 900s \
+    -f /tmp/placement-helm-overrides.yaml \
+    $(./tools/deployment/common/get-values-overrides.sh placement)
+    --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.identity.auth.placement.password="$(kubectl --namespace openstack get secret placement-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
+    --set endpoints.oslo_db.auth.placement.password="$(kubectl --namespace openstack get secret placement-db-password -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_db.auth.nova_api.password="$(kubectl --namespace openstack get secret nova-db-password -o jsonpath='{.data.password}' | base64 -d)"
+```
+
+#### Deploy Horizon
+
+> NOTE IMPLEMENTED YET
