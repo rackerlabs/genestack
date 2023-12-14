@@ -1,0 +1,27 @@
+---
+apiVersion: kubevirt.io/v1
+kind: KubeVirt
+metadata:
+  name: kubevirt
+  namespace: kubevirt
+spec:
+  infra:
+    nodePlacement:
+      tolerations:
+        - key: "node-role.kubernetes.io/control-plane"
+          effect: "NoSchedule"
+          operator: "Exists"
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: ""  # Restrict to Kubernetes control plane nodes
+  workloads:
+    nodePlacement:
+      nodeSelector:
+        openstack-compute-node: enabled  # Restrict to OpenStack compute nodes
+  certificateRotateStrategy: {}
+  configuration:
+    developerConfiguration:
+      useEmulation: false  # Enable / Disable emulation mode, this is only required for non-KVM enabled hosts
+      featureGates: []
+  customizeComponents: {}
+  imagePullPolicy: IfNotPresent
+  workloadUpdateStrategy: {}

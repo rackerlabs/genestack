@@ -248,8 +248,7 @@ helm upgrade --install ingress-kube-system ./ingress \
   --namespace=kube-system \
   --wait \
   --timeout 900s \
-  --values=/tmp/ingress-kube-system.yaml \
-  $(./tools/deployment/common/get-values-overrides.sh ingress)
+  --values=/tmp/ingress-kube-system.yaml
 
 # Second the component openstack controller
 helm upgrade --install ingress-openstack ./ingress \
@@ -257,8 +256,7 @@ helm upgrade --install ingress-openstack ./ingress \
   --wait \
   --timeout 900s \
   --values=/tmp/ingress-component.yaml \
-  --set deployment.cluster.class=nginx \
-  $(./tools/deployment/common/get-values-overrides.sh ingress)
+  --set deployment.cluster.class=nginx
 ```
 
 #### Deploy Keystone
@@ -293,18 +291,11 @@ helm upgrade --install keystone ./keystone \
     --wait \
     --timeout 900s \
     -f /tmp/keystone-helm-overrides.yaml \
-    $(./tools/deployment/common/get-values-overrides.sh keystone) \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.keystone.password="$(kubectl --namespace openstack get secret keystone-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.oslo_messaging.auth.keystone.password="$(kubectl --namespace openstack get secret keystone-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --set images.tags.keystone_db_sync="ghcr.io/cloudnull/keystone-rxt:${OPENSTACK_RELEASE}-ubuntu_jammy" \
-    --set images.tags.keystone_fernet_setup="ghcr.io/cloudnull/keystone-rxt:${OPENSTACK_RELEASE}-ubuntu_jammy" \
-    --set images.tags.keystone_fernet_rotate="ghcr.io/cloudnull/keystone-rxt:${OPENSTACK_RELEASE}-ubuntu_jammy" \
-    --set images.tags.keystone_credential_setup="ghcr.io/cloudnull/keystone-rxt:${OPENSTACK_RELEASE}-ubuntu_jammy" \
-    --set images.tags.keystone_credential_rotate="ghcr.io/cloudnull/keystone-rxt:${OPENSTACK_RELEASE}-ubuntu_jammy" \
-    --set images.tags.keystone_api="ghcr.io/cloudnull/keystone-rxt:${OPENSTACK_RELEASE}-ubuntu_jammy"
+    --set endpoints.oslo_messaging.auth.keystone.password="$(kubectl --namespace openstack get secret keystone-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)"
 ```
 
 > NOTE: The image used here allows the system to run with RXT global authentication federation.
@@ -350,7 +341,6 @@ helm upgrade --install glance ./glance \
     --wait \
     --timeout 900s \
     -f /tmp/glance-helm-overrides.yaml \
-    $(./tools/deployment/common/get-values-overrides.sh glance) \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.glance.password="$(kubectl --namespace openstack get secret glance-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
@@ -402,7 +392,6 @@ helm upgrade --install heat ./heat \
     --wait \
     --timeout 900s \
     -f /tmp/heat-helm-overrides.yaml \
-    $(./tools/deployment/common/get-values-overrides.sh heat) \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.heat.password="$(kubectl --namespace openstack get secret heat-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.heat_trustee.password="$(kubectl --namespace openstack get secret heat-trustee -o jsonpath='{.data.password}' | base64 -d)" \
@@ -452,7 +441,6 @@ helm upgrade --install cinder ./cinder \
     --wait \
     --timeout 900s \
     -f /tmp/cinder-helm-overrides.yaml \
-    $(./tools/deployment/common/get-values-overrides.sh cinder) \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
@@ -569,9 +557,74 @@ was done with Kubespray which deploys OVN as it's networking solution. Because t
 by our infrastructure there's nothing for us to manage / deploy in this environment. OpenStack will
 leverage ovn within openstack following the scaling/maintenance/management practices of kube-ovn.
 
-#### Deploy Neutron
+#### Deploy the Compute Kit
 
 ``` shell
+cd ~/osh/openstack-helm-infra
+
+helm upgrade --install libvirt ./libvirt \
+  --namespace=openstack \
+    --wait \
+    --timeout 900s \
+    -f /tmp/libvirt-helm-overrides.yaml
+```
+
+Once deployed you can validate functionality on your compute hosts with `virsh`
+
+``` shell
+root@openstack-flex-node-3:~# virsh
+Welcome to virsh, the virtualization interactive terminal.
+
+Type:  'help' for help with commands
+       'quit' to quit
+
+virsh # list
+ Id   Name   State
+--------------------
+
+virsh #
+```
+
+Part of running Nova is also running placement. Setup all credentials now so we can use them across the nova and placement services.
+
+``` shell
+# Placement
+kubectl --namespace openstack \
+        create secret generic placement-db-password \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+kubectl --namespace openstack \
+        create secret generic placement-admin \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+# Nova
+kubectl --namespace openstack \
+        create secret generic nova-db-password \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+kubectl --namespace openstack \
+        create secret generic nova-admin \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+kubectl --namespace openstack \
+        create secret generic nova-rabbitmq-password \
+        --type Opaque \
+        --from-literal=username="nova" \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-64};echo;)"
+
+# Ironic (NOT IMPLEMENTED YET)
+kubectl --namespace openstack \
+        create secret generic ironic-admin \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+
+# Designate (NOT IMPLEMENTED YET)
+kubectl --namespace openstack \
+        create secret generic designate-admin \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+
+# Neutron
 kubectl --namespace openstack \
         create secret generic neutron-rabbitmq-password \
         --type Opaque \
@@ -585,19 +638,37 @@ kubectl --namespace openstack \
         create secret generic neutron-admin \
         --type Opaque \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+```
 
+Create all the databases
+
+``` shell
 kubectl apply -f /tmp/neutron-mariadb-database.yaml
+kubectl apply -f /tmp/nova-mariadb-database.yaml
+kubectl apply -f /tmp/placement-mariadb-database.yaml
+```
 
+Create all of the queues
+
+``` shell
 kubectl apply -f /tmp/neutron-rabbitmq-queue.yaml
+kubectl apply -f /tmp/nova-rabbitmq-queue.yaml
+```
+
+Deploy Neutron
+
+``` shell
+cd ~/osh/openstack-helm
 
 helm upgrade --install neutron ./neutron \
   --namespace=openstack \
-    --wait \
-    --timeout 900s \
     -f /tmp/neutron-helm-overrides.yaml \
-    $(./tools/deployment/common/get-values-overrides.sh neutron) \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.neutron.password="$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.identity.auth.nova.password="$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.identity.auth.placement.password="$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.identity.auth.designate.password="$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.identity.auth.ironic.password="$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.neutron.password="$(kubectl --namespace openstack get secret neutron-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
@@ -605,100 +676,59 @@ helm upgrade --install neutron ./neutron \
     --set conf.neutron.ovn.neutron.ovn_nb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-nb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
     --set conf.neutron.ovn.neutron.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-sb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
     --set conf.plugins.ml2_conf.ovn.ovn_nb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-nb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
-    --set conf.plugins.ml2_conf.ovn.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-sb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')"
+    --set conf.plugins.ml2_conf.ovn.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-sb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" &
 ```
 
 > The above command derives the OVN north/south bound database from our K8S environment. The insert `set` is making the assumption we're using **tcp** to connect.
 
-Verify functionality
+Deploy Nova
 
 ``` shell
-kubectl --namespace openstack  exec -ti openstack-admin-client -- openstack network agent list
-+--------------------------------------+----------------------+-----------------------+-------------------+-------+-------+----------------+
-| ID                                   | Agent Type           | Host                  | Availability Zone | Alive | State | Binary         |
-+--------------------------------------+----------------------+-----------------------+-------------------+-------+-------+----------------+
-| cf7e12f7-7304-4d45-ae7b-8a91631153a5 | OVN Controller agent | openstack-flex-node-0 |                   | :-)   | UP    | ovn-controller |
-| 2ed1b8c2-c5ca-499b-a932-43c170af3935 | OVN Controller agent | openstack-flex-node-2 |                   | :-)   | UP    | ovn-controller |
-| 1e733a41-5c73-4520-8b87-787ae2fd4cc3 | OVN Controller agent | openstack-flex-node-8 |                   | :-)   | UP    | ovn-controller |
-| fe9a3ac4-55e2-4f0d-9616-8745316bb792 | OVN Controller agent | openstack-flex-node-5 |                   | :-)   | UP    | ovn-controller |
-| b29ec612-5430-47e7-8528-295029a6c1fd | OVN Controller agent | openstack-flex-node-7 |                   | :-)   | UP    | ovn-controller |
-| 9612f275-1ac5-4385-bee1-4b47f9a22ff2 | OVN Controller agent | openstack-flex-node-3 |                   | :-)   | UP    | ovn-controller |
-| 4e45dc71-134b-4ef4-9ead-2d56af37bcb2 | OVN Controller agent | openstack-flex-node-4 |                   | :-)   | UP    | ovn-controller |
-| d3fb2d38-e99e-4bbf-b799-115111dd70b8 | OVN Controller agent | openstack-flex-node-6 |                   | :-)   | UP    | ovn-controller |
-| 0f7a99b9-263e-4ea9-a5ec-71ce6b3ed6e9 | OVN Controller agent | openstack-flex-node-1 |                   | :-)   | UP    | ovn-controller |
-+--------------------------------------+----------------------+-----------------------+-------------------+-------+-------+----------------+
-```
-
-#### Deploy libvirt
-
-> NOTE IMPLEMENTED YET
-
-``` shell
-cd ~/osh/openstack-helm-infra
-
-helm upgrade --install libvirt ./libvirt \
-  --namespace=openstack \
-    --wait \
-    --timeout 900s \
-    -f /tmp/libvirt-helm-overrides.yaml \
-    $(./tools/deployment/common/get-values-overrides.sh libvirt)
-```
-
-#### Deploy Nova
-
-> NOTE IMPLEMENTED YET
-
-``` shell
-kubectl --namespace openstack \
-        create secret generic nova-db-password \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+cd ~/osh/openstack-helm
 
 helm upgrade --install nova ./nova \
   --namespace=openstack \
-    --wait \
-    --timeout 900s \
     -f /tmp/nova-helm-overrides.yaml \
-    $(./tools/deployment/common/get-values-overrides.sh nova) \
     --set bootstrap.wait_for_computes.enabled=true \
     --set conf.ceph.enabled=false \
-    --set conf.nova.libvirt.virt_type=qemu \
-    --set conf.nova.libvirt.cpu_mode=none
+    --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.identity.auth.nova.password="$(kubectl --namespace openstack get secret nova-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.identity.auth.neutron.password="$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.identity.auth.ironic.password="$(kubectl --namespace openstack get secret ironic-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.identity.auth.placement.password="$(kubectl --namespace openstack get secret placement-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.identity.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
+    --set endpoints.oslo_db.auth.nova.password="$(kubectl --namespace openstack get secret nova-db-password -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_db_api.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
+    --set endpoints.oslo_db_api.auth.nova.password="$(kubectl --namespace openstack get secret nova-db-password -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_db_cell0.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
+    --set endpoints.oslo_db_cell0.auth.nova.password="$(kubectl --namespace openstack get secret nova-db-password -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_messaging.auth.nova.password="$(kubectl --namespace openstack get secret nova-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" &
 ```
 
 > NOTE: The above command is setting the ceph as disabled. While the K8S infrastructure has Ceph,
   we're not exposing ceph to our openstack environment.
 
-> NOTE: The above command is setting the libvirt mode to software virt instead of leveraging hardware virt.
-  This is done for testing in virtual infrastructure.
-
-#### Deploy Placement
-
-> NOTE IMPLEMENTED YET
+If running in an environment that doesn't have hardware virtualization extensions add the following two `set` switches to the install command.
 
 ``` shell
-kubectl --namespace openstack \
-        create secret generic placement-db-password \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack \
-        create secret generic placement-admin \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+--set conf.nova.libvirt.virt_type=qemu --set conf.nova.libvirt.cpu_mode=none
+```
 
-kubectl apply -f /tmp/placement-mariadb-database.yaml
+Deploy Placement
+
+``` shell
+cd ~/osh/openstack-helm
 
 helm upgrade --install placement ./placement --namespace=openstack \
   --namespace=openstack \
-    --wait \
-    --timeout 900s \
     -f /tmp/placement-helm-overrides.yaml \
-    $(./tools/deployment/common/get-values-overrides.sh placement)
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.placement.password="$(kubectl --namespace openstack get secret placement-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.placement.password="$(kubectl --namespace openstack get secret placement-db-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.oslo_db.auth.nova_api.password="$(kubectl --namespace openstack get secret nova-db-password -o jsonpath='{.data.password}' | base64 -d)"
+    --set endpoints.oslo_db.auth.nova_api.password="$(kubectl --namespace openstack get secret nova-db-password -o jsonpath='{.data.password}' | base64 -d)" &
 ```
 
 #### Deploy Horizon
