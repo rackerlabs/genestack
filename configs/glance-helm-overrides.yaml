@@ -471,12 +471,13 @@ secrets:
   identity:
     admin: glance-keystone-admin
     glance: glance-keystone-user
+    test: glance-keystone-test
   oslo_db:
-    admin: mariadb
-    glance: glance-db-password
+    admin: glance-db-admin
+    glance: glance-db-user
   rbd: images-rbd-keyring
   oslo_messaging:
-    admin: rabbitmq-default-user
+    admin: glance-rabbitmq-admin
     glance: glance-rabbitmq-user
   tls:
     image:
@@ -979,10 +980,10 @@ manifests:
   pod_rally_test: false
   pvc_images: true
   network_policy: false
-  secret_db: false
+  secret_db: true
   secret_ingress_tls: true
   secret_keystone: true
-  secret_rabbitmq: false
+  secret_rabbitmq: true
   secret_registry: true
   service_ingress_api: true
   service_api: true

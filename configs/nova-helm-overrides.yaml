@@ -586,7 +586,7 @@ conf:
       a2enmod: null
       a2dismod: null
   ceph:
-    enabled: true
+    enabled: false
     admin_keyring: null
     cinder:
       user: "cinder"

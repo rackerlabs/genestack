@@ -1,4 +1,4 @@
 pod:
   replicas:
-    ingress: 2
-    error_page: 2
+    ingress: 3
+    error_page: 3

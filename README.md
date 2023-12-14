@@ -100,10 +100,12 @@ git clone https://github.com/mariadb-operator/mariadb-operator
 #### Install the cert-manager
 
 ``` shell
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/latest/cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
 ```
 
 #### Install rook operator
+
+Before deploying Ceph we need to label our nodes.
 
 ``` shell
 # Deploy the cluster, before we can deploy the cluster we need to setup the nodes and its devices.
@@ -113,7 +115,11 @@ kubectl get nodes -o wide
 
 # Label our storage nodes
 kubectl label node openstack-flex-node-6 openstack-flex-node-7 openstack-flex-node-8 role=storage-node
+```
 
+Now run the basic deployment.
+
+``` shell
 # Deploy rook
 cd ~/osh/rook/deploy/examples
 kubectl create -f crds.yaml
@@ -122,7 +128,11 @@ kubectl create -f operator.yaml
 
 # Deploy our ceph cluster
 kubectl create -f /tmp/rook-cluster.yaml
+```
 
+Once the ceph environment has been deployed, it's time to deploy some additional components ceph will use.
+
+``` shell
 # Deploy our ceph toolbox
 kubectl apply -f toolbox.yaml
 
@@ -137,9 +147,6 @@ kubectl create -f csi/rbd/storageclass.yaml
 
 # Create our general (rbd) store classes, which is marked default.
 kubectl create -f /tmp/storageclass-general.yaml
-
-# Wait for everything to be created. It can take a minute or two.
-kubectl --namespace rook-ceph get pods -w
 ```
 
 Label all of the nodes in the environment.
@@ -184,7 +191,6 @@ helm install mariadb-operator mariadb-operator/mariadb-operator --set webhook.ce
 cd ~/osh/mariadb-operator
 kubectl apply --namespace openstack -f examples/manifests/config/mariabackup-pvc.yaml
 kubectl apply --namespace openstack -f examples/manifests/config/mariadb-configmap.yaml
-kubectl apply --namespace openstack -f examples/manifests/config/mariadb-my-cnf-configmap.yaml
 
 # Create secret
 kubectl --namespace openstack \
@@ -202,11 +208,24 @@ kubectl --namespace openstack get mariadbs
 
 #### Install RabbitMQ
 
+Install the RabbitMQ operator.
+
 ``` shell
 # Install rabbitmq
 kubectl apply -f https://github.com/rabbitmq/cluster-operator/releases/latest/download/cluster-operator.yml
 kubectl apply -f https://github.com/rabbitmq/messaging-topology-operator/releases/latest/download/messaging-topology-operator-with-certmanager.yaml
+```
+
+Deploy the RabbitMQ cluster.
+
+``` shell
 kubectl apply -f /tmp/rabbitmq-cluster.yaml
+```
+
+Validate the status with the following
+
+``` shell
+kubectl --namespace openstack get rabbitmqclusters.rabbitmq.com
 ```
 
 #### Install memcached
@@ -248,14 +267,16 @@ helm upgrade --install ingress-kube-system ./ingress \
   --namespace=kube-system \
   --wait \
   --timeout 900s \
-  --values=/tmp/ingress-kube-system.yaml
+  -f /tmp/keystone-helm-overrides.yaml \
+  -f /tmp/ingress-kube-system.yaml
 
 # Second the component openstack controller
 helm upgrade --install ingress-openstack ./ingress \
   --namespace=openstack \
   --wait \
   --timeout 900s \
-  --values=/tmp/ingress-component.yaml \
+  -f /tmp/keystone-helm-overrides.yaml \
+  -f /tmp/ingress-component.yaml \
   --set deployment.cluster.class=nginx
 ```
 
@@ -489,7 +510,7 @@ For ease of operation I've included my entire cinder configuration in this repo.
 With the files in place, install your desired version of the cinder service.
 
 ``` shell
-apt install build-essential python3-venv python3-dev
+apt install build-essential python3-venv python3-dev -y
 python3 -m venv /opt/cinder
 /opt/cinder/bin/pip install pip pymysql --upgrade
 /opt/cinder/bin/pip install git+https://github.com/openstack/cinder@stable/2023.1
@@ -498,7 +519,7 @@ python3 -m venv /opt/cinder
 Run cinder the Cinder volume service.
 
 ``` shell
-systemd-run /opt/cinder/bin/cinder-volume --config-file /etc/cinder/cinder.conf --config-file /etc/cinder/conf/backends.conf --config-file /etc/cinder/internal_tenant.conf
+systemd-run /opt/cinder/bin/cinder-volume --config-file /etc/cinder/cinder.conf --config-file /etc/cinder/conf/backends.conf
 ```
 
 > NOTE: The above command will run the `cinder-volume` service with systemd, but it won't survive a reboot.
@@ -512,7 +533,7 @@ kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volum
 Now we can create the volume type to ensure we're able to deploy volumes with our volume driver.
 
 ``` shell
-kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume type set --public lvmdriver-1
+kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume type create --public lvmdriver-1
 ```
 
 Verify functionality by creating a volume
@@ -673,8 +694,8 @@ helm upgrade --install neutron ./neutron \
     --set endpoints.oslo_db.auth.neutron.password="$(kubectl --namespace openstack get secret neutron-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.neutron.password="$(kubectl --namespace openstack get secret neutron-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --set conf.neutron.ovn.neutron.ovn_nb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-nb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
-    --set conf.neutron.ovn.neutron.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-sb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
+    --set conf.neutron.ovn.ovn_nb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-nb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
+    --set conf.neutron.ovn.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-sb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
     --set conf.plugins.ml2_conf.ovn.ovn_nb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-nb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
     --set conf.plugins.ml2_conf.ovn.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-sb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" &
 ```
@@ -689,8 +710,6 @@ cd ~/osh/openstack-helm
 helm upgrade --install nova ./nova \
   --namespace=openstack \
     -f /tmp/nova-helm-overrides.yaml \
-    --set bootstrap.wait_for_computes.enabled=true \
-    --set conf.ceph.enabled=false \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.nova.password="$(kubectl --namespace openstack get secret nova-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.neutron.password="$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)" \

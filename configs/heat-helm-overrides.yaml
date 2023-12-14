@@ -584,7 +584,7 @@ dependencies:
         - endpoint: internal
           service: oslo_db
     db_sync:
-      jobs: null
+      jobs: []
       services:
         - endpoint: internal
           service: oslo_db
@@ -679,11 +679,12 @@ secrets:
     heat: heat-keystone-user
     heat_trustee: heat-keystone-trustee
     heat_stack_user: heat-keystone-stack-user
+    test: heat-keystone-test
   oslo_db:
-    admin: mariadb
-    heat: glance-db-password
+    admin: heat-db-admin
+    heat: heat-db-user
   oslo_messaging:
-    admin: rabbitmq-default-user
+    admin: heat-rabbitmq-admin
     heat: heat-rabbitmq-user
   tls:
     orchestration:
@@ -1049,10 +1050,10 @@ pod:
         volumeMounts:
         volumes:
   replicas:
-    api: 3
-    cfn: 3
-    cloudwatch: 3
-    engine: 3
+    api: 1
+    cfn: 1
+    cloudwatch: 1
+    engine: 1
   lifecycle:
     upgrades:
       deployments:
@@ -1245,10 +1246,10 @@ manifests:
   pdb_cloudwatch: false
   pod_rally_test: false
   network_policy: false
-  secret_db: false
+  secret_db: true
   secret_ingress_tls: true
   secret_keystone: true
-  secret_rabbitmq: false
+  secret_rabbitmq: true
   secret_registry: true
   service_api: true
   service_cfn: true

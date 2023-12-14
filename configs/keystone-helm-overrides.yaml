@@ -878,13 +878,13 @@ conf:
 secrets:
   identity:
     admin: keystone-keystone-admin
-    # test: keystone-keystone-test
+    test: keystone-keystone-test
   oslo_db:
-    admin: mariadb
-    keystone: keystone-db-password
+    admin: keystone-db-admin
+    keystone: keystone-db-user
   oslo_messaging:
-    admin: openstack-default-user
-    keystone: keystone-rabbitmq-password
+    admin: keystone-rabbitmq-admin
+    keystone: keystone-rabbitmq-user
   ldap:
     tls: keystone-ldap-tls
   tls:
@@ -1107,12 +1107,12 @@ manifests:
   pdb_api: true
   pod_rally_test: false
   network_policy: false
-  secret_credential_keys: false
-  secret_db: false
+  secret_credential_keys: true
+  secret_db: true
   secret_fernet_keys: true
   secret_ingress_tls: true
   secret_keystone: true
-  secret_rabbitmq: false
+  secret_rabbitmq: true
   secret_registry: true
   service_ingress_api: true
   service_api: true
