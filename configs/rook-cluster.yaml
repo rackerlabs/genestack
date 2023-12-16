@@ -100,7 +100,7 @@ spec:
       # Requires a kernel that supports msgr v2 (kernel 5.11 or CentOS 8.4 or newer).
       requireMsgr2: false
     # enable host networking
-    #provider: host
+    provider: host
     # enable the Multus network provider
     #provider: multus
     #selectors:
@@ -254,9 +254,9 @@ spec:
     mgr: system-cluster-critical
     #crashcollector: rook-ceph-crashcollector-priority-class
   storage: # cluster level storage configuration and selection
-    useAllNodes: false
+    useAllNodes: true
     useAllDevices: false
-    #deviceFilter:
+    deviceFilter: "^vd."
     config:
       # crushRoot: "custom-root" # specify a non-default root label for the CRUSH map
       # metadataDevice: "md0" # specify a non-rotational storage so ceph-volume will use it as block db device of bluestore.
@@ -265,13 +265,6 @@ spec:
       # encryptedDevice: "true" # the default value for this option is "false"
     # Individual nodes and their config can be specified as well, but 'useAllNodes' above must be set to false. Then, only the named
     # nodes below will be used as storage resources.  Each node's 'name' field should match their 'kubernetes.io/hostname' label.
-    nodes:
-    - name: "openstack-flex-node-6"
-      deviceFilter: "^vd."
-    - name: "openstack-flex-node-7"
-      deviceFilter: "^vd."
-    - name: "openstack-flex-node-8"
-      deviceFilter: "^vd."
     # nodes:
     #   - name: "172.17.4.201"
     #     devices: # specific devices to use for storage can be specified for each node

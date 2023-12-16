@@ -553,8 +553,8 @@ endpoints:
   image:
     name: glance
     hosts:
-      default: glance
-      public: glance-api
+      default: glance-api
+      public: glance
     host_fqdn_override:
       default: null
       # NOTE(portdirect): this chart supports TLS for fqdn over-ridden public

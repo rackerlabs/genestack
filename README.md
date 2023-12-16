@@ -67,18 +67,6 @@ Login to the first controller node in the infrastructure to begin the OSH deploy
 ssh -F ~/.ssh/$NETWORK_NAME-keypair.config ubuntu@$NODE_IP
 ```
 
-While the dashboard is installed you will have no ability to access it until we setup some basic RBAC.
-
-``` shell
-kubectl apply -f /tmp/dashboard-rbac-default.yaml
-```
-
-You can now retrieve a permenant token.
-
-``` shell
-kubectl get secret admin-user -n kube-system -o jsonpath={".data.token"} | base64 -d
-```
-
 Install some base packages needed by OSH
 
 ``` shell
@@ -97,10 +85,35 @@ git clone https://github.com/rook/rook.git
 git clone https://github.com/mariadb-operator/mariadb-operator
 ```
 
-#### Install the cert-manager
+#### Setup OSH and make everything
 
 ``` shell
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
+# Export OSH variables
+export CONTAINER_DISTRO_NAME=ubuntu
+export CONTAINER_DISTRO_VERSION=jammy
+export OPENSTACK_RELEASE=2023.1
+export OSH_DEPLOY_MULTINODE=True
+
+# Run make for everything.
+cd ~/osh/openstack-helm
+make all
+
+cd ~/osh/openstack-helm-infra
+make all
+```
+
+# Ensure the kube dashboard is setup
+
+While the dashboard is installed you will have no ability to access it until we setup some basic RBAC.
+
+``` shell
+kubectl apply -f /tmp/dashboard-rbac-default.yaml
+```
+
+You can now retrieve a permenant token.
+
+``` shell
+kubectl get secret admin-user -n kube-system -o jsonpath={".data.token"} | base64 -d
 ```
 
 #### Install rook operator
@@ -114,7 +127,7 @@ Before deploying Ceph we need to label our nodes.
 kubectl get nodes -o wide
 
 # Label our storage nodes
-kubectl label node openstack-flex-node-6 openstack-flex-node-7 openstack-flex-node-8 role=storage-node
+kubectl label node openstack-flex-node-4 openstack-flex-node-5 openstack-flex-node-6 role=storage-node
 ```
 
 Now run the basic deployment.
@@ -122,15 +135,24 @@ Now run the basic deployment.
 ``` shell
 # Deploy rook
 cd ~/osh/rook/deploy/examples
-kubectl create -f crds.yaml
-kubectl create -f common.yaml
-kubectl create -f operator.yaml
+kubectl apply -f crds.yaml
+kubectl apply -f common.yaml
+kubectl apply -f operator.yaml
 
-# Deploy our ceph cluster
-kubectl create -f /tmp/rook-cluster.yaml
+# Validate with readiness
+kubectl --namespace rook-ceph get deployments.apps -w
 ```
 
-Once the ceph environment has been deployed, it's time to deploy some additional components ceph will use.
+Once the operator is online, it's time do deploy our Ceph environment. While the storage node label is used, the Ceph
+cluster must be edited to name the nodes used in your deployment and set the device filter to match your hardware
+layout.
+
+``` shell
+# Deploy our ceph cluster
+kubectl apply -f /tmp/rook-cluster.yaml
+```
+
+Once the ceph environment has been deployed, it's time to deploy some additional components ceph will use/have access to.
 
 ``` shell
 # Deploy our ceph toolbox
@@ -155,14 +177,11 @@ Label all of the nodes in the environment.
 # Label the openstack controllers
 kubectl label node $(kubectl get nodes -l '!node-role.kubernetes.io/control-plane' -o 'jsonpath={.items[*].metadata.name}') openstack-control-plane=enabled
 
-# Label control-plane nodes as L3 agent enabled
-kubectl label node $(kubectl get nodes -l '!node-role.kubernetes.io/control-plane' -o 'jsonpath={.items[*].metadata.name}') l3-agent=enabled
-
 # Label the compute nodes
 kubectl label node $(kubectl get nodes -l '!node-role.kubernetes.io/control-plane' -o 'jsonpath={.items[*].metadata.name}') openstack-compute-node=enabled
 
-# Enable Openvswitch
-kubectl label node $(kubectl get nodes -l '!node-role.kubernetes.io/control-plane' -o 'jsonpath={.items[*].metadata.name}') openvswitch=enabled
+# Label the network nodes
+kubectl label node $(kubectl get nodes -l '!node-role.kubernetes.io/control-plane' -o 'jsonpath={.items[*].metadata.name}') openstack-network-node=enabled
 
 # Disable Linuxbridge
 kubectl label nodes --all linuxbridge=disabled
@@ -203,7 +222,7 @@ kubectl --namespace openstack \
 kubectl apply --namespace openstack -f /tmp/mariadb-galera.yaml
 
 # Verify readiness with the following command
-kubectl --namespace openstack get mariadbs
+kubectl --namespace openstack get mariadbs -w
 ```
 
 #### Install RabbitMQ
@@ -214,6 +233,9 @@ Install the RabbitMQ operator.
 # Install rabbitmq
 kubectl apply -f https://github.com/rabbitmq/cluster-operator/releases/latest/download/cluster-operator.yml
 kubectl apply -f https://github.com/rabbitmq/messaging-topology-operator/releases/latest/download/messaging-topology-operator-with-certmanager.yaml
+
+# Wait for the operator to be online
+kubectl --namespace rabbitmq-system get deployments.apps
 ```
 
 Deploy the RabbitMQ cluster.
@@ -225,7 +247,7 @@ kubectl apply -f /tmp/rabbitmq-cluster.yaml
 Validate the status with the following
 
 ``` shell
-kubectl --namespace openstack get rabbitmqclusters.rabbitmq.com
+kubectl --namespace openstack get rabbitmqclusters.rabbitmq.com -w
 ```
 
 #### Install memcached
@@ -240,23 +262,6 @@ helm install memcached oci://registry-1.docker.io/bitnamicharts/memcached \
 
 Now that the backend is all deployed, time to deploy openstack.
 
-#### Setup OSH and make everything
-
-``` shell
-# Export OSH variables
-export CONTAINER_DISTRO_NAME=ubuntu
-export CONTAINER_DISTRO_VERSION=jammy
-export OPENSTACK_RELEASE=2023.1
-export OSH_DEPLOY_MULTINODE=True
-
-# Run make for everything.
-cd ~/osh/openstack-helm
-make all
-
-cd ~/osh/openstack-helm-infra
-make all
-```
-
 #### Deploy the ingress controllers
 
 ``` shell
@@ -267,7 +272,6 @@ helm upgrade --install ingress-kube-system ./ingress \
   --namespace=kube-system \
   --wait \
   --timeout 900s \
-  -f /tmp/keystone-helm-overrides.yaml \
   -f /tmp/ingress-kube-system.yaml
 
 # Second the component openstack controller
@@ -275,10 +279,23 @@ helm upgrade --install ingress-openstack ./ingress \
   --namespace=openstack \
   --wait \
   --timeout 900s \
-  -f /tmp/keystone-helm-overrides.yaml \
   -f /tmp/ingress-component.yaml \
   --set deployment.cluster.class=nginx
 ```
+
+### OpenStack
+
+Before going any further make sure you validate that the backends are operational.
+
+``` shell
+# MariaDB
+kubectl --namespace openstack get mariadbs
+
+#RabbitMQ
+kubectl --namespace openstack get rabbitmqclusters.rabbitmq.com
+```
+
+Once everything is Ready and online. Continue with the installation.
 
 #### Deploy Keystone
 
@@ -331,14 +348,13 @@ kubectl --namespace openstack apply -f /tmp/utils-openstack-client-admin.yaml
 Validate functionality
 
 ``` shell
-kubectl --namespace openstack  exec -ti openstack-admin-client -- openstack user list
+kubectl --namespace openstack exec -ti openstack-admin-client -- openstack user list
 ```
 
 
 #### Deploy Glance
 
 ``` shell
-
 kubectl --namespace openstack \
         create secret generic glance-rabbitmq-password \
         --type Opaque \
@@ -376,7 +392,7 @@ helm upgrade --install glance ./glance \
 Validate functionality
 
 ``` shell
-kubectl --namespace openstack  exec -ti openstack-admin-client -- openstack image list
+kubectl --namespace openstack exec -ti openstack-admin-client -- openstack image list
 ```
 
 #### Deploy Heat
@@ -426,7 +442,7 @@ helm upgrade --install heat ./heat \
 Validate functionality
 
 ``` shell
-kubectl --namespace openstack  exec -ti openstack-admin-client -- openstack --os-interface internal orchestration service list
+kubectl --namespace openstack exec -ti openstack-admin-client -- openstack --os-interface internal orchestration service list
 ```
 
 #### Deploy Cinder
@@ -573,12 +589,14 @@ kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volum
 
 #### Deploy Open vSwitch / OVN
 
-Note that we'er not deploying OVN / Openvswitch, however, we are using it. The implementation of this POC
-was done with Kubespray which deploys OVN as it's networking solution. Because those components are handled
+Note that we'er not deploying Openvswitch, however, we are using it. The implementation of this POC was
+done with Kubespray which deploys OVN as it's networking solution. Because those components are handled
 by our infrastructure there's nothing for us to manage / deploy in this environment. OpenStack will
-leverage ovn within openstack following the scaling/maintenance/management practices of kube-ovn.
+leverage OVN within Kubernetes following the scaling/maintenance/management practices of kube-ovn.
 
 #### Deploy the Compute Kit
+
+The first part of the compute kit is Libvirt.
 
 ``` shell
 cd ~/osh/openstack-helm-infra
@@ -683,6 +701,7 @@ cd ~/osh/openstack-helm
 
 helm upgrade --install neutron ./neutron \
   --namespace=openstack \
+    --timeout 60m \
     -f /tmp/neutron-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.neutron.password="$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -709,6 +728,7 @@ cd ~/osh/openstack-helm
 
 helm upgrade --install nova ./nova \
   --namespace=openstack \
+    --timeout 60m \
     -f /tmp/nova-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.nova.password="$(kubectl --namespace openstack get secret nova-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -742,12 +762,57 @@ cd ~/osh/openstack-helm
 
 helm upgrade --install placement ./placement --namespace=openstack \
   --namespace=openstack \
+    --timeout 60m \
     -f /tmp/placement-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.placement.password="$(kubectl --namespace openstack get secret placement-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.placement.password="$(kubectl --namespace openstack get secret placement-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.nova_api.password="$(kubectl --namespace openstack get secret nova-db-password -o jsonpath='{.data.password}' | base64 -d)" &
+```
+
+> Post deployment we need to setup neutron to work with our integrated OVN environment. To make that work we have to annotate or nodes.
+
+Set the name of the OVS bridges we'll use. These are the bridges you will use on your hosts.
+
+> NOTE The functional example here annotates all nodes; however, not all nodes have to have the same setup.
+
+``` shell
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/bridges='br-ex,br-blah'
+```
+
+Set the bridge mapping. These are colon delimitated between `OVS_BRIDGE:PHYSICAL_INTERFACE_NAME`. Multiple bridge mappings can be defined here and are separated by commas.
+
+``` shell
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/ports='br-ex:ens1,br-blah:ens2'
+```
+
+Set the OVN bridge mapping. This maps the Neutron interfaces to the ovs bridge names. These are colon delimitated between `OVS_BRIDGE:PHYSICAL_INTERFACE_NAME`. Multiple bridge mappings can be defined here and are separated by commas.
+
+``` shell
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/mappings='physnet1:br-ex,physnet2:br-blah'
+```
+
+Set the OVN availability zones. Multiple network availability zones can be defined and are colon separated.
+
+``` shell
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/availability_zones='nova:az1'
+```
+
+> Note the "nova" availability zone is an assumed default.
+
+Set the OVN gateway nodes.
+
+``` shell
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/gateway='enabled'
+```
+
+> Note while all compute nodes could be a gateway, not all nodes should be a gateway.
+
+With all of the node networks defined, we can now apply the network policy with the following command
+
+``` shell
+kubectl --namespace openstack apply -f ovn-setup.yaml
 ```
 
 #### Deploy Horizon

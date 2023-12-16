@@ -1,0 +1,28 @@
+# Ansible playbook to run the following tasks as ansible
+# apt install build-essential python3-venv python3-dev -y
+# python3 -m venv /opt/cinder
+# /opt/cinder/bin/pip install pip pymysql --upgrade
+# /opt/cinder/bin/pip install git+https://github.com/openstack/cinder@stable/2023.1
+# cp -R /opt/cinder/etc/cinder /etc/
+# systemd-run /opt/cinder/bin/cinder-volume --config-file /etc/cinder/cinder.conf --config-file /etc/cinder/conf/backends.conf
+- name: Run the cinder volume reference driver deployment
+  hosts: all
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Install required packages
+      ansible.builtin.apt:
+        name:
+          - build-essential
+          - python3-venv
+          - python3-dev
+        state: present
+        update_cache: true
+    - name: Upgrade pip and install required packages
+      ansible.builtin.pip:
+        name:
+          - pip
+          - pymysql
+          - git+https://github.com/openstack/cinder@stable/2023.1
+        state: present
+        virtualenv: /opt/cinder

@@ -2,10 +2,10 @@ release_group: null
 
 images:
   tags:
-    ovn_ovsdb_nb: docker.io/openstackhelm/ovn:latest-ubuntu_focal
-    ovn_ovsdb_sb: docker.io/openstackhelm/ovn:latest-ubuntu_focal
-    ovn_northd: docker.io/openstackhelm/ovn:latest-ubuntu_focal
-    ovn_controller: docker.io/openstackhelm/ovn:latest-ubuntu_focal
+    ovn_ovsdb_nb: docker.io/openstackhelm/ovn:ubuntu_jammy
+    ovn_ovsdb_sb: docker.io/openstackhelm/ovn:ubuntu_jammy
+    ovn_northd: docker.io/openstackhelm/ovn:ubuntu_jammy
+    ovn_controller: docker.io/openstackhelm/ovn:ubuntu_jammy
     dep_check: quay.io/airshipit/kubernetes-entrypoint:v1.0.0
     image_repo_sync: docker.io/library/docker:17.07.0
   pull_policy: "IfNotPresent"
@@ -178,7 +178,6 @@ secrets:
     ovn_ovsdb_sb: ovn-ovsdb-sb-oci-image-registry-key
     ovn_northd: ovn-northd-oci-image-registry-key
     ovn_controller: ovn-controller-oci-image-registry-key
-
 # TODO: Check these endpoints?!
 endpoints:
   cluster_domain_suffix: cluster.local
@@ -211,9 +210,9 @@ endpoints:
         default: null
   ovn_ovsdb_nb:
     name: ovn-ovsdb-nb
-    namespace: null
+    namespace: kube-system
     hosts:
-      default: ovn-ovsdb-nb
+      default: ovn-nb
     host_fqdn_override:
       default: null
     port:
@@ -223,9 +222,9 @@ endpoints:
         default: 6643
   ovn_ovsdb_sb:
     name: ovn-ovsdb-sb
-    namespace: null
+    namespace: kube-system
     hosts:
-      default: ovn-ovsdb-sb
+      default: ovn-sb
     host_fqdn_override:
       default: null
     port:
@@ -269,15 +268,15 @@ dependencies:
     ovn_ovsdb_nb: null
     ovn_ovsdb_sb: null
     ovn_northd:
-      services:
-        - endpoint: internal
-          service: ovn-ovsdb-nb
-        - endpoint: internal
-          service: ovn-ovsdb-sb
-    ovn_controller:
       services: []
         # - endpoint: internal
+        #   service: ovn-ovsdb-nb
+        # - endpoint: internal
         #   service: ovn-ovsdb-sb
+    ovn_controller:
+      services:
+        - endpoint: internal
+          service: ovn-ovsdb-sb
       pod: []
         # - requireSameNode: true
         #   labels:

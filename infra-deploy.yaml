@@ -3,6 +3,7 @@
 - name: Create lab environment
   connection: local
   hosts: localhost
+  gather_facts: false
   vars:
     ansible_python_interpreter: '{{ ansible_playbook_python }}'
     deploy_bastion: true
@@ -13,7 +14,7 @@
     os_keypair_name: "{{ os_network_name }}-keypair"
     os_launcher_flavor: r1.gp.gen0
     os_node_flavor: r3.compute.gen0
-    os_node_count: 9
+    os_node_count: 7
     # Not used when using MetalLB
     # os_security_groups:
     #   - ether_type: IPv6
@@ -174,6 +175,21 @@
         cidr: 172.31.0.0/28
         dns_nameservers:
           - 8.8.8.8
+    - name: Create network
+      openstack.cloud.network:
+        cloud: "{{ os_cloud_name }}"
+        state: present
+        name: "{{ os_network_name }}-internal"
+        external: false
+        port_security_enabled: false
+      register: _result_network_internal_create
+    - name: Create subnet
+      openstack.cloud.subnet:
+        cloud: "{{ os_cloud_name }}"
+        state: present
+        network_name: "{{ os_network_name }}-internal"
+        name: "{{ os_network_name }}-internal-subnet"
+        cidr: 192.168.0.0/22
     - name: Gather information about previously created networks
       openstack.cloud.networks_info:
         cloud: "{{ os_cloud_name }}"
@@ -188,6 +204,7 @@
         network: "{{ (_result_network_external.networks | first).id }}"
         interfaces:
           - "{{ os_network_name }}-subnet"
+          - "{{ os_network_name }}-internal-subnet"
     # NOTE: When using MetalLB, we can not use a security group due to port security blocking address advertisements.
     #       See https://metallb.org/installation/clouds/#metallb-on-openstack for more.
     # - name: Create (or update) a security group with security group rules
@@ -228,6 +245,7 @@
         security_groups: []
         nics:
           - net-id: "{{ _result_network_create.id }}"
+          - net-id: "{{ _result_network_internal_create.id }}"
         meta:
           hostname: "{{ os_network_name }}-node-{{ item }}"
           group: "{{ os_network_name }}"
@@ -294,6 +312,8 @@
                 ProxyJump {{ bastion_ip }}
                 User {{ os_bastion_user }}
                 IdentityFile {{ lookup('env', 'HOME') }}/.ssh/{{ os_keypair_name }}.key
+                StrictHostKeyChecking no
+                UserKnownHostsFile /dev/null
 
               Host {{ bastion_ip }}
                 User {{ os_bastion_user }}
@@ -303,6 +323,7 @@
                 ControlPersist 5m
                 StrictHostKeyChecking no
                 UserKnownHostsFile /dev/null
+                StrictHostKeyChecking no
                 ServerAliveInterval 60
                 ServerAliveCountMax 30
             dest: "{{ lookup('env', 'HOME') }}/.ssh/{{ os_keypair_name }}.config"
@@ -323,7 +344,7 @@
         _volumes_product: "{{ (_cluster_create.servers | map(attribute='name') | sort)[-3:] |
                               product(range(3)) |
                               list }}"
-    - name: Create 20g volumes for controllers
+    - name: Create 20g volumes for ceph
       openstack.cloud.volume:
         state: present
         cloud: "{{ os_cloud_name }}"
@@ -346,11 +367,6 @@
       changed_when:
         - job_result.changed | bool
       loop: "{{ _volume_create.results }}"
-    - name: Get volume info from the cluster
-      openstack.cloud.volume_info:
-        cloud: "{{ os_cloud_name }}"
-        name: "{{ os_network_name }}*"
-      register: _volumes_create
     - name: Attaches a volume to a compute host
       openstack.cloud.server_volume:
         state: present
@@ -374,6 +390,57 @@
       changed_when:
         - job_result.changed | bool
       loop: "{{ _volume_attach.results }}"
+    - name: Set volume product fact
+      ansible.builtin.set_fact:
+        _volumes_lvm_product: "{{ (_cluster_create.servers | map(attribute='name') | sort)[-3:] |
+                                   product(range(1)) |
+                                  list }}"
+    - name: Create 10g volumes for lvm-cinder
+      openstack.cloud.volume:
+        state: present
+        cloud: "{{ os_cloud_name }}"
+        size: 10
+        name: "{{ item.0 }}-volume-lvm-{{ item.1 }}"
+      loop: "{{ _volumes_lvm_product }}"
+      async: 1000
+      poll: 0
+      register: _volume_lvm_create
+      changed_when: false
+    - name: Check on async lvm volume task
+      ansible.builtin.async_status:
+        jid: "{{ item.ansible_job_id }}"
+      register: job_result
+      until: job_result.finished
+      retries: 100
+      delay: 10
+      failed_when:
+        - job_result.failed != 0
+      changed_when:
+        - job_result.changed | bool
+      loop: "{{ _volume_lvm_create.results }}"
+    - name: Attaches a lvm volume to a compute host
+      openstack.cloud.server_volume:
+        state: present
+        cloud: "{{ os_cloud_name }}"
+        server: "{{ item.0 }}"
+        volume: "{{ item.0 }}-volume-lvm-{{ item.1 }}"
+      loop: "{{ _volumes_lvm_product }}"
+      async: 1000
+      poll: 0
+      register: _volume_lvm_attach
+      changed_when: false
+    - name: Check on async lvm volume attach task
+      ansible.builtin.async_status:
+        jid: "{{ item.ansible_job_id }}"
+      register: job_result
+      until: job_result.finished
+      retries: 100
+      delay: 10
+      failed_when:
+        - job_result.failed != 0
+      changed_when:
+        - job_result.changed | bool
+      loop: "{{ _volume_lvm_attach.results }}"
     - name: Create inventory
       ansible.builtin.copy:
         content: |

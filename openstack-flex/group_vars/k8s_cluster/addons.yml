@@ -133,8 +133,8 @@ ingress_alb_enabled: false
 # alb_ingress_aws_debug: "false"
 
 # Cert manager deployment
-cert_manager_enabled: false
-# cert_manager_namespace: "cert-manager"
+cert_manager_enabled: true
+cert_manager_namespace: "cert-manager"
 # cert_manager_tolerations:
 #   - key: node-role.kubernetes.io/control-plane
 #     effect: NoSchedule
@@ -157,11 +157,11 @@ cert_manager_enabled: false
 #   -----END CERTIFICATE-----
 # cert_manager_leader_election_namespace: kube-system
 
-# cert_manager_dns_policy: "ClusterFirst"
-# cert_manager_dns_config:
-#   nameservers:
-#     - "1.1.1.1"
-#     - "8.8.8.8"
+cert_manager_dns_policy: "ClusterFirst"
+cert_manager_dns_config:
+  nameservers:
+    - "208.67.222.222"
+    - "8.8.8.8"
 
 # cert_manager_controller_extra_args:
 #   - "--dns01-recursive-nameservers-only=true"
@@ -175,18 +175,22 @@ metallb_speaker_enabled: "{{ metallb_enabled }}"
 # metallb_port: "7472"
 # metallb_memberlist_port: "7946"
 metallb_config:
-#   speaker:
-#     nodeselector:
-#       kubernetes.io/os: "linux"
-#     tollerations:
-#       - key: "node-role.kubernetes.io/control-plane"
-#         operator: "Equal"
-#         value: ""
-#         effect: "NoSchedule"
+  speaker:
+    nodeselector:
+      kubernetes.io/os: "linux"
+  #   tollerations:
+  #     - key: "node-role.kubernetes.io/control-plane"
+  #       operator: "Equal"
+  #       value: ""
+  #       effect: "NoSchedule"
   controller:
     nodeselector:
-      kubernetes.io/os: linux
+      kubernetes.io/os: "linux"
     tolerations: []
+  # - key: "node-role.kubernetes.io/control-plane"
+  #   operator: "Equal"
+  #   value: ""
+  #   effect: "NoSchedule"
   address_pools:
     primary:
       ip_range:
@@ -227,9 +231,9 @@ metallb_config:
 #           address_pool:
 #             - pool2
 
-argocd_enabled: false
+argocd_enabled: true
 # argocd_version: v2.8.4
-# argocd_namespace: argocd
+argocd_namespace: argocd
 # Default password:
 #   - https://argo-cd.readthedocs.io/en/stable/getting_started/#4-login-using-the-cli
 #   ---
@@ -241,7 +245,7 @@ argocd_enabled: false
 # argocd_admin_password: "password"
 
 # The plugin manager for kubectl
-krew_enabled: false
+krew_enabled: true
 krew_root_dir: "/usr/local/krew"
 
 # Kube VIP
