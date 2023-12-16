@@ -705,10 +705,10 @@ helm upgrade --install neutron ./neutron \
     -f /tmp/neutron-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.neutron.password="$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.identity.auth.nova.password="$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.identity.auth.placement.password="$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.identity.auth.designate.password="$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.identity.auth.ironic.password="$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.identity.auth.nova.password="$(kubectl --namespace openstack get secret nova-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.identity.auth.placement.password="$(kubectl --namespace openstack get secret placement-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.identity.auth.designate.password="$(kubectl --namespace openstack get secret designate-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.identity.auth.ironic.password="$(kubectl --namespace openstack get secret ironic-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.neutron.password="$(kubectl --namespace openstack get secret neutron-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
@@ -772,6 +772,12 @@ helm upgrade --install placement ./placement --namespace=openstack \
 ```
 
 > Post deployment we need to setup neutron to work with our integrated OVN environment. To make that work we have to annotate or nodes.
+
+Set the name of the OVS integration bridge we'll use. In general this should be **br-int**
+
+``` shell
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/bridge='br-int'
+```
 
 Set the name of the OVS bridges we'll use. These are the bridges you will use on your hosts.
 

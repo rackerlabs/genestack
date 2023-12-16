@@ -76,6 +76,8 @@ data:
     fi
     ovs-vsctl set Open_vSwitch . external-ids:ovn-bridge-mappings=${OVN_BRIDGE_MAPPINGS}
 
+    ovs-vsctl set Open_vSwitch . external-ids:ovn-bridge=${OVN_BRIDGE}
+
     if [[ "${OVN_GW_ENABLED:-disabled}" == "enabled" ]]; then
       ovs-vsctl set Open_vSwitch . external-ids:ovn-cms-options="enable-chassis-as-gw,availability-zones=${OVN_AVAILABILITY_ZONES:-nova}"
     else
@@ -199,6 +201,8 @@ spec:
                 echo "export OVN_PORT_MAPPINGS=${OVN_PORT_MAPPINGS}" >> /node/ovn
                 OVN_BRIDGES=$(jq '."ovn.openstack.org/bridges"' -r /node/annotations.json)
                 echo "export OVN_BRIDGES=${OVN_BRIDGES}" >> /node/ovn
+                OVN_BRIDGE=$(jq '."ovn.openstack.org/bridges"' -r /node/annotations.json)
+                echo "export OVN_BRIDGE=${OVN_BRIDGE}" >> /node/ovn
           command:
             - /bin/ash
             - -c

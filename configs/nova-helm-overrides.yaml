@@ -1444,6 +1444,8 @@ conf:
       driver: messagingv2
     oslo_messaging_rabbit:
       rabbit_ha_queues: true
+    os_vif_ovs:
+      ovsdb_connection: unix:/run/openvswitch/db.sock
     placement:
       auth_type: password
       auth_version: v3
@@ -1622,7 +1624,7 @@ endpoints:
         username: nova
         password: password
     hosts:
-      default: mariadb-galera
+      default: mariadb-galera-primary
     host_fqdn_override:
       default: null
     path: /nova
@@ -1639,7 +1641,7 @@ endpoints:
         username: nova
         password: password
     hosts:
-      default: mariadb-galera
+      default: mariadb-galera-primary
     host_fqdn_override:
       default: null
     path: /nova_api
@@ -1656,7 +1658,7 @@ endpoints:
         username: nova
         password: password
     hosts:
-      default: mariadb-galera
+      default: mariadb-galera-primary
     host_fqdn_override:
       default: null
     path: /nova_cell0
@@ -2077,7 +2079,7 @@ pod:
   security_context:
     nova:
       pod:
-        runAsUser: 42424
+        runAsUser: 0
       container:
         nova_compute_init:
           readOnlyRootFilesystem: true
@@ -2097,6 +2099,7 @@ pod:
         nova_compute:
           readOnlyRootFilesystem: true
           privileged: true
+          runAsUser: 0
         nova_compute_ssh:
           privileged: true
           runAsUser: 0

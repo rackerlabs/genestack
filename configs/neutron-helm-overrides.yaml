@@ -1769,6 +1769,8 @@ conf:
 
         # shell (for piped commands)
         sh: CommandFilter, sh, root
+  openvswitch_db_server:
+    ptcp_port: 6640
   neutron:
     DEFAULT:
       metadata_proxy_socket: /var/lib/neutron/openstack-helm/metadata_proxy
@@ -2219,7 +2221,7 @@ endpoints:
         username: neutron
         password: password
     hosts:
-      default: mariadb-galera
+      default: mariadb-galera-primary
     host_fqdn_override:
       default: null
     path: /neutron

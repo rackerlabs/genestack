@@ -175,7 +175,7 @@
         cidr: 172.31.0.0/28
         dns_nameservers:
           - 8.8.8.8
-    - name: Create network
+    - name: Create network internal
       openstack.cloud.network:
         cloud: "{{ os_cloud_name }}"
         state: present
@@ -183,13 +183,28 @@
         external: false
         port_security_enabled: false
       register: _result_network_internal_create
-    - name: Create subnet
+    - name: Create subnet internal
       openstack.cloud.subnet:
         cloud: "{{ os_cloud_name }}"
         state: present
         network_name: "{{ os_network_name }}-internal"
-        name: "{{ os_network_name }}-internal-subnet"
+        name: "{{ os_network_name }}-subnet-internal"
         cidr: 192.168.0.0/22
+    - name: Create network compute
+      openstack.cloud.network:
+        cloud: "{{ os_cloud_name }}"
+        state: present
+        name: "{{ os_network_name }}-compute"
+        external: false
+        port_security_enabled: false
+      register: _result_network_compute_create
+    - name: Create subnet internal
+      openstack.cloud.subnet:
+        cloud: "{{ os_cloud_name }}"
+        state: present
+        network_name: "{{ os_network_name }}-compute"
+        name: "{{ os_network_name }}-subnet-compute"
+        cidr: 192.168.100.0/22
     - name: Gather information about previously created networks
       openstack.cloud.networks_info:
         cloud: "{{ os_cloud_name }}"
@@ -204,7 +219,7 @@
         network: "{{ (_result_network_external.networks | first).id }}"
         interfaces:
           - "{{ os_network_name }}-subnet"
-          - "{{ os_network_name }}-internal-subnet"
+          - "{{ os_network_name }}-subnet-internal"
     # NOTE: When using MetalLB, we can not use a security group due to port security blocking address advertisements.
     #       See https://metallb.org/installation/clouds/#metallb-on-openstack for more.
     # - name: Create (or update) a security group with security group rules
@@ -246,6 +261,7 @@
         nics:
           - net-id: "{{ _result_network_create.id }}"
           - net-id: "{{ _result_network_internal_create.id }}"
+          - net-id: "{{ _result_network_compute_create.id }}"
         meta:
           hostname: "{{ os_network_name }}-node-{{ item }}"
           group: "{{ os_network_name }}"
@@ -390,57 +406,6 @@
       changed_when:
         - job_result.changed | bool
       loop: "{{ _volume_attach.results }}"
-    - name: Set volume product fact
-      ansible.builtin.set_fact:
-        _volumes_lvm_product: "{{ (_cluster_create.servers | map(attribute='name') | sort)[-3:] |
-                                   product(range(1)) |
-                                  list }}"
-    - name: Create 10g volumes for lvm-cinder
-      openstack.cloud.volume:
-        state: present
-        cloud: "{{ os_cloud_name }}"
-        size: 10
-        name: "{{ item.0 }}-volume-lvm-{{ item.1 }}"
-      loop: "{{ _volumes_lvm_product }}"
-      async: 1000
-      poll: 0
-      register: _volume_lvm_create
-      changed_when: false
-    - name: Check on async lvm volume task
-      ansible.builtin.async_status:
-        jid: "{{ item.ansible_job_id }}"
-      register: job_result
-      until: job_result.finished
-      retries: 100
-      delay: 10
-      failed_when:
-        - job_result.failed != 0
-      changed_when:
-        - job_result.changed | bool
-      loop: "{{ _volume_lvm_create.results }}"
-    - name: Attaches a lvm volume to a compute host
-      openstack.cloud.server_volume:
-        state: present
-        cloud: "{{ os_cloud_name }}"
-        server: "{{ item.0 }}"
-        volume: "{{ item.0 }}-volume-lvm-{{ item.1 }}"
-      loop: "{{ _volumes_lvm_product }}"
-      async: 1000
-      poll: 0
-      register: _volume_lvm_attach
-      changed_when: false
-    - name: Check on async lvm volume attach task
-      ansible.builtin.async_status:
-        jid: "{{ item.ansible_job_id }}"
-      register: job_result
-      until: job_result.finished
-      retries: 100
-      delay: 10
-      failed_when:
-        - job_result.failed != 0
-      changed_when:
-        - job_result.changed | bool
-      loop: "{{ _volume_lvm_attach.results }}"
     - name: Create inventory
       ansible.builtin.copy:
         content: |
