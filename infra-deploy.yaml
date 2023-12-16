@@ -190,6 +190,7 @@
         network_name: "{{ os_network_name }}-internal"
         name: "{{ os_network_name }}-subnet-internal"
         cidr: 192.168.0.0/22
+        disable_gateway_ip: true
     - name: Create network compute
       openstack.cloud.network:
         cloud: "{{ os_cloud_name }}"
@@ -205,6 +206,8 @@
         network_name: "{{ os_network_name }}-compute"
         name: "{{ os_network_name }}-subnet-compute"
         cidr: 192.168.100.0/22
+        disable_gateway_ip: true
+        is_dhcp_enabled: false
     - name: Gather information about previously created networks
       openstack.cloud.networks_info:
         cloud: "{{ os_cloud_name }}"

@@ -7,7 +7,7 @@ kube_ovn_network_type: geneve
 kube_ovn_tunnel_type: geneve
 
 ## The nic to support container network can be a nic name or a group of regex separated by comma e.g: 'enp6s0f0,eth.*', if empty will use the nic that the default route use.
-kube_ovn_iface: ens3
+kube_ovn_iface: ens4
 ## The MTU used by pod iface in overlay networks (default iface MTU - 100)
 # kube_ovn_mtu: 1333
 
@@ -21,7 +21,7 @@ kube_ovn_traffic_mirror: false
 
 kube_ovn_external_address: 208.67.222.222
 kube_ovn_external_address_ipv6: 2620:119:35::35
-kube_ovn_external_dns: rackspace.com
+kube_ovn_external_dns: opendns.com
 
 # kube_ovn_default_gateway: 10.233.64.1,fd85:ee78:d8a6:8607::1:0
 kube_ovn_default_gateway_check: true
@@ -31,7 +31,7 @@ kube_ovn_node_switch_cidr: 100.64.0.0/16
 kube_ovn_node_switch_cidr_ipv6: fd00:100:64::/64
 
 ## vlan config, set default interface name and vlan id
-kube_ovn_default_interface_name: ens4
+kube_ovn_default_interface_name: ens3
 kube_ovn_default_vlan_id: 100
 kube_ovn_vlan_name: product
 

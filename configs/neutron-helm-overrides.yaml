@@ -1938,8 +1938,8 @@ conf:
       # If you want to use the external network as a tagged provider network,
       # a range should be specified including the intended VLAN target
       # using ml2_type_vlan.network_vlan_ranges:
-      # ml2_type_vlan:
-      #   network_vlan_ranges: "external:1100:1110"
+      ml2_type_vlan:
+        network_vlan_ranges: "physnet1"
       ml2_type_geneve:
         vni_ranges: 1:65536
         max_header_size: 38
