@@ -57,9 +57,8 @@ data:
     fi
     IFS=',' read -r -a array <<< "$OVN_BRIDGES"
     for i in ${array[@]}; do
-      echo ovs-vsctl --no-wait --may-exist add-br $i
+      ovs-vsctl --no-wait --may-exist add-br $i
     done
-
     if [[ "${OVN_PORT_MAPPINGS}" == "null" ]]; then
       echo "No OVN_PORT_MAPPINGS defined, exiting"
       exit 99
@@ -67,21 +66,21 @@ data:
     IFS=',' read -r -a outerarray <<< "$OVN_PORT_MAPPINGS"
     for i in ${outerarray[@]}; do
       IFS=':' read -r -a innerarray <<< "$i"
-      echo ovs-vsctl --no-wait --may-exist add-port ${innerarray[0]} ${innerarray[1]}
+      ovs-vsctl --no-wait --may-exist add-port ${innerarray[0]} ${innerarray[1]}
     done
-
-    if [[ "${OVN_BRIDGE_MAPPINGS}" == "null" ]]; then
-      echo "No OVN_BRIDGE_MAPPINGS defined, exiting"
-      exit 99
+    if [[ "${OVN_BRIDGE}" != "null" ]]; then
+      ovs-vsctl set Open_vSwitch . external-ids:ovn-bridge="${OVN_BRIDGE}"
     fi
-    ovs-vsctl set Open_vSwitch . external-ids:ovn-bridge-mappings=${OVN_BRIDGE_MAPPINGS}
-
-    ovs-vsctl set Open_vSwitch . external-ids:ovn-bridge=${OVN_BRIDGE}
-
+    if [[ "${OVN_BRIDGE_MAPPINGS}" != "null" ]]; then
+      ovs-vsctl set Open_vSwitch . external-ids:ovn-bridge-mappings="${OVN_BRIDGE_MAPPINGS}"
+    fi
     if [[ "${OVN_GW_ENABLED:-disabled}" == "enabled" ]]; then
       ovs-vsctl set Open_vSwitch . external-ids:ovn-cms-options="enable-chassis-as-gw,availability-zones=${OVN_AVAILABILITY_ZONES:-nova}"
     else
       ovs-vsctl set Open_vSwitch . external-ids:ovn-cms-options="availability-zones=${OVN_AVAILABILITY_ZONES:-nova}"
+    fi
+    if [[ -z $(ovs-vsctl get-manager) ]]; then
+      ovs-vsctl --id @manager create Manager 'target="ptcp:6640:127.0.0.1"' -- add Open_vSwitch . manager_options @manager
     fi
     touch /node/ovn-setup-completed
 ---
@@ -150,7 +149,7 @@ spec:
             - name: PATH
               value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/
             - name: DEPENDENCY_SERVICE
-              value: "openstack:neutron-server"
+              value: ""
             - name: DEPENDENCY_JOBS
               value: ""
             - name: DEPENDENCY_DAEMONSET
@@ -166,7 +165,7 @@ spec:
           volumeMounts: []
         - name: get-node-annotations
           imagePullPolicy: IfNotPresent
-          image: curlimages/curl
+          image: alpine/k8s:1.26.11
           securityContext:
             readOnlyRootFilesystem: false
             runAsUser: 0
@@ -178,19 +177,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-            - name: APISERVER
-              value: https://kubernetes.default.svc
-            - name: SERVICEACCOUNT
-              value: /var/run/secrets/kubernetes.io/serviceaccount
             - name: SCRIPT
               value: |
                 set -eo pipefail
-                apk add jq
-                TOKEN=$(cat ${SERVICEACCOUNT}/token)
-                CACERT=${SERVICEACCOUNT}/ca.crt
-                curl --cacert ${CACERT} \
-                    --header "Authorization: Bearer ${TOKEN}" \
-                    -X GET ${APISERVER}/api/v1/nodes/${NODENAME} | jq .metadata.annotations > /node/annotations.json
+                kubectl get node $NODENAME -o jsonpath={.metadata.annotations} > /node/annotations.json
                 OVN_AVAILABILITY_ZONES=$(jq '."ovn.openstack.org/availability_zones"' -r /node/annotations.json)
                 echo "export OVN_AVAILABILITY_ZONES=${OVN_AVAILABILITY_ZONES}" > /node/ovn
                 OVN_GW_ENABLED=$(jq '."ovn.openstack.org/gateway"' -r /node/annotations.json)
@@ -201,7 +191,7 @@ spec:
                 echo "export OVN_PORT_MAPPINGS=${OVN_PORT_MAPPINGS}" >> /node/ovn
                 OVN_BRIDGES=$(jq '."ovn.openstack.org/bridges"' -r /node/annotations.json)
                 echo "export OVN_BRIDGES=${OVN_BRIDGES}" >> /node/ovn
-                OVN_BRIDGE=$(jq '."ovn.openstack.org/bridges"' -r /node/annotations.json)
+                OVN_BRIDGE=$(jq '."ovn.openstack.org/int_bridge"' -r /node/annotations.json)
                 echo "export OVN_BRIDGE=${OVN_BRIDGE}" >> /node/ovn
           command:
             - /bin/ash

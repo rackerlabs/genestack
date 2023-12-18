@@ -7,6 +7,7 @@
   vars:
     ansible_python_interpreter: '{{ ansible_playbook_python }}'
     deploy_bastion: true
+    cluster_name: cluster.local
     os_bastion_user: ubuntu
     os_image_id: jammy-raw
     os_cloud_name: "rxt-mvp"
@@ -416,20 +417,21 @@
           {% set bastion_nodes = [] %}
           [all]
           {% for node in _cluster_create.servers | sort(attribute='name') %}
-          {{ node.name }} ansible_host={{ node.addresses[os_network_name] |
-                                          selectattr('OS-EXT-IPS:type', 'equalto', 'fixed') |
-                                          map(attribute='addr') |
-                                          list |
-                                          first }}
+          {{ node.name }}.{{ cluster_name }} ansible_host={{ node.addresses[os_network_name] |
+                                                             selectattr('OS-EXT-IPS:type', 'equalto', 'fixed') |
+                                                             map(attribute='addr') |
+                                                             list |
+                                                             first }}
           {%   if not node.name.endswith('-launcher') %}
-          {%     set _ = nodes.append(node.name) %}
+          {%     set _ = nodes.append(node.name ~ '.' ~ cluster_name) %}
           {%   else %}
-          {%     set _ = bastion_nodes.append(node.name) %}
+          {%     set _ = bastion_nodes.append(node.name ~ '.' ~ cluster_name) %}
           {%   endif %}
           {% endfor %}
 
           [all:vars]
           ansible_ssh_common_args='-F {{ lookup('env', 'HOME') }}/.ssh/{{ os_keypair_name }}.config'
+          cluster_name={{ cluster_name }}
 
           {% if (bastion_nodes | length) > 0 %}
           [bastion]

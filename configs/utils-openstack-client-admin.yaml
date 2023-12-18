@@ -12,6 +12,10 @@ spec:
       command:
         - sleep
         - "infinity"
+      resources:
+        limits:
+          cpu: "1"
+          memory: "1Gi"
       volumeMounts:
         - name: pod-tmp
           mountPath: /tmp

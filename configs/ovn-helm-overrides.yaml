@@ -26,7 +26,7 @@ labels:
     node_selector_key: openstack-network-node
     node_selector_value: enabled
   ovn_controller:
-    node_selector_key: openvswitch
+    node_selector_key: openstack-network-node
     node_selector_value: enabled
 
 volume:

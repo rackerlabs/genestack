@@ -47,7 +47,20 @@ Run the test infrastructure deployment.
 ansible-playbook -i localhost, infra-deploy.yaml
 ```
 
-# Deployment
+# Deployment Kubespray
+
+Before running the Kubernetes deployment, make sure that all hosts have a properly configured FQDN.
+
+``` shell
+ansible -m shell -a 'hostnamectl set-hostname {{ inventory_hostname }}.cluster.local' --become -i openstack-flex/inventory.ini all
+```
+
+> NOTE in the above command I'm assuming the use of `cluster.local` this is the default **cluster_name** as defined in the
+  group_vars k8s_cluster file. If you change that option, make sure to reset your domain name on your hosts accordingly.
+
+> NOTE before you deploy the kubernetes cluster you should define the `kube_override_hostname` option in your inventory.
+  This variable will set the node name which we will want to be an FQDN. When you define the option it should have the
+  same suffix defined in our `cluster_name` variable.
 
 Run the cluster deployment
 
@@ -201,16 +214,26 @@ kubectl apply -f /tmp/ns-openstack.yaml
 
 #### Install mariadb
 
+Deploy the mariadb operator.
+
 ``` shell
 # Deploy the operator
 helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
 helm install mariadb-operator mariadb-operator/mariadb-operator --set webhook.cert.certManager.enabled=true --wait --namespace openstack
+```
 
+Configure our database store.
+
+``` shell
 # Install our configuration and management capabilities
 cd ~/osh/mariadb-operator
 kubectl apply --namespace openstack -f examples/manifests/config/mariabackup-pvc.yaml
 kubectl apply --namespace openstack -f examples/manifests/config/mariadb-configmap.yaml
+```
 
+Deploy our database.
+
+``` shell
 # Create secret
 kubectl --namespace openstack \
         create secret generic mariadb \
@@ -271,14 +294,14 @@ cd ~/osh/openstack-helm-infra
 helm upgrade --install ingress-kube-system ./ingress \
   --namespace=kube-system \
   --wait \
-  --timeout 900s \
+  --timeout 120m \
   -f /tmp/ingress-kube-system.yaml
 
 # Second the component openstack controller
 helm upgrade --install ingress-openstack ./ingress \
   --namespace=openstack \
   --wait \
-  --timeout 900s \
+  --timeout 120m \
   -f /tmp/ingress-component.yaml \
   --set deployment.cluster.class=nginx
 ```
@@ -299,6 +322,8 @@ Once everything is Ready and online. Continue with the installation.
 
 #### Deploy Keystone
 
+Create secrets.
+
 ``` shell
 kubectl --namespace openstack \
         create secret generic keystone-rabbitmq-password \
@@ -317,17 +342,25 @@ kubectl --namespace openstack \
         create secret generic keystone-credential-keys \
         --type Opaque \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+```
 
+Create databases and queues.
+
+``` shell
 kubectl apply -f /tmp/keystone-mariadb-database.yaml
 
 kubectl apply -f /tmp/keystone-rabbitmq-queue.yaml
+```
 
+Run the package deployment.
+
+``` shell
 cd ~/osh/openstack-helm
 
 helm upgrade --install keystone ./keystone \
     --namespace=openstack \
     --wait \
-    --timeout 900s \
+    --timeout 120m \
     -f /tmp/keystone-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
@@ -351,8 +384,9 @@ Validate functionality
 kubectl --namespace openstack exec -ti openstack-admin-client -- openstack user list
 ```
 
-
 #### Deploy Glance
+
+Create secrets.
 
 ``` shell
 kubectl --namespace openstack \
@@ -368,15 +402,23 @@ kubectl --namespace openstack \
         create secret generic glance-admin \
         --type Opaque \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+```
 
+``` shell
 kubectl apply -f /tmp/glance-mariadb-database.yaml
 
 kubectl apply -f /tmp/glance-rabbitmq-queue.yaml
+```
+
+Run the package deployment.
+
+``` shell
+cd ~/osh/openstack-helm
 
 helm upgrade --install glance ./glance \
     --namespace=openstack \
     --wait \
-    --timeout 900s \
+    --timeout 120m \
     -f /tmp/glance-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.glance.password="$(kubectl --namespace openstack get secret glance-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -396,6 +438,8 @@ kubectl --namespace openstack exec -ti openstack-admin-client -- openstack image
 ```
 
 #### Deploy Heat
+
+Create secrets.
 
 ``` shell
 kubectl --namespace openstack \
@@ -419,15 +463,22 @@ kubectl --namespace openstack \
         create secret generic heat-stack-user \
         --type Opaque \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+```
 
+``` shell
 kubectl apply -f /tmp/heat-mariadb-database.yaml
 
 kubectl apply -f /tmp/heat-rabbitmq-queue.yaml
+```
+
+Run the package deployment.
+
+``` shell
+cd ~/osh/openstack-helm
 
 helm upgrade --install heat ./heat \
   --namespace=openstack \
-    --wait \
-    --timeout 900s \
+    --timeout 120m \
     -f /tmp/heat-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.heat.password="$(kubectl --namespace openstack get secret heat-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -453,6 +504,7 @@ Before we build our storage environment, make sure to label the storage nodes.
 kubectl label node openstack-flex-node-3 openstack-storage-node=enabled
 ```
 
+Create secrets.
 
 ``` shell
 kubectl --namespace openstack \
@@ -468,15 +520,23 @@ kubectl --namespace openstack \
         create secret generic cinder-admin \
         --type Opaque \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+```
 
+``` shell
 kubectl apply -f /tmp/cinder-mariadb-database.yaml
 
 kubectl apply -f /tmp/cinder-rabbitmq-queue.yaml
+```
+
+Run the package deployment.
+
+``` shell
+cd ~/osh/openstack-helm
 
 helm upgrade --install cinder ./cinder \
   --namespace=openstack \
     --wait \
-    --timeout 900s \
+    --timeout 120m \
     -f /tmp/cinder-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -604,7 +664,7 @@ cd ~/osh/openstack-helm-infra
 helm upgrade --install libvirt ./libvirt \
   --namespace=openstack \
     --wait \
-    --timeout 900s \
+    --timeout 120m \
     -f /tmp/libvirt-helm-overrides.yaml
 ```
 
@@ -636,6 +696,9 @@ kubectl --namespace openstack \
         create secret generic placement-admin \
         --type Opaque \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+```
+
+``` shell
 # Nova
 kubectl --namespace openstack \
         create secret generic nova-db-password \
@@ -650,19 +713,25 @@ kubectl --namespace openstack \
         --type Opaque \
         --from-literal=username="nova" \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-64};echo;)"
+```
 
+``` shell
 # Ironic (NOT IMPLEMENTED YET)
 kubectl --namespace openstack \
         create secret generic ironic-admin \
         --type Opaque \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+```
 
+``` shell
 # Designate (NOT IMPLEMENTED YET)
 kubectl --namespace openstack \
         create secret generic designate-admin \
         --type Opaque \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+```
 
+``` shell
 # Neutron
 kubectl --namespace openstack \
         create secret generic neutron-rabbitmq-password \
@@ -694,6 +763,16 @@ kubectl apply -f /tmp/neutron-rabbitmq-queue.yaml
 kubectl apply -f /tmp/nova-rabbitmq-queue.yaml
 ```
 
+``` shell
+kubectl --namespace openstack \
+        create secret generic ovn-connection \
+        --type Opaque \
+        --from-literal=OVN_OVSDB_NB_SERVICE_HOST="$(kubectl --namespace kube-system get endpoints ovn-nb -o jsonpath='{.subsets[0].addresses[0].ip}')" \
+        --from-literal=OVN_OVSDB_NB_SERVICE_PORT_OVSDB="$(kubectl --namespace kube-system get endpoints ovn-nb -o jsonpath='{.subsets[0].ports[0].port}')" \
+        --from-literal=OVN_OVSDB_SB_SERVICE_HOST="$(kubectl --namespace kube-system get endpoints ovn-sb -o jsonpath='{.subsets[0].addresses[0].ip}')" \
+        --from-literal=OVN_OVSDB_SB_SERVICE_PORT_OVSDB="$(kubectl --namespace kube-system get endpoints ovn-sb -o jsonpath='{.subsets[0].ports[0].port}')"
+```
+
 Deploy Neutron
 
 ``` shell
@@ -701,7 +780,7 @@ cd ~/osh/openstack-helm
 
 helm upgrade --install neutron ./neutron \
   --namespace=openstack \
-    --timeout 60m \
+    --timeout 120m \
     -f /tmp/neutron-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.neutron.password="$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -728,7 +807,7 @@ cd ~/osh/openstack-helm
 
 helm upgrade --install nova ./nova \
   --namespace=openstack \
-    --timeout 60m \
+    --timeout 120m \
     -f /tmp/nova-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.nova.password="$(kubectl --namespace openstack get secret nova-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -762,7 +841,7 @@ cd ~/osh/openstack-helm
 
 helm upgrade --install placement ./placement --namespace=openstack \
   --namespace=openstack \
-    --timeout 60m \
+    --timeout 120m \
     -f /tmp/placement-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.placement.password="$(kubectl --namespace openstack get secret placement-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -773,10 +852,10 @@ helm upgrade --install placement ./placement --namespace=openstack \
 
 > Post deployment we need to setup neutron to work with our integrated OVN environment. To make that work we have to annotate or nodes.
 
-Set the name of the OVS integration bridge we'll use. In general this should be **br-int**
+Set the name of the OVS integration bridge we'll use. In general this should be **br-int**.
 
 ``` shell
-kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/bridge='br-int'
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/int_bridge='br-int'
 ```
 
 Set the name of the OVS bridges we'll use. These are the bridges you will use on your hosts.
@@ -784,25 +863,25 @@ Set the name of the OVS bridges we'll use. These are the bridges you will use on
 > NOTE The functional example here annotates all nodes; however, not all nodes have to have the same setup.
 
 ``` shell
-kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/bridges='br-ex,br-blah'
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/bridges='br-ex'
 ```
 
 Set the bridge mapping. These are colon delimitated between `OVS_BRIDGE:PHYSICAL_INTERFACE_NAME`. Multiple bridge mappings can be defined here and are separated by commas.
 
 ``` shell
-kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/ports='br-ex:ens1,br-blah:ens2'
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/ports='br-ex:ens5'
 ```
 
 Set the OVN bridge mapping. This maps the Neutron interfaces to the ovs bridge names. These are colon delimitated between `OVS_BRIDGE:PHYSICAL_INTERFACE_NAME`. Multiple bridge mappings can be defined here and are separated by commas.
 
 ``` shell
-kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/mappings='physnet1:br-ex,physnet2:br-blah'
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/mappings='physnet1:br-ex'
 ```
 
 Set the OVN availability zones. Multiple network availability zones can be defined and are colon separated.
 
 ``` shell
-kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/availability_zones='nova:az1'
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/availability_zones='nova'
 ```
 
 > Note the "nova" availability zone is an assumed default.
@@ -818,8 +897,10 @@ kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -
 With all of the node networks defined, we can now apply the network policy with the following command
 
 ``` shell
-kubectl --namespace openstack apply -f ovn-setup.yaml
+kubectl --namespace openstack apply -f /tmp/ovn-setup.yaml
 ```
+
+After running the setup, nodes will have the label `ovn.openstack.org/configured` with a date stamp when it was configured. If there's ever a need to reconfigure a node simply remove the label and the DaemonSet will take care of it automatically.
 
 #### Deploy Horizon
 

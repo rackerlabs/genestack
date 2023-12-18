@@ -61,3 +61,7 @@ kube_ovn_ic_enable: false
 kube_ovn_ic_autoroute: true
 kube_ovn_ic_dbhost: "127.0.0.1"
 kube_ovn_ic_zone: "kubernetes"
+
+# NOTE(cloudnull): Set the central hosts to the control plane nodes, this can be an arbitary group of hosts,
+#                  useful when scaling/isolating the control plane nodes.
+kube_ovn_central_hosts: "{{ groups['kube_control_plane'] }}"

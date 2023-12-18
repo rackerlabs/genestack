@@ -2,25 +2,24 @@ release_group: null
 
 images:
   tags:
-
     bootstrap: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
     db_init: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
     db_drop: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
     ks_user: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
     ks_service: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
     ks_endpoints: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    neutron_db_sync: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
-    neutron_dhcp: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
-    neutron_l3: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
-    neutron_l2gw: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
-    neutron_linuxbridge_agent: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
-    neutron_metadata: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
-    neutron_ovn_metadata: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
-    neutron_openvswitch_agent: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
-    neutron_server: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
-    neutron_rpc_server: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
-    neutron_bagpipe_bgp: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
-    neutron_netns_cleanup_cron: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    neutron_db_sync: "docker.io/openstackhelm/neutron:master-ubuntu_jammy"
+    neutron_dhcp: "docker.io/openstackhelm/neutron:master-ubuntu_jammy"
+    neutron_l3: "docker.io/openstackhelm/neutron:master-ubuntu_jammy"
+    neutron_l2gw: "docker.io/openstackhelm/neutron:master-ubuntu_jammy"
+    neutron_linuxbridge_agent: "docker.io/openstackhelm/neutron:master-ubuntu_jammy"
+    neutron_metadata: "docker.io/openstackhelm/neutron:master-ubuntu_jammy"
+    neutron_ovn_metadata: "docker.io/openstackhelm/neutron:master-ubuntu_jammy"
+    neutron_openvswitch_agent: "docker.io/openstackhelm/neutron:master-ubuntu_jammy"
+    neutron_server: "docker.io/openstackhelm/neutron:master-ubuntu_jammy"
+    neutron_rpc_server: "docker.io/openstackhelm/neutron:master-ubuntu_jammy"
+    neutron_bagpipe_bgp: "docker.io/openstackhelm/neutron:master-ubuntu_jammy"
+    neutron_netns_cleanup_cron: "docker.io/openstackhelm/neutron:master-ubuntu_jammy"
     test: docker.io/xrally/xrally-openstack:2.0.0
     purge_test: docker.io/openstackhelm/ospurge:latest
     rabbit_init: docker.io/rabbitmq:3.7-management
@@ -63,7 +62,7 @@ labels:
   # and compute hosts, until we get more sophisticated
   # with our daemonset scheduling
   ovs:
-    node_selector_key: openvswitch
+    node_selector_key: openstack-network-node
     node_selector_value: enabled
   sriov:
     node_selector_key: sriov
@@ -90,7 +89,6 @@ labels:
 network:
   # provide what type of network wiring will be used
   backend:
-    - openvswitch
     - ovn
   # NOTE(Portdirect): Share network namespaces with the host,
   # allowing agents to be restarted without packet loss and simpler
@@ -525,7 +523,7 @@ pod:
           readOnlyRootFilesystem: true
     neutron_ovn_metadata_agent:
       pod:
-        runAsUser: 0
+        runAsUser: 42424
       container:
         neutron_ovn_metadata_agent_init:
           runAsUser: 0
@@ -1773,6 +1771,7 @@ conf:
     ptcp_port: 6640
   neutron:
     DEFAULT:
+      debug: true
       metadata_proxy_socket: /var/lib/neutron/openstack-helm/metadata_proxy
       log_config_append: /etc/neutron/logging.conf
       # NOTE(portdirect): the bind port should not be defined, and is manipulated
@@ -1818,7 +1817,8 @@ conf:
     ovn:
       ovn_l3_scheduler: leastloaded
       dns_servers: 8.8.8.8,1.1.1.1
-      neutron_sync_mode: 'off'  # This needs to be set to OFF for OVN in a hybrid deployment.
+      neutron_sync_mode: 'log'  # This needs to be set to OFF for OVN in a hybrid deployment.
+      ovsdb_log_level: DEBUG
       ovn_l3_mode: 'true'
       ovn_sb_connection: tcp:127.0.0.1:6642
       ovn_nb_connection: tcp:127.0.0.1:6641
@@ -1919,13 +1919,14 @@ conf:
         extension_drivers: port_security
         # (NOTE)portdirect: if unset this is populated dyanmicly from the value
         # in 'network.backend' to sane defaults.
-        mechanism_drivers: null
+        mechanism_drivers: ovn
         type_drivers: flat,vlan,geneve
         tenant_network_types: geneve
       ovn:
         ovn_l3_scheduler: leastloaded
         dns_servers: 8.8.8.8,1.1.1.1
-        neutron_sync_mode: 'off'
+        neutron_sync_mode: 'log'  # This needs to be set to OFF for OVN in a hybrid deployment.
+        ovsdb_log_level: DEBUG
         ovn_l3_mode: 'true'
         ovn_sb_connection: tcp:127.0.0.1:6642
         ovn_nb_connection: tcp:127.0.0.1:6641
@@ -2031,7 +2032,7 @@ conf:
       enabled: true
       backend: dogpile.cache.memcached
     ovs:
-      ovsdb_connection: unix:/run/openvswitch/db.sock
+      ovsdb_connection: tcp:127.0.0.1:6640
   bgp_dragent: {}
 
   rabbitmq:
@@ -2508,10 +2509,10 @@ manifests:
   configmap_etc: true
   daemonset_dhcp_agent: false
   daemonset_l3_agent: false
-  daemonset_lb_agent: false
+  daemonset_lb_agent: true
   daemonset_metadata_agent: false
   daemonset_ovs_agent: false
-  daemonset_sriov_agent: false
+  daemonset_sriov_agent: true
   daemonset_l2gw_agent: false
   daemonset_bagpipe_bgp: false
   daemonset_bgp_dragent: false

@@ -1445,7 +1445,7 @@ conf:
     oslo_messaging_rabbit:
       rabbit_ha_queues: true
     os_vif_ovs:
-      ovsdb_connection: unix:/run/openvswitch/db.sock
+      ovsdb_connection: tcp:127.0.0.1:6640
     placement:
       auth_type: password
       auth_version: v3
@@ -2079,7 +2079,7 @@ pod:
   security_context:
     nova:
       pod:
-        runAsUser: 0
+        runAsUser: 42424
       container:
         nova_compute_init:
           readOnlyRootFilesystem: true
@@ -2099,7 +2099,6 @@ pod:
         nova_compute:
           readOnlyRootFilesystem: true
           privileged: true
-          runAsUser: 0
         nova_compute_ssh:
           privileged: true
           runAsUser: 0
