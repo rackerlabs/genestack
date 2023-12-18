@@ -140,7 +140,7 @@ Before deploying Ceph we need to label our nodes.
 kubectl get nodes -o wide
 
 # Label our storage nodes
-kubectl label node openstack-flex-node-4 openstack-flex-node-5 openstack-flex-node-6 role=storage-node
+kubectl label node openstack-flex-node-4.cluster.local openstack-flex-node-5.cluster.local openstack-flex-node-6.cluster.local role=storage-node
 ```
 
 Now run the basic deployment.
@@ -501,7 +501,7 @@ kubectl --namespace openstack exec -ti openstack-admin-client -- openstack --os-
 Before we build our storage environment, make sure to label the storage nodes.
 
 ``` shell
-kubectl label node openstack-flex-node-3 openstack-storage-node=enabled
+kubectl label node openstack-flex-node-3.cluster.local openstack-storage-node=enabled
 ```
 
 Create secrets.
@@ -763,16 +763,6 @@ kubectl apply -f /tmp/neutron-rabbitmq-queue.yaml
 kubectl apply -f /tmp/nova-rabbitmq-queue.yaml
 ```
 
-``` shell
-kubectl --namespace openstack \
-        create secret generic ovn-connection \
-        --type Opaque \
-        --from-literal=OVN_OVSDB_NB_SERVICE_HOST="$(kubectl --namespace kube-system get endpoints ovn-nb -o jsonpath='{.subsets[0].addresses[0].ip}')" \
-        --from-literal=OVN_OVSDB_NB_SERVICE_PORT_OVSDB="$(kubectl --namespace kube-system get endpoints ovn-nb -o jsonpath='{.subsets[0].ports[0].port}')" \
-        --from-literal=OVN_OVSDB_SB_SERVICE_HOST="$(kubectl --namespace kube-system get endpoints ovn-sb -o jsonpath='{.subsets[0].addresses[0].ip}')" \
-        --from-literal=OVN_OVSDB_SB_SERVICE_PORT_OVSDB="$(kubectl --namespace kube-system get endpoints ovn-sb -o jsonpath='{.subsets[0].ports[0].port}')"
-```
-
 Deploy Neutron
 
 ``` shell
@@ -900,7 +890,8 @@ With all of the node networks defined, we can now apply the network policy with 
 kubectl --namespace openstack apply -f /tmp/ovn-setup.yaml
 ```
 
-After running the setup, nodes will have the label `ovn.openstack.org/configured` with a date stamp when it was configured. If there's ever a need to reconfigure a node simply remove the label and the DaemonSet will take care of it automatically.
+After running the setup, nodes will have the label `ovn.openstack.org/configured` with a date stamp when it was configured.
+If there's ever a need to reconfigure a node simply remove the label and the DaemonSet will take care of it automatically.
 
 #### Deploy Horizon
 
