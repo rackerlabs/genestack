@@ -432,6 +432,8 @@
           [all:vars]
           ansible_ssh_common_args='-F {{ lookup('env', 'HOME') }}/.ssh/{{ os_keypair_name }}.config'
           cluster_name={{ cluster_name }}
+          kube_ovn_iface=ens4
+          kube_ovn_default_interface_name=ens3
 
           {% if (bastion_nodes | length) > 0 %}
           [bastion]

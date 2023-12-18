@@ -290,14 +290,6 @@ Now that the backend is all deployed, time to deploy openstack.
 ``` shell
 cd ~/osh/openstack-helm-infra
 
-# First the global controller
-helm upgrade --install ingress-kube-system ./ingress \
-  --namespace=kube-system \
-  --wait \
-  --timeout 120m \
-  -f /tmp/ingress-kube-system.yaml
-
-# Second the component openstack controller
 helm upgrade --install ingress-openstack ./ingress \
   --namespace=openstack \
   --wait \
