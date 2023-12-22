@@ -1,0 +1,49 @@
+---
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: Database
+metadata:
+  name: placement
+  namespace: openstack
+spec:
+  # If you want the database to be created with a different name than the resource name
+  # name: data-custom
+  mariaDbRef:
+    name: mariadb-galera
+  characterSet: utf8
+  collate: utf8_general_ci
+  retryInterval: 5s
+---
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: User
+metadata:
+  name: placement
+  namespace: openstack
+spec:
+  # If you want the user to be created with a different name than the resource name
+  # name: user-custom
+  mariaDbRef:
+    name: mariadb-galera
+  passwordSecretKeyRef:
+    name: placement-db-password
+    key: password
+  # This field is immutable and defaults to 10, 0 means unlimited.
+  maxUserConnections: 0
+  host: "%"
+  retryInterval: 5s
+---
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: Grant
+metadata:
+  name: placement-grant
+  namespace: openstack
+spec:
+  mariaDbRef:
+    name: mariadb-galera
+  privileges:
+    - "ALL"
+  database: "placement"
+  table: "*"
+  username: placement
+  grantOption: true
+  host: "%"
+  retryInterval: 5s

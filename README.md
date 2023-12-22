@@ -13,10 +13,10 @@ Evaluating Kubespray in an environment. Deployment will include the following
 
 ``` shell
 export LC_ALL=C.UTF-8
-mkdir .venvs
-python3 -m venv .venvs/kubespray
+mkdir ~/.venvs
+python3 -m venv ~/.venvs/kubespray
 .venvs/kubespray/bin/pip install pip  --upgrade
-. .venvs/kubespray/bin/activate
+. ~/.venvs/kubespray/bin/activate
 git clone https://github.com/kubernetes-sigs/kubespray kubespray
 cd kubespray
 pip install -r requirements.txt
@@ -52,7 +52,7 @@ ansible-playbook -i localhost, infra-deploy.yaml
 Before running the Kubernetes deployment, make sure that all hosts have a properly configured FQDN.
 
 ``` shell
-ansible -m shell -a 'hostnamectl set-hostname {{ inventory_hostname }}.cluster.local' --become -i openstack-flex/inventory.ini all
+ansible -m shell -a 'hostnamectl set-hostname {{ inventory_hostname }}' --become -i openstack-flex/inventory.ini all
 ```
 
 > NOTE in the above command I'm assuming the use of `cluster.local` this is the default **cluster_name** as defined in the
@@ -298,6 +298,11 @@ helm upgrade --install ingress-openstack ./ingress \
   --set deployment.cluster.class=nginx
 ```
 
+#### Setup the MetalLB Loadbalancer
+
+The MetalLb loadbalancer can be setup by editing the following file `metallb-openstack-service-lb.yml`, You will need to add your "external" VIPs to the
+loadbalancer so that they can be used within services. These IP addresses are unique and will need to be customized to meet the needs of your environment.
+
 ### OpenStack
 
 Before going any further make sure you validate that the backends are operational.
@@ -363,6 +368,13 @@ helm upgrade --install keystone ./keystone \
 
 > NOTE: The image used here allows the system to run with RXT global authentication federation.
   The federated plugin can be seen here, https://github.com/cloudnull/keystone-rxt
+
+For production environments it's also a good idea to set the region and fqdn of your cloud.
+
+``` shell
+--set endpoints.identity.auth.admin.region_name="DFW3" \
+--set endpoints.identity.host_fqdn_override.public.host="dfw-ospcv2-staging\.ohthree\.com"
+```
 
 Deploy the openstack admin client pod (optional)
 
@@ -837,7 +849,7 @@ helm upgrade --install placement ./placement --namespace=openstack \
 Set the name of the OVS integration bridge we'll use. In general this should be **br-int**.
 
 ``` shell
-kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/int_bridge='br-int'
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/int_bridge='br-int'
 ```
 
 Set the name of the OVS bridges we'll use. These are the bridges you will use on your hosts.
@@ -845,25 +857,25 @@ Set the name of the OVS bridges we'll use. These are the bridges you will use on
 > NOTE The functional example here annotates all nodes; however, not all nodes have to have the same setup.
 
 ``` shell
-kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/bridges='br-ex'
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/bridges='br-ex'
 ```
 
 Set the bridge mapping. These are colon delimitated between `OVS_BRIDGE:PHYSICAL_INTERFACE_NAME`. Multiple bridge mappings can be defined here and are separated by commas.
 
 ``` shell
-kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/ports='br-ex:ens5'
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/ports='br-ex:bond1'
 ```
 
 Set the OVN bridge mapping. This maps the Neutron interfaces to the ovs bridge names. These are colon delimitated between `OVS_BRIDGE:PHYSICAL_INTERFACE_NAME`. Multiple bridge mappings can be defined here and are separated by commas.
 
 ``` shell
-kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/mappings='physnet1:br-ex'
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/mappings='physnet1:br-ex'
 ```
 
 Set the OVN availability zones. Multiple network availability zones can be defined and are colon separated.
 
 ``` shell
-kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/availability_zones='nova'
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/availability_zones='nova'
 ```
 
 > Note the "nova" availability zone is an assumed default.
@@ -871,7 +883,7 @@ kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -
 Set the OVN gateway nodes.
 
 ``` shell
-kubectl annotate nodes $(kubectl get nodes -l 'openstack-compute-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/gateway='enabled'
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/gateway='enabled'
 ```
 
 > Note while all compute nodes could be a gateway, not all nodes should be a gateway.

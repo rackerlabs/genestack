@@ -1,0 +1,107 @@
+all:
+  hosts:
+    935830-utility01-ospcv2-dfw.openstack.local:
+      ansible_host: 172.28.232.15
+    935820-compute01-ospcv2-dfw.openstack.local:
+      ansible_host: 172.28.232.121
+    935821-compute02-ospcv2-dfw.openstack.local:
+      ansible_host: 172.28.232.122
+    935822-compute03-ospcv2-dfw.openstack.local:
+      ansible_host: 172.28.232.123
+    935823-compute04-ospcv2-dfw.openstack.local:
+      ansible_host: 172.28.232.124
+    935824-compute05-ospcv2-dfw.openstack.local:
+      ansible_host: 172.28.232.125
+    935825-compute06-ospcv2-dfw.openstack.local:
+      ansible_host: 172.28.232.126
+    935826-compute07-ospcv2-dfw.openstack.local:
+      ansible_host: 172.28.232.127
+    935827-compute08-ospcv2-dfw.openstack.local:
+      ansible_host: 172.28.232.128
+    935811-controller01-ospcv2-dfw.openstack.local:
+      ansible_host: 172.28.232.101
+    935812-controller02-ospcv2-dfw.openstack.local:
+      ansible_host: 172.28.232.102
+    935813-controller03-ospcv2-dfw.openstack.local:
+      ansible_host: 172.28.232.103
+    # 935828-network01-ospcv2-dfw.openstack.local:
+    #   ansible_host: 172.28.236.111
+    935829-network02-ospcv2-dfw.openstack.local:
+      ansible_host: 172.28.232.112
+    935819-network03-ospcv2-dfw.openstack.local:
+      ansible_host: 172.28.232.113
+    935814-storage01-ospcv2-dfw.openstack.local:
+      ansible_host: 172.28.232.161
+    935815-storage02-ospcv2-dfw.openstack.local:
+      ansible_host: 172.28.232.162
+    935816-storage03-ospcv2-dfw.openstack.local:
+      ansible_host: 172.28.232.163
+    935817-storage04-ospcv2-dfw.openstack.local:
+      ansible_host: 172.28.232.164
+    935818-storage05-ospcv2-dfw.openstack.local:
+      ansible_host: 172.28.232.165
+  children:
+    k8s_cluster:
+      vars:
+        cluster_name: openstack.local
+        kube_ovn_iface: br-host
+        kube_ovn_default_interface_name: br-host
+        kube_ovn_central_hosts: "{{ groups['ovn_network_nodes'] }}"
+      children:
+        kube_control_plane:
+          hosts:
+            935811-controller01-ospcv2-dfw.openstack.local: null
+            935812-controller02-ospcv2-dfw.openstack.local: null
+            935813-controller03-ospcv2-dfw.openstack.local: null
+        etcd:
+          hosts:
+            935811-controller01-ospcv2-dfw.openstack.local: null
+            935812-controller02-ospcv2-dfw.openstack.local: null
+            935813-controller03-ospcv2-dfw.openstack.local: null
+        kube_node:
+          hosts:
+            935811-controller01-ospcv2-dfw.openstack.local: null
+            935812-controller02-ospcv2-dfw.openstack.local: null
+            935813-controller03-ospcv2-dfw.openstack.local: null
+            935820-compute01-ospcv2-dfw.openstack.local: null
+            935821-compute02-ospcv2-dfw.openstack.local: null
+            935822-compute03-ospcv2-dfw.openstack.local: null
+            935823-compute04-ospcv2-dfw.openstack.local: null
+            935824-compute05-ospcv2-dfw.openstack.local: null
+            935825-compute06-ospcv2-dfw.openstack.local: null
+            935826-compute07-ospcv2-dfw.openstack.local: null
+            935827-compute08-ospcv2-dfw.openstack.local: null
+            # 935828-network01-ospcv2-dfw.openstack.local: null
+            935829-network02-ospcv2-dfw.openstack.local: null
+            935819-network03-ospcv2-dfw.openstack.local: null
+            935814-storage01-ospcv2-dfw.openstack.local: null
+            935815-storage02-ospcv2-dfw.openstack.local: null
+            935816-storage03-ospcv2-dfw.openstack.local: null
+            935817-storage04-ospcv2-dfw.openstack.local: null
+            935818-storage05-ospcv2-dfw.openstack.local: null
+        ovn_network_nodes:
+          hosts:
+            # 935828-network01-ospcv2-dfw.openstack.local: null
+            935829-network02-ospcv2-dfw.openstack.local: null
+            935819-network03-ospcv2-dfw.openstack.local: null
+        storage_nodes:
+          children:
+            ceph_storage_nodes:
+              hosts:
+                935814-storage01-ospcv2-dfw.openstack.local: null
+                935815-storage02-ospcv2-dfw.openstack.local: null
+                935816-storage03-ospcv2-dfw.openstack.local: null
+            cinder_storage_nodes:
+              hosts:
+                935817-storage04-ospcv2-dfw.openstack.local: null
+                935818-storage05-ospcv2-dfw.openstack.local: null
+        nova_compute_nodes:
+          hosts:
+            935820-compute01-ospcv2-dfw.openstack.local: null
+            935821-compute02-ospcv2-dfw.openstack.local: null
+            935822-compute03-ospcv2-dfw.openstack.local: null
+            935823-compute04-ospcv2-dfw.openstack.local: null
+            935824-compute05-ospcv2-dfw.openstack.local: null
+            935825-compute06-ospcv2-dfw.openstack.local: null
+            935826-compute07-ospcv2-dfw.openstack.local: null
+            935827-compute08-ospcv2-dfw.openstack.local: null

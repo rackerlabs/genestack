@@ -1,0 +1,130 @@
+_domain: &domain dfw-ospcv2-staging.ohthree.com
+_region: &region DFW3
+_certificate: &crt |
+  -----BEGIN CERTIFICATE-----
+  -----END CERTIFICATE-----
+  -----BEGIN CERTIFICATE-----
+  -----END CERTIFICATE-----
+
+_certificate_key: &key |
+  -----BEGIN RSA PRIVATE KEY-----
+  -----END RSA PRIVATE KEY-----
+
+endpoints:
+  compute:
+    host_fqdn_override:
+      public:
+        host: *domain
+    scheme:
+      public: https
+  compute_novnc_proxy:
+    host_fqdn_override:
+      public:
+        host: *domain
+    scheme:
+      public: https
+  compute_novnc_vencrypt:
+    host_fqdn_override:
+      public:
+        host: *domain
+    scheme:
+      public: https
+  identity:
+    auth:
+      admin:
+        region_name: *region
+      cinder:
+        region_name: *region
+      designate:
+        region_name: *region
+      glance:
+        region_name: *region
+      heat:
+        region_name: *region
+      heat_trustee:
+        region_name: *region
+      heat_stack_user:
+        region_name: *region
+      ironic:
+        region_name: *region
+      neutron:
+        region_name: *region
+      nova:
+        region_name: *region
+      placement:
+        region_name: *region
+    host_fqdn_override:
+      public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: keystone-tls-api
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
+        host: *domain
+    scheme:
+      public: https
+    port:
+      api:
+        default: 443
+  image:
+    host_fqdn_override:
+      public:
+        host: *domain
+    scheme:
+      public: https
+  network:
+    host_fqdn_override:
+      public:
+        host: *domain
+    scheme:
+      public: https
+  orchestration:
+    host_fqdn_override:
+      public:
+        host: *domain
+    scheme:
+      public: https
+  cloudformation:
+    host_fqdn_override:
+      public:
+        host: *domain
+    scheme:
+      public: https
+  cloudwatch:
+    host_fqdn_override:
+      public:
+        host: *domain
+    scheme:
+      public: https
+  volume:
+    host_fqdn_override:
+      public:
+        host: *domain
+    scheme:
+      public: https
+  volumev2:
+    host_fqdn_override:
+      public:
+        host: *domain
+    scheme:
+      public: https
+  volumev3:
+    host_fqdn_override:
+      public:
+        host: *domain
+    scheme:
+      public: https
+
+manifests:
+  secret_ingress_tls: true
+
+tls:
+  identity: false
+
+network:
+  api:
+    ingress:
+      classes:
+        namespace: nginx-openstack

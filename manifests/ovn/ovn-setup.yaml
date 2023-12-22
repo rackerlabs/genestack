@@ -1,0 +1,246 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ovn-setup
+  namespace: openstack
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: neutron-default-ovn-setup
+  namespace: openstack
+rules:
+  - apiGroups:
+      - ""
+      - extensions
+      - batch
+      - apps
+    verbs:
+      - get
+      - list
+      - patch
+    resources:
+      - services
+      - endpoints
+      - nodes
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: neutron-ovn-setup
+  namespace: openstack
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: neutron-default-ovn-setup
+subjects:
+  - kind: ServiceAccount
+    name: ovn-setup
+    namespace: openstack
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ovn-integration-properties
+  namespace: openstack
+data:
+  data-ovn-setup: |
+    #!/bin/bash
+    set -exo pipefail
+
+    source /node/ovn
+
+    if [[ "${OVN_BRIDGES}" == "null" ]]; then
+      echo "No OVN_BRIDGES defined, exiting"
+      exit 99
+    fi
+    IFS=',' read -r -a array <<< "$OVN_BRIDGES"
+    for i in ${array[@]}; do
+      ovs-vsctl --no-wait --may-exist add-br $i
+    done
+    if [[ "${OVN_PORT_MAPPINGS}" == "null" ]]; then
+      echo "No OVN_PORT_MAPPINGS defined, exiting"
+      exit 99
+    fi
+    IFS=',' read -r -a outerarray <<< "$OVN_PORT_MAPPINGS"
+    for i in ${outerarray[@]}; do
+      IFS=':' read -r -a innerarray <<< "$i"
+      ovs-vsctl --no-wait --may-exist add-port ${innerarray[0]} ${innerarray[1]}
+    done
+    if [[ "${OVN_BRIDGE}" != "null" ]]; then
+      ovs-vsctl set Open_vSwitch . external-ids:ovn-bridge="${OVN_BRIDGE}"
+    fi
+    if [[ "${OVN_BRIDGE_MAPPINGS}" != "null" ]]; then
+      ovs-vsctl set Open_vSwitch . external-ids:ovn-bridge-mappings="${OVN_BRIDGE_MAPPINGS}"
+    fi
+    if [[ "${OVN_GW_ENABLED:-disabled}" == "enabled" ]]; then
+      ovs-vsctl set Open_vSwitch . external-ids:ovn-cms-options="enable-chassis-as-gw,availability-zones=${OVN_AVAILABILITY_ZONES:-nova}"
+    else
+      ovs-vsctl set Open_vSwitch . external-ids:ovn-cms-options="availability-zones=${OVN_AVAILABILITY_ZONES:-nova}"
+    fi
+    if [[ -z $(ovs-vsctl get-manager) ]]; then
+      ovs-vsctl --id @manager create Manager 'target="ptcp:6640:127.0.0.1"' -- add Open_vSwitch . manager_options @manager
+    fi
+    touch /node/ovn-setup-completed
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: "ovn-setup"
+  namespace: openstack
+  labels:
+    release_group: neutron
+    application: neutron
+    component: ovn-integration
+spec:
+  selector:
+    matchLabels:
+      name: ovn-setup
+  template:
+    metadata:
+      labels:
+        name: ovn-setup
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: ovn.openstack.org/configured
+                operator: DoesNotExist
+              - key: openstack-network-node
+                operator: In
+                values:
+                  - enabled
+      serviceAccountName: ovn-setup
+      volumes:
+        - name: pod-tmp
+          emptyDir: {}
+        - name: ovn-setup
+          configMap:
+            name: "ovn-integration-properties"
+            defaultMode: 0555
+        - hostPath:
+            path: /run
+          name: run
+        - hostPath:
+            path: /
+          name: host-rootfs
+        - name: node-info
+          emptyDir: {}
+      initContainers:
+        - name: init
+          image: "quay.io/airshipit/kubernetes-entrypoint:v1.0.0"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: true
+            readOnlyRootFilesystem: false
+            runAsUser: 65534
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: INTERFACE_NAME
+              value: eth0
+            - name: PATH
+              value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/
+            - name: DEPENDENCY_SERVICE
+              value: ""
+            - name: DEPENDENCY_JOBS
+              value: ""
+            - name: DEPENDENCY_DAEMONSET
+              value: ""
+            - name: DEPENDENCY_CONTAINER
+              value: ""
+            - name: DEPENDENCY_POD_JSON
+              value: ""
+            - name: DEPENDENCY_CUSTOM_RESOURCE
+              value: ""
+          command:
+            - kubernetes-entrypoint
+          volumeMounts: []
+        - name: get-node-annotations
+          imagePullPolicy: IfNotPresent
+          image: alpine/k8s:1.26.11
+          securityContext:
+            readOnlyRootFilesystem: false
+            runAsUser: 0
+          volumeMounts:
+            - mountPath: /node
+              name: node-info
+          env:
+            - name: NODENAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: SCRIPT
+              value: |
+                set -exo pipefail
+                kubectl get node $NODENAME -o jsonpath={.metadata.annotations} | tee /node/annotations.json
+                OVN_AVAILABILITY_ZONES=$(jq '."ovn.openstack.org/availability_zones"' -r /node/annotations.json)
+                echo "export OVN_AVAILABILITY_ZONES=${OVN_AVAILABILITY_ZONES}" > /node/ovn
+                OVN_GW_ENABLED=$(jq '."ovn.openstack.org/gateway"' -r /node/annotations.json)
+                echo "export OVN_GW_ENABLED=${OVN_GW_ENABLED}" >> /node/ovn
+                OVN_BRIDGE_MAPPINGS=$(jq '."ovn.openstack.org/mappings"' -r /node/annotations.json)
+                echo "export OVN_BRIDGE_MAPPINGS=${OVN_BRIDGE_MAPPINGS}" >> /node/ovn
+                OVN_PORT_MAPPINGS=$(jq '."ovn.openstack.org/ports"' -r /node/annotations.json)
+                echo "export OVN_PORT_MAPPINGS=${OVN_PORT_MAPPINGS}" >> /node/ovn
+                OVN_BRIDGES=$(jq '."ovn.openstack.org/bridges"' -r /node/annotations.json)
+                echo "export OVN_BRIDGES=${OVN_BRIDGES}" >> /node/ovn
+                OVN_BRIDGE=$(jq '."ovn.openstack.org/int_bridge"' -r /node/annotations.json)
+                echo "export OVN_BRIDGE=${OVN_BRIDGE}" >> /node/ovn
+          command:
+            - /bin/ash
+            - -c
+          args:
+            - 'echo "$$SCRIPT" > /tmp/script && ash /tmp/script'
+      containers:
+        - name: ovn-setup-exec
+          image: "docker.io/openstackhelm/ovn:ubuntu_jammy"
+          imagePullPolicy: IfNotPresent
+          command:
+            - bash
+            - -c
+            - /tmp/run.sh
+          volumeMounts:
+            - name: pod-tmp
+              mountPath: /tmp
+            - name: ovn-setup
+              mountPath: /tmp/run.sh
+              subPath: data-ovn-setup
+              readOnly: false
+            - mountPath: /run
+              name: run
+            - mountPath: /node
+              name: node-info
+        - name: ovn-setup-tag-completed
+          image: alpine/k8s:1.26.11
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: MY_NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          command:
+          - sh
+          - -c
+          - |
+            set -xe
+            if [[ -f /node/ovn-setup-completed ]]; then
+              kubectl label node "$MY_NODE_NAME" ovn.openstack.org/configured=$(date +%s)
+            fi
+            sleep 200
+          securityContext:
+            runAsUser: 0
+            privileged: true
+          volumeMounts:
+            - mountPath: /node
+              name: node-info

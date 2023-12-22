@@ -1,0 +1,19 @@
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: openstack-external
+  namespace: metallb-system
+spec:
+  addresses:
+  - 172.28.232.10/32
+  autoAssign: false
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: openstack-external-advertisement
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+  - openstack-external
