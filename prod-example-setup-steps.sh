@@ -21,8 +21,6 @@ kubectl label nodes $(kubectl get nodes -l 'node-role.kubernetes.io/control-plan
 
 kubectl apply -f /tmp/metallb-openstack-service-lb.yaml
 
-cd ~/osh/openstack-helm-infra
-
 helm upgrade --install ingress-openstack ./ingress \
              --namespace=openstack \
              --wait \
@@ -34,7 +32,6 @@ kubectl --namespace openstack patch service ingress -p '{"metadata":{"annotation
 kubectl --namespace openstack patch service ingress -p '{"spec": {"type": "LoadBalancer"}}'
 
 kubectl apply -f /tmp/keystone-mariadb-database.yaml
-
 kubectl apply -f /tmp/keystone-rabbitmq-queue.yaml
 
 cd ~/osh/openstack-helm
@@ -49,10 +46,8 @@ helm upgrade --install keystone ./keystone \
     --set endpoints.oslo_db.auth.keystone.password="$(kubectl --namespace openstack get secret keystone-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.keystone.password="$(kubectl --namespace openstack get secret keystone-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    -f /tmp/prod-example-openstack-overrides.yaml
-
-kubectl --namespace openstack patch service keystone -p '{"metadata":{"annotations":{"metallb.universe.tf/allow-shared-ip": "openstack-external-svc", "metallb.universe.tf/address-pool": "openstack-external"}}}'
-kubectl --namespace openstack patch service keystone -p '{"spec": {"type": "LoadBalancer"}}'
+    -f /tmp/prod-example-openstack-overrides.yaml \
+    --post-renderer /opt/flex-rxt/kustomize/keystone/kustomize.sh
 
 helm upgrade --install glance ./glance \
     --namespace=openstack \
@@ -65,10 +60,8 @@ helm upgrade --install glance ./glance \
     --set endpoints.oslo_db.auth.glance.password="$(kubectl --namespace openstack get secret glance-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.glance.password="$(kubectl --namespace openstack get secret glance-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-     -f /tmp/prod-example-openstack-overrides.yaml
-
-kubectl --namespace openstack patch service glance-api -p '{"metadata":{"annotations":{"metallb.universe.tf/allow-shared-ip": "openstack-external-svc", "metallb.universe.tf/address-pool": "openstack-external"}}}'
-kubectl --namespace openstack patch service glance-api -p '{"spec": {"type": "LoadBalancer"}}'
+     -f /tmp/prod-example-openstack-overrides.yaml \
+    --post-renderer /opt/flex-rxt/kustomize/keystone/kustomize.sh
 
 helm upgrade --install heat ./heat \
   --namespace=openstack \
@@ -82,12 +75,8 @@ helm upgrade --install heat ./heat \
     --set endpoints.oslo_db.auth.heat.password="$(kubectl --namespace openstack get secret heat-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.heat.password="$(kubectl --namespace openstack get secret heat-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-     -f /tmp/prod-example-openstack-overrides.yaml
-
-kubectl --namespace openstack patch service heat-api -p '{"metadata":{"annotations":{"metallb.universe.tf/allow-shared-ip": "openstack-external-svc", "metallb.universe.tf/address-pool": "openstack-external"}}}'
-kubectl --namespace openstack patch service heat-api -p '{"spec": {"type": "LoadBalancer"}}'
-kubectl --namespace openstack patch service heat-cfn -p '{"metadata":{"annotations":{"metallb.universe.tf/allow-shared-ip": "openstack-external-svc", "metallb.universe.tf/address-pool": "openstack-external"}}}'
-kubectl --namespace openstack patch service heat-cfn -p '{"spec": {"type": "LoadBalancer"}}'
+     -f /tmp/prod-example-openstack-overrides.yaml \
+    --post-renderer /opt/flex-rxt/kustomize/keystone/kustomize.sh
 
 helm upgrade --install cinder ./cinder \
   --namespace=openstack \
@@ -100,10 +89,8 @@ helm upgrade --install cinder ./cinder \
     --set endpoints.oslo_db.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    -f /tmp/prod-example-openstack-overrides.yaml
-
-kubectl --namespace openstack patch service cinder-api -p '{"metadata":{"annotations":{"metallb.universe.tf/allow-shared-ip": "openstack-external-svc", "metallb.universe.tf/address-pool": "openstack-external"}}}'
-kubectl --namespace openstack patch service cinder-api -p '{"spec": {"type": "LoadBalancer"}}'
+    -f /tmp/prod-example-openstack-overrides.yaml \
+    --post-renderer /opt/flex-rxt/kustomize/keystone/kustomize.sh
 
 helm upgrade --install neutron ./neutron \
   --namespace=openstack \
@@ -123,10 +110,8 @@ helm upgrade --install neutron ./neutron \
     --set conf.neutron.ovn.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-sb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
     --set conf.plugins.ml2_conf.ovn.ovn_nb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-nb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
     --set conf.plugins.ml2_conf.ovn.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-sb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
-    -f /tmp/prod-example-openstack-overrides.yaml
-
-kubectl --namespace openstack patch service neutron-server -p '{"metadata":{"annotations":{"metallb.universe.tf/allow-shared-ip": "openstack-external-svc", "metallb.universe.tf/address-pool": "openstack-external"}}}'
-kubectl --namespace openstack patch service neutron-server -p '{"spec": {"type": "LoadBalancer"}}'
+    -f /tmp/prod-example-openstack-overrides.yaml \
+    --post-renderer /opt/flex-rxt/kustomize/keystone/kustomize.sh
 
 helm upgrade --install nova ./nova \
   --namespace=openstack \
@@ -146,12 +131,8 @@ helm upgrade --install nova ./nova \
     --set endpoints.oslo_db_cell0.auth.nova.password="$(kubectl --namespace openstack get secret nova-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.nova.password="$(kubectl --namespace openstack get secret nova-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    -f /tmp/prod-example-openstack-overrides.yaml
-
-kubectl --namespace openstack patch service nova-api -p '{"metadata":{"annotations":{"metallb.universe.tf/allow-shared-ip": "openstack-external-svc", "metallb.universe.tf/address-pool": "openstack-external"}}}'
-kubectl --namespace openstack patch service nova-api -p '{"spec": {"type": "LoadBalancer"}}'
-kubectl --namespace openstack patch service nova-novncproxy -p '{"metadata":{"annotations":{"metallb.universe.tf/allow-shared-ip": "openstack-external-svc", "metallb.universe.tf/address-pool": "openstack-external"}}}'
-kubectl --namespace openstack patch service nova-novncproxy -p '{"spec": {"type": "LoadBalancer"}}'
+    -f /tmp/prod-example-openstack-overrides.yaml \
+    --post-renderer /opt/flex-rxt/kustomize/keystone/kustomize.sh
 
 helm upgrade --install placement ./placement --namespace=openstack \
   --namespace=openstack \
@@ -162,4 +143,5 @@ helm upgrade --install placement ./placement --namespace=openstack \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.placement.password="$(kubectl --namespace openstack get secret placement-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.nova_api.password="$(kubectl --namespace openstack get secret nova-db-password -o jsonpath='{.data.password}' | base64 -d)" \
-    -f /tmp/prod-example-openstack-overrides.yaml
+    -f /tmp/prod-example-openstack-overrides.yaml \
+    --post-renderer /opt/flex-rxt/kustomize/keystone/kustomize.sh

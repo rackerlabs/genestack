@@ -118,3 +118,5 @@ tmp.md
 # Ansible collection files
 kubernetes_sigs-kubespray*tar.gz
 ansible_collections
+
+kustomize/**/resources.yaml

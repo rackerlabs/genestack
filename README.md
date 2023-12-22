@@ -130,10 +130,9 @@ Now run the basic deployment.
 
 ``` shell
 # Deploy rook
-cd /opt/flex-rxt/submodules/rook/deploy/examples
-kubectl apply -f crds.yaml
-kubectl apply -f common.yaml
-kubectl apply -f operator.yaml
+kubectl apply -f /opt/flex-rxt/submodules/rook/deploy/examples/crds.yaml
+kubectl apply -f /opt/flex-rxt/submodules/rook/deploy/examples/common.yaml
+kubectl apply -f /opt/flex-rxt/submodules/rook/deploy/examples/operator.yaml
 
 # Validate with readiness
 kubectl --namespace rook-ceph get deployments.apps -w
@@ -152,16 +151,16 @@ Once the ceph environment has been deployed, it's time to deploy some additional
 
 ``` shell
 # Deploy our ceph toolbox
-kubectl apply -f toolbox.yaml
+kubectl apply -f /opt/flex-rxt/submodules/rook/deploy/examples/toolbox.yaml
 
 # Create our cephfs filesystem
-kubectl create -f filesystem.yaml
+kubectl create -f /opt/flex-rxt/submodules/rook/deploy/examples/filesystem.yaml
 
 # Create our cephfs storage classes
-kubectl create -f csi/cephfs/storageclass.yaml
+kubectl create -f /opt/flex-rxt/submodules/rook/deploy/examples/csi/cephfs/storageclass.yaml
 
 # Create our rbd store classes
-kubectl create -f csi/rbd/storageclass.yaml
+kubectl create -f /opt/flex-rxt/submodules/rook/deploy/examples/csi/rbd/storageclass.yaml
 
 # Create our general (rbd) store classes, which is marked default.
 kubectl create -f /opt/flex-rxt/manifests/rook/storageclass-general.yaml
@@ -351,13 +350,6 @@ helm upgrade --install keystone ./keystone \
 
 > NOTE: The image used here allows the system to run with RXT global authentication federation.
   The federated plugin can be seen here, https://github.com/cloudnull/keystone-rxt
-
-For production environments it's also a good idea to set the region and fqdn of your cloud.
-
-``` shell
---set endpoints.identity.auth.admin.region_name="DFW3" \
---set endpoints.identity.host_fqdn_override.public.host="dfw-ospcv2-staging\.ohthree\.com"
-```
 
 Deploy the openstack admin client pod (optional)
 
