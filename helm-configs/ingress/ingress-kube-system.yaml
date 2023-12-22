@@ -1,8 +1,0 @@
-deployment:
-  mode: cluster
-  type: DaemonSet
-network:
-  host_namespace: true
-pod:
-  replicas:
-    error_page: 2

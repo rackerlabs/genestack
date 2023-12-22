@@ -7,3 +7,9 @@
 [submodule "submodules/openstack-helm"]
 	path = submodules/openstack-helm
 	url = https://github.com/openstack/openstack-helm
+[submodule "submodules/rook"]
+	path = submodules/rook
+	url = https://github.com/rook/rook.git
+[submodule "submodules/mariadb-operator"]
+	path = submodules/mariadb-operator
+	url = https://github.com/mariadb-operator/mariadb-operator
