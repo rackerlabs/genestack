@@ -14,19 +14,81 @@ endpoints:
   compute:
     host_fqdn_override:
       public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: nova-tls-api
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
         host: *domain
+    port:
+      api:
+        default: 443
+    scheme:
+      public: https
+  compute_metadata:
+    host_fqdn_override:
+      public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: metadata-tls-metadata
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
+        host: *domain
+    port:
+      api:
+        default: 443
     scheme:
       public: https
   compute_novnc_proxy:
     host_fqdn_override:
       public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: nova-novncproxy-tls-proxy
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
         host: *domain
+    port:
+      api:
+        default: 443
     scheme:
       public: https
-  compute_novnc_vencrypt:
+  cloudformation:
     host_fqdn_override:
       public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: heat-tls-cfn
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
         host: *domain
+    port:
+      api:
+        default: 443
+    scheme:
+      public: https
+  cloudwatch:
+    host_fqdn_override:
+      public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: heat-tls-cloudwatch
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
+        host: *domain
+    port:
+      api:
+        default: 443
     scheme:
       public: https
   identity:
@@ -63,65 +125,114 @@ endpoints:
             name: ca-issuer
             kind: ClusterIssuer
         host: *domain
-    scheme:
-      public: https
     port:
       api:
+        default: 443
+    scheme:
+      public: https
+  ingress:
+    port:
+      ingress:
         default: 443
   image:
     host_fqdn_override:
       public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: glance-tls-api
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
         host: *domain
+    port:
+      api:
+        default: 443
     scheme:
       public: https
   network:
     host_fqdn_override:
       public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: neutron-tls-server
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
         host: *domain
+    port:
+      api:
+        default: 443
     scheme:
       public: https
   orchestration:
     host_fqdn_override:
       public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: heat-tls-api
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
         host: *domain
-    scheme:
-      public: https
-  cloudformation:
-    host_fqdn_override:
-      public:
-        host: *domain
-    scheme:
-      public: https
-  cloudwatch:
-    host_fqdn_override:
-      public:
-        host: *domain
+    port:
+      api:
+        default: 443
     scheme:
       public: https
   volume:
     host_fqdn_override:
       public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: cinder-tls-api
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
         host: *domain
+    port:
+      api:
+        public: 443
     scheme:
       public: https
   volumev2:
     host_fqdn_override:
       public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: cinder-tls-api
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
         host: *domain
+    port:
+      api:
+        public: 443
     scheme:
       public: https
   volumev3:
     host_fqdn_override:
       public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: cinder-tls-api
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
         host: *domain
+    port:
+      api:
+        public: 443
     scheme:
       public: https
 
 manifests:
   secret_ingress_tls: true
-
-tls:
-  identity: false
 
 network:
   api:
