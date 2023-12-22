@@ -1,0 +1,9 @@
+[submodule "submodules/kubespray"]
+	path = submodules/kubespray
+	url = https://github.com/kubernetes-sigs/kubespray
+[submodule "submodules/openstack-helm-infra"]
+	path = submodules/openstack-helm-infra
+	url = https://github.com/openstack/openstack-helm-infra
+[submodule "submodules/openstack-helm"]
+	path = submodules/openstack-helm
+	url = https://github.com/openstack/openstack-helm
