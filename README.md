@@ -9,11 +9,13 @@ Evaluating Kubespray in an environment for OpenStack. Deployment will include th
 * Metric Collection
 * Deploy OpenStack
 
+
 ## Get the code
 
 ``` shell
 git clone --recurse-submodules -j4 https://github.com/cloudnull/flex-rxt /opt/flex-rxt
 ```
+
 
 ## Basic Setup
 
@@ -35,6 +37,7 @@ cd /opt/flex-rxt/submodules/kubespray/inventory
 ln -s /opt/flex-rxt/openstack-flex
 ```
 
+
 ## Test Environments
 
 If deploying in a lab environment on an OpenStack cloud, you can run the `infra-deploy.yaml` playbook
@@ -55,7 +58,8 @@ Run the test infrastructure deployment.
 ansible-playbook -i localhost, infra-deploy.yaml
 ```
 
-# Deployment Kubespray
+
+## Deployment Kubespray
 
 Before running the Kubernetes deployment, make sure that all hosts have a properly configured FQDN.
 
@@ -86,7 +90,8 @@ apt update
 apt install jq make -y
 ```
 
-#### Setup OSH and make everything
+
+## Setup OSH and make everything
 
 The following steps will make all of our helm charts.
 
@@ -105,7 +110,8 @@ cd /opt/flex-rxt/submodules/openstack-helm-infra
 make all
 ```
 
-# Ensure the kube dashboard is setup
+
+## Ensure the kube dashboard is setup
 
 While the dashboard is installed you will have no ability to access it until we setup some basic RBAC.
 
@@ -119,7 +125,8 @@ You can now retrieve a permenant token.
 kubectl get secret admin-user -n kube-system -o jsonpath={".data.token"} | base64 -d
 ```
 
-#### Install rook operator
+
+## Install rook operator
 
 Before deploying Ceph we need to label our nodes.
 
@@ -201,59 +208,38 @@ Create our basic openstack namespace
 kubectl apply -f /opt/flex-rxt/manifests/openstack/ns-openstack.yaml
 ```
 
-#### Install mariadb
 
-Deploy the mariadb operator.
+## Install mariadb
 
-``` shell
-# Deploy the operator
-helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
-helm install mariadb-operator mariadb-operator/mariadb-operator --set webhook.cert.certManager.enabled=true --wait --namespace openstack
-```
-
-Configure our database store.
+Create secret
 
 ``` shell
-# Install our configuration and management capabilities
-cd /opt/flex-rxt/submodules/mariadb-operator
-kubectl apply --namespace openstack -f examples/manifests/config/mariabackup-pvc.yaml
-kubectl apply --namespace openstack -f examples/manifests/config/mariadb-configmap.yaml
-```
-
-Deploy our database.
-
-``` shell
-# Create secret
 kubectl --namespace openstack \
         create secret generic mariadb \
         --type Opaque \
         --from-literal=root-password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)" \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+```
 
-# Deploy the mariadb cluster
-kubectl apply --namespace openstack -f /opt/flex-rxt/manifests/mariadb/mariadb-galera.yaml
+Deploy the mariadb operator.
 
-# Verify readiness with the following command
+``` shell
+kubectl kustomize --enable-helm /opt/flex-rxt/kustomize/mariadb | kubectl apply --namespace openstack -f -
+```
+
+Verify readiness with the following command.
+
+``` shell
 kubectl --namespace openstack get mariadbs -w
 ```
 
-#### Install RabbitMQ
 
-Install the RabbitMQ operator.
+## Install RabbitMQ
 
-``` shell
-# Install rabbitmq
-kubectl apply -f https://github.com/rabbitmq/cluster-operator/releases/latest/download/cluster-operator.yml
-kubectl apply -f https://github.com/rabbitmq/messaging-topology-operator/releases/latest/download/messaging-topology-operator-with-certmanager.yaml
-
-# Wait for the operator to be online
-kubectl --namespace rabbitmq-system get deployments.apps
-```
-
-Deploy the RabbitMQ cluster.
+Deploy the RabbitMQ operator and cluster.
 
 ``` shell
-kubectl apply -f /opt/flex-rxt/manifests/rabbitmq/rabbitmq-cluster.yaml
+kubectl apply -k /opt/flex-rxt/kustomize/rabbitmq/
 ```
 
 Validate the status with the following
@@ -262,38 +248,35 @@ Validate the status with the following
 kubectl --namespace openstack get rabbitmqclusters.rabbitmq.com -w
 ```
 
-#### Install memcached
+
+## Install memcached
 
 ``` shell
-helm install memcached oci://registry-1.docker.io/bitnamicharts/memcached \
-                        --set architecture="high-availability" \
-                        --set autoscaling.enabled="true" \
-                        --namespace openstack \
-                        --wait
+kubectl kustomize --enable-helm /opt/flex-rxt/kustomize/memcached | kubectl apply --namespace openstack -f -
 ```
 
-Now that the backend is all deployed, time to deploy openstack.
-
-#### Deploy the ingress controllers
+Verify readiness with the following command.
 
 ``` shell
-cd /opt/flex-rxt/submodules/openstack-helm-infra
-
-helm upgrade --install ingress-openstack ./ingress \
-  --namespace=openstack \
-  --wait \
-  --timeout 120m \
-  -f /opt/flex-rxt/helm-configs/ingress/ingress-helm-overrides.yaml \
-  --set deployment.cluster.class=nginx-openstack \
-  --post-renderer /opt/flex-rxt/kustomize/ingress/kustomize.sh
+kubectl --namespace openstack get horizontalpodautoscaler.autoscaling memcached -w
 ```
 
-#### Setup the MetalLB Loadbalancer
 
-The MetalLb loadbalancer can be setup by editing the following file `metallb-openstack-service-lb.yml`, You will need to add your "external" VIPs to the
-loadbalancer so that they can be used within services. These IP addresses are unique and will need to be customized to meet the needs of your environment.
+## Deploy the ingress controllers
 
-### OpenStack
+``` shell
+kubectl kustomize --enable-helm /opt/flex-rxt/kustomize/ingress | kubectl apply --namespace openstack -f -
+```
+
+
+## Setup the MetalLB Loadbalancer
+
+The MetalLb loadbalancer can be setup by editing the following file `metallb-openstack-service-lb.yml`, You will need to add
+your "external" VIPs to the loadbalancer so that they can be used within services. These IP addresses are unique and will
+need to be customized to meet the needs of your environment.
+
+
+## OpenStack
 
 Before going any further make sure you validate that the backends are operational.
 
@@ -307,7 +290,8 @@ kubectl --namespace openstack get rabbitmqclusters.rabbitmq.com
 
 Once everything is Ready and online. Continue with the installation.
 
-#### Deploy Keystone
+
+### Deploy Keystone
 
 Create secrets.
 
@@ -329,14 +313,6 @@ kubectl --namespace openstack \
         create secret generic keystone-credential-keys \
         --type Opaque \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
-```
-
-Create databases and queues.
-
-``` shell
-kubectl apply -f /opt/flex-rxt/manifests/mariadb/keystone-mariadb-database.yaml
-
-kubectl apply -f /opt/flex-rxt/manifests/rabbitmq/keystone-rabbitmq-queue.yaml
 ```
 
 Run the package deployment.
@@ -372,7 +348,8 @@ Validate functionality
 kubectl --namespace openstack exec -ti openstack-admin-client -- openstack user list
 ```
 
-#### Deploy Glance
+
+### Deploy Glance
 
 Create secrets.
 
@@ -390,12 +367,6 @@ kubectl --namespace openstack \
         create secret generic glance-admin \
         --type Opaque \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
-```
-
-``` shell
-kubectl apply -f /opt/flex-rxt/manifests/mariadb/glance-mariadb-database.yaml
-
-kubectl apply -f /opt/flex-rxt/manifests/rabbitmq/glance-rabbitmq-queue.yaml
 ```
 
 Run the package deployment.
@@ -426,7 +397,8 @@ Validate functionality
 kubectl --namespace openstack exec -ti openstack-admin-client -- openstack image list
 ```
 
-#### Deploy Heat
+
+### Deploy Heat
 
 Create secrets.
 
@@ -452,12 +424,6 @@ kubectl --namespace openstack \
         create secret generic heat-stack-user \
         --type Opaque \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
-```
-
-``` shell
-kubectl apply -f /opt/flex-rxt/manifests/mariadb/heat-mariadb-database.yaml
-
-kubectl apply -f /opt/flex-rxt/manifests/rabbitmq/heat-rabbitmq-queue.yaml
 ```
 
 Run the package deployment.
@@ -486,7 +452,8 @@ Validate functionality
 kubectl --namespace openstack exec -ti openstack-admin-client -- openstack --os-interface internal orchestration service list
 ```
 
-#### Deploy Cinder
+
+### Deploy Cinder
 
 Before we build our storage environment, make sure to label the storage nodes.
 
@@ -510,12 +477,6 @@ kubectl --namespace openstack \
         create secret generic cinder-admin \
         --type Opaque \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
-```
-
-``` shell
-kubectl apply -f /opt/flex-rxt/manifests/mariadb/cinder-mariadb-database.yaml
-
-kubectl apply -f /opt/flex-rxt/manifests/rabbitmq/cinder-rabbitmq-queue.yaml
 ```
 
 Run the package deployment.
@@ -638,25 +599,21 @@ kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volum
 +--------------------------------+--------------------------------------+
 ```
 
-#### Deploy Open vSwitch / OVN
+
+### Deploy Open vSwitch / OVN
 
 Note that we'er not deploying Openvswitch, however, we are using it. The implementation of this POC was
 done with Kubespray which deploys OVN as it's networking solution. Because those components are handled
 by our infrastructure there's nothing for us to manage / deploy in this environment. OpenStack will
 leverage OVN within Kubernetes following the scaling/maintenance/management practices of kube-ovn.
 
-#### Deploy the Compute Kit
+
+### Deploy the Compute Kit
 
 The first part of the compute kit is Libvirt.
 
 ``` shell
-cd /opt/flex-rxt/submodules/openstack-helm-infra
-
-helm upgrade --install libvirt ./libvirt \
-  --namespace=openstack \
-    --wait \
-    --timeout 120m \
-    -f /opt/flex-rxt/helm-configs/libvirt/libvirt-helm-overrides.yaml
+kubectl kustomize --enable-helm /opt/flex-rxt/kustomize/libvirt | kubectl apply --namespace openstack -f -
 ```
 
 Once deployed you can validate functionality on your compute hosts with `virsh`
@@ -739,22 +696,7 @@ kubectl --namespace openstack \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
 ```
 
-Create all the databases
-
-``` shell
-kubectl apply -f /opt/flex-rxt/manifests/mariadb/neutron-mariadb-database.yaml
-kubectl apply -f /opt/flex-rxt/manifests/mariadb/nova-mariadb-database.yaml
-kubectl apply -f /opt/flex-rxt/manifests/mariadb/placement-mariadb-database.yaml
-```
-
-Create all of the queues
-
-``` shell
-kubectl apply -f /opt/flex-rxt/manifests/rabbitmq/neutron-rabbitmq-queue.yaml
-kubectl apply -f /opt/flex-rxt/manifests/rabbitmq/nova-rabbitmq-queue.yaml
-```
-
-Deploy Neutron
+#### Deploy Neutron
 
 ``` shell
 cd /opt/flex-rxt/submodules/openstack-helm
@@ -782,7 +724,7 @@ helm upgrade --install neutron ./neutron \
 
 > The above command derives the OVN north/south bound database from our K8S environment. The insert `set` is making the assumption we're using **tcp** to connect.
 
-Deploy Nova
+#### Deploy Nova
 
 ``` shell
 cd /opt/flex-rxt/submodules/openstack-helm
@@ -817,7 +759,7 @@ If running in an environment that doesn't have hardware virtualization extension
 --set conf.nova.libvirt.virt_type=qemu --set conf.nova.libvirt.cpu_mode=none
 ```
 
-Deploy Placement
+#### Deploy Placement
 
 ``` shell
 cd /opt/flex-rxt/submodules/openstack-helm
@@ -887,7 +829,8 @@ kubectl --namespace openstack apply -f /opt/flex-rxt/manifests/ovn/ovn-setup.yam
 After running the setup, nodes will have the label `ovn.openstack.org/configured` with a date stamp when it was configured.
 If there's ever a need to reconfigure a node simply remove the label and the DaemonSet will take care of it automatically.
 
-#### Deploy Horizon
+
+### Deploy Horizon
 
 
 Create secrets.
@@ -902,12 +845,6 @@ kubectl --namespace openstack \
         create secret generic horizon-db-password \
         --type Opaque \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
-```
-
-Create databases and queues.
-
-``` shell
-kubectl apply -f /opt/flex-rxt/manifests/mariadb/horizon-mariadb-database.yaml
 ```
 
 Run the package deployment.

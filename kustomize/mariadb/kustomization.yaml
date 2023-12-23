@@ -1,0 +1,15 @@
+helmCharts:
+  - name: mariadb-operator
+    repo: https://mariadb-operator.github.io/mariadb-operator
+    releaseName: mariadb-operator
+    valuesInline:
+      webhook:
+        cert:
+          certManager:
+            enabled: true
+    namespace: openstack
+
+resources:
+  - mariadb-galera.yaml
+  - mariabackup-pvc.yaml
+  - mariadb-configmap.yaml
