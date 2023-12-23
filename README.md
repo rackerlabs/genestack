@@ -128,18 +128,6 @@ kubectl get secret admin-user -n kube-system -o jsonpath={".data.token"} | base6
 
 ## Install rook operator
 
-Before deploying Ceph we need to label our nodes.
-
-``` shell
-# Deploy the cluster, before we can deploy the cluster we need to setup the nodes and its devices.
-# get a list of nodes that will participate in our cluster. If using the infra-deploy playbook,
-# this will be the last three nodes in the cluster.
-kubectl get nodes -o wide
-
-# Label our storage nodes
-kubectl label node openstack-flex-node-4.cluster.local openstack-flex-node-5.cluster.local openstack-flex-node-6.cluster.local role=storage-node
-```
-
 Now run the basic deployment.
 
 ``` shell
@@ -183,23 +171,41 @@ kubectl create -f /opt/flex-rxt/manifests/rook/storageclass-general.yaml
 Label all of the nodes in the environment.
 
 ``` shell
+# Label the storage nodes
+kubectl label node $(kubectl get nodes | awk '/storage/ {print $1}') role=storage-node
+
 # Label the openstack controllers
-kubectl label node $(kubectl get nodes -l '!node-role.kubernetes.io/control-plane' -o 'jsonpath={.items[*].metadata.name}') openstack-control-plane=enabled
+kubectl label node $(kubectl get nodes -l 'node-role.kubernetes.io/control-plane' -o 'jsonpath={.items[*].metadata.name}') openstack-control-plane=enabled
 
 # Label the compute nodes
-kubectl label node $(kubectl get nodes -l '!node-role.kubernetes.io/control-plane' -o 'jsonpath={.items[*].metadata.name}') openstack-compute-node=enabled
+kubectl label node $(kubectl get nodes | awk '/compute/ {print $1}') openstack-compute-node=enabled
 
 # Label the network nodes
-kubectl label node $(kubectl get nodes -l '!node-role.kubernetes.io/control-plane' -o 'jsonpath={.items[*].metadata.name}') openstack-network-node=enabled
+kubectl label node $(kubectl get nodes | awk '/network/ {print $1}') openstack-network-node=enabled
 
-# Disable Linuxbridge
-kubectl label nodes --all linuxbridge=disabled
+# With  OVN we need the compute nodes to be "network" nodes as well. While they will be configured for networking, they wont be gateways.
+kubectl label node $(kubectl get nodes | awk '/compute/ {print $1}') openstack-network-node=enabled
 
-# Label all nodes as workers
-kubectl label nodes $(kubectl get nodes -l '!node-role.kubernetes.io/control-plane' -o 'jsonpath={.items[*].metadata.name}') node-role.kubernetes.io/worker=worker
+# Label control-plane nodes as workers
+kubectl label node $(kubectl get nodes -l 'node-role.kubernetes.io/control-plane' -o 'jsonpath={.items[*].metadata.name}') node-role.kubernetes.io/worker=worker
+```
 
+Check the node labels
+
+``` shell
 # Verify the nodes are operational and labled.
 kubectl get nodes -o wide
+```
+
+
+### Optional - Remove taint from our contorllers
+
+In an environment with a limited set of control plane nodes removing the NoSchedule will allow you to converge the
+openstack controllers with the k8s controllers.
+
+``` shell
+# Remote taint from control-plane nodes
+kubectl taint nodes $(kubectl get nodes -o 'jsonpath={.items[*].metadata.name}') node-role.kubernetes.io/control-plane:NoSchedule-
 ```
 
 Create our basic openstack namespace
@@ -275,6 +281,26 @@ The MetalLb loadbalancer can be setup by editing the following file `metallb-ope
 your "external" VIPs to the loadbalancer so that they can be used within services. These IP addresses are unique and will
 need to be customized to meet the needs of your environment.
 
+#### Example
+
+``` shell
+kubectl apply -f /opt/flex-rxt/manifests/metallb/metallb-openstack-service-lb.yml
+```
+
+Assuming your ingress controller is all setup and your metallb loadbalancer is operational you can patch the ingress
+controller to expose your external VIP address
+
+``` shell
+kubectl --namespace openstack patch service ingress -p '{"metadata":{"annotations":{"metallb.universe.tf/allow-shared-ip": "openstack-external-svc", "metallb.universe.tf/address-pool": "openstack-external"}}}'
+kubectl --namespace openstack patch service ingress -p '{"spec": {"type": "LoadBalancer"}}'
+```
+
+Once patched you can see that the controller is operational with your configured VIP address
+
+``` shell
+kubectl --namespace openstack get services ingress
+```
+
 
 ## OpenStack
 
@@ -286,9 +312,15 @@ kubectl --namespace openstack get mariadbs
 
 #RabbitMQ
 kubectl --namespace openstack get rabbitmqclusters.rabbitmq.com
+
+# Memcached
+kubectl --namespace openstack get horizontalpodautoscaler.autoscaling memcached
 ```
 
 Once everything is Ready and online. Continue with the installation.
+
+> The OpenStack commands install the environment with `helm`. We're using Kustomize with helm to configure services,
+  create databases, and setup queues; however, the process is driven by `helm` at this time.
 
 
 ### Deploy Keystone
@@ -332,6 +364,9 @@ helm upgrade --install keystone ./keystone \
     --set endpoints.oslo_messaging.auth.keystone.password="$(kubectl --namespace openstack get secret keystone-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
     --post-renderer /opt/flex-rxt/kustomize/keystone/kustomize.sh
 ```
+
+> In a production like environment you may need to include production specific files like the example variable file found in
+  `helm-configs/prod-example-openstack-overrides.yaml`.
 
 > NOTE: The image used here allows the system to run with RXT global authentication federation.
   The federated plugin can be seen here, https://github.com/cloudnull/keystone-rxt
@@ -387,6 +422,9 @@ helm upgrade --install glance ./glance \
     --set endpoints.oslo_messaging.auth.glance.password="$(kubectl --namespace openstack get secret glance-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
     --post-renderer /opt/flex-rxt/kustomize/glance/kustomize.sh
 ```
+
+> In a production like environment you may need to include production specific files like the example variable file found in
+  `helm-configs/prod-example-openstack-overrides.yaml`.
 
 > Note that the defaults disable `storage_init` because we're using **pvc** as the image backend
   type. In production this should be changed to swift.
@@ -446,6 +484,9 @@ helm upgrade --install heat ./heat \
     --post-renderer /opt/flex-rxt/kustomize/heat/kustomize.sh
 ```
 
+> In a production like environment you may need to include production specific files like the example variable file found in
+  `helm-configs/prod-example-openstack-overrides.yaml`.
+
 Validate functionality
 
 ``` shell
@@ -454,12 +495,6 @@ kubectl --namespace openstack exec -ti openstack-admin-client -- openstack --os-
 
 
 ### Deploy Cinder
-
-Before we build our storage environment, make sure to label the storage nodes.
-
-``` shell
-kubectl label node openstack-flex-node-3.cluster.local openstack-storage-node=enabled
-```
 
 Create secrets.
 
@@ -497,6 +532,9 @@ helm upgrade --install cinder ./cinder \
     --set endpoints.oslo_messaging.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
     --post-renderer /opt/flex-rxt/kustomize/cinder/kustomize.sh
 ```
+
+> In a production like environment you may need to include production specific files like the example variable file found in
+  `helm-configs/prod-example-openstack-overrides.yaml`.
 
 Once the helm deployment is complete cinder and all of it's API services will be online. However, using this setup there will be no volume node at this point.
 The reason volume deployments have been disabled is because I didn't expose ceph to the openstack environment and OSH makes a lot of ceph related assumptions.
@@ -606,6 +644,62 @@ Note that we'er not deploying Openvswitch, however, we are using it. The impleme
 done with Kubespray which deploys OVN as it's networking solution. Because those components are handled
 by our infrastructure there's nothing for us to manage / deploy in this environment. OpenStack will
 leverage OVN within Kubernetes following the scaling/maintenance/management practices of kube-ovn.
+
+
+#### Configure OVN for OpenStack
+
+Post deployment we need to setup neutron to work with our integrated OVN environment. To make that work we have to annotate or nodes.
+
+Set the name of the OVS integration bridge we'll use. In general this should be **br-int**.
+
+``` shell
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/int_bridge='br-int'
+```
+
+Set the name of the OVS bridges we'll use. These are the bridges you will use on your hosts.
+
+> NOTE The functional example here annotates all nodes; however, not all nodes have to have the same setup.
+
+``` shell
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/bridges='br-ex'
+```
+
+Set the bridge mapping. These are colon delimitated between `OVS_BRIDGE:PHYSICAL_INTERFACE_NAME`. Multiple bridge mappings can be defined here and are separated by commas.
+
+``` shell
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/ports='br-ex:bond1'
+```
+
+Set the OVN bridge mapping. This maps the Neutron interfaces to the ovs bridge names. These are colon delimitated between `OVS_BRIDGE:PHYSICAL_INTERFACE_NAME`. Multiple bridge mappings can be defined here and are separated by commas.
+
+``` shell
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/mappings='physnet1:br-ex'
+```
+
+Set the OVN availability zones. Multiple network availability zones can be defined and are colon separated.
+
+``` shell
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/availability_zones='nova'
+```
+
+> Note the "nova" availability zone is an assumed default.
+
+Set the OVN gateway nodes.
+
+``` shell
+kubectl annotate nodes $(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/gateway='enabled'
+```
+
+> Note while all compute nodes could be a gateway, not all nodes should be a gateway.
+
+With all of the node networks defined, we can now apply the network policy with the following command
+
+``` shell
+kubectl --namespace openstack apply -f /opt/flex-rxt/manifests/ovn/ovn-setup.yaml
+```
+
+After running the setup, nodes will have the label `ovn.openstack.org/configured` with a date stamp when it was configured.
+If there's ever a need to reconfigure a node simply remove the label and the DaemonSet will take care of it automatically.
 
 
 ### Deploy the Compute Kit
@@ -719,8 +813,11 @@ helm upgrade --install neutron ./neutron \
     --set conf.neutron.ovn.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-sb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
     --set conf.plugins.ml2_conf.ovn.ovn_nb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-nb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
     --set conf.plugins.ml2_conf.ovn.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-sb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
-    --post-renderer /opt/flex-rxt/kustomize/neutron/kustomize.sh &
+    --post-renderer /opt/flex-rxt/kustomize/neutron/kustomize.sh
 ```
+
+> In a production like environment you may need to include production specific files like the example variable file found in
+  `helm-configs/prod-example-openstack-overrides.yaml`.
 
 > The above command derives the OVN north/south bound database from our K8S environment. The insert `set` is making the assumption we're using **tcp** to connect.
 
@@ -747,8 +844,11 @@ helm upgrade --install nova ./nova \
     --set endpoints.oslo_db_cell0.auth.nova.password="$(kubectl --namespace openstack get secret nova-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.nova.password="$(kubectl --namespace openstack get secret nova-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /opt/flex-rxt/kustomize/nova/kustomize.sh &
+    --post-renderer /opt/flex-rxt/kustomize/nova/kustomize.sh
 ```
+
+> In a production like environment you may need to include production specific files like the example variable file found in
+  `helm-configs/prod-example-openstack-overrides.yaml`.
 
 > NOTE: The above command is setting the ceph as disabled. While the K8S infrastructure has Ceph,
   we're not exposing ceph to our openstack environment.
@@ -773,65 +873,14 @@ helm upgrade --install placement ./placement --namespace=openstack \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.placement.password="$(kubectl --namespace openstack get secret placement-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.nova_api.password="$(kubectl --namespace openstack get secret nova-db-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /opt/flex-rxt/kustomize/placement/kustomize.sh &
+    --post-renderer /opt/flex-rxt/kustomize/placement/kustomize.sh
 ```
 
-> Post deployment we need to setup neutron to work with our integrated OVN environment. To make that work we have to annotate or nodes.
-
-Set the name of the OVS integration bridge we'll use. In general this should be **br-int**.
-
-``` shell
-kubectl annotate nodes $(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/int_bridge='br-int'
-```
-
-Set the name of the OVS bridges we'll use. These are the bridges you will use on your hosts.
-
-> NOTE The functional example here annotates all nodes; however, not all nodes have to have the same setup.
-
-``` shell
-kubectl annotate nodes $(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/bridges='br-ex'
-```
-
-Set the bridge mapping. These are colon delimitated between `OVS_BRIDGE:PHYSICAL_INTERFACE_NAME`. Multiple bridge mappings can be defined here and are separated by commas.
-
-``` shell
-kubectl annotate nodes $(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/ports='br-ex:bond1'
-```
-
-Set the OVN bridge mapping. This maps the Neutron interfaces to the ovs bridge names. These are colon delimitated between `OVS_BRIDGE:PHYSICAL_INTERFACE_NAME`. Multiple bridge mappings can be defined here and are separated by commas.
-
-``` shell
-kubectl annotate nodes $(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/mappings='physnet1:br-ex'
-```
-
-Set the OVN availability zones. Multiple network availability zones can be defined and are colon separated.
-
-``` shell
-kubectl annotate nodes $(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/availability_zones='nova'
-```
-
-> Note the "nova" availability zone is an assumed default.
-
-Set the OVN gateway nodes.
-
-``` shell
-kubectl annotate nodes $(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}') ovn.openstack.org/gateway='enabled'
-```
-
-> Note while all compute nodes could be a gateway, not all nodes should be a gateway.
-
-With all of the node networks defined, we can now apply the network policy with the following command
-
-``` shell
-kubectl --namespace openstack apply -f /opt/flex-rxt/manifests/ovn/ovn-setup.yaml
-```
-
-After running the setup, nodes will have the label `ovn.openstack.org/configured` with a date stamp when it was configured.
-If there's ever a need to reconfigure a node simply remove the label and the DaemonSet will take care of it automatically.
+> In a production like environment you may need to include production specific files like the example variable file found in
+  `helm-configs/prod-example-openstack-overrides.yaml`.
 
 
 ### Deploy Horizon
-
 
 Create secrets.
 
@@ -863,3 +912,6 @@ helm upgrade --install horizon ./horizon \
     --set endpoints.oslo_db.auth.horizon.password="$(kubectl --namespace openstack get secret horizon-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --post-renderer /opt/flex-rxt/kustomize/horizon/kustomize.sh
 ```
+
+> In a production like environment you may need to include production specific files like the example variable file found in
+  `helm-configs/prod-example-openstack-overrides.yaml`.
