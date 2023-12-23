@@ -11,6 +11,16 @@ _certificate_key: &key |
 
 images:
   tags:
+    bootstrap: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    db_init: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    db_drop: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    ks_user: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    ks_service: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    ks_endpoints: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    glance_db_sync: "docker.io/openstackhelm/glance:2023.1-ubuntu_jammy"
+    glance_api: "docker.io/openstackhelm/glance:2023.1-ubuntu_jammy"
+    glance_metadefs_load: "docker.io/openstackhelm/glance:2023.1-ubuntu_jammy"
+    glance_storage_init: "docker.io/openstackhelm/ceph-config-helper:ubuntu_focal_18.2.0-1-20231013"
     entrypoint: quay.io/airshipit/kubernetes-entrypoint:v1.0.0
     ingress: registry.k8s.io/ingress-nginx/controller:v1.8.2
     ingress_module_init: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
@@ -19,12 +29,6 @@ images:
     keepalived: docker.io/osixia/keepalived:1.4.5
     dep_check: quay.io/airshipit/kubernetes-entrypoint:v1.0.0
     image_repo_sync: docker.io/library/docker:17.07.0
-    bootstrap: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    db_init: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    db_drop: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    ks_user: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    ks_service: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    ks_endpoints: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
     heat_db_sync: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
     heat_api: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
     heat_cfn: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
@@ -39,13 +43,9 @@ images:
     cinder_scheduler: "docker.io/openstackhelm/cinder:2023.1-ubuntu_jammy"
     cinder_volume: "docker.io/openstackhelm/cinder:2023.1-ubuntu_jammy"
     cinder_volume_usage_audit: "docker.io/openstackhelm/cinder:2023.1-ubuntu_jammy"
-    cinder_storage_init: "docker.io/openstackhelm/ceph-config-helper:latest-ubuntu_focal"
+    cinder_storage_init: "docker.io/openstackhelm/ceph-config-helper:ubuntu_focal_18.2.0-1-20231013"
     cinder_backup: "docker.io/openstackhelm/cinder:2023.1-ubuntu_jammy"
-    cinder_backup_storage_init: "docker.io/openstackhelm/ceph-config-helper:latest-ubuntu_focal"
-    glance_storage_init: docker.io/openstackhelm/ceph-config-helper:latest-ubuntu_xenial
-    glance_metadefs_load: docker.io/openstackhelm/glance:wallaby-ubuntu_focal
-    glance_db_sync: docker.io/openstackhelm/glance:wallaby-ubuntu_focal
-    glance_api: docker.io/openstackhelm/glance:wallaby-ubuntu_focal
+    cinder_backup_storage_init: "docker.io/openstackhelm/ceph-config-helper:ubuntu_focal_18.2.0-1-20231013"
     keystone_api: "ghcr.io/cloudnull/keystone-rxt:2023.1-ubuntu_jammy"
     keystone_bootstrap: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
     keystone_credential_rotate: "ghcr.io/cloudnull/keystone-rxt:2023.1-ubuntu_jammy"
@@ -73,10 +73,10 @@ images:
     neutron_netns_cleanup_cron: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
     purge_test: docker.io/openstackhelm/ospurge:latest
     netoffload: ghcr.io/vexxhost/netoffload:v1.0.1
-    neutron_sriov_agent: docker.io/openstackhelm/neutron:stein-18.04-sriov
-    neutron_sriov_agent_init: docker.io/openstackhelm/neutron:stein-18.04-sriov
-    neutron_bgp_dragent: docker.io/openstackhelm/neutron:stein-ubuntu_bionic
-    neutron_ironic_agent: docker.io/openstackhelm/neutron:stein-ubuntu_bionic
+    neutron_sriov_agent: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    neutron_sriov_agent_init: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    neutron_bgp_dragent: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    neutron_ironic_agent: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
     nova_api: "docker.io/openstackhelm/nova:2023.1-ubuntu_jammy"
     nova_cell_setup: "docker.io/openstackhelm/nova:2023.1-ubuntu_jammy"
     nova_cell_setup_init: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
@@ -90,8 +90,8 @@ images:
     nova_spiceproxy: "docker.io/openstackhelm/nova:2023.1-ubuntu_jammy"
     nova_spiceproxy_assets: "docker.io/openstackhelm/nova:2023.1-ubuntu_jammy"
     nova_service_cleaner: "docker.io/openstackhelm/ceph-config-helper:latest-ubuntu_focal"
-    nova_archive_deleted_rows: docker.io/openstackhelm/nova:wallaby-ubuntu_focal
-    nova_compute_ironic: "docker.io/kolla/ubuntu-source-nova-compute-ironic:wallaby"
+    nova_archive_deleted_rows: "docker.io/openstackhelm/nova:2023.1-ubuntu_jammy"
+    nova_compute_ironic: "docker.io/kolla/nova-compute-ironic:2023.2-ubuntu-jammy"
     nova_wait_for_computes_init: gcr.io/google_containers/hyperkube-amd64:v1.11.6
     placement: "docker.io/openstackhelm/placement:2023.1-ubuntu_jammy"
     placement_db_sync: "docker.io/openstackhelm/placement:2023.1-ubuntu_jammy"

@@ -1,4 +1,6 @@
-# Overview
+![Genestack](assets/images/genestack.png)
+
+# Genestack
 
 Evaluating Kubespray in an environment for OpenStack. Deployment will include the following
 
