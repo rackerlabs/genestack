@@ -95,6 +95,8 @@ images:
     nova_wait_for_computes_init: gcr.io/google_containers/hyperkube-amd64:v1.11.6
     placement: "docker.io/openstackhelm/placement:2023.1-ubuntu_jammy"
     placement_db_sync: "docker.io/openstackhelm/placement:2023.1-ubuntu_jammy"
+    horizon_db_sync: docker.io/openstackhelm/horizon:2023.1-ubuntu_jammy
+    horizon: docker.io/openstackhelm/horizon:2023.1-ubuntu_jammy
 
 endpoints:
   compute:
@@ -174,6 +176,22 @@ endpoints:
         host: cloudwatch.heat.dfw-ospcv2-staging.ohthree.com
     port:
       api:
+        public: 443
+    scheme:
+      public: https
+  dashboard:
+    host_fqdn_override:
+      public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: horizon-tls-web
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
+        host: dfw-ospcv2-staging.ohthree.com
+    port:
+      web:
         public: 443
     scheme:
       public: https
@@ -336,7 +354,5 @@ manifests:
 network:
   api:
     ingress:
-      # classes:
-      #   namespace: nginx-openstack
       annotations:
         nginx.ingress.kubernetes.io/ssl-redirect: "true"

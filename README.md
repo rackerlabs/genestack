@@ -889,4 +889,40 @@ If there's ever a need to reconfigure a node simply remove the label and the Dae
 
 #### Deploy Horizon
 
-> NOTE IMPLEMENTED YET
+
+Create secrets.
+
+``` shell
+kubectl --namespace openstack \
+        create secret generic horizon-secrete-key \
+        --type Opaque \
+        --from-literal=username="horizon" \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-64};echo;)"
+kubectl --namespace openstack \
+        create secret generic horizon-db-password \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
+```
+
+Create databases and queues.
+
+``` shell
+kubectl apply -f /opt/flex-rxt/manifests/mariadb/horizon-mariadb-database.yaml
+```
+
+Run the package deployment.
+
+``` shell
+cd /opt/flex-rxt/submodules/openstack-helm
+
+helm upgrade --install horizon ./horizon \
+    --namespace=openstack \
+    --wait \
+    --timeout 120m \
+    -f /opt/flex-rxt/helm-configs/horizon/horizon-helm-overrides.yaml \
+    --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set conf.horizon.local_settings.config.horizon_secret_key="$(kubectl --namespace openstack get secret horizon-secrete-key -o jsonpath='{.data.root-password}' | base64 -d)" \
+    --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
+    --set endpoints.oslo_db.auth.horizon.password="$(kubectl --namespace openstack get secret horizon-db-password -o jsonpath='{.data.password}' | base64 -d)" \
+    --post-renderer /opt/flex-rxt/kustomize/horizon/kustomize.sh
+```
