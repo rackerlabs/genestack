@@ -1,4 +1,3 @@
-_domain: &domain dfw-ospcv2-staging.ohthree.com
 _region: &region DFW3
 _certificate: &crt |
   -----BEGIN CERTIFICATE-----
@@ -108,10 +107,10 @@ endpoints:
           issuerRef:
             name: ca-issuer
             kind: ClusterIssuer
-        host: *domain
+        host: nova.dfw-ospcv2-staging.ohthree.com
     port:
       api:
-        default: 443
+        public: 443
     scheme:
       public: https
   compute_metadata:
@@ -124,10 +123,10 @@ endpoints:
           issuerRef:
             name: ca-issuer
             kind: ClusterIssuer
-        host: *domain
+        host: metadata.nova.dfw-ospcv2-staging.ohthree.com
     port:
       api:
-        default: 443
+        public: 443
     scheme:
       public: https
   compute_novnc_proxy:
@@ -140,10 +139,10 @@ endpoints:
           issuerRef:
             name: ca-issuer
             kind: ClusterIssuer
-        host: *domain
+        host: novnc.nova.dfw-ospcv2-staging.ohthree.com
     port:
       api:
-        default: 443
+        public: 443
     scheme:
       public: https
   cloudformation:
@@ -156,10 +155,10 @@ endpoints:
           issuerRef:
             name: ca-issuer
             kind: ClusterIssuer
-        host: *domain
+        host: cloudformation.heat.dfw-ospcv2-staging.ohthree.com
     port:
       api:
-        default: 443
+        public: 443
     scheme:
       public: https
   cloudwatch:
@@ -172,10 +171,10 @@ endpoints:
           issuerRef:
             name: ca-issuer
             kind: ClusterIssuer
-        host: *domain
+        host: cloudwatch.heat.dfw-ospcv2-staging.ohthree.com
     port:
       api:
-        default: 443
+        public: 443
     scheme:
       public: https
   identity:
@@ -211,16 +210,16 @@ endpoints:
           issuerRef:
             name: ca-issuer
             kind: ClusterIssuer
-        host: *domain
+        host: keystone.dfw-ospcv2-staging.ohthree.com
     port:
       api:
-        default: 443
+        public: 443
     scheme:
       public: https
   ingress:
     port:
       ingress:
-        default: 443
+        public: 443
   image:
     host_fqdn_override:
       public:
@@ -231,10 +230,10 @@ endpoints:
           issuerRef:
             name: ca-issuer
             kind: ClusterIssuer
-        host: *domain
+        host: glance.dfw-ospcv2-staging.ohthree.com
     port:
       api:
-        default: 443
+        public: 443
     scheme:
       public: https
   network:
@@ -247,10 +246,10 @@ endpoints:
           issuerRef:
             name: ca-issuer
             kind: ClusterIssuer
-        host: *domain
+        host: neutron.dfw-ospcv2-staging.ohthree.com
     port:
       api:
-        default: 443
+        public: 443
     scheme:
       public: https
   orchestration:
@@ -263,10 +262,10 @@ endpoints:
           issuerRef:
             name: ca-issuer
             kind: ClusterIssuer
-        host: *domain
+        host: heat.dfw-ospcv2-staging.ohthree.com
     port:
       api:
-        default: 443
+        public: 443
     scheme:
       public: https
   volume:
@@ -279,7 +278,7 @@ endpoints:
           issuerRef:
             name: ca-issuer
             kind: ClusterIssuer
-        host: *domain
+        host: cinder.dfw-ospcv2-staging.ohthree.com
     port:
       api:
         public: 443
@@ -295,7 +294,7 @@ endpoints:
           issuerRef:
             name: ca-issuer
             kind: ClusterIssuer
-        host: *domain
+        host: cinder.dfw-ospcv2-staging.ohthree.com
     scheme:
       public: https
   volumev3:
@@ -308,7 +307,7 @@ endpoints:
           issuerRef:
             name: ca-issuer
             kind: ClusterIssuer
-        host: *domain
+        host: cinder.dfw-ospcv2-staging.ohthree.com
     port:
       api:
         public: 443
@@ -321,7 +320,7 @@ manifests:
 network:
   api:
     ingress:
-      classes:
-        namespace: nginx-openstack
+      # classes:
+      #   namespace: nginx-openstack
       annotations:
         nginx.ingress.kubernetes.io/ssl-redirect: "true"

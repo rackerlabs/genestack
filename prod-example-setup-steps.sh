@@ -40,7 +40,7 @@ helm upgrade --install keystone ./keystone \
     --namespace=openstack \
     --wait \
     --timeout 120m \
-    -f /tmp/keystone-helm-overrides.yaml \
+    -f /opt/flex-rxt/helm-configs/keystone/keystone-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.keystone.password="$(kubectl --namespace openstack get secret keystone-db-password -o jsonpath='{.data.password}' | base64 -d)" \

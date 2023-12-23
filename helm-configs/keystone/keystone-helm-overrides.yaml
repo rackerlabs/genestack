@@ -961,14 +961,14 @@ endpoints:
       #     crt: null
       #     key: null
     path:
-      public: /api/keystone/v3
       default: /v3
     scheme:
       default: http
       service: http
     port:
       api:
-        default: 5000
+        admin: 5000
+        default: 80
         # NOTE(portdirect): to retain portability across images, and allow
         # running under a unprivileged user simply, we default to a port > 1000.
         internal: 5000
