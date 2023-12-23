@@ -6,7 +6,7 @@ metadata:
   namespace: metallb-system
 spec:
   addresses:
-  - 172.28.232.10/32
+  - 172.28.232.10/32  # This is assumed to be the public LB vip address
   autoAssign: false
 ---
 apiVersion: metallb.io/v1beta1

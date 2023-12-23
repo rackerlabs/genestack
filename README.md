@@ -1,6 +1,6 @@
 # Overview
 
-Evaluating Kubespray in an environment. Deployment will include the following
+Evaluating Kubespray in an environment for OpenStack. Deployment will include the following
 
 * Kubernetes
 * K-Dashboard
@@ -49,6 +49,8 @@ ansible-galaxy collection install openstack.cloud --force
 
 Run the test infrastructure deployment.
 
+> This is used to deploy new infra on an existing OpenStack cloud. If you're deploying on baremetal this step can be skipped.
+
 ``` shell
 ansible-playbook -i localhost, infra-deploy.yaml
 ```
@@ -70,6 +72,9 @@ ansible -m shell -a 'hostnamectl set-hostname {{ inventory_hostname }}' --become
 
 Run the cluster deployment
 
+> This is used to deploy kubespray against infra on an OpenStack cloud. If you're deploying on baremetal you will need to setup an inventory that meets your environmental needs.
+  Checkout the `openstack-flex/prod-inventory-example.yaml` file for an example of a production target environment.
+
 ``` shell
 ansible-playbook -i inventory/openstack-flex/inventory.ini -u ubuntu -b cluster.yml
 ```
@@ -82,6 +87,8 @@ apt install jq make -y
 ```
 
 #### Setup OSH and make everything
+
+The following steps will make all of our helm charts.
 
 ``` shell
 # Export OSH variables
