@@ -351,8 +351,16 @@ endpoints:
 manifests:
   secret_ingress_tls: true
 
+bootstrap:
+  structured:
+    images: {}
+
 network:
   api:
     ingress:
       annotations:
         nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+volume:
+  class_name: general
+  size: 100Gi

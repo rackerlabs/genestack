@@ -1,25 +1,5 @@
 resources:
+  - keystone-mariadb-database.yaml
+  - keystone-rabbitmq-queue.yaml
   - all.yaml
-
-# patches:
-# - target:
-#     kind: Ingress
-#     name: keystone-namespace-fqdn
-#   patch: |-
-#     - op: replace
-#       path: /spec/rules/0/http/paths/0/path
-#       value: /api/keystone/v3
-# - target:
-#     kind: Ingress
-#     name: keystone-cluster-fqdn
-#   patch: |-
-#     - op: replace
-#       path: /spec/rules/0/http/paths/0/path
-#       value: /api/keystone/v3
-# - target:
-#     kind: Ingress
-#     name: keystone
-#   patch: |-
-#     - op: replace
-#       path: /spec/rules/0/http/paths/0/path
-#       value: /api/keystone/v3
+  - hpa-keystone-api.yaml

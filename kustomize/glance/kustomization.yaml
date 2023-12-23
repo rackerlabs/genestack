@@ -1,2 +1,14 @@
 resources:
+  - glance-mariadb-database.yaml
+  - glance-rabbitmq-queue.yaml
   - all.yaml
+  - hpa-glance-api.yaml
+
+patches:
+  - target:
+      kind: PersistentVolumeClaim
+      name: glance-images
+    patch: |-
+      - op: replace
+        path: /spec/accessModes
+        value: ["ReadWriteMany"]

@@ -1,2 +1,5 @@
 resources:
+  - neutron-mariadb-database.yaml
+  - neutron-rabbitmq-queue.yaml
   - all.yaml
+  - hpa-neutron-server.yaml
