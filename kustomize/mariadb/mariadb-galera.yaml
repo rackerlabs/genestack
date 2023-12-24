@@ -98,6 +98,9 @@ spec:
     binlog_format=row
     innodb_autoinc_lock_mode=2
     max_allowed_packet=256M
+    max_connections=10240
+    open_files_limit=10240
+    max-connect-errors=1000000
 
   resources:
     requests:

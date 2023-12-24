@@ -57,6 +57,13 @@ network:
         cluster: "nginx-openstack"
       annotations:
         nginx.ingress.kubernetes.io/rewrite-target: /
+        nginx.ingress.kubernetes.io/affinity: cookie
+        nginx.ingress.kubernetes.io/affinity-mode: persistent
+        nginx.ingress.kubernetes.io/session-cookie-name: GENESTACKCOOKIE
+        nginx.ingress.kubernetes.io/session-cookie-secure: "true"
+        nginx.ingress.kubernetes.io/session-cookie-expires: "172800"
+        nginx.ingress.kubernetes.io/session-cookie-max-age: "172800"
+        nginx.ingress.kubernetes.io/session-cookie-hash: sha1
   external_policy_local: false
   node_port:
     enabled: false
@@ -6099,9 +6106,9 @@ conf:
         pwd_validator_help_text: '_("Your password must be at least eight (8) characters in length and must include characters from at least two (2) of these groupings: alpha, numeric, and special characters.")'
         session_cookie_secure: "True"
         session_cookie_httponly: "True"
-        secure_proxy_ssl_header: false
+        secure_proxy_ssl_header: true
         password_autocomplete: "False"
-        disallow_iframe_embed: "False"
+        disallow_iframe_embed: "True"
         allowed_hosts:
           - '*'
         horizon_images_upload_mode: 'legacy'
@@ -6207,11 +6214,11 @@ conf:
         # Set this to True if running on multi-domain model. When this is enabled, it
         # will require user to enter the Domain name in addition to username for login.
         OPENSTACK_KEYSTONE_MULTIDOMAIN_SUPPORT = {{ .Values.conf.horizon.local_settings.config.keystone_multidomain_support }}
-
-        # Overrides the default domain used when running on single-domain model
-        # with Keystone V3. All entities will be created in the default domain.
-        OPENSTACK_KEYSTONE_DEFAULT_DOMAIN = '{{ .Values.conf.horizon.local_settings.config.keystone_default_domain }}'
-
+        OPENSTACK_KEYSTONE_DOMAIN_DROPDOWN = True
+        OPENSTACK_KEYSTONE_DOMAIN_CHOICES = (
+            ('Default', _('Default')),
+            ('rackspace_cloud_domain', _('Rackspace')),
+        )
         # Set Console type:
         # valid options are "AUTO"(default), "VNC", "SPICE", "RDP", "SERIAL" or None
         # Set to None explicitly if you want to deactivate the console.
@@ -6267,7 +6274,7 @@ conf:
         # (usually behind a load-balancer). Either you have to make sure that a session
         # gets all requests routed to the same dashboard instance or you set the same
         # SECRET_KEY for all of them.
-        SECRET_KEY='{{ .Values.conf.horizon.local_settings.config.horizon_secret_key }}'
+        SECRET_KEY = '{{ .Values.conf.horizon.local_settings.config.horizon_secret_key }}'
 
         CACHES = {
             'default': {
@@ -6286,6 +6293,7 @@ conf:
                 'default-character-set': 'utf8',
                 {{- if .Values.manifests.certificates }}
                 'OPTIONS':{
+                    "init_command": "SET GLOBAL max_connections = 10240",
                     'ssl': {
                         'ca': '/etc/mysql/certs/ca.crt',
                         'cert': '/etc/mysql/certs/tls.crt',
@@ -6297,7 +6305,8 @@ conf:
             }
         }
         SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
-
+        SESSION_TIMEOUT = 172800
+        SHOW_KEYSTONE_V2_RC = False
         # Send email to the console by default
         EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
         # Or send them to /dev/null
@@ -6840,6 +6849,8 @@ conf:
         DISALLOW_IFRAME_EMBED = {{ .Values.conf.horizon.local_settings.config.disallow_iframe_embed }}
 
         STATIC_ROOT = '/var/www/html/horizon'
+        COMPRESS_ENABLED = True
+        COMPRESS_ROOT = '/var/www/html/horizon'
 
         {{- range $option, $value := .Values.conf.horizon.local_settings.config.raw }}
         {{ $option }} = {{ toJson $value }}
@@ -7186,6 +7197,13 @@ endpoints:
         default: 80
         internal: 5000
   oslo_cache:
+    auth:
+      # NOTE(portdirect): this is used to define the value for keystone
+      # authtoken cache encryption key, if not set it will be populated
+      # automatically with a random value, but to take advantage of
+      # this feature all services should be set to use the same key,
+      # and memcache service.
+      memcache_secret_key: null
     hosts:
       default: memcached
     host_fqdn_override:
