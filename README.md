@@ -65,7 +65,7 @@ to manage cloud infrastructure in the way you need it.
 Because we've sold our soul to the submodule devel you're going to need to recursively clone the repo.
 
 ``` shell
-git clone --recurse-submodules -j4 https://github.com/cloudnull/flex-rxt /opt/flex-rxt
+git clone --recurse-submodules -j4 https://github.com/cloudnull/genestack /opt/genestack
 ```
 
 
@@ -79,14 +79,14 @@ mkdir ~/.venvs
 python3 -m venv ~/.venvs/kubespray
 .venvs/kubespray/bin/pip install pip  --upgrade
 source ~/.venvs/kubespray/bin/activate
-pip install -r /opt/flex-rxt/submodules/kubespray/requirements.txt
+pip install -r /opt/genestack/submodules/kubespray/requirements.txt
 ```
 
 The inventory defaults are in the root of this repo and can be symlinked into your kubspray environment.
 
 ``` shell
-cd /opt/flex-rxt/submodules/kubespray/inventory
-ln -s /opt/flex-rxt/openstack-flex
+cd /opt/genestack/submodules/kubespray/inventory
+ln -s /opt/genestack/openstack-flex
 ```
 
 
@@ -155,10 +155,10 @@ export OPENSTACK_RELEASE=2023.1
 export OSH_DEPLOY_MULTINODE=True
 
 # Run make for everything.
-cd /opt/flex-rxt/submodules/openstack-helm
+cd /opt/genestack/submodules/openstack-helm
 make all
 
-cd /opt/flex-rxt/submodules/openstack-helm-infra
+cd /opt/genestack/submodules/openstack-helm-infra
 make all
 ```
 
@@ -168,7 +168,7 @@ make all
 While the dashboard is installed you will have no ability to access it until we setup some basic RBAC.
 
 ``` shell
-kubectl apply -f /opt/flex-rxt/manifests/k8s/dashboard-rbac-default.yaml
+kubectl apply -f /opt/genestack/manifests/k8s/dashboard-rbac-default.yaml
 ```
 
 You can now retrieve a permenant token.
@@ -184,9 +184,9 @@ Now run the basic deployment.
 
 ``` shell
 # Deploy rook
-kubectl apply -f /opt/flex-rxt/submodules/rook/deploy/examples/crds.yaml
-kubectl apply -f /opt/flex-rxt/submodules/rook/deploy/examples/common.yaml
-kubectl apply -f /opt/flex-rxt/submodules/rook/deploy/examples/operator.yaml
+kubectl apply -f /opt/genestack/submodules/rook/deploy/examples/crds.yaml
+kubectl apply -f /opt/genestack/submodules/rook/deploy/examples/common.yaml
+kubectl apply -f /opt/genestack/submodules/rook/deploy/examples/operator.yaml
 
 # Validate with readiness
 kubectl --namespace rook-ceph get deployments.apps -w
@@ -198,26 +198,26 @@ layout.
 
 ``` shell
 # Deploy our ceph cluster
-kubectl apply -f /opt/flex-rxt/manifests/rook/rook-cluster.yaml
+kubectl apply -f /opt/genestack/manifests/rook/rook-cluster.yaml
 ```
 
 Once the ceph environment has been deployed, it's time to deploy some additional components ceph will use/have access to.
 
 ``` shell
 # Deploy our ceph toolbox
-kubectl apply -f /opt/flex-rxt/submodules/rook/deploy/examples/toolbox.yaml
+kubectl apply -f /opt/genestack/submodules/rook/deploy/examples/toolbox.yaml
 
 # Create our cephfs filesystem
-kubectl create -f /opt/flex-rxt/submodules/rook/deploy/examples/filesystem.yaml
+kubectl create -f /opt/genestack/submodules/rook/deploy/examples/filesystem.yaml
 
 # Create our cephfs storage classes
-kubectl create -f /opt/flex-rxt/submodules/rook/deploy/examples/csi/cephfs/storageclass.yaml
+kubectl create -f /opt/genestack/submodules/rook/deploy/examples/csi/cephfs/storageclass.yaml
 
 # Create our rbd store classes
-kubectl create -f /opt/flex-rxt/submodules/rook/deploy/examples/csi/rbd/storageclass.yaml
+kubectl create -f /opt/genestack/submodules/rook/deploy/examples/csi/rbd/storageclass.yaml
 
 # Create our general (rbd) store classes, which is marked default.
-kubectl create -f /opt/flex-rxt/manifests/rook/storageclass-general.yaml
+kubectl create -f /opt/genestack/manifests/rook/storageclass-general.yaml
 ```
 
 Label all of the nodes in the environment.
@@ -263,7 +263,7 @@ kubectl taint nodes $(kubectl get nodes -o 'jsonpath={.items[*].metadata.name}')
 Create our basic openstack namespace
 
 ``` shell
-kubectl apply -f /opt/flex-rxt/manifests/openstack/ns-openstack.yaml
+kubectl apply -f /opt/genestack/manifests/openstack/ns-openstack.yaml
 ```
 
 
@@ -282,7 +282,7 @@ kubectl --namespace openstack \
 Deploy the mariadb operator.
 
 ``` shell
-kubectl kustomize --enable-helm /opt/flex-rxt/kustomize/mariadb | kubectl apply --namespace openstack -f -
+kubectl kustomize --enable-helm /opt/genestack/kustomize/mariadb | kubectl apply --namespace openstack -f -
 ```
 
 Verify readiness with the following command.
@@ -297,7 +297,7 @@ kubectl --namespace openstack get mariadbs -w
 Deploy the RabbitMQ operator and cluster.
 
 ``` shell
-kubectl apply -k /opt/flex-rxt/kustomize/rabbitmq/
+kubectl apply -k /opt/genestack/kustomize/rabbitmq/
 ```
 
 Validate the status with the following
@@ -310,7 +310,7 @@ kubectl --namespace openstack get rabbitmqclusters.rabbitmq.com -w
 ## Install memcached
 
 ``` shell
-kubectl kustomize --enable-helm /opt/flex-rxt/kustomize/memcached | kubectl apply --namespace openstack -f -
+kubectl kustomize --enable-helm /opt/genestack/kustomize/memcached | kubectl apply --namespace openstack -f -
 ```
 
 Verify readiness with the following command.
@@ -323,7 +323,7 @@ kubectl --namespace openstack get horizontalpodautoscaler.autoscaling memcached 
 ## Deploy the ingress controllers
 
 ``` shell
-kubectl kustomize --enable-helm /opt/flex-rxt/kustomize/ingress | kubectl apply --namespace openstack -f -
+kubectl kustomize --enable-helm /opt/genestack/kustomize/ingress | kubectl apply --namespace openstack -f -
 ```
 
 
@@ -336,7 +336,7 @@ need to be customized to meet the needs of your environment.
 #### Example
 
 ``` shell
-kubectl apply -f /opt/flex-rxt/manifests/metallb/metallb-openstack-service-lb.yml
+kubectl apply -f /opt/genestack/manifests/metallb/metallb-openstack-service-lb.yml
 ```
 
 Assuming your ingress controller is all setup and your metallb loadbalancer is operational you can patch the ingress
@@ -402,19 +402,19 @@ kubectl --namespace openstack \
 Run the package deployment.
 
 ``` shell
-cd /opt/flex-rxt/submodules/openstack-helm
+cd /opt/genestack/submodules/openstack-helm
 
 helm upgrade --install keystone ./keystone \
     --namespace=openstack \
     --wait \
     --timeout 120m \
-    -f /opt/flex-rxt/helm-configs/keystone/keystone-helm-overrides.yaml \
+    -f /opt/genestack/helm-configs/keystone/keystone-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.keystone.password="$(kubectl --namespace openstack get secret keystone-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.keystone.password="$(kubectl --namespace openstack get secret keystone-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /opt/flex-rxt/kustomize/keystone/kustomize.sh
+    --post-renderer /opt/genestack/kustomize/keystone/kustomize.sh
 ```
 
 > In a production like environment you may need to include production specific files like the example variable file found in
@@ -426,7 +426,7 @@ helm upgrade --install keystone ./keystone \
 Deploy the openstack admin client pod (optional)
 
 ``` shell
-kubectl --namespace openstack apply -f /opt/flex-rxt/manifests/utils/utils-openstack-client-admin.yaml
+kubectl --namespace openstack apply -f /opt/genestack/manifests/utils/utils-openstack-client-admin.yaml
 ```
 
 Validate functionality
@@ -459,20 +459,20 @@ kubectl --namespace openstack \
 Run the package deployment.
 
 ``` shell
-cd /opt/flex-rxt/submodules/openstack-helm
+cd /opt/genestack/submodules/openstack-helm
 
 helm upgrade --install glance ./glance \
     --namespace=openstack \
     --wait \
     --timeout 120m \
-    -f /opt/flex-rxt/helm-configs/glance/glance-helm-overrides.yaml \
+    -f /opt/genestack/helm-configs/glance/glance-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.glance.password="$(kubectl --namespace openstack get secret glance-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.glance.password="$(kubectl --namespace openstack get secret glance-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.glance.password="$(kubectl --namespace openstack get secret glance-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /opt/flex-rxt/kustomize/glance/kustomize.sh
+    --post-renderer /opt/genestack/kustomize/glance/kustomize.sh
 ```
 
 > In a production like environment you may need to include production specific files like the example variable file found in
@@ -519,12 +519,12 @@ kubectl --namespace openstack \
 Run the package deployment.
 
 ``` shell
-cd /opt/flex-rxt/submodules/openstack-helm
+cd /opt/genestack/submodules/openstack-helm
 
 helm upgrade --install heat ./heat \
   --namespace=openstack \
     --timeout 120m \
-    -f /opt/flex-rxt/helm-configs/heat/heat-helm-overrides.yaml \
+    -f /opt/genestack/helm-configs/heat/heat-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.heat.password="$(kubectl --namespace openstack get secret heat-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.heat_trustee.password="$(kubectl --namespace openstack get secret heat-trustee -o jsonpath='{.data.password}' | base64 -d)" \
@@ -533,7 +533,7 @@ helm upgrade --install heat ./heat \
     --set endpoints.oslo_db.auth.heat.password="$(kubectl --namespace openstack get secret heat-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.heat.password="$(kubectl --namespace openstack get secret heat-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /opt/flex-rxt/kustomize/heat/kustomize.sh
+    --post-renderer /opt/genestack/kustomize/heat/kustomize.sh
 ```
 
 > In a production like environment you may need to include production specific files like the example variable file found in
@@ -569,20 +569,20 @@ kubectl --namespace openstack \
 Run the package deployment.
 
 ``` shell
-cd /opt/flex-rxt/submodules/openstack-helm
+cd /opt/genestack/submodules/openstack-helm
 
 helm upgrade --install cinder ./cinder \
   --namespace=openstack \
     --wait \
     --timeout 120m \
-    -f /opt/flex-rxt/helm-configs/cinder/cinder-helm-overrides.yaml \
+    -f /opt/genestack/helm-configs/cinder/cinder-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /opt/flex-rxt/kustomize/cinder/kustomize.sh
+    --post-renderer /opt/genestack/kustomize/cinder/kustomize.sh
 ```
 
 > In a production like environment you may need to include production specific files like the example variable file found in
@@ -747,7 +747,7 @@ kubectl annotate nodes $(kubectl get nodes -l 'openstack-network-node=enabled' -
 With all of the node networks defined, we can now apply the network policy with the following command
 
 ``` shell
-kubectl --namespace openstack apply -f /opt/flex-rxt/manifests/ovn/ovn-setup.yaml
+kubectl --namespace openstack apply -f /opt/genestack/manifests/ovn/ovn-setup.yaml
 ```
 
 After running the setup, nodes will have the label `ovn.openstack.org/configured` with a date stamp when it was configured.
@@ -759,7 +759,7 @@ If there's ever a need to reconfigure a node simply remove the label and the Dae
 The first part of the compute kit is Libvirt.
 
 ``` shell
-kubectl kustomize --enable-helm /opt/flex-rxt/kustomize/libvirt | kubectl apply --namespace openstack -f -
+kubectl kustomize --enable-helm /opt/genestack/kustomize/libvirt | kubectl apply --namespace openstack -f -
 ```
 
 Once deployed you can validate functionality on your compute hosts with `virsh`
@@ -845,12 +845,12 @@ kubectl --namespace openstack \
 #### Deploy Neutron
 
 ``` shell
-cd /opt/flex-rxt/submodules/openstack-helm
+cd /opt/genestack/submodules/openstack-helm
 
 helm upgrade --install neutron ./neutron \
   --namespace=openstack \
     --timeout 120m \
-    -f /opt/flex-rxt/helm-configs/neutron/neutron-helm-overrides.yaml \
+    -f /opt/genestack/helm-configs/neutron/neutron-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.neutron.password="$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.nova.password="$(kubectl --namespace openstack get secret nova-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -865,7 +865,7 @@ helm upgrade --install neutron ./neutron \
     --set conf.neutron.ovn.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-sb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
     --set conf.plugins.ml2_conf.ovn.ovn_nb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-nb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
     --set conf.plugins.ml2_conf.ovn.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-sb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
-    --post-renderer /opt/flex-rxt/kustomize/neutron/kustomize.sh
+    --post-renderer /opt/genestack/kustomize/neutron/kustomize.sh
 ```
 
 > In a production like environment you may need to include production specific files like the example variable file found in
@@ -876,12 +876,12 @@ helm upgrade --install neutron ./neutron \
 #### Deploy Nova
 
 ``` shell
-cd /opt/flex-rxt/submodules/openstack-helm
+cd /opt/genestack/submodules/openstack-helm
 
 helm upgrade --install nova ./nova \
   --namespace=openstack \
     --timeout 120m \
-    -f /opt/flex-rxt/helm-configs/nova/nova-helm-overrides.yaml \
+    -f /opt/genestack/helm-configs/nova/nova-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.nova.password="$(kubectl --namespace openstack get secret nova-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.neutron.password="$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -896,7 +896,7 @@ helm upgrade --install nova ./nova \
     --set endpoints.oslo_db_cell0.auth.nova.password="$(kubectl --namespace openstack get secret nova-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.nova.password="$(kubectl --namespace openstack get secret nova-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /opt/flex-rxt/kustomize/nova/kustomize.sh
+    --post-renderer /opt/genestack/kustomize/nova/kustomize.sh
 ```
 
 > In a production like environment you may need to include production specific files like the example variable file found in
@@ -914,18 +914,18 @@ If running in an environment that doesn't have hardware virtualization extension
 #### Deploy Placement
 
 ``` shell
-cd /opt/flex-rxt/submodules/openstack-helm
+cd /opt/genestack/submodules/openstack-helm
 
 helm upgrade --install placement ./placement --namespace=openstack \
   --namespace=openstack \
     --timeout 120m \
-    -f /opt/flex-rxt/helm-configs/placement/placement-helm-overrides.yaml \
+    -f /opt/genestack/helm-configs/placement/placement-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.placement.password="$(kubectl --namespace openstack get secret placement-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.placement.password="$(kubectl --namespace openstack get secret placement-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.nova_api.password="$(kubectl --namespace openstack get secret nova-db-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /opt/flex-rxt/kustomize/placement/kustomize.sh
+    --post-renderer /opt/genestack/kustomize/placement/kustomize.sh
 ```
 
 > In a production like environment you may need to include production specific files like the example variable file found in
@@ -951,18 +951,18 @@ kubectl --namespace openstack \
 Run the package deployment.
 
 ``` shell
-cd /opt/flex-rxt/submodules/openstack-helm
+cd /opt/genestack/submodules/openstack-helm
 
 helm upgrade --install horizon ./horizon \
     --namespace=openstack \
     --wait \
     --timeout 120m \
-    -f /opt/flex-rxt/helm-configs/horizon/horizon-helm-overrides.yaml \
+    -f /opt/genestack/helm-configs/horizon/horizon-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set conf.horizon.local_settings.config.horizon_secret_key="$(kubectl --namespace openstack get secret horizon-secrete-key -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.horizon.password="$(kubectl --namespace openstack get secret horizon-db-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /opt/flex-rxt/kustomize/horizon/kustomize.sh
+    --post-renderer /opt/genestack/kustomize/horizon/kustomize.sh
 ```
 
 > In a production like environment you may need to include production specific files like the example variable file found in
