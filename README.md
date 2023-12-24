@@ -71,6 +71,12 @@ architecture of the Genestack ecosystem.
 * Rook: The Ceph storage solution du jour. This is optional component and only needed to manage Ceph
   when you want Ceph.
 
+### Environment Architecture
+
+They say a picture is worth 1000 words, so here's a picture.
+
+![Genestack Architecture Diagram](assets/images/diagram-genestack.svg)
+
 ----
 
 ## Get the code
