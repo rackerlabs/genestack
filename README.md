@@ -1,18 +1,68 @@
 ![Genestack](assets/images/genestack.png)
 
-# Genestack
+# Welcome to Genestack: Where Cloud Meets You
 
-Evaluating Kubespray in an environment for OpenStack. Deployment will include the following
+Genestack — where Kubernetes and OpenStack tango in the cloud. Imagine a waltz between systems that deploy
+what you need.
 
-* Kubernetes
-* K-Dashboard
-* Kube-OVN
-* MetalLB
-* Metric Collection
-* Deploy OpenStack
 
+## Unveiling Genestack's Marvels
+
+* Kubernetes:
+    * Kube-OVN: The silent but reliable partner
+    * K-Dashboard: Always there to take the lead
+    * MetalLB: Adds the metallic charm
+    * CoreDNS: The system’s melodious voice
+    * Ingress-NGINX: Controls the flow, just like a boss
+    * Cert-Manager: The permit distributor
+
+* Operators:
+    * MariaDB: The data maestro
+    * RabbitMQ: Always 'hopping' around to deliver messages
+    * Rook (Optional): The magician handling storage tricks
+    * Memcached: Memory’s best friend
+
+* OpenStack:
+    * Cinder: Solid as a rock
+    * Glance: Giving you the perfect 'glance' to an image
+    * Heat: Adds the heat when things get chilly
+    * Horizon: The futuristic seer
+    * Keystone: The cornerstone of identity
+    * Neutron: Always attracting the right connections
+    * Nova: The cosmic powerhouse
+    * Placement: Ensuring everything finds its place
+
+
+### Symphony of Simplicity
+
+Genestack conducts this orchestra of tech with style. Operators play the score, managing the complexity with
+a flick of their digital batons. They unify the chaos, making scaling and management a piece of cake. Think
+of it like a conductor effortlessly guiding a cacophony into a symphony.
+
+
+### Hybrid Hilarity
+
+Our hybrid capabilities aren’t your regular circus act. Picture a shared OVN fabric — a communal network
+where workers multitask like pros. Whether it’s computing, storing, or networking, they wear multiple
+hats in a hyperconverged circus or a grand full-scale enterprise cloud extravaganza.
+
+
+### The Secret Sauce: Kustomize & Helm
+
+Genestack’s inner workings are a blend dark magic — crafted with [Kustomize](https://kustomize.io) and
+[Helm](https://helm.sh). It’s like cooking with cloud. Want to spice things up? Tweak the
+`kustomization.yaml` files or add those extra 'toppings' using Helm's style overrides. However, the
+platform is ready to go with batteries included.
+
+Genestack is making use of some homegrown solutions, community operators, and OpenStack-Helm. Everything
+in Genestack comes together to form cloud in a new and exciting way; all built with opensource solutions
+to manage cloud infrastructure in the way you need it.
+
+----
 
 ## Get the code
+
+Because we've sold our soul to the submodule devel you're going to need to recursively clone the repo.
 
 ``` shell
 git clone --recurse-submodules -j4 https://github.com/cloudnull/flex-rxt /opt/flex-rxt
@@ -21,7 +71,7 @@ git clone --recurse-submodules -j4 https://github.com/cloudnull/flex-rxt /opt/fl
 
 ## Basic Setup
 
-> This setup is using venv, make sure you have the required packages installed to facilitate that need.
+The basic setup is using venv, make sure you have the required packages installed to facilitate that need.
 
 ``` shell
 export LC_ALL=C.UTF-8
