@@ -8,8 +8,3 @@ helmCharts:
           certManager:
             enabled: true
     namespace: openstack
-
-resources:
-  - mariadb-galera.yaml
-  - mariabackup-pvc.yaml
-  - mariadb-configmap.yaml

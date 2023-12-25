@@ -278,10 +278,12 @@ kubectl apply -k /opt/genestack/kustomize/rook-cluster/
 Validate the cluster is operational
 
 ``` shell
-
+kubectl --namespace rook-ceph get cephclusters.ceph.rook.io
 ```
 
-Once the rook cluster is online, deploy the filesystem, storage-class, and pool defaults.
+> You can track the deployment with the following command `kubectl --namespace rook-ceph get pods -w`.
+
+Once the rook cluster is online with a HEALTH status of `HEALTH_OK`, deploy the filesystem, storage-class, and pool defaults.
 
 ``` shell
 kubectl apply -k /opt/genestack/kustomize/rook-defaults
@@ -300,11 +302,21 @@ kubectl --namespace openstack \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
 ```
 
+Deploy the mariadb config defaults.
+
+``` shell
+kubectl --namespace opernstack apply -k /opt/genestack/kustomize/mariadb-defaults
+```
+
 Deploy the mariadb operator.
 
 ``` shell
-kubectl kustomize --enable-helm /opt/genestack/kustomize/mariadb | kubectl apply --namespace openstack -f -
+kubectl kustomize --enable-helm /opt/genestack/kustomize/mariadb-operator | kubectl apply --namespace openstack -f -
 ```
+
+Now deploy the MariaDB Cluster
+
+kubectl apply -k /opt/genestack/kustomize/mariadb-cluster
 
 Verify readiness with the following command.
 

@@ -1,0 +1,3 @@
+resources:
+  - mariabackup-pvc.yaml
+  - mariadb-configmap.yaml
