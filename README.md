@@ -196,49 +196,6 @@ You can now retrieve a permenant token.
 kubectl get secret admin-user -n kube-system -o jsonpath={".data.token"} | base64 -d
 ```
 
-
-## Install rook operator
-
-Now run the basic deployment.
-
-``` shell
-# Deploy rook
-kubectl apply -f /opt/genestack/submodules/rook/deploy/examples/crds.yaml
-kubectl apply -f /opt/genestack/submodules/rook/deploy/examples/common.yaml
-kubectl apply -f /opt/genestack/submodules/rook/deploy/examples/operator.yaml
-
-# Validate with readiness
-kubectl --namespace rook-ceph get deployments.apps -w
-```
-
-Once the operator is online, it's time do deploy our Ceph environment. While the storage node label is used, the Ceph
-cluster must be edited to name the nodes used in your deployment and set the device filter to match your hardware
-layout.
-
-``` shell
-# Deploy our ceph cluster
-kubectl apply -f /opt/genestack/manifests/rook/rook-cluster.yaml
-```
-
-Once the ceph environment has been deployed, it's time to deploy some additional components ceph will use/have access to.
-
-``` shell
-# Deploy our ceph toolbox
-kubectl apply -f /opt/genestack/submodules/rook/deploy/examples/toolbox.yaml
-
-# Create our cephfs filesystem
-kubectl create -f /opt/genestack/submodules/rook/deploy/examples/filesystem.yaml
-
-# Create our cephfs storage classes
-kubectl create -f /opt/genestack/submodules/rook/deploy/examples/csi/cephfs/storageclass.yaml
-
-# Create our rbd store classes
-kubectl create -f /opt/genestack/submodules/rook/deploy/examples/csi/rbd/storageclass.yaml
-
-# Create our general (rbd) store classes, which is marked default.
-kubectl create -f /opt/genestack/manifests/rook/storageclass-general.yaml
-```
-
 Label all of the nodes in the environment.
 
 ``` shell
@@ -269,7 +226,7 @@ kubectl get nodes -o wide
 ```
 
 
-### Optional - Remove taint from our contorllers
+### Optional - Remove taint from our Controllers
 
 In an environment with a limited set of control plane nodes removing the NoSchedule will allow you to converge the
 openstack controllers with the k8s controllers.
@@ -283,6 +240,23 @@ Create our basic openstack namespace
 
 ``` shell
 kubectl apply -f /opt/genestack/manifests/openstack/ns-openstack.yaml
+```
+
+
+## Create Persistent Storage
+
+For the basic needs of our Kubernetes environment, we need some basic persistent storage. By default
+we're running with Ceph, via Rook. However, storage is a choose your own adventure ecosystem, so feel
+free to ignore this section if you have something else that satisfies the need.
+
+
+### Deploy Rook
+
+Rook will deploy against nodes labeled `role=storage-node`. Make sure to have a look at the `kustomize/rook/rook-cluster.yaml` file to ensure it's setup to your liking, pay special attention to your `deviceFilter`
+settings, especially if different devices have different device layouts.
+
+``` shell
+kubectl apply -k /opt/genestack/kustomize/rook/
 ```
 
 
