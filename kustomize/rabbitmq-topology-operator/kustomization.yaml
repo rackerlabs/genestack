@@ -1,4 +1,2 @@
 resources:
-  - cluster-operator.yaml
   - messaging-topology-operator-with-certmanager.yaml
-  - rabbitmq-cluster.yaml

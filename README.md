@@ -305,7 +305,7 @@ kubectl --namespace openstack \
 Deploy the mariadb config defaults.
 
 ``` shell
-kubectl --namespace opernstack apply -k /opt/genestack/kustomize/mariadb-defaults
+kubectl --namespace openstack apply -k /opt/genestack/kustomize/mariadb-defaults
 ```
 
 Deploy the mariadb operator.
@@ -316,7 +316,9 @@ kubectl kustomize --enable-helm /opt/genestack/kustomize/mariadb-operator | kube
 
 Now deploy the MariaDB Cluster
 
-kubectl apply -k /opt/genestack/kustomize/mariadb-cluster
+``` shell
+kubectl --namespace openstack apply -k /opt/genestack/kustomize/mariadb-cluster
+```
 
 Verify readiness with the following command.
 
@@ -327,10 +329,22 @@ kubectl --namespace openstack get mariadbs -w
 
 ## Install RabbitMQ
 
-Deploy the RabbitMQ operator and cluster.
+Deploy the RabbitMQ operator.
 
 ``` shell
-kubectl apply -k /opt/genestack/kustomize/rabbitmq/
+kubectl apply -k /opt/genestack/kustomize/rabbitmq-operator
+```
+
+Deploy the RabbitMQ topology operator.
+
+``` shell
+kubectl apply -k /opt/genestack/kustomize/rabbitmq-topology-operator
+```
+
+Deploy the RabbitMQ cluster.
+
+``` shell
+kubectl apply -k /opt/genestack/kustomize/rabbitmq-cluster
 ```
 
 Validate the status with the following
