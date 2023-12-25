@@ -388,7 +388,7 @@ network:
       port: 30092
 
 volume:
-  class_name: general
+  class_name: rook-cephfs  # This can be changed as needed
   size: 10Gi  # This should be set to 100Gi in production
 
 dependencies:
@@ -994,4 +994,3 @@ manifests:
 # set keep_pvc: false when disallow helm resource-policy to keep for PVC.
 # This will allow helm to delete the PVC.
 keep_pvc: true
-...

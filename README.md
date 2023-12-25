@@ -503,6 +503,12 @@ kubectl --namespace openstack \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32};echo;)"
 ```
 
+> Before running the Glance deployment you should configure the backend which is defined in the
+  `helm-configs/glance/glance-helm-overrides.yaml` file. The default is a making the assumption we're running
+  with Ceph deployed by Rook so the backend is configured to be cephfs with multi-attach functionality. While
+  this works great, you should consider all of the available storage backends and make the right decision for
+  your environment.
+
 Run the package deployment.
 
 ``` shell
