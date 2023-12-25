@@ -262,11 +262,29 @@ free to ignore this section if you have something else that satisfies the need.
 
 ### Deploy Rook
 
+Deploy the Rook operator
+
+``` shell
+kubectl apply -k /opt/genestack/kustomize/rook-operator/
+```
+
 Rook will deploy against nodes labeled `role=storage-node`. Make sure to have a look at the `kustomize/rook/rook-cluster.yaml` file to ensure it's setup to your liking, pay special attention to your `deviceFilter`
 settings, especially if different devices have different device layouts.
 
 ``` shell
-kubectl apply -k /opt/genestack/kustomize/rook/
+kubectl apply -k /opt/genestack/kustomize/rook-cluster/
+```
+
+Validate the cluster is operational
+
+``` shell
+
+```
+
+Once the rook cluster is online, deploy the filesystem, storage-class, and pool defaults.
+
+``` shell
+kubectl apply -k /opt/genestack/kustomize/rook-defaults
 ```
 
 

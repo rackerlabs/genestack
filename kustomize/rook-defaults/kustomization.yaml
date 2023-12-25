@@ -1,9 +1,4 @@
 resources:
-  - crds.yaml
-  - common.yaml
-  - operator.yaml
-  - rook-cluster.yaml
-  - toolbox.yaml
   - filesystem.yaml
   - storageclass-cephfs.yaml
   - storageclass-rbd.yaml
