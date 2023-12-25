@@ -90,6 +90,13 @@ git clone --recurse-submodules -j4 https://github.com/cloudnull/genestack /opt/g
 
 ## Basic Setup
 
+Install some base packages needed by OSH
+
+``` shell
+apt update
+apt install jq make python3-venv -y
+```
+
 The basic setup is using venv, make sure you have the required packages installed to facilitate that need.
 
 ``` shell
@@ -129,6 +136,13 @@ Run the test infrastructure deployment.
 ansible-playbook -i localhost, infra-deploy.yaml
 ```
 
+The test infrastructure will create the following OpenStack resources
+
+* Neutron Network/Subnet
+  * Assign a floating IP
+* Cinder Volumes
+* Nova Servers
+
 
 ## Deployment Kubespray
 
@@ -151,16 +165,9 @@ Run the cluster deployment
   Checkout the `openstack-flex/prod-inventory-example.yaml` file for an example of a production target environment.
 
 ``` shell
+cd /opt/genestack/submodules/kubespray
 ansible-playbook -i inventory/openstack-flex/inventory.ini -u ubuntu -b cluster.yml
 ```
-
-Install some base packages needed by OSH
-
-``` shell
-apt update
-apt install jq make -y
-```
-
 
 ## Setup OSH and make everything
 
@@ -198,6 +205,9 @@ kubectl get secret admin-user -n kube-system -o jsonpath={".data.token"} | base6
 
 Label all of the nodes in the environment.
 
+> The following example assumes the node names can be used to identify their purpose within our environment. That
+  may not be the case in reality. Adapt the following commands to meet your needs.
+
 ``` shell
 # Label the storage nodes
 kubectl label node $(kubectl get nodes | awk '/storage/ {print $1}') role=storage-node
@@ -211,7 +221,7 @@ kubectl label node $(kubectl get nodes | awk '/compute/ {print $1}') openstack-c
 # Label the network nodes
 kubectl label node $(kubectl get nodes | awk '/network/ {print $1}') openstack-network-node=enabled
 
-# With  OVN we need the compute nodes to be "network" nodes as well. While they will be configured for networking, they wont be gateways.
+# With OVN we need the compute nodes to be "network" nodes as well. While they will be configured for networking, they wont be gateways.
 kubectl label node $(kubectl get nodes | awk '/compute/ {print $1}') openstack-network-node=enabled
 
 # Label control-plane nodes as workers
