@@ -1,15 +1,37 @@
-# Ansible playbook to run the following tasks as ansible
-# apt install build-essential python3-venv python3-dev -y
-# python3 -m venv /opt/cinder
-# /opt/cinder/bin/pip install pip pymysql --upgrade
-# /opt/cinder/bin/pip install git+https://github.com/openstack/cinder@stable/2023.1
-# cp -R /opt/cinder/etc/cinder /etc/
-# systemd-run /opt/cinder/bin/cinder-volume --config-file /etc/cinder/cinder.conf --config-file /etc/cinder/conf/backends.conf
+---
 - name: Run the cinder volume reference driver deployment
-  hosts: all
+  hosts: cinder_storage_nodes
   gather_facts: true
   become: true
+  vars:
+    cinder_release: "2023.1"
+    cinder_storage_network_interface: br-storage
+  handlers:
+    - name: Restart cinder-volume systemd services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: restarted
+        daemon_reload: true
+      loop:
+        - cinder-volume
+        - cinder-volume-usage-audit
   tasks:
+    - name: K8S Facts block
+      delegate_to: "{{ groups['kube_control_plane'][0] }}"
+      block:
+        - name: Ensure python3-kubernetes is available
+          ansible.builtin.apt:
+            name: python3-kubernetes
+            state: present
+            update_cache: true
+
+        - name: Read cinder-etc secrets
+          kubernetes.core.k8s_info:
+            kind: Secret
+            name: cinder-etc
+            namespace: openstack
+          register: _kubernetes_cinder_etc_secret
+
     - name: Install required packages
       ansible.builtin.apt:
         name:
@@ -18,11 +40,105 @@
           - python3-dev
         state: present
         update_cache: true
+
     - name: Upgrade pip and install required packages
       ansible.builtin.pip:
         name:
           - pip
           - pymysql
-          - git+https://github.com/openstack/cinder@stable/2023.1
+          - "git+https://github.com/openstack/cinder@stable/{{ cinder_release }}"
         state: present
         virtualenv: /opt/cinder
+        virtualenv_command: python3 -m venv
+
+    - name: Create the cinder system user
+      ansible.builtin.user:
+        name: cinder
+        comment: Cinder system user
+        shell: /bin/false
+        system: true
+        createhome: true
+        home: /var/lib/cinder
+
+    - name: Create the cinder system group
+      ansible.builtin.group:
+        name: cinder
+        system: true
+
+    - name: Create the cinder service directory
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: cinder
+        group: cinder
+        mode: "0755"
+      loop:
+        - /var/lib/cinder/backup
+        - /var/lib/cinder/tmp
+
+    - name: Create symlink for the etc directory
+      ansible.builtin.file:
+        src: /opt/cinder/etc/cinder
+        dest: /etc/cinder
+        state: link
+        owner: cinder
+        group: cinder
+
+    - name: Create the cinder-volume systemd service units
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: "{{ item.mode | default('0644') }}"
+      loop:
+        - src: "{{ playbook_dir }}/templates/cinder-volume-usage-audit.timer"
+          dest: /etc/systemd/system/cinder-volume-usage-audit.timer
+        - src: "{{ playbook_dir }}/templates/cinder-volume-usage-audit.service"
+          dest: /etc/systemd/system/cinder-volume-usage-audit.service
+        - src: "{{ playbook_dir }}/templates/cinder-volume.service"
+          dest: /etc/systemd/system/cinder-volume.service
+        - src: "{{ playbook_dir }}/templates/sudoers"
+          dest: /etc/sudoers.d//cinder-volume
+          mode: "0440"
+      notify:
+        - Restart cinder-volume systemd services
+
+    - name: Create the cinder-volume service configuration
+      ansible.builtin.copy:
+        content: "{{ _kubernetes_cinder_etc_secret.resources[0].data[item.src] | b64decode }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: "0644"
+      loop:
+        - src: "cinder.conf"
+          dest: /etc/cinder/cinder.conf
+        - src: "backends.conf"
+          dest: /etc/cinder/backends.conf
+        - src: "logging.conf"
+          dest: /etc/cinder/logging.conf
+        - src: "volume.filters"
+          dest: /etc/cinder/volume.filters
+      notify:
+        - Restart cinder-volume systemd services
+
+    - name: Replace the host in the cinder.conf with the current Ansible FQDN
+      community.general.ini_file:
+        path: /etc/cinder/cinder.conf
+        section: DEFAULT
+        option: host
+        value: "{{ ansible_fqdn }}"
+        create: true
+      notify:
+        - Restart cinder-volume systemd services
+
+    - name: Replace the my_ip in the cinder.conf with the current Ansible FQDN
+      community.general.ini_file:
+        path: /etc/cinder/cinder.conf
+        section: DEFAULT
+        option: "my_ip"
+        value: "{{ hostvars[inventory_hostname]['ansible_facts'][cinder_storage_network_interface]['ipv4']['address'] | default(ansible_default_ipv4.address) }}"
+        create: true
+      notify:
+        - Restart cinder-volume systemd services

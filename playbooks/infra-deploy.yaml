@@ -460,7 +460,7 @@
           [k8s_cluster:children]
           kube_control_plane
           kube_node
-        dest: "{{ playbook_dir }}/{{ os_network_name }}/inventory.ini"
+        dest: "{{ playbook_dir }}/../{{ os_network_name }}/inventory.ini"
         mode: "0644"
 
 - name: Create lab environment

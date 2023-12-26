@@ -1,0 +1,10 @@
+[Unit]
+Description=cinder-volume-usage-audit timer
+
+[Timer]
+OnBootSec=30min
+OnCalendar=hourly
+Persistent=True
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,31 @@
+[Unit]
+Description = cinder-volume-usage-audit service
+After = network-online.target
+After = syslog.target
+
+[Service]
+Type = simple
+User = cinder
+Group = cinder
+ExecStart = /bin/bash -c "/opt/cinder/bin/cinder-volume-usage-audit --start_time \"$$(date\s+%%Y-%%m-%%d\\\s%%H:00:00\s-d\s-1hour)\" --end_time \"$$(date\s+%%Y-%%m-%%d\\\s%%H:00:00)\" --send_actions"
+ExecReload = /bin/kill -HUP $MAINPID
+# Give a reasonable amount of time for the server to start up/shut down
+TimeoutSec = 120
+Restart = on-failure
+RestartSec = 2
+# This creates a specific slice which all services will operate from
+#  The accounting options give us the ability to see resource usage through
+#  the `systemd-cgtop` command.
+Slice = cinder.slice
+# Set Accounting
+CPUAccounting = True
+BlockIOAccounting = True
+MemoryAccounting = True
+TasksAccounting = True
+# Set Sandboxing
+PrivateTmp = False
+PrivateDevices = False
+PrivateNetwork = False
+
+[Install]
+WantedBy = multi-user.target

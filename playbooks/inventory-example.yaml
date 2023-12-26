@@ -1,0 +1,19 @@
+all:
+  hosts:
+    openstack-flex-node-0.cluster.local:
+      ansible_host: 172.31.0.11
+    openstack-flex-node-4.cluster.local:
+      ansible_host: 172.31.0.5
+
+  vars:
+    ansible_ssh_common_args: '-F /Users/kevin.carter/.ssh/openstack-flex-keypair.config'
+
+  children:
+    kube_control_plane:
+      hosts:
+        openstack-flex-node-0.cluster.local: null
+    storage_nodes:
+      children:
+        cinder_storage_nodes:
+          hosts:
+            openstack-flex-node-4.cluster.local: null

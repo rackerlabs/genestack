@@ -504,10 +504,9 @@ kubectl --namespace openstack \
 ```
 
 > Before running the Glance deployment you should configure the backend which is defined in the
-  `helm-configs/glance/glance-helm-overrides.yaml` file. The default is a making the assumption we're running
-  with Ceph deployed by Rook so the backend is configured to be cephfs with multi-attach functionality. While
-  this works great, you should consider all of the available storage backends and make the right decision for
-  your environment.
+  `helm-configs/glance/glance-helm-overrides.yaml` file. The default is a making the assumption we're running with Ceph deployed by
+  Rook so the backend is configured to be cephfs with multi-attach functionality. While this works great, you should consider all of
+  the available storage backends and make the right decision for your environment.
 
 Run the package deployment.
 
@@ -641,18 +640,32 @@ helm upgrade --install cinder ./cinder \
 > In a production like environment you may need to include production specific files like the example variable file found in
   `helm-configs/prod-example-openstack-overrides.yaml`.
 
-Once the helm deployment is complete cinder and all of it's API services will be online. However, using this setup there will be no volume node at this point.
-The reason volume deployments have been disabled is because I didn't expose ceph to the openstack environment and OSH makes a lot of ceph related assumptions.
-For testing purposes we're wanting to run with the logical volume driver (reference) and manage the deployment of that driver in a hybrid way. As such there's
-a deployment outside of our normal K8S workflow will be needed on our volume host.
+Once the helm deployment is complete cinder and all of it's API services will be online. However, using this setup there will be
+no volume node at this point. The reason volume deployments have been disabled is because we didn't expose ceph to the openstack
+environment and OSH makes a lot of ceph related assumptions. For testing purposes we're wanting to run with the logical volume
+driver (reference) and manage the deployment of that driver in a hybrid way. As such there's a deployment outside of our normal
+K8S workflow will be needed on our volume host.
 
-> The LVM volume makes the assumption that the storage node has the required volume group setup `lvmdriver-1` on the node. This is not something that K8S is
-  handling at this time.
+> The LVM volume makes the assumption that the storage node has the required volume group setup `lvmdriver-1` on the node
+  This is not something that K8S is handling at this time.
 
-The hybrid volume node needs a couple things to be able to communicate back to our K8S environment.
+While cinder can run with a great many different storage backends, for the simple case we want to run with the Cinder reference
+driver, which makes use of Logical Volumes. Because this driver is incompatible with a containerized work environment, we need
+to run the services on our baremetal targets. Genestack has a playbook which will facilitate the installation of our services
+and ensure that we've deployed everything in a working order. The playbook can be found at `playbooks/deploy-cinder-volumes-reference.yaml`.
+Included in the playbooks directory is an example inventory for our cinder hosts; however, any inventory should work fine.
 
-1. DNS server, this is expected to be our coredns IP, in my case this is `169.254.25.10`.
-2. To find our service domains, make sure to add a domain search for `openstack.svc.cluster.local svc.cluster.local cluster.local`
+#### Host Setup
+
+The cinder target hosts need to have some basic setup run on them to make them compatible with our Logical Volume Driver.
+
+1. Ensure DNS is working normally.
+
+Assuming your storage node was also deployed as a K8S node when we did our initial Kubernetes deployment, the DNS should already be
+operational for you; however, in the event you need to do some manual tweaking or if the node was note deployed as a K8S worker, then
+make sure you setup the DNS resolvers correctly so that your volume service node can communicate with our cluster.
+
+> This is expected to be our CoreDNS IP, in my case this is `169.254.25.10`.
 
 This is an example of my **systemd-resolved** conf found in `/etc/systemd/resolved.conf`
 ``` conf
@@ -673,82 +686,113 @@ Restart your DNS service after changes are made.
 systemctl restart systemd-resolved.service
 ```
 
-For ease of operation I've included my entire cinder configuration in this repo. Copy these files to your target node(s) at `/etc/cinder`.
+2. Volume Group `lvmdriver-1` needs to be created which can be done in two simple commands.
 
-> This is not intended to work as is, you will need to change the files to use information from your cluster. This is just a POC which
-  highlights how we can get to a hybrid solution; this should be an automated deliverable.
-
-With the files in place, install your desired version of the cinder service.
+Create the physical volume
 
 ``` shell
-apt install build-essential python3-venv python3-dev -y
-python3 -m venv /opt/cinder
-/opt/cinder/bin/pip install pip pymysql --upgrade
-/opt/cinder/bin/pip install git+https://github.com/openstack/cinder@stable/2023.1
+pvcreate /dev/vdf
 ```
 
-Run cinder the Cinder volume service.
+Create the volume group
 
 ``` shell
-systemd-run /opt/cinder/bin/cinder-volume --config-file /etc/cinder/cinder.conf --config-file /etc/cinder/conf/backends.conf
+vgcreate lvmdriver-1 /dev/vdf
 ```
 
-> NOTE: The above command will run the `cinder-volume` service with systemd, but it won't survive a reboot.
+It shoold be noted that this setup can be tweaked and tuned to your hearts desire, additionally, you can further extend a
+volume group with multiple disks. The example above is just that, an example. Checkout more from the upstream docs on how
+to best operate your volume groups for your specific needs.
 
-After this deployment has completed the volume service will be operational, which we can see with the following command.
+#### Hybrid Cinder Volume deployment
+
+With the volume groups and DNS setup on your target hosts, it is now time to deploy the volume services. The playbook `playbooks/deploy-cinder-volumes-reference.yaml` will be used to create a release target for our python code-base and deploy systemd services
+units to run the cinder-volume process.
 
 ``` shell
-kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume service list
+ansible-playbook -i inventory-example.yaml deploy-cinder-volumes-reference.yaml
 ```
 
-Now we can create the volume type to ensure we're able to deploy volumes with our volume driver.
+Once the playbook has finished executing, check the cinder api to verify functionality.
 
 ``` shell
-kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume type create --public lvmdriver-1
+root@openstack-flex-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume service list
++------------------+-------------------------------------------------+------+---------+-------+----------------------------+
+| Binary           | Host                                            | Zone | Status  | State | Updated At                 |
++------------------+-------------------------------------------------+------+---------+-------+----------------------------+
+| cinder-scheduler | cinder-volume-worker                            | nova | enabled | up    | 2023-12-26T17:43:07.000000 |
+| cinder-volume    | openstack-flex-node-4.cluster.local@lvmdriver-1 | nova | enabled | up    | 2023-12-26T17:43:04.000000 |
++------------------+-------------------------------------------------+------+---------+-------+----------------------------+
 ```
 
-Verify functionality by creating a volume
+> Notice the volume service is up and running with our `lvmdriver-1` target.
+
+At this point it would be a good time to define your types within cinder. For our example purposes we need to define the `lvmdriver-1`
+type so that we can schedule volumes to our environment.
 
 ``` shell
-kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume create --size 1 test-lvm
-kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume show test-lvm
-+--------------------------------+--------------------------------------+
-| Field                          | Value                                |
-+--------------------------------+--------------------------------------+
-| attachments                    | []                                   |
-| availability_zone              | nova                                 |
-| bootable                       | false                                |
-| consistencygroup_id            | None                                 |
-| created_at                     | 2023-12-12T04:40:41.000000           |
-| description                    | None                                 |
-| encrypted                      | False                                |
-| id                             | 70a07aa6-8cf1-4b74-9623-eefbf0bf6e2e |
-| migration_status               | None                                 |
-| multiattach                    | False                                |
-| name                           | test-lvm                             |
-| os-vol-host-attr:host          | cinder-volume-worker@lvmdriver-1#LVM |
-| os-vol-mig-status-attr:migstat | None                                 |
-| os-vol-mig-status-attr:name_id | None                                 |
-| os-vol-tenant-attr:tenant_id   | 7abed12be0ce4a828a35f400cd8e6f1e     |
-| properties                     |                                      |
-| replication_status             | None                                 |
-| size                           | 1                                    |
-| snapshot_id                    | None                                 |
-| source_volid                   | None                                 |
-| status                         | available                            |
-| type                           | lvmdriver-1                          |
-| updated_at                     | 2023-12-12T04:40:42.000000           |
-| user_id                        | 68718fb353c7446f9b7d3b3ca8c7ae28     |
-+--------------------------------+--------------------------------------+
+root@openstack-flex-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume type create lvmdriver-1
++-------------+--------------------------------------+
+| Field       | Value                                |
++-------------+--------------------------------------+
+| description | None                                 |
+| id          | 6af6ade2-53ca-4260-8b79-1ba2f208c91d |
+| is_public   | True                                 |
+| name        | lvmdriver-1                          |
++-------------+--------------------------------------+
 ```
 
+If wanted, create a test volume to tinker with
+
+``` shell
+root@openstack-flex-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume create --size 1 test
++---------------------+--------------------------------------+
+| Field               | Value                                |
++---------------------+--------------------------------------+
+| attachments         | []                                   |
+| availability_zone   | nova                                 |
+| bootable            | false                                |
+| consistencygroup_id | None                                 |
+| created_at          | 2023-12-26T17:46:15.639697           |
+| description         | None                                 |
+| encrypted           | False                                |
+| id                  | c744af27-fb40-4ffa-8a84-b9f44cb19b2b |
+| migration_status    | None                                 |
+| multiattach         | False                                |
+| name                | test                                 |
+| properties          |                                      |
+| replication_status  | None                                 |
+| size                | 1                                    |
+| snapshot_id         | None                                 |
+| source_volid        | None                                 |
+| status              | creating                             |
+| type                | lvmdriver-1                          |
+| updated_at          | None                                 |
+| user_id             | 2ddf90575e1846368253474789964074     |
++---------------------+--------------------------------------+
+
+root@openstack-flex-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume list
++--------------------------------------+------+-----------+------+-------------+
+| ID                                   | Name | Status    | Size | Attached to |
++--------------------------------------+------+-----------+------+-------------+
+| c744af27-fb40-4ffa-8a84-b9f44cb19b2b | test | available |    1 |             |
++--------------------------------------+------+-----------+------+-------------+
+```
+
+You can validate the environment is operational by logging into the storage nodes to validate the LVM targets are being created.
+
+``` shell
+root@openstack-flex-node-4:~# lvs
+  LV                                   VG               Attr       LSize Pool Origin Data%  Meta%  Move Log Cpy%Sync Convert
+  c744af27-fb40-4ffa-8a84-b9f44cb19b2b cinder-volumes-1 -wi-a----- 1.00g
+```
 
 ### Deploy Open vSwitch / OVN
 
-Note that we'er not deploying Openvswitch, however, we are using it. The implementation of this POC was
-done with Kubespray which deploys OVN as it's networking solution. Because those components are handled
-by our infrastructure there's nothing for us to manage / deploy in this environment. OpenStack will
-leverage OVN within Kubernetes following the scaling/maintenance/management practices of kube-ovn.
+Note that we'er not deploying Openvswitch, however, we are using it. The implementation on Genestack is assumed to be
+done with Kubespray which deploys OVN as it's networking solution. Because those components are handled by our infrastructure
+there's nothing for us to manage / deploy in this environment. OpenStack will leverage OVN within Kubernetes following the
+scaling/maintenance/management practices of kube-ovn.
 
 
 #### Configure OVN for OpenStack
