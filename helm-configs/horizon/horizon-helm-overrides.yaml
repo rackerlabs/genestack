@@ -7078,7 +7078,7 @@ pod:
       horizon:
         timeout: 30
   resources:
-    enabled: false
+    enabled: true
     server:
       requests:
         memory: "128Mi"
