@@ -31,6 +31,7 @@ what you need.
     * Neutron: Always attracting the right connections
     * Nova: The cosmic powerhouse
     * Placement: Ensuring everything finds its place
+    * Octavia: The younger
 
 
 ### Symphony of Simplicity
