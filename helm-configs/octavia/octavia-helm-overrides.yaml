@@ -186,10 +186,8 @@ conf:
       log_config_append: /etc/octavia/logging.conf
     api_settings:
       default_provider_driver: ovn
-      # enabled_provider_drivers: >-
-      #   ovn: "The Octavia OVN driver",
-      #   amphora: "The Octavia Amphora driver"
       enabled_provider_drivers: >-
+        ovn: "The Octavia OVN driver",
         amphora: "The Octavia Amphora driver"
       api_handler: queue_producer
       bind_host: 0.0.0.0
