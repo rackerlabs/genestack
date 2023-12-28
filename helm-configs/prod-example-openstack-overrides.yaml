@@ -98,6 +98,10 @@ images:
     horizon_db_sync: docker.io/openstackhelm/horizon:2023.1-ubuntu_jammy
     horizon: docker.io/openstackhelm/horizon:2023.1-ubuntu_jammy
 
+pod:
+  resources:
+    enabled: true
+
 endpoints:
   compute:
     host_fqdn_override:

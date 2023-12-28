@@ -228,7 +228,7 @@ jobs:
       api:
         timeout: 30
   resources:
-    enabled: true
+    enabled: false
     api:
       requests:
         memory: "128Mi"

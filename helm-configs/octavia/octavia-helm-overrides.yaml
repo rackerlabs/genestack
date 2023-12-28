@@ -21,21 +21,21 @@ labels:
 images:
   tags:
     test: docker.io/xrally/xrally-openstack:2.0.0
-    bootstrap: docker.io/openstackhelm/heat:ocata
-    db_init: docker.io/openstackhelm/heat:ocata
-    octavia_db_sync: docker.io/loci/octavia:master-ubuntu
-    db_drop: docker.io/openstackhelm/heat:ocata
+    bootstrap: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    db_init: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    octavia_db_sync: docker.io/loci/octavia:master-ubuntu_jammy
+    db_drop: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
     rabbit_init: docker.io/rabbitmq:3.7-management
-    ks_user: docker.io/openstackhelm/heat:ocata
-    ks_service: docker.io/openstackhelm/heat:ocata
-    ks_endpoints: docker.io/openstackhelm/heat:ocata
+    ks_user: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    ks_service: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    ks_endpoints: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
     dep_check: quay.io/airshipit/kubernetes-entrypoint:v1.0.0
     image_repo_sync: docker.io/docker:17.07.0
-    octavia_api: docker.io/loci/octavia:master-ubuntu
-    octavia_worker: docker.io/loci/octavia:master-ubuntu
-    octavia_housekeeping: docker.io/loci/octavia:master-ubuntu
-    octavia_health_manager: docker.io/loci/octavia:master-ubuntu
-    octavia_health_manager_init: docker.io/loci/octavia:master-ubuntu
+    octavia_api: docker.io/loci/octavia:master-ubuntu_jammy
+    octavia_worker: docker.io/loci/octavia:master-ubuntu_jammy
+    octavia_housekeeping: docker.io/loci/octavia:master-ubuntu_jammy
+    octavia_health_manager: docker.io/loci/octavia:master-ubuntu_jammy
+    octavia_health_manager_init: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
     openvswitch_vswitchd: docker.io/kolla/centos-source-openvswitch-vswitchd:rocky
   pull_policy: "IfNotPresent"
   local_registry:
@@ -185,6 +185,12 @@ conf:
     DEFAULT:
       log_config_append: /etc/octavia/logging.conf
     api_settings:
+      default_provider_driver: ovn
+      # enabled_provider_drivers: >-
+      #   ovn: "The Octavia OVN driver",
+      #   amphora: "The Octavia Amphora driver"
+      enabled_provider_drivers: >-
+        amphora: "The Octavia Amphora driver"
       api_handler: queue_producer
       bind_host: 0.0.0.0
     database:
@@ -221,7 +227,7 @@ conf:
       workers: 2
       amp_active_retries: 100
       amp_active_wait_sec: 2
-      loadbalancer_topology: SINGLE
+      loadbalancer_topology: ACTIVE_STANDBY
     oslo_messaging:
       topic: octavia_prov
       rpc_thread_pool_size: 2
@@ -238,6 +244,8 @@ conf:
     ovn:
       ovn_sb_connection: tcp:127.0.0.1:6642
       ovn_nb_connection: tcp:127.0.0.1:6641
+    nova:
+      enable_anti_affinity: "True"
 
   logging:
     loggers:
@@ -493,6 +501,18 @@ pod:
         default: preferredDuringSchedulingIgnoredDuringExecution
       topologyKey:
         default: kubernetes.io/hostname
+      weight:
+        default: 10
+  tolerations:
+    octavia:
+      enabled: false
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
   mounts:
     octavia_api:
       init_container: null
@@ -544,7 +564,7 @@ pod:
       api:
         timeout: 30
   resources:
-    enabled: true
+    enabled: false
     api:
       requests:
         memory: "128Mi"
@@ -653,7 +673,7 @@ network_policy:
 manifests:
   configmap_bin: true
   configmap_etc: true
-  daemonset_health_manager: true
+  daemonset_health_manager: false
   deployment_api: true
   deployment_worker: true
   deployment_housekeeping: true
