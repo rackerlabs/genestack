@@ -1,0 +1,4 @@
+ARG BASE_IMAGE_VERSION=master-ubuntu_jammy
+FROM docker.io/loci/octavia:${BASE_IMAGE_VERSION}
+ARG VERSION=5.0.0
+RUN /var/lib/openstack/bin/pip install ovn-octavia-provider===$VERSION
