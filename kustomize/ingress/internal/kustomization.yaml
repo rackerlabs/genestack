@@ -1,12 +1,12 @@
 helmGlobals:
-  chartHome: ../../submodules/openstack-helm-infra
+  chartHome: ../../../submodules/openstack-helm-infra
 
 helmCharts:
   - name: ingress
-    releaseName: ingress-openstack
+    releaseName: ingress-openstack-internal
     valuesInline:
       deployment:
         cluster:
-          class: nginx-openstack
+          class: nginx
     valuesFile: helm/ingress-helm-overrides.yaml
     namespace: openstack

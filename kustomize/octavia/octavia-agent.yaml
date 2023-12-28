@@ -1,0 +1,190 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: octavia-api
+  annotations:
+    "openstackhelm.openstack.org/release_uuid": ""
+  labels:
+    release_group: octavia
+    application: octavia
+    component: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      release_group: octavia
+      application: octavia
+      component: api
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 3
+  template:
+    metadata:
+      labels:
+        release_group: octavia
+        application: octavia
+        component: api
+      annotations:
+        configmap-bin-hash: "a2cfb27c92f4e3c145d9ce2cbc12b159c1fe4f57ffc2620abb234d0a0abc919b"
+        configmap-etc-hash: "0a492a13a29a188d6e5c5ba3af2229791cb64eb59d7a791af7d8ada984b27863"
+    spec:
+      serviceAccountName: octavia-api
+      affinity:
+
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                  - key: release_group
+                    operator: In
+                    values:
+                    - octavia
+                  - key: application
+                    operator: In
+                    values:
+                    - octavia
+                  - key: component
+                    operator: In
+                    values:
+                    - api
+              topologyKey: kubernetes.io/hostname
+            weight: 10
+      nodeSelector:
+        openstack-control-plane: enabled
+      terminationGracePeriodSeconds: 30
+      initContainers:
+
+        - name: init
+          image: "quay.io/airshipit/kubernetes-entrypoint:v1.0.0"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsUser: 65534
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: INTERFACE_NAME
+              value: eth0
+            - name: PATH
+              value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/
+            - name: DEPENDENCY_SERVICE
+              value: "openstack:mariadb-galera-primary,openstack:keystone-api,openstack:rabbitmq-nodes,openstack:memcached,openstack:neutron-server"
+            - name: DEPENDENCY_JOBS
+              value: "octavia-db-sync,octavia-ks-user,octavia-ks-endpoints"
+            - name: DEPENDENCY_DAEMONSET
+              value: ""
+            - name: DEPENDENCY_CONTAINER
+              value: ""
+            - name: DEPENDENCY_POD_JSON
+              value: ""
+            - name: DEPENDENCY_CUSTOM_RESOURCE
+              value: ""
+          command:
+            - kubernetes-entrypoint
+          volumeMounts:
+            null
+      containers:
+        - name: octavia-agent
+          image: "ghcr.io/cloudnull/genestack/octavia-ovn:master-ubuntu_jammy"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 0
+          command:
+            - /tmp/octavia-api.sh
+            - start
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /tmp/octavia-api.sh
+                  - stop
+          ports:
+            - name: o-api
+              containerPort: 9876
+          readinessProbe:
+            httpGet:
+              scheme: HTTP
+              path: /
+              port: 9876
+          volumeMounts:
+            - name: pod-etc-octavia
+              mountPath: /etc/octavia
+            - name: octavia-bin
+              mountPath: /tmp/octavia-api.sh
+              subPath: octavia-api.sh
+              readOnly: true
+            - name: octavia-etc
+              mountPath: /etc/octavia/octavia.conf
+              subPath: octavia.conf
+              readOnly: true
+            - name: octavia-etc
+              mountPath: /etc/octavia/logging.conf
+              subPath: logging.conf
+              readOnly: true
+            - mountPath: /var/run/octavia
+              name: pod-run-octavia
+        - name: octavia-api
+          image: "ghcr.io/cloudnull/genestack/octavia-ovn:master-ubuntu_jammy"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 0
+          command:
+            - /tmp/octavia-api.sh
+            - start
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /tmp/octavia-api.sh
+                  - stop
+          ports:
+            - name: o-api
+              containerPort: 9876
+          readinessProbe:
+            httpGet:
+              scheme: HTTP
+              path: /
+              port: 9876
+          volumeMounts:
+            - name: pod-etc-octavia
+              mountPath: /etc/octavia
+            - name: octavia-bin
+              mountPath: /tmp/octavia-api.sh
+              subPath: octavia-api.sh
+              readOnly: true
+            - name: octavia-etc
+              mountPath: /etc/octavia/octavia.conf
+              subPath: octavia.conf
+              readOnly: true
+            - name: octavia-etc
+              mountPath: /etc/octavia/logging.conf
+              subPath: logging.conf
+              readOnly: true
+            - mountPath: /var/run/octavia
+              name: pod-run-octavia
+      volumes:
+        - name: pod-etc-octavia
+          emptyDir: {}
+        - name: octavia-bin
+          configMap:
+            name: octavia-bin
+            defaultMode: 0555
+        - name: octavia-etc
+          secret:
+            secretName: octavia-etc
+            defaultMode: 0444
+        - emptyDir: {}
+          name: pod-run-octavia

@@ -122,7 +122,7 @@ ingress_nginx_namespace: "ingress-nginx"
 # ingress_nginx_extra_args:
 #   - --default-ssl-certificate=default/foo-tls
 # ingress_nginx_termination_grace_period_seconds: 300
-ingress_nginx_class: nginx-system
+ingress_nginx_class: nginx
 ingress_nginx_without_class: false
 ingress_nginx_default: true
 

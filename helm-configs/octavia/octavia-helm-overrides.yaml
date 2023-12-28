@@ -205,10 +205,18 @@ conf:
       auth_version: v3
       memcache_security_strategy: ENCRYPT
       service_type: load-balancer
+      valid_interfaces: internal
     certificates:
+      endpoint_type: internalURL
       ca_private_key_passphrase: foobar
       ca_private_key: /etc/octavia/certs/private/cakey.pem
       ca_certificate: /etc/octavia/certs/ca_01.pem
+    cinder:
+      endpoint_type: internalURL
+    glance:
+      endpoint_type: internalURL
+    neutron:
+      endpoint_type: internalURL
     haproxy_amphora:
       server_ca: /etc/octavia/certs/ca_01.pem
       client_cert: /etc/octavia/certs/client.pem
@@ -246,6 +254,7 @@ conf:
       ovn_nb_connection: tcp:127.0.0.1:6641
     nova:
       enable_anti_affinity: "True"
+      endpoint_type: internalURL
 
   logging:
     loggers:
@@ -398,25 +407,45 @@ endpoints:
       internal: keystone-api
     host_fqdn_override:
       default: null
+      # NOTE(portdirect): this chart supports TLS for fqdn over-ridden public
+      # endpoints using the following format:
+      # public:
+      #   host: null
+      #   tls:
+      #     crt: null
+      #     key: null
     path:
       default: /v3
     scheme:
-      default: 'http'
+      default: http
+      service: http
     port:
       api:
+        admin: 5000
         default: 80
+        # NOTE(portdirect): to retain portability across images, and allow
+        # running under a unprivileged user simply, we default to a port > 1000.
         internal: 5000
+        service: 5000
   load_balancer:
     name: octavia
     hosts:
-      default: octavia-api
-      public: octavia
+      internal: octavia-api
+      default: octavia
     host_fqdn_override:
       default: null
+      # NOTE(portdirect): this chart supports TLS for fqdn over-ridden public
+      # endpoints using the following format:
+      # public:
+      #   host: null
+      #   tls:
+      #     crt: null
+      #     key: null
     path:
       default: null
     scheme:
       default: http
+      service: http
     port:
       api:
         default: 9876
@@ -482,14 +511,23 @@ endpoints:
       public: neutron
     host_fqdn_override:
       default: null
+      # NOTE(portdirect): this chart supports TLS for fqdn over-ridden public
+      # endpoints using the following format:
+      # public:
+      #   host: null
+      #   tls:
+      #     crt: null
+      #     key: null
     path:
       default: null
     scheme:
       default: 'http'
+      service: 'http'
     port:
       api:
         default: 9696
-        public: 80
+        public: 9696
+        service: 9696
 
 pod:
   user:
