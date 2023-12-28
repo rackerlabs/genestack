@@ -1780,7 +1780,9 @@ endpoints:
     port:
       api:
         default: 5000
+        public: 80
         internal: 5000
+        service: 5000
   image:
     name: glance
     hosts:
@@ -1795,7 +1797,9 @@ endpoints:
     port:
       api:
         default: 9292
-        public: 9292
+        public: 80
+        internal: 9292
+        service: 9292
   compute:
     name: nova
     hosts:
@@ -1818,7 +1822,8 @@ endpoints:
     port:
       api:
         default: 8774
-        public: 8774
+        public: 80
+        internal: 8774
         service: 8774
       novncproxy:
         default: 6080
@@ -1839,7 +1844,9 @@ endpoints:
     port:
       metadata:
         default: 8775
-        public: 8775
+        public: 80
+        internal: 8775
+        service: 8775
   compute_novnc_proxy:
     name: nova
     hosts:
@@ -1861,7 +1868,9 @@ endpoints:
     port:
       novnc_proxy:
         default: 6080
-        public: 6080
+        public: 80
+        internal: 6080
+        service: 6080
   # This endpoint is only to allow configuring the cert used specifically for
   # vencrypt.  Specifically, the same CA/issuer needs to be used to sign both
   # this cert, and the libvirt/qemu certs.
@@ -1902,7 +1911,8 @@ endpoints:
     port:
       api:
         default: 8778
-        public: 8778
+        public: 80
+        internal: 8778
         service: 8778
   network:
     name: neutron
@@ -1918,7 +1928,9 @@ endpoints:
     port:
       api:
         default: 9696
-        public: 9696
+        public: 80
+        internal: 9696
+        service: 9696
   baremetal:
     name: ironic
     hosts:
@@ -1933,7 +1945,9 @@ endpoints:
     port:
       api:
         default: 6385
-        public: 6385
+        public: 80
+        internal: 6385
+        service: 6385
   fluentd:
     namespace: null
     name: fluentd

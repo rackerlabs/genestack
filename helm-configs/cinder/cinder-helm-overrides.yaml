@@ -1229,7 +1229,9 @@ endpoints:
     port:
       api:
         default: 5000
+        public: 80
         internal: 5000
+        service: 5000
   image:
     name: glance
     hosts:
@@ -1244,7 +1246,9 @@ endpoints:
     port:
       api:
         default: 9292
-        public: 9292
+        public: 80
+        internal: 9292
+        service: 9292
   volume:
     name: cinder
     hosts:
@@ -1266,7 +1270,9 @@ endpoints:
     port:
       api:
         default: 8776
-        public: 8776
+        public: 80
+        internal: 8776
+        service: 8776
   volumev2:
     name: cinderv2
     hosts:
@@ -1288,7 +1294,9 @@ endpoints:
     port:
       api:
         default: 8776
-        public: 8776
+        public: 80
+        internal: 8776
+        service: 8776
   volumev3:
     name: cinderv3
     hosts:
@@ -1310,7 +1318,9 @@ endpoints:
     port:
       api:
         default: 8776
-        public: 8776
+        public: 80
+        internal: 8776
+        service: 8776
   oslo_db:
     auth:
       admin:

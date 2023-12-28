@@ -260,6 +260,8 @@ endpoints:
       api:
         default: 5000
         internal: 5000
+        public: 80
+        service: 5000
   placement:
     name: placement
     hosts:
@@ -275,7 +277,8 @@ endpoints:
     port:
       api:
         default: 8778
-        public: 8778
+        public: 80
+        internal: 8778
         service: 8778
 
 pod:

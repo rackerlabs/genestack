@@ -549,7 +549,9 @@ endpoints:
     port:
       api:
         default: 5000
+        public: 80
         internal: 5000
+        service: 5000
   image:
     name: glance
     hosts:
@@ -572,7 +574,9 @@ endpoints:
     port:
       api:
         default: 9292
-        public: 9292
+        public: 80
+        internal: 9292
+        service: 9292
   oslo_db:
     auth:
       admin:
@@ -652,6 +656,8 @@ endpoints:
       api:
         default: 8088
         public: 80
+        internal: 8088
+        service: 8088
   ceph_object_store:
     name: radosgw
     namespace: ceph
@@ -673,6 +679,8 @@ endpoints:
       api:
         default: 8088
         public: 80
+        internal: 8088
+        service: 8088
   fluentd:
     namespace: null
     name: fluentd
@@ -711,6 +719,8 @@ endpoints:
       web:
         default: 80
         public: 443
+        internal: 80
+        service: 80
   # NOTE(tp6510): these endpoints allow for things like DNS lookups and ingress
   # They are using to enable the Egress K8s network policy.
   kube_dns:

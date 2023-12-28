@@ -7194,8 +7194,10 @@ endpoints:
       default: http
     port:
       api:
-        default: 80
+        default: 5000
+        public: 80
         internal: 5000
+        service: 5000
   oslo_cache:
     auth:
       # NOTE(portdirect): this is used to define the value for keystone
@@ -7232,6 +7234,9 @@ endpoints:
     port:
       web:
         default: 80
+        public: 443
+        internal: 80
+        service: 80
   oslo_db:
     auth:
       admin:

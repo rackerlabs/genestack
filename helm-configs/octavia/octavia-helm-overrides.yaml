@@ -422,7 +422,8 @@ endpoints:
     port:
       api:
         admin: 5000
-        default: 80
+        default: 5000
+        public: 80
         # NOTE(portdirect): to retain portability across images, and allow
         # running under a unprivileged user simply, we default to a port > 1000.
         internal: 5000
@@ -450,6 +451,8 @@ endpoints:
       api:
         default: 9876
         public: 80
+        internal: 9876
+        service: 9876
   oslo_db:
     auth:
       admin:
@@ -526,7 +529,8 @@ endpoints:
     port:
       api:
         default: 9696
-        public: 9696
+        public: 80
+        internal: 9696
         service: 9696
 
 pod:

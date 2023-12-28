@@ -2373,6 +2373,7 @@ endpoints:
       api:
         default: 5000
         internal: 5000
+        public: 80
   network:
     name: neutron
     hosts:
@@ -2395,7 +2396,8 @@ endpoints:
     port:
       api:
         default: 9696
-        public: 9696
+        public: 80
+        internal: 9696
         service: 9696
   load_balancer:
     name: octavia
@@ -2411,7 +2413,9 @@ endpoints:
     port:
       api:
         default: 9876
-        public: 9876
+        public: 80
+        internal: 9876
+        service: 9876
   fluentd:
     namespace: osh-infra
     name: fluentd
@@ -2441,7 +2445,9 @@ endpoints:
     port:
       api:
         default: 9001
-        public: 9001
+        public: 80
+        internal: 9001
+        service: 9001
   baremetal:
     name: ironic
     hosts:
@@ -2456,7 +2462,9 @@ endpoints:
     port:
       api:
         default: 6385
-        public: 6385
+        public: 80
+        internal: 6385
+        service: 6385
   # NOTE(tp6510): these endpoints allow for things like DNS lookups and ingress
   # They are using to enable the Egress K8s network policy.
   kube_dns:

@@ -774,7 +774,9 @@ endpoints:
     port:
       api:
         default: 5000
+        public: 80
         internal: 5000
+        service: 5000
   orchestration:
     name: heat
     hosts:
@@ -797,7 +799,8 @@ endpoints:
     port:
       api:
         default: 8004
-        public: 8004
+        public: 80
+        internal: 8004
         service: 8004
   cloudformation:
     name: heat-cfn
@@ -821,7 +824,8 @@ endpoints:
     port:
       api:
         default: 8000
-        public: 8000
+        public: 80
+        internal: 8000
         service: 8000
   # Cloudwatch does not get an entry in the keystone service catalog
   cloudwatch:
@@ -840,7 +844,8 @@ endpoints:
     port:
       api:
         default: 8003
-        public: 8003
+        public: 80
+        internal: 8003
         service: 8003
   oslo_db:
     auth:
