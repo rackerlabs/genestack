@@ -59,8 +59,8 @@ network:
     ingress:
       public: true
       classes:
-        namespace: "ingress-nginx"
-        cluster: "nginx-system"
+        namespace: "nginx"
+        cluster: "nginx-cluster"
       annotations:
         nginx.ingress.kubernetes.io/rewrite-target: /
     external_policy_local: false
@@ -191,6 +191,8 @@ conf:
         amphora: "The Octavia Amphora driver"
       api_handler: queue_producer
       bind_host: 0.0.0.0
+    driver_agent:
+      enabled_provider_agents: ovn
     database:
       max_retries: -1
     health_manager:
@@ -516,12 +518,20 @@ pod:
       init_container: null
       octavia_api:
         volumeMounts:
+        - name: pod-run-octavia
+          mountPath: /var/run/octavia
         volumes:
+        - name: pod-run-octavia
+          emptyDir: {}
     octavia_worker:
       init_container: null
       octavia_worker:
         volumeMounts:
+        - name: pod-run-octavia
+          mountPath: /var/run/octavia
         volumes:
+        - name: pod-run-octavia
+          emptyDir: {}
     octavia_housekeeping:
       init_container: null
       octavia_housekeeping:
@@ -533,6 +543,11 @@ pod:
         volumeMounts:
         volumes:
     octavia_bootstrap:
+      init_container: null
+      octavia_bootstrap:
+        volumeMounts:
+        volumes:
+    octavia_driver_agent:
       init_container: null
       octavia_bootstrap:
         volumeMounts:

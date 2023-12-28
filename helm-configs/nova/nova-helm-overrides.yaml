@@ -211,7 +211,7 @@ network:
     ingress:
       public: true
       classes:
-        namespace: "ingress-nginx"
+        namespace: "nginx"
         cluster: "nginx-system"
       annotations:
         nginx.ingress.kubernetes.io/rewrite-target: /
@@ -224,7 +224,7 @@ network:
     ingress:
       public: true
       classes:
-        namespace: "ingress-nginx"
+        namespace: "nginx"
         cluster: "nginx-system"
       annotations:
         nginx.ingress.kubernetes.io/rewrite-target: /
@@ -236,7 +236,7 @@ network:
     ingress:
       public: true
       classes:
-        namespace: "ingress-nginx"
+        namespace: "nginx"
         cluster: "nginx-system"
       annotations:
         nginx.ingress.kubernetes.io/rewrite-target: /

@@ -123,7 +123,7 @@ ingress_nginx_namespace: "ingress-nginx"
 #   - --default-ssl-certificate=default/foo-tls
 # ingress_nginx_termination_grace_period_seconds: 300
 ingress_nginx_class: nginx-system
-ingress_nginx_without_class: true
+ingress_nginx_without_class: false
 ingress_nginx_default: true
 
 # ALB ingress controller deployment
