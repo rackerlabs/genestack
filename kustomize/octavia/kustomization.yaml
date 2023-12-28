@@ -3,3 +3,4 @@ resources:
   - octavia-rabbitmq-queue.yaml
   - all.yaml
   - hpa-octavia-api.yaml
+  - hpa-octavia-worker.yaml
