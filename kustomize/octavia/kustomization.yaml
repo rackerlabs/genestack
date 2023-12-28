@@ -4,3 +4,92 @@ resources:
   - all.yaml
   - hpa-octavia-api.yaml
   - hpa-octavia-worker.yaml
+
+# To run the OVN driver, the octavia-api container must have an agent container within the same pod.
+patches:
+  - target:
+      kind: Deployment
+      name: octavia-api
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers
+        value:
+        - name: octavia-agent
+          image: "ghcr.io/cloudnull/genestack/octavia-ovn:master-ubuntu_jammy"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 0
+          command:
+            - octavia-driver-agent
+            - --config-dir
+            - /etc/octavia/octavia.conf
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /tmp/octavia-api.sh
+                  - stop
+          ports:
+            - name: o-api
+              containerPort: 9876
+          readinessProbe:
+            httpGet:
+              scheme: HTTP
+              path: /
+              port: 9876
+          volumeMounts:
+            - name: pod-etc-octavia
+              mountPath: /etc/octavia
+            - name: octavia-bin
+              mountPath: /tmp/octavia-api.sh
+              subPath: octavia-api.sh
+              readOnly: true
+            - name: octavia-etc
+              mountPath: /etc/octavia/octavia.conf
+              subPath: octavia.conf
+              readOnly: true
+            - name: octavia-etc
+              mountPath: /etc/octavia/logging.conf
+              subPath: logging.conf
+              readOnly: true
+            - mountPath: /var/run/octavia
+              name: pod-run-octavia
+        - name: octavia-api
+          image: "ghcr.io/cloudnull/genestack/octavia-ovn:master-ubuntu_jammy"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 0
+          command:
+            - /tmp/octavia-api.sh
+            - start
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /tmp/octavia-api.sh
+                  - stop
+          ports:
+            - name: o-api
+              containerPort: 9876
+          readinessProbe:
+            httpGet:
+              scheme: HTTP
+              path: /
+              port: 9876
+          volumeMounts:
+            - name: pod-etc-octavia
+              mountPath: /etc/octavia
+            - name: octavia-bin
+              mountPath: /tmp/octavia-api.sh
+              subPath: octavia-api.sh
+              readOnly: true
+            - name: octavia-etc
+              mountPath: /etc/octavia/octavia.conf
+              subPath: octavia.conf
+              readOnly: true
+            - name: octavia-etc
+              mountPath: /etc/octavia/logging.conf
+              subPath: logging.conf
+              readOnly: true
+            - mountPath: /var/run/octavia
+              name: pod-run-octavia
