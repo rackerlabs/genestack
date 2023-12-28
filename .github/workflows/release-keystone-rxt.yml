@@ -1,5 +1,5 @@
 #
-name: Create and publish a Docker image
+name: Create and publish a the Keystone RXT compatible image
 
 # Configures this workflow to run every time a change is pushed to the branch called `release`.
 on:
@@ -53,7 +53,8 @@ jobs:
           context: .
           file: Containerfiles/KeystoneRXT-Containerfile
           push: true
-          tags: "ghcr.io/${{ env.IMAGE_NAME }}:${{ github.event.inputs.imageTag }}"
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/keystone-rxt:${{ github.event.inputs.imageTag }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             VERSION=${{ github.event.inputs.imageTag }}
