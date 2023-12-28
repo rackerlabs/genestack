@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: selfsigned-cluster-issuer
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-body-size: "500m"
+  name: registry
+  namespace: kube-system
+spec:
+  ingressClassName: nginx-system
+  rules:
+    - host: registry.kube-system
+      http:
+        paths:
+          - backend:
+              service:
+                name: registry
+                port:
+                  name: registry
+            path: /
+            pathType: ImplementationSpecific
+  tls: # < placing a host in the TLS config will determine what ends up in the cert's subjectAltNames
+    - hosts:
+        - registry.kube-system
+      secretName: registry-kube-system-cert
