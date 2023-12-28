@@ -58,7 +58,7 @@ network:
       public: true
       classes:
         namespace: "nginx"
-        cluster: "nginx-system"
+        cluster: "nginx-openstack"
       annotations:
         nginx.ingress.kubernetes.io/rewrite-target: /
     external_policy_local: false
