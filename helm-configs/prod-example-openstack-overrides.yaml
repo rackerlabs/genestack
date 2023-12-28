@@ -97,6 +97,13 @@ images:
     placement_db_sync: "docker.io/openstackhelm/placement:2023.1-ubuntu_jammy"
     horizon_db_sync: docker.io/openstackhelm/horizon:2023.1-ubuntu_jammy
     horizon: docker.io/openstackhelm/horizon:2023.1-ubuntu_jammy
+    octavia_db_sync: ghcr.io/cloudnull/genestack/octavia-ovn:master-ubuntu_jammy
+    octavia_api: ghcr.io/cloudnull/genestack/octavia-ovn:master-ubuntu_jammy
+    octavia_worker: ghcr.io/cloudnull/genestack/octavia-ovn:master-ubuntu_jammy
+    octavia_housekeeping: ghcr.io/cloudnull/genestack/octavia-ovn:master-ubuntu_jammy
+    octavia_health_manager: ghcr.io/cloudnull/genestack/octavia-ovn:master-ubuntu_jammy
+    octavia_health_manager_init: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    openvswitch_vswitchd: docker.io/kolla/centos-source-openvswitch-vswitchd:rocky
 
 pod:
   resources:
@@ -253,6 +260,22 @@ endpoints:
             name: ca-issuer
             kind: ClusterIssuer
         host: glance.dfw-ospcv2-staging.ohthree.com
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  load_balancer:
+    host_fqdn_override:
+      public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: octavia-tls-api
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
+        host: octavia.dfw-ospcv2-staging.ohthree.com
     port:
       api:
         public: 443
