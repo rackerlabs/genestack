@@ -211,8 +211,8 @@ network:
     ingress:
       public: true
       classes:
-        namespace: "nginx"
-        cluster: "nginx-openstack"
+        namespace: "ingress-nginx"
+        cluster: "nginx-system"
       annotations:
         nginx.ingress.kubernetes.io/rewrite-target: /
     external_policy_local: false
@@ -224,8 +224,8 @@ network:
     ingress:
       public: true
       classes:
-        namespace: "nginx"
-        cluster: "nginx-openstack"
+        namespace: "ingress-nginx"
+        cluster: "nginx-system"
       annotations:
         nginx.ingress.kubernetes.io/rewrite-target: /
     external_policy_local: false
@@ -236,8 +236,8 @@ network:
     ingress:
       public: true
       classes:
-        namespace: "nginx"
-        cluster: "nginx-openstack"
+        namespace: "ingress-nginx"
+        cluster: "nginx-system"
       annotations:
         nginx.ingress.kubernetes.io/rewrite-target: /
     node_port:

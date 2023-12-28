@@ -53,8 +53,8 @@ network:
     ingress:
       public: true
       classes:
-        namespace: "nginx"
-        cluster: "nginx-openstack"
+        namespace: "ingress-nginx"
+        cluster: "nginx-system"
       annotations:
         nginx.ingress.kubernetes.io/rewrite-target: /
         nginx.ingress.kubernetes.io/affinity: cookie

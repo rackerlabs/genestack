@@ -59,8 +59,8 @@ network:
     ingress:
       public: true
       classes:
-        namespace: "nginx"
-        cluster: "nginx-cluster"
+        namespace: "ingress-nginx"
+        cluster: "nginx-system"
       annotations:
         nginx.ingress.kubernetes.io/rewrite-target: /
     external_policy_local: false
