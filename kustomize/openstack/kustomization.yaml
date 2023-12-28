@@ -1,2 +1,3 @@
 resources:
   - ns-openstack.yaml
+  - issuer-kube-system-selfsigned.yaml
