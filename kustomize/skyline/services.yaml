@@ -1,0 +1,66 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: skyline-apiserver
+  namespace: openstack
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: skyline-openstack-skyline-apiserver
+  namespace: openstack
+rules:
+  - apiGroups:
+      - ""
+      - extensions
+      - batch
+      - apps
+    verbs:
+      - get
+      - list
+    resources:
+      - services
+      - endpoints
+      - jobs
+      - pods
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: skyline-skyline-apiserver
+  namespace: openstack
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: skyline-openstack-skyline-apiserver
+subjects:
+  - kind: ServiceAccount
+    name: skyline-apiserver
+    namespace: openstack
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: skyline-apiserver
+spec:
+  ports:
+    - name: s-apiserver
+      port: 9999
+  selector:
+    release_group: skyline
+    application: skyline
+    component: api
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: skyline
+spec:
+  ports:
+    - name: http
+      port: 80
+    - name: https
+      port: 443
+  selector:
+    app: ingress-api

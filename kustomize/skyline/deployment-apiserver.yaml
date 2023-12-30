@@ -1,0 +1,337 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "skyline"
+  namespace: openstack
+  labels:
+    release_group: skyline
+    application: skyline
+    component: api
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      application: skyline
+      component: api
+      release_group: skyline
+  strategy:
+    rollingUpdate:
+      maxSurge: 3
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        application: skyline
+        component: api
+        release_group: skyline
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: release_group
+                  operator: In
+                  values:
+                  - skyline
+                - key: application
+                  operator: In
+                  values:
+                  - skyline
+                - key: component
+                  operator: In
+                  values:
+                  - server
+              topologyKey: kubernetes.io/hostname
+            weight: 10
+      nodeSelector:
+        openstack-control-plane: enabled
+      terminationGracePeriodSeconds: 30
+      serviceAccountName: skyline-apiserver
+      volumes:
+        - name: pod-tmp
+          emptyDir: {}
+        - name: pod-etc-skyline
+          emptyDir: {}
+        - name: skyline-data
+          configMap:
+            name: "skyline-integration-properties"
+            defaultMode: 0555
+      initContainers:
+        - name: init
+          image: "quay.io/airshipit/kubernetes-entrypoint:v1.0.0"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: true
+            readOnlyRootFilesystem: false
+            runAsUser: 65534
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: INTERFACE_NAME
+              value: eth0
+            - name: PATH
+              value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/
+            - name: DEPENDENCY_SERVICE
+              value: ""
+            - name: DEPENDENCY_JOBS
+              value: ""
+            - name: DEPENDENCY_DAEMONSET
+              value: ""
+            - name: DEPENDENCY_CONTAINER
+              value: ""
+            - name: DEPENDENCY_POD_JSON
+              value: ""
+            - name: DEPENDENCY_CUSTOM_RESOURCE
+              value: ""
+          command:
+            - kubernetes-entrypoint
+          volumeMounts: []
+        - name: skyline-apiserver-service-init
+          image: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+            requests:
+              cpu: "0.25"
+              memory: "128Mi"
+          command:
+            - bash
+            - -c
+            - /tmp/run.sh
+          volumeMounts:
+            - name: pod-tmp
+              mountPath: /tmp
+            - name: pod-etc-skyline
+              mountPath: /etc/skyline
+            - name: skyline-data
+              mountPath: /tmp/run.sh
+              subPath: data-skyline-service-init.sh
+              readOnly: true
+          env:
+          - name: SERVICE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: skyline-apiserver-secrets
+                key: service-username
+          - name: SERVICE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: skyline-apiserver-secrets
+                key: service-password
+          - name: SERVICE_DOMAIN
+            valueFrom:
+              secretKeyRef:
+                name: skyline-apiserver-secrets
+                key: service-domain
+          - name: SERVICE_PROJECT
+            valueFrom:
+              secretKeyRef:
+                name: skyline-apiserver-secrets
+                key: service-project
+          - name: SERVICE_PROJECT_DOMAIN
+            valueFrom:
+              secretKeyRef:
+                name: skyline-apiserver-secrets
+                key: service-project-domain
+          - name: OS_IDENTITY_API_VERSION
+            value: "3"
+          - name: OS_AUTH_URL
+            valueFrom:
+              secretKeyRef:
+                name: keystone-keystone-admin
+                key: OS_AUTH_URL
+          - name: OS_REGION_NAME
+            valueFrom:
+              secretKeyRef:
+                name: keystone-keystone-admin
+                key: OS_REGION_NAME
+          - name: OS_INTERFACE
+            valueFrom:
+              secretKeyRef:
+                name: keystone-keystone-admin
+                key: OS_INTERFACE
+          - name: OS_ENDPOINT_TYPE
+            valueFrom:
+              secretKeyRef:
+                name: keystone-keystone-admin
+                key: OS_INTERFACE
+          - name: OS_PROJECT_DOMAIN_NAME
+            valueFrom:
+              secretKeyRef:
+                name: keystone-keystone-admin
+                key: OS_PROJECT_DOMAIN_NAME
+          - name: OS_PROJECT_NAME
+            valueFrom:
+              secretKeyRef:
+                name: keystone-keystone-admin
+                key: OS_PROJECT_NAME
+          - name: OS_USER_DOMAIN_NAME
+            valueFrom:
+              secretKeyRef:
+                name: keystone-keystone-admin
+                key: OS_USER_DOMAIN_NAME
+          - name: OS_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: keystone-keystone-admin
+                key: OS_USERNAME
+          - name: OS_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: keystone-keystone-admin
+                key: OS_PASSWORD
+          - name: OS_DEFAULT_DOMAIN
+            valueFrom:
+              secretKeyRef:
+                name: keystone-keystone-admin
+                key: OS_DEFAULT_DOMAIN
+          - name: OS_SERVICE_NAME
+            value: "keystone"
+          - name: OS_SERVICE_TYPE
+            value: "image"
+        - name: skyline-apiserver-config
+          image: "ghcr.io/linuxserver/yq:latest"
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+            requests:
+              cpu: "0.25"
+              memory: "128Mi"
+          command:
+            - bash
+            - -c
+            - /tmp/run.sh
+          volumeMounts:
+            - name: pod-tmp
+              mountPath: /tmp
+            - name: pod-etc-skyline
+              mountPath: /etc/skyline
+              readOnly: false
+            - name: skyline-data
+              mountPath: /tmp/skyline.yaml
+              subPath: data-skyline.yaml
+              readOnly: false
+            - name: skyline-data
+              mountPath: /tmp/run.sh
+              subPath: data-skyline-setup.sh
+              readOnly: true
+          env:
+          - name: SERVICE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: skyline-apiserver-secrets
+                key: service-username
+          - name: SERVICE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: skyline-apiserver-secrets
+                key: service-password
+          - name: SERVICE_DOMAIN
+            valueFrom:
+              secretKeyRef:
+                name: skyline-apiserver-secrets
+                key: service-domain
+          - name: DB_ENDPOINT
+            valueFrom:
+              secretKeyRef:
+                name: skyline-apiserver-secrets
+                key: db-endpoint
+          - name: DB_NAME
+            valueFrom:
+              secretKeyRef:
+                name: skyline-apiserver-secrets
+                key: db-name
+          - name: DB_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: skyline-apiserver-secrets
+                key: db-username
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: skyline-apiserver-secrets
+                key: db-password
+          - name: SKYLINE_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: skyline-apiserver-secrets
+                key: secret-key
+          - name: SKYLINE_KEYSTONE_ENDPOINT
+            valueFrom:
+              secretKeyRef:
+                name: skyline-apiserver-secrets
+                key: keystone-endpoint
+          - name: SKYLINE_DEFAULT_REGION
+            valueFrom:
+              secretKeyRef:
+                name: skyline-apiserver-secrets
+                key: default-region
+        - name: skyline-apiserver-db-migrate
+          image: "docker.io/99cloud/skyline:latest"
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+            requests:
+              cpu: "0.25"
+              memory: "128Mi"
+          command:
+            - bash
+            - -c
+            - /tmp/run.sh
+          volumeMounts:
+            - name: pod-tmp
+              mountPath: /tmp
+            - name: pod-etc-skyline
+              mountPath: /etc/skyline
+            - name: skyline-data
+              mountPath: /tmp/run.sh
+              subPath: data-skyline-db-init.sh
+              readOnly: true
+      containers:
+        - name: skyline-apiserver
+          image: "docker.io/99cloud/skyline:latest"
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+            requests:
+              cpu: "0.25"
+              memory: "128Mi"
+          command:
+            - bash
+            - -c
+            - /tmp/run.sh
+          volumeMounts:
+            - name: pod-tmp
+              mountPath: /tmp
+            - name: pod-etc-skyline
+              mountPath: /etc/skyline
+            - name: skyline-data
+              mountPath: /etc/skyline/gunicorn.py
+              subPath: data-gunicorn.py
+              readOnly: true
+            - name: skyline-data
+              mountPath: /tmp/run.sh
+              subPath: data-skyline-run.sh
+              readOnly: true

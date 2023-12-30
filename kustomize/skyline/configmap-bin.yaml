@@ -1,0 +1,221 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: skyline-integration-properties
+  namespace: openstack
+data:
+  data-skyline-db-init.sh: |
+    #!/bin/bash
+    set -exo pipefail
+    alembic -c /skyline-apiserver/skyline_apiserver/db/alembic/alembic.ini upgrade head
+  data-skyline-run.sh: |
+    set -exo pipefail
+    echo "/usr/local/bin/gunicorn -c /etc/skyline/gunicorn.py skyline_apiserver.main:app" >/run_command
+    mapfile -t CMD < <(tail /run_command | xargs -n 1)
+    GENERATOR_ARGS="--output-file /etc/nginx/nginx.conf"
+    if [[ -n "${LISTEN_ADDRESS}" ]]; then
+        GENERATOR_ARGS+=" --listen-address ${LISTEN_ADDRESS}"
+    fi
+    if [[ -n "${SSL_CERTFILE}" ]] && [[ -n "${SSL_KEYFILE}" ]]; then
+        GENERATOR_ARGS+=" --ssl-certfile ${SSL_CERTFILE} --ssl-keyfile ${SSL_KEYFILE}"
+    fi
+    skyline-nginx-generator ${GENERATOR_ARGS}
+    nginx
+    echo "Running command: ${CMD[*]}"
+    exec "${CMD[@]}"
+  data-skyline-service-init.sh: |
+    #!/bin/bash
+    set -exo pipefail
+    USER_PROJECT_ID=$(openstack project create --or-show --enable -f value -c id \
+                                               --domain="${SERVICE_PROJECT_DOMAIN}" \
+                                               "${SERVICE_PROJECT}")
+    USER_ID=$(openstack user create --or-show --enable -f value -c id \
+                                    --domain "${SERVICE_DOMAIN}" \
+                                    --project-domain "${SERVICE_PROJECT_DOMAIN}" \
+                                    --project "${USER_PROJECT_ID}" \
+                                    "${SERVICE_USERNAME}")
+    openstack user set --password "${SERVICE_PASSWORD}" "${USER_ID}"
+    openstack role add --project "${USER_PROJECT_ID}" \
+                       --user "${USER_ID}" \
+                       --user-domain "${SERVICE_DOMAIN}" \
+                       --project-domain "${SERVICE_PROJECT_DOMAIN}" \
+                       admin
+  data-skyline-setup.sh: |
+    #!/bin/bash
+    set -exo pipefail
+    cp /tmp/skyline.yaml /etc/skyline/skyline.yaml
+    yq -yi ".openstack.system_user_password=\"${SERVICE_PASSWORD}\"" /etc/skyline/skyline.yaml
+    yq -yi ".openstack.system_user_name=\"${SERVICE_USERNAME}\"" /etc/skyline/skyline.yaml
+    yq -yi ".openstack.system_user_domain=\"${SERVICE_DOMAIN}\"" /etc/skyline/skyline.yaml
+    yq -yi ".openstack.system_project=\"${SERVICE_PROJECT}\"" /etc/skyline/skyline.yaml
+    yq -yi ".openstack.system_project_domain=\"${SERVICE_PROJECT_DOMAIN}\"" /etc/skyline/skyline.yaml
+    yq -yi ".openstack.keystone_url=\"${SKYLINE_KEYSTONE_ENDPOINT}\"" /etc/skyline/skyline.yaml
+    yq -yi ".openstack.default_region=\"${SKYLINE_DEFAULT_REGION}\"" /etc/skyline/skyline.yaml
+    yq -yi ".default.secret_key=\"${SKYLINE_SECRET_KEY}\"" /etc/skyline/skyline.yaml
+    yq -yi ".default.database_url=\"mysql://${DB_USERNAME}:${DB_PASSWORD}@${DB_ENDPOINT}/${DB_NAME}\"" /etc/skyline/skyline.yaml
+  data-skyline.yaml: |
+    default:
+      access_token_expire: 3600
+      access_token_renew: 1800
+      cors_allow_origins: []
+      database_url: ""
+      log_dir: /var/log/skyline
+      prometheus_basic_auth_password: ""
+      prometheus_basic_auth_user: ""
+      prometheus_enable_basic_auth: false
+      prometheus_endpoint: http://localhost:9091
+      secret_key: ""
+      session_name: session
+    developer:
+      show_raw_sql: false
+    openstack:
+      base_domains:
+      - heat_user_domain
+      base_roles:
+      - keystone_system_admin
+      - keystone_system_reader
+      - keystone_project_admin
+      - keystone_project_member
+      - keystone_project_reader
+      - nova_system_admin
+      - nova_system_reader
+      - nova_project_admin
+      - nova_project_member
+      - nova_project_reader
+      - cinder_system_admin
+      - cinder_system_reader
+      - cinder_project_admin
+      - cinder_project_member
+      - cinder_project_reader
+      - skyline_system_admin
+      - skyline_system_reader
+      - skyline_project_admin
+      - skyline_project_member
+      - skyline_project_reader
+      - neutron_system_admin
+      - neutron_system_reader
+      - neutron_project_admin
+      - neutron_project_member
+      - neutron_project_reader
+      - heat_system_admin
+      - heat_system_reader
+      - heat_project_admin
+      - heat_project_member
+      - heat_project_reader
+      - placement_system_admin
+      - placement_system_reader
+      - panko_system_admin
+      - panko_system_reader
+      - panko_project_admin
+      - panko_project_member
+      - panko_project_reader
+      - ironic_system_admin
+      - ironic_system_reader
+      - octavia_system_admin
+      - octavia_system_reader
+      - octavia_project_admin
+      - octavia_project_member
+      - octavia_project_reader
+      default_region: RegionOne
+      extension_mapping:
+        floating-ip-port-forwarding: neutron_port_forwarding
+        fwaas_v2: neutron_firewall
+        qos: neutron_qos
+        vpnaas: neutron_vpn
+      interface_type: internal
+      keystone_url: http://localhost:5000
+      nginx_prefix: /
+      reclaim_instance_interval: 604800
+      service_mapping:
+        baremetal: ironic
+        compute: nova
+        container: zun
+        container-infra: magnum
+        database: trove
+        identity: keystone
+        image: skyline
+        key-manager: barbican
+        load-balancer: octavia
+        network: neutron
+        object-store: swift
+        orchestration: heat
+        placement: placement
+        sharev2: manilav2
+        volumev3: cinder
+      sso_enabled: false
+      sso_protocols:
+      - openid
+      system_admin_roles:
+      - admin
+      - system_admin
+      system_project: 'service'
+      system_project_domain: 'Default'
+      system_reader_roles:
+      - system_reader
+      system_user_domain: 'Default'
+      system_user_name: ""
+      system_user_password: ""
+    setting:
+      base_settings: []
+      flavor_families:
+      - architecture: x86_architecture
+        categories:
+        - name: general_purpose
+          properties: []
+        - name: compute_optimized
+          properties: []
+        - name: memory_optimized
+          properties: []
+        - name: high_clock_speed
+          properties: []
+      - architecture: heterogeneous_computing
+        categories:
+        - name: compute_optimized_type_with_gpu
+          properties: []
+        - name: visualization_compute_optimized_type_with_gpu
+          properties: []
+      gpu_models: []
+      usb_models: []
+  data-gunicorn.py : |
+    import multiprocessing
+    bind = "unix:/var/lib/skyline/skyline.sock"
+    workers = (1 + multiprocessing.cpu_count()) // 2
+    worker_class = "uvicorn.workers.UvicornWorker"
+    timeout = 3600
+    keepalive = 5
+    reuse_port = True
+    proc_name = "skyline"
+    logconfig_dict = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "root": {"level": "DEBUG", "handlers": ["console"]},
+        "loggers": {
+            "gunicorn.error": {
+                "level": "DEBUG",
+                "handlers": ["console"],
+                "propagate": 0,
+                "qualname": "gunicorn_error",
+            },
+            "gunicorn.access": {
+                "level": "DEBUG",
+                "handlers": ["console"],
+                "propagate": 0,
+                "qualname": "access",
+            },
+        },
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+                "level": "DEBUG",
+                "formatter": "generic",
+            },
+        },
+        "formatters": {
+            "generic": {
+                "format": "%(asctime)s.%(msecs)03d %(process)d %(levelname)s [-] %(message)s",
+                "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
+                "class": "logging.Formatter",
+            }
+        },
+    }

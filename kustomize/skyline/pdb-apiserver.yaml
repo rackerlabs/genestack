@@ -1,0 +1,12 @@
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: skyline-apiserver
+spec:
+  minAvailable: 0
+  selector:
+    matchLabels:
+      release_group: skyline
+      application: skyline
+      component: api
