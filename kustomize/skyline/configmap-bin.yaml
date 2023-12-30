@@ -71,11 +71,10 @@ data:
       show_raw_sql: false
     openstack:
       base_domains:
-      - heat_user_domain
       - service
       - heat
       default_region: RegionOne
-      enforce_new_defaults: false
+      enforce_new_defaults: true
       extension_mapping:
         floating-ip-port-forwarding: neutron_port_forwarding
         fwaas_v2: neutron_firewall
@@ -101,17 +100,16 @@ data:
         placement: placement
         sharev2: manilav2
         volumev3: cinder
+        cloudformation: heat-cfn
       sso_enabled: false
       sso_protocols:
       - openid
       system_admin_roles:
       - admin
-      - system_admin
       system_project: 'service'
       system_project_domain: 'Default'
       system_reader_roles:
       - reader
-      - system_reader
       system_user_domain: 'Default'
       system_user_name: ""
       system_user_password: ""
