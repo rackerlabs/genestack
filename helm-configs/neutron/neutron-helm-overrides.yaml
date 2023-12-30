@@ -1804,6 +1804,7 @@ conf:
     database:
       max_retries: -1
     agent:
+      availability_zone: nova
       root_helper: sudo /var/lib/openstack/bin/neutron-rootwrap /etc/neutron/rootwrap.conf
       root_helper_daemon: sudo /var/lib/openstack/bin/neutron-rootwrap-daemon /etc/neutron/rootwrap.conf
     oslo_messaging_notifications:
