@@ -58,31 +58,31 @@ data:
     default:
       access_token_expire: 3600
       access_token_renew: 1800
-      cafile: ''
       cors_allow_origins: []
-      database_url: sqlite:////tmp/skyline.db
-      debug: false
-      log_dir: ./log
-      log_file: skyline.log
-      prometheus_basic_auth_password: ''
-      prometheus_basic_auth_user: ''
+      database_url: ""
+      log_dir: /var/log/skyline
+      prometheus_basic_auth_password: ""
+      prometheus_basic_auth_user: ""
       prometheus_enable_basic_auth: false
       prometheus_endpoint: http://localhost:9091
-      secret_key: aCtmgbcUqYUy_HNVg5BDXCaeJgJQzHJXwqbXr0Nmb2o
+      secret_key: ""
       session_name: session
-      ssl_enabled: true
+    developer:
+      show_raw_sql: false
     openstack:
       base_domains:
       - heat_user_domain
+      - service
+      - heat
       default_region: RegionOne
-      enforce_new_defaults: true
+      enforce_new_defaults: false
       extension_mapping:
         floating-ip-port-forwarding: neutron_port_forwarding
         fwaas_v2: neutron_firewall
         qos: neutron_qos
         vpnaas: neutron_vpn
-      interface_type: public
-      keystone_url: http://127.0.0.1:5000/v3/
+      interface_type: internal
+      keystone_url: http://localhost:5000
       nginx_prefix: /api/openstack
       reclaim_instance_interval: 604800
       service_mapping:
@@ -104,43 +104,22 @@ data:
       sso_enabled: false
       sso_protocols:
       - openid
-      sso_region: RegionOne
       system_admin_roles:
       - admin
       - system_admin
-      system_project: service
-      system_project_domain: Default
+      system_project: 'service'
+      system_project_domain: 'Default'
       system_reader_roles:
+      - reader
       - system_reader
-      system_user_domain: Default
-      system_user_name: skyline
-      system_user_password: ''
+      system_user_domain: 'Default'
+      system_user_name: ""
+      system_user_password: ""
     setting:
-      base_settings:
-      - flavor_families
-      - gpu_models
-      - usb_models
-      flavor_families:
-      - architecture: x86_architecture
-        categories:
-        - name: general_purpose
-          properties: []
-        - name: compute_optimized
-          properties: []
-        - name: memory_optimized
-          properties: []
-        - name: high_clock_speed
-          properties: []
-      - architecture: heterogeneous_computing
-        categories:
-        - name: compute_optimized_type_with_gpu
-          properties: []
-        - name: visualization_compute_optimized_type_with_gpu
-          properties: []
-      gpu_models:
-      - nvidia_t4
-      usb_models:
-      - usb_c
+      base_settings: []
+      flavor_families: []
+      gpu_models: []
+      usb_models: []
   data-gunicorn.py : |
     import multiprocessing
     bind = "unix:/var/lib/skyline/skyline.sock"

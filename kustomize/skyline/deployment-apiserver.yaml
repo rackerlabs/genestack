@@ -249,6 +249,16 @@ spec:
               secretKeyRef:
                 name: skyline-apiserver-secrets
                 key: service-domain
+          - name: SERVICE_PROJECT
+            valueFrom:
+              secretKeyRef:
+                name: skyline-apiserver-secrets
+                key: service-project
+          - name: SERVICE_PROJECT_DOMAIN
+            valueFrom:
+              secretKeyRef:
+                name: skyline-apiserver-secrets
+                key: service-project-domain
           - name: DB_ENDPOINT
             valueFrom:
               secretKeyRef:
