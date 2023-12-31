@@ -388,7 +388,7 @@ network:
       port: 30092
 
 volume:
-  class_name: rook-cephfs  # This can be changed as needed
+  class_name: general-multi-attach  # This can be changed as needed
   size: 10Gi  # This should be set to 100Gi in production
 
 dependencies:
