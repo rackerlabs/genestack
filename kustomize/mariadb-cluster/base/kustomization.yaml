@@ -1,0 +1,3 @@
+resources:
+  - mariadb-galera.yaml
+  - mariadb-backup.yaml

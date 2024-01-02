@@ -1,0 +1,18 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: Backup
+metadata:
+  name: mariadb-backup
+  namespace: openstack
+spec:
+  mariaDbRef:
+    name: mariadb-galera
+    namespace: openstack
+  schedule:
+    cron: "0 0 * * *"
+  storage:
+    persistentVolumeClaim:
+      resources:
+        requests:
+          storage: 1Gi
+      accessModes:
+        - ReadWriteOnce

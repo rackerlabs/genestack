@@ -1,0 +1,16 @@
+helmCharts:
+  - name: memcached
+    repo: https://marketplace.azurecr.io/helm/v1/repo
+    releaseName: memcached
+    valuesInline:
+      architecture: high-availability
+      autoscaling:
+        enabled: true
+      resources:
+        requests:
+          memory: 1Gi
+      persistence:
+        enabled: true
+        size: 10Gi
+    includeCRDs: true
+    namespace: openstack

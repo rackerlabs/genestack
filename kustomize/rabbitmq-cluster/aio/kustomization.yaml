@@ -1,0 +1,11 @@
+bases:
+  - ../base
+
+patches:
+  - target:
+      kind: RabbitmqCluster
+      name: rabbitmq
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
