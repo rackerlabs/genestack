@@ -1,0 +1,38 @@
+all:
+  hosts:
+    controller-0.cloud.cloudnull.dev.local:
+      ansible_host: 172.16.27.68
+    compute-0.cloud.cloudnull.dev.local:
+      ansible_host: 172.16.27.67
+  children:
+    k8s_cluster:
+      vars:
+        cluster_name: cloudnull.dev.local
+        kube_ovn_iface: bond0
+        kube_ovn_default_interface_name: bond0
+        kube_ovn_central_hosts: "{{ groups['ovn_network_nodes'] }}"
+      children:
+        kube_control_plane:
+          hosts:
+            controller-0.cloud.cloudnull.dev.local: null
+        etcd:
+          hosts:
+            controller-0.cloud.cloudnull.dev.local: null
+        kube_node:
+          hosts:
+            controller-0.cloud.cloudnull.dev.local: null
+            compute-0.cloud.cloudnull.dev.local: null
+        ovn_network_nodes:
+          hosts:
+            controller-0.cloud.cloudnull.dev.local: null
+            compute-0.cloud.cloudnull.dev.local: null
+        storage_nodes:
+          children:
+            ceph_storage_nodes:
+              hosts: {}
+            cinder_storage_nodes:
+              hosts:
+                compute-0.cloud.cloudnull.dev.local: null
+        nova_compute_nodes:
+          hosts:
+            compute-0.cloud.cloudnull.dev.local: null
