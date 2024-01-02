@@ -227,6 +227,9 @@ endpoints:
         public: 80
     scheme:
       public: http
+  oslo_messaging:
+    statefulset:
+      replicas: 1
   placement:
     host_fqdn_override:
       public:

@@ -1,0 +1,11 @@
+bases:
+  - ../base
+
+patches:
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: neutron-server
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
