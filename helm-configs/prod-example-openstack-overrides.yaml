@@ -46,14 +46,14 @@ images:
     cinder_storage_init: "docker.io/openstackhelm/ceph-config-helper:ubuntu_focal_18.2.0-1-20231013"
     cinder_backup: "docker.io/openstackhelm/cinder:2023.1-ubuntu_jammy"
     cinder_backup_storage_init: "docker.io/openstackhelm/ceph-config-helper:ubuntu_focal_18.2.0-1-20231013"
-    keystone_api: "ghcr.io/cloudnull/keystone-rxt:2023.1-ubuntu_jammy"
+    keystone_api: "ghcr.io/cloudnull/genestack/keystone-rxt:2023.1-ubuntu_jammy"
     keystone_bootstrap: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    keystone_credential_rotate: "ghcr.io/cloudnull/keystone-rxt:2023.1-ubuntu_jammy"
-    keystone_credential_setup: "ghcr.io/cloudnull/keystone-rxt:2023.1-ubuntu_jammy"
-    keystone_db_sync: "ghcr.io/cloudnull/keystone-rxt:2023.1-ubuntu_jammy"
-    keystone_domain_manage: "ghcr.io/cloudnull/keystone-rxt:2023.1-ubuntu_jammy"
-    keystone_fernet_rotate: "ghcr.io/cloudnull/keystone-rxt:2023.1-ubuntu_jammy"
-    keystone_fernet_setup: "ghcr.io/cloudnull/keystone-rxt:2023.1-ubuntu_jammy"
+    keystone_credential_rotate: "ghcr.io/cloudnull/genestack/keystone-rxt:2023.1-ubuntu_jammy"
+    keystone_credential_setup: "ghcr.io/cloudnull/genestack/keystone-rxt:2023.1-ubuntu_jammy"
+    keystone_db_sync: "ghcr.io/cloudnull/genestack/keystone-rxt:2023.1-ubuntu_jammy"
+    keystone_domain_manage: "ghcr.io/cloudnull/genestack/keystone-rxt:2023.1-ubuntu_jammy"
+    keystone_fernet_rotate: "ghcr.io/cloudnull/genestack/keystone-rxt:2023.1-ubuntu_jammy"
+    keystone_fernet_setup: "ghcr.io/cloudnull/genestack/keystone-rxt:2023.1-ubuntu_jammy"
     keystone_credential_cleanup: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
     libvirt: docker.io/openstackhelm/libvirt:2023.2-ubuntu_jammy  # We want to use jammy. 2023.2 is the latest version that supports jammy.
     libvirt_exporter: vexxhost/libvirtd-exporter:latest
@@ -80,8 +80,8 @@ images:
     nova_api: "docker.io/openstackhelm/nova:2023.1-ubuntu_jammy"
     nova_cell_setup: "docker.io/openstackhelm/nova:2023.1-ubuntu_jammy"
     nova_cell_setup_init: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    nova_compute: "docker.io/openstackhelm/nova:2023.1-ubuntu_jammy"
-    nova_compute_ssh: "docker.io/openstackhelm/nova:2023.1-ubuntu_jammy"
+    nova_compute: "ghcr.io/cloudnull/genestack/nova-efi:2023.1-ubuntu_jammy"
+    nova_compute_ssh: "ghcr.io/cloudnull/genestack/nova-efi:2023.1-ubuntu_jammy"
     nova_conductor: "docker.io/openstackhelm/nova:2023.1-ubuntu_jammy"
     nova_db_sync: "docker.io/openstackhelm/nova:2023.1-ubuntu_jammy"
     nova_novncproxy: "docker.io/openstackhelm/nova:2023.1-ubuntu_jammy"
@@ -392,5 +392,5 @@ network:
         nginx.ingress.kubernetes.io/ssl-redirect: "true"
 
 volume:
-  class_name: general
+  class_name: general-multi-attach
   size: 100Gi
