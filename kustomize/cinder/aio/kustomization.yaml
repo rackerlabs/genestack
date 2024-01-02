@@ -1,0 +1,18 @@
+bases:
+  - ../base
+
+patches:
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: cinder-api
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: cinder-scheduler
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
