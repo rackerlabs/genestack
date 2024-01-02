@@ -6,3 +6,4 @@ helmCharts:
     releaseName: libvirt
     valuesFile: helm/libvirt-helm-overrides.yaml
     namespace: openstack
+    includeCRDs: true

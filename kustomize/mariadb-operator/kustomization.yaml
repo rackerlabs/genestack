@@ -7,4 +7,5 @@ helmCharts:
         cert:
           certManager:
             enabled: true
+    includeCRDs: true
     namespace: openstack

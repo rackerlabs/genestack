@@ -13,3 +13,4 @@ helmCharts:
           class: nginx-cluster
     valuesFile: helm/ingress-helm-overrides.yaml
     namespace: ingress-nginx
+    includeCRDs: true

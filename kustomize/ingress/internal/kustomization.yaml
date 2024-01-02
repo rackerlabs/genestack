@@ -10,3 +10,4 @@ helmCharts:
           class: nginx
     valuesFile: helm/ingress-helm-overrides.yaml
     namespace: openstack
+    includeCRDs: true

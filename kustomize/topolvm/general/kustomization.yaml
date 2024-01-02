@@ -27,9 +27,9 @@ helmCharts:
             annotations: {}
             # Default storage class for dynamic volume provisioning
             # ref: https://kubernetes.io/docs/concepts/storage/dynamic-provisioning
-            isDefaultClass: false
+            isDefaultClass: true
             # volumeBindingMode can be either WaitForFirstConsumer or Immediate. WaitForFirstConsumer is recommended because TopoLVM cannot schedule pods wisely if volumeBindingMode is Immediate.
-            volumeBindingMode: WaitForFirstConsumer
+            volumeBindingMode: Immediate
             # enables CSI drivers to expand volumes. This feature is available for Kubernetes 1.16 and later releases.
             allowVolumeExpansion: true
             additionalParameters:
@@ -50,5 +50,6 @@ helmCharts:
             volume-group: vg-general
             default: true
             spare-gb: 10
+    includeCRDs: true
     namespace: topolvm-system
     repo: https://topolvm.github.io/topolvm
