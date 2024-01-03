@@ -298,12 +298,12 @@ spec:
           image: "docker.io/99cloud/skyline:latest"
           imagePullPolicy: IfNotPresent
           resources:
-            limits:
-              cpu: "1"
-              memory: "1Gi"
             requests:
-              cpu: "0.25"
               memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "1024Mi"
+              cpu: "2000m"
           command:
             - bash
             - -c

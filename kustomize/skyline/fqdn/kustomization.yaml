@@ -1,0 +1,31 @@
+bases:
+  - ../base
+
+patches:
+  - target:
+      kind: Ingress
+      name: skyline
+    patch: |-
+      - op: add
+        path: /spec/rules
+        value:
+          - host: dfw-ospcv2-staging.ohthree.com
+            http:
+              paths:
+                - path: /
+                  pathType: ImplementationSpecific
+                  backend:
+                    service:
+                      name: skyline-apiserver
+                      port:
+                        name: "s-apiserver"
+  - target:
+      kind: Ingress
+      name: skyline
+    patch: |-
+      - op: add
+        path: /spec/tls
+        value:
+          - hosts:
+            - dfw-ospcv2-staging.ohthree.com
+            secretName: horizon-tls-public

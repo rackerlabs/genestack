@@ -121,7 +121,7 @@ data:
   data-gunicorn.py : |
     import multiprocessing
     bind = "unix:/var/lib/skyline/skyline.sock"
-    workers = (1 + multiprocessing.cpu_count()) // 2
+    workers = 4
     worker_class = "uvicorn.workers.UvicornWorker"
     timeout = 3600
     keepalive = 5
