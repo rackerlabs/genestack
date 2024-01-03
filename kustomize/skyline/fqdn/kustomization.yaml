@@ -19,10 +19,6 @@ patches:
                       name: skyline-apiserver
                       port:
                         name: "s-apiserver"
-  - target:
-      kind: Ingress
-      name: skyline
-    patch: |-
       - op: add
         path: /spec/tls
         value:

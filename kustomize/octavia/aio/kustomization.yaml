@@ -9,10 +9,16 @@ patches:
       - op: replace
         path: /spec/minReplicas
         value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 1
   - target:
       kind: HorizontalPodAutoscaler
       name: octavia-worker
     patch: |-
       - op: replace
         path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
         value: 1

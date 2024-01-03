@@ -9,12 +9,18 @@ patches:
       - op: replace
         path: /spec/minReplicas
         value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 1
   - target:
       kind: HorizontalPodAutoscaler
       name: nova-api-osapi
     patch: |-
       - op: replace
         path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
         value: 1
   - target:
       kind: HorizontalPodAutoscaler
@@ -23,6 +29,9 @@ patches:
       - op: replace
         path: /spec/minReplicas
         value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 1
   - target:
       kind: HorizontalPodAutoscaler
       name: nova-novncproxy
@@ -30,10 +39,16 @@ patches:
       - op: replace
         path: /spec/minReplicas
         value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 1
   - target:
       kind: HorizontalPodAutoscaler
       name: nova-scheduler
     patch: |-
       - op: replace
         path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
         value: 1
