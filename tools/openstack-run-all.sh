@@ -10,7 +10,8 @@ helm upgrade --install keystone ./keystone \
     --set endpoints.oslo_db.auth.keystone.password="$(kubectl --namespace openstack get secret keystone-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.keystone.password="$(kubectl --namespace openstack get secret keystone-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /opt/genestack/kustomize/keystone/kustomize.sh &
+    --post-renderer /opt/genestack/kustomize/kustomize.sh \
+    --post-renderer-args keystone/base &
 
 helm upgrade --install glance ./glance \
     --namespace=openstack \
@@ -23,7 +24,8 @@ helm upgrade --install glance ./glance \
     --set endpoints.oslo_db.auth.glance.password="$(kubectl --namespace openstack get secret glance-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.glance.password="$(kubectl --namespace openstack get secret glance-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /opt/genestack/kustomize/glance/kustomize.sh &
+    --post-renderer /opt/genestack/kustomize/kustomize.sh \
+    --post-renderer-args glance/base &
 
 helm upgrade --install heat ./heat \
   --namespace=openstack \
@@ -37,7 +39,8 @@ helm upgrade --install heat ./heat \
     --set endpoints.oslo_db.auth.heat.password="$(kubectl --namespace openstack get secret heat-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.heat.password="$(kubectl --namespace openstack get secret heat-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /opt/genestack/kustomize/heat/kustomize.sh &
+    --post-renderer /opt/genestack/kustomize/kustomize.sh \
+    --post-renderer-args glance/base &
 
 helm upgrade --install cinder ./cinder \
   --namespace=openstack \
@@ -50,7 +53,8 @@ helm upgrade --install cinder ./cinder \
     --set endpoints.oslo_db.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /opt/genestack/kustomize/cinder/kustomize.sh &
+    --post-renderer /opt/genestack/kustomize/kustomize.sh \
+    --post-renderer-args cinder/base &
 
 helm upgrade --install neutron ./neutron \
   --namespace=openstack \
@@ -70,7 +74,8 @@ helm upgrade --install neutron ./neutron \
     --set conf.neutron.ovn.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-sb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
     --set conf.plugins.ml2_conf.ovn.ovn_nb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-nb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
     --set conf.plugins.ml2_conf.ovn.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-sb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
-    --post-renderer /opt/genestack/kustomize/neutron/kustomize.sh &
+    --post-renderer /opt/genestack/kustomize/kustomize.sh \
+    --post-renderer-args neutron/base &
 
 helm upgrade --install nova ./nova \
   --namespace=openstack \
@@ -90,7 +95,8 @@ helm upgrade --install nova ./nova \
     --set endpoints.oslo_db_cell0.auth.nova.password="$(kubectl --namespace openstack get secret nova-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.nova.password="$(kubectl --namespace openstack get secret nova-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /opt/genestack/kustomize/nova/kustomize.sh &
+    --post-renderer /opt/genestack/kustomize/kustomize.sh \
+    --post-renderer-args nova/base &
 
 helm upgrade --install placement ./placement --namespace=openstack \
   --namespace=openstack \
@@ -101,7 +107,8 @@ helm upgrade --install placement ./placement --namespace=openstack \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.placement.password="$(kubectl --namespace openstack get secret placement-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.nova_api.password="$(kubectl --namespace openstack get secret nova-db-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /opt/genestack/kustomize/placement/kustomize.sh &
+    --post-renderer /opt/genestack/kustomize/kustomize.sh \
+    --post-renderer-args placement/base &
 
 helm upgrade --install octavia ./octavia \
     --namespace=openstack \
@@ -117,7 +124,8 @@ helm upgrade --install octavia ./octavia \
     --set conf.octavia.certificates.ca_private_key_passphrase="$(kubectl --namespace openstack get secret octavia-certificates -o jsonpath='{.data.password}' | base64 -d)" \
     --set conf.octavia.ovn.ovn_nb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-nb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
     --set conf.octavia.ovn.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get endpoints ovn-sb -o jsonpath='{.subsets[0].addresses[0].ip}:{.subsets[0].ports[0].port}')" \
-    --post-renderer /opt/genestack/kustomize/octavia/kustomize.sh &
+    --post-renderer /opt/genestack/kustomize/kustomize.sh \
+    --post-renderer-args octavia/base &
 
 helm upgrade --install horizon ./horizon \
     --namespace=openstack \
@@ -128,4 +136,5 @@ helm upgrade --install horizon ./horizon \
     --set conf.horizon.local_settings.config.horizon_secret_key="$(kubectl --namespace openstack get secret horizon-secrete-key -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.horizon.password="$(kubectl --namespace openstack get secret horizon-db-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /opt/genestack/kustomize/horizon/kustomize.sh &
+    --post-renderer /opt/genestack/kustomize/kustomize.sh \
+    --post-renderer-args horizon/base &
