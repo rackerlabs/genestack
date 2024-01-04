@@ -4,8 +4,8 @@ metadata:
   name: heat-engine
   namespace: openstack
 spec:
-  maxReplicas: 7
-  minReplicas: 1
+  maxReplicas: 9
+  minReplicas: 3
   metrics:
     - resource:
         name: cpu

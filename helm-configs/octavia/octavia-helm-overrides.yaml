@@ -622,103 +622,103 @@ pod:
     enabled: false
     api:
       requests:
-        memory: "128Mi"
+        memory: "64Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
-        cpu: "2000m"
+        memory: "4096Mi"
+        cpu: "6000m"
     worker:
       requests:
-        memory: "128Mi"
+        memory: "64Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
-        cpu: "2000m"
+        memory: "4096Mi"
+        cpu: "6000m"
     housekeeping:
       requests:
-        memory: "128Mi"
+        memory: "64Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
-        cpu: "2000m"
+        memory: "4096Mi"
+        cpu: "6000m"
     health_manager:
       requests:
-        memory: "128Mi"
+        memory: "64Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
-        cpu: "2000m"
+        memory: "4096Mi"
+        cpu: "6000m"
     jobs:
       bootstrap:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       rabbit_init:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       db_init:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       db_sync:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       db_drop:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       ks_endpoints:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       ks_service:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       ks_user:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       tests:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       image_repo_sync:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
 
 network_policy:
   octavia:

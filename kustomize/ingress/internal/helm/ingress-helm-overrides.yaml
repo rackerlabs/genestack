@@ -96,26 +96,26 @@ pod:
     enabled: false
     ingress:
       requests:
-        memory: "128Mi"
+        memory: "64Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
-        cpu: "2000m"
+        memory: "4096Mi"
+        cpu: "6000m"
     error_pages:
       requests:
-        memory: "128Mi"
+        memory: "64Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
-        cpu: "2000m"
+        memory: "4096Mi"
+        cpu: "6000m"
     jobs:
       image_repo_sync:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
 
 labels:
   server:

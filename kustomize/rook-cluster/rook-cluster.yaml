@@ -228,10 +228,10 @@ spec:
   #   mgr:
   #     limits:
   #       cpu: "500m"
-  #       memory: "1024Mi"
+  #       memory: "4096Mi"
   #     requests:
   #       cpu: "500m"
-  #       memory: "1024Mi"
+  #       memory: "4096Mi"
   # The above example requests/limits can also be added to the other components
   #   mon:
   #   osd:

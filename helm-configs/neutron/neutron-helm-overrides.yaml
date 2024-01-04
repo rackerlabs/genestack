@@ -745,166 +745,166 @@ pod:
     agent:
       dhcp:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       l3:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       lb:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       metadata:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       ovn_metadata:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       ovs:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       sriov:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       l2gw:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       bagpipe_bgp:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       bgp_dragent:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
     server:
       requests:
-        memory: "128Mi"
+        memory: "64Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
-        cpu: "2000m"
+        memory: "4096Mi"
+        cpu: "6000m"
     ironic_agent:
       requests:
-        memory: "128Mi"
+        memory: "64Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
-        cpu: "2000m"
+        memory: "4096Mi"
+        cpu: "6000m"
     netns_cleanup_cron:
       requests:
-        memory: "128Mi"
+        memory: "64Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
-        cpu: "2000m"
+        memory: "4096Mi"
+        cpu: "6000m"
     jobs:
       bootstrap:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       db_init:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       rabbit_init:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       db_sync:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       db_drop:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       ks_endpoints:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       ks_service:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       ks_user:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       tests:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       image_repo_sync:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
 
 conf:
   rally_tests:

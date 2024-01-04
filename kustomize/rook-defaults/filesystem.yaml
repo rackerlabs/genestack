@@ -104,10 +104,10 @@ spec:
     # The requests and limits set here, allow the filesystem MDS Pod(s) to use half of one CPU core and 1 gigabyte of memory
     #  limits:
     #    cpu: "500m"
-    #    memory: "1024Mi"
+    #    memory: "4096Mi"
     #  requests:
     #    cpu: "500m"
-    #    memory: "1024Mi"
+    #    memory: "4096Mi"
     priorityClassName: system-cluster-critical
     livenessProbe:
       disabled: false

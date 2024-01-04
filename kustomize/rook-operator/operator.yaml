@@ -269,7 +269,7 @@ data:
   #  - name : csi-provisioner
   #    resource:
   #      requests:
-  #        memory: 128Mi
+  #        memory: 64Mi
   #        cpu: 100m
   #      limits:
   #        memory: 256Mi
@@ -277,7 +277,7 @@ data:
   #  - name : csi-resizer
   #    resource:
   #      requests:
-  #        memory: 128Mi
+  #        memory: 64Mi
   #        cpu: 100m
   #      limits:
   #        memory: 256Mi
@@ -285,7 +285,7 @@ data:
   #  - name : csi-attacher
   #    resource:
   #      requests:
-  #        memory: 128Mi
+  #        memory: 64Mi
   #        cpu: 100m
   #      limits:
   #        memory: 256Mi
@@ -293,7 +293,7 @@ data:
   #  - name : csi-snapshotter
   #    resource:
   #      requests:
-  #        memory: 128Mi
+  #        memory: 64Mi
   #        cpu: 100m
   #      limits:
   #        memory: 256Mi
@@ -317,7 +317,7 @@ data:
   #  - name : liveness-prometheus
   #    resource:
   #      requests:
-  #        memory: 128Mi
+  #        memory: 64Mi
   #        cpu: 50m
   #      limits:
   #        memory: 256Mi
@@ -328,7 +328,7 @@ data:
   #  - name : driver-registrar
   #    resource:
   #      requests:
-  #        memory: 128Mi
+  #        memory: 64Mi
   #        cpu: 50m
   #      limits:
   #        memory: 256Mi
@@ -344,7 +344,7 @@ data:
   #  - name : liveness-prometheus
   #    resource:
   #      requests:
-  #        memory: 128Mi
+  #        memory: 64Mi
   #        cpu: 50m
   #      limits:
   #        memory: 256Mi
@@ -355,7 +355,7 @@ data:
   #  - name : csi-provisioner
   #    resource:
   #      requests:
-  #        memory: 128Mi
+  #        memory: 64Mi
   #        cpu: 100m
   #      limits:
   #        memory: 256Mi
@@ -363,7 +363,7 @@ data:
   #  - name : csi-resizer
   #    resource:
   #      requests:
-  #        memory: 128Mi
+  #        memory: 64Mi
   #        cpu: 100m
   #      limits:
   #        memory: 256Mi
@@ -371,7 +371,7 @@ data:
   #  - name : csi-attacher
   #    resource:
   #      requests:
-  #        memory: 128Mi
+  #        memory: 64Mi
   #        cpu: 100m
   #      limits:
   #        memory: 256Mi
@@ -379,7 +379,7 @@ data:
   #  - name : csi-snapshotter
   #    resource:
   #      requests:
-  #        memory: 128Mi
+  #        memory: 64Mi
   #        cpu: 100m
   #      limits:
   #        memory: 256Mi
@@ -395,7 +395,7 @@ data:
   #  - name : liveness-prometheus
   #    resource:
   #      requests:
-  #        memory: 128Mi
+  #        memory: 64Mi
   #        cpu: 50m
   #      limits:
   #        memory: 256Mi
@@ -406,7 +406,7 @@ data:
   #  - name : driver-registrar
   #    resource:
   #      requests:
-  #        memory: 128Mi
+  #        memory: 64Mi
   #        cpu: 50m
   #      limits:
   #        memory: 256Mi
@@ -422,7 +422,7 @@ data:
   #  - name : liveness-prometheus
   #    resource:
   #      requests:
-  #        memory: 128Mi
+  #        memory: 64Mi
   #        cpu: 50m
   #      limits:
   #        memory: 256Mi
@@ -434,7 +434,7 @@ data:
   #  - name : csi-provisioner
   #    resource:
   #      requests:
-  #        memory: 128Mi
+  #        memory: 64Mi
   #        cpu: 100m
   #      limits:
   #        memory: 256Mi
@@ -450,7 +450,7 @@ data:
   #  - name : csi-attacher
   #    resource:
   #      requests:
-  #        memory: 128Mi
+  #        memory: 64Mi
   #        cpu: 100m
   #      limits:
   #        memory: 256Mi
@@ -461,7 +461,7 @@ data:
   #  - name : driver-registrar
   #    resource:
   #      requests:
-  #        memory: 128Mi
+  #        memory: 64Mi
   #        cpu: 50m
   #      limits:
   #        memory: 256Mi
@@ -563,7 +563,7 @@ data:
   #         memory: 512Mi
   #       requests:
   #         cpu: 100m
-  #         memory: 128Mi
+  #         memory: 64Mi
 ---
 # OLM: BEGIN OPERATOR DEPLOYMENT
 apiVersion: apps/v1
@@ -666,7 +666,7 @@ spec:
           #    memory: 512Mi
           #  requests:
           #    cpu: 100m
-          #    memory: 128Mi
+          #    memory: 64Mi
 
           #  Uncomment it to run lib bucket provisioner in multithreaded mode
           #- name: LIB_BUCKET_PROVISIONER_THREADS

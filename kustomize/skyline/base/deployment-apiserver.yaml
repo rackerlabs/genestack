@@ -109,7 +109,7 @@ spec:
               memory: "1Gi"
             requests:
               cpu: "0.25"
-              memory: "128Mi"
+              memory: "64Mi"
           command:
             - bash
             - -c
@@ -214,7 +214,7 @@ spec:
               memory: "1Gi"
             requests:
               cpu: "0.25"
-              memory: "128Mi"
+              memory: "64Mi"
           command:
             - bash
             - -c
@@ -299,11 +299,11 @@ spec:
           imagePullPolicy: IfNotPresent
           resources:
             requests:
-              memory: "128Mi"
+              memory: "64Mi"
               cpu: "100m"
             limits:
-              memory: "1024Mi"
-              cpu: "2000m"
+              memory: "4096Mi"
+              cpu: "6000m"
           command:
             - bash
             - -c
@@ -327,7 +327,7 @@ spec:
               memory: "1Gi"
             requests:
               cpu: "0.25"
-              memory: "128Mi"
+              memory: "64Mi"
           command:
             - bash
             - -c

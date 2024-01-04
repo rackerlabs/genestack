@@ -231,124 +231,124 @@ jobs:
     enabled: false
     api:
       requests:
-        memory: "128Mi"
+        memory: "64Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
-        cpu: "2000m"
+        memory: "4096Mi"
+        cpu: "6000m"
     scheduler:
       requests:
-        memory: "128Mi"
+        memory: "64Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
-        cpu: "2000m"
+        memory: "4096Mi"
+        cpu: "6000m"
     volume:
       requests:
-        memory: "128Mi"
+        memory: "64Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
-        cpu: "2000m"
+        memory: "4096Mi"
+        cpu: "6000m"
     jobs:
       volume_usage_audit:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       bootstrap:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       rabbit_init:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       db_init:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       db_sync:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       db_drop:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       clean:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       backup_storage_init:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       storage_init:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       ks_endpoints:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       ks_service:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       ks_user:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       tests:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
       image_repo_sync:
         requests:
-          memory: "128Mi"
+          memory: "64Mi"
           cpu: "100m"
         limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+          memory: "4096Mi"
+          cpu: "6000m"
 
 bootstrap:
   enabled: true
