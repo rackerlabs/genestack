@@ -40,7 +40,7 @@ helm upgrade --install heat ./heat \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.heat.password="$(kubectl --namespace openstack get secret heat-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
     --post-renderer /opt/genestack/kustomize/kustomize.sh \
-    --post-renderer-args glance/base &
+    --post-renderer-args heat/base &
 
 helm upgrade --install cinder ./cinder \
   --namespace=openstack \
