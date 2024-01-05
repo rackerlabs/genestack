@@ -9,11 +9,10 @@ spec:
   replicas: 3
   resources:
     requests:
-      cpu: 4
-      memory: 4Gi  # This should be changed to 10Gi for production
+      cpu: 500m
+      memory: 1Gi
     limits:
-      cpu: 4
-      memory: 4Gi  # This should be changed to 10Gi for production
+      memory: 16Gi  # This should be changed to 10Gi for production
   rabbitmq:
     additionalConfig: |
       cluster_partition_handling = pause_minority

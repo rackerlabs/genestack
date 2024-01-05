@@ -7085,7 +7085,6 @@ pod:
         cpu: "100m"
       limits:
         memory: "4096Mi"
-        cpu: "6000m"
     jobs:
       db_init:
         requests:
@@ -7093,36 +7092,30 @@ pod:
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       db_sync:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       db_drop:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       image_repo_sync:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       tests:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
-
 # Names of secrets used by bootstrap and environmental checks
 secrets:
   identity:

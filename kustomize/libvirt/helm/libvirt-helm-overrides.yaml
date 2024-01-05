@@ -231,7 +231,6 @@ pod:
         cpu: "100m"
       limits:
         memory: "4096Mi"
-        cpu: "6000m"
     jobs:
       image_repo_sync:
         requests:
@@ -239,14 +238,12 @@ pod:
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
     libvirt_exporter:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "256Mi"
-        cpu: "500m"
 
 dependencies:
   dynamic:
