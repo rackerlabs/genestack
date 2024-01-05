@@ -7,18 +7,12 @@ spec:
   maxReplicas: 9
   minReplicas: 3
   metrics:
-  - resource:
-      name: memory
-      target:
-        averageUtilization: 50
-        type: Utilization
-    type: Resource
-  - resource:
-      name: cpu
-      target:
-        averageUtilization: 50
-        type: Utilization
-    type: Resource
+    - resource:
+        name: cpu
+        target:
+          averageUtilization: 50
+          type: Utilization
+      type: Resource
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment

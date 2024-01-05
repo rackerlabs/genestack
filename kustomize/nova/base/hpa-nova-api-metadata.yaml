@@ -4,7 +4,7 @@ metadata:
   name: nova-api-metadata
   namespace: openstack
 spec:
-  maxReplicas: 7
+  maxReplicas: 9
   minReplicas: 3
   metrics:
     - resource:
