@@ -1,3 +1,6 @@
+resources:
+  - ns-mariadb.yaml
+
 helmCharts:
   - name: mariadb-operator
     repo: https://mariadb-operator.github.io/mariadb-operator
@@ -8,4 +11,4 @@ helmCharts:
           certManager:
             enabled: true
     includeCRDs: true
-    namespace: openstack
+    namespace: mariadb-system

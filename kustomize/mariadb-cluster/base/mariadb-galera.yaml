@@ -2,6 +2,7 @@ apiVersion: mariadb.mmontes.io/v1alpha1
 kind: MariaDB
 metadata:
   name: mariadb-galera
+  namespace: openstack
 spec:
   rootPasswordSecretKeyRef:
     name: mariadb

@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: mariadb
+  name: mariadb-galera
 data:
   UMASK: "0660"
   UMASK_DIR: "0750"
