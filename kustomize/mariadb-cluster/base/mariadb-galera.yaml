@@ -107,6 +107,7 @@ spec:
       cpu: 300m
       memory: 256Mi
     limits:
+      cpu: 8000m
       memory: 16Gi
 
   volumeClaimTemplate:
