@@ -107,7 +107,7 @@ images:
 
 pod:
   resources:
-    enabled: true
+    enabled: false
 
 endpoints:
   compute:

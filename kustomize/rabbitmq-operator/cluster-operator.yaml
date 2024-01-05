@@ -4544,11 +4544,10 @@ spec:
               resources:
                 default:
                   limits:
-                    cpu: 6000m
-                    memory: 6Gi
+                    memory: 16Gi
                   requests:
                     cpu: 1000m
-                    memory: 2Gi
+                    memory: 1Gi
                 description: The desired compute resource requirements of Pods in
                   the cluster.
                 properties:
@@ -5154,8 +5153,7 @@ spec:
           protocol: TCP
         resources:
           limits:
-            cpu: 200m
-            memory: 500Mi
+            memory: 1024Mi
           requests:
             cpu: 200m
             memory: 500Mi

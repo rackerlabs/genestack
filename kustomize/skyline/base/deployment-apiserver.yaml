@@ -105,7 +105,6 @@ spec:
           imagePullPolicy: IfNotPresent
           resources:
             limits:
-              cpu: "2000m"
               memory: "4096Mi"
             requests:
               cpu: "0.25"
@@ -210,7 +209,6 @@ spec:
           imagePullPolicy: IfNotPresent
           resources:
             limits:
-              cpu: "1"
               memory: "1Gi"
             requests:
               cpu: "0.25"
@@ -303,7 +301,6 @@ spec:
               cpu: "100m"
             limits:
               memory: "4096Mi"
-              cpu: "6000m"
           command:
             - bash
             - -c
@@ -323,7 +320,6 @@ spec:
           imagePullPolicy: IfNotPresent
           resources:
             limits:
-              cpu: "1"
               memory: "1Gi"
             requests:
               cpu: "0.25"

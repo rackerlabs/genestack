@@ -2322,63 +2322,52 @@ pod:
         cpu: "100m"
       limits:
         memory: "4096Mi"
-        cpu: "6000m"
     compute_ironic:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
-        cpu: "6000m"
     api_metadata:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
-        cpu: "6000m"
     api:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
-        cpu: "6000m"
     conductor:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
-        cpu: "6000m"
     scheduler:
       requests:
         memory: "64Mi"
-        cpu: "100m"
       limits:
         memory: "4096Mi"
-        cpu: "6000m"
     ssh:
       requests:
         memory: "64Mi"
-        cpu: "100m"
       limits:
         memory: "4096Mi"
-        cpu: "6000m"
     novncproxy:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
-        cpu: "6000m"
     spiceproxy:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
-        cpu: "6000m"
     jobs:
       bootstrap:
         requests:
@@ -2386,91 +2375,78 @@ pod:
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       db_init:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       rabbit_init:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       db_sync:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       archive_deleted_rows:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       db_drop:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       ks_endpoints:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       ks_service:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       ks_user:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       tests:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       cell_setup:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       service_cleaner:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       image_repo_sync:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
 
 network_policy:
   nova:

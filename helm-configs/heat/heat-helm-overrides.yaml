@@ -1091,28 +1091,24 @@ pod:
         cpu: "100m"
       limits:
         memory: "4096Mi"
-        cpu: "6000m"
     cfn:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
-        cpu: "6000m"
     cloudwatch:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
-        cpu: "6000m"
     engine:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
-        cpu: "6000m"
     jobs:
       bootstrap:
         requests:
@@ -1120,91 +1116,78 @@ pod:
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       db_init:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       db_sync:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       db_drop:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       ks_endpoints:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       ks_service:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       ks_user:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       rabbit_init:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       tests:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       trusts:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       engine_cleaner:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       purge_deleted:
         requests:
           memory: "124Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       image_repo_sync:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
 
 network_policy:
   heat:

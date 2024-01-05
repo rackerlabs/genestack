@@ -2,6 +2,7 @@ apiVersion: mariadb.mmontes.io/v1alpha1
 kind: MariaDB
 metadata:
   name: mariadb-galera
+  namespace: openstack
 spec:
   rootPasswordSecretKeyRef:
     name: mariadb
@@ -104,10 +105,8 @@ spec:
 
   resources:
     requests:
-      cpu: 300m
       memory: 256Mi
     limits:
-      cpu: 8000m
       memory: 16Gi
 
   volumeClaimTemplate:

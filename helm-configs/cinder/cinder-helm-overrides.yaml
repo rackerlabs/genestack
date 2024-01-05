@@ -235,21 +235,18 @@ jobs:
         cpu: "100m"
       limits:
         memory: "4096Mi"
-        cpu: "6000m"
     scheduler:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
-        cpu: "6000m"
     volume:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
-        cpu: "6000m"
     jobs:
       volume_usage_audit:
         requests:
@@ -257,98 +254,84 @@ jobs:
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       bootstrap:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       rabbit_init:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       db_init:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       db_sync:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       db_drop:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       clean:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       backup_storage_init:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       storage_init:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       ks_endpoints:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       ks_service:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       ks_user:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       tests:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
       image_repo_sync:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
-          cpu: "6000m"
 
 bootstrap:
   enabled: true
