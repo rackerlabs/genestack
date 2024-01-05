@@ -80,12 +80,12 @@ They say a picture is worth 1000 words, so here's a picture.
 
 ## Get Deploying
 
-Read the [docs](https://github.com/cloudnull/genestack/wiki), start building your clouds with Genestack now.
+Read the [docs](https://github.com/rackerlabs/genestack/wiki), start building your clouds with Genestack now.
 
 ### Get the Docs
 
 You can clone a copy of all of our documentation locally by running the following command.
 
 ``` shell
-git clone https://github.com/cloudnull/genestack/wiki
+git clone https://github.com/rackerlabs/genestack/wiki
 ```

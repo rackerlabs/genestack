@@ -15,7 +15,7 @@ patches:
         path: /spec/template/spec/containers
         value:
         - name: octavia-agent
-          image: "ghcr.io/cloudnull/genestack/octavia-ovn:master-ubuntu_jammy"
+          image: "ghcr.io/rackerlabs/genestack/octavia-ovn:master-ubuntu_jammy"
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsUser: 0
@@ -55,7 +55,7 @@ patches:
             - mountPath: /var/run/octavia
               name: pod-run-octavia
         - name: octavia-api
-          image: "ghcr.io/cloudnull/genestack/octavia-ovn:master-ubuntu_jammy"
+          image: "ghcr.io/rackerlabs/genestack/octavia-ovn:master-ubuntu_jammy"
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsUser: 0
