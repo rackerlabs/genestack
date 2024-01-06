@@ -6,21 +6,25 @@
   vars:
     cinder_release: "2023.1"
     cinder_storage_network_interface: br-storage
+    cinder_backend_name: "lvmdriver-1"
   handlers:
     - name: Restart cinder-volume systemd services
       ansible.builtin.systemd:
         name: "{{ item }}"
         state: restarted
         daemon_reload: true
+        enabled: true
       loop:
         - cinder-volume
         - cinder-volume-usage-audit
+        - iscsid.service
+        - tgt.service
   tasks:
     - name: K8S Facts block
       delegate_to: "{{ groups['kube_control_plane'][0] }}"
       block:
         - name: Ensure python3-kubernetes is available
-          ansible.builtin.apt:
+          ansible.builtin.package:
             name: python3-kubernetes
             state: present
             update_cache: true
@@ -33,11 +37,16 @@
           register: _kubernetes_cinder_etc_secret
 
     - name: Install required packages
-      ansible.builtin.apt:
+      ansible.builtin.package:
         name:
           - build-essential
+          - git
+          - open-iscsi
           - python3-venv
           - python3-dev
+          - qemu-block-extra
+          - qemu-utils
+          - tgt
         state: present
         update_cache: true
 
@@ -99,7 +108,7 @@
         - src: "{{ playbook_dir }}/templates/cinder-volume.service"
           dest: /etc/systemd/system/cinder-volume.service
         - src: "{{ playbook_dir }}/templates/sudoers"
-          dest: /etc/sudoers.d//cinder-volume
+          dest: /etc/sudoers.d/cinder-volume
           mode: "0440"
       notify:
         - Restart cinder-volume systemd services
@@ -140,5 +149,30 @@
         option: "my_ip"
         value: "{{ hostvars[inventory_hostname]['ansible_facts'][cinder_storage_network_interface]['ipv4']['address'] | default(ansible_default_ipv4.address) }}"
         create: true
+      notify:
+        - Restart cinder-volume systemd services
+
+    - name: Replace the target_ip_address in the backends.conf with the current Ansible FQDN
+      community.general.ini_file:
+        path: /etc/cinder/backends.conf
+        section: "{{ cinder_backend_name }}"
+        option: "target_ip_address"
+        value: "{{ hostvars[inventory_hostname]['ansible_facts'][cinder_storage_network_interface]['ipv4']['address'] | default(ansible_default_ipv4.address) }}"
+        create: true
+      notify:
+        - Restart cinder-volume systemd services
+
+    - name: Replace exec path in rootwrap
+      community.general.ini_file:
+        path: /etc/cinder/rootwrap.conf
+        section: DEFAULT
+        option: "{{ item.key }}"
+        value: "{{ item.value }}"
+        create: true
+      loop:
+        - key: "exec_dirs"
+          value: "/opt/cinder/bin,/sbin,/usr/sbin,/bin,/usr/bin,/usr/local/bin,/usr/local/sbin,/usr/lpp/mmfs/bin"
+        - key: "filters_path"
+          value: "/etc/cinder/rootwrap.d"
       notify:
         - Restart cinder-volume systemd services

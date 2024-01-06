@@ -1,3 +1,9 @@
 ARG VERSION=master-ubuntu_jammy
 FROM openstackhelm/nova:$VERSION
-RUN apt update && apt install -y ovmf; rm -rf /var/cache/apt/archives /var/lib/apt/lists; apt clean
+# Packages for the following features:
+# - Nova: EFI
+# - Nova: iSCSI
+RUN apt update && apt install -y ovmf open-iscsi multipath-tools; rm -rf /var/cache/apt/archives /var/lib/apt/lists; apt clean
+# Packages for the following features:
+# - Nova: osdetect
+RUN /var/lib/openstack/bin/pip install pgi

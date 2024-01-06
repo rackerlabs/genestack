@@ -1434,6 +1434,7 @@ conf:
       disk_cachemodes: "network=writeback"
       hw_disk_discard: unmap
       cpu_mode: host-passthrough
+      iscsi_use_multipath: false  # Disabled because multipathd is not configured or running
     upgrade_levels:
       compute: auto
     cache:
@@ -2112,7 +2113,7 @@ pod:
           readOnlyRootFilesystem: true
           allowPrivilegeEscalation: false
         nova_compute:
-          readOnlyRootFilesystem: true
+          readOnlyRootFilesystem: false
           privileged: true
         nova_compute_ssh:
           privileged: true

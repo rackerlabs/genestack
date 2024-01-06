@@ -25,7 +25,6 @@ release_group: null
 
 images:
   tags:
-
     db_init: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
     cinder_db_sync: "docker.io/openstackhelm/cinder:2023.1-ubuntu_jammy"
     db_drop: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
@@ -75,7 +74,8 @@ jobs:
           readOnlyRootFilesystem: true
         cinder_api:
           readOnlyRootFilesystem: true
-          allowPrivilegeEscalation: false
+          allowPrivilegeEscalation: true
+          privileged: true
     cinder_backup:
       pod:
         runAsUser: 42424
@@ -790,6 +790,7 @@ conf:
       # Internal tenant id
       internal_project_name: internal_cinder
       internal_user_name: internal_cinder
+      rootwrap_config: /etc/cinder/rootwrap.conf
     database:
       max_retries: -1
     keystone_authtoken:
@@ -897,12 +898,15 @@ conf:
     lvmdriver-1:
       volume_group: cinder-volumes-1
       volume_driver: cinder.volume.drivers.lvm.LVMVolumeDriver
-      volume_backend_name: LVM
+      volume_backend_name: LVM_iSCSI
       volume_clear: zero
       lvm_type: default
-      target_protocol: iscsi
       image_volume_cache_enabled: True
+      iscsi_iotype: fileio
+      iscsi_num_targets: 100
+      target_protocol: iscsi
       target_helper: tgtadm
+      target_port: 3260
   rally_tests:
     run_tempest: false
     clean_up: |
