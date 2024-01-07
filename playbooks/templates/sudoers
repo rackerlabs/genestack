@@ -1,3 +1,4 @@
 Defaults:cinder !requiretty
 Defaults:cinder secure_path="/opt/cinder/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 cinder ALL = (root) NOPASSWD: /opt/cinder/bin/cinder-rootwrap
+cinder ALL = (root) NOPASSWD: /opt/cinder/bin/privsep-helper
