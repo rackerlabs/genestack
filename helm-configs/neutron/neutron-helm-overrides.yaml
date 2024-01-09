@@ -1765,7 +1765,7 @@ conf:
       # service_plugin can be: router, odl-router, empty for calico,
       # networking_ovn.l3.l3_ovn.OVNL3RouterPlugin for OVN
       # NOTE(cloudnull): This is a bug, doc needs to be updated for ovn-router, instead of OVNL3RouterPlugin
-      service_plugins: ovn-router
+      service_plugins: ovn-router,qos,metering,trunk,segments,dns_domain_ports
       allow_automatic_l3agent_failover: True
       l3_ha: False
       max_l3_agents_per_router: 1
@@ -1893,7 +1893,7 @@ conf:
   plugins:
     ml2_conf:
       ml2:
-        extension_drivers: port_security
+        extension_drivers: port_security,qos
         # (NOTE)portdirect: if unset this is populated dyanmicly from the value
         # in 'network.backend' to sane defaults.
         mechanism_drivers: ovn
@@ -1921,7 +1921,7 @@ conf:
         vni_ranges: 1:65536
         max_header_size: 38
       agent:
-        extensions: ""
+        extensions: fip_qos,gateway_ip_qos
     ml2_conf_sriov: null
     taas:
       taas:
