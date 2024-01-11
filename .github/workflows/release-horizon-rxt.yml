@@ -5,8 +5,17 @@ name: Create and publish a the Horizon RXT compatible image
 on:
   workflow_dispatch:
     inputs:
-      release:
-        description: 'Set release used for the build'
+      imageTag:
+        description: 'Set tag for the image'
+        required: true
+        default: 'master-ubuntu_jammy'
+        type: choice
+        options:
+          - master-ubuntu_jammy
+          - 2023.1-ubuntu_jammy
+          - 2023.2-ubuntu_jammy
+      pluginTag:
+        description: 'Set release used for the build environment'
         required: true
         default: 'master'
         type: choice
@@ -54,7 +63,8 @@ jobs:
           file: Containerfiles/HorizonRXT-Containerfile
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/horizon-rxt:${{ github.event.inputs.release }}-ubuntu_jammy
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/horizon-rxt:${{ github.event.inputs.pluginTag }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            VERSION=${{ github.event.inputs.release }}
+            VERSION=${{ github.event.inputs.imageTag }}
+            PLUGIN_VERSION=${{ github.event.inputs.pluginTag }}
