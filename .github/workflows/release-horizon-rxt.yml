@@ -11,9 +11,9 @@ on:
         default: 'master'
         type: choice
         options:
-        - "master"
-        - "2023.1"
-        - "2023.2"
+          - "master"
+          - "2023.1"
+          - "2023.2"
 
 # Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
 env:
@@ -57,4 +57,4 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/horizon-rxt:${{ github.event.inputs.release }}-ubuntu_jammy
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            RELEASE=${{ github.event.inputs.release }}
+            VERSION=${{ github.event.inputs.release }}
