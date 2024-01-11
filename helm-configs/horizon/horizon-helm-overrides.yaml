@@ -6953,7 +6953,7 @@ conf:
     # for example heat_dashboard, cloudkittydashboard or neutron_taas_dashboard
     extra_panels:
       - heat_dashboard
-      - neutron_taas_dashboard
+      - octavia_dashboard
 
 dependencies:
   dynamic:
