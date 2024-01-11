@@ -51,10 +51,10 @@ jobs:
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
         with:
           context: .
-          file: Containerfiles/KeystoneRXT-Containerfile
+          file: Containerfiles/HorizonRXT-Containerfile
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/keystone-rxt:${{ github.event.inputs.release }}-ubuntu_jammy
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/horizon-rxt:${{ github.event.inputs.release }}-ubuntu_jammy
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             RELEASE=${{ github.event.inputs.release }}
