@@ -1,0 +1,6 @@
+ARG RELEASE=master
+ARG VERSION=${RELEASE}-ubuntu_jammy
+FROM openstackhelm/horizon:$VERSION
+RUN /var/lib/openstack/bin/pip install --constraint=https://releases.openstack.org/constraints/upper/${RELEASE} \
+                               heat-dashboard \
+                               octavia-dashboard
