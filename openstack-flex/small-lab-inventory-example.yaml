@@ -1,38 +1,130 @@
+# | etcd-24021       | 5893591-ENV94580-API-MGMT=10.74.8.114  |
+# | etcd-25534       | 5893591-ENV94580-API-MGMT=10.74.8.106  |
+# | etcd-26513       | 5893591-ENV94580-API-MGMT=10.74.8.107  |
+# | ceph-32762       | 5893591-ENV94580-API-MGMT=10.74.8.090  |
+# | ceph-3248        | 5893591-ENV94580-API-MGMT=10.74.8.091  |
+# | ceph-6904        | 5893591-ENV94580-API-MGMT=10.74.8.092  |
+# | k8s-32762        | 5893591-ENV94580-API-MGMT=10.74.8.093  |
+# | k8s-3248         | 5893591-ENV94580-API-MGMT=10.74.8.105  |
+# | k8s-6904         | 5893591-ENV94580-API-MGMT=10.74.8.122  |
+# | controller-19391 | 5893591-ENV94580-API-MGMT=10.74.8.124  |
+# | controller-1499  | 5893591-ENV94580-API-MGMT=10.74.8.103  |
+# | controller-12462 | 5893591-ENV94580-API-MGMT=10.74.8.104  |
+# | compute-12481    | 5893591-ENV94580-API-MGMT=10.74.8.108  |
+# | compute-12562    | 5893591-ENV94580-API-MGMT=10.74.8.109  |
+# | compute-13461    | 5893591-ENV94580-API-MGMT=10.74.8.110  |
+# | storage-12481    | 5893591-ENV94580-API-MGMT=10.74.8.111  |
+# | storage-12562    | 5893591-ENV94580-API-MGMT=10.74.8.112  |
+# | storage-13461    | 5893591-ENV94580-API-MGMT=10.74.8.113  |
+# | network-12481    | 5893591-ENV94580-API-MGMT=10.74.8.114  |
+# | network-12562    | 5893591-ENV94580-API-MGMT=10.74.8.115  |
+# | network-13461    | 5893591-ENV94580-API-MGMT=10.74.8.116  |
 all:
   hosts:
-    controller-0.cloud.rackerlabs.dev.local:
-      ansible_host: 172.16.27.68
-    compute-0.cloud.rackerlabs.dev.local:
-      ansible_host: 172.16.27.67
+    etcd-24021.rackerlabs.dev.local:
+      ansible_host: 10.74.8.114
+    etcd-25534.rackerlabs.dev.local:
+      ansible_host: 10.74.8.106
+    etcd-26513.rackerlabs.dev.local:
+      ansible_host: 10.74.8.107
+    ceph-32762.rackerlabs.dev.local:
+      ansible_host: 10.74.8.090
+    ceph-3248.rackerlabs.dev.local:
+      ansible_host: 10.74.8.091
+    ceph-6904.rackerlabs.dev.local:
+      ansible_host: 10.74.8.092
+    k8s-32762.rackerlabs.dev.local:
+      ansible_host: 10.74.8.093
+    k8s-3248.rackerlabs.dev.local:
+      ansible_host: 10.74.8.105
+    k8s-6904.rackerlabs.dev.local:
+      ansible_host: 10.74.8.122
+    controller-19391.rackerlabs.dev.local:
+      ansible_host: 10.74.8.124
+    controller-1499.rackerlabs.dev.local:
+      ansible_host: 10.74.8.103
+    controller-12462.rackerlabs.dev.local:
+      ansible_host: 10.74.8.104
+    compute-12481.rackerlabs.dev.local:
+      ansible_host: 10.74.8.108
+    compute-12562.rackerlabs.dev.local:
+      ansible_host: 10.74.8.109
+    compute-13461.rackerlabs.dev.local:
+      ansible_host: 10.74.8.110
+    storage-12481.rackerlabs.dev.local:
+      ansible_host: 10.74.8.111
+    storage-12562.rackerlabs.dev.local:
+      ansible_host: 10.74.8.112
+    storage-13461.rackerlabs.dev.local:
+      ansible_host: 10.74.8.113
+    network-12481.rackerlabs.dev.local:
+      ansible_host: 10.74.8.114
+    network-12562.rackerlabs.dev.local:
+      ansible_host: 10.74.8.115
+    network-13461.rackerlabs.dev.local:
+      ansible_host: 10.74.8.116
   children:
     k8s_cluster:
       vars:
-        cluster_name: rackerlabs.dev.local
-        kube_ovn_iface: bond0
-        kube_ovn_default_interface_name: bond0
+        cluster_name: rackerlabs.dev.local  # This clustername should be changed to match your environment domain name.
+        kube_ovn_iface: vlan206  # see the netplan snippet in etc/netplan/default-DHCP.yaml for more info.
+        kube_ovn_default_interface_name: vlan206  # see the netplan snippet in etc/netplan/default-DHCP.yaml for more info.
         kube_ovn_central_hosts: "{{ groups['ovn_network_nodes'] }}"
       children:
-        kube_control_plane:
+        kube_control_plane:  # all k8s control plane nodes need to be in this group
           hosts:
-            controller-0.cloud.rackerlabs.dev.local: null
-        etcd:
+            k8s-3248.rackerlabs.dev.local: null
+            k8s-32762.rackerlabs.dev.local: null
+            k8s-6904.rackerlabs.dev.local: null
+        etcd:  # all etcd nodes need to be in this group
           hosts:
-            controller-0.cloud.rackerlabs.dev.local: null
-        kube_node:
+            etcd-24021.rackerlabs.dev.local: null
+            etcd-25534.rackerlabs.dev.local: null
+            etcd-26513.rackerlabs.dev.local: null
+        kube_node:  # all k8s enabled nodes need to be in this group
           hosts:
-            controller-0.cloud.rackerlabs.dev.local: null
-            compute-0.cloud.rackerlabs.dev.local: null
-        ovn_network_nodes:
+            k8s-3248.rackerlabs.dev.local: null
+            k8s-32762.rackerlabs.dev.local: null
+            k8s-6904.rackerlabs.dev.local: null
+            ceph-6904.rackerlabs.dev.local: null
+            ceph-3248.rackerlabs.dev.local: null
+            ceph-32762.rackerlabs.dev.local: null
+            controller-19391.rackerlabs.dev.local: null
+            controller-1499.rackerlabs.dev.local: null
+            controller-12462.rackerlabs.dev.local: null
+            network-12481.rackerlabs.dev.local: null
+            network-12562.rackerlabs.dev.local: null
+            network-13461.rackerlabs.dev.local: null
+            storage-12481.rackerlabs.dev.local: null
+            storage-12562.rackerlabs.dev.local: null
+            storage-13461.rackerlabs.dev.local: null
+            compute-13461.rackerlabs.dev.local: null
+            compute-12562.rackerlabs.dev.local: null
+            compute-12481.rackerlabs.dev.local: null
+        openstack_control_plane:  # nodes used for nova compute labeled as openstack-control-plane=enabled
           hosts:
-            controller-0.cloud.rackerlabs.dev.local: null
-            compute-0.cloud.rackerlabs.dev.local: null
+            controller-19391.rackerlabs.dev.local: null
+            controller-1499.rackerlabs.dev.local: null
+            controller-12462.rackerlabs.dev.local: null
+        ovn_network_nodes:  # nodes used for nova compute labeled as openstack-network-node=enabled
+          hosts:
+            network-12481.rackerlabs.dev.local: null
+            network-12562.rackerlabs.dev.local: null
+            network-13461.rackerlabs.dev.local: null
         storage_nodes:
           children:
-            ceph_storage_nodes:
-              hosts: {}
-            cinder_storage_nodes:
+            ceph_storage_nodes:  # nodes used for ceph storage labeled as role=storage-node
               hosts:
-                compute-0.cloud.rackerlabs.dev.local: null
-        nova_compute_nodes:
+                ceph-6904.rackerlabs.dev.local: null
+                ceph-3248.rackerlabs.dev.local: null
+                ceph-32762.rackerlabs.dev.local: null
+            cinder_storage_nodes:  # nodes used for cinder storage labeled as openstack-storage-node=enabled
+              hosts:
+                storage-12481.rackerlabs.dev.local: null
+                storage-12562.rackerlabs.dev.local: null
+                storage-13461.rackerlabs.dev.local: null
+        nova_compute_nodes:  # nodes used for nova compute labeled as openstack-compute-node=enabled
           hosts:
-            compute-0.cloud.rackerlabs.dev.local: null
+            compute-13461.rackerlabs.dev.local: null
+            compute-12562.rackerlabs.dev.local: null
+            compute-12481.rackerlabs.dev.local: null
