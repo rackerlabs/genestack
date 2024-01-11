@@ -40,13 +40,13 @@ network:
       accept-ra: false
       addresses:
         - 172.18.24.1/22  # Statically assigned IP address
-      id: 206
+      id: 306
       link: bond0
       mtu: 1500
     vlan406:  # this is the interface that will be given to Computes via bond0.
       accept-ra: false
       addresses:
         - 172.20.24.1/22  # Statically assigned IP address
-      id: 206
+      id: 406
       link: bond0
       mtu: 1500
