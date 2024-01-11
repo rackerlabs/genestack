@@ -27,6 +27,7 @@ inventory/*
 !inventory/local
 !inventory/sample
 inventory/*/artifacts/
+openstack-flex/inventory.ini
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
