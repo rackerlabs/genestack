@@ -12,7 +12,7 @@ network:
       set-name: enp196s0f1
   bonds:
     bond0:
-      dhcp4: true
+      dhcp4: true  # Using DHCP for this example but not required
       interfaces:
         - enp143s0f0  # A side
         - enp196s0f0  # B side
@@ -29,24 +29,24 @@ network:
         mii-monitor-interval: 100
         mode: 802.3ad
   vlans:
-    vlan206:  # this is the interface that will be given to K8S via bond0.
+    vlan206:  # this is the interface that will be given to K8S via bond0
       accept-ra: false
       addresses:
-        - 172.16.24.1/22  # Statically assigned IP address
+        - 172.16.24.1/22  # Statically assigned IP address, increment on every node
       id: 206
       link: bond0
       mtu: 1500
-    vlan306:  # this is the interface that will be given to Controllers via bond0.
+    vlan306:  # this is the interface that will be given to Controllers via bond0
       accept-ra: false
       addresses:
-        - 172.18.24.1/22  # Statically assigned IP address
+        - 172.18.24.1/22  # Statically assigned IP address, increment on every node
       id: 306
       link: bond0
       mtu: 1500
-    vlan406:  # this is the interface that will be given to Computes via bond0.
+    vlan406:  # this is the interface that will be given to Computes via bond0
       accept-ra: false
       addresses:
-        - 172.20.24.1/22  # Statically assigned IP address
+        - 172.20.24.1/22  # Statically assigned IP address, increment on every node
       id: 406
       link: bond0
       mtu: 1500
