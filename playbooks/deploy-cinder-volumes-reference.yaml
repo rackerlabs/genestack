@@ -176,3 +176,12 @@
           value: "/etc/cinder/rootwrap.d"
       notify:
         - Restart cinder-volume systemd services
+
+    - name: Create the cinder tgtd integration
+      ansible.builtin.copy:
+        content: |
+          include /var/lib/cinder/volumes/*
+        dest: /etc/tgt/conf.d/cinder.conf
+        owner: root
+        group: root
+        mode: "0644"
