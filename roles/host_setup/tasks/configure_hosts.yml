@@ -1,0 +1,67 @@
+---
+# Copyright 2024, Rackspace Technology, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+- name: Check Kernel Version
+  fail:
+    msg: >
+      Wrong kernel Version found
+      [ {{ ansible_facts['kernel'] }} < {{ host_required_kernel }} ]
+      Resolve this issue before continuing.
+  when:
+    - ansible_facts['kernel'] is version(host_required_kernel, '<')
+
+- name: Check how kernel modules are implemented (statically builtin, dynamic, not set)
+  slurp:
+    src: "/boot/config-{{ ansible_facts['kernel'] }}"
+  register: modules
+  when:
+    - host_specific_kernel_modules | length > 0
+
+- name: Fail fast if we can't load a module
+  fail:
+    msg: "{{ item.pattern }} is not set"
+  with_items: "{{ host_specific_kernel_modules }}"
+  when:
+    - item.pattern is defined
+    - (modules.content | b64decode).find(item.pattern + ' is not set') != -1
+
+- name: "Load kernel module(s)"
+  modprobe:
+    name: "{{ item.name }}"
+  with_items: "{{ host_kernel_modules + host_specific_kernel_modules }}"
+  when:
+    - item.name | length > 0
+    - item.pattern is undefined or (item.pattern is defined and (modules.content | b64decode).find(item.pattern + '=m') != -1)
+
+- name: Write list of modules to load at boot
+  template:
+    src: modprobe.conf.j2
+    dest: "{{ host_module_file }}"
+    mode: "0644"
+
+- name: Adding new system tuning
+  sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    sysctl_set: "{{ item.set | default('yes') }}"
+    state: "{{ item.state | default('present') }}"
+    reload: no
+  with_items: "{{ kernel_options + user_kernel_options }}"
+  failed_when: false
+
+- name: Configure sysstat
+  include_tasks: sysstat.yml
+  when:
+    - host_sysstat_enabled | bool

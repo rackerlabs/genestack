@@ -1,0 +1,97 @@
+---
+
+ca_bundle_path: /etc/ssl/certs/ca-certificates.crt
+
+host_sysstat_enabled: true
+host_sysstat_interval: 1
+host_sysstat_statistics_hour: 23
+host_sysstat_cron_mode: '0755'
+
+# Set the package install state for distribution packages
+# Options are 'present' and 'latest'
+host_package_state: "{{ package_state | default('present') }}"
+host_distro_packages: "{{ _host_distro_packages }}"
+
+# Overridable package list is composed of the old override
+# named user_package_list and the standard defaults _hosts_package_list
+host_package_list: "{{ _hosts_package_list + (user_package_list | default([])) }}"
+
+# User defined list of extra packages to install on all hosts
+host_extra_distro_packages: []
+
+# Controls the shell search PATH environment variable dropped in
+# /etc/environment
+host_environment_path:
+  - /usr/local/sbin
+  - /usr/local/bin
+  - /usr/sbin
+  - /usr/bin
+  - /sbin
+  - /bin
+
+# Allows the ability to override or add extra parameters to the systemd global config
+# that will be applied by default to all units
+systemd_global_overrides: {}
+
+# The following garbage collection values are set to better support lots of neutron networks/routers.
+#  Used for setting the net.ipv4/6.neigh.default.gc_thresh* values. This assumes that facts were
+#  gathered to obtain the total amount of memory available on a given host. If no facts are gathered
+#  the default set will be 1024 unless its defined by the user.
+gc_val: "{{ ansible_facts['memtotal_mb'] | default(1024) | bit_length_power_of_2 }}"
+# The ste value has a Max allowable value of 8192 unless set by the user.
+set_gc_val: "{{ gc_val if (gc_val | int <= 8192) else 8192 }}"
+
+# Set the level of reverse path filtering to use
+host_rp_filter_all: 0
+host_rp_filter_default: 0
+
+# Set the maximum size of the connection tracking table.
+host_nf_conntrack_max: 262144
+
+# System control kernel tuning
+kernel_options:
+  - { key: 'fs.inotify.max_user_watches', value: 1048576 }
+  - { key: 'net.ipv4.conf.all.rp_filter', value: "{{ host_rp_filter_all }}" }
+  - { key: 'net.ipv4.conf.default.rp_filter', value: "{{ host_rp_filter_default }}" }
+  - { key: 'net.ipv4.ip_forward', value: 1 }
+  - { key: 'net.netfilter.nf_conntrack_max', value: "{{ host_nf_conntrack_max }}" }
+  - { key: 'net.core.netdev_max_backlog', value: 4096 }
+  - { key: 'net.core.somaxconn', value: 8192 }
+  - { key: 'vm.dirty_background_ratio', value: 5 }
+  - { key: 'vm.dirty_ratio', value: 10 }
+  - { key: 'vm.swappiness', value: 5 }
+  - { key: 'net.bridge.bridge-nf-call-ip6tables', value: 1 }
+  - { key: 'net.bridge.bridge-nf-call-iptables', value: 1 }
+  - { key: 'net.bridge.bridge-nf-call-arptables', value: 1 }
+  - { key: 'net.ipv4.igmp_max_memberships', value: 1024 }
+  - { key: 'net.ipv4.neigh.default.gc_thresh1', value: "{{ set_gc_val | int // 2 }}" }
+  - { key: 'net.ipv4.neigh.default.gc_thresh2', value: "{{ set_gc_val | int }}" }
+  - { key: 'net.ipv4.neigh.default.gc_thresh3', value: "{{ set_gc_val | int * 2 }}" }
+  - { key: 'net.ipv4.route.gc_thresh', value: "{{ set_gc_val | int * 2 }}" }
+  - { key: 'net.ipv4.neigh.default.gc_interval', value: 60 }
+  - { key: 'net.ipv4.neigh.default.gc_stale_time', value: 120 }
+  - { key: 'net.ipv6.neigh.default.gc_thresh1', value: "{{ set_gc_val | int // 2 }}" }
+  - { key: 'net.ipv6.neigh.default.gc_thresh2', value: "{{ set_gc_val | int }}" }
+  - { key: 'net.ipv6.neigh.default.gc_thresh3', value: "{{ set_gc_val | int * 2 }}" }
+  - { key: 'net.ipv6.route.gc_thresh', value: "{{ set_gc_val | int * 2 }}" }
+  - { key: 'net.ipv6.neigh.default.gc_interval', value: 60 }
+  - { key: 'net.ipv6.neigh.default.gc_stale_time', value: 120 }
+  - { key: 'net.ipv6.conf.lo.disable_ipv6', value: 0 }
+  - { key: 'fs.aio-max-nr', value: 131072 }
+
+
+## kernel modules for specific group hosts
+host_specific_kernel_modules: []
+# If you want to include some specific modules per group
+# of hosts, override this with a group/host var, like below:
+# host_specific_kernel_modules:
+#   - name: "ebtables"
+#     pattern: "CONFIG_BRIDGE_NF_EBTABLES"
+## Where:
+## :param name: name of the kernel module
+## :param pattern: pattern to grep for in /boot/config-$kernel_version to check how module is configured inside kernel
+## Our default overrides will be combined with your overrides.
+
+# Optional user defined list of sysctl options in the same dict item format as
+# above.
+user_kernel_options: []

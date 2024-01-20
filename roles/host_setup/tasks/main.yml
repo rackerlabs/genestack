@@ -1,0 +1,112 @@
+---
+# Copyright 2024, Rackspace Technology, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+- name: Gather variables for each operating system
+  include_vars: "{{ lookup('first_found', params) }}"
+  vars:
+    params:
+      files:
+        - "{{ ansible_facts['distribution'] | lower }}-{{ ansible_facts['distribution_version'] | lower }}.yml"
+        - "{{ ansible_facts['distribution'] | lower }}-{{ ansible_facts['distribution_major_version'] | lower }}.yml"
+        - "{{ ansible_facts['os_family'] | lower }}-{{ ansible_facts['distribution_major_version'] | lower }}.yml"
+        - "{{ ansible_facts['distribution'] | lower }}.yml"
+        - "{{ ansible_facts['os_family'] | lower }}.yml"
+      paths:
+        - "{{ role_path }}/vars"
+  tags:
+    - always
+
+# Environment configuration applies to all nodes
+- name: Add global_environment_variables to environment file
+  blockinfile:
+    dest: "/etc/environment"
+    state: present
+    marker: "# {mark} Managed by genestack"
+    insertbefore: EOF
+    block: "{{ lookup('template', 'environment.j2') }}"
+  tags:
+    - hosts-config
+
+- name: Ensure environement is applied during sudo
+  lineinfile:
+    path: /etc/pam.d/sudo
+    line: "session    required   pam_env.so readenv=1 user_readenv=0"
+    regexp: 'session\s+required\s+pam_env\.so'
+    insertbefore: '^@include'
+  when: ansible_facts['distribution'] | lower == 'debian'
+
+- name: Create systemd global directory
+  file:
+    path: /etc/systemd/system.conf.d/
+    state: directory
+    owner: "root"
+    group: "root"
+    mode: "0755"
+
+- name: Add DefaultEnvironment to systemd
+  openstack.config_template.config_template:
+    src: systemd-environment.j2
+    dest: /etc/systemd/system.conf.d/genestack-default-environment.conf
+    owner: "root"
+    group: "root"
+    mode: "0644"
+    config_overrides: "{{ systemd_global_overrides }}"
+    config_type: ini
+  notify: Systemd daemon reload
+  when: systemd_global_overrides is defined
+
+- name: Remove the blacklisted packages
+  package:
+    name: "{{ host_package_list | selectattr('state', 'equalto', 'absent') | map(attribute='name') | list }}"
+    state: absent
+
+# Configure bare metal nodes: Kernel, sysctl, sysstat, hosts files packages
+- name: Including configure_hosts tasks
+  include_tasks: configure_hosts.yml
+  args:
+    apply:
+      tags:
+        - hosts-install
+  tags:
+    - always
+
+- name: Update package cache
+  apt:
+    update_cache: true
+    cache_valid_time: 600
+  when: ansible_facts['os_family'] | lower == 'debian'
+
+- name: Install distro packages
+  package:
+    name: "{{ host_distro_packages }}"
+    state: "{{ host_package_state }}"
+  when:
+    - host_distro_packages | length > 0
+  register: install_packages
+  until: install_packages is success
+  retries: 5
+  delay: 2
+
+- name: Install user defined extra distro packages
+  package:
+    name: "{{ host_extra_distro_packages }}"
+    state: "{{ host_package_state }}"
+  when:
+    - host_extra_distro_packages | length > 0
+  register: install_packages
+  until: install_packages is success
+  retries: 5
+  delay: 2
+

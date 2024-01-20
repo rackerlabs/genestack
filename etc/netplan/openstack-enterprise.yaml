@@ -1,0 +1,87 @@
+---
+network:
+    version: 2
+    ethernets:
+      em49:
+        mtu: 9000
+      p4p1:
+        mtu: 9000
+    bonds:
+      bond0:
+        interfaces: [ em49, p4p1 ]
+        parameters:
+          mode: 802.3ad
+          lacp-rate: fast
+          transmit-hash-policy: layer2+3
+          mii-monitor-interval: 100
+        dhcp4: false
+        mtu: 9000
+    bridges:
+      br-bond0:
+        dhcp4: false
+        mtu: 1500
+        interfaces:
+          - bond0
+      br-host:
+        dhcp4: false
+        mtu: 1500
+        interfaces:
+          - vlan1000
+        addresses: [ 10.240.0.51/22 ]
+        nameservers:
+          addresses: [ 1.1.1.1, 1.0.0.1 ]
+        routes:
+          - to: 0.0.0.0/0
+            via: 10.240.0.1
+            metric: 500
+      br-storage:
+        dhcp4: false
+        mtu: 9000
+        interfaces:
+          - vlan1030
+        addresses: [ 172.29.244.51/22 ]
+      br-repl:
+        dhcp4: false
+        mtu: 9000
+        interfaces:
+          - vlan1040
+        addresses: [ 172.29.248.51/22 ]
+      br-ovs:
+        dhcp4: false
+        mtu: 9000
+        interfaces:
+          - vlan1020
+        addresses: [ 172.29.240.51/22 ]
+      br-pxe:
+        dhcp4: false
+        mtu: 1500
+        interfaces:
+          - vlan1050
+        addresses: [ 172.23.208.5/22 ]
+        openvswitch: {}
+    vlans:
+      vlan1000:
+        id: 1000
+        link: bond0
+        dhcp4: false
+        mtu: 1500
+      vlan1020:
+        id: 1020
+        link: bond0
+        dhcp4: false
+        mtu: 9000
+      vlan1030:
+        id: 1030
+        link: bond0
+        dhcp4: false
+        mtu: 9000
+      vlan1040:
+        id: 1040
+        link: bond0
+        dhcp4: false
+        mtu: 9000
+      vlan1050:
+        id: 1050
+        link: bond0
+        dhcp4: false
+        mtu: 1050

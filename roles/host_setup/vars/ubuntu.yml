@@ -1,0 +1,63 @@
+---
+
+## Defined required kernel
+host_required_kernel: 5.4.0-0-generic
+host_sysstat_file: /etc/default/sysstat
+host_sysstat_cron_file: /etc/cron.d/sysstat
+host_cron_template: sysstat.cron.debian.j2
+host_module_file: /etc/modules
+
+## Kernel modules loaded on hosts
+host_kernel_modules:
+  - name: 8021q
+  - name: br_netfilter
+  - name: dm_multipath
+  - name: dm_snapshot
+  - name: ebtables
+  - name: ip6table_filter
+  - name: ip6_tables
+  - name: ip_tables
+  - name: xt_MASQUERADE
+  - name: ipt_REJECT
+  - name: iptable_filter
+  - name: iptable_mangle
+  - name: iptable_nat
+  - name: ip_vs
+  - name: iscsi_tcp
+  - name: nbd
+  - name: nf_conntrack
+  - name: nf_defrag_ipv4
+  - name: nf_nat
+  - name: vhost_net
+  - name: x_tables
+
+## Bare metal base packages
+_host_distro_packages:
+  - acl
+  - apt-utils
+  - apparmor-utils
+  - apt-transport-https
+  - bridge-utils
+  - cgroup-lite
+  - curl
+  - dmeventd
+  - dstat
+  - ebtables
+  - htop
+  - iptables
+  - irqbalance
+  - libkmod2
+  - lvm2
+  - rsync
+  - software-properties-common
+  - sysstat
+  - time
+  - vlan
+  - wget
+
+_hosts_package_list:
+  - name: ubuntu-cloud-keyring
+    state: "{{ host_package_state }}"
+  - name: ca-certificates
+    state: latest
+

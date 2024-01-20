@@ -1,0 +1,7 @@
+PATH="{{ host_environment_path | join(':') }}"
+REQUESTS_CA_BUNDLE="{{ ca_bundle_path }}"
+{% for key, value in global_environment_variables.items() %}
+{%   if value %}
+{{ key }}={{ value }}
+{%   endif %}
+{% endfor %}
