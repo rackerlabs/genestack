@@ -132,7 +132,7 @@ all:
                 storage-12481.rackerlabs.dev.local: null
                 storage-12562.rackerlabs.dev.local: null
                 storage-13461.rackerlabs.dev.local: null
-        nova_compute_nodes:  # nodes used for nova compute labeled as openstack-compute-node=enabled
+        openstack_compute_nodes:  # nodes used for nova compute labeled as openstack-compute-node=enabled
           hosts:
             compute-13461.rackerlabs.dev.local: null
             compute-12562.rackerlabs.dev.local: null
