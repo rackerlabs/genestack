@@ -157,12 +157,12 @@ def main(debug=False, **kwargs):
                                     'openstack-compute-node': {
                                         'hosts': {}
                                         },
-                                    'k8s-cluster': {
+                                    'k8s_cluster': {
                                         'children': {
                                             'kube-master': {},
                                             'kube-node': {},
                                             'openstack_control_plane': {},
-                                            'openstack-compute-node': {},
+                                            'openstack_compute_node': {},
                                             }
                                         },
                                     'calico-rr': {
