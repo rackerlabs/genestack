@@ -16,6 +16,9 @@
 export LC_ALL=C.UTF-8
 mkdir -p ~/.venvs
 
+BASEDIR=$(dirname $0)
+cd $BASEDIR || error "Could not change to $BASEDIR"
+
 source scripts/lib/functions.sh
 
 # Which config to bootstrap
