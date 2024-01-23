@@ -173,7 +173,7 @@
         state: present
         network_name: "{{ os_network_name }}"
         name: "{{ os_network_name }}-subnet"
-        cidr: 172.31.0.0/28
+        cidr: 172.31.0.0/22
         dns_nameservers:
           - 8.8.8.8
     - name: Create network internal
@@ -269,7 +269,7 @@
         meta:
           hostname: "{{ os_network_name }}-node-{{ item }}"
           group: "{{ os_network_name }}"
-      loop: "{{ range(os_node_count) | list }}"
+      loop: "{{ range(os_node_count | int) | list }}"
       async: 1000
       poll: 0
       register: _node_create
@@ -359,6 +359,20 @@
         cloud: "{{ os_cloud_name }}"
         name: "{{ os_network_name }}*"
       register: _cluster_create
+    - name: Add all hosts the the lab_nodes group
+      ansible.builtin.add_host:
+        name: >-
+          {{ item.addresses[os_network_name] |
+             selectattr('OS-EXT-IPS:type', 'equalto', 'fixed') |
+             map(attribute='addr') |
+             list |
+             first }}
+        groups: lab_nodes
+        ansible_user: "{{ os_bastion_user }}"
+      changed_when: false
+      loop: "{{ _cluster_create.servers | sort(attribute='name') }}"
+      loop_control:
+        label: "{{ item.name }}"
     - name: Set volume product fact
       ansible.builtin.set_fact:
         _volumes_product: "{{ (_cluster_create.servers | map(attribute='name') | sort)[-3:] |
@@ -430,7 +444,7 @@
           {% endfor %}
 
           [all:vars]
-          ansible_ssh_common_args='-F {{ lookup('env', 'HOME') }}/.ssh/{{ os_keypair_name }}.config'
+          ansible_ssh_common_args='-F {% raw %}{{ lookup('env', 'HOME') }}{% endraw %}/.ssh/{{ os_keypair_name }}.config'
           cluster_name={{ cluster_name }}
           kube_ovn_iface=ens4
           kube_ovn_default_interface_name=ens3
@@ -460,7 +474,7 @@
           [k8s_cluster:children]
           kube_control_plane
           kube_node
-        dest: "{{ playbook_dir }}/../{{ os_network_name }}/inventory.ini"
+        dest: "{{ lookup('env', 'HOME') }}/{{ os_network_name }}-inventory.ini"
         mode: "0644"
 
 - name: Create lab environment
@@ -469,6 +483,7 @@
     os_bastion_user: ubuntu
     os_network_name: openstack-flex
     os_keypair_name: "{{ os_network_name }}-keypair"
+    ansible_ssh_common_args: "-F {{ lookup('env', 'HOME') }}/.ssh/{{ os_keypair_name }}.config"
     ansible_ssh_private_key_file: "{{ lookup('env', 'HOME') }}/.ssh/{{ os_keypair_name }}.key"
   tasks:
     - name: Create ssh directory on jump host
@@ -481,3 +496,53 @@
         src: "{{ ansible_ssh_private_key_file }}"
         dest: "/home/{{ os_bastion_user }}/.ssh/{{ ansible_ssh_private_key_file | basename }}"
         mode: "0600"
+    - name: Copy ssh-config to jump host
+      ansible.builtin.copy:
+        content: |
+          Host 172.31.0.*
+            User {{ os_bastion_user }}
+          Host *
+            IdentityFile /home/{{ os_bastion_user }}/.ssh/{{ ansible_ssh_private_key_file | basename }}
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+        dest: "/home/{{ os_bastion_user }}/.ssh/{{ os_keypair_name }}.config"
+        mode: "0640"
+    - name: Install basic packages
+      become: true
+      ansible.builtin.package:
+        name:
+          - rsync
+          - git
+        update_cache: true
+        state: present
+    - name: syncronize the local directory
+      become: true
+      ansible.builtin.synchronize:
+        src: "{{ playbook_dir }}/../../"
+        dest: "/opt/genestack"
+        delete: false
+        recursive: true
+    - name: Create the genestack etc directory
+      become: true
+      ansible.builtin.file:
+        path: "/etc/genestack/inventory"
+        state: directory
+        mode: "0755"
+    - name: Copy the genestack inventory
+      become: true
+      ansible.builtin.copy:
+        src: "{{ lookup('env', 'HOME') }}/{{ os_network_name }}-inventory.ini"
+        dest: "/etc/genestack/inventory/{{ os_network_name }}-inventory.ini"
+        mode: "0644"
+    - name: Tweak the ansible inventory for local use
+      become: true
+      ansible.builtin.lineinfile:
+        path: "/etc/genestack/inventory/{{ os_network_name }}-inventory.ini"
+        regexp: "^ansible_ssh_common_args.*"
+        state: absent
+    - name: Remove the bastion section
+      become: true
+      community.general.ini_file:
+        path: "/etc/genestack/inventory/{{ os_network_name }}-inventory.ini"
+        section: bastion
+        state: absent

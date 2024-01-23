@@ -15,7 +15,8 @@
 # limitations under the License.
 
 # Globals
-source /opt/genestack/scripts/genestack.rc
+BASEDIR=${BASEDIR:-/opt/genestack}
+source ${BASEDIR}/scripts/genestack.rc
 
 export SUDO_CMD=""
 sudo -l |grep -q NOPASSWD && SUDO_CMD="/usr/bin/sudo -n "
