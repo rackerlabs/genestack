@@ -7,11 +7,12 @@
 helm_enabled: true
 
 # Registry deployment
-registry_enabled: true
-registry_port: 5010 #Don't overlap with keystone on port 5000
+registry_enabled: false
+registry_port: 5050 #Don't overlap with keystone on port 5000
 registry_namespace: kube-system
-# registry_storage_class: ""
+registry_storage_class: "general"
 registry_disk_size: "50Gi"
+registry_service_type: "LoadBalancer"
 
 # Metrics Server deployment
 metrics_server_enabled: true
@@ -134,8 +135,8 @@ ingress_alb_enabled: false
 # alb_ingress_aws_debug: "false"
 
 # Cert manager deployment
-cert_manager_enabled: false
-# cert_manager_namespace: "cert-manager"
+cert_manager_enabled: true
+cert_manager_namespace: "cert-manager"
 # cert_manager_tolerations:
 #   - key: node-role.kubernetes.io/control-plane
 #     effect: NoSchedule
@@ -158,45 +159,45 @@ cert_manager_enabled: false
 #   -----END CERTIFICATE-----
 # cert_manager_leader_election_namespace: kube-system
 
-# cert_manager_dns_policy: "ClusterFirst"
-# cert_manager_dns_config:
-#   nameservers:
-#     - "1.1.1.1"
-#     - "8.8.8.8"
+cert_manager_dns_policy: "ClusterFirst"
+cert_manager_dns_config:
+  nameservers:
+    - "1.1.1.1"
+    - "1.0.0.1"
 
 # cert_manager_controller_extra_args:
 #   - "--dns01-recursive-nameservers-only=true"
 #   - "--dns01-recursive-nameservers=1.1.1.1:53,8.8.8.8:53"
 
 # MetalLB deployment
-metallb_enabled: false
+metallb_enabled: true
 metallb_speaker_enabled: "{{ metallb_enabled }}"
 # metallb_version: v0.13.9
-# metallb_protocol: "layer2"
+metallb_protocol: "layer2"
 # metallb_port: "7472"
 # metallb_memberlist_port: "7946"
-# metallb_config:
-#   speaker:
-#     nodeselector:
-#       kubernetes.io/os: "linux"
-#     tollerations:
-#       - key: "node-role.kubernetes.io/control-plane"
-#         operator: "Equal"
-#         value: ""
-#         effect: "NoSchedule"
-#   controller:
-#     nodeselector:
-#       kubernetes.io/os: "linux"
-#     tolerations:
-#       - key: "node-role.kubernetes.io/control-plane"
-#         operator: "Equal"
-#         value: ""
-#         effect: "NoSchedule"
-#   address_pools:
-#     primary:
-#       ip_range:
-#         - 10.5.0.0/16
-#       auto_assign: true
+ metallb_config:
+   speaker:
+     nodeselector:
+       kubernetes.io/os: "linux"
+     tollerations:
+       - key: "node-role.kubernetes.io/control-plane"
+         operator: "Equal"
+         value: ""
+         effect: "NoSchedule"
+   controller:
+     nodeselector:
+       kubernetes.io/os: "linux"
+     tolerations:
+       - key: "node-role.kubernetes.io/control-plane"
+         operator: "Equal"
+         value: ""
+         effect: "NoSchedule"
+   address_pools:
+     primary:
+       ip_range:
+         - 10.240.3.0/24
+       auto_assign: true
 #     pool1:
 #       ip_range:
 #         - 10.6.0.0/16
