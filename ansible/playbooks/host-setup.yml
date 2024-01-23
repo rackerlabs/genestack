@@ -15,22 +15,28 @@
 
 - hosts: localhost
   connection: local
-  user: root
+  become: true
   gather_facts: "{{ gather_facts | default(true) }}"
   environment: "{{ deployment_environment_variables | default({}) }}"
+  vars:
+    helm_version: ""  # Assume the default or set an explicit version.
   tasks:
-    - name: Install helm
-      community.general.snap:
-        name:
-          - helm
-        classic: true
-      when:
-        - ansible_os_family == 'Debian'
+    - name: Download Helm command line tool
+      ansible.builtin.uri:
+        url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+        return_content: true
+      register: helm_installer
+    - name: Install Helm
+      ansible.builtin.command:
+        cmd: bash
+        stdin: "{{ helm_installer.content }}"
+        creates: /usr/local/bin/helm
+      environment:
+        DESIRED_VERSION: "{{ helm_version }}"
 
 - hosts: all
-  user: root
+  become: true
   gather_facts: "{{ gather_facts | default(true) }}"
   environment: "{{ deployment_environment_variables | default({}) }}"
   roles:
     - host_setup
-

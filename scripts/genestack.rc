@@ -1,13 +1,14 @@
+BASEDIR=${BASEDIR:-/opt/genestack}
 
 # Automation variables
 export GENESTACK_CONFIG="${GENESTACK_CONFIG:-/etc/genestack}"
 export SKIP_PROMPTS="${SKIP_PROMPTS:-false}"
 export ANSIBLE_FORKS="${ANSIBLE_FORKS:-24}"
-export ANSIBLE_FILTER_PLUGINS="${ANSIBLE_FILTER_PLUGINS:-/opt/genestack/ansible/filter_plugins}"
-export ANSIBLE_COLLECTION_FILE=${ANSIBLE_COLLECTION_FILE:-"ansible-collection-requirements.yml"}
+export ANSIBLE_FILTER_PLUGINS="${ANSIBLE_FILTER_PLUGINS:-$(readlink -f ${BASEDIR}/ansible/filter_plugins)}"
 export ANSIBLE_INVENTORY="${ANSIBLE_INVENTORY:-${GENESTACK_CONFIG}/inventory}"
 export ANSIBLE_INVENTORY_IGNORE_REGEX="${ANSIBLE_INVENTORY_IGNORE_REGEX:-'artifacts,credentials'}"
-export USER_COLLECTION_FILE=${USER_COLLECTION_FILE:-"user-collection-requirements.yml"}
+export ANSIBLE_COLLECTION_FILE=${ANSIBLE_COLLECTION_FILE:-"$(readlink -f ${BASEDIR}/ansible-collection-requirements.yml)"}
+export USER_COLLECTION_FILE=${USER_COLLECTION_FILE:-"$(readlink -f ${BASEDIR}/user-collection-requirements.yml)"}
 
 test -f "${GENESTACK_CONFIG}/provider" 2>/dev/null && export K8S_PROVIDER=$(head -n1 ${GENESTACK_CONFIG}/provider)
 export K8S_PROVIDER="${K8S_PROVIDER:-kubespray}"
@@ -23,4 +24,4 @@ export OSH_DEPLOY_MULTINODE=True
 ## OpenStack Antelope 2023.1
 export OPENSTACK_RELEASE=2023.1
 
-test -f ~/.venvs/genestack/bin/activate 2>/dev?null && source ~/.venvs/genestack/bin/activate
+test -f ~/.venvs/genestack/bin/activate 2>/dev/null && source ~/.venvs/genestack/bin/activate
