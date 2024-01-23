@@ -56,7 +56,7 @@ mkdir -p $GENESTACK_CONFIG/inventory/group_vars $GENESTACK_CONFIG/inventory/cred
 
 # Copy default k8s config
 test -d $GENESTACK_PRODUCT || error "Product Config $GENESTACK_PRODUCT does not exist here"
-if [ $(find $GENESTACK_CONFIG/inventory -name *.yml 2>/dev/null |wc -l) -eq 0 ]; then
+if [ $(find $GENESTACK_CONFIG/inventory -name \*.yaml -o -name \*.yml 2>/dev/null |wc -l) -eq 0 ]; then
   cp -r ${GENESTACK_PRODUCT}/* ${GENESTACK_CONFIG}/inventory
 fi
 

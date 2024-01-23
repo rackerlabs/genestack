@@ -30,7 +30,7 @@ The ansible inventory is expected at `/etc/genestack/inventory`
 
 ``` shell
 source /opt/genestack/scripts/genestack.rc
-cd /opt/genestack/playbooks
+cd /opt/genestack/ansible/playbooks
 
 ansible-playbook host-setup.yml
 ```

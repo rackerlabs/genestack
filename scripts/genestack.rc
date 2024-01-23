@@ -3,7 +3,7 @@
 export GENESTACK_CONFIG="${GENESTACK_CONFIG:-/etc/genestack}"
 export SKIP_PROMPTS="${SKIP_PROMPTS:-false}"
 export ANSIBLE_FORKS="${ANSIBLE_FORKS:-24}"
-export ANSIBLE_FILTER_PLUGINS="${ANSIBLE_FILTER_PLUGINS:-/opt/genestack/playbooks/filter_plugins}"
+export ANSIBLE_FILTER_PLUGINS="${ANSIBLE_FILTER_PLUGINS:-/opt/genestack/ansible/filter_plugins}"
 export ANSIBLE_COLLECTION_FILE=${ANSIBLE_COLLECTION_FILE:-"ansible-collection-requirements.yml"}
 export ANSIBLE_INVENTORY="${ANSIBLE_INVENTORY:-${GENESTACK_CONFIG}/inventory}"
 export ANSIBLE_INVENTORY_IGNORE_REGEX="${ANSIBLE_INVENTORY_IGNORE_REGEX:-'artifacts,credentials'}"
