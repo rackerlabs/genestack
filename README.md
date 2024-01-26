@@ -6,32 +6,65 @@ Genestack — where Kubernetes and OpenStack tango in the cloud. Imagine a waltz
 what you need.
 
 
-## Unveiling Genestack's Marvels
+## Included/Required Components
 
-* Kubernetes:
-    * Kube-OVN: The silent but reliable partner
-    * K-Dashboard: Always there to take the lead
-    * MetalLB: Adds the metallic charm
-    * CoreDNS: The system’s melodious voice
-    * Ingress-NGINX: Controls the flow, just like a boss
-    * Cert-Manager: The permit distributor
+The following components are part of the initial product release
+and largely deployed with Helm+Kustomize against the K8s API (v1.28 and up):
 
-* Operators:
-    * MariaDB: The data maestro
-    * RabbitMQ: Always 'hopping' around to deliver messages
-    * Rook (Optional): The magician handling storage tricks
-    * Memcached: Memory’s best friend
+| Group      | Component            | OpenStack Flex | OpenStack Enterprise |
+|------------|----------------------|----------------|----------------------|
+| Kubernetes | Kubernetes           | Required       | Required             |
+| Kubernetes | Kubernetes Dashboard | Required       | Required             |
+| Kubernetes | Cert-Manager         | Required       | Required             |
+| Kubernetes | MetaLB (L2/L3)       | Required       | Required             |
+| Kubernetes | Core DNS             | Required       | Required             |
+| Kubernetes | Ingress Controller (Nginx) | Required       | Required             |
+| Kubernetes | Kube-Proxy (IPVS)    | Required       | Required             |
+| Kubernetes | Calico               | Optional       | Required             |
+| Kubernetes | Kube-OVN             | Required       | Optional             |
+| Kubernetes | Helm                 | Required       | Required             |
+| Kubernetes | Kustomize            | Required       | Required             |
+| OpenStack  | openVswitch (Helm)   | Optional       | Required             |
+| OpenStack  | Galera (Operator)    | Required       | Required             |
+| OpenStack  | rabbitMQ (Operator)  | Required       | Required             |
+| OpenStack  | memcacheD (Operator) | Required       | Required             |
+| OpenStack  | Ceph Rook            | Optional       | Required             |
+| OpenStack  | iscsi/tgtd           | Required       | Optional             |
+| OpenStack  | Keystone (Helm)      | Required       | Required             |
+| OpenStack  | Glance (Helm)        | Required       | Required             |
+| OpenStack  | Cinder (Helm)        | Required       | Required             |
+| OpenStack  | Nova (Helm)          | Required       | Required             |
+| OpenStack  | Neutron (Helm)       | Required       | Required             |
+| OpenStack  | Placement (Helm)     | Required       | Required             |
+| OpenStack  | Horizon (Helm)       | Required       | Required             |
+| OpenStack  | Skyline (Helm)       | Optional       | Optional             |
+| OpenStack  | Heat (Helm)          | Required       | Required             |
+| OpenStack  | Designate (Helm)     | Optional       | Required             |
+| OpenStack  | Barbican (Helm)      | Required       | Required             |
+| OpenStack  | Octavia (Helm)       | Required       | Required             |
+| OpenStack  | Ironic (Helm)        | Optional       | Required             |
+| OpenStack  | metal3.io            | Optional       | Required             |
 
-* OpenStack:
-    * Cinder: Solid as a rock
-    * Glance: Giving you the perfect 'glance' to an image
-    * Heat: Adds the heat when things get chilly
-    * Horizon: The futuristic seer
-    * Keystone: The cornerstone of identity
-    * Neutron: Always attracting the right connections
-    * Nova: The cosmic powerhouse
-    * Placement: Ensuring everything finds its place
-    * Octavia: The younger
+Initial monitoring componets consists of the following projects
+
+| Group      | Component            | OpenStack Flex | OpenStack Enterprise |
+|------------|----------------------|----------------|----------------------|
+| Kubernetes | Prometheus           | Required       | Required             |
+| Kubernetes | Thanos               | Required       | Required             |
+| Kubernetes | Alertmanager         | Required       | Required             |
+| Kubernetes | Grafana              | Required       | Required             |
+| Kubernetes | Node Exporter        | Required       | Required             |
+| Kubernetes | redfish Exporter     | Required       | Required             |
+| OpenStack  | OpenStack Exporter   | Required       | Required             |
+
+At a later stage these components will be added
+
+| Group     | Component            | OpenStack Flex | OpenStack Enterprise |
+|-----------|----------------------|----------------|----------------------|
+| OpenStack | MongoDB              | Optional       | Required             |
+| OpenStack | Aodh (Helm)          | Optional       | Required             |
+| OpenStack | Ceilometer (Helm)    | Optional       | Required             |
+| OpenStack | Masakari (Helm)      | Optional       | Required             |
 
 
 ### Symphony of Simplicity
@@ -76,7 +109,7 @@ architecture of the Genestack ecosystem.
 
 They say a picture is worth 1000 words, so here's a picture.
 
-![Genestack Architecture Diagram](assets/images/diagram-genestack.svg)
+![Genestack Architecture Diagram](assets/images/diagram-genestack.png)
 
 ## Get Deploying
 
