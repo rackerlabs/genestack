@@ -191,6 +191,15 @@
         network_name: "{{ os_network_name }}-internal"
         name: "{{ os_network_name }}-subnet-internal"
         cidr: 192.168.0.0/22
+    # The disable_gateway_ip setting only works 
+    # on an update and not a create
+    - name: Update subnet internal
+      openstack.cloud.subnet:
+        cloud: "{{ os_cloud_name }}"
+        state: present
+        network_name: "{{ os_network_name }}-internal"
+        name: "{{ os_network_name }}-subnet-internal"
+        cidr: 192.168.0.0/22
         disable_gateway_ip: true
     - name: Create network compute
       openstack.cloud.network:
@@ -201,6 +210,14 @@
         port_security_enabled: false
       register: _result_network_compute_create
     - name: Create subnet internal
+      openstack.cloud.subnet:
+        cloud: "{{ os_cloud_name }}"
+        state: present
+        network_name: "{{ os_network_name }}-compute"
+        name: "{{ os_network_name }}-subnet-compute"
+        cidr: 192.168.100.0/22
+        is_dhcp_enabled: false
+    - name: Update subnet internal
       openstack.cloud.subnet:
         cloud: "{{ os_cloud_name }}"
         state: present
