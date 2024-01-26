@@ -240,7 +240,9 @@
         network: "{{ (_result_network_external.networks | first).id }}"
         interfaces:
           - "{{ os_network_name }}-subnet"
-          - "{{ os_network_name }}-subnet-internal"
+          - net: "{{ os_network_name }}-internal"
+            subnet: "{{ os_network_name }}-subnet-internal"
+            portip: 192.168.0.1
     # NOTE: When using MetalLB, we can not use a security group due to port security blocking address advertisements.
     #       See https://metallb.org/installation/clouds/#metallb-on-openstack for more.
     # - name: Create (or update) a security group with security group rules
