@@ -1,4 +1,9 @@
 ARG VERSION=master-ubuntu_jammy
-FROM docker.io/loci/octavia:${VERSION}
+FROM docker.io/loci/octavia:${VERSION} as build
 ARG PLUGIN_VERSION=5.0.0
-RUN /var/lib/openstack/bin/pip install ovn-octavia-provider===${PLUGIN_VERSION}
+RUN /var/lib/openstack/bin/pip install --index-url https://pypi.python.org/simple --upgrade pip
+RUN /var/lib/openstack/bin/pip install --index-url https://pypi.python.org/simple ovn-octavia-provider==${PLUGIN_VERSION}
+RUN find /var/lib/openstack -regex '^.*\(__pycache__\|\.py[co]\)$' -delete
+
+FROM docker.io/loci/octavia:${VERSION}
+COPY --from=build /var/lib/openstack/. /var/lib/openstack/
