@@ -10,5 +10,6 @@ RUN export ORIG_PLUGIN_VERSION="${PLUGIN_VERSION}"; \
                                git+https://opendev.org/openstack/heat-dashboard@${PLUGIN_VERSION}#egg=heat_dashboard \
                                git+https://opendev.org/openstack/octavia-dashboard@${PLUGIN_VERSION}#egg=octavia_dashboard
 RUN find /var/lib/openstack -regex '^.*\(__pycache__\|\.py[co]\)$' -delete
+
 FROM openstackhelm/horizon:${VERSION}
 COPY --from=build /var/lib/openstack/. /var/lib/openstack/

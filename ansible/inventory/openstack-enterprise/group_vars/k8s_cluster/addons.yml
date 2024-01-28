@@ -176,7 +176,7 @@ metallb_speaker_enabled: "{{ metallb_enabled }}"
 metallb_protocol: "layer2"
 # metallb_port: "7472"
 # metallb_memberlist_port: "7946"
- metallb_config:
+metallb_config:
    speaker:
      nodeselector:
        kubernetes.io/os: "linux"
