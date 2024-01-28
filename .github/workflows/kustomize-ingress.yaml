@@ -1,0 +1,45 @@
+name: Kustomize GitHub Actions for ingress
+
+on:
+  pull_request:
+    paths:
+      - kustomize/ingress/**
+      - .github/workflows/kustomize-ingress.yaml
+jobs:
+  kustomize:
+    strategy:
+      matrix:
+        overlays:
+          - external
+          - internal
+    name: Kustomize
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: azure/setup-helm@v3
+        with:
+          version: latest
+          token: "${{ secrets.GITHUB_TOKEN }}"
+        id: helm
+      - name: Kustomize Install
+        working-directory: /usr/local/bin/
+        run: |
+          if [ ! -f /usr/local/bin/kustomize ]; then
+            curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | sudo bash
+          fi
+      - name: Pull OSH infra submodule
+        run: |
+          git submodule update --init submodules/openstack-helm-infra
+      - name: Make OSH infra submodule
+        run: |
+          cd submodules/openstack-helm-infra
+          make ingress
+      - name: Run Kustomize Build
+        run: |
+          kustomize build kustomize/ingress/${{ matrix.overlays }} --enable-helm --helm-command ${{ steps.helm.outputs.helm-path }} > /tmp/rendered.yaml
+      - name: Return Kustomize Build
+        uses: actions/upload-artifact@v2
+        with:
+          name: kustomize-ingress-artifact-${{ matrix.overlays }}
+          path: /tmp/rendered.yaml
