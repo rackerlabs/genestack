@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - helm-configs/neutron/**
+      - kustomize/neutron/**
       - .github/workflows/helm-neutron.yaml
 jobs:
   helm:

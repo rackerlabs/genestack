@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - helm-configs/octavia/**
+      - kustomize/octavia/**
       - .github/workflows/helm-octavia.yaml
 jobs:
   helm:
