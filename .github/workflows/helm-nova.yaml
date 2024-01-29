@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - helm-configs/nova/**
+      - kustomize/nova/**
       - .github/workflows/helm-nova.yaml
 jobs:
   helm:

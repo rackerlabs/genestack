@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - helm-configs/horizon/**
+      - kustomize/horizon/**
       - .github/workflows/helm-horizon.yaml
 jobs:
   helm:

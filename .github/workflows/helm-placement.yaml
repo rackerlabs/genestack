@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - helm-configs/placement/**
+      - kustomize/placement/**
       - .github/workflows/helm-placement.yaml
 jobs:
   helm:

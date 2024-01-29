@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - helm-configs/heat/**
+      - kustomize/heat/**
       - .github/workflows/helm-heat.yaml
 jobs:
   helm:

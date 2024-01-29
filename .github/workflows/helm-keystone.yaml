@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - helm-configs/keystone/**
+      - kustomize/keystone/**
       - .github/workflows/helm-keystone.yaml
 jobs:
   helm:

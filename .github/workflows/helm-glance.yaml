@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - helm-configs/glance/**
+      - kustomize/glance/**
       - .github/workflows/helm-glance.yaml
 jobs:
   helm:
