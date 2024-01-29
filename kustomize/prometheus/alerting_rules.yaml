@@ -1,0 +1,199 @@
+serverFiles:
+  ## Alerts configuration
+  ## Ref: https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/
+  alerting_rules.yml:
+    groups:
+    - name: Prometheus Alerts
+      rules:
+      - alert: PrometheusNotConnectedToAlertmanager
+        expr: prometheus_notifications_alertmanagers_discovered{kubernetes_name="prometheus-service"} < 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Prometheus not connected to alertmanager (instance {{ `{{ $labels.instance }}` }} )"
+          description: "Prometheus cannot connect the alertmanager\n  VALUE = {{ `{{ $value }}` }}\n  LABELS: {{ `{{ $labels }}` }}"
+      - alert: PrometheusAlertmanagerNotificationFailing
+        expr: rate(alertmanager_notifications_failed_total{integration="webhook"}[2m]) > 0
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Prometheus AlertManager notification failing (instance {{ `{{ $labels.instance }}` }})"
+          description: "Alertmanager is failing sending notifications\n  VALUE = {{ `{{ $value }}` }}\n  LABELS: {{ `{{ $labels }}` }}"
+      - alert: Prometheus Down
+        expr: up{job="prometheus"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Prometheus Down on {{ `{{ $labels.instance }}` }})"
+          description: "Prometheus Down on {{ `{{ $labels.instance }}` }}, logon to {{ `{{ $labels.instance }}` }} to check."
+      - alert: AlertManager Down
+        expr: up{job="alertmanager"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "AlertManager Down on {{ `{{ $labels.instance }}` }})"
+          description: "AlertManager Down on {{ `{{ $labels.instance }}` }}, logon to {{ `{{ $labels.instance }}` }} to check."
+      - alert: SSL Cert expiry
+        expr: probe_ssl_earliest_cert_expiry{job="SSL-cert-expiry"} - time() < 86400 * 7
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SSL cert going to expire on {{ `{{ $labels.instance }}` }})"
+          description: "SSL cert going to expire on {{ `{{ $labels.instance }}` }}, logon to {{ `{{ $labels.instance }}` }} to check."
+    - name: Host alerts
+      rules:
+      - alert: Node Exporter Down
+        expr: up{job="node-exporter"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Check {{ `{{ $labels.job }}` }} on (instance {{ `{{ $labels.instance }}` }})"
+          description: "Check {{ `{{ $labels.job }}` }} on (instance {{ `{{ $labels.instance }}` }})"
+      - alert: disk_usage
+        expr: ((node_filesystem_avail_bytes{mountpoint="/",device!="rootfs",job="node-exporter"} * 100) /   node_filesystem_size_bytes{mountpoint="/",device!="rootfs",job="node-exporter"}) < 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Check disk usage"
+          description: "Check disk usage of {{ `{{ $labels.mountpoint }}` }} on (instance {{ `{{ $labels.instance }}` }}). FREE SPACE % = {{ `{{ $value }}` }}"
+      - alert: HostOutOfMemory
+        expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Host out of memory (instance {{ `{{ $labels.instance }}` }})"
+          description: "Node memory is filling up (< 10% left)\n  VALUE = {{ `{{ $value }}` }}\n  LABELS: {{ `{{ $labels }}` }}"
+    - name: Pod alerts
+      rules:
+        - alert: Pod Restart Alert
+          expr: kube_pod_container_status_last_terminated_reason == 1 and on(container) rate(kube_pod_container_status_restarts_total[5m]) * 300 > 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pod restarting with error"
+            description: "Pod restarting with error"
+    - name: Kubernetes Jobs
+      rules:
+        - alert: Kubernetes Job failed
+          expr: kube_job_status_failed > 0
+          for: 5m
+          labels:
+            severity: High
+          annotations:
+            summary: Job failed (job {{ `{{ $labels.job_name }}` }})
+            description: Job {{ `{{ $labels.job_name }}` }} failed on namespace {{ `{{ $labels.namespace }}` }}
+    - name: Kubernetes Alerts
+      rules:
+      - alert: KubernetesNodeReady
+        expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kubernetes Node ready (node {{ `{{ $labels.node }}` }})"
+          description: "Node {{ `{{ $labels.node }}` }} has been unready for a long time"
+      - alert: KubernetesPodNotHealthy
+        expr: min_over_time(sum by (namespace, pod, job) (kube_pod_status_phase{phase=~"Pending|Unknown|Failed"})[1h:]) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kubernetes Pod not healthy (pod {{ `{{ $labels.pod }}` }})"
+          description: "Pod has been in a non-ready state for longer than an hour.\n  VALUE = {{ `{{ $value }}` }}\n  LABELS: {{ `{{ $labels }}` }}"
+      - alert: KubernetesPodCrashLooping
+        expr: (rate(kube_pod_container_status_restarts_total[15m]) * on(pod) group_left(node) kube_pod_info) * 60 * 5 > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kubernetes pod crash looping (pod {{ `{{ $labels.pod }}` }})"
+          description: "Pod {{ `{{ $labels.pod }}` }} is crash looping\n  VALUE = {{ `{{ $value }}` }}\n  LABELS: {{ `{{ $labels }}` }}"
+      - alert: KubernetesReplicassetMismatch
+        expr: kube_replicaset_spec_replicas != kube_replicaset_status_ready_replicas
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kubernetes ReplicasSet mismatch (replicaset {{ `{{ $labels.replicaset }}` }})"
+          description: "Deployment Replicas mismatch\n  VALUE = {{ `{{ $value }}` }}\n  namespace: {{ `{{ $labels.namespace }}` }}"
+      - alert: KubernetesDeploymentReplicasMismatch
+        expr: kube_deployment_spec_replicas != kube_deployment_status_replicas_available
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kubernetes Deployment replicas mismatch (deployment {{ `{{ $labels.deployment }}` }})"
+          description: "Deployment Replicas mismatch\n  VALUE = {{ `{{ $value }}` }}\n  namespace: {{ `{{ $labels.namespace }}` }}"
+      - alert: KubernetesApiServerErrors
+        expr: sum(rate(apiserver_request_total{job="kubernetes-apiservers",code=~"^(?:5..)$"}[2m])) by (instance, job) / sum(rate(apiserver_request_total{job="kubernetes-apiservers"}[2m])) by (instance, job) * 100 > 3
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kubernetes API server errors (instance {{ `{{ $labels.instance }}` }})"
+          description: "Kubernetes API server is experiencing high error rate\n  VALUE = {{ `{{ $value }}` }}\n  LABELS: {{ `{{ $labels }}` }}"
+      - alert: KubernetesApiClientErrors
+        expr: (sum(rate(rest_client_requests_total{code=~"(4|5)..", job="kubernetes-nodes"}[2m])) by (instance, job) / sum(rate(rest_client_requests_total{job="kubernetes-nodes"}[2m])) by (instance, job)) * 100 > 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kubernetes API client errors (instance {{ `{{ $labels.instance }}` }})"
+          description: "Kubernetes API client is experiencing high error rate\n  VALUE = {{ `{{ $value }}` }}\n  LABELS: {{ `{{ $labels }}` }}"
+      - alert: KubernetesClientCertificateExpiresNextWeek
+        expr: apiserver_client_certificate_expiration_seconds_count{job="kubernetes-apiservers"} > 0 and on(job) histogram_quantile(0.01, sum by (job, le) (rate(apiserver_client_certificate_expiration_seconds_bucket{job="kubernetes-apiservers"}[5m]))) < 604800
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kubernetes client certificate expires next week (instance {{ `{{ $labels.instance }}` }} )"
+          description: "A client certificate used to authenticate to the apiserver is expiring next week.\n  VALUE = {{ `{{ $value }}` }}\n  LABELS: {{ `{{ $labels }}` }}"
+      - alert: KubernetesApiServerLatency
+        expr: histogram_quantile(0.99, sum(apiserver_request_duration_seconds_bucket{verb!~"CONNECT|WATCHLIST|WATCH|PROXY"}) WITHOUT (resource)) / 1e6 > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kubernetes API server latency (instance {{ `{{ $labels.instance }}` }})"
+          description: "Kubernetes API server has a 99th percentile latency of {{ `{{ $value }}` }} seconds for {{ `{{ $labels.verb }}` }}.\n  LABELS: {{ `{{ $labels }}` }}"
+      - alert: EtcdInsufficientMembers
+        expr: count(etcd_server_id) % 2 == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Etcd has insufficient Members"
+          description: "Etcd cluster should have an odd number of members"
+      - alert: EtcdNoLeader
+        expr: etcd_server_has_leader == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Etcd no Leader (instance {{ `{{ $labels.instance }}` }})"
+          description: "Etcd cluster has no leader\n LABELS: {{ `{{ $labels }}` }}"
+      - alert: EtcdHighNumberOfLeaderChanges
+        expr: increase(etcd_server_leader_changes_seen_total[1h]) > 3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Etcd high number of leader changes (instance {{ `{{ $labels.instance }}` }})"
+          description: "Etcd leader changed more than 3 times during last hour\n  VALUE = {{ `{{ $value }}` }}\n  LABELS: {{ `{{ $labels }}` }}"
+      - alert: EtcdMemberCommunicationSlow
+        expr: histogram_quantile(0.99, rate(etcd_network_peer_round_trip_time_seconds_bucket[5m])) > 0.15
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Etcd member communication slow (instance {{ `{{ $labels.instance }}` }})"
+          description: "Etcd member communication slowing down, 99th percentil is over 0.15s for 5 minutes\n  VALUE = {{ `{{ $value }}` }}\n  LABELS: {{ `{{ $labels }}` }}"
