@@ -1,0 +1,2 @@
+resources:
+  - placement-mariadb-database.yaml

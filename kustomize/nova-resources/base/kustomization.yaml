@@ -1,0 +1,3 @@
+resources:
+  - nova-mariadb-database.yaml
+  - nova-rabbitmq-queue.yaml

@@ -1,0 +1,3 @@
+resources:
+  - glance-mariadb-database.yaml
+  - glance-rabbitmq-queue.yaml

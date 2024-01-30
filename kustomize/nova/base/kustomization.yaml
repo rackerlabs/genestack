@@ -1,6 +1,4 @@
 resources:
-  - nova-mariadb-database.yaml
-  - nova-rabbitmq-queue.yaml
   - all.yaml
   - hpa-nova-api-metadata.yaml
   - hpa-nova-api-osapi.yaml

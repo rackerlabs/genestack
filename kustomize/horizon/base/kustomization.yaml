@@ -1,4 +1,3 @@
 resources:
-  - horizon-mariadb-database.yaml
   - all.yaml
   - hpa-horizon-api.yaml

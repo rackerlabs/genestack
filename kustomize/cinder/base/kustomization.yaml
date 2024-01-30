@@ -1,6 +1,4 @@
 resources:
-  - cinder-mariadb-database.yaml
-  - cinder-rabbitmq-queue.yaml
   - all.yaml
   - hpa-cinder-scheduler.yaml
   - hpa-cinder-api.yaml

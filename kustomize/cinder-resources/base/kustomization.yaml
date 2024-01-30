@@ -1,0 +1,3 @@
+resources:
+  - cinder-mariadb-database.yaml
+  - cinder-rabbitmq-queue.yaml

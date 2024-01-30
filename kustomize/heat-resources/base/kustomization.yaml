@@ -1,0 +1,3 @@
+resources:
+  - heat-mariadb-database.yaml
+  - heat-rabbitmq-queue.yaml

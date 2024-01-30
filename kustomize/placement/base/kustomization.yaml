@@ -1,4 +1,3 @@
 resources:
-  - placement-mariadb-database.yaml
   - all.yaml
   - hpa-placement-api.yaml

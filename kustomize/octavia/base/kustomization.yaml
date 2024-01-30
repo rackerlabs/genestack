@@ -1,6 +1,4 @@
 resources:
-  - octavia-mariadb-database.yaml
-  - octavia-rabbitmq-queue.yaml
   - all.yaml
   - hpa-octavia-api.yaml
   - hpa-octavia-worker.yaml

@@ -1,5 +1,3 @@
 resources:
-  - keystone-mariadb-database.yaml
-  - keystone-rabbitmq-queue.yaml
   - all.yaml
   - hpa-keystone-api.yaml
