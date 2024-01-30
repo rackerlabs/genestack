@@ -213,10 +213,13 @@ conf:
       ca_certificate: /etc/octavia/certs/ca_01.pem
     cinder:
       endpoint_type: internalURL
+      valid_interfaces: internal
     glance:
       endpoint_type: internalURL
+      valid_interfaces: internal
     neutron:
       endpoint_type: internalURL
+      valid_interfaces: internal
     haproxy_amphora:
       server_ca: /etc/octavia/certs/ca_01.pem
       client_cert: /etc/octavia/certs/client.pem
@@ -249,6 +252,7 @@ conf:
       cafile: ""
       auth_version: v3
       memcache_security_strategy: ENCRYPT
+      insecure: true
     ovn:
       ovn_sb_connection: tcp:127.0.0.1:6642
       ovn_nb_connection: tcp:127.0.0.1:6641
