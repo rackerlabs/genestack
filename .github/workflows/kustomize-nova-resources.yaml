@@ -1,0 +1,32 @@
+name: Kustomize GitHub Actions for nova-resources
+
+on:
+  pull_request:
+    paths:
+      - kustomize/nova-resources/**
+      - .github/workflows/kustomize-nova-resources.yaml
+jobs:
+  kustomize:
+    strategy:
+      matrix:
+        overlays:
+          - base
+    name: Kustomize
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Kustomize Install
+        working-directory: /usr/local/bin/
+        run: |
+          if [ ! -f /usr/local/bin/kustomize ]; then
+            curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | sudo bash
+          fi
+      - name: Run Kustomize Build
+        run: |
+          kustomize build kustomize/nova-resources/${{ matrix.overlays }} > /tmp/rendered.yaml
+      - name: Return Kustomize Build
+        uses: actions/upload-artifact@v2
+        with:
+          name: kustomize-nova-resources-artifact-${{ matrix.overlays }}
+          path: /tmp/rendered.yaml
