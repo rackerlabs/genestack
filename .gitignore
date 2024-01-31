@@ -104,7 +104,6 @@ target/
 
 # virtualenv
 venv/
-.venv/
 ENV/
 
 # molecule
