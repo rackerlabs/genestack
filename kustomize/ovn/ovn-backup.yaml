@@ -1,0 +1,57 @@
+# This writes OVN NB and SB snapshots to a persistent volume, assuming you
+# installed OVN with kubespray, since it assumes resources exist as seen in the
+# genestack/submodules/kubespray/roles/network_plugin/kube-ovn/templates
+# directory, assuming you have checked out the genestack submodules.
+# (For instance, it uses the `ovn` service account as seen in
+# genestack/submodules/kubespray/roles/network_plugin/kube-ovn/templates/cni-ovn.yml.j2
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: kube-system
+  name: ovndb-backup
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: general
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ovn-snapshot-cron
+  namespace: kube-system
+spec:
+  schedule: "0 0 * * *"
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 5
+      template:
+        spec:
+          serviceAccount: "ovn"
+          serviceAccountName: "ovn"
+          restartPolicy: "Never"
+          volumes:
+          - name: backup
+            persistentVolumeClaim:
+              claimName: ovndb-backup
+          containers:
+          - name: ovn-central-backup
+            env:
+            - name: RETENTION_DAYS
+              value: "30"
+            command: ["/bin/sh", "-c"]
+            args:
+            - >
+              find /backup -ctime +$RETENTION_DAYS -delete;
+              /kube-ovn/kubectl-ko nb backup;
+              /kube-ovn/kubectl-ko sb backup;
+              mv /kube-ovn/ovn*db*.backup /backup;
+            image: docker.io/kubeovn/kube-ovn:v1.11.5
+            imagePullPolicy: IfNotPresent
+            volumeMounts:
+            - name: backup
+              mountPath: "/backup"
