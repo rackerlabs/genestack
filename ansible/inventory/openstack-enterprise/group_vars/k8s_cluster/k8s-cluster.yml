@@ -157,7 +157,9 @@ kube_encrypt_secret_data: true
 
 # DNS configuration.
 # Kubernetes cluster name, also will be used as DNS domain
-cluster_name: cluster.local
+# Set via inventory
+#cluster_name: cluster.local
+#
 # Subdomains of DNS domain to be resolved via /etc/resolv.conf for hostnet pods
 ndots: 2
 # dns_timeout: 2
