@@ -1,0 +1,57 @@
+# Put 4 disks into a RAID configuration with mdadm.
+- name: Partition disks, etc.
+
+  hosts:
+    - "!block*"
+    - "!ceph*"
+    - "!overseer*"
+
+  become: yes
+  gather_facts: no
+
+  vars:
+    disk_regex: "^nvme[0123]n1$"
+    raid_device: "md0"
+
+  tasks:
+
+    - name: Gather disk facts
+      ansible.builtin.setup:
+        gather_subset:
+          - hardware
+
+    - name: List disk-type block devices
+      set_fact:
+        disks: "{{ disks | default([]) + [item.key] }}"
+      loop: "{{ ansible_devices | dict2items }}"
+
+    - name: Check for existing RAID device
+      set_fact:
+        need_raid: "{% if raid_device in disks %}False{% else %}True{% endif %}"
+
+    - name: Add disks to RAID
+      when: need_raid
+      block:
+
+      - name: List devices to add to RAID
+        set_fact:
+          disks_to_add: "{{ disks_to_add | default([]) + [item] }}"
+        loop: "{{ disks | default([]) }}"
+        when: "item | regex_search(disk_regex)"
+
+      - name: Fail matching other than 4 disks (needed for RAID10)
+        fail: >
+          Found {{ disks_to_add }} from disk_regex. Expected 4 disks for RAID10.
+        when:
+          - "disks_to_add | length != 4"
+
+      - name: Fail when disk to add is already in RAID
+        fail:
+          msg: "{{ item }} already in RAID."
+        when: ansible_devices[item].links.masters | length > 0
+        loop: "{{ disks_to_add | default([]) }}"
+
+      - name: Put disks in RAID device.
+        shell: >
+          mdadm --create /dev/{{ raid_device }} --level raid10 --name data
+          --raid-disks 4 /dev/{{ disks_to_add | join(' /dev/') }}
