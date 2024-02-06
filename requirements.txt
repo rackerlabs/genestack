@@ -1,5 +1,5 @@
 ansible>=6.7.0,<=8.5.0
-cryptography==41.0.6
+cryptography==42.0.0
 jinja2==3.1.2
 jmespath==1.0.1
 MarkupSafe==2.1.3
