@@ -1,0 +1,39 @@
+global:
+  nodeSelector:
+    openstack-control-plane: enabled
+
+redis-ha:
+  enabled: true
+  nodeSelector:
+    openstack-control-plane: enabled
+
+controller:
+  replicas: 1
+
+configs:
+  cm:
+    kustomize.buildOptions: --enable-helm
+
+server:
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+  ingress:
+    annotations:
+      nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+    enabled: true
+    ingressClassName: "nginx-cluster"
+    hosts: ["argocd.dfw-ospcv2-staging.ohthree.com"]
+    tls:
+      - hosts:
+          - argocd.dfw-ospcv2-staging.ohthree.com
+        secretName: argocd-tls-public
+    https: true
+
+repoServer:
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+
+applicationSet:
+  replicas: 2
