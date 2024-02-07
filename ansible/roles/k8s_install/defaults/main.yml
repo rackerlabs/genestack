@@ -1,0 +1,26 @@
+---
+
+ansible_forks: 8
+async_timeout: 4500 #75 minutes
+
+# Base kubernets parameters
+kube_install_mode: "install" # install | upgrade | scaleout
+supported_kube_installer:
+  - "kubespray"
+
+# Command which gets executed prior to the
+# installation, if utilized inside the install
+# or upgrade task
+pre_execution_hook:
+
+# How to build the kubernetes client configuration
+#
+# retrieve: Get the configuration from the first api host
+# authorize: TODO setup a local kubernetes user
+kubeconfig_file: "{{ lookup('env','HOME') |default('/root') }}/.kube/config"
+kubeconfig_mode: "retrieve"
+
+# Which k8s installer to use
+kubeprovider:
+  name: 'kubespray'
+  path: '/opt/kubespray'

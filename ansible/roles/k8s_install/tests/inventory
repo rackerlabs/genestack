@@ -1,0 +1,50 @@
+all:
+  hosts:
+    bastion1:
+      ansible_host: 10.100.0.1
+    c1:
+      ansible_host: 10.100.0.2
+    c2:
+      ansible_host: 10.100.0.3
+    c3:
+      ansible_host: 10.100.0.4
+    w1:
+      ansible_host: 10.100.0.5
+    w2:
+      ansible_host: 10.100.0.6
+  children:
+    k8s_cluster:
+      vars:
+        cluster_name: dev.local  # This clustername should be changed to match your environment domain name.
+      children:
+        kube_control_plane:  # all k8s control plane nodes need to be in this group
+          hosts:
+            c1: null
+            c2: null
+            c3: null
+        etcd:  # all etcd nodes need to be in this group
+          hosts:
+            c1: null
+            c2: null
+            c3: null
+        kube_node:  # all k8s enabled nodes need to be in this group
+          hosts:
+            c1: null
+            c2: null
+            c3: null
+            w1: null
+            w2: null
+        bastion:
+          vars:
+            ansible_user: root
+          hosts:
+            bastion1: null
+        openstack_control_plane:  # nodes used for nova compute labeled as openstack-control-plane=enabled
+          hosts:
+            c1: null
+            c2: null
+            c3: null
+        openstack_compute_nodes:  # nodes used for nova compute labeled as openstack-compute-node=enabled
+          hosts:
+            w1: null
+            w2: null

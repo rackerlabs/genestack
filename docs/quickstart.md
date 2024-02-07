@@ -43,10 +43,11 @@ Existing OpenStack Ansible inventory can be converted using the `/opt/genestack/
 script which provides a `hosts.yml`
 
 Once the inventory is updated and configuration altered (networking etc), the Kubernetes cluster can be initialized with
+the `setup-kubernetes.yml` playbook which in addition will also label nodes for OpenStack installation.
 
 ``` shell
 source /opt/genestack/scripts/genestack.rc
-cd /opt/genestack/submodules/kubespray
+cd /opt/genestack/ansible/playbooks
 
-ansible-playbook cluster.yml
+ansible-playbook setup-kubernetes.yml
 ```
