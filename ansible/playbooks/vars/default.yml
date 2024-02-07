@@ -1,0 +1,9 @@
+---
+
+# General settings
+ansible_forks: "{{ (hostvars[inventory_hostname]['ansible_processor_nproc'] ** 2 |round(0,'floor') |int }}"
+async_timeout: 4500 #75 minutes
+
+kube_installer:
+  name: "{{ lookup('env','K8S_PROVIDER') |default('kubespray') }}"
+  path: "/opt/genestack/submodules/kubespray"

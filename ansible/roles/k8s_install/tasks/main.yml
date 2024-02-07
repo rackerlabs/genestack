@@ -1,0 +1,168 @@
+---
+# Copyright 2024, Rackspace Technology, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+###
+### Pre execution checks
+###
+
+- name: Gather variables for each operating system
+  include_vars: "{{ lookup('first_found', params) }}"
+  vars:
+    params:
+      files:
+        - "{{ ansible_facts['distribution'] | lower }}-{{ ansible_facts['distribution_version'] | lower }}.yml"
+        - "{{ ansible_facts['distribution'] | lower }}-{{ ansible_facts['distribution_major_version'] | lower }}.yml"
+        - "{{ ansible_facts['os_family'] | lower }}-{{ ansible_facts['distribution_major_version'] | lower }}.yml"
+        - "{{ ansible_facts['distribution'] | lower }}.yml"
+        - "{{ ansible_facts['os_family'] | lower }}.yml"
+        - "main.yml"
+      paths:
+        - "{{ role_path }}/vars"
+  tags:
+    - always
+
+- name: "Assert kubeconfig mode"
+  ansible.builtin.assert:
+    that:
+      - "kubeconfig_mode in ['retrieve']"
+  tags:
+    - always
+
+- name: "Load all inventory variables"
+  ansible.builtin.include_vars:
+    dir: "{{ item }}"
+    ignore_unknown_extensions: True
+    extensions:
+      - 'yaml'
+      - 'yml'
+  loop: "{{ ansible_inventory_sources }}"
+  tags:
+    - always
+
+- name: "Assert cluster_name is not set to cluster.local"
+  ansible.builtin.assert:
+    that:
+      - "hostvars[ groups['k8s_cluster'][0] ]['cluster_name'] not in ['cluster.local']"
+  tags:
+    - always
+
+- name: "Display base configuration"
+  ansible.builtin.debug:
+    msg: "{{ item.msg }}: {{ item.value }}"
+  loop:
+    - msg: "Pre Execution Hook"
+      value: "{{ pre_execution_hook }}"
+    - msg: "Kubernetes Product"
+      value: "{{ kubeprovider.name }}"
+    - msg: "Kubernetes Installer Path"
+      value: "{{ kubeprovider.path }}"
+    - msg: "Kubernetes Cluster Name"
+      value: "{{ hostvars[ groups['k8s_cluster'][0] ]['cluster_name'] }}"
+    - msg: "Kubectl Config (default)"
+      value: "{{ kubeconfig_file }}"
+  tags:
+    - always
+
+- name: "Check supported kubernetes installer"
+  ansible.builtin.assert:
+    that:
+      - "kubeprovider.name in supported_kube_installer"
+    fail_msg: "Requested kubernetes installer not supported"
+    quiet: True
+  tags:
+    - always
+
+- name: "Setting facts"
+  ansible.builtin.set_fact:
+    cluster_name: "{{ hostvars[ groups['k8s_cluster'][0] ]['cluster_name'] }}"
+  tags:
+    - always
+
+
+###
+### Installation section
+###
+
+### (Kubespray) Install K8s cluster
+- name: "Execute kubespray installer"
+  ansible.builtin.import_tasks: kubespray_install.yml
+  tags:
+    - install
+  when:
+    - "(kubeprovider.name | lower) == 'kubespray'"
+    - "kube_install_mode == 'install'"
+
+### Install K8s client after cluster install
+- name: "Ensure k8s client configuration"
+  ansible.builtin.import_tasks: k8s_client.yml
+  tags:
+    - always
+  when:
+    - "kube_install_mode == 'install' or kube_install_mode == 'upgrade'"
+
+
+###
+### Upgrade section
+###
+
+### Retrieve k8s server versions
+- name: "Determine kubernetes server version"
+  kubernetes.core.k8s_cluster_info:
+    kubeconfig: "{{ kubeconfig_file }}"
+  register: _kubernetes_server_info
+  failed_when: _kubernetes_server_info.version.server.kubernetes.gitVersion is not defined
+  tags:
+    - always
+
+- name: "Set current and desired version facts"
+  ansible.builtin.set_fact:
+    kube_desired_version: "{{ kube_version |regex_findall('[0-9]+') |join }}"
+    #kube_current_version: "{{ _kubernetes_server_info.stdout |from_json |json_query('serverVersion.gitVersion') |regex_findall('[0-9]+') |join }}" #kubectl output
+    kube_current_version: "{{ _kubernetes_server_info.version.server.kubernetes.gitVersion |regex_findall('[0-9]+') |join }}"
+  tags:
+    - always
+
+### (Kubespray) Upgrade
+- debug:
+    msg: "Upgrade skipped as kubernetes version {{ kube_desired_version }} <= {{ kube_current_version }}"
+  when:
+    - "kube_desired_version <= kube_current_version"
+
+- name: "Check kubespray upgrade"
+  ansible.builtin.import_tasks: kubespray_upgrade.yml
+  tags:
+    - upgrade
+  when:
+    - "(kubeprovider.name | lower) == 'kubespray'"
+    - "kube_install_mode == 'upgrade'"
+    - "kube_desired_version > kube_current_version"
+
+###
+### Scale section
+###
+
+# TODO
+
+###
+### Label nodes
+###
+
+- name: "Apply labels to nodes"
+  ansible.builtin.import_tasks: k8s_label_nodes.yml
+  tags:
+    - always
+    - label_nodes
+  when:
+    - "kube_install_mode == 'install'"

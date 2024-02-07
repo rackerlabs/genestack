@@ -1,0 +1,59 @@
+---
+# Copyright 2024, Rackspace Technology, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+# Not intended to run stand alone, please run within a playbook
+# and expose parameters as listed below:
+#
+# - Loaded kubespray like inventory
+# - cluster_name
+
+- name: Create kubectl config directory
+  ansible.builtin.file:
+    path: "{{ lookup('env','HOME') }}/.kube/{{ cluster_name }}"
+    state: directory
+    recurse: True
+    mode: '0700'
+
+- name: Get kubernetes client
+  ansible.posix.synchronize:
+    mode: pull
+    src: "{{ item.user }}@{{ item.host }}:/usr/local/bin/kubectl"
+    dest: "/usr/local/bin/kubectl"
+  loop:
+    - user: "{{ ansible_become_user |default('root') }}"
+      host: "{{ groups['k8s_cluster'][0] }}"
+
+- block:
+  - name: Get kubernetes config
+    ansible.posix.synchronize:
+      mode: pull
+      src: "{{ item.user }}@{{ item.host }}:/root/.kube/config"
+      dest: "{{ lookup('env','HOME') }}/.kube/{{ cluster_name }}/"
+      #dest: "{{ lookup('env','HOME') }}/.kube/"
+    loop:
+      - user: "{{ ansible_become_user |default('root') }}"
+        host: "{{ groups['k8s_cluster'][0] }}"
+
+  - name: Set path to kubectl config
+    ansible.builtin.set_fact:
+      kubeconfig_file: "{{ lookup('env','HOME') }}/.kube/{{ cluster_name }}/config"
+
+  - name: "Display configuration"
+    ansible.builtin.debug:
+      msg: "{{ item.name }}: {{ item.value }}"
+    loop:
+      - name: "Kubectl Config (updated)"
+        value: "{{ kubeconfig_file }}"
