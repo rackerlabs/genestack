@@ -6,6 +6,7 @@ helmCharts:
     repo: https://mariadb-operator.github.io/mariadb-operator
     releaseName: mariadb-operator
     valuesInline:
+      clusterName: cluster.local
       webhook:
         cert:
           certManager:
