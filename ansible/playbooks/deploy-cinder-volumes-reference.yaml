@@ -5,7 +5,7 @@
   become: true
   vars:
     cinder_release: "2023.1"
-    cinder_storage_network_interface: br-storage
+    cinder_storage_network_interface: ansible_br_storage
     cinder_backend_name: "lvmdriver-1"
   handlers:
     - name: Restart cinder-volume systemd services
@@ -147,7 +147,7 @@
         path: /etc/cinder/cinder.conf
         section: DEFAULT
         option: "my_ip"
-        value: "{{ hostvars[inventory_hostname]['ansible_facts'][cinder_storage_network_interface]['ipv4']['address'] | default(ansible_default_ipv4.address) }}"
+        value: "{{ hostvars[inventory_hostname][cinder_storage_network_interface]['ipv4']['address'] | default(ansible_default_ipv4.address) }}"
         create: true
       notify:
         - Restart cinder-volume systemd services
@@ -157,7 +157,7 @@
         path: /etc/cinder/backends.conf
         section: "{{ cinder_backend_name }}"
         option: "target_ip_address"
-        value: "{{ hostvars[inventory_hostname]['ansible_facts'][cinder_storage_network_interface]['ipv4']['address'] | default(ansible_default_ipv4.address) }}"
+        value: "{{ hostvars[inventory_hostname][cinder_storage_network_interface]['ipv4']['address'] | default(ansible_default_ipv4.address) }}"
         create: true
       notify:
         - Restart cinder-volume systemd services
