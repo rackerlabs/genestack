@@ -1,0 +1,6 @@
+namespace: vault
+resources:
+  - './vault-selfsigned-issuer.yaml'
+  - './vault-selfsigned-ca.yaml'
+  - './vault-ca-issuer.yaml'
+  - './vault-cert.yaml'

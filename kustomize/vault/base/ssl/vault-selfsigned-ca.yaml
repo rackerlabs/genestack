@@ -1,0 +1,17 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: vault-selfsigned-ca
+spec:
+  isCA: true
+  commonName: rackspace.com
+  secretName: vault-root-secret
+  duration: 87600h0m0s
+  renewBefore: 360h0m0s
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: vault-selfsigned-issuer
+    kind: Issuer
+    group: cert-manager.io
