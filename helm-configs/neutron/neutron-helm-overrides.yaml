@@ -1793,6 +1793,7 @@ conf:
     oslo_policy:
       policy_file: /etc/neutron/policy.yaml
     ovn:
+      enable_distributed_floating_ip: true
       ovn_l3_scheduler: leastloaded
       dns_servers: 8.8.8.8,1.1.1.1
       neutron_sync_mode: 'off'  # This needs to be set to OFF for OVN in a hybrid deployment.
