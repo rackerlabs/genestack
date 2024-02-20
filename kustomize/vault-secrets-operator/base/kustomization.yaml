@@ -1,0 +1,13 @@
+resources:
+  - './namespace.yaml'
+
+namespace: vault-secrets-operator
+helmGlobals:
+  chartHome: ../charts/
+helmCharts:
+- name: vault-secrets-operator
+  includeCRDs: true
+  valuesFile: values.yaml
+  releaseName: vault-secrets-operator
+  version: 0.5.0
+  repo: https://helm.releases.hashicorp.com
