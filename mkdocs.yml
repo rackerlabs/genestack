@@ -1,0 +1,59 @@
+---
+site_name: Genestack
+site_description: >-
+  Genestack — where Kubernetes and OpenStack tango in the cloud. Imagine a waltz between systems that deploy what you need.
+
+theme:
+  name: material
+
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+  features:
+    - announce.dismiss
+    - content.action.edit
+    - content.code.annotate
+    - content.code.copy
+    # - content.tabs.link
+    - content.tooltips
+    # - header.autohide
+    # - navigation.expand
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    # - navigation.prune
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+
+repo_name: rackerlabs/genestack
+repo_url: https://github.com/rackerlabs/genestack
+dev_addr: "127.0.0.1:8001"
+edit_uri: "edit/main/docs"
+
+nav:
+  - Documentation: 'index.md'
+  - Components: components.md

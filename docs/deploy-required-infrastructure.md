@@ -310,4 +310,3 @@ kubectl --namespace openstack get horizontalpodautoscaler.autoscaling memcached
 ```
 
 Once everything is Ready and online. Continue with the installation.
-

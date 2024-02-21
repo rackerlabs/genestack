@@ -30,4 +30,3 @@ Edit the kube config to point at the first controller.
 ``` shell
 sed -i 's@server.*@server: https://X.X.X.X:6443@g' "${HOME}/.kube/config"
 ```
-

@@ -700,4 +700,3 @@ kubectl --namespace openstack \
 ``` shell
 kubectl --namespace openstack apply -k /opt/genestack/kustomize/skyline/base
 ```
-
