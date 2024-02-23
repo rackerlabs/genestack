@@ -584,14 +584,16 @@
       ignore_errors: true
       failed_when: hosts_updated.rc not in [0, 1]
     - name: Add inventory to hosts file iff no 172.31. IPs exist
-      command: cat /etc/genestack/inventory/{{ os_network_name }}-inventory.ini | awk '/ansible/ { print $2, $1 }' | cut -f2 -d"=" >> /etc/hosts
+      shell: cat /etc/genestack/inventory/{{ os_network_name }}-inventory.ini | awk '/ansible/ { print $2, $1 }' | cut -f2 -d"=" >> /etc/hosts
       when: hosts_updated.rc == 1
+      tags:
+        - skip_ansible_lint
     - name: Check if kubectl exists
       command: test -f /usr/local/bin/kubectl
       register: kubectl_exists
       failed_when: kubectl_exists.rc not in [0, 1]
     - name: Download kubectl
-      command: curl -L "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" -o /usr/local/bin/kubectl
+      shell: curl -L "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" -o /usr/local/bin/kubectl
       when: kubectl_exists.rc == 1
       tags:
         - skip_ansible_lint
