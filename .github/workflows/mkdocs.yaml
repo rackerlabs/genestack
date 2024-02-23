@@ -1,0 +1,59 @@
+name: pages build and deployment
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/**"
+      - ".github/workflows/mkdocs.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - ".github/workflows/mkdocs.yml"
+  workflow_dispatch:
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+      - run: pip install -r doc-requirements.txt
+      - run: mkdocs build
+      - uses: actions/upload-pages-artifact@v2
+        with:
+          path: site/
+
+  deploy:
+    # depend on the docs being built
+    needs: build
+
+    # ensure we only run on commits to the main branch
+    if: github.ref == 'refs/heads/main'
+
+    runs-on: ubuntu-latest
+
+    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+    permissions:
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+
+    # Deploy to the github-pages environment
+    environment:
+      name: "github-pages"
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
