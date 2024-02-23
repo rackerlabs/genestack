@@ -136,8 +136,4 @@ Now, generate and store secrets for Keystone within the designated path.
     vault kv put -mount=osh/keystone keystone-credential-keys  password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)
     ```
 ---
-
-
-
-
-
+Once the secrets are created in Vault, we can use `vault-secrets-operator` to populate the Kubernetes secret resources in Kubernetes cluster.
