@@ -1,0 +1,7 @@
+helmCharts:
+  - name: prometheus-rabbitmq-exporter
+    repo: https://prometheus-community.github.io/helm-charts
+    releaseName: prometheus-rabbitmq-exporter
+    version: 1.11.0
+    includeCRDs: true
+    valuesFile: values.yaml
