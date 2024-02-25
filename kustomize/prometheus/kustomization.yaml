@@ -1,8 +1,12 @@
+resources:
+  - ns-prometheus.yaml
+
 helmCharts:
-  - name: prometheus
+  - name: kube-prometheus-stack
     repo: https://prometheus-community.github.io/helm-charts
-    releaseName: prometheus
+    releaseName: kube-prometheus-stack
     namespace: prometheus
     includeCRDs: true
     valuesFile: values.yaml
-    valuesFile: alerting_rules.yaml
+    additionalValuesFiles:
+      - alerting_rules.yaml
