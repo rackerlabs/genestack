@@ -1,4 +1,4 @@
-![Genestack](assets/images/genestack.png)
+![Genestack](docs/assets/images/genestack.png)
 
 # Welcome to Genestack: Where Cloud Meets You
 
@@ -84,4 +84,4 @@ architecture of the Genestack ecosystem.
 
 They say a picture is worth 1000 words, so here's a picture.
 
-![Genestack Architecture Diagram](assets/images/diagram-genestack.png)
+![Genestack Architecture Diagram](docs/assets/images/diagram-genestack.png)
