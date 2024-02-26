@@ -57,3 +57,4 @@ edit_uri: "edit/main/docs"
 nav:
   - Documentation: 'index.md'
   - Components: components.md
+  - Quickstart: quickstart.md

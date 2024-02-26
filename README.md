@@ -6,7 +6,11 @@ Genestack — where Kubernetes and OpenStack tango in the cloud. Imagine a waltz
 what you need.
 
 ## Documentation
+
+Read the deployment and operations documentation
+
 [Genestack Documentation](https://rackerlabs.github.io/genestack/)
+
 ## Included/Required Components
 
 * Kubernetes:
@@ -81,15 +85,3 @@ architecture of the Genestack ecosystem.
 They say a picture is worth 1000 words, so here's a picture.
 
 ![Genestack Architecture Diagram](assets/images/diagram-genestack.png)
-
-## Get Deploying
-
-Read the [docs](https://github.com/rackerlabs/genestack/wiki), start building your clouds with Genestack now.
-
-### Get the Docs
-
-You can clone a copy of all of our documentation locally by running the following command.
-
-``` shell
-git clone https://github.com/rackerlabs/genestack/wiki
-```
