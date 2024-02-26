@@ -55,6 +55,5 @@ dev_addr: "127.0.0.1:8001"
 edit_uri: "edit/main/docs"
 
 nav:
-  - Home: index.md
-  - Quick-Start: quickstart.md
+  - Documentation: 'index.md'
   - Components: components.md

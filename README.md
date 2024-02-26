@@ -5,6 +5,8 @@
 Genestack — where Kubernetes and OpenStack tango in the cloud. Imagine a waltz between systems that deploy
 what you need.
 
+## Documentation
+[Genestack Documentation](https://rackerlabs.github.io/genestack/)
 ## Included/Required Components
 
 * Kubernetes:
