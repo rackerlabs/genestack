@@ -36,7 +36,7 @@ Building our cloud future has never been this simple.
   * [Deploy Vault](vault.md)
 
 ### 4.Openstack Infrastructure
-  * Deploy Openstack on k8s](Deploy-Openstack.md)
+  * [Deploy Openstack on k8s](Deploy-Openstack.md)
 
 #### Post Deployment
   * [Post Deploy Operations](post-deploy-ops.md)
