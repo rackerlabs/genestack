@@ -10,8 +10,8 @@ Take a moment to orient yourself, there are a few items to consider before movin
 
 ### Clone Genestack
 
-> Your local genestack repository will be transferred to the eventual launcher instance for convenience (_perfect for development_).
-See [[Getting Started|https://github.com/rackerlabs/genestack/wiki#getting-started]] for an example on how to recursively clone the repository and its submodules.
+> Your local genestack repository will be transferred to the eventual launcher instance for convenience **perfect for development**.
+See [Getting Started](quickstart.md] for an example on how to recursively clone the repository and its submodules.
 
 ### Create a VirtualEnv
 
@@ -29,9 +29,9 @@ pip install ansible openstacksdk
 
 The openstacksdk used by the ansible playbook needs a valid configuration to your environment to stand up the test resources.
 
-An example `clouds.yaml` that could be placed in [ansible/playbooks/](../../tree/main/ansible/playbooks):
+An example `clouds.yaml`:
 
-```
+``` yaml
 cache:
   auth: true
   expiration_time: 3600
@@ -50,7 +50,7 @@ clouds:
     identity_api_version: "3"
 ```
 
-See the configuration guide [[here|https://docs.openstack.org/openstacksdk/latest/user/config/configuration.html]] for more examples.
+See the configuration guide [here](https://docs.openstack.org/openstacksdk/latest/user/config/configuration.html) for more examples.
 
 ## Create a Test Environment
 
