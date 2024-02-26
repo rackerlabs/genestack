@@ -99,7 +99,7 @@ The test infrastructure will create the following OpenStack resources.
 
 The result of the playbook will look something like this.
 
-![image](https://github.com/rackerlabs/genestack/assets/2066292/7c7f4230-256c-4392-9928-767edb2ad0f0)
+![image](docs/assets/images/lab-diagram.png)
 
 * The first three nodes within the build playbook will be assumed as controllers
 * The last three nodes will be assumed to be storage nodes with 3 volumes attached to them each
