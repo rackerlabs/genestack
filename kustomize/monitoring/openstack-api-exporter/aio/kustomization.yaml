@@ -1,0 +1,14 @@
+bases:
+  - ../base
+
+patches:
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: prometheus-openstack-exporter
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 1

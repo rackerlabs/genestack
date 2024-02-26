@@ -1,0 +1,3 @@
+resources:
+  - hpa-openstack-api-exporter.yaml
+  - all.yaml
