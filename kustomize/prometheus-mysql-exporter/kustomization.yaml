@@ -1,0 +1,11 @@
+resources:
+  - monitoring_user_create.yaml
+  - monitoring_user_grant.yaml
+
+helmCharts:
+  - name: prometheus-mysql-exporter
+    repo: https://prometheus-community.github.io/helm-charts
+    releaseName: prometheus-mysql-exporter
+    namespace: openstack
+    includeCRDs: true
+    valuesFile: values.yaml
