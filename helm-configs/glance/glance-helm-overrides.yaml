@@ -977,7 +977,7 @@ manifests:
   pod_rally_test: false
   pvc_images: true
   network_policy: false
-  secret_db: true
+  secret_db: false
   secret_ingress_tls: true
   secret_keystone: true
   secret_rabbitmq: true

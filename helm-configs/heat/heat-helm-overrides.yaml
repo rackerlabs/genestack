@@ -1234,7 +1234,7 @@ manifests:
   pdb_cloudwatch: false
   pod_rally_test: false
   network_policy: false
-  secret_db: true
+  secret_db: false
   secret_ingress_tls: true
   secret_keystone: true
   secret_rabbitmq: true

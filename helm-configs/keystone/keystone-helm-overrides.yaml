@@ -1095,7 +1095,7 @@ manifests:
   pod_rally_test: false
   network_policy: false
   secret_credential_keys: true
-  secret_db: true
+  secret_db: false
   secret_fernet_keys: true
   secret_ingress_tls: true
   secret_keystone: true

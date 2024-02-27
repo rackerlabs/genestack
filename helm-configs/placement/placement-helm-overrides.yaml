@@ -458,7 +458,7 @@ manifests:
   job_ks_service: true
   job_ks_user: true
   network_policy: false
-  secret_db: true
+  secret_db: false
   secret_ingress_tls: true
   secret_registry: true
   pdb: true

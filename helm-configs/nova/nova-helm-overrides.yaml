@@ -2556,7 +2556,7 @@ manifests:
   network_policy: false
   secret_db_api: true
   secret_db_cell0: true
-  secret_db: true
+  secret_db: false
   secret_ingress_tls: true
   secret_keystone: true
   secret_rabbitmq: true
