@@ -1,0 +1,18 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: Grant
+metadata:
+  name: monitoring-grant
+spec:
+  mariaDbRef:
+    name: mariadb-galera
+  privileges:
+    - "SELECT"
+    - "PROCESS"
+    - "REPLICATION CLIENT"
+  database: "*"
+  table: "*"
+  username: monitoring
+  grantOption: false
+  host: "%"
+  requeueInterval: 30s
+  retryInterval: 5s

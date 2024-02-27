@@ -1,0 +1,15 @@
+apiVersion: mariadb.mmontes.io/v1alpha1
+kind: User
+metadata:
+  name: monitoring
+spec:
+  name: monitoring
+  mariaDbRef:
+    name: mariadb-galera
+  passwordSecretKeyRef:
+    name: mariadb-monitoring
+    key: password
+  maxUserConnections: 15
+  host: "%"
+  requeueInterval: 30s
+  retryInterval: 5s

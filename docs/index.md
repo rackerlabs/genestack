@@ -46,3 +46,7 @@ Building our cloud future has never been this simple.
 ## Upgrades
   * [Running Genestack Upgrade](genestack-upgrade.md)
   * [Running Kubernetes Upgrade](k8s-upgrade.md)
+
+## Monitoring
+  * [Deploy Prometheus](prometheus.md)
+  * [MySQL Exporter](prometheus-mysql-exporter.md)
