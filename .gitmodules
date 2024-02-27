@@ -13,3 +13,6 @@
 [submodule "submodules/mariadb-operator"]
 	path = submodules/mariadb-operator
 	url = https://github.com/mariadb-operator/mariadb-operator
+[submodule "submodules/openstack-exporter"]
+	path = submodules/openstack-exporter
+	url = https://github.com/openstack-exporter/helm-charts
