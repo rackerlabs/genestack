@@ -22,8 +22,7 @@ kubectl apply -k /opt/genestack/kustomize/openstack
 kubectl --namespace openstack \
         create secret generic mariadb \
         --type Opaque \
-        --from-literal=root-password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)" \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+        --from-literal=root-password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
 ```
 
 ### Deploy the mariadb operator
