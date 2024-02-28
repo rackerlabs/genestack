@@ -1,0 +1,43 @@
+name: Helm GitHub Actions for openstack-metrics-exporter
+
+on:
+  pull_request:
+    paths:
+      - helm-configs/monitoring/openstack-metrics-exporter/**
+      - kustomize/monitoring/openstack-metrics-exporter/**
+      - .github/workflows/helm-openstack-metrics-exporter.yaml
+jobs:
+  helm:
+    name: Helm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: azure/setup-helm@v3
+        with:
+          version: latest
+          token: "${{ secrets.GITHUB_TOKEN }}"
+        id: helm
+      - name: Kubectl Install
+        working-directory: /usr/local/bin/
+        run: |
+            if [ ! -f /usr/local/bin/kubectl ]; then
+              curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+              chmod +x ./kubectl
+            fi
+      - name: Pull Openstack Exporter submodules
+        run: |
+          git submodule update --init submodules/openstack-exporter
+      - name: Run Helm Template
+        run: |
+          cd submodules/openstack-exporter/charts/
+          ${{ steps.helm.outputs.helm-path }} template os-metrics ./prometheus-openstack-exporter \
+            --namespace=openstack \
+            --wait \
+            --timeout 120m \
+            -f ${{ github.workspace }}/helm-configs/monitoring/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml  > /tmp/rendered.yaml
+      - name: Return helm Build
+        uses: actions/upload-artifact@v2
+        with:
+          name: helm-openstack-exporter-artifact-${{ matrix.overlays }}
+          path: /tmp/rendered.yaml

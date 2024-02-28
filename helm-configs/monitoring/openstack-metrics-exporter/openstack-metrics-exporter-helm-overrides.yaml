@@ -1,0 +1,89 @@
+---
+# Choose endpoint type (this will override the value of clouds.yaml)
+endpoint_type: public
+# Ignored when multicloud.enabled: true
+cloud: default
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/openstack-exporter/openstack-exporter
+  tag: 1.7.0
+  pullPolicy: Always
+
+serviceMonitor:
+  interval: 3m
+  scrapeTimeout: 30s
+
+multicloud:
+  # Enable multicloud (i.e. /probe?... targets)
+  # Doc: https://github.com/openstack-exporter/openstack-exporter#description
+  enabled: false
+  # Monitor the exporter's internal metrics (i.e. /metrics)
+  selfmonitor: false
+  # List of clouds to scrape, and the services to scrape from them
+  clouds:
+    - name: default
+      services:
+        - volume
+        - image
+        - identity
+        - compute
+        - network
+        - placement
+        - load-balancer
+        - object-store
+        #- container-infra
+        #- dns
+        #- baremetal
+        - gnocchi
+        #- database
+        - orchestration
+
+  #  - name: cloud1
+  #    services:
+  #      - volume
+  #  - name: cloud2
+  #    services:
+  #      - volume
+  #      - image
+  #      - identity
+  #      - compute
+  #      - network
+  #      - placement # NB this needs the openstack-exporter release > 1.4.0
+
+# Add extra args to the exporter.
+# Doc: https://github.com/openstack-exporter/openstack-exporter#command-line-options
+#extraArgs:
+#  - --disable-service.baremetal
+#  - --disable-service.container-infra
+#  - --disable-service.object-store
+
+# Add extra environment variables
+# extraEnvs:
+#  "ENV_VAR": "value"
+
+# Add extra labels
+#commonLabels:
+#  prometheus.io/scrape: "true"
+#  prometheus.io/monitor: "true"
+
+# Generate a secret for clouds.yaml
+# Doc: https://github.com/openstack-exporter/openstack-exporter#openstack-configuration
+clouds_yaml_config: |
+  clouds.yaml: |
+      clouds:
+        default:
+          region_name: RegionOne
+          auth:
+            username: admin
+            password: <admin-password>
+            project_name: admin
+            project_domain_name: default
+            user_domain_name: default
+            auth_url: 'http://keystone-api.openstack.svc.cluster.local:5000/v3'
+# In case of multicloud.enabled
+#        cloud1:
+#         ...
+#        cloud2:
+#         ...
