@@ -169,4 +169,4 @@ vault kv put -mount=osh/keystone keystone-credential-keys  password=$(< /dev/ura
 
 ---
 
-Once the secrets are created in Vault, we can use `vault-secrets-operator` to populate the Kubernetes secret resources in Kubernetes cluster.
+Once the secrets are created in Vault, we can use [vault-secrets-operator](https://github.com/rackerlabs/genestack/blob/main/docs/vault-secrets-operator.md) to populate the Kubernetes secret resources in Kubernetes cluster.
