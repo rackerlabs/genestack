@@ -16,9 +16,9 @@ helmCharts:
         nodeSelector:
           node-role.kubernetes.io/control-plane: ""
       cert-manager:
-        enabled: true
+        enabled: false
       storageClasses:
-        - name: general  # Defines name of storage class.
+        - name: local-path  # Defines name of storage class.
           storageClass:
             fsType: xfs  # Supported filesystems are: ext4, xfs, and btrfs.
             # reclaimPolicy
@@ -33,7 +33,7 @@ helmCharts:
             # enables CSI drivers to expand volumes. This feature is available for Kubernetes 1.16 and later releases.
             allowVolumeExpansion: true
             additionalParameters:
-              topolvm.io/device-class: "general"
+              topolvm.io/device-class: "local-path"
             # mount options
             mountOptions: []
       # lvmd service
@@ -46,7 +46,7 @@ helmCharts:
         socketName: /run/topolvm/lvmd.sock
         # lvmd.deviceClasses -- Specify the device-class settings.
         deviceClasses:
-          - name: general
+          - name: local-path
             volume-group: vg-general
             default: true
             spare-gb: 10
