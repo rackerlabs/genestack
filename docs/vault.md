@@ -43,10 +43,20 @@ vault-agent-injector-7f9f668fd5-wk7tm   1/1     Running   0          55s
 ### Initialize Vault
 
 ``` shell
-kubectl exec vault-0 -n vault -- vault operator init -key-shares=5 -key-threshold=3 -format=json > cluster-keys.json
+kubectl exec vault-0 -n vault -- vault operator init -key-shares=3 -key-threshold=2 -format=json > cluster-keys.json
 ```
 
 This command provides unseal keys and a root token in cluster-keys.json. Keep this information secure.
+
+
+### Unseal Vault(vault-0)
+
+On vault-0 pod, use any of the 2 unseal keys obtained during initialization:
+``` shell
+kubectl exec -it vault-0 -n vault -- sh
+vault operator unseal
+```
+Repeat the unseal command as needed with different unseal keys.
 
 ### Join Vault Pods to Form a Cluster
 
@@ -60,9 +70,9 @@ kubectl exec -it vault-2 -n vault -- sh
 vault operator raft join -leader-ca-cert=@/vault/userconfig/vault-server-tls/ca.crt https://vault-0.vault-internal:8200
 ```
 
-### Unseal Vault
+### Unseal Vault(vault-1, vault-2)
 
-On each Vault pod (vault-0, vault-1, vault-2), use any of the 3 unseal keys obtained during initialization:
+On each Vault pod (vault-1, vault-2), use any of the 2 unseal keys obtained during initialization:
 ``` shell
 kubectl exec -it vault-1 -n vault -- sh
 vault operator unseal
@@ -75,7 +85,7 @@ Repeat the unseal command as needed with different unseal keys.
 Use the root token obtained during initialization to authenticate:
 
 ``` shell
-kubectl exec -it vault-0 -- vault login
+kubectl exec -it vault-0 -n vault -- vault login
 ```
 
 ## Validation
