@@ -1,9 +1,9 @@
-##Mariadb Exporter
+## Mariadb Exporter
 
 Mysql Exporter is used to expose metrics from a running mysql/mariadb server. The type of metrics exposed is controlled
 by the exporter and expressed in values.yaml file.
 
-##Installation
+## Installation
 
 First create secret containing password for monitoring user
 ```

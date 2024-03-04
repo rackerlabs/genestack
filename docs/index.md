@@ -50,3 +50,5 @@ Building our cloud future has never been this simple.
 ## Monitoring
   * [Deploy Prometheus](prometheus.md)
   * [MySQL Exporter](prometheus-mysql-exporter.md)
+  * [RabbitMQ Exporter](prometheus-rabbitmq-exporter.md)
+  * [Openstack Exporter](prometheus-openstack-metrics-exporter.md)
