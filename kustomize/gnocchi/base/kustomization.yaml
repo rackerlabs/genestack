@@ -1,0 +1,10 @@
+resources:
+  - all.yaml
+
+patches:
+  # A patch to supplant the `storage-init.sh` script containing an updated
+  # ceph command that does not use `profile` when setting auth capabilities.
+  - path: configmap-bin.yaml
+    target:
+      kind: ConfigMap
+      name: gnocchi-bin
