@@ -13,3 +13,6 @@
 [submodule "submodules/openstack-exporter"]
 	path = submodules/openstack-exporter
 	url = https://github.com/openstack-exporter/helm-charts
+[submodule "submodules/nginx-gateway-fabric"]
+	path = submodules/nginx-gateway-fabric
+	url = https://github.com/nginxinc/nginx-gateway-fabric.git
