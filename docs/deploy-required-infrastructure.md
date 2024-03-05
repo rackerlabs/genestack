@@ -303,6 +303,44 @@ kubectl apply -k /opt/genestack/kustomize/ovn
 After running the setup, nodes will have the label `ovn.openstack.org/configured` with a date stamp when it was configured.
 If there's ever a need to reconfigure a node, simply remove the label and the DaemonSet will take care of it automatically.
 
+## Deploy PostgreSQL
+
+### Create Secrets
+
+```shell
+kubectl --namespace openstack create secret generic postgresql-identity-admin \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+kubectl --namespace openstack create secret generic postgresql-db-admin \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+kubectl --namespace openstack create secret generic postgresql-db-exporter \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+kubectl --namespace openstack create secret generic postgresql-db-audit \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+```
+
+### Run the package deployment
+
+```shell
+cd /opt/genestack/submodules/openstack-helm-infra
+helm upgrade --install postgresql ./postgresql \
+    --namespace=openstack \
+    --wait \
+    --timeout 10m \
+    -f /opt/genestack/helm-configs/postgresql/postgresql-helm-overrides.yaml \
+    --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.identity.auth.postgresql.password="$(kubectl --namespace openstack get secret postgresql-identity-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.postgresql.auth.admin.password="$(kubectl --namespace openstack get secret postgresql-db-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.postgresql.auth.exporter.password="$(kubectl --namespace openstack get secret postgresql-db-exporter -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.postgresql.auth.audit.password="$(kubectl --namespace openstack get secret postgresql-db-audit -o jsonpath='{.data.password}' | base64 -d)"
+```
+
+> In a production like environment you may need to include production specific files like the example variable file found in
+  `helm-configs/prod-example-openstack-overrides.yaml`.
+
 ## Validation our infrastructure is operational
 
 Before going any further make sure you validate that the backends are operational.
