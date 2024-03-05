@@ -411,45 +411,79 @@ rules:
     verbs:
       - get
 ---
-# Aspects of ceph-mgr that require cluster-wide access
-kind: ClusterRole
+# Aspects of ceph-mgr that operate within the cluster's namespace
+kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: rook-ceph-mgr-cluster
-  labels:
-    operator: rook
-    storage-backend: ceph
-    app.kubernetes.io/part-of: rook-ceph-operator
+  name: rook-ceph-mgr
+  namespace: rook-ceph # namespace:cluster
 rules:
   - apiGroups:
       - ""
     resources:
-      - configmaps
-      - nodes
-      - nodes/proxy
-      - persistentvolumes
+      - pods
+      - services
+      - pods/log
     verbs:
       - get
       - list
       - watch
-  - apiGroups:
-      - ""
-    resources:
-      - events
-    verbs:
       - create
-      - patch
-      - list
-      - get
-      - watch
+      - update
+      - delete
   - apiGroups:
-      - storage.k8s.io
+      - batch
     resources:
-      - storageclasses
+      - jobs
     verbs:
       - get
       - list
       - watch
+      - create
+      - update
+      - delete
+  - apiGroups:
+      - ceph.rook.io
+    resources:
+      - cephclients
+      - cephclusters
+      - cephblockpools
+      - cephfilesystems
+      - cephnfses
+      - cephobjectstores
+      - cephobjectstoreusers
+      - cephobjectrealms
+      - cephobjectzonegroups
+      - cephobjectzones
+      - cephbuckettopics
+      - cephbucketnotifications
+      - cephrbdmirrors
+      - cephfilesystemmirrors
+      - cephfilesystemsubvolumegroups
+      - cephblockpoolradosnamespaces
+      - cephcosidrivers
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - delete
+      - patch
+  - apiGroups:
+      - apps
+    resources:
+      - deployments/scale
+      - deployments
+    verbs:
+      - patch
+      - delete
+  - apiGroups:
+      - ''
+    resources:
+      - persistentvolumeclaims
+    verbs:
+      - delete
 ---
 # Aspects of ceph-mgr that require access to the system namespace
 kind: ClusterRole
@@ -657,6 +691,18 @@ subjects:
   - kind: ServiceAccount
     name: rook-ceph-system
     namespace: rook-ceph # namespace:operator
+---
+# Service account for other components
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rook-ceph-default
+  namespace: rook-ceph # namespace:cluster
+  labels:
+    operator: rook
+    storage-backend: ceph
+# imagePullSecrets:
+#   - name: my-registry-secret
 ---
 # Allow the ceph mgr to access cluster-wide resources necessary for the mgr modules
 kind: ClusterRoleBinding
