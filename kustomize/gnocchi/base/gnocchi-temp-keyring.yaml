@@ -1,0 +1,20 @@
+# Creates a named temp secret with a non-sensitve value.
+# It would be used during keyring placement if the admin or client keyrings
+# are not available, see: _ceph-keyring.sh.tpl -> /tmp/client-keyring
+# The `admin_keyring` should be provided as an override to the helm-chart
+# so that the RBD pool and user can be created automatically. The resulting
+# keyring from user creation will be stored in `gnocchi-rbd-keyring`.
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gnocchi-temp-keyring
+type: Opaque
+stringData:
+  key: |
+    # This file should not be used under normal circumstances.
+    # If the admin_keyring is not defined in the helm chart then this file
+    # would be used. Similarly, if the gnocchi.storage.provided_keyring is
+    # not provided, this file would be used.
+    # Refer to _ceph-keyring.sh.tpl -> /tmp/client-keyring for a better
+    # understanding of why you're here.

@@ -1,3 +1,6 @@
+# A patch to supplant the `storage-init.sh` script containing an updated
+# ceph command that does not use `profile` when setting auth capabilities.
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
