@@ -12,4 +12,5 @@ helmCharts:
           certManager:
             enabled: true
     includeCRDs: true
+    version: 0.24.0
     namespace: mariadb-system
