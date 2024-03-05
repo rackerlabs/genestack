@@ -358,7 +358,7 @@ conf:
     <VirtualHost *:{{ tuple "metric" "internal" "api" . | include "helm-toolkit.endpoints.endpoint_port_lookup" }}>
         WSGIDaemonProcess gnocchi processes=1 threads=2 user=gnocchi group=gnocchi display-name=%{GROUP}
         WSGIProcessGroup gnocchi
-        WSGIScriptAlias / "/var/lib/kolla/venv/lib/python2.7/site-packages/gnocchi/rest/app.wsgi"
+        WSGIScriptAlias / "/var/lib/kolla/venv/lib/python3.8/site-packages/gnocchi/rest/wsgi.py"
         WSGIApplicationGroup %{GLOBAL}
 
         ErrorLog /dev/stderr
@@ -366,7 +366,7 @@ conf:
         CustomLog /dev/stdout combined env=!forwarded
         CustomLog /dev/stdout proxy env=forwarded
 
-        <Directory "/var/lib/kolla/venv/lib/python2.7/site-packages/gnocchi/rest">
+        <Directory "/var/lib/kolla/venv/lib/python3.8/site-packages/gnocchi/rest">
               Require all granted
         </Directory>
     </VirtualHost>
