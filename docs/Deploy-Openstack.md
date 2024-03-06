@@ -412,6 +412,14 @@ root@openstack-flex-node-4:~# lvs
 Part of running Nova is also running placement. Setup all credentials now so we can use them across the nova and placement services.
 
 ``` shell
+# Shared
+kubectl --namespace openstack \
+        create secret generic metadata-shared-secret \
+        --type Opaque \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+```
+
+``` shell
 # Placement
 kubectl --namespace openstack \
         create secret generic placement-db-password \
@@ -500,6 +508,7 @@ helm upgrade --install nova ./nova \
   --namespace=openstack \
     --timeout 120m \
     -f /opt/genestack/helm-configs/nova/nova-helm-overrides.yaml \
+    --set conf.nova.neutron.metadata_proxy_shared_secret="$(kubectl --namespace openstack get secret metadata-shared-secret -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.nova.password="$(kubectl --namespace openstack get secret nova-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.neutron.password="$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -542,6 +551,8 @@ helm upgrade --install neutron ./neutron \
   --namespace=openstack \
     --timeout 120m \
     -f /opt/genestack/helm-configs/neutron/neutron-helm-overrides.yaml \
+    --set conf.metadata_agent.DEFAULT.metadata_proxy_shared_secret="$(kubectl --namespace openstack get secret metadata-shared-secret -o jsonpath='{.data.password}' | base64 -d)" \
+    --set conf.ovn_metadata_agent.DEFAULT.metadata_proxy_shared_secret="$(kubectl --namespace openstack get secret metadata-shared-secret -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.neutron.password="$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.nova.password="$(kubectl --namespace openstack get secret nova-admin -o jsonpath='{.data.password}' | base64 -d)" \
