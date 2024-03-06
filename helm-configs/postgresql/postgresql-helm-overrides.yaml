@@ -154,6 +154,7 @@ images:
       - image_repo_sync
 
 storage:
+  # Ensure PVC sizes are appropriate for the given environment
   pvc:
     enabled: true
     size: 5Gi
