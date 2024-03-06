@@ -4,7 +4,8 @@
 
 # Run The Genestack Kubernetes Deployment
 
-Genestack assumes Kubernetes is present and available to run workloads on. We don't really care how your Kubernetes was deployed or what flavor of Kubernetes you're running. For our purposes we're using Kubespray, but you do you. We just need the following systems in your environment.
+Genestack assumes Kubernetes is present and available to run workloads on. We don't really care how your Kubernetes was deployed or what flavor of Kubernetes you're running.
+For our purposes we're using Kubespray, but you do you. We just need the following systems in your environment.
 
 * Kube-OVN
 * Persistent Storage
@@ -22,14 +23,21 @@ Currently only the k8s provider kubespray is supported and included as submodule
 
 ### Before you Deploy
 
-Kubespray will be using OVN for all of the network functions, as such, you will need to ensure your hosts are ready to receive the deployment at a low level. While the Kubespray tooling will do a lot of prep and setup work to ensure success, you will need to prepare
-your networking infrastructure and basic storage layout before running the playbooks.
+Kubespray will be using OVN for all of the network functions, as such, you will need to ensure your hosts are ready to receive the deployment at a low level.
+While the Kubespray tooling will do a lot of prep and setup work to ensure success,
+you will need to prepare your networking infrastructure and basic storage layout before running the playbooks.
+
+### SSH Config
+
+The deploy has created a openstack-flex-keypair.config copy this into the config file in .ssh, if one is not there create it.
 
 #### Minimum system requirements
 
 * 2 Network Interfaces
 
-> While we would expect the environment to be running with multiple bonds in a production cloud, two network interfaces is all that's required. This can be achieved with vlan tagged devices, physical ethernet devices, macvlan, or anything else. Have a look at the netplan example file found [here](https://github.com/rackerlabs/genestack/blob/main/etc/netplan/default-DHCP.yaml) for an example of how you could setup the network.
+> While we would expect the environment to be running with multiple bonds in a production cloud, two network interfaces is all that's required.
+> This can be achieved with vlan tagged devices, physical ethernet devices, macvlan, or anything else.
+> Have a look at the netplan example file found [here](https://github.com/rackerlabs/genestack/blob/main/etc/netplan/default-DHCP.yaml) for an example of how you could setup the network.
 
 * Ensure we're running kernel 5.17+
 
@@ -37,11 +45,13 @@ your networking infrastructure and basic storage layout before running the playb
 
 * Kernel modules
 
-> The Kubespray tool chain will attempt to deploy a lot of things, one thing is a set of `sysctl` options which will include bridge tunings. Given the tooling will assume bridging is functional, you will need to ensure the `br_netfilter` module is loaded or you're using a kernel that includes that functionality as a built-in.
+> The Kubespray tool chain will attempt to deploy a lot of things, one thing is a set of `sysctl` options which will include bridge tunings.
+> Given the tooling will assume bridging is functional, you will need to ensure the `br_netfilter` module is loaded or you're using a kernel that includes that functionality as a built-in.
 
 * Executable `/tmp`
 
-> The `/tmp` directory is used as a download and staging location within the environment. You will need to make sure that the `/tmp` is executable. By default, some kick-systems set the mount option **noexec**, if that is defined you should remove it before running the deployment.
+> The `/tmp` directory is used as a download and staging location within the environment. You will need to make sure that the `/tmp` is executable.
+> By default, some kick-systems set the mount option **noexec**, if that is defined you should remove it before running the deployment.
 
 ### Create your Inventory
 
@@ -79,7 +89,8 @@ cd /opt/genestack/ansible/playbooks
 
 > The RC file sets a number of environment variables that help ansible to run in a more easily to understand way.
 
-While the `ansible-playbook` command should work as is with the sourced environment variables, sometimes it's necessary to set some overrides on the command line. The following example highlights a couple of overrides that are generally useful.
+While the `ansible-playbook` command should work as is with the sourced environment variables, sometimes it's necessary to set some overrides on the command line.
+The following example highlights a couple of overrides that are generally useful.
 
 #### Example host setup playbook
 
@@ -88,6 +99,8 @@ ansible-playbook host-setup.yml
 ```
 
 #### Example host setup playbook with overrides
+
+Confirm openstack-flex-inventory.yaml matches what is in /etc/genestack/inventory. If it does not match update the command to match the file names.
 
 ``` shell
 # Example overriding things on the CLI
@@ -120,6 +133,8 @@ ansible-playbook cluster.yml
 ```
 
 The cluster deployment playbook can also have overrides defined to augment how the playbook is executed.
+Confirm openstack-flex-inventory.yaml matches what is in /etc/genestack/inventory. If it does not match update the command to match the file names.
+
 
 ``` shell
 ansible-playbook --inventory /etc/genestack/inventory/openstack-flex-inventory.yaml \
@@ -133,8 +148,12 @@ ansible-playbook --inventory /etc/genestack/inventory/openstack-flex-inventory.y
 
 Once the cluster is online, you can run `kubectl` to interact with the environment.
 
+### Retrieve Kube Config
 
-### Optional - Remove taint from our Controllers
+The instructions can be found here [Kube Config](https://rackerlabs.github.io/genestack/kube-config/)
+
+
+### Remove taint from our Controllers
 
 In an environment with a limited set of control plane nodes removing the NoSchedule will allow you to converge the
 openstack controllers with the k8s controllers.
@@ -193,10 +212,14 @@ Check the node labels
 # Verify the nodes are operational and labled.
 kubectl get nodes -o wide --show-labels=true
 ```
+``` shell
+# Here is a way to make it look a little nicer:
+kubectl get nodes -o json | jq '[.items[] | {"NAME": .metadata.name, "LABELS": .metadata.labels}]'
+```
 
 ## Install Helm
 
-While `helm` should already be installed with the **host-setup** playbook, it is possible that you may need to install helm manually on nodes. There are lots of ways to install helm, check the upstream [docs](https://helm.sh/docs/intro/install/) to learn more about installing helm.
+While `helm` should already be installed with the **host-setup** playbook, you will need to install helm manually on nodes. There are lots of ways to install helm, check the upstream [docs](https://helm.sh/docs/intro/install/) to learn more about installing helm.
 
 ### Run `make` for our helm components
 

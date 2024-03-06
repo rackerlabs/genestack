@@ -110,3 +110,12 @@ The result of the playbook will look something like this.
 The lab deployment playbook will build an environment suitable for running Genestack, however, it does not by itself run the full deployment. Once your resources are online, you can login to the "launcher" node and begin running the deployment. To make things fairly simple, the working development directory will be sync'd to the launcher node, along with keys and your generated inventory.
 
 > If you're wanting to inspect the generated inventory, you can find it in your home directory.
+
+### SSH to lab
+
+If you have not set your .ssh config do not forget to  put in your path for your openstack-flex-keypair. Your Ip will be present after running the infra-deploy.yaml.
+
+``` shell
+ssh -i /path/to/.ssh/openstack-flex-keypair.key ubuntu@X.X.X.X
+
+```
