@@ -12,4 +12,4 @@ cd /opt/genestack/kustomize/prometheus-rabbitmq-exporter
 kubectl kustomize --enable-helm . | kubectl create -n openstack -f -
 ```
 
-If the installation is succesful, you should see the exporter pod in openstack namespace.
+If the installation is successful, you should see the exporter pod in openstack namespace.

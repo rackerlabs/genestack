@@ -12,6 +12,7 @@ jobs:
         overlays:
           - base
           - aio
+          - base-monitoring
     name: Kustomize
     runs-on: ubuntu-latest
     steps:
