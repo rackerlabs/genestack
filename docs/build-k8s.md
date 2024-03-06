@@ -4,7 +4,8 @@
 
 # Run The Genestack Kubernetes Deployment
 
-Genestack assumes Kubernetes is present and available to run workloads on. We don't really care how your Kubernetes was deployed or what flavor of Kubernetes you're running. For our purposes we're using Kubespray, but you do you. We just need the following systems in your environment.
+Genestack assumes Kubernetes is present and available to run workloads on. We don't really care how your Kubernetes was deployed or what flavor of Kubernetes you're running.
+For our purposes we're using Kubespray, but you do you. We just need the following systems in your environment.
 
 * Kube-OVN
 * Persistent Storage
@@ -22,8 +23,9 @@ Currently only the k8s provider kubespray is supported and included as submodule
 
 ### Before you Deploy
 
-Kubespray will be using OVN for all of the network functions, as such, you will need to ensure your hosts are ready to receive the deployment at a low level. While the Kubespray tooling will do a lot of prep and setup work to ensure success, you will need to prepare
-your networking infrastructure and basic storage layout before running the playbooks. 
+Kubespray will be using OVN for all of the network functions, as such, you will need to ensure your hosts are ready to receive the deployment at a low level.
+While the Kubespray tooling will do a lot of prep and setup work to ensure success,
+you will need to prepare your networking infrastructure and basic storage layout before running the playbooks. 
 
 ### SSH Config
 
@@ -33,7 +35,9 @@ The deploy has created a openstack-flex-keypair.config copy this into the config
 
 * 2 Network Interfaces
 
-> While we would expect the environment to be running with multiple bonds in a production cloud, two network interfaces is all that's required. This can be achieved with vlan tagged devices, physical ethernet devices, macvlan, or anything else. Have a look at the netplan example file found [here](https://github.com/rackerlabs/genestack/blob/main/etc/netplan/default-DHCP.yaml) for an example of how you could setup the network.
+> While we would expect the environment to be running with multiple bonds in a production cloud, two network interfaces is all that's required.
+> This can be achieved with vlan tagged devices, physical ethernet devices, macvlan, or anything else.
+> Have a look at the netplan example file found [here](https://github.com/rackerlabs/genestack/blob/main/etc/netplan/default-DHCP.yaml) for an example of how you could setup the network.
 
 * Ensure we're running kernel 5.17+
 
@@ -41,11 +45,13 @@ The deploy has created a openstack-flex-keypair.config copy this into the config
 
 * Kernel modules
 
-> The Kubespray tool chain will attempt to deploy a lot of things, one thing is a set of `sysctl` options which will include bridge tunings. Given the tooling will assume bridging is functional, you will need to ensure the `br_netfilter` module is loaded or you're using a kernel that includes that functionality as a built-in.
+> The Kubespray tool chain will attempt to deploy a lot of things, one thing is a set of `sysctl` options which will include bridge tunings.
+> Given the tooling will assume bridging is functional, you will need to ensure the `br_netfilter` module is loaded or you're using a kernel that includes that functionality as a built-in.
 
 * Executable `/tmp`
 
-> The `/tmp` directory is used as a download and staging location within the environment. You will need to make sure that the `/tmp` is executable. By default, some kick-systems set the mount option **noexec**, if that is defined you should remove it before running the deployment.
+> The `/tmp` directory is used as a download and staging location within the environment. You will need to make sure that the `/tmp` is executable.
+> By default, some kick-systems set the mount option **noexec**, if that is defined you should remove it before running the deployment.
 
 ### Create your Inventory
 
@@ -83,7 +89,8 @@ cd /opt/genestack/ansible/playbooks
 
 > The RC file sets a number of environment variables that help ansible to run in a more easily to understand way.
 
-While the `ansible-playbook` command should work as is with the sourced environment variables, sometimes it's necessary to set some overrides on the command line. The following example highlights a couple of overrides that are generally useful.
+While the `ansible-playbook` command should work as is with the sourced environment variables, sometimes it's necessary to set some overrides on the command line.
+The following example highlights a couple of overrides that are generally useful.
 
 #### Example host setup playbook
 
@@ -125,7 +132,8 @@ Once the inventory is updated and configuration altered (networking etc), the Ku
 ansible-playbook cluster.yml
 ```
 
-The cluster deployment playbook can also have overrides defined to augment how the playbook is executed. Confirm openstack-flex-inventory.yaml matches what is in /etc/genestack/inventory. If it does not match update the command to match the file names.
+The cluster deployment playbook can also have overrides defined to augment how the playbook is executed.
+Confirm openstack-flex-inventory.yaml matches what is in /etc/genestack/inventory. If it does not match update the command to match the file names.
 
 
 ``` shell
