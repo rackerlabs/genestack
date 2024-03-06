@@ -25,7 +25,7 @@ Currently only the k8s provider kubespray is supported and included as submodule
 
 Kubespray will be using OVN for all of the network functions, as such, you will need to ensure your hosts are ready to receive the deployment at a low level.
 While the Kubespray tooling will do a lot of prep and setup work to ensure success,
-you will need to prepare your networking infrastructure and basic storage layout before running the playbooks. 
+you will need to prepare your networking infrastructure and basic storage layout before running the playbooks.
 
 ### SSH Config
 
@@ -213,7 +213,7 @@ Check the node labels
 kubectl get nodes -o wide --show-labels=true
 ```
 ``` shell
-# Here is a way to make it look a little nicer: 
+# Here is a way to make it look a little nicer:
 kubectl get nodes -o json | jq '[.items[] | {"NAME": .metadata.name, "LABELS": .metadata.labels}]'
 ```
 
