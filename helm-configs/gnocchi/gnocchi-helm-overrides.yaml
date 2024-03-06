@@ -376,29 +376,41 @@ conf:
     override:
     append:
   paste:
-    pipeline:main:
-      pipeline: gnocchi+auth
-    composite:gnocchi+noauth:
-      use: egg:Paste#urlmap
-      /: gnocchiversions
-      /v1: gnocchiv1+noauth
-    composite:gnocchi+auth:
-      use: egg:Paste#urlmap
-      /: gnocchiversions
-      /v1: gnocchiv1+auth
-    pipeline:gnocchiv1+noauth:
-      pipeline: gnocchiv1
-    pipeline:gnocchiv1+auth:
-      pipeline: keystone_authtoken gnocchiv1
-    app:gnocchiversions:
-      paste.app_factory: gnocchi.rest.app:app_factory
-      root: gnocchi.rest.VersionsController
     app:gnocchiv1:
       paste.app_factory: gnocchi.rest.app:app_factory
-      root: gnocchi.rest.V1Controller
-    filter:keystone_authtoken:
-      paste.filter_factory: keystonemiddleware.auth_token:filter_factory
+      root: gnocchi.rest.api.V1Controller
+    app:gnocchiversions:
+      paste.app_factory: gnocchi.rest.app:app_factory
+      root: gnocchi.rest.api.VersionsController
+    app:healthcheck:
       oslo_config_project: gnocchi
+      use: egg:oslo.middleware#healthcheck
+    composite:gnocchi+basic:
+      /: gnocchiversions_pipeline
+      /healthcheck: healthcheck
+      /v1: gnocchiv1+noauth
+      use: egg:Paste#urlmap
+    composite:gnocchi+keystone:
+      /: gnocchiversions_pipeline
+      /healthcheck: healthcheck
+      /v1: gnocchiv1+keystone
+      use: egg:Paste#urlmap
+    composite:gnocchi+remoteuser:
+      /: gnocchiversions_pipeline
+      /healthcheck: healthcheck
+      /v1: gnocchiv1+noauth
+      use: egg:Paste#urlmap
+    filter:keystone_authtoken:
+      oslo_config_project: gnocchi
+      use: egg:keystonemiddleware#auth_token
+    pipeline:gnocchiv1+keystone:
+      pipeline: keystone_authtoken gnocchiv1
+    pipeline:gnocchiv1+noauth:
+      pipeline: gnocchiv1
+    pipeline:gnocchiversions_pipeline:
+      pipeline: gnocchiversions
+    pipeline:main:
+      pipeline: gnocchi+keystone
   policy:
     admin_or_creator: 'role:admin or project_id:%(created_by_project_id)s'
     resource_owner: 'project_id:%(project_id)s'
