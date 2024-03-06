@@ -1,5 +1,5 @@
 ---
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: Database
 metadata:
   name: skyline
@@ -13,7 +13,7 @@ spec:
   collate: utf8_general_ci
   retryInterval: 5s
 ---
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: User
 metadata:
   name: skyline
@@ -31,7 +31,7 @@ spec:
   host: "%"
   retryInterval: 5s
 ---
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: Grant
 metadata:
   name: skyline-grant

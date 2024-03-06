@@ -1,4 +1,4 @@
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
   name: mariadb-galera
@@ -7,47 +7,75 @@ spec:
   rootPasswordSecretKeyRef:
     name: mariadb
     key: root-password
-
-  database: mariadb
   username: mariadb
-  passwordSecretKeyRef:
-    name: mariadb
-    key: password
+  database: mariadb
 
-  image: mariadb:11.0.3
-
-  port: 3306
+  storage:
+    size: 1Gi
+    storageClassName: general
+    resizeInUseVolumes: true
+    waitForVolumeResize: true
+    volumeClaimTemplate:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+      storageClassName: general
 
   replicas: 3
   podSecurityContext:
     runAsUser: 0
+
+  # point to an existing MaxScale instance. Doing this will delegate tasks such as primary failover to MaxScale.
+  # maxScaleRef:
+  #   name: maxscale
+
+  # provision a MaxScale instance and set 'spec.maxScaleRef' automatically.
+  maxScale:
+    enabled: false
+
+    kubernetesService:
+      type: LoadBalancer
+      annotations:
+        metallb.universe.tf/address-pool: primary
+
+    connection:
+      secretName: mxs-galera-conn
+      port: 3306
+
   galera:
     enabled: true
     primary:
       podIndex: 0
       automaticFailover: true
     sst: mariabackup
-    replicaThreads: 4
+    availableWhenDonor: false
+    galeraLibPath: /usr/lib/galera/libgalera_smm.so
+    replicaThreads: 1
     agent:
-      image: ghcr.io/mariadb-operator/agent:v0.0.3
+      image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.26
       port: 5555
       kubernetesAuth:
         enabled: true
-      gracefulShutdownTimeout: 5s
+      gracefulShutdownTimeout: 1s
     recovery:
       enabled: true
-      clusterHealthyTimeout: 3m
+      minClusterSize: 50%
+      clusterHealthyTimeout: 30s
       clusterBootstrapTimeout: 10m
-      podRecoveryTimeout: 5m
-      podSyncTimeout: 5m
+      podRecoveryTimeout: 3m
+      podSyncTimeout: 3m
     initContainer:
-      image: ghcr.io/mariadb-operator/init:v0.0.6
-    volumeClaimTemplate:
-      resources:
-        requests:
-          storage: 10Gi
-      accessModes:
-        - ReadWriteOnce
+      image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.26
+    config:
+      reuseStorageVolume: false
+      volumeClaimTemplate:
+        resources:
+          requests:
+            storage: 300Mi
+        accessModes:
+          - ReadWriteOnce
 
   service:
     type: LoadBalancer
@@ -77,17 +105,15 @@ spec:
       key: dsn
 
   affinity:
-    podAntiAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - topologyKey: "kubernetes.io/hostname"
+    enableAntiAffinity: true
 
   tolerations:
-    - key: "mariadb.mmontes.io/ha"
+    - key: "k8s.mariadb.com/ha"
       operator: "Exists"
       effect: "NoSchedule"
 
   podDisruptionBudget:
-    maxUnavailable: 66%
+    maxUnavailable: 33%
 
   updateStrategy:
     type: RollingUpdate
@@ -109,9 +135,5 @@ spec:
     limits:
       memory: 16Gi
 
-  volumeClaimTemplate:
-    resources:
-      requests:
-        storage: 10Gi
-    accessModes:
-      - ReadWriteOnce
+  metrics:
+    enabled: true
