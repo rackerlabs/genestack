@@ -50,7 +50,12 @@ Once the rook cluster is online with a HEALTH status of `HEALTH_OK`, deploy the 
 ``` shell
 kubectl apply -k /opt/genestack/kustomize/rook-defaults
 ```
-
+> [!IMPORTANT]
+> If installing prometheus after rook-ceph is installed, you may patch a running rook-ceph cluster with the following command:
+``` shell
+kubectl -n rook-ceph patch CephCluster rook-ceph  --type=merge -p "{\"spec\": {\"monitoring\": {\"enabled\": true}}}"
+```
+Ensure you have 'servicemonitors' defined in the rook-ceph namespace.
 
 
 ## Cephadm/ceph-ansible/Rook (Ceph) - External
