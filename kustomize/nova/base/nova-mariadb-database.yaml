@@ -1,5 +1,5 @@
 ---
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: Database
 metadata:
   name: nova
@@ -13,7 +13,7 @@ spec:
   collate: utf8_general_ci
   retryInterval: 5s
 ---
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: Database
 metadata:
   name: nova-api
@@ -28,7 +28,7 @@ spec:
   collate: utf8_general_ci
   retryInterval: 5s
 ---
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: Database
 metadata:
   name: nova-cell0
@@ -43,7 +43,7 @@ spec:
   collate: utf8_general_ci
   retryInterval: 5s
 ---
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: User
 metadata:
   name: nova
@@ -61,7 +61,7 @@ spec:
   host: "%"
   retryInterval: 5s
 ---
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: Grant
 metadata:
   name: nova-grant
@@ -78,7 +78,7 @@ spec:
   host: "%"
   retryInterval: 5s
 ---
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: Grant
 metadata:
   name: nova-api-grant
@@ -95,7 +95,7 @@ spec:
   host: "%"
   retryInterval: 5s
 ---
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: Grant
 metadata:
   name: nova-cell0-grant
