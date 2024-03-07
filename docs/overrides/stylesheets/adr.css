@@ -94,7 +94,26 @@
 }
 
 .md-grid {
-    max-width: 95%;
+    max-width: 100%;
+    flex-grow: 1
+}
+
+.md-main__inner {
+    display: flex;
+    height: 100%;
+    margin-top: 1.5rem
+}
+
+.md-content {
+    flex-grow: 1;
+    min-width: 0;
+    max-width: 1000px;
+}
+
+.md-main {
+    flex-grow: 1;
+    margin-left: auto;
+    margin-right: auto
 }
 
 .md-nav__item--active>.md-nav__link {
