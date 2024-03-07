@@ -15,7 +15,7 @@
   </defs>
   <g id="Flex_K8s_Components" fill-opacity="1" stroke="none" stroke-dasharray="none" stroke-opacity="1" fill="none">
     <title>Flex K8s Components</title>
-    <rect fill="white" x="81.5" y="27.5" width="846.5368" height="400.5392"/>
+    <rect x="81.5" y="27.5" width="846.5368" height="400.5392"/>
     <g id="Flex_K8s_Components_Layer_1">
       <title>Layer 1</title>
       <g id="Graphic_24" filter="url(#Shadow)">
@@ -87,14 +87,14 @@
         <path d="M 190.125 373.5392 L 541.1016 373.5392 C 546.07217 373.5392 550.1016 377.56865 550.1016 382.5392 L 550.1016 414.5392 C 550.1016 419.5098 546.07217 423.5392 541.1016 423.5392 L 190.125 423.5392 C 185.15444 423.5392 181.125 419.5098 181.125 414.5392 L 181.125 382.5392 C 181.125 377.56865 185.15444 373.5392 190.125 373.5392 Z" fill="#c0c0ff"/>
         <path d="M 190.125 373.5392 L 541.1016 373.5392 C 546.07217 373.5392 550.1016 377.56865 550.1016 382.5392 L 550.1016 414.5392 C 550.1016 419.5098 546.07217 423.5392 541.1016 423.5392 L 190.125 423.5392 C 185.15444 423.5392 181.125 419.5098 181.125 414.5392 L 181.125 382.5392 C 181.125 377.56865 185.15444 373.5392 190.125 373.5392 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
         <text transform="translate(186.125 387.5392)" fill="black">
-          <tspan font-family="Helvetica" font-size="18" fill="black" x="43.41603" y="18">Dell 4th Gen AMD (R7615/R7625)</tspan>
+          <tspan font-family="Helvetica" font-size="18" fill="black" x="43.41603" y="18">AMD Servers</tspan>
         </text>
       </g>
       <g id="Graphic_14" filter="url(#Shadow)">
         <path d="M 564.6116 373.5392 L 915.5882 373.5392 C 920.5588 373.5392 924.5882 377.56865 924.5882 382.5392 L 924.5882 414.5392 C 924.5882 419.5098 920.5588 423.5392 915.5882 423.5392 L 564.6116 423.5392 C 559.6411 423.5392 555.6116 419.5098 555.6116 414.5392 L 555.6116 382.5392 C 555.6116 377.56865 559.6411 373.5392 564.6116 373.5392 Z" fill="#c0c0ff"/>
         <path d="M 564.6116 373.5392 L 915.5882 373.5392 C 920.5588 373.5392 924.5882 377.56865 924.5882 382.5392 L 924.5882 414.5392 C 924.5882 419.5098 920.5588 423.5392 915.5882 423.5392 L 564.6116 423.5392 C 559.6411 423.5392 555.6116 419.5098 555.6116 414.5392 L 555.6116 382.5392 C 555.6116 377.56865 559.6411 373.5392 564.6116 373.5392 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
         <text transform="translate(560.6116 387.5392)" fill="black">
-          <tspan font-family="Helvetica" font-size="18" fill="black" x="104.95705" y="18">Dell Intel (R740xd)</tspan>
+          <tspan font-family="Helvetica" font-size="18" fill="black" x="104.95705" y="18">Intel Servers</tspan>
         </text>
       </g>
       <g id="Group_3">
