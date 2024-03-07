@@ -14,7 +14,9 @@ When running Kubespray using the Genestack submodule, review the [Genestack Upda
 
 Genestack stores inventory in the `/etc/genestack/inventory` directory. Before running the upgrade, you will need to set the **kube_version** variable to your new target version. This variable is generally found within the `/etc/genestack/inventory/group_vars/k8s_cluster/k8s-cluster.yml` file.
 
-> Review all of the group variables within an environment before running a major upgrade. Things change, and you need to be aware of your environment details before running the upgrade.
+!!! note
+
+    Review all of the group variables within an environment before running a major upgrade. Things change, and you need to be aware of your environment details before running the upgrade.
 
 Once the group variables are set, you can proceed with the upgrade execution.
 
@@ -40,7 +42,9 @@ Now run the upgrade.
 ansible-playbook upgrade-cluster.yml
 ```
 
-> While the basic command could work, be sure to include any and all flags needed for your environment before running the upgrade.
+!!! note
+
+    While the basic command could work, be sure to include any and all flags needed for your environment before running the upgrade.
 
 ### Running an unsafe upgrade
 

@@ -43,8 +43,12 @@ EOF
 kubectl --namespace kube-system get secret registry-kube-system-cert -o jsonpath='{.data.ca\.crt}' | base64 -d > /opt/registry.ca
 ```
 
-> NOTE the above commands make the assumption that you're running a docker registry within the kube-system namespace and are running the provided genestack ingress definition to support that environment. If you have a different registry you will need to adjust the commands to fit your environment.
+!!! note
+
+    the above commands make the assumption that you're running a docker registry within the kube-system namespace and are running the provided genestack ingress definition to support that environment. If you have a different registry you will need to adjust the commands to fit your environment.
 
 Once the above commands have been executed, the file `/opt/octavia-ovn-helm-overrides.yaml` will be present and can be included in our helm command when we deploy Octavia.
 
-> If you're using the local registry with a self-signed certificate, you will need to include the CA `/opt/registry.ca` in all of your potential worker nodes so that the container image is able to be pulled.
+!!! tip
+
+    If you're using the local registry with a self-signed certificate, you will need to include the CA `/opt/registry.ca` in all of your potential worker nodes so that the container image is able to be pulled.

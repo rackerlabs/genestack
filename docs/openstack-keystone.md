@@ -44,11 +44,13 @@ helm upgrade --install keystone ./keystone \
     --post-renderer-args keystone/base
 ```
 
-> In a production like environment you may need to include production specific files like the example variable file found in
-  `helm-configs/prod-example-openstack-overrides.yaml`.
+!!! tip
 
-> NOTE: The image used here allows the system to run with RXT global authentication federation.
-  The federated plugin can be seen here, https://github.com/cloudnull/keystone-rxt
+    In a production like environment you may need to include production specific files like the example variable file found in `helm-configs/prod-example-openstack-overrides.yaml`.
+
+!!! note
+
+    The image used here allows the system to run with RXT global authentication federation. The federated plugin can be seen here, https://github.com/cloudnull/keystone-rxt
 
 Deploy the openstack admin client pod (optional)
 

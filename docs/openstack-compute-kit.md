@@ -122,11 +122,13 @@ helm upgrade --install nova ./nova \
     --post-renderer-args nova/base
 ```
 
-> In a production like environment you may need to include production specific files like the example variable file found in
-  `helm-configs/prod-example-openstack-overrides.yaml`.
+!!! tip
 
-> NOTE: The above command is setting the ceph as disabled. While the K8S infrastructure has Ceph,
-  we're not exposing ceph to our openstack environment.
+    In a production like environment you may need to include production specific files like the example variable file found in `helm-configs/prod-example-openstack-overrides.yaml`.
+
+!!! note
+
+    The above command is setting the ceph as disabled. While the K8S infrastructure has Ceph, we're not exposing ceph to our openstack environment.
 
 If running in an environment that doesn't have hardware virtualization extensions add the following two `set` switches to the install command.
 
@@ -134,8 +136,9 @@ If running in an environment that doesn't have hardware virtualization extension
 --set conf.nova.libvirt.virt_type=qemu --set conf.nova.libvirt.cpu_mode=none
 ```
 
-> In a production like environment you may need to include production specific files like the example variable file found in
-  `helm-configs/prod-example-openstack-overrides.yaml`.
+!!! tip
+
+    In a production like environment you may need to include production specific files like the example variable file found in `helm-configs/prod-example-openstack-overrides.yaml`.
 
 ## Deploy Neutron
 
@@ -166,7 +169,10 @@ helm upgrade --install neutron ./neutron \
     --post-renderer-args neutron/base
 ```
 
-> In a production like environment you may need to include production specific files like the example variable file found in
-  `helm-configs/prod-example-openstack-overrides.yaml`.
+!!! tip
 
-> The above command derives the OVN north/south bound database from our K8S environment. The insert `set` is making the assumption we're using **tcp** to connect.
+    In a production like environment you may need to include production specific files like the example variable file found in `helm-configs/prod-example-openstack-overrides.yaml`.
+
+!!! info
+
+    The above command derives the OVN north/south bound database from our K8S environment. The insert `set` is making the assumption we're using **tcp** to connect.

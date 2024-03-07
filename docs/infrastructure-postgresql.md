@@ -19,9 +19,9 @@ kubectl --namespace openstack create secret generic postgresql-db-audit \
 
 ## Run the package deployment
 
-> Consider the PVC size you will need for the environment you're deploying in.
-  Make adjustments as needed near `storage.[pvc|archive_pvc].size` and
-  `volume.backup.size` to your helm overrides.
+!!! tip
+
+    Consider the PVC size you will need for the environment you're deploying in. Make adjustments as needed near `storage.[pvc|archive_pvc].size` and `volume.backup.size` to your helm overrides.
 
 ```shell
 cd /opt/genestack/submodules/openstack-helm-infra
@@ -37,5 +37,6 @@ helm upgrade --install postgresql ./postgresql \
     --set endpoints.postgresql.auth.audit.password="$(kubectl --namespace openstack get secret postgresql-db-audit -o jsonpath='{.data.password}' | base64 -d)"
 ```
 
-> In a production like environment you may need to include production specific files like the example variable file found in
-  `helm-configs/prod-example-openstack-overrides.yaml`.
+!!! tip
+
+    In a production like environment you may need to include production specific files like the example variable file found in `helm-configs/prod-example-openstack-overrides.yaml`.

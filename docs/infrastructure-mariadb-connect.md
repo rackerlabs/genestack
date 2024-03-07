@@ -8,4 +8,6 @@ mysql -h $(kubectl -n openstack get service mariadb-galera-primary -o jsonpath='
       -u root
 ```
 
-> The following command will leverage your kube configuration and dynamically source the needed information to connect to the MySQL cluster. You will need to ensure you have installed the mysql client tools on the system you're attempting to connect from.
+!!! info
+
+    The following command will leverage your kube configuration and dynamically source the needed information to connect to the MySQL cluster. You will need to ensure you have installed the mysql client tools on the system you're attempting to connect from.

@@ -40,8 +40,9 @@ helm upgrade --install cinder ./cinder \
     --post-renderer-args cinder/base
 ```
 
-> In a production like environment you may need to include production specific files like the example variable file found in
-  `helm-configs/prod-example-openstack-overrides.yaml`.
+!!! tip
+
+    In a production like environment you may need to include production specific files like the example variable file found in `helm-configs/prod-example-openstack-overrides.yaml`.
 
 Once the helm deployment is complete cinder and all of it's API services will be online. However, using this setup there will be
 no volume node at this point. The reason volume deployments have been disabled is because we didn't expose ceph to the openstack
@@ -49,8 +50,9 @@ environment and OSH makes a lot of ceph related assumptions. For testing purpose
 driver (reference) and manage the deployment of that driver in a hybrid way. As such there's a deployment outside of our normal
 K8S workflow will be needed on our volume host.
 
-> The LVM volume makes the assumption that the storage node has the required volume group setup `lvmdriver-1` on the node
-  This is not something that K8S is handling at this time.
+!!! note
+
+    The LVM volume makes the assumption that the storage node has the required volume group setup `lvmdriver-1` on the node This is not something that K8S is handling at this time.
 
 While cinder can run with a great many different storage backends, for the simple case we want to run with the Cinder reference
 driver, which makes use of Logical Volumes. Because this driver is incompatible with a containerized work environment, we need
@@ -68,7 +70,9 @@ Assuming your storage node was also deployed as a K8S node when we did our initi
 operational for you; however, in the event you need to do some manual tweaking or if the node was note deployed as a K8S worker, then
 make sure you setup the DNS resolvers correctly so that your volume service node can communicate with our cluster.
 
-> This is expected to be our CoreDNS IP, in my case this is `169.254.25.10`.
+!!! note
+
+    This is expected to be our CoreDNS IP, in my case this is `169.254.25.10`.
 
 This is an example of my **systemd-resolved** conf found in `/etc/systemd/resolved.conf`
 ``` conf
@@ -134,7 +138,9 @@ root@openstack-flex-node-0:~# kubectl --namespace openstack exec -ti openstack-a
 +------------------+-------------------------------------------------+------+---------+-------+----------------------------+
 ```
 
-> Notice the volume service is up and running with our `lvmdriver-1` target.
+!!! note
+
+    The volume service is up and running with our `lvmdriver-1` target.
 
 At this point it would be a good time to define your types within cinder. For our example purposes we need to define the `lvmdriver-1`
 type so that we can schedule volumes to our environment.

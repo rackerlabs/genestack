@@ -2,7 +2,9 @@
 
 Before you can do anything we need to get the code. Because we've sold our soul to the submodule devil, you're going to need to recursively clone the repo into your location.
 
-> Throughout the all our documentation and examples the genestack code base will be assumed to be in `/opt`.
+!!! info
+
+    Throughout the all our documentation and examples the genestack code base will be assumed to be in `/opt`.
 
 ``` shell
 git clone --recurse-submodules -j4 https://github.com/rackerlabs/genestack /opt/genestack
@@ -22,6 +24,8 @@ export GENESTACK_PRODUCT=openstack-enterprise
 /opt/genestack/bootstrap.sh
 ```
 
-> If running this command with `sudo`, be sure to run with `-E`. `sudo -E /opt/genestack/bootstrap.sh`. This will ensure your active environment is passed into the bootstrap command.
+!!! tip
+
+    If running this command with `sudo`, be sure to run with `-E`. `sudo -E /opt/genestack/bootstrap.sh`. This will ensure your active environment is passed into the bootstrap command.
 
 Once the bootstrap is completed the default Kubernetes provider will be configured inside `/etc/genestack/provider`

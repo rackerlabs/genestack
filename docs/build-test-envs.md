@@ -10,8 +10,9 @@ Take a moment to orient yourself, there are a few items to consider before movin
 
 ### Clone Genestack
 
-> Your local genestack repository will be transferred to the eventual launcher instance for convenience **perfect for development**.
-See [Getting Started](quickstart.md] for an example on how to recursively clone the repository and its submodules.
+!!! note
+
+    Your local genestack repository will be transferred to the eventual launcher instance for convenience **perfect for development**. See [Getting Started](quickstart.md] for an example on how to recursively clone the repository and its submodules.
 
 ### Create a VirtualEnv
 
@@ -19,7 +20,9 @@ This is optional but always recommended. There are multiple tools for this, pick
 
 ### Install Ansible Dependencies
 
-> Activate your venv if you're using one.
+!!! info
+
+    Activate your venv if you're using one.
 
 ```
 pip install ansible openstacksdk
@@ -54,7 +57,9 @@ See the configuration guide [here](https://docs.openstack.org/openstacksdk/lates
 
 ## Create a Test Environment
 
-> This is used to deploy new infra on an existing OpenStack cloud. If you're deploying on baremetal this document can be skipped.
+!!! abstract
+
+    This is used to deploy new infra on an existing OpenStack cloud. If you're deploying on baremetal this document can be skipped.
 
 If deploying in a lab environment on an OpenStack cloud, you can run the `infra-deploy.yaml` playbook which will create all of the resources needed to operate the test environment.
 
@@ -72,7 +77,9 @@ cd ansible/playbooks
 
 Run the test infrastructure deployment.
 
-> Ensure `os_cloud_name` as well as other values within your `infra-deploy.yaml` match a valid cloud name in your openstack configuration as well as resource names within it.
+!!! tip
+
+    Ensure `os_cloud_name` as well as other values within your `infra-deploy.yaml` match a valid cloud name in your openstack configuration as well as resource names within it.
 
 !!! note
 
@@ -110,7 +117,9 @@ The result of the playbook will look something like this.
 
 The lab deployment playbook will build an environment suitable for running Genestack, however, it does not by itself run the full deployment. Once your resources are online, you can login to the "launcher" node and begin running the deployment. To make things fairly simple, the working development directory will be sync'd to the launcher node, along with keys and your generated inventory.
 
-> If you're wanting to inspect the generated inventory, you can find it in your home directory.
+!!! tip
+
+    If you're wanting to inspect the generated inventory, you can find it in your home directory.
 
 ### SSH to lab
 

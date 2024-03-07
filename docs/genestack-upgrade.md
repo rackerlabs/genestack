@@ -15,7 +15,9 @@ git fetch origin
 git rebase origin/main
 ```
 
-> You may want to checkout a specific SHA or tag when running a stable environment.
+!!! tip
+
+    You may want to checkout a specific SHA or tag when running a stable environment.
 
 Update the submodules.
 

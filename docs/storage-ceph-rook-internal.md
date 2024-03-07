@@ -22,7 +22,9 @@ kubectl apply -k /opt/genestack/kustomize/rook-cluster/
 kubectl --namespace rook-ceph get cephclusters.ceph.rook.io
 ```
 
-> You can track the deployment with the following command `kubectl --namespace rook-ceph get pods -w`.
+!!! note
+
+    You can track the deployment with the following command `kubectl --namespace rook-ceph get pods -w`.
 
 ## Create Storage Classes
 
