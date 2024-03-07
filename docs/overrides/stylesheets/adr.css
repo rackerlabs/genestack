@@ -96,3 +96,15 @@
 .md-grid {
     max-width: 95%;
 }
+
+.md-nav__item--active>.md-nav__link {
+    color: #c90000;
+    font-weight: bold;
+}
+
+[data-md-color-accent=red] {
+    --md-accent-fg-color: #eb0000;
+    --md-accent-fg-color--transparent: #ff19471a;
+    --md-accent-bg-color: #fff;
+    --md-accent-bg-color--light: #ffffffb3
+}
