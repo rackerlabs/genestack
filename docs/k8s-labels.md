@@ -1,33 +1,10 @@
-# Post deployment Operations
+# Label all of the nodes in the environment
 
-## Remove taint from our Controllers
+To use the K8S environment for OpenStack all of the nodes MUST be labeled. The following Labels will be used within your environment.
+Make sure you label things accordingly.
 
-In an environment with a limited set of control plane nodes removing the NoSchedule will allow you to converge the
-openstack controllers with the k8s controllers.
-
-``` shell
-# Remote taint from control-plane nodes
-kubectl taint nodes $(kubectl get nodes -o 'jsonpath={.items[*].metadata.name}') node-role.kubernetes.io/control-plane:NoSchedule-
-```
-
-## Optional - Deploy K8S Dashboard RBAC
-
-While the dashboard is installed you will have no ability to access it until we setup some basic RBAC.
-
-``` shell
-kubectl apply -k /opt/genestack/kustomize/k8s-dashboard
-```
-
-You can now retrieve a permanent token.
-
-``` shell
-kubectl get secret admin-user -n kube-system -o jsonpath={".data.token"} | base64 -d
-```
-
-## Label all of the nodes in the environment
-
-> The following example assumes the node names can be used to identify their purpose within our environment. That
-  may not be the case in reality. Adapt the following commands to meet your needs.
+> The following example assumes the node names can be used to identify their purpose within our environment.
+  That may not be the case in reality. Adapt the following commands to meet your needs.
 
 ``` shell
 # Label the storage nodes - optional and only used when deploying ceph for K8S infrastructure shared storage
