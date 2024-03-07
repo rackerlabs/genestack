@@ -12,3 +12,10 @@ The full scale Genestack infrastructure is bound to change over time, however, t
 !!! tip
 
     The infrastructure deployment can almost all be run in parallel. The above demo does everything serially to keep things consistent and easy to understand but if you just need to get things done, feel free to do it all at once.
+
+## Deployment choices
+
+When you're building the cloud, many of the underlying infrastructure components have a deployment choice of `base` or `aio`.
+
+* `base` creates a production-ready environment that ensures an HA system is deployed across the hardware available in your cloud.
+* `aio` creates a minimal cloud environment which is suitable for test, which may have low resources.
