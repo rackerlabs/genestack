@@ -7,3 +7,6 @@ skip_list:
 - risky-file-permissions
 - no-changed-when
 - fqcn
+
+exclude_paths:
+- mkdocs.yml

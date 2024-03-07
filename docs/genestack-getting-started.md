@@ -1,8 +1,4 @@
-# Welcome to the Genestack Wiki
-
-Welcome to the Genestack wiki! The following documents will breakdown a full end-to-end deployment and highlight how we can run a hybrid cloud environment, simply.
-
-## Getting Started
+# Getting Started
 
 Before you can do anything we need to get the code. Because we've sold our soul to the submodule devil, you're going to need to recursively clone the repo into your location.
 

@@ -1,0 +1,98 @@
+.adr_header {
+    display: grid;
+    grid-template-columns: fit-content(30%) auto;
+    width: 100%;
+    font-size: 0.7rem;
+}
+
+.adr_header>dd {
+    margin: 0 !important;
+    padding: 0.1rem 0.3rem 0.1rem;
+}
+
+.adr_header>dt {
+    font-weight: bold;
+}
+
+.c-pill {
+    align-items: center;
+    font-family: "Open Sans", Arial, Verdana, sans-serif;
+    font-weight: bold;
+    font-size: 14px;
+    height: 100%;
+    white-space: nowrap;
+    width: auto;
+    position: relative;
+    border-radius: 100px;
+    line-height: 1 !important;
+    overflow: hidden;
+    padding: 0px 12px 0px 20px;
+    text-overflow: ellipsis;
+    line-height: 1.25rem;
+    color: #595959;
+    word-break: break-word;
+    &:before {
+        border-radius: 50%;
+        content: '';
+        height: 10px;
+        left: 6px;
+        margin-top: -5px;
+        position: absolute;
+        top: 50%;
+        width: 10px;
+    }
+}
+
+.c-pill-draft {
+    background: #a3a3a3;
+}
+
+.c-pill-draft:before {
+    background: #505050;
+}
+
+.c-pill-proposed {
+    background: #b6d8ff;
+}
+
+.c-pill-proposed:before {
+    background: #0077ff;
+}
+
+.c-pill-accepted {
+    background: #b4eda0;
+}
+
+.c-pill-accepted:before {
+    background: #6BC167;
+}
+
+.c-pill-rejected {
+    background: #ffd5d1;
+}
+
+.c-pill-rejected:before {
+    background: #ff4436;
+}
+
+.c-pill-superseded {
+    background: #ffebb6;
+}
+
+.c-pill-superseded:before {
+    background: #ffc400;
+}
+
+.adr_header .md-tag {
+    display: inline !important;
+
+}
+
+.adr_header .md-tags {
+    margin-bottom: 0% !important;
+    margin-top: unset !important;
+}
+
+.md-grid {
+    max-width: 95%;
+}

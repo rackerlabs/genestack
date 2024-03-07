@@ -1,11 +1,12 @@
 ---
 site_name: Genestack
 site_description: >-
-  Genestack — where Kubernetes and OpenStack tango in the cloud. Imagine a waltz between systems that deploy what you need.
+  Genestack — by Rackspace, where Kubernetes and OpenStack tango in the cloud. Imagine a waltz between systems that deploy what you need.
 
 theme:
   name: material
-
+  logo: assets/images/genestack.svg
+  favicon: assets/images/favicon.ico
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -41,13 +42,38 @@ theme:
     - search.suggest
     - toc.follow
 
+extra_css:
+  - stylesheets/adr.css
+
 plugins:
+  # - blog
   - search
+  - swagger-ui-tag
+  - mkdocs-material-adr/adr
+  - glightbox
 
 markdown_extensions:
   - admonition
   - attr_list
   - def_list
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: python
+          class: python
+          validator: !!python/name:markdown_exec.validator
+          format: !!python/name:markdown_exec.formatter
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
 
 repo_name: rackerlabs/genestack
 repo_url: https://github.com/rackerlabs/genestack
@@ -55,6 +81,74 @@ dev_addr: "127.0.0.1:8001"
 edit_uri: "edit/main/docs"
 
 nav:
-  - Documentation: 'index.md'
+  - Welcome: index.md
   - Components: components.md
-  - Quickstart: quickstart.md
+  - Quickstart:
+      - Building Virtual Environments: build-test-envs.md
+      - Simple Setup: quickstart.md
+  - Deployment Guide:
+      - Getting Started: genestack-getting-started.md
+      - Building the Cloud:
+          - Kubernetes:
+              - K8s Overview: k8s-overview.md
+              - Kubespray: k8s-kubespray.md
+              - Post Deployment: k8s-postdeploy.md
+              - Upgrade: k8s-kubespray-upgrade.md
+              - Retrieve kube config: k8s-config.md
+          - Storage:
+              - Storage Overview: storage-overview.md
+              - Ceph Internal: storage-ceph-rook-internal.md
+              - Ceph External: storage-ceph-rook-external.md
+              - NFS External: storage-nfs-external.md
+              - TopoLVM: storage-topolvm.md
+          - Monitoring:
+              - Monitoring Overview: prometheus.md
+          - Secrets:
+              - Vault Overview: vault.md
+              - Vault Operator: vault-secrets-operator.md
+          - Infrastructure:
+              - Infrastructure Overview: infrastructure-overview.md
+              - Namespace: infrastructure-namespace.md
+              - Ingress: infrastructure-ingress.md
+              - MariaDB:
+                  - MariaDB Overview: infrastructure-mariadb.md
+                  - MySQL Exporter: prometheus-mysql-exporter.md
+                  - Connecting to the Database: infrastructure-mariadb-connect.md
+              - PostgreSQL: infrastructure-postgresql.md
+              - RabbitMQ: infrastructure-rabbitmq.md
+              - Memcached: infrastructure-memcached.md
+              - Libvirt: infrastructure-libvirt.md
+              - OVN:
+                  - OVN Overview: infrastructure-ovn.md
+                  - Setup: infrastructure-ovn-setup.md
+                  - Database Backup: infrastructure-ovn-db-backup.md
+              - MetalLB: infrastructure-metallb.md
+              - RabbitMQ Exporter: prometheus-rabbitmq-exporter.md
+          - OpenStack:
+              - OpenStack Overview: openstack-overview.md
+              - Prepare OpenStack: openstack-helm-make.md
+              - OpenStack Services:
+                  - Keystone:
+                      - Keystone Overview: openstack-keystone.md
+                      - Federation: openstack-keystone-federation.md
+                  - Glance:
+                      - Glance Overview: openstack-glance.md
+                      - Images: openstack-glance-images.md
+                  - Heat: openstack-heat.md
+                  - Cinder: openstack-cinder.md
+                  - Compute Kit:
+                      - Compute Kit Overview: openstack-compute-kit.md
+                      - Flavors: openstack-flavors.md
+                      - Creating Networks: openstack-neutron-networks.md
+                  - Dashboard:
+                      - Horizon: openstack-horizon.md
+                      - skyline: openstack-skyline.md
+                  - Octavia: openstack-octavia.md
+                  - Gnocchi: openstack-gnocchi.md
+              - Openstack Exporter: prometheus-openstack-metrics-exporter.md
+              - OpenStack Clouds YAML: openstack-clouds.md
+  - Operational Guide:
+      - Building Local Images: build-local-images.md
+      - Running Genestack Upgrade: genestack-upgrade.md
+      - Third Party Tools:
+          - OSIE: extra-osie.md

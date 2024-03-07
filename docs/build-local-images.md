@@ -1,4 +1,6 @@
-## Optional - Building OVN with customer providers
+# Building Custom Images
+
+## Octavia OVN with customer providers
 
 By default Octavia will run with Amphora, however, because we've OVN available to our environment we can also configure the OVN provider for use within the cluster. While the genestack defaults will include a container image that meets our needs, the following snippet will walk you through the manual build process making use of the internal kubernetes registry.
 

@@ -1,0 +1,109 @@
+# Configure OVN for OpenStack
+
+Post deployment we need to setup neutron to work with our integrated OVN environment. To make that work we have to annotate or nodes. Within the following commands we'll use a lookup to label all of our nodes the same way, however, the power of this system is the ability to customize how our machines are labeled and therefore what type of hardware layout our machines will have. This gives us the ability to use different hardware in different machines, in different availability zones. While this example is simple your cloud deployment doesn't have to be.
+
+``` shell
+export ALL_NODES=$(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}')
+```
+
+> Set the annotations you need within your environment to meet the needs of your workloads on the hardware you have.
+
+### Set `ovn.openstack.org/int_bridge`
+
+Set the name of the OVS integration bridge we'll use. In general, this should be **br-int**, and while this setting is implicitly configured we're explicitly defining what the bridge will be on these nodes.
+
+``` shell
+kubectl annotate \
+        nodes \
+        ${ALL_NODES} \
+        ovn.openstack.org/int_bridge='br-int'
+```
+
+### Set `ovn.openstack.org/bridges`
+
+Set the name of the OVS bridges we'll use. These are the bridges you will use on your hosts within OVS. The option is a string and comma separated. You can define as many OVS type bridges you need or want for your environment.
+
+> NOTE The functional example here annotates all nodes; however, not all nodes have to have the same setup.
+
+``` shell
+kubectl annotate \
+        nodes \
+        ${ALL_NODES} \
+        ovn.openstack.org/bridges='br-ex'
+```
+
+### Set `ovn.openstack.org/ports`
+
+Set the port mapping for OVS interfaces to a local physical interface on a given machine. This option uses a colon between the OVS bridge and the and the physical interface, `OVS_BRIDGE:PHYSICAL_INTERFACE_NAME`. Multiple bridge mappings can be defined by separating values with a comma.
+
+``` shell
+kubectl annotate \
+        nodes \
+        ${ALL_NODES} \
+        ovn.openstack.org/ports='br-ex:bond1'
+```
+
+### Set `ovn.openstack.org/mappings`
+
+Set the Neutron bridge mapping. This maps the Neutron interfaces to the ovs bridge names. These are colon delimitated between `NEUTRON_INTERFACE:OVS_BRIDGE`. Multiple bridge mappings can be defined here and are separated by commas.
+
+> Neutron interfaces are string value and can be anything you want. The `NEUTRON_INTERFACE` value defined will be used when you create provider type networks after the cloud is online.
+
+``` shell
+kubectl annotate \
+        nodes \
+        ${ALL_NODES} \
+        ovn.openstack.org/mappings='physnet1:br-ex'
+```
+
+### Set `ovn.openstack.org/availability_zones`
+
+Set the OVN availability zones which inturn creates neutron availability zones. Multiple network availability zones can be defined and are colon separated which allows us to define all of the availability zones a node will be able to provide for, `nova:az1:az2:az3`.
+
+``` shell
+kubectl annotate \
+        nodes \
+        ${ALL_NODES} \
+        ovn.openstack.org/availability_zones='nova'
+```
+
+> Any availability zone defined here should also be defined within your **neutron.conf**. The "nova" availability zone is an assumed defined, however, because we're running in a mixed OVN environment, we should define where we're allowed to execute OpenStack workloads.
+
+### Set `ovn.openstack.org/gateway`
+
+Define where the gateways nodes will reside. There are many ways to run this, some like every compute node to be a gateway, some like dedicated gateway hardware. Either way you will need at least one gateway node within your environment.
+
+``` shell
+kubectl annotate \
+        nodes \
+        ${ALL_NODES} \
+        ovn.openstack.org/gateway='enabled'
+```
+
+## Run the OVN integration
+
+With all of the annotations defined, we can now apply the network policy with the following command.
+
+``` shell
+kubectl apply -k /opt/genestack/kustomize/ovn
+```
+
+After running the setup, nodes will have the label `ovn.openstack.org/configured` with a date stamp when it was configured.
+If there's ever a need to reconfigure a node, simply remove the label and the DaemonSet will take care of it automatically.
+
+## Validation our infrastructure is operational
+
+Before going any further make sure you validate that the backends are operational.
+
+``` shell
+# MariaDB
+kubectl --namespace openstack get mariadbs
+
+#RabbitMQ
+kubectl --namespace openstack get rabbitmqclusters.rabbitmq.com
+
+# Memcached
+kubectl --namespace openstack get horizontalpodautoscaler.autoscaling memcached
+```
+
+Once everything is Ready and online. Continue with the installation.
