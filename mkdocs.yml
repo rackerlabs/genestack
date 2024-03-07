@@ -1,9 +1,12 @@
 ---
-site_name: Genestack
+site_name: Open Infrastructure
 site_description: >-
-  Genestack — by Rackspace, where Kubernetes and OpenStack tango in the cloud. Imagine a waltz between systems that deploy what you need.
+  Open Infrastructure, a Rackspace solution, is a collection of open-source tools and technologies that provide a
+  flexible, scalable, and cost-effective infrastructure solution for your business. This documentation provides
+  information on how to deploy and manage Open-Infrastructure in your environment. It also provides information on how
+  to onboard and manage your workloads on OpenStack, Kubernetes, and other open-source technologies.
 
-site_url: https://rackerlabs.github.io/genestack
+site_url: https://docs.rackspacecloud.com
 
 theme:
   name: material
@@ -110,7 +113,7 @@ nav:
       - Building Virtual Environments: build-test-envs.md
       - Simple Setup: quickstart.md
   - Deployment Guide:
-      - genestack-getting-started.md
+      - Getting Started: genestack-getting-started.md
       - Open Infrastructure:
           - Kubernetes:
               - k8s-overview.md
