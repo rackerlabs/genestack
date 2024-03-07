@@ -13,11 +13,15 @@ The following examples all assume the use of a production environment, however, 
 
 ## The DNA of our services
 
-The DNA of the OpenStack services has been built to scale, and be managed in a pseudo light-outs environment. We're aiming to empower operators to do more, simply and easily. Here are the high-level talking points about the way we've structured our applications.
+![Genestack Logo Mono](assets/images/genestack-logo.png#only-dark){ align=left }
+![Genestack Logo Mono](assets/images/genestack-logo-mono.png#only-light){ align=left }
+The DNA of the OpenStack services has been built to scale, and be managed in a pseudo light-outs environment. We're aiming to empower operators to do more, simply and easily. The high level tenets we started our project from are simple and were written with intention. We're building Genestack not to show off how complex our platform is or how smart our engineers are, we're building systems to show how simple cloud deployment, operations, and maintenance can be.
 
+### Core Tenets
 * All services make use of our core infrastructure which is all managed by operators.
+    * Rollback and versioning is present and a normal feature of our operations.
 * Backups, rollbacks, and package management all built into our applications delivery.
-* Databases, users, and grants are all run against a MariaDB Galera cluster which is setup for OpenStack to use a single right, and read from many.
-  * The primary node is part of application service discovery and will be automatically promoted / demoted within the cluster as needed.
-* Queues, permissions, vhosts, and users are all backed by a RabbitMQ cluster with automatic failover. All of the queues deployed in the environment are done with Quorum queues, giving us a best of bread queing platform which gracefully recovers from faults while maintaining performance.
+* Databases, users, and grants are all run against a cluster which is setup for OpenStack to use a single right, and read from many.
+    * The primary node is part of application service discovery and will be automatically promoted / demoted within the cluster as needed.
+* Queues, permissions, vhosts, and users are all backed by a cluster with automatic failover. All of the queues deployed in the environment are done with Quorum queues, giving us a best of bread queing platform which gracefully recovers from faults while maintaining performance.
 * Horizontal scaling groups have been applied to all of our services. This means we'll be able to auto scale API applications up and down based on the needs of the environment.
