@@ -82,7 +82,9 @@ edit_uri: "edit/main/docs"
 
 nav:
       - Welcome: index.md
-      - Components: components.md
+      - Overview:
+              - Components: genestack-components.md
+              - Architecture: genestack-architecture.md
       - Quickstart:
               - Building Virtual Environments: build-test-envs.md
               - Simple Setup: quickstart.md
@@ -117,14 +119,15 @@ nav:
                                       - MariaDB Deployment: infrastructure-mariadb.md
                                       - MySQL Exporter: prometheus-mysql-exporter.md
                               - PostgreSQL: infrastructure-postgresql.md
-                              - RabbitMQ: infrastructure-rabbitmq.md
+                              - RabbitMQ:
+                                      - RabbitMQ Deployment: infrastructure-rabbitmq.md
+                                      - RabbitMQ Exporter: prometheus-rabbitmq-exporter.md
                               - Memcached: infrastructure-memcached.md
                               - Libvirt: infrastructure-libvirt.md
                               - OVN:
                                       - OVN Overview: infrastructure-ovn.md
                                       - OVN Setup: infrastructure-ovn-setup.md
                               - MetalLB: infrastructure-metallb.md
-                              - RabbitMQ Exporter: prometheus-rabbitmq-exporter.md
                       - OpenStack:
                               - OpenStack Overview: openstack-overview.md
                               - OpenStack Preparations: openstack-helm-make.md
