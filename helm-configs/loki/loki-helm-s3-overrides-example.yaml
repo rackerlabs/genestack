@@ -4,6 +4,7 @@ minio:
   enabled: false
 loki:
   auth_enabled: false
+  configStorageType: Secret
   storage:
     bucketNames:
       chunks: < CHUNKS BUCKET NAME > # TODO: Update with relevant bucket name for chunks
