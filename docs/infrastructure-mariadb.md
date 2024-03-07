@@ -15,7 +15,8 @@ kubectl --namespace openstack \
 If you've changed your k8s cluster name from the default cluster.local, edit `clusterName` in `/opt/genestack/kustomize/mariadb-operator/kustomization.yaml` prior to deploying the mariadb operator.
 
 ``` shell
-kubectl kustomize --enable-helm /opt/genestack/kustomize/mariadb-operator | kubectl --namespace mariadb-system apply --server-side --force-conflicts -f -
+kubectl kustomize --enable-helm /opt/genestack/kustomize/mariadb-operator | \
+  kubectl --namespace mariadb-system apply --server-side --force-conflicts -f -
 ```
 
 !!! info
