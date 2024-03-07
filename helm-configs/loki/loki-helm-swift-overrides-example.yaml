@@ -1,0 +1,18 @@
+global:
+  dnsService: "coredns"
+minio:
+  enabled: false
+loki:
+  auth_enabled: false
+  storage:
+    bucketNames:
+      chunks: chunks
+      ruler: ruler
+      admin: admin
+    type: swift
+    swift:
+      auth_url: https://identity.api.rackspacecloud.com/v1.0
+      username: < USERNAME > # TODO: Update with valid username
+      password: < PASSWORD > # TODO: Update with valid password
+      container_name: < CONTAINER > # TODO: Update with valid container
+      region_name: < REGION > # TODO: Update with valid region
