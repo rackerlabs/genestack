@@ -1,0 +1,13 @@
+helmGlobals:
+  chartHome: ../../../submodules/openstack-helm-infra
+
+helmCharts:
+  - name: ingress
+    releaseName: ingress-grafana-internal
+    valuesInline:
+      deployment:
+        cluster:
+          class: nginx
+    valuesFile: helm/ingress-helm-overrides.yaml
+    namespace: grafana
+    includeCRDs: true
