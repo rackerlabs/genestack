@@ -90,20 +90,3 @@ kubectl apply -k /opt/genestack/kustomize/ovn
 
 After running the setup, nodes will have the label `ovn.openstack.org/configured` with a date stamp when it was configured.
 If there's ever a need to reconfigure a node, simply remove the label and the DaemonSet will take care of it automatically.
-
-## Validation our infrastructure is operational
-
-Before going any further make sure you validate that the backends are operational.
-
-``` shell
-# MariaDB
-kubectl --namespace openstack get mariadbs
-
-#RabbitMQ
-kubectl --namespace openstack get rabbitmqclusters.rabbitmq.com
-
-# Memcached
-kubectl --namespace openstack get horizontalpodautoscaler.autoscaling memcached
-```
-
-Once everything is Ready and online. Continue with the installation.

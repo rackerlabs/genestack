@@ -74,8 +74,9 @@ Run the test infrastructure deployment.
 
 > Ensure `os_cloud_name` as well as other values within your `infra-deploy.yaml` match a valid cloud name in your openstack configuration as well as resource names within it.
 
-> [!IMPORTANT]
-> Pay close attention to the values for both `kube_ovn_iface` and `kube_ovn_default_interface_name`, they will need to match the desired interface name(s) within your test hosts!
+!!! note
+
+    Pay close attention to the values for both `kube_ovn_iface` and `kube_ovn_default_interface_name`, they will need to match the desired interface name(s) within your test hosts!
 
 ``` shell
 ansible-playbook -i localhost, infra-deploy.yaml

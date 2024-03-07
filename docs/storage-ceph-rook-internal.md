@@ -8,9 +8,9 @@ kubectl apply -k /opt/genestack/kustomize/rook-operator/
 
 ## Deploy the Rook cluster
 
-> [!IMPORTANT]
-> Rook will deploy against nodes labeled `role=storage-node`. Make sure to have a look at the `/opt/genestack/kustomize/rook-cluster/rook-cluster.yaml` file to ensure it's setup to your liking, pay special attention to your `deviceFilter`
-settings, especially if different devices have different device layouts.
+!!! note
+
+    Rook will deploy against nodes labeled `role=storage-node`. Make sure to have a look at the `/opt/genestack/kustomize/rook-cluster/rook-cluster.yaml` file to ensure it's setup to your liking, pay special attention to your `deviceFilter` settings, especially if different devices have different device layouts.
 
 ``` shell
 kubectl apply -k /opt/genestack/kustomize/rook-cluster/
@@ -31,8 +31,11 @@ Once the rook cluster is online with a HEALTH status of `HEALTH_OK`, deploy the 
 ``` shell
 kubectl apply -k /opt/genestack/kustomize/rook-defaults
 ```
-> [!IMPORTANT]
-> If installing prometheus after rook-ceph is installed, you may patch a running rook-ceph cluster with the following command:
+
+!!! note
+
+    If installing prometheus after rook-ceph is installed, you may patch a running rook-ceph cluster with the following command.
+
 ``` shell
 kubectl -n rook-ceph patch CephCluster rook-ceph  --type=merge -p "{\"spec\": {\"monitoring\": {\"enabled\": true}}}"
 ```
