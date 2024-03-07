@@ -34,5 +34,6 @@ helm upgrade --install horizon ./horizon \
     --post-renderer-args horizon/base
 ```
 
-> In a production like environment you may need to include production specific files like the example variable file found in
-  `helm-configs/prod-example-openstack-overrides.yaml`.
+!!! tip
+
+    In a production like environment you may need to include production specific files like the example variable file found in `helm-configs/prod-example-openstack-overrides.yaml`.

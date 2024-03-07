@@ -14,9 +14,13 @@ sudo chmod +x /usr/local/bin/kubectl
 
 Retrieve the kube config from our first controller.
 
-> In the following example, X.X.X.X is expected to be the first controller.
+!!! tip
 
-> In the following example, ubuntu is the assumed user.
+    In the following example, X.X.X.X is expected to be the first controller.
+
+!!! note
+
+    In the following example, ubuntu is the assumed user.
 
 ``` shell
 mkdir -p ~/.kube

@@ -70,7 +70,9 @@ You're also welcome to generate your own mapping to suit your needs; however, if
 ]
 ```
 
-> Save the mapping to a local file before uploading it to keystone. In the examples, the mapping is stored at `/tmp/mapping.json`.
+!!! tip
+
+    Save the mapping to a local file before uploading it to keystone. In the examples, the mapping is stored at `/tmp/mapping.json`.
 
 Now register the mapping within Keystone.
 

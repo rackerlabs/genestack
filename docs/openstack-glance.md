@@ -20,10 +20,9 @@ kubectl --namespace openstack \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
 ```
 
-> Before running the Glance deployment you should configure the backend which is defined in the
-  `helm-configs/glance/glance-helm-overrides.yaml` file. The default is a making the assumption we're running with Ceph deployed by
-  Rook so the backend is configured to be cephfs with multi-attach functionality. While this works great, you should consider all of
-  the available storage backends and make the right decision for your environment.
+!!! info
+
+    Before running the Glance deployment you should configure the backend which is defined in the `helm-configs/glance/glance-helm-overrides.yaml` file. The default is a making the assumption we're running with Ceph deployed by Rook so the backend is configured to be cephfs with multi-attach functionality. While this works great, you should consider all of the available storage backends and make the right decision for your environment.
 
 ## Run the package deployment
 
@@ -45,11 +44,13 @@ helm upgrade --install glance ./glance \
     --post-renderer-args glance/base
 ```
 
-> In a production like environment you may need to include production specific files like the example variable file found in
-  `helm-configs/prod-example-openstack-overrides.yaml`.
+!!! tip
 
-> Note that the defaults disable `storage_init` because we're using **pvc** as the image backend
-  type. In production this should be changed to swift.
+    In a production like environment you may need to include production specific files like the example variable file found in `helm-configs/prod-example-openstack-overrides.yaml`.
+
+!!! note
+
+    The defaults disable `storage_init` because we're using **pvc** as the image backend type. In production this should be changed to swift.
 
 ## Validate functionality
 

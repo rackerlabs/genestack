@@ -26,12 +26,15 @@ kubectl --namespace openstack \
         --from-literal=default-region="RegionOne"
 ```
 
-> Note all the configuration is in this one secret, so be sure to set your entries accordingly.
+!!! note
+
+    All the configuration is in this one secret, so be sure to set your entries accordingly.
 
 ## Run the deployment
 
-> [!TIP]
-> Pause for a moment to consider if you will be wanting to access Skyline via your ingress controller over a specific FQDN. If so, modify `/opt/genestack/kustomize/skyline/fqdn/kustomization.yaml` to suit your needs then use `fqdn` below in lieu of `base`...
+!!! tip
+
+    Pause for a moment to consider if you will be wanting to access Skyline via your ingress controller over a specific FQDN. If so, modify `/opt/genestack/kustomize/skyline/fqdn/kustomization.yaml` to suit your needs then use `fqdn` below in lieu of `base`...
 
 ``` shell
 kubectl --namespace openstack apply -k /opt/genestack/kustomize/skyline/base

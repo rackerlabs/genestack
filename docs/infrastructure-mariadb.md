@@ -18,7 +18,9 @@ If you've changed your k8s cluster name from the default cluster.local, edit `cl
 kubectl kustomize --enable-helm /opt/genestack/kustomize/mariadb-operator | kubectl --namespace mariadb-system apply --server-side --force-conflicts -f -
 ```
 
-> The operator may take a minute to get ready, before deploying the Galera cluster, wait until the webhook is online.
+!!! info
+
+    The operator may take a minute to get ready, before deploying the Galera cluster, wait until the webhook is online.
 
 ``` shell
 kubectl --namespace mariadb-system get pods -w
@@ -30,7 +32,9 @@ kubectl --namespace mariadb-system get pods -w
 kubectl --namespace openstack apply -k /opt/genestack/kustomize/mariadb-cluster/base
 ```
 
-> NOTE MariaDB has a base configuration which is HA and production ready. If you're deploying on a small cluster the `aio` configuration may better suit the needs of the environment.
+!!! note
+
+    MariaDB has a base configuration which is HA and production ready. If you're deploying on a small cluster the `aio` configuration may better suit the needs of the environment.
 
 ## Verify readiness with the following command
 

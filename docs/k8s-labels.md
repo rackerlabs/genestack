@@ -3,8 +3,9 @@
 To use the K8S environment for OpenStack all of the nodes MUST be labeled. The following Labels will be used within your environment.
 Make sure you label things accordingly.
 
-> The following example assumes the node names can be used to identify their purpose within our environment.
-  That may not be the case in reality. Adapt the following commands to meet your needs.
+!!! note
+
+    The following example assumes the node names can be used to identify their purpose within our environment. That may not be the case in reality. Adapt the following commands to meet your needs.
 
 ``` shell
 # Label the storage nodes - optional and only used when deploying ceph for K8S infrastructure shared storage

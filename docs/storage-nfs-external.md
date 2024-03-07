@@ -2,7 +2,9 @@
 
 While NFS in K8S works great, it's not suitable for use in all situations.
 
-> Example: NFS is officially not supported by MariaDB and will fail to initialize the database backend when running on NFS.
+!!! warning
+
+    NFS is officially not supported by MariaDB and will fail to initialize the database backend when running on NFS.
 
 In Genestack, the `general` storage class is used by default for systems like RabbitMQ and MariaDB. If you intend to use NFS, you will need to ensure your use cases match the workloads and may need to make some changes within the manifests.
 

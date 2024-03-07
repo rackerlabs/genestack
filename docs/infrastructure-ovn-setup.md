@@ -6,7 +6,9 @@ Post deployment we need to setup neutron to work with our integrated OVN environ
 export ALL_NODES=$(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}')
 ```
 
-> Set the annotations you need within your environment to meet the needs of your workloads on the hardware you have.
+!!! note
+
+    Set the annotations you need within your environment to meet the needs of your workloads on the hardware you have.
 
 ### Set `ovn.openstack.org/int_bridge`
 
@@ -23,7 +25,9 @@ kubectl annotate \
 
 Set the name of the OVS bridges we'll use. These are the bridges you will use on your hosts within OVS. The option is a string and comma separated. You can define as many OVS type bridges you need or want for your environment.
 
-> NOTE The functional example here annotates all nodes; however, not all nodes have to have the same setup.
+!!! note
+
+    The functional example here annotates all nodes; however, not all nodes have to have the same setup.
 
 ``` shell
 kubectl annotate \
@@ -47,7 +51,9 @@ kubectl annotate \
 
 Set the Neutron bridge mapping. This maps the Neutron interfaces to the ovs bridge names. These are colon delimitated between `NEUTRON_INTERFACE:OVS_BRIDGE`. Multiple bridge mappings can be defined here and are separated by commas.
 
-> Neutron interfaces are string value and can be anything you want. The `NEUTRON_INTERFACE` value defined will be used when you create provider type networks after the cloud is online.
+!!! note
+
+    Neutron interfaces are string value and can be anything you want. The `NEUTRON_INTERFACE` value defined will be used when you create provider type networks after the cloud is online.
 
 ``` shell
 kubectl annotate \
@@ -67,7 +73,9 @@ kubectl annotate \
         ovn.openstack.org/availability_zones='nova'
 ```
 
-> Any availability zone defined here should also be defined within your **neutron.conf**. The "nova" availability zone is an assumed defined, however, because we're running in a mixed OVN environment, we should define where we're allowed to execute OpenStack workloads.
+!!! note
+
+    Any availability zone defined here should also be defined within your **neutron.conf**. The "nova" availability zone is an assumed defined, however, because we're running in a mixed OVN environment, we should define where we're allowed to execute OpenStack workloads.
 
 ### Set `ovn.openstack.org/gateway`
 

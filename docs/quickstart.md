@@ -2,7 +2,9 @@
 
 Before you can do anything we need to get the code. Because we've sold our soul to the submodule devil, you're going to need to recursively clone the repo into your location.
 
-> Throughout the all our documentation and examples the genestack code base will be assumed to be in `/opt`.
+!!! note
+
+    Throughout the all our documentation and examples the genestack code base will be assumed to be in `/opt`.
 
 ``` shell
 git clone --recurse-submodules -j4 https://github.com/rackerlabs/genestack /opt/genestack

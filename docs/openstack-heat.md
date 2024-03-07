@@ -49,8 +49,9 @@ helm upgrade --install heat ./heat \
     --post-renderer-args heat/base
 ```
 
-> In a production like environment you may need to include production specific files like the example variable file found in
-  `helm-configs/prod-example-openstack-overrides.yaml`.
+!!! tip
+
+    In a production like environment you may need to include production specific files like the example variable file found in `helm-configs/prod-example-openstack-overrides.yaml`.
 
 ## Validate functionality
 
