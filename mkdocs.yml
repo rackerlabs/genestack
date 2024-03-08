@@ -18,7 +18,7 @@ theme:
     - media: "(prefers-color-scheme)"
       toggle:
         icon: material/link
-        name: Switch to light mode
+        name: Switch to dark mode
     - media: "(prefers-color-scheme: light)"
       scheme: default
       primary: black
@@ -27,7 +27,7 @@ theme:
         icon: material/toggle-switch
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
-      scheme: slate
+      scheme: rxt
       primary: black
       accent: red
       toggle:
@@ -63,6 +63,18 @@ theme:
     - toc.follow
 
 copyright: Copyright &copy; 2024 RACKSPACE TECHNOLOGY
+
+extra:
+  social:
+    - icon: fontawesome/brands/linkedin
+      link: https://linkedin.com/company/rackspace
+      name: Rackspace on LinkedIn
+    - icon: fontawesome/brands/x-twitter
+      link: https://twitter.com/rackspace
+      name: Rackspace on X
+    - icon: fontawesome/brands/github
+      link: https://github.com/rackerlabs
+      name: Rackspace on github
 
 extra_css:
   - overrides/stylesheets/adr.css

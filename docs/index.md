@@ -9,16 +9,17 @@ hide:
 <div class="grid cards" markdown>
 -   :material-abacus:{ .xl .middle } __Rackspace Cloud Solutions__
 
-    Where Kubernetes and OpenStack tango in the cloud. Imagine a waltz between systems that deploy what you need. Operators play the score,
-    managing the complexity with a flick of their digital batons. They unify the chaos, making scaling and management a piece of cake. Think
-    of it like a conductor effortlessly guiding a cacophony into a symphony.
+    Where Kubernetes and OpenStack tango in the cloud. Imagine a waltz between systems that deploy what you need.
+    Operators play the score, managing the complexity with a flick of their digital batons. They unify the chaos,
+    making scaling and management a piece of cake. Think of it like a conductor effortlessly guiding a cacophony
+    into a symphony.
 
 -   :material-alpha:{ .xl .middle } - __Genestack__  __/dʒen.ə.stæk/__
 
-    1. The genesis of Open-Infrastructure
-    2. Cloud Simplified
-    3. Your new favorite ecosystem
-    4. Enterprise Ready
+    1. The Genesis of your Open-Infrastructure
+    2. Your new favorite ecosystem
+    3. Enterprise ready
+    4. The cloud simplified
 
 -   :material-cloud:{ .lg } __Simple Solutions__
 
@@ -26,14 +27,14 @@ hide:
 
 -   :material-heart:{ .lg } __A Welcoming Community__
 
-    Rackspace would like to once again welcome you to the cloud. If you're developing applications, wanting to contribute to OpenStack, or just
-    looking for a better platform; you're in the right place.
-
+    ![Rackspace R](assets/images/r-Icon-RGB-Red.svg){ align=left : style="filter:drop-shadow(#3c3c3c 0.5rem 0.5rem 10px);max-width:125px" }
+    Rackspace would like to once again welcome you to the cloud. If you're developing applications,
+    wanting to contribute to OpenStack, or just looking for a better platform; you're in the right place.
 </div>
 
 ---
 
-![Genestack Logo](assets/images/genestack-logo.png){ align=left }
+![Genestack Logo](assets/images/genestack-cropped-small.png){ align=left : style="filter:drop-shadow(#3c3c3c 0.5rem 0.5rem 10px);" }
 
 ## What is Genestack?
 
