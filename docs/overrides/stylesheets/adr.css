@@ -214,11 +214,11 @@
     }
 
     .md-nav--primary .md-nav__item--active>.md-nav__link {
-        color: #9e0000;
+        color: #eb0000;
     }
 
     .md-nav__item .md-nav__link--active,.md-nav__item .md-nav__link--active code {
-        color: #eb0000;
+        color: #9e0000;
     }
 }
 
