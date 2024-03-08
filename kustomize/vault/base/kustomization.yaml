@@ -1,7 +1,7 @@
 resources:
   - './namespace.yaml'
   - './ssl/'
-
+  - './local_storage'
 namespace: vault
 helmGlobals:
   chartHome: ../charts/
@@ -12,3 +12,57 @@ helmCharts:
   releaseName: vault
   version: 0.27.0
   repo: https://helm.releases.hashicorp.com
+  valuesInline:
+    server:
+      dataStorage:
+        size: 50Gi
+      auditStorage:
+        size: 50Gi
+patches:
+- target:
+    kind: PersistentVolume
+    name: vault-dwpp
+  patch: |-
+    - op: replace
+      path: /spec/capacity/storage
+      value: 50Gi
+
+- target:
+    kind: PersistentVolume
+    name: vault-fezz
+  patch: |-
+    - op: replace
+      path: /spec/capacity/storage
+      value: 50Gi
+
+- target:
+    kind: PersistentVolume
+    name: vault-hprr
+  patch: |-
+    - op: replace
+      path: /spec/capacity/storage
+      value: 50Gi
+
+- target:
+    kind: PersistentVolume
+    name: vault-jyff
+  patch: |-
+    - op: replace
+      path: /spec/capacity/storage
+      value: 50Gi
+
+- target:
+    kind: PersistentVolume
+    name: vault-ktpw
+  patch: |-
+    - op: replace
+      path: /spec/capacity/storage
+      value: 50Gi
+
+- target:
+    kind: PersistentVolume
+    name: vault-uqhy
+  patch: |-
+    - op: replace
+      path: /spec/capacity/storage
+      value: 50Gi
