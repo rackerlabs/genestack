@@ -1,5 +1,28 @@
-
 # Download Images
+
+The following page highlights how to retrieve various images and upload them into Glance.
+
+## Image Properties Breakdown
+
+Throughout the various examples you'll notice the images have a number of properties defined.
+All of these properties enhance the user experience and usability of the images being provided
+in these examples.
+
+The properties of note are the following.
+
+| Property | Value | Documentation |
+| ---------|-------|-------------|
+| hw_scsi_model | STRING | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
+| hw_disk_bus | STRING | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
+| hw_vif_multiqueue_enabled | BOOL | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
+| hw_qemu_guest_agent | BOOL | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
+| hw_machine_type | STRING | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
+| hw_firmware_type | STRING | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
+| os_require_quiesce | BOOL | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
+| os_type | STRING | [Link](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html) |
+| os_admin_user | STRING | [Link](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html) |
+| os_distro | STRING | [Link](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html) |
+| os_version | STRING | [Link](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html) |
 
 ## Get Ubuntu
 

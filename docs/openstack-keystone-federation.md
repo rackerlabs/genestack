@@ -1,4 +1,3 @@
-
 # Setup the Keystone Federation Plugin
 
 ## Create the domain

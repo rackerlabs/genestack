@@ -1,4 +1,3 @@
-
 # Setup the MetalLB Loadbalancer
 
 The MetalLb loadbalancer can be setup by editing the following file `metallb-openstack-service-lb.yml`, You will need to add
