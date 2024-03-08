@@ -11,7 +11,7 @@ spec:
   database: mariadb
 
   storage:
-    size: 1Gi
+    size: 10Gi
     storageClassName: general
     resizeInUseVolumes: true
     waitForVolumeResize: true
@@ -20,7 +20,7 @@ spec:
       - ReadWriteOnce
       resources:
         requests:
-          storage: 1Gi
+          storage: 10Gi
       storageClassName: general
 
   replicas: 3
@@ -73,7 +73,7 @@ spec:
       volumeClaimTemplate:
         resources:
           requests:
-            storage: 300Mi
+            storage: 10Gi
         accessModes:
           - ReadWriteOnce
 
