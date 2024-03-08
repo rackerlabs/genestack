@@ -34,7 +34,8 @@ images:
     ks_user: docker.io/openstackhelm/heat:wallaby-ubuntu_focal
     ks_service: docker.io/openstackhelm/heat:wallaby-ubuntu_focal
     ks_endpoints: docker.io/openstackhelm/heat:wallaby-ubuntu_focal
-    ceilometer_api: docker.io/kolla/ubuntu-source-ceilometer-api:wallaby
+    # ubuntu-source-ceilometer-api is deprecated
+    ceilometer_api: docker.io/kolla/ubuntu-source-ceilometer-base:wallaby
     ceilometer_central: docker.io/kolla/ubuntu-source-ceilometer-central:wallaby
     ceilometer_collector: docker.io/kolla/ubuntu-source-ceilometer-collector:wallaby
     ceilometer_compute: docker.io/kolla/ubuntu-source-ceilometer-compute:wallaby
