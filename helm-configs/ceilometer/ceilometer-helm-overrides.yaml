@@ -1,0 +1,2019 @@
+---
+release_group: null
+
+labels:
+  api:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  compute:
+    node_selector_key: openstack-compute-node
+    node_selector_value: enabled
+  central:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  ipmi:
+    node_selector_key: openstack-node
+    node_selector_value: enabled
+  collector:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  notification:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  job:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  test:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+
+images:
+  tags:
+    test: docker.io/xrally/xrally-openstack:2.0.0
+    rabbit_init: docker.io/rabbitmq:3.7-management
+    ks_user: docker.io/openstackhelm/heat:wallaby-ubuntu_focal
+    ks_service: docker.io/openstackhelm/heat:wallaby-ubuntu_focal
+    ks_endpoints: docker.io/openstackhelm/heat:wallaby-ubuntu_focal
+    ceilometer_api: docker.io/kolla/ubuntu-source-ceilometer-api:wallaby
+    ceilometer_central: docker.io/kolla/ubuntu-source-ceilometer-central:wallaby
+    ceilometer_collector: docker.io/kolla/ubuntu-source-ceilometer-collector:wallaby
+    ceilometer_compute: docker.io/kolla/ubuntu-source-ceilometer-compute:wallaby
+    ceilometer_ipmi: docker.io/kolla/ubuntu-source-ceilometer-base:wallaby
+    ceilometer_notification: docker.io/kolla/ubuntu-source-ceilometer-notification:wallaby
+    dep_check: quay.io/airshipit/kubernetes-entrypoint:v1.0.0
+    image_repo_sync: docker.io/docker:17.07.0
+  pull_policy: "IfNotPresent"
+  local_registry:
+    active: false
+    exclude:
+      - dep_check
+      - image_repo_sync
+
+network:
+  api:
+    ingress:
+      public: true
+      classes:
+        namespace: "nginx"
+        cluster: "nginx-openstack"
+      annotations:
+        nginx.ingress.kubernetes.io/rewrite-target: /
+    port: 8777
+    node_port:
+      enabled: false
+      port: 38777
+
+ipmi_device: /dev/ipmi0
+
+conf:
+  security: |
+    #
+    # Disable access to the entire file system except for the directories that
+    # are explicitly allowed later.
+    #
+    # This currently breaks the configurations that come with some web application
+    # Debian packages.
+    #
+    #<Directory />
+    #   AllowOverride None
+    #   Require all denied
+    #</Directory>
+
+    # Changing the following options will not really affect the security of the
+    # server, but might make attacks slightly more difficult in some cases.
+
+    #
+    # ServerTokens
+    # This directive configures what you return as the Server HTTP response
+    # Header. The default is 'Full' which sends information about the OS-Type
+    # and compiled in modules.
+    # Set to one of:  Full | OS | Minimal | Minor | Major | Prod
+    # where Full conveys the most information, and Prod the least.
+    ServerTokens Prod
+
+    #
+    # Optionally add a line containing the server version and virtual host
+    # name to server-generated pages (internal error documents, FTP directory
+    # listings, mod_status and mod_info output etc., but not CGI generated
+    # documents or custom error documents).
+    # Set to "EMail" to also include a mailto: link to the ServerAdmin.
+    # Set to one of:  On | Off | EMail
+    ServerSignature Off
+
+    #
+    # Allow TRACE method
+    #
+    # Set to "extended" to also reflect the request body (only for testing and
+    # diagnostic purposes).
+    #
+    # Set to one of:  On | Off | extended
+    TraceEnable Off
+
+    #
+    # Forbid access to version control directories
+    #
+    # If you use version control systems in your document root, you should
+    # probably deny access to their directories. For example, for subversion:
+    #
+    #<DirectoryMatch "/\.svn">
+    #   Require all denied
+    #</DirectoryMatch>
+
+    #
+    # Setting this header will prevent MSIE from interpreting files as something
+    # else than declared by the content type in the HTTP headers.
+    # Requires mod_headers to be enabled.
+    #
+    #Header set X-Content-Type-Options: "nosniff"
+
+    #
+    # Setting this header will prevent other sites from embedding pages from this
+    # site as frames. This defends against clickjacking attacks.
+    # Requires mod_headers to be enabled.
+    #
+    #Header set X-Frame-Options: "sameorigin"
+  software:
+    apache2:
+      binary: apache2
+      start_parameters: -DFOREGROUND
+      site_dir: /etc/apache2/sites-enable
+      conf_dir: /etc/apache2/conf-enabled
+      mods_dir: /etc/apache2/mods-available
+      a2enmod: null
+      a2dismod: null
+  ceilometer:
+    DEFAULT:
+      event_dispatchers:
+        type: multistring
+        values:
+          - gnocchi
+      meter_dispatchers:
+        type: multistring
+        values:
+          - gnocchi
+    api:
+      aodh_is_enabled: "False"
+    # NOTE(portdirect): the following option will turn off the ability to retrieve
+    # metrics via the ceilometer API:
+    # gnocchi_is_enabled: "True"
+    dispatcher_gnocchi:
+      filter_service_activity: False
+      archive_policy: low
+      resources_definition_file: /etc/ceilometer/gnocchi_resources.yaml
+    database:
+      max_retries: -1
+    dispatcher:
+      archive_policy: low
+      filter_project: service
+    keystone_authtoken:
+      auth_type: password
+      auth_version: v3
+    service_credentials:
+      auth_type: password
+      interface: internal
+    notification:
+      messaging_urls:
+        type: multistring
+        values:
+          - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/ceilometer
+          - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/cinder
+          - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/glance
+          - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/nova
+          - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/keystone
+          - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/neutron
+          - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/heat
+    oslo_messaging_notifications:
+      driver: messagingv2
+      topics:
+        - notifications
+        - profiler
+    oslo_policy:
+      policy_file: /etc/ceilometer/policy.yaml
+    cache:
+      enabled: true
+      backend: dogpile.cache.memcached
+      expiration_time: 86400
+  event_definitions:
+    - event_type: 'compute.instance.*'
+      traits: &instance_traits
+        tenant_id:
+          fields: payload.tenant_id
+        user_id:
+          fields: payload.user_id
+        instance_id:
+          fields: payload.instance_id
+        resource_id:
+          fields: payload.instance_id
+        host:
+          fields: publisher_id.`split(., 1, 1)`
+        service:
+          fields: publisher_id.`split(., 0, -1)`
+        memory_mb:
+          type: int
+          fields: payload.memory_mb
+        disk_gb:
+          type: int
+          fields: payload.disk_gb
+        root_gb:
+          type: int
+          fields: payload.root_gb
+        ephemeral_gb:
+          type: int
+          fields: payload.ephemeral_gb
+        vcpus:
+          type: int
+          fields: payload.vcpus
+        instance_type_id:
+          type: int
+          fields: payload.instance_type_id
+        instance_type:
+          fields: payload.instance_type
+        state:
+          fields: payload.state
+        os_architecture:
+          fields: payload.image_meta.'org.openstack__1__architecture'
+        os_version:
+          fields: payload.image_meta.'org.openstack__1__os_version'
+        os_distro:
+          fields: payload.image_meta.'org.openstack__1__os_distro'
+        launched_at:
+          type: datetime
+          fields: payload.launched_at
+        deleted_at:
+          type: datetime
+          fields: payload.deleted_at
+    - event_type: compute.instance.update
+      traits:
+        <<: *instance_traits
+        old_state:
+          fields: payload.old_state
+    - event_type: compute.instance.exists
+      traits:
+        <<: *instance_traits
+        audit_period_beginning:
+          type: datetime
+          fields: payload.audit_period_beginning
+        audit_period_ending:
+          type: datetime
+          fields: payload.audit_period_ending
+    - event_type: ['volume.exists', 'volume.create.*', 'volume.delete.*', 'volume.resize.*', 'volume.attach.*', 'volume.detach.*', 'volume.update.*', 'snapshot.exists', 'snapshot.create.*', 'snapshot.delete.*', 'snapshot.update.*']
+      traits: &cinder_traits
+        user_id:
+          fields: payload.user_id
+        project_id:
+          fields: payload.tenant_id
+        availability_zone:
+          fields: payload.availability_zone
+        display_name:
+          fields: payload.display_name
+        replication_status:
+          fields: payload.replication_status
+        status:
+          fields: payload.status
+        created_at:
+          fields: payload.created_at
+    - event_type: ['volume.exists', 'volume.create.*', 'volume.delete.*', 'volume.resize.*', 'volume.attach.*', 'volume.detach.*', 'volume.update.*']
+      traits:
+        <<: *cinder_traits
+        resource_id:
+          fields: payload.volume_id
+        host:
+          fields: payload.host
+        size:
+          fields: payload.size
+        type:
+          fields: payload.volume_type
+        replication_status:
+          fields: payload.replication_status
+    - event_type: ['snapshot.exists', 'snapshot.create.*', 'snapshot.delete.*', 'snapshot.update.*']
+      traits:
+        <<: *cinder_traits
+        resource_id:
+          fields: payload.snapshot_id
+        volume_id:
+          fields: payload.volume_id
+    - event_type: ['image_volume_cache.*']
+      traits:
+        image_id:
+          fields: payload.image_id
+        host:
+          fields: payload.host
+    - event_type: ['image.create', 'image.update', 'image.upload', 'image.delete']
+      traits: &glance_crud
+        project_id:
+          fields: payload.owner
+        resource_id:
+          fields: payload.id
+        name:
+          fields: payload.name
+        status:
+          fields: payload.status
+        created_at:
+          fields: payload.created_at
+        user_id:
+          fields: payload.owner
+        deleted_at:
+          fields: payload.deleted_at
+        size:
+          fields: payload.size
+    - event_type: image.send
+      traits: &glance_send
+        receiver_project:
+          fields: payload.receiver_tenant_id
+        receiver_user:
+          fields: payload.receiver_user_id
+        user_id:
+          fields: payload.owner_id
+        image_id:
+          fields: payload.image_id
+        destination_ip:
+          fields: payload.destination_ip
+        bytes_sent:
+          type: int
+          fields: payload.bytes_sent
+    - event_type: orchestration.stack.*
+      traits: &orchestration_crud
+        project_id:
+          fields: payload.tenant_id
+        user_id:
+          fields: ['_context_trustor_user_id', '_context_user_id']
+        resource_id:
+          fields: payload.stack_identity
+    - event_type: sahara.cluster.*
+      traits: &sahara_crud
+        project_id:
+          fields: payload.project_id
+        user_id:
+          fields: _context_user_id
+        resource_id:
+          fields: payload.cluster_id
+    - event_type: sahara.cluster.health
+      traits: &sahara_health
+        <<: *sahara_crud
+        verification_id:
+          fields: payload.verification_id
+        health_check_status:
+          fields: payload.health_check_status
+        health_check_name:
+          fields: payload.health_check_name
+        health_check_description:
+          fields: payload.health_check_description
+        created_at:
+          type: datetime
+          fields: payload.created_at
+        updated_at:
+          type: datetime
+          fields: payload.updated_at
+    - event_type: ['identity.user.*', 'identity.project.*', 'identity.group.*', 'identity.role.*', 'identity.OS-TRUST:trust.*',
+                   'identity.region.*', 'identity.service.*', 'identity.endpoint.*', 'identity.policy.*']
+      traits: &identity_crud
+        resource_id:
+          fields: payload.resource_info
+        initiator_id:
+          fields: payload.initiator.id
+        project_id:
+          fields: payload.initiator.project_id
+        domain_id:
+          fields: payload.initiator.domain_id
+    - event_type: identity.role_assignment.*
+      traits: &identity_role_assignment
+        role:
+          fields: payload.role
+        group:
+          fields: payload.group
+        domain:
+          fields: payload.domain
+        user:
+          fields: payload.user
+        project:
+          fields: payload.project
+    - event_type: identity.authenticate
+      traits: &identity_authenticate
+        typeURI:
+          fields: payload.typeURI
+        id:
+          fields: payload.id
+        action:
+          fields: payload.action
+        eventType:
+          fields: payload.eventType
+        eventTime:
+          fields: payload.eventTime
+        outcome:
+          fields: payload.outcome
+        initiator_typeURI:
+          fields: payload.initiator.typeURI
+        initiator_id:
+          fields: payload.initiator.id
+        initiator_name:
+          fields: payload.initiator.name
+        initiator_host_agent:
+          fields: payload.initiator.host.agent
+        initiator_host_addr:
+          fields: payload.initiator.host.address
+        target_typeURI:
+          fields: payload.target.typeURI
+        target_id:
+          fields: payload.target.id
+        observer_typeURI:
+          fields: payload.observer.typeURI
+        observer_id:
+          fields: payload.observer.id
+    - event_type: objectstore.http.request
+      traits: &objectstore_request
+        typeURI:
+          fields: payload.typeURI
+        id:
+          fields: payload.id
+        action:
+          fields: payload.action
+        eventType:
+          fields: payload.eventType
+        eventTime:
+          fields: payload.eventTime
+        outcome:
+          fields: payload.outcome
+        initiator_typeURI:
+          fields: payload.initiator.typeURI
+        initiator_id:
+          fields: payload.initiator.id
+        initiator_project_id:
+          fields: payload.initiator.project_id
+        target_typeURI:
+          fields: payload.target.typeURI
+        target_id:
+          fields: payload.target.id
+        target_action:
+          fields: payload.target.action
+        target_metadata_path:
+          fields: payload.target.metadata.path
+        target_metadata_version:
+          fields: payload.target.metadata.version
+        target_metadata_container:
+          fields: payload.target.metadata.container
+        target_metadata_object:
+          fields: payload.target.metadata.object
+        observer_id:
+          fields: payload.observer.id
+    - event_type: ['network.*', 'subnet.*', 'port.*', 'router.*', 'floatingip.*', 'pool.*', 'vip.*', 'member.*', 'health_monitor.*', 'healthmonitor.*', 'listener.*', 'loadbalancer.*', 'firewall.*', 'firewall_policy.*', 'firewall_rule.*', 'vpnservice.*', 'ipsecpolicy.*', 'ikepolicy.*', 'ipsec_site_connection.*']
+      traits: &network_traits
+        user_id:
+          fields: _context_user_id
+        project_id:
+          fields: _context_tenant_id
+    - event_type: network.*
+      traits:
+        <<: *network_traits
+        resource_id:
+          fields: ['payload.network.id', 'payload.id']
+    - event_type: subnet.*
+      traits:
+        <<: *network_traits
+        resource_id:
+          fields: ['payload.subnet.id', 'payload.id']
+    - event_type: port.*
+      traits:
+        <<: *network_traits
+        resource_id:
+          fields: ['payload.port.id', 'payload.id']
+    - event_type: router.*
+      traits:
+        <<: *network_traits
+        resource_id:
+          fields: ['payload.router.id', 'payload.id']
+    - event_type: floatingip.*
+      traits:
+        <<: *network_traits
+        resource_id:
+          fields: ['payload.floatingip.id', 'payload.id']
+    - event_type: pool.*
+      traits:
+        <<: *network_traits
+        resource_id:
+          fields: ['payload.pool.id', 'payload.id']
+    - event_type: vip.*
+      traits:
+        <<: *network_traits
+        resource_id:
+          fields: ['payload.vip.id', 'payload.id']
+    - event_type: member.*
+      traits:
+        <<: *network_traits
+        resource_id:
+          fields: ['payload.member.id', 'payload.id']
+    - event_type: health_monitor.*
+      traits:
+        <<: *network_traits
+        resource_id:
+          fields: ['payload.health_monitor.id', 'payload.id']
+    - event_type: healthmonitor.*
+      traits:
+        <<: *network_traits
+        resource_id:
+          fields: ['payload.healthmonitor.id', 'payload.id']
+    - event_type: listener.*
+      traits:
+        <<: *network_traits
+        resource_id:
+          fields: ['payload.listener.id', 'payload.id']
+    - event_type: loadbalancer.*
+      traits:
+        <<: *network_traits
+        resource_id:
+          fields: ['payload.loadbalancer.id', 'payload.id']
+    - event_type: firewall.*
+      traits:
+        <<: *network_traits
+        resource_id:
+          fields: ['payload.firewall.id', 'payload.id']
+    - event_type: firewall_policy.*
+      traits:
+        <<: *network_traits
+        resource_id:
+          fields: ['payload.firewall_policy.id', 'payload.id']
+    - event_type: firewall_rule.*
+      traits:
+        <<: *network_traits
+        resource_id:
+          fields: ['payload.firewall_rule.id', 'payload.id']
+    - event_type: vpnservice.*
+      traits:
+        <<: *network_traits
+        resource_id:
+          fields: ['payload.vpnservice.id', 'payload.id']
+    - event_type: ipsecpolicy.*
+      traits:
+        <<: *network_traits
+        resource_id:
+          fields: ['payload.ipsecpolicy.id', 'payload.id']
+    - event_type: ikepolicy.*
+      traits:
+        <<: *network_traits
+        resource_id:
+          fields: ['payload.ikepolicy.id', 'payload.id']
+    - event_type: ipsec_site_connection.*
+      traits:
+        <<: *network_traits
+        resource_id:
+          fields: ['payload.ipsec_site_connection.id', 'payload.id']
+    - event_type: '*http.*'
+      traits: &http_audit
+        project_id:
+          fields: payload.initiator.project_id
+        user_id:
+          fields: payload.initiator.id
+        typeURI:
+          fields: payload.typeURI
+        eventType:
+          fields: payload.eventType
+        action:
+          fields: payload.action
+        outcome:
+          fields: payload.outcome
+        id:
+          fields: payload.id
+        eventTime:
+          fields: payload.eventTime
+        requestPath:
+          fields: payload.requestPath
+        observer_id:
+          fields: payload.observer.id
+        target_id:
+          fields: payload.target.id
+        target_typeURI:
+          fields: payload.target.typeURI
+        target_name:
+          fields: payload.target.name
+        initiator_typeURI:
+          fields: payload.initiator.typeURI
+        initiator_id:
+          fields: payload.initiator.id
+        initiator_name:
+          fields: payload.initiator.name
+        initiator_host_address:
+          fields: payload.initiator.host.address
+    - event_type: '*http.response'
+      traits:
+        <<: *http_audit
+        reason_code:
+          fields: payload.reason.reasonCode
+    - event_type: ['dns.domain.create', 'dns.domain.update', 'dns.domain.delete']
+      traits: &dns_domain_traits
+        status:
+          fields: payload.status
+        retry:
+          fields: payload.retry
+        description:
+          fields: payload.description
+        expire:
+          fields: payload.expire
+        email:
+          fields: payload.email
+        ttl:
+          fields: payload.ttl
+        action:
+          fields: payload.action
+        name:
+          fields: payload.name
+        resource_id:
+          fields: payload.id
+        created_at:
+          fields: payload.created_at
+        updated_at:
+          fields: payload.updated_at
+        version:
+          fields: payload.version
+        parent_domain_id:
+          fields: parent_domain_id
+        serial:
+          fields: payload.serial
+    - event_type: dns.domain.exists
+      traits:
+        <<: *dns_domain_traits
+        audit_period_beginning:
+          type: datetime
+          fields: payload.audit_period_beginning
+        audit_period_ending:
+          type: datetime
+          fields: payload.audit_period_ending
+    - event_type: trove.*
+      traits: &trove_base_traits
+        instance_type:
+          fields: payload.instance_type
+        user_id:
+          fields: payload.user_id
+        resource_id:
+          fields: payload.instance_id
+        instance_type_id:
+          fields: payload.instance_type_id
+        launched_at:
+          type: datetime
+          fields: payload.launched_at
+        instance_name:
+          fields: payload.instance_name
+        state:
+          fields: payload.state
+        nova_instance_id:
+          fields: payload.nova_instance_id
+        service_id:
+          fields: payload.service_id
+        created_at:
+          type: datetime
+          fields: payload.created_at
+        region:
+          fields: payload.region
+    - event_type: ['trove.instance.create', 'trove.instance.modify_volume', 'trove.instance.modify_flavor', 'trove.instance.delete']
+      traits: &trove_common_traits
+        name:
+          fields: payload.name
+        availability_zone:
+          fields: payload.availability_zone
+        instance_size:
+          type: int
+          fields: payload.instance_size
+        volume_size:
+          type: int
+          fields: payload.volume_size
+        nova_volume_id:
+          fields: payload.nova_volume_id
+    - event_type: trove.instance.create
+      traits:
+        <<: [*trove_base_traits, *trove_common_traits]
+    - event_type: trove.instance.modify_volume
+      traits:
+        <<: [*trove_base_traits, *trove_common_traits]
+        old_volume_size:
+          type: int
+          fields: payload.old_volume_size
+        modify_at:
+          type: datetime
+          fields: payload.modify_at
+    - event_type: trove.instance.modify_flavor
+      traits:
+        <<: [*trove_base_traits, *trove_common_traits]
+        old_instance_size:
+          type: int
+          fields: payload.old_instance_size
+        modify_at:
+          type: datetime
+          fields: payload.modify_at
+    - event_type: trove.instance.delete
+      traits:
+        <<: [*trove_base_traits, *trove_common_traits]
+        deleted_at:
+          type: datetime
+          fields: payload.deleted_at
+    - event_type: trove.instance.exists
+      traits:
+        <<: *trove_base_traits
+        display_name:
+          fields: payload.display_name
+        audit_period_beginning:
+          type: datetime
+          fields: payload.audit_period_beginning
+        audit_period_ending:
+          type: datetime
+          fields: payload.audit_period_ending
+    - event_type: profiler.*
+      traits:
+        project:
+          fields: payload.project
+        service:
+          fields: payload.service
+        name:
+          fields: payload.name
+        base_id:
+          fields: payload.base_id
+        trace_id:
+          fields: payload.trace_id
+        parent_id:
+          fields: payload.parent_id
+        timestamp:
+          fields: payload.timestamp
+        host:
+          fields: payload.info.host
+        path:
+          fields: payload.info.request.path
+        query:
+          fields: payload.info.request.query
+        method:
+          fields: payload.info.request.method
+        scheme:
+          fields: payload.info.request.scheme
+        db.statement:
+          fields: payload.info.db.statement
+        db.params:
+          fields: payload.info.db.params
+    - event_type: 'magnum.bay.*'
+      traits: &magnum_bay_crud
+        id:
+          fields: payload.id
+        typeURI:
+          fields: payload.typeURI
+        eventType:
+          fields: payload.eventType
+        eventTime:
+          fields: payload.eventTime
+        action:
+          fields: payload.action
+        outcome:
+          fields: payload.outcome
+        initiator_id:
+          fields: payload.initiator.id
+        initiator_typeURI:
+          fields: payload.initiator.typeURI
+        initiator_name:
+          fields: payload.initiator.name
+        initiator_host_agent:
+          fields: payload.initiator.host.agent
+        initiator_host_address:
+          fields: payload.initiator.host.address
+        target_id:
+          fields: payload.target.id
+        target_typeURI:
+          fields: payload.target.typeURI
+        observer_id:
+          fields: payload.observer.id
+        observer_typeURI:
+          fields: payload.observer.typeURI
+  event_pipeline:
+    sinks:
+      - name: event_sink
+        publishers:
+          - notifier://
+        transformers: null
+    sources:
+      - events:
+          - '*'
+        name: event_source
+        sinks:
+          - event_sink
+  gnocchi_resources:
+    resources:
+      - archive_policy: low
+        metrics:
+          - identity.authenticate.success
+          - identity.authenticate.pending
+          - identity.authenticate.failure
+          - identity.user.created
+          - identity.user.deleted
+          - identity.user.updated
+          - identity.group.created
+          - identity.group.deleted
+          - identity.group.updated
+          - identity.role.created
+          - identity.role.deleted
+          - identity.role.updated
+          - identity.project.created
+          - identity.project.deleted
+          - identity.project.updated
+          - identity.trust.created
+          - identity.trust.deleted
+          - identity.role_assignment.created
+          - identity.role_assignment.deleted
+        resource_type: identity
+      - metrics:
+          - radosgw.objects
+          - radosgw.objects.size
+          - radosgw.objects.containers
+          - radosgw.api.request
+          - radosgw.containers.objects
+          - radosgw.containers.objects.size
+        resource_type: ceph_account
+      - attributes:
+          display_name: resource_metadata.display_name
+          flavor_id: resource_metadata.(instance_flavor_id|(flavor.id))
+          host: resource_metadata.(instance_host|host)
+          image_ref: resource_metadata.image_ref
+          server_group: resource_metadata.user_metadata.server_group
+        event_associated_resources:
+          instance_disk: '{"=": {"instance_id": "%s"}}'
+          instance_network_interface: '{"=": {"instance_id": "%s"}}'
+        event_attributes:
+          id: instance_id
+        event_delete: compute.instance.delete.start
+        metrics:
+          - memory
+          - memory.usage
+          - memory.resident
+          - memory.bandwidth.total
+          - memory.bandwidth.local
+          - vcpus
+          - cpu
+          - cpu.delta
+          - cpu_util
+          - cpu_l3_cache
+          - disk.root.size
+          - disk.ephemeral.size
+          - disk.read.requests
+          - disk.read.requests.rate
+          - disk.write.requests
+          - disk.write.requests.rate
+          - disk.read.bytes
+          - disk.read.bytes.rate
+          - disk.write.bytes
+          - disk.write.bytes.rate
+          - disk.latency
+          - disk.iops
+          - disk.capacity
+          - disk.allocation
+          - disk.usage
+          - compute.instance.booting.time
+          - perf.cpu.cycles
+          - perf.instructions
+          - perf.cache.references
+          - perf.cache.misses
+        resource_type: instance
+      - attributes:
+          instance_id: resource_metadata.instance_id
+          name: resource_metadata.vnic_name
+        metrics:
+          - network.outgoing.packets.rate
+          - network.incoming.packets.rate
+          - network.outgoing.packets
+          - network.outgoing.packets.drop
+          - network.incoming.packets.drop
+          - network.outgoing.packets.error
+          - network.incoming.packets.error
+          - network.outgoing.bytes.rate
+          - network.incoming.bytes.rate
+          - network.outgoing.bytes
+          - network.incoming.bytes
+        resource_type: instance_network_interface
+      - attributes:
+          instance_id: resource_metadata.instance_id
+          name: resource_metadata.disk_name
+        metrics:
+          - disk.device.read.requests
+          - disk.device.read.requests.rate
+          - disk.device.write.requests
+          - disk.device.write.requests.rate
+          - disk.device.read.bytes
+          - disk.device.read.bytes.rate
+          - disk.device.write.bytes
+          - disk.device.write.bytes.rate
+          - disk.device.latency
+          - disk.device.iops
+          - disk.device.capacity
+          - disk.device.allocation
+          - disk.device.usage
+        resource_type: instance_disk
+      - attributes:
+          container_format: resource_metadata.container_format
+          disk_format: resource_metadata.disk_format
+          name: resource_metadata.name
+        event_attributes:
+          id: resource_id
+        event_delete: image.delete
+        metrics:
+          - image.size
+          - image.download
+          - image.serve
+        resource_type: image
+      - metrics:
+          - hardware.ipmi.node.power
+          - hardware.ipmi.node.temperature
+          - hardware.ipmi.node.inlet_temperature
+          - hardware.ipmi.node.outlet_temperature
+          - hardware.ipmi.node.fan
+          - hardware.ipmi.node.current
+          - hardware.ipmi.node.voltage
+          - hardware.ipmi.node.airflow
+          - hardware.ipmi.node.cups
+          - hardware.ipmi.node.cpu_util
+          - hardware.ipmi.node.mem_util
+          - hardware.ipmi.node.io_util
+        resource_type: ipmi
+      - event_delete: floatingip.delete.end
+        event_attributes:
+          id: resource_id
+        metrics:
+          - bandwidth
+          - network
+          - network.create
+          - network.update
+          - subnet
+          - subnet.create
+          - subnet.update
+          - port
+          - port.create
+          - port.update
+          - router
+          - router.create
+          - router.update
+          - ip.floating
+          - ip.floating.create
+          - ip.floating.update
+        resource_type: network
+      - metrics:
+          - stack.create
+          - stack.update
+          - stack.delete
+          - stack.resume
+          - stack.suspend
+        resource_type: stack
+      - metrics:
+          - storage.objects.incoming.bytes
+          - storage.objects.outgoing.bytes
+          - storage.api.request
+          - storage.objects.size
+          - storage.objects
+          - storage.objects.containers
+          - storage.containers.objects
+          - storage.containers.objects.size
+        resource_type: swift_account
+      - attributes:
+          display_name: resource_metadata.display_name
+          volume_type: resource_metadata.volume_type
+        event_delete: volume.delete.start
+        event_attributes:
+          id: resource_id
+        metrics:
+          - volume
+          - volume.size
+          - snapshot.size
+          - volume.snapshot.size
+          - volume.backup.size
+        resource_type: volume
+      - attributes:
+          host_name: resource_metadata.resource_url
+        metrics:
+          - hardware.cpu.load.1min
+          - hardware.cpu.load.5min
+          - hardware.cpu.load.15min
+          - hardware.cpu.util
+          - hardware.memory.total
+          - hardware.memory.used
+          - hardware.memory.swap.total
+          - hardware.memory.swap.avail
+          - hardware.memory.buffer
+          - hardware.memory.cached
+          - hardware.network.ip.outgoing.datagrams
+          - hardware.network.ip.incoming.datagrams
+          - hardware.system_stats.cpu.idle
+          - hardware.system_stats.io.outgoing.blocks
+          - hardware.system_stats.io.incoming.blocks
+        resource_type: host
+      - attributes:
+          device_name: resource_metadata.device
+          host_name: resource_metadata.resource_url
+        metrics:
+          - hardware.disk.size.total
+          - hardware.disk.size.used
+        resource_type: host_disk
+      - attributes:
+          device_name: resource_metadata.name
+          host_name: resource_metadata.resource_url
+        metrics:
+          - hardware.network.incoming.bytes
+          - hardware.network.outgoing.bytes
+          - hardware.network.outgoing.errors
+        resource_type: host_network_interface
+  meters:
+    metric:
+      - name: "image.size"
+        event_type:
+          - "image.upload"
+          - "image.delete"
+          - "image.update"
+        type: "gauge"
+        unit: B
+        volume: $.payload.size
+        resource_id: $.payload.id
+        project_id: $.payload.owner
+      - name: "image.download"
+        event_type: "image.send"
+        type: "delta"
+        unit: "B"
+        volume: $.payload.bytes_sent
+        resource_id: $.payload.image_id
+        user_id: $.payload.receiver_user_id
+        project_id: $.payload.receiver_tenant_id
+      - name: "image.serve"
+        event_type: "image.send"
+        type: "delta"
+        unit: "B"
+        volume: $.payload.bytes_sent
+        resource_id: $.payload.image_id
+        project_id: $.payload.owner_id
+      - name: 'volume.size'
+        event_type:
+          - 'volume.exists'
+          - 'volume.create.*'
+          - 'volume.delete.*'
+          - 'volume.resize.*'
+          - 'volume.attach.*'
+          - 'volume.detach.*'
+          - 'volume.update.*'
+        type: 'gauge'
+        unit: 'GB'
+        volume: $.payload.size
+        user_id: $.payload.user_id
+        project_id: $.payload.tenant_id
+        resource_id: $.payload.volume_id
+        metadata:
+          display_name: $.payload.display_name
+          volume_type: $.payload.volume_type
+      - name: 'snapshot.size'
+        event_type:
+          - 'snapshot.exists'
+          - 'snapshot.create.*'
+          - 'snapshot.delete.*'
+        type: 'gauge'
+        unit: 'GB'
+        volume: $.payload.volume_size
+        user_id: $.payload.user_id
+        project_id: $.payload.tenant_id
+        resource_id: $.payload.snapshot_id
+        metadata:
+          display_name: $.payload.display_name
+      - name: 'backup.size'
+        event_type:
+          - 'backup.exists'
+          - 'backup.create.*'
+          - 'backup.delete.*'
+          - 'backup.restore.*'
+        type: 'gauge'
+        unit: 'GB'
+        volume: $.payload.size
+        user_id: $.payload.user_id
+        project_id: $.payload.tenant_id
+        resource_id: $.payload.backup_id
+        metadata:
+          display_name: $.payload.display_name
+      - name: $.payload.metrics.[*].name
+        event_type: 'magnum.bay.metrics.*'
+        type: 'gauge'
+        unit: $.payload.metrics.[*].unit
+        volume: $.payload.metrics.[*].value
+        user_id: $.payload.user_id
+        project_id: $.payload.project_id
+        resource_id: $.payload.resource_id
+        lookup: ['name', 'unit', 'volume']
+      - name: $.payload.measurements.[*].metric.[*].name
+        event_type: 'objectstore.http.request'
+        type: 'delta'
+        unit: $.payload.measurements.[*].metric.[*].unit
+        volume: $.payload.measurements.[*].result
+        resource_id: $.payload.target.id
+        user_id: $.payload.initiator.id
+        project_id: $.payload.initiator.project_id
+        lookup: ['name', 'unit', 'volume']
+      - name: 'memory'
+        event_type: 'compute.instance.*'
+        type: 'gauge'
+        unit: 'MB'
+        volume: $.payload.memory_mb
+        user_id: $.payload.user_id
+        project_id: $.payload.tenant_id
+        resource_id: $.payload.instance_id
+        user_metadata: $.payload.metadata
+        metadata: &instance_meta
+          host: $.payload.host
+          flavor_id: $.payload.instance_flavor_id
+          flavor_name: $.payload.instance_type
+          display_name: $.payload.display_name
+          image_ref: $.payload.image_meta.base_image_ref
+      - name: 'vcpus'
+        event_type: 'compute.instance.*'
+        type: 'gauge'
+        unit: 'vcpu'
+        volume: $.payload.vcpus
+        user_id: $.payload.user_id
+        project_id: $.payload.tenant_id
+        resource_id: $.payload.instance_id
+        user_metadata: $.payload.metadata
+        metadata:
+          <<: *instance_meta
+      - name: 'compute.instance.booting.time'
+        event_type: 'compute.instance.create.end'
+        type: 'gauge'
+        unit: 'sec'
+        volume:
+          fields: [$.payload.created_at, $.payload.launched_at]
+          plugin: 'timedelta'
+        project_id: $.payload.tenant_id
+        resource_id: $.payload.instance_id
+        user_metadata: $.payload.metadata
+        metadata:
+          <<: *instance_meta
+      - name: 'disk.root.size'
+        event_type: 'compute.instance.*'
+        type: 'gauge'
+        unit: 'GB'
+        volume: $.payload.root_gb
+        user_id: $.payload.user_id
+        project_id: $.payload.tenant_id
+        resource_id: $.payload.instance_id
+        user_metadata: $.payload.metadata
+        metadata:
+          <<: *instance_meta
+      - name: 'disk.ephemeral.size'
+        event_type: 'compute.instance.*'
+        type: 'gauge'
+        unit: 'GB'
+        volume: $.payload.ephemeral_gb
+        user_id: $.payload.user_id
+        project_id: $.payload.tenant_id
+        resource_id: $.payload.instance_id
+        user_metadata: $.payload.metadata
+        metadata:
+          <<: *instance_meta
+      - name: 'bandwidth'
+        event_type: 'l3.meter'
+        type: 'delta'
+        unit: 'B'
+        volume: $.payload.bytes
+        project_id: $.payload.tenant_id
+        resource_id: $.payload.label_id
+      - name: 'compute.node.cpu.frequency'
+        event_type: 'compute.metrics.update'
+        type: 'gauge'
+        unit: 'MHz'
+        volume: $.payload.metrics[?(@.name='cpu.frequency')].value
+        resource_id: $.payload.host + "_" + $.payload.nodename
+        timestamp: $.payload.metrics[?(@.name='cpu.frequency')].timestamp
+        metadata:
+          event_type: $.event_type
+          host: $.publisher_id
+          source: $.payload.metrics[?(@.name='cpu.frequency')].source
+      - name: 'compute.node.cpu.user.time'
+        event_type: 'compute.metrics.update'
+        type: 'cumulative'
+        unit: 'ns'
+        volume: $.payload.metrics[?(@.name='cpu.user.time')].value
+        resource_id: $.payload.host + "_" + $.payload.nodename
+        timestamp: $.payload.metrics[?(@.name='cpu.user.time')].timestamp
+        metadata:
+          event_type: $.event_type
+          host: $.publisher_id
+          source: $.payload.metrics[?(@.name='cpu.user.time')].source
+      - name: 'compute.node.cpu.kernel.time'
+        event_type: 'compute.metrics.update'
+        type: 'cumulative'
+        unit: 'ns'
+        volume: $.payload.metrics[?(@.name='cpu.kernel.time')].value
+        resource_id: $.payload.host + "_" + $.payload.nodename
+        timestamp: $.payload.metrics[?(@.name='cpu.kernel.time')].timestamp
+        metadata:
+          event_type: $.event_type
+          host: $.publisher_id
+          source: $.payload.metrics[?(@.name='cpu.kernel.time')].source
+      - name: 'compute.node.cpu.idle.time'
+        event_type: 'compute.metrics.update'
+        type: 'cumulative'
+        unit: 'ns'
+        volume: $.payload.metrics[?(@.name='cpu.idle.time')].value
+        resource_id: $.payload.host + "_" + $.payload.nodename
+        timestamp: $.payload.metrics[?(@.name='cpu.idle.time')].timestamp
+        metadata:
+          event_type: $.event_type
+          host: $.publisher_id
+          source: $.payload.metrics[?(@.name='cpu.idle.time')].source
+      - name: 'compute.node.cpu.iowait.time'
+        event_type: 'compute.metrics.update'
+        type: 'cumulative'
+        unit: 'ns'
+        volume: $.payload.metrics[?(@.name='cpu.iowait.time')].value
+        resource_id: $.payload.host + "_" + $.payload.nodename
+        timestamp: $.payload.metrics[?(@.name='cpu.iowait.time')].timestamp
+        metadata:
+          event_type: $.event_type
+          host: $.publisher_id
+          source: $.payload.metrics[?(@.name='cpu.iowait.time')].source
+      - name: 'compute.node.cpu.kernel.percent'
+        event_type: 'compute.metrics.update'
+        type: 'gauge'
+        unit: 'percent'
+        volume: $.payload.metrics[?(@.name='cpu.kernel.percent')].value * 100
+        resource_id: $.payload.host + "_" + $.payload.nodename
+        timestamp: $.payload.metrics[?(@.name='cpu.kernel.percent')].timestamp
+        metadata:
+          event_type: $.event_type
+          host: $.publisher_id
+          source: $.payload.metrics[?(@.name='cpu.kernel.percent')].source
+      - name: 'compute.node.cpu.idle.percent'
+        event_type: 'compute.metrics.update'
+        type: 'gauge'
+        unit: 'percent'
+        volume: $.payload.metrics[?(@.name='cpu.idle.percent')].value * 100
+        resource_id: $.payload.host + "_" + $.payload.nodename
+        timestamp: $.payload.metrics[?(@.name='cpu.idle.percent')].timestamp
+        metadata:
+          event_type: $.event_type
+          host: $.publisher_id
+          source: $.payload.metrics[?(@.name='cpu.idle.percent')].source
+      - name: 'compute.node.cpu.user.percent'
+        event_type: 'compute.metrics.update'
+        type: 'gauge'
+        unit: 'percent'
+        volume: $.payload.metrics[?(@.name='cpu.user.percent')].value * 100
+        resource_id: $.payload.host + "_" + $.payload.nodename
+        timestamp: $.payload.metrics[?(@.name='cpu.user.percent')].timestamp
+        metadata:
+          event_type: $.event_type
+          host: $.publisher_id
+          source: $.payload.metrics[?(@.name='cpu.user.percent')].source
+      - name: 'compute.node.cpu.iowait.percent'
+        event_type: 'compute.metrics.update'
+        type: 'gauge'
+        unit: 'percent'
+        volume: $.payload.metrics[?(@.name='cpu.iowait.percent')].value * 100
+        resource_id: $.payload.host + "_" + $.payload.nodename
+        timestamp: $.payload.metrics[?(@.name='cpu.iowait.percent')].timestamp
+        metadata:
+          event_type: $.event_type
+          host: $.publisher_id
+          source: $.payload.metrics[?(@.name='cpu.iowait.percent')].source
+      - name: 'compute.node.cpu.percent'
+        event_type: 'compute.metrics.update'
+        type: 'gauge'
+        unit: 'percent'
+        volume: $.payload.metrics[?(@.name='cpu.percent')].value * 100
+        resource_id: $.payload.host + "_" + $.payload.nodename
+        timestamp: $.payload.metrics[?(@.name='cpu.percent')].timestamp
+        metadata:
+          event_type: $.event_type
+          host: $.publisher_id
+          source: $.payload.metrics[?(@.name='cpu.percent')].source
+      - name: $.payload.outcome - $.payload.outcome + 'identity.authenticate.' + $.payload.outcome
+        type: 'delta'
+        unit: 'user'
+        volume: 1
+        event_type:
+          - 'identity.authenticate'
+        resource_id: $.payload.initiator.id
+        user_id: $.payload.initiator.id
+      - name: 'dns.domain.exists'
+        event_type: 'dns.domain.exists'
+        type: 'cumulative'
+        unit: 's'
+        volume:
+          fields: [$.payload.audit_period_beginning, $.payload.audit_period_ending]
+          plugin: 'timedelta'
+        project_id: $.payload.tenant_id
+        resource_id: $.payload.id
+        user_id: $._context_user
+        metadata:
+          status: $.payload.status
+          pool_id: $.payload.pool_id
+          host: $.publisher_id
+      - name: 'trove.instance.exists'
+        event_type: 'trove.instance.exists'
+        type: 'cumulative'
+        unit: 's'
+        volume:
+          fields: [$.payload.audit_period_beginning, $.payload.audit_period_ending]
+          plugin: 'timedelta'
+        project_id: $.payload.tenant_id
+        resource_id: $.payload.instance_id
+        user_id: $.payload.user_id
+        metadata:
+          nova_instance_id: $.payload.nova_instance_id
+          state: $.payload.state
+          service_id: $.payload.service_id
+          instance_type: $.payload.instance_type
+          instance_type_id: $.payload.instance_type_id
+  paste:
+    'app:api-server':
+      paste.app_factory: 'ceilometer.api.app:app_factory'
+    'filter:authtoken':
+      paste.filter_factory: 'keystonemiddleware.auth_token:filter_factory'
+      oslo_config_project: 'ceilometer'
+    'filter:audit':
+      paste.filter_factory: 'keystonemiddleware.audit:filter_factory'
+      audit_map_file: '/etc/ceilometer/api_audit_map.conf'
+    'filter:cors':
+      oslo_config_project: 'ceilometer'
+      paste.filter_factory: 'oslo_middleware.cors:filter_factory'
+    'filter:http_proxy_to_wsgi':
+      oslo_config_project: 'ceilometer'
+      paste.filter_factory: 'oslo_middleware.http_proxy_to_wsgi:HTTPProxyToWSGI.factory'
+    'filter:request_id':
+      oslo_config_project: 'ceilometer'
+      paste.filter_factory: 'oslo_middleware:RequestId.factory'
+    'pipeline:main':
+      pipeline: cors http_proxy_to_wsgi request_id authtoken audit api-server
+  polling:
+    sources:
+      - name: all_pollsters
+        interval: 600
+        meters:
+          - "*"
+  pipeline:
+    sources:
+      - name: meter_source
+        meters:
+          - "*"
+        sinks:
+          - meter_sink
+      - name: cpu_source
+        meters:
+          - "cpu"
+        sinks:
+          - cpu_sink
+          - cpu_delta_sink
+      - name: disk_source
+        meters:
+          - "disk.read.bytes"
+          - "disk.read.requests"
+          - "disk.write.bytes"
+          - "disk.write.requests"
+          - "disk.device.read.bytes"
+          - "disk.device.read.requests"
+          - "disk.device.write.bytes"
+          - "disk.device.write.requests"
+        sinks:
+          - disk_sink
+      - name: network_source
+        meters:
+          - "network.incoming.bytes"
+          - "network.incoming.packets"
+          - "network.outgoing.bytes"
+          - "network.outgoing.packets"
+        sinks:
+          - network_sink
+    sinks:
+      - name: meter_sink
+        transformers:
+        publishers:
+          - notifier://
+      - name: cpu_sink
+        transformers:
+          - name: "rate_of_change"
+            parameters:
+              target:
+                name: "cpu_util"
+                unit: "%"
+                type: "gauge"
+                max: 100
+                scale: "100.0 / (10**9 * (resource_metadata.cpu_number or 1))"
+        publishers:
+          - notifier://
+      - name: cpu_delta_sink
+        transformers:
+          - name: "delta"
+            parameters:
+              target:
+                name: "cpu.delta"
+              growth_only: True
+        publishers:
+          - notifier://
+      - name: disk_sink
+        transformers:
+          - name: "rate_of_change"
+            parameters:
+              source:
+                map_from:
+                  name: "(disk\\.device|disk)\\.(read|write)\\.(bytes|requests)"
+                  unit: "(B|request)"
+              target:
+                map_to:
+                  name: "\\1.\\2.\\3.rate"
+                  unit: "\\1/s"
+                type: "gauge"
+        publishers:
+          - notifier://
+      - name: network_sink
+        transformers:
+          - name: "rate_of_change"
+            parameters:
+              source:
+                map_from:
+                  name: "network\\.(incoming|outgoing)\\.(bytes|packets)"
+                  unit: "(B|packet)"
+              target:
+                map_to:
+                  name: "network.\\1.\\2.rate"
+                  unit: "\\1/s"
+                type: "gauge"
+        publishers:
+          - notifier://
+  policy: {}
+  audit_api_map:
+    DEFAULT:
+      target_endpoint_type: None
+    path_keywords:
+      meters: meter_name
+      resources: resource_id
+      statistics: None
+      samples: sample_id
+    service_endpoints:
+      metering: service/metering
+  wsgi_ceilometer: |
+    Listen 0.0.0.0:{{ tuple "metering" "internal" "api" . | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
+
+    LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" combined
+
+    <VirtualHost *:{{ tuple "metering" "internal" "api" . | include "helm-toolkit.endpoints.endpoint_port_lookup" }}>
+        LogLevel info
+        WSGIDaemonProcess ceilometer-api processes=2 threads=1 user=ceilometer group=ceilometer display-name=%{GROUP} python-path=/var/lib/kolla/venv/lib/python2.7/site-packages
+        WSGIProcessGroup ceilometer-api
+
+        WSGIScriptReloading On
+        WSGIScriptAlias / /var/lib/kolla/venv/lib/python2.7/site-packages/ceilometer/api/app.wsgi
+
+        WSGIApplicationGroup %{GLOBAL}
+
+        <Directory "/var/lib/kolla/venv/lib/python2.7/site-packages/ceilometer/api">
+            <IfVersion >= 2.4>
+                Require all granted
+            </IfVersion>
+            <IfVersion < 2.4>
+                Order allow,deny
+                Allow from all
+            </IfVersion>
+        </Directory>
+        ErrorLog /dev/stdout
+        CustomLog /dev/stdout combined
+    </VirtualHost>
+  rally_tests:
+    CeilometerStats.create_meter_and_get_stats:
+      - args:
+          user_id: user-id
+          resource_id: resource-id
+          counter_volume: 1
+          counter_unit: ''
+          counter_type: cumulative
+        runner:
+          type: constant
+          times: 1
+          concurrency: 1
+        sla:
+          failure_rate:
+            max: 0
+    CeilometerMeters.list_meters:
+      - runner:
+          type: constant
+          times: 1
+          concurrency: 1
+        sla:
+          failure_rate:
+            max: 0
+        context:
+          ceilometer:
+            counter_name: benchmark_meter
+            counter_type: gauge
+            counter_unit: "%"
+            counter_volume: 1
+            resources_per_tenant: 1
+            samples_per_resource: 1
+            timestamp_interval: 10
+            metadata_list:
+            - status: active
+              name: rally benchmark on
+              deleted: 'false'
+            - status: terminated
+              name: rally benchmark off
+              deleted: 'true'
+        args:
+          limit: 5
+          metadata_query:
+            status: terminated
+    CeilometerQueries.create_and_query_samples:
+      - args:
+          filter:
+            "=":
+              counter_unit: instance
+          orderby:
+          limit: 10
+          counter_name: cpu_util
+          counter_type: gauge
+          counter_unit: instance
+          counter_volume: 1
+          resource_id: resource_id
+        runner:
+          type: constant
+          times: 1
+          concurrency: 1
+          sla:
+            failure_rate:
+              max: 0
+
+dependencies:
+  dynamic:
+    common:
+      local_image_registry:
+        jobs:
+          - ceilometer-image-repo-sync
+        services:
+          - endpoint: node
+            service: local_image_registry
+  static:
+    api:
+      jobs:
+        - ceilometer-rabbit-init
+        - ceilometer-ks-user
+        - ceilometer-ks-endpoints
+      services:
+        - endpoint: internal
+          service: identity
+        - endpoint: internal
+          service: metric
+    central:
+      jobs:
+        - ceilometer-rabbit-init
+        - ceilometer-ks-user
+        - ceilometer-ks-endpoints
+      services:
+        - endpoint: internal
+          service: identity
+        - endpoint: internal
+          service: metric
+    ipmi:
+      jobs:
+        - ceilometer-rabbit-init
+        - ceilometer-ks-user
+        - ceilometer-ks-endpoints
+      services:
+        - endpoint: internal
+          service: identity
+        - endpoint: internal
+          service: metric
+    collector:
+      jobs:
+        - ceilometer-rabbit-init
+        - ceilometer-ks-user
+        - ceilometer-ks-endpoints
+      services:
+        - endpoint: internal
+          service: identity
+        - endpoint: internal
+          service: metric
+    compute:
+      jobs:
+        - ceilometer-rabbit-init
+        - ceilometer-ks-user
+        - ceilometer-ks-endpoints
+      services:
+        - endpoint: internal
+          service: identity
+        - endpoint: internal
+          service: metric
+    ks_endpoints:
+      jobs:
+        - ceilometer-ks-service
+      services:
+        - endpoint: internal
+          service: identity
+    ks_service:
+      services:
+        - endpoint: internal
+          service: identity
+    ks_user:
+      services:
+        - endpoint: internal
+          service: identity
+    rabbit_init:
+      services:
+      - service: oslo_messaging
+        endpoint: internal
+    notification:
+      jobs:
+        - ceilometer-rabbit-init
+        - ceilometer-ks-user
+        - ceilometer-ks-endpoints
+      services:
+        - endpoint: internal
+          service: identity
+        - endpoint: internal
+          service: metric
+    tests:
+      services:
+        - endpoint: internal
+          service: identity
+        - endpoint: internal
+          service: metering
+        - endpoint: internal
+          service: metric
+    image_repo_sync:
+      services:
+        - endpoint: internal
+          service: local_image_registry
+
+# Names of secrets used by bootstrap and environmental checks
+secrets:
+  identity:
+    admin: ceilometer-keystone-admin
+    ceilometer: ceilometer-keystone-user
+    test: ceilometer-keystone-test
+  oslo_messaging:
+    admin: ceilometer-rabbitmq-admin
+    ceilometer: ceilometer-rabbitmq-user
+  oci_image_registry:
+    ceilometer: ceilometer-oci-image-registry
+
+bootstrap:
+  enabled: false
+  ks_user: ceilometer
+  script: |
+    openstack token issue
+
+# typically overridden by environmental
+# values, but should include all endpoints
+# required by this chart
+endpoints:
+  cluster_domain_suffix: cluster.local
+  local_image_registry:
+    name: docker-registry
+    namespace: docker-registry
+    hosts:
+      default: localhost
+      internal: docker-registry
+      node: localhost
+    host_fqdn_override:
+      default: null
+    port:
+      registry:
+        node: 5000
+  oci_image_registry:
+    name: oci-image-registry
+    namespace: oci-image-registry
+    auth:
+      enabled: false
+      ceilometer:
+        username: ceilometer
+        password: password
+    hosts:
+      default: localhost
+    host_fqdn_override:
+      default: null
+    port:
+      registry:
+        default: null
+  identity:
+    name: keystone
+    auth:
+      admin:
+        region_name: RegionOne
+        username: admin
+        password: password
+        project_name: admin
+        user_domain_name: default
+        project_domain_name: default
+      ceilometer:
+        role: admin
+        region_name: RegionOne
+        username: ceilometer
+        password: password
+        project_name: service
+        user_domain_name: service
+        project_domain_name: service
+      test:
+        role: admin
+        region_name: RegionOne
+        username: ceilometer-test
+        password: password
+        project_name: test
+        user_domain_name: service
+        project_domain_name: service
+    hosts:
+      default: keystone
+      internal: keystone-api
+    host_fqdn_override:
+      default: null
+    path:
+      default: /v3
+    scheme:
+      default: 'http'
+    port:
+      api:
+        default: 5000
+        public: 80
+        internal: 5000
+        service: 5000
+  metering:
+    name: ceilometer
+    hosts:
+      default: ceilometer-api
+      public: ceilometer
+    host_fqdn_override:
+      default: null
+    path:
+      default: null
+    scheme:
+      default: 'http'
+    port:
+      api:
+        default: 8777
+        public: 80
+        internal: 8777
+        service: 8777
+  metric:
+    name: gnocchi
+    hosts:
+      default: gnocchi-api
+      public: gnocchi
+    host_fqdn_override:
+      default: null
+    path:
+      default: null
+    scheme:
+      default: 'http'
+    port:
+      api:
+        default: 8041
+        public: 80
+        internal: 8041
+        service: 8041
+  alarming:
+    name: aodh
+    hosts:
+      default: aodh-api
+      public: aodh
+    host_fqdn_override:
+      default: null
+    path:
+      default: null
+    scheme:
+      default: 'http'
+    port:
+      api:
+        default: 8042
+        public: 80
+  oslo_cache:
+    auth:
+      # NOTE(portdirect): this is used to define the value for keystone
+      # authtoken cache encryption key, if not set it will be populated
+      # automatically with a random value, but to take advantage of
+      # this feature all services should be set to use the same key,
+      # and memcache service.
+      memcache_secret_key: null
+    hosts:
+      default: memcached
+    host_fqdn_override:
+      default: null
+    port:
+      memcache:
+        default: 11211
+  oslo_messaging:
+    auth:
+      admin:
+        username: rabbitmq
+        password: password
+      ceilometer:
+        username: ceilometer
+        password: password
+    statefulset:
+      replicas: 2
+      name: rabbitmq-rabbitmq
+    hosts:
+      default: rabbitmq
+    host_fqdn_override:
+      default: null
+    path: /ceilometer
+    scheme: rabbit
+    port:
+      amqp:
+        default: 5672
+      http:
+        default: 15672
+
+pod:
+  affinity:
+    anti:
+      type:
+        default: preferredDuringSchedulingIgnoredDuringExecution
+      topologyKey:
+        default: kubernetes.io/hostname
+      weight:
+        default: 10
+  tolerations:
+    ceilometer:
+      enabled: false
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+  mounts:
+    ceilometer_tests:
+      init_container: null
+      ceilometer_tests:
+        volumeMounts:
+        volumes:
+    ceilometer_api:
+      init_container: null
+      ceilometer_api:
+        volumeMounts:
+        volumes:
+    ceilometer_compute:
+      init_container: null
+      ceilometer_compute:
+        volumeMounts:
+        volumes:
+    ceilometer_central:
+      init_container: null
+      ceilometer_central:
+        volumeMounts:
+        volumes:
+    ceilometer_ipmi:
+      init_container: null
+      ceilometer_ipmi:
+        volumeMounts:
+        volumes:
+    ceilometer_collector:
+      init_container: null
+      ceilometer_collector:
+        volumeMounts:
+        volumes:
+    ceilometer_notification:
+      init_container: null
+      ceilometer_notification:
+        volumeMounts:
+        volumes:
+  replicas:
+    api: 1
+    central: 1
+    collector: 1
+    notification: 1
+  lifecycle:
+    upgrades:
+      deployments:
+        revision_history: 3
+        pod_replacement_strategy: RollingUpdate
+        rolling_update:
+          max_unavailable: 1
+          max_surge: 3
+      daemonsets:
+        pod_replacement_strategy: RollingUpdate
+        compute:
+          enabled: true
+          min_ready_seconds: 0
+          max_unavailable: 1
+    disruption_budget:
+      api:
+        min_available: 0
+    termination_grace_period:
+      api:
+        timeout: 600
+  resources:
+    enabled: true
+    api:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    compute:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    collector:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    notification:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    central:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    ipmi:
+      requests:
+        memory: "124Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    jobs:
+      rabbit_init:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      ks_endpoints:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      ks_service:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      ks_user:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      tests:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      image_repo_sync:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+
+network_policy:
+  ceilometer:
+    ingress:
+      - {}
+    egress:
+      - {}
+
+manifests:
+  configmap_bin: true
+  configmap_etc: true
+  deployment_api: true
+  deployment_central: true
+  deployment_collector: true
+  daemonset_compute: true
+  daemonset_ipmi: false
+  deployment_notification: true
+  ingress_api: true
+  job_bootstrap: true
+  job_db_drop: false
+  # using gnocchi so no db init
+  job_db_init: false
+  job_db_init_mongodb: false
+  # using gnocchi so no db sync
+  job_db_sync: false
+  job_image_repo_sync: true
+  job_ks_endpoints: true
+  job_ks_service: true
+  job_ks_user: true
+  job_rabbit_init: true
+  pdb_api: true
+  pod_rally_test: true
+  network_policy: false
+  secret_db: true
+  secret_keystone: true
+  secret_mongodb: false
+  secret_rabbitmq: true
+  secret_registry: true
+  service_api: true
+  service_ingress_api: true
+...
