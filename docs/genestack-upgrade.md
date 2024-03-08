@@ -1,8 +1,8 @@
+# Updating the Genestack
+
 Running a genestack upgrade is fairly simple and consists of mainly updating the `git` checkout and then running through the needed `helm` charts to deploy updated applications.
 
-## Updating the Genestack
-
-Change to the genestack directory.
+## Change to the genestack directory.
 
 ``` shell
 cd /opt/genestack
@@ -19,7 +19,7 @@ git rebase origin/main
 
     You may want to checkout a specific SHA or tag when running a stable environment.
 
-Update the submodules.
+## Update the submodules.
 
 ``` shell
 git pull --recurse-submodules

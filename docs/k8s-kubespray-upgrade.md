@@ -1,6 +1,10 @@
+# Kubespray Upgrades
+
+## Overview
+
 Upgrades within the Kubernetes ecosystem are plentiful and happen often. While upgrades are not something that we want to process all the time, it is something that we want to be able to confidently process. With our Kubernetes providers, upgrades are handled in a way that maximizes uptime and should mostly not force resources into data-plane downtime.
 
-# Kubespray
+### Upgrade Notifications
 
 Running upgrades with Kubespary is handled by the `upgrade-cluster.yml` playbook. While this playbook works, it does have a couple of caveats.
 

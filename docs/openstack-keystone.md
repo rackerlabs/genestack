@@ -1,4 +1,3 @@
-
 # Deploy Keystone
 
 [![asciicast](https://asciinema.org/a/629802.svg)](https://asciinema.org/a/629802)
