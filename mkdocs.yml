@@ -144,6 +144,7 @@ nav:
               - TopoLVM: storage-topolvm.md
           - Monitoring:
               - Monitoring Overview: prometheus.md
+              - Grafana: grafana.md
           - Secrets:
               - vault.md
               - Vault Operator: vault-secrets-operator.md
