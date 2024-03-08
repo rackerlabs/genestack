@@ -11,6 +11,9 @@ Make sure you label things accordingly.
 # Label the storage nodes - optional and only used when deploying ceph for K8S infrastructure shared storage
 kubectl label node $(kubectl get nodes | awk '/ceph/ {print $1}') role=storage-node
 
+# Label the HashiCorp Vault nodes
+kubectl label node $(kubectl get nodes | awk '/controller/ {print $1}' |head -3) vault-storage=enabled
+
 # Label the openstack controllers
 kubectl label node $(kubectl get nodes | awk '/controller/ {print $1}') openstack-control-plane=enabled
 

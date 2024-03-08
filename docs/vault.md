@@ -5,7 +5,7 @@ HashiCorp Vault is a versatile tool designed for secret management and data prot
 ## Prerequisites
 
 Before starting the installation, ensure the following prerequisites are met:
-- **Storage:** Kubernetes Cluster should have available storage to create a PVC for data storage, especially when using integrated storage backend and storing audit logs.
+- **Storage:** The Kubernetes Cluster should have available storage to create a PVC for data storage, especially when using integrated storage backend and storing audit logs. We will be using local storage located at /opt/vault on nodes labeled with `vault-storage: enabled`. Ensure that the nodes contain the `/opt/vault` directory.
 - **Ingress Controller:** An Ingress Controller should be available as Vault's UI will be exposed using Ingress.
 - **Sealed-secret:** If the Vault UI URL will use a domain certificate then, the Kubernetes secret should be deployed in the vault namespace. Make sure the secret manifest is encrypted using sealed-secret for secure storage in a Git repository.
 - **Cert-Manager:** The installation will use end-to-end TLS generated using cert-manager. Hence, cert-manager should be available.
@@ -16,16 +16,21 @@ Before starting the installation, ensure the following prerequisites are met:
 cd kustomize/vault/base
 ```
 
-Modify the `values.yaml` file with your desired configurations. Refer to the sample configuration in this directory, already updated for installation.
+- Modify the `values.yaml` file with your desired configurations. Refer to the sample configuration in this directory, already updated for installation.
 
 ``` shell
 vi values.yaml
 ```
 
+- Specify the size of the PV and the PVC(dataStorage and auditStorage) in `kustomization.yaml`. Since we are utilizing local storage from the nodes, consider this as a placeholder. Vault will be able to utilize the available storage based on the size of /opt/vault on the nodes.
+
+``` shell
+vi kustomization.yaml
+```
 - Perform the installation:
 
 ``` shell
-kustomize build . --enable-helm | kubectl apply -f -
+kubectl  kustomize . --enable-helm | kubectl apply -f -
 ```
 
 ## Configure Vault
@@ -53,29 +58,28 @@ This command provides unseal keys and a root token in cluster-keys.json. Keep th
 
 On vault-0 pod, use any of the 2 unseal keys obtained during initialization:
 ``` shell
-kubectl exec -it vault-0 -n vault -- sh
-vault operator unseal
+kubectl exec -it vault-0 -n vault -- vault operator unseal
 ```
 Repeat the unseal command as needed with different unseal keys.
 
 ### Join Vault Pods to Form a Cluster
 
 ``` shell
-kubectl exec -it vault-1 -n vault -- sh
-vault operator raft join -leader-ca-cert=@/vault/userconfig/vault-server-tls/ca.crt https://vault-0.vault-internal:8200
+kubectl exec -it vault-1 -n vault -- vault operator raft join -leader-ca-cert=@/vault/userconfig/vault-server-tls/ca.crt https://vault-0.vault-internal:8200
 ```
 
 ``` shell
-kubectl exec -it vault-2 -n vault -- sh
-vault operator raft join -leader-ca-cert=@/vault/userconfig/vault-server-tls/ca.crt https://vault-0.vault-internal:8200
+kubectl exec -it vault-2 -n vault -- vault operator raft join -leader-ca-cert=@/vault/userconfig/vault-server-tls/ca.crt https://vault-0.vault-internal:8200
 ```
 
 ### Unseal Vault(vault-1, vault-2)
 
 On each Vault pod (vault-1, vault-2), use any of the 2 unseal keys obtained during initialization:
 ``` shell
-kubectl exec -it vault-1 -n vault -- sh
-vault operator unseal
+kubectl exec -it vault-1 -n vault -- vault operator unseal
+```
+```shell
+kubectl exec -it vault-2 -n vault -- vault operator unseal
 ```
 
 Repeat the unseal command as needed with different unseal keys.
@@ -87,14 +91,17 @@ Use the root token obtained during initialization to authenticate:
 ``` shell
 kubectl exec -it vault-0 -n vault -- vault login
 ```
+### Enable audit logging
+```
+kubectl exec -it vault-0 -n vault -- vault audit enable file file_path=/vault/audit/audit.log
+```
 
 ## Validation
 
 Login to vault-0 and list the raft peers:
 
 ``` shell
-kubectl exec vault-0 -n vault -it -- sh
-/ $ vault operator raft list-peers
+kubectl exec vault-0 -n vault -it -- vault operator raft list-peers
 Node       Address                        State       Voter
 ----       -------                        -----       -----
 vault-0    vault-0.vault-internal:8201    leader      true
@@ -115,7 +122,8 @@ kubectl exec --stdin=true --tty=true vault-0 -n vault -- vault auth enable -path
 - Define Kubernetes connection:
 
 ``` shell
-kubectl exec --stdin=true --tty=true vault-0 -n vault -- vault write auth/genestack/config  kubernetes_host="https://$KUBERNETES_PORT_443_TCP_ADDR:443"
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- sh
+vault write auth/genestack/config  kubernetes_host="https://$KUBERNETES_PORT_443_TCP_ADDR:443"
 ```
 
 - Define secret path for keystone:
