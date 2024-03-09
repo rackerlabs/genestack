@@ -12,7 +12,7 @@ Take a moment to orient yourself, there are a few items to consider before movin
 
 !!! note
 
-    Your local genestack repository will be transferred to the eventual launcher instance for convenience **perfect for development**. See [Getting Started](quickstart.md] for an example on how to recursively clone the repository and its submodules.
+    Your local genestack repository will be transferred to the eventual launcher instance for convenience **perfect for development**. See [Getting Started](quickstart.md) for an example on how to recursively clone the repository and its submodules.
 
 ### Create a VirtualEnv
 
