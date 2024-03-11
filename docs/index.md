@@ -13,12 +13,15 @@ hide:
     Rackspace would like to once again welcome you to the cloud. If you're developing applications,
     wanting to contribute to OpenStack, or just looking for a better platform; you're in the right place.
 
+    [:octicons-comment-24: Join the Discord](https://discord.gg/Pa2NsbMC)
+
 -   :material-alpha:{ .xl .middle } - __Genestack__  __/dʒen.ə.stæk/__
 
     1. The Genesis of your Open-Infrastructure
     2. Your new favorite ecosystem
     3. Enterprise ready
     4. The cloud simplified
+    5. Hybrid by design
 
 -   :material-abacus:{ .xl .middle } __Rackspace Cloud Solutions__
 
@@ -29,9 +32,16 @@ hide:
 
 -   :material-cloud:{ .lg } __Simple Solutions__
 
-    Learn more about running the cloud infrastructure of Tomorrow, Today.
+    Learn about the components.
 
-    A complete list of [Project Components](genestack-components.md)
+    [:octicons-diff-renamed-16: A complete list of Project Components](genestack-components.md)
+
+    ---
+
+    Start building now.
+
+    [:octicons-play-24: Deployment Guide](genestack-getting-started.md)
+
 </div>
 
 ---
