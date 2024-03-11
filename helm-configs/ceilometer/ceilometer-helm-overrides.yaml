@@ -131,14 +131,15 @@ conf:
           - gnocchi
     api:
       aodh_is_enabled: "False"
-    # NOTE(portdirect): the following option will turn off the ability to retrieve
-    # metrics via the ceilometer API:
-    # gnocchi_is_enabled: "True"
+      aodh_url: "NotUsed"
     dispatcher_gnocchi:
       filter_service_activity: False
       archive_policy: low
       resources_definition_file: /etc/ceilometer/gnocchi_resources.yaml
     database:
+      connection: "NotUsed"
+      event_connection: "NotUsed"
+      metering_connection: "NotUsed"
       max_retries: -1
     dispatcher:
       archive_policy: low
