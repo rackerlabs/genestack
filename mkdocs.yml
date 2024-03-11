@@ -192,6 +192,7 @@ nav:
           - Creating Networks: openstack-neutron-networks.md
           - Glance Images Creation: openstack-glance-images.md
       - Building Local Images: build-local-images.md
+      - Working Locallly With Docs: mkdocs-howto.md
       - Third Party Tools:
           - OSIE: extra-osie.md
   - Cloud Onboarding:
