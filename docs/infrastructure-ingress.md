@@ -2,6 +2,11 @@
 
 We need two different Ingress controllers, one in the `openstack` namespace, the other in the `ingress-nginx` namespace. The `openstack` controller is for east-west connectivity, the `ingress-nginx` controller is for north-south.
 
+!!! note
+
+    To deploy the ingress controller please ensure Helm is installed first ([Install Helm](openstack-helm-make.md)).
+
+
 ### Deploy our ingress controller within the ingress-nginx Namespace
 
 ``` shell
