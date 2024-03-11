@@ -199,3 +199,4 @@ nav:
           - OSIE: extra-osie.md
   - Cloud Onboarding:
       - Openstack Security Groups: openstack-security-groups.md
+      - Openstack Floating Ips: openstack-floating-ips.md

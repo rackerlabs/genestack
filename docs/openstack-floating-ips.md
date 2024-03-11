@@ -1,6 +1,6 @@
 # Openstack Floating Ips
 
-To read more about Openstack Security Groups using the [upstream docs](https://docs.openstack.org/python-openstackclient/pike/cli/command-objects/floating-ip.html).
+To read more about Openstack Floating Ips using the [upstream docs](https://docs.openstack.org/python-openstackclient/pike/cli/command-objects/floating-ip.html).
 
 #### List and view floating ips
 
@@ -62,4 +62,27 @@ $ openstack floating ip show <floating-ip>
 $ openstack floating ip unset
     --port
     <floating-ip>
+```
+
+#### Associate floating IP addresses
+
+You can assign a floating IP address to a project and to an instance.
+
+Associate an IP address with an instance in the project, as follows:
+
+``` shell
+$ openstack server add floating ip INSTANCE_NAME_OR_ID FLOATING_IP_ADDRESS
+```
+
+#### Disassociate floating IP addresses
+
+To disassociate a floating IP address from an instance:
+
+``` shell
+$ openstack server remove floating ip INSTANCE_NAME_OR_ID FLOATING_IP_ADDRESS
+```
+To remove the floating IP address from a project:
+
+``` shell
+$ openstack floating ip delete FLOATING_IP_ADDRESS
 ```
