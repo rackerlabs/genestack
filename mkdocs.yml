@@ -110,6 +110,9 @@ markdown_extensions:
       pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
 
 repo_name: rackerlabs/genestack
 repo_url: https://github.com/rackerlabs/genestack
