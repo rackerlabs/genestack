@@ -109,7 +109,8 @@ markdown_extensions:
       line_spans: __span
       pygments_lang_class: true
   - pymdownx.inlinehilite
-  - pymdownx.snippets
+  - pymdownx.snippets:
+      restrict_base_path: false
 
 repo_name: rackerlabs/genestack
 repo_url: https://github.com/rackerlabs/genestack
@@ -164,6 +165,7 @@ nav:
                   - infrastructure-ovn.md
                   - OVN Setup: infrastructure-ovn-setup.md
               - MetalLB: infrastructure-metallb.md
+              - Loki: infrastructure-loki.md
           - OpenStack:
               - openstack-overview.md
               - OpenStack Preparations: openstack-helm-make.md
