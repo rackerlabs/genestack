@@ -27,7 +27,6 @@ images:
     rabbit_init: docker.io/rabbitmq:3.7-management
     ks_user: docker.io/openstackhelm/heat:wallaby-ubuntu_focal
     ks_service: docker.io/openstackhelm/heat:wallaby-ubuntu_focal
-    ks_endpoints: docker.io/openstackhelm/heat:wallaby-ubuntu_focal
     ceilometer_central: docker.io/kolla/ubuntu-source-ceilometer-central:wallaby
     ceilometer_compute: docker.io/kolla/ubuntu-source-ceilometer-compute:wallaby
     ceilometer_ipmi: docker.io/kolla/ubuntu-source-ceilometer-base:wallaby
@@ -1476,7 +1475,6 @@ dependencies:
       jobs:
         - ceilometer-rabbit-init
         - ceilometer-ks-user
-        - ceilometer-ks-endpoints
       services:
         - endpoint: internal
           service: identity
@@ -1486,7 +1484,6 @@ dependencies:
       jobs:
         - ceilometer-rabbit-init
         - ceilometer-ks-user
-        - ceilometer-ks-endpoints
       services:
         - endpoint: internal
           service: identity
@@ -1501,15 +1498,11 @@ dependencies:
       jobs:
         - ceilometer-rabbit-init
         - ceilometer-ks-user
-        - ceilometer-ks-endpoints
       services:
         - endpoint: internal
           service: identity
         - endpoint: internal
           service: metric
-    ks_endpoints:
-      jobs:
-        - ceilometer-ks-service
       services:
         - endpoint: internal
           service: identity
@@ -1529,7 +1522,6 @@ dependencies:
       jobs:
         - ceilometer-rabbit-init
         - ceilometer-ks-user
-        - ceilometer-ks-endpoints
       services:
         - endpoint: internal
           service: identity
@@ -1809,13 +1801,6 @@ pod:
         limits:
           memory: "1024Mi"
           cpu: "2000m"
-      ks_endpoints:
-        requests:
-          memory: "128Mi"
-          cpu: "100m"
-        limits:
-          memory: "1024Mi"
-          cpu: "2000m"
       ks_service:
         requests:
           memory: "128Mi"
@@ -1870,7 +1855,7 @@ manifests:
   # using gnocchi so no db sync
   job_db_sync: false
   job_image_repo_sync: true
-  job_ks_endpoints: true
+  job_ks_endpoints: false
   job_ks_service: true
   job_ks_user: true
   job_rabbit_init: true
