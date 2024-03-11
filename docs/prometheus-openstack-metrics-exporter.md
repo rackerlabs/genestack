@@ -1,9 +1,13 @@
-# Openstack MetricsExporter
+# Openstack Exporter
 
-We are using Prometheus for monitoring and metrics collection backend along with the openstack exporter to gather openstack resource metrics
-For more information see: https://prometheus.io and https://github.com/openstack-exporter/openstack-exporter
+We are using Prometheus for monitoring and metrics collection along with the openstack exporter to gather openstack specific resource metrics.
+For more information see: [Prometheus docs](https://prometheus.io) and [Openstack Exporter](https://github.com/openstack-exporter/openstack-exporter)
 
-## Deploy the Prometheus Openstack Exporter
+## Deploy the Openstack Exporter
+
+!!! note
+
+    To deploy metric exporters you will first need to deploy the Prometheus Operator, see: [Deploy Prometheus](prometheus.md).
 
 ### Create clouds-yaml secret
 
@@ -29,3 +33,6 @@ helm upgrade --install os-metrics ./prometheus-openstack-exporter \
     -f /opt/genestack/helm-configs/monitoring/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml \
     --set clouds_yaml_config="$(kubectl get secret clouds-yaml-secret -o jsonpath='{.data.clouds-yaml}' | base64 -d)"
 ```
+
+!!! success
+    If the installation is successful, you should see the related exporter pods in the openstack namespace.

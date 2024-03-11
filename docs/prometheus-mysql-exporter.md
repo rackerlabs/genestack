@@ -3,6 +3,11 @@
 Mysql Exporter is used to expose metrics from a running mysql/mariadb server. The type of metrics exposed is controlled
 by the exporter and expressed in values.yaml file.
 
+!!! note
+
+    To deploy metric exporters you will first need to deploy the Prometheus Operator, see: ([Deploy Prometheus](prometheus.md)).
+
+
 ## Installation
 
 First create secret containing password for monitoring user
@@ -22,4 +27,5 @@ kubectl kustomize --enable-helm /opt/genestack/kustomize/prometheus-mysql-export
   kubectl -n openstack apply --server-side -f -
 ```
 
-If the installation is successful, you should see the exporter pod in openstack namespace.
+!!! success
+    If the installation is successful, you should see the exporter pod in the openstack namespace.
