@@ -24,6 +24,7 @@ labels:
 images:
   tags:
     test: docker.io/xrally/xrally-openstack:2.0.0
+    ceilometer_db_sync: docker.io/kolla/ubuntu-source-ceilometer-base:yoga
     rabbit_init: docker.io/rabbitmq:3.7-management
     ks_user: docker.io/openstackhelm/heat:wallaby-ubuntu_focal
     ks_service: docker.io/openstackhelm/heat:wallaby-ubuntu_focal
@@ -1473,6 +1474,7 @@ dependencies:
   static:
     central:
       jobs:
+        - ceilometer-db-sync
         - ceilometer-rabbit-init
         - ceilometer-ks-user
       services:
@@ -1482,6 +1484,7 @@ dependencies:
           service: metric
     ipmi:
       jobs:
+        - ceilometer-db-sync
         - ceilometer-rabbit-init
         - ceilometer-ks-user
       services:
@@ -1496,6 +1499,7 @@ dependencies:
           service: metric
     compute:
       jobs:
+        - ceilometer-db-sync
         - ceilometer-rabbit-init
         - ceilometer-ks-user
       services:
@@ -1503,9 +1507,9 @@ dependencies:
           service: identity
         - endpoint: internal
           service: metric
-      services:
-        - endpoint: internal
-          service: identity
+    db_sync:
+      jobs: []
+      services: []
     ks_service:
       services:
         - endpoint: internal
@@ -1520,6 +1524,7 @@ dependencies:
         endpoint: internal
     notification:
       jobs:
+        - ceilometer-db-sync
         - ceilometer-rabbit-init
         - ceilometer-ks-user
       services:
@@ -1746,6 +1751,10 @@ pod:
       ceilometer_notification:
         volumeMounts:
         volumes:
+    ceilometer_db_sync:
+      ceilometer_db_sync:
+        volumeMounts:
+        volumes:
   replicas:
     central: 1
     notification: 1
@@ -1794,6 +1803,13 @@ pod:
         memory: "1024Mi"
         cpu: "2000m"
     jobs:
+      db_sync:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
       rabbit_init:
         requests:
           memory: "128Mi"
@@ -1852,8 +1868,8 @@ manifests:
   # using gnocchi so no db init
   job_db_init: false
   job_db_init_mongodb: false
-  # using gnocchi so no db sync
-  job_db_sync: false
+  # runs ceilometer-upgrade which inits resource types in gnocchi!
+  job_db_sync: true
   job_image_repo_sync: true
   job_ks_endpoints: false
   job_ks_service: true
