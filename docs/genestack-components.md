@@ -40,23 +40,28 @@ variety of services:
 | OpenStack  | Ironic (Helm)        | Optional       | Required             |
 | OpenStack  | metal3.io            | Optional       | Required             |
 
-Initial monitoring componets consists of the following projects
+Initial monitoring components consists of the following projects
 
-| Group      | Component            | OpenStack Flex | OpenStack Enterprise |
-|------------|----------------------|----------------|----------------------|
-| Kubernetes | Prometheus           | Required       | Required             |
-| Kubernetes | Thanos               | Required       | Required             |
-| Kubernetes | Alertmanager         | Required       | Required             |
-| Kubernetes | Grafana              | Required       | Required             |
-| Kubernetes | Node Exporter        | Required       | Required             |
-| Kubernetes | redfish Exporter     | Required       | Required             |
-| OpenStack  | OpenStack Exporter   | Required       | Required             |
+| Group      | Component          | OpenStack Flex | OpenStack Enterprise |
+|------------|--------------------|----------------|----------------------|
+| Kubernetes | Prometheus         | Required       | Required             |
+| Kubernetes | Alertmanager       | Required       | Required             |
+| Kubernetes | Grafana            | Required       | Required             |
+| Kubernetes | Node Exporter      | Required       | Required             |
+| Kubernetes | Kube State Metrics | Required       | Required             |
+| Kubernetes | redfish Exporter   | Required       | Required             |
+| OpenStack  | OpenStack Exporter | Required       | Required             |
+| OpenStack  | RabbitMQ Exporter  | Required       | Required             |
+| OpenStack  | Mysql Exporter     | Required       | Required             |
+| OpenStack  | Memcached Exporter | Required       | Required             |
+| OpenStack  | Postgres Exporter  | Required       | Required             |
 
 At a later stage these components will be added
 
-| Group     | Component            | OpenStack Flex | OpenStack Enterprise |
-|-----------|----------------------|----------------|----------------------|
-| OpenStack | MongoDB              | Optional       | Required             |
-| OpenStack | Aodh (Helm)          | Optional       | Required             |
-| OpenStack | Ceilometer (Helm)    | Optional       | Required             |
-| OpenStack | Masakari (Helm)      | Optional       | Required             |
+| Group      | Component         | OpenStack Flex | OpenStack Enterprise |
+|------------|-------------------|----------------|----------------------|
+| Kubernetes | Thanos            | Optional       | Required             |
+| OpenStack  | MongoDB           | Optional       | Required             |
+| OpenStack  | Aodh (Helm)       | Optional       | Required             |
+| OpenStack  | Ceilometer (Helm) | Optional       | Required             |
+| OpenStack  | Masakari (Helm)   | Optional       | Required             |

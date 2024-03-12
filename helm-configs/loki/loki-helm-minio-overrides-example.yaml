@@ -1,0 +1,7 @@
+global:
+  dnsService: "coredns"
+minio:
+  enabled: true
+loki:
+  auth_enabled: false
+  configStorageType: Secret

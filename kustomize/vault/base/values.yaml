@@ -312,7 +312,7 @@ injector:
   # nodeSelector:
   #   beta.kubernetes.io/arch: amd64
   nodeSelector:
-    openstack-control-plane: enabled
+    vault-storage: enabled
 
   # Priority class for injector pods
   priorityClassName: ""
@@ -650,7 +650,7 @@ server:
   # nodeSelector:
   #   beta.kubernetes.io/arch: amd64
   nodeSelector:
-    openstack-control-plane: enabled
+    vault-storage: enabled
 
   # Enables network policy for server pods
   networkPolicy:
@@ -780,7 +780,7 @@ server:
     mountPath: "/vault/data"
     # Name of the storage class to use.  If null it will use the
     # configured default Storage Class.
-    storageClass: "local-path"
+    storageClass: "local-storage"
     # Access Mode of the storage device being used for the PVC
     accessMode: ReadWriteOnce
     # Annotations to apply to the PVC
@@ -809,7 +809,7 @@ server:
     mountPath: "/vault/audit"
     # Name of the storage class to use.  If null it will use the
     # configured default Storage Class.
-    storageClass: local-path
+    storageClass: local-storage
     # Access Mode of the storage device being used for the PVC
     accessMode: ReadWriteOnce
     # Annotations to apply to the PVC
