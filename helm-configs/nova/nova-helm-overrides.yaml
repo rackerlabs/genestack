@@ -1344,7 +1344,7 @@ conf:
       scheduler_host_manager: ironic_host_manager
       compute_driver: ironic.IronicDriver
       ram_allocation_ratio: 1.0
-      cpu_allocation_ratio: 1.0
+      cpu_allocation_ratio: 8.0
       reserved_host_memory_mb: 0
   libvirt:
     address_search_enabled: true
