@@ -5,4 +5,4 @@ Genestack utilizes Prometheus for monitoring and metrics collection. To read mor
 
 A high level visual of Prometheus and the various monitoring and alerting components inside Genestack
 
-![Genestack Architecture Diagram](assets/images/diagram-genestack.png)
+![Prometheus Monitoring Diagram](assets/images/prometheus-monitoring.png)
