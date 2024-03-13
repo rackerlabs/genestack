@@ -112,6 +112,9 @@ markdown_extensions:
       line_spans: __span
       pygments_lang_class: true
   - pymdownx.inlinehilite
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.snippets:
       restrict_base_path: false
 
@@ -146,6 +149,9 @@ nav:
               - Ceph External: storage-ceph-rook-external.md
               - NFS External: storage-nfs-external.md
               - TopoLVM: storage-topolvm.md
+          - Monitoring:
+              - Monitoring Overview: prometheus.md
+              - Grafana: grafana.md
           - Secrets:
               - vault.md
               - Vault Operator: vault-secrets-operator.md
