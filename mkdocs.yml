@@ -149,9 +149,6 @@ nav:
               - Ceph External: storage-ceph-rook-external.md
               - NFS External: storage-nfs-external.md
               - TopoLVM: storage-topolvm.md
-          - Monitoring:
-              - Monitoring Overview: prometheus.md
-              - Grafana: grafana.md
           - Secrets:
               - vault.md
               - Vault Operator: vault-secrets-operator.md
@@ -188,6 +185,7 @@ nav:
           - Monitoring:
               - Monitoring Overview: prometheus-monitoring-overview.md
               - Prometheus: prometheus.md
+              - Grafana: grafana.md
               - MySQL Exporter: prometheus-mysql-exporter.md
               - RabbitMQ Exporter: prometheus-rabbitmq-exporter.md
               - Memcached Exporter: prometheus-memcached-exporter.md
