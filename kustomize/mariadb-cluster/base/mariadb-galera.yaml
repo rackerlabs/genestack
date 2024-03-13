@@ -6,7 +6,7 @@ metadata:
 spec:
   rootPasswordSecretKeyRef:
     name: mariadb
-    key: root-password
+    key: mariadb-root-password
   username: mariadb
   database: mariadb
 

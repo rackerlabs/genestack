@@ -1,0 +1,7 @@
+namespace: openstack
+resources:
+  - vaultauth.yaml
+  - vaultconnection.yaml
+  - keystone-admin.yaml
+  - keystone-db-password.yaml
+  - keystone-rabbitmq-password.yaml

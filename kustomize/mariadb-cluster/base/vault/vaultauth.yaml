@@ -1,0 +1,14 @@
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  name: vault-auth
+  namespace: openstack
+spec:
+  method: kubernetes
+  mount: genestack
+  kubernetes:
+    role: osh
+    serviceAccount: default
+    audiences:
+      - vault
+  vaultConnectionRef: vault-connection
