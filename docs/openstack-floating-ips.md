@@ -1,6 +1,6 @@
 # Openstack Floating Ips
 
-To read more about Openstack Floating Ips using the [upstream docs](https://docs.openstack.org/python-openstackclient/pike/cli/command-objects/floating-ip.html).
+Read more about Openstack Floating Ips using the [upstream docs](https://docs.openstack.org/python-openstackclient/pike/cli/command-objects/floating-ip.html).
 
 #### List and view floating ips
 
