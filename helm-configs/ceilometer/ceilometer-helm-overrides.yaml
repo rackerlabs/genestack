@@ -1288,6 +1288,7 @@ conf:
           network.services.lb.active.connections:
   meters:
     metric:
+      # Image
       - name: "image.size"
         event_type:
           - "image.upload"
@@ -1298,6 +1299,7 @@ conf:
         volume: $.payload.size
         resource_id: $.payload.id
         project_id: $.payload.owner
+
       - name: "image.download"
         event_type: "image.send"
         type: "delta"
@@ -1306,6 +1308,7 @@ conf:
         resource_id: $.payload.image_id
         user_id: $.payload.receiver_user_id
         project_id: $.payload.receiver_tenant_id
+
       - name: "image.serve"
         event_type: "image.send"
         type: "delta"
@@ -1313,15 +1316,98 @@ conf:
         volume: $.payload.bytes_sent
         resource_id: $.payload.image_id
         project_id: $.payload.owner_id
+
+      - name: 'volume.provider.capacity.total'
+        event_type: 'capacity.backend.*'
+        type: 'gauge'
+        unit: 'GB'
+        volume: $.payload.total
+        resource_id: $.payload.name_to_id
+
+      - name: 'volume.provider.capacity.free'
+        event_type: 'capacity.backend.*'
+        type: 'gauge'
+        unit: 'GB'
+        volume: $.payload.free
+        resource_id: $.payload.name_to_id
+
+      - name: 'volume.provider.capacity.allocated'
+        event_type: 'capacity.backend.*'
+        type: 'gauge'
+        unit: 'GB'
+        volume: $.payload.allocated
+        resource_id: $.payload.name_to_id
+
+      - name: 'volume.provider.capacity.provisioned'
+        event_type: 'capacity.backend.*'
+        type: 'gauge'
+        unit: 'GB'
+        volume: $.payload.provisioned
+        resource_id: $.payload.name_to_id
+
+      - name: 'volume.provider.capacity.virtual_free'
+        event_type: 'capacity.backend.*'
+        type: 'gauge'
+        unit: 'GB'
+        volume: $.payload.virtual_free
+        resource_id: $.payload.name_to_id
+
+      - name: 'volume.provider.pool.capacity.total'
+        event_type: 'capacity.pool.*'
+        type: 'gauge'
+        unit: 'GB'
+        volume: $.payload.total
+        resource_id: $.payload.name_to_id
+        metadata: &provider_pool_meta
+          provider: $.payload.name_to_id.`split(#, 0, 1)`
+
+      - name: 'volume.provider.pool.capacity.free'
+        event_type: 'capacity.pool.*'
+        type: 'gauge'
+        unit: 'GB'
+        volume: $.payload.free
+        resource_id: $.payload.name_to_id
+        metadata:
+           <<: *provider_pool_meta
+
+      - name: 'volume.provider.pool.capacity.allocated'
+        event_type: 'capacity.pool.*'
+        type: 'gauge'
+        unit: 'GB'
+        volume: $.payload.allocated
+        resource_id: $.payload.name_to_id
+        metadata:
+           <<: *provider_pool_meta
+
+      - name: 'volume.provider.pool.capacity.provisioned'
+        event_type: 'capacity.pool.*'
+        type: 'gauge'
+        unit: 'GB'
+        volume: $.payload.provisioned
+        resource_id: $.payload.name_to_id
+        metadata:
+           <<: *provider_pool_meta
+
+      - name: 'volume.provider.pool.capacity.virtual_free'
+        event_type: 'capacity.pool.*'
+        type: 'gauge'
+        unit: 'GB'
+        volume: $.payload.virtual_free
+        resource_id: $.payload.name_to_id
+        metadata:
+           <<: *provider_pool_meta
+
       - name: 'volume.size'
         event_type:
           - 'volume.exists'
+          - 'volume.retype'
           - 'volume.create.*'
           - 'volume.delete.*'
           - 'volume.resize.*'
           - 'volume.attach.*'
           - 'volume.detach.*'
           - 'volume.update.*'
+          - 'volume.manage.*'
         type: 'gauge'
         unit: 'GB'
         volume: $.payload.size
@@ -1331,11 +1417,15 @@ conf:
         metadata:
           display_name: $.payload.display_name
           volume_type: $.payload.volume_type
+          image_id: $.payload.glance_metadata[?key=image_id].value
+          instance_id: $.payload.volume_attachment[0].server_id
+
       - name: 'snapshot.size'
         event_type:
           - 'snapshot.exists'
           - 'snapshot.create.*'
           - 'snapshot.delete.*'
+          - 'snapshot.manage.*'
         type: 'gauge'
         unit: 'GB'
         volume: $.payload.volume_size
@@ -1344,6 +1434,7 @@ conf:
         resource_id: $.payload.snapshot_id
         metadata:
           display_name: $.payload.display_name
+
       - name: 'backup.size'
         event_type:
           - 'backup.exists'
@@ -1358,6 +1449,8 @@ conf:
         resource_id: $.payload.backup_id
         metadata:
           display_name: $.payload.display_name
+
+      # Magnum
       - name: $.payload.metrics.[*].name
         event_type: 'magnum.bay.metrics.*'
         type: 'gauge'
@@ -1367,6 +1460,8 @@ conf:
         project_id: $.payload.project_id
         resource_id: $.payload.resource_id
         lookup: ['name', 'unit', 'volume']
+
+      # Swift
       - name: $.payload.measurements.[*].metric.[*].name
         event_type: 'objectstore.http.request'
         type: 'delta'
@@ -1376,8 +1471,9 @@ conf:
         user_id: $.payload.initiator.id
         project_id: $.payload.initiator.project_id
         lookup: ['name', 'unit', 'volume']
+
       - name: 'memory'
-        event_type: 'compute.instance.*'
+        event_type: &instance_events compute.instance.(?!create.start|update).*
         type: 'gauge'
         unit: 'MB'
         volume: $.payload.memory_mb
@@ -1391,8 +1487,12 @@ conf:
           flavor_name: $.payload.instance_type
           display_name: $.payload.display_name
           image_ref: $.payload.image_meta.base_image_ref
+          launched_at: $.payload.launched_at
+          created_at: $.payload.created_at
+          deleted_at: $.payload.deleted_at
+
       - name: 'vcpus'
-        event_type: 'compute.instance.*'
+        event_type: *instance_events
         type: 'gauge'
         unit: 'vcpu'
         volume: $.payload.vcpus
@@ -1401,7 +1501,8 @@ conf:
         resource_id: $.payload.instance_id
         user_metadata: $.payload.metadata
         metadata:
-          <<: *instance_meta
+           <<: *instance_meta
+
       - name: 'compute.instance.booting.time'
         event_type: 'compute.instance.create.end'
         type: 'gauge'
@@ -1414,8 +1515,9 @@ conf:
         user_metadata: $.payload.metadata
         metadata:
           <<: *instance_meta
+
       - name: 'disk.root.size'
-        event_type: 'compute.instance.*'
+        event_type: *instance_events
         type: 'gauge'
         unit: 'GB'
         volume: $.payload.root_gb
@@ -1424,9 +1526,10 @@ conf:
         resource_id: $.payload.instance_id
         user_metadata: $.payload.metadata
         metadata:
-          <<: *instance_meta
+           <<: *instance_meta
+
       - name: 'disk.ephemeral.size'
-        event_type: 'compute.instance.*'
+        event_type: *instance_events
         type: 'gauge'
         unit: 'GB'
         volume: $.payload.ephemeral_gb
@@ -1435,7 +1538,8 @@ conf:
         resource_id: $.payload.instance_id
         user_metadata: $.payload.metadata
         metadata:
-          <<: *instance_meta
+           <<: *instance_meta
+
       - name: 'bandwidth'
         event_type: 'l3.meter'
         type: 'delta'
@@ -1443,6 +1547,7 @@ conf:
         volume: $.payload.bytes
         project_id: $.payload.tenant_id
         resource_id: $.payload.label_id
+
       - name: 'compute.node.cpu.frequency'
         event_type: 'compute.metrics.update'
         type: 'gauge'
@@ -1454,6 +1559,7 @@ conf:
           event_type: $.event_type
           host: $.publisher_id
           source: $.payload.metrics[?(@.name='cpu.frequency')].source
+
       - name: 'compute.node.cpu.user.time'
         event_type: 'compute.metrics.update'
         type: 'cumulative'
@@ -1465,6 +1571,7 @@ conf:
           event_type: $.event_type
           host: $.publisher_id
           source: $.payload.metrics[?(@.name='cpu.user.time')].source
+
       - name: 'compute.node.cpu.kernel.time'
         event_type: 'compute.metrics.update'
         type: 'cumulative'
@@ -1476,6 +1583,7 @@ conf:
           event_type: $.event_type
           host: $.publisher_id
           source: $.payload.metrics[?(@.name='cpu.kernel.time')].source
+
       - name: 'compute.node.cpu.idle.time'
         event_type: 'compute.metrics.update'
         type: 'cumulative'
@@ -1487,6 +1595,7 @@ conf:
           event_type: $.event_type
           host: $.publisher_id
           source: $.payload.metrics[?(@.name='cpu.idle.time')].source
+
       - name: 'compute.node.cpu.iowait.time'
         event_type: 'compute.metrics.update'
         type: 'cumulative'
@@ -1498,6 +1607,7 @@ conf:
           event_type: $.event_type
           host: $.publisher_id
           source: $.payload.metrics[?(@.name='cpu.iowait.time')].source
+
       - name: 'compute.node.cpu.kernel.percent'
         event_type: 'compute.metrics.update'
         type: 'gauge'
@@ -1509,6 +1619,7 @@ conf:
           event_type: $.event_type
           host: $.publisher_id
           source: $.payload.metrics[?(@.name='cpu.kernel.percent')].source
+
       - name: 'compute.node.cpu.idle.percent'
         event_type: 'compute.metrics.update'
         type: 'gauge'
@@ -1520,6 +1631,7 @@ conf:
           event_type: $.event_type
           host: $.publisher_id
           source: $.payload.metrics[?(@.name='cpu.idle.percent')].source
+
       - name: 'compute.node.cpu.user.percent'
         event_type: 'compute.metrics.update'
         type: 'gauge'
@@ -1531,6 +1643,7 @@ conf:
           event_type: $.event_type
           host: $.publisher_id
           source: $.payload.metrics[?(@.name='cpu.user.percent')].source
+
       - name: 'compute.node.cpu.iowait.percent'
         event_type: 'compute.metrics.update'
         type: 'gauge'
@@ -1542,6 +1655,7 @@ conf:
           event_type: $.event_type
           host: $.publisher_id
           source: $.payload.metrics[?(@.name='cpu.iowait.percent')].source
+
       - name: 'compute.node.cpu.percent'
         event_type: 'compute.metrics.update'
         type: 'gauge'
@@ -1553,6 +1667,9 @@ conf:
           event_type: $.event_type
           host: $.publisher_id
           source: $.payload.metrics[?(@.name='cpu.percent')].source
+
+      # Identity
+      # NOTE(gordc): hack because jsonpath-rw-ext can't concat starting with string.
       - name: $.payload.outcome - $.payload.outcome + 'identity.authenticate.' + $.payload.outcome
         type: 'delta'
         unit: 'user'
@@ -1561,6 +1678,8 @@ conf:
           - 'identity.authenticate'
         resource_id: $.payload.initiator.id
         user_id: $.payload.initiator.id
+
+      # DNS
       - name: 'dns.domain.exists'
         event_type: 'dns.domain.exists'
         type: 'cumulative'
@@ -1570,11 +1689,13 @@ conf:
           plugin: 'timedelta'
         project_id: $.payload.tenant_id
         resource_id: $.payload.id
-        user_id: $._context_user
+        user_id: $.ctxt.user
         metadata:
           status: $.payload.status
           pool_id: $.payload.pool_id
           host: $.publisher_id
+
+      # Trove
       - name: 'trove.instance.exists'
         event_type: 'trove.instance.exists'
         type: 'cumulative'
@@ -1591,6 +1712,27 @@ conf:
           service_id: $.payload.service_id
           instance_type: $.payload.instance_type
           instance_type_id: $.payload.instance_type_id
+
+      # Manila
+      - name: 'manila.share.size'
+        event_type:
+          - 'share.create.*'
+          - 'share.delete.*'
+          - 'share.extend.*'
+          - 'share.shrink.*'
+        type: 'gauge'
+        unit: 'GB'
+        volume: $.payload.size
+        user_id: $.payload.user_id
+        project_id: $.payload.project_id
+        resource_id: $.payload.share_id
+        metadata:
+          name: $.payload.name
+          host: $.payload.host
+          status: $.payload.status
+          availability_zone: $.payload.availability_zone
+          protocol: $.payload.proto
+
   polling:
     sources:
       - name: all_pollsters
