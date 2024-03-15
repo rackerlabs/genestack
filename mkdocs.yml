@@ -152,6 +152,7 @@ nav:
           - Secrets:
               - vault.md
               - Vault Operator: vault-secrets-operator.md
+              - Sealed Secrets: sealed-secrets.md
           - Infrastructure:
               - infrastructure-overview.md
               - Namespace: infrastructure-namespace.md
