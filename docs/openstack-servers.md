@@ -79,14 +79,14 @@ $ openstack server delete [--wait] <server> [<server> ...]
     ``` shell
     $ openstack server image create myInstance --name myInstanceSnapshot
     ```
-   
-    The above command creates the image myInstance by taking a snapshot of a running server. 
+    The above command creates the image myInstance by taking a snapshot of a running server.
+
 4. Use the openstack image list command to check the status until the status is active:
 
     ``` shell
     $ openstack image list
     ```
-   
+
 #### Download the snapshot
 
 !!! note
@@ -134,7 +134,6 @@ You can create a bootable volume from an existing image, volume, or snapshot. Th
     --image {Image ID} --size 10 \
     test-volume
     ```
-   
 3. Create a server, specifying the volume as the boot device.
     ``` shell
     $ openstack server create \
