@@ -182,6 +182,7 @@ nav:
                       - skyline: openstack-skyline.md
                   - Octavia: openstack-octavia.md
                   - Gnocchi: openstack-gnocchi.md
+                  - Ceilometer: openstack-ceilometer.md
           - Monitoring:
               - Monitoring Overview: prometheus-monitoring-overview.md
               - Prometheus: prometheus.md
