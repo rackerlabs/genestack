@@ -167,6 +167,7 @@ nav:
                   - infrastructure-ovn.md
                   - OVN Setup: infrastructure-ovn-setup.md
               - MetalLB: infrastructure-metallb.md
+              - Gateway API: infrastructure-gateway-api.md
               - Loki: infrastructure-loki.md
           - OpenStack:
               - openstack-overview.md
