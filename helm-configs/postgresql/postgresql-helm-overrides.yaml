@@ -300,12 +300,12 @@ conf:
     hba_file: '/tmp/pg_hba.conf'
     ident_file: '/tmp/pg_ident.conf'
   backup:
-    enabled: false
+    enabled: true
     base_path: /var/backup
     days_to_keep: 3
     pg_dumpall_options: '--inserts --clean'
     remote_backup:
-      enabled: false
+      enabled: true
       container_name: postgresql
       days_to_keep: 14
       storage_policy: default-placement
@@ -466,7 +466,7 @@ manifests:
   configmap_etc: true
   job_image_repo_sync: true
   network_policy: false
-  job_ks_user: false
+  job_ks_user: true
   secret_admin: true
   secret_etc: true
   secret_audit: true
@@ -474,8 +474,8 @@ manifests:
   secret_registry: true
   service: true
   statefulset: true
-  cron_job_postgresql_backup: false
-  pvc_backup: false
+  cron_job_postgresql_backup: true
+  pvc_backup: true
   monitoring:
     prometheus:
       configmap_bin: false
