@@ -1,6 +1,6 @@
-# RabbitMQ Exporter
+# PostgresSQL Exporter
 
-RabbitMQ Exporter is used to expose metrics from a running RabbitMQ deployment.
+PostgresSQL Exporter is used to expose metrics from a running PostgresSQL deployment.
 
 !!! note
 
@@ -8,10 +8,10 @@ RabbitMQ Exporter is used to expose metrics from a running RabbitMQ deployment.
 
 ## Installation
 
-Install the RabbitMQ Exporter
+Install the PostgresSQL Exporter
 
 ``` shell
-kubectl kustomize --enable-helm /opt/genestack/kustomize/prometheus-rabbitmq-exporter | kubectl -n openstack apply --server-side -f -
+kubectl kustomize --enable-helm /opt/genestack/kustomize/prometheus-postgres-exporter | kubectl -n openstack apply  -f -
 ```
 
 !!! success
