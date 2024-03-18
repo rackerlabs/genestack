@@ -1,6 +1,6 @@
 # Openstack Servers
 
-To read more about Openstack Servers using the [upstream docs](https://docs.openstack.org/python-openstackclient/pike/cli/command-objects/server.html).
+To read more about Openstack Servers using the [upstream docs](https://docs.openstack.org/python-openstackclient/latest/cli/command-objects/server.html).
 
 #### List and view servers
 
