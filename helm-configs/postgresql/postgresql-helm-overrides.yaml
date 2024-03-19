@@ -239,7 +239,7 @@ jobs:
     # activeDeadlineSeconds == 0 means no deadline
     activeDeadlineSeconds: 0
     backoffLimit: 6
-    cron: "0 0 * * *"
+    cron: "15 0 * * *"
     history:
       success: 3
       failed: 1
