@@ -143,6 +143,7 @@ nav:
                   - Kubernetes Dashboard: k8s-dashboard.md
                   - Kubernetes Taint: k8s-taint.md
               - Retrieve kube config: k8s-config.md
+              - Prometheus: prometheus.md
           - Storage:
               - storage-overview.md
               - Ceph Internal: storage-ceph-rook-internal.md
@@ -185,13 +186,15 @@ nav:
                   - Ceilometer: openstack-ceilometer.md
           - Monitoring:
               - Monitoring Overview: prometheus-monitoring-overview.md
-              - Prometheus: prometheus.md
               - Grafana: grafana.md
               - MySQL Exporter: prometheus-mysql-exporter.md
               - RabbitMQ Exporter: prometheus-rabbitmq-exporter.md
               - Memcached Exporter: prometheus-memcached-exporter.md
               - Postgres Exporter: prometheus-postgres-exporter.md
               - Openstack Exporter: prometheus-openstack-metrics-exporter.md
+              - Alert Manager Examples:
+                  - alertmanager-encore.md
+                  - alertmanager-slack.md
   - Operational Guide:
       - Running Genestack Upgrade: genestack-upgrade.md
       - Running Kubespray Upgrade: k8s-kubespray-upgrade.md
