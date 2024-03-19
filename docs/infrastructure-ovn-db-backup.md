@@ -34,16 +34,18 @@ The directions in the _Kube-OVN_ documentation use `docker run` to get a working
 
 The _Kube-OVN_ documentation directs you to pick the node running the `ovn-central` pod associated with the first IP of the `NODE_IPS` environment variable. You should find the `NODE_IPS` environment variable defined on an `ovn-central` pod or the `ovn-central` _Deployment_. Assuming you can run the `kubectl` commands, the following example gets the node IPs off of one of the the deployment:
 
-```
-$ kubectl get deployment -n kube-system ovn-central  -o yaml | grep -A1 'name: NODE_IPS'
+``` shell
+kubectl get deployment -n kube-system ovn-central  -o yaml | grep -A1 'name: NODE_IPS'
+
         - name: NODE_IPS
           value: 10.130.140.246,10.130.140.250,10.130.140.252
 ```
 
 Then find the _k8s_ node with the first IP. You can see your _k8s_ nodes and their IPs with the command `kubectl get node -o wide`:
 
-```
-$ kubectl get node -o wide | grep 10.130.140.246
+``` shell
+kubectl get node -o wide | grep 10.130.140.246
+
 k8s-controller01   Ready      control-plane   3d17h   v1.28.6   10.130.140.246   <none>        Ubuntu 22.04.3 LTS   6.5.0-17-generic    containerd://1.7.11
 root@k8s-controller01:~#
 ```

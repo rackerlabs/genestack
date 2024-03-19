@@ -5,6 +5,8 @@ minio:
 loki:
   auth_enabled: false
   configStorageType: Secret
+  ingester:
+    autoforget_unhealthy: true
   storage:
     bucketNames:
       chunks: chunks

@@ -6,7 +6,7 @@ need to be customized to meet the needs of your environment.
 
 ## Example LB manifest
 
-```yaml
+``` yaml
 metadata:
   name: openstack-external
   namespace: metallb-system

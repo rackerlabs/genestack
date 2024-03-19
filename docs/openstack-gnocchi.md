@@ -2,7 +2,7 @@
 
 ## Create Secrets
 
-```shell
+``` shell
 kubectl --namespace openstack create secret generic gnocchi-admin \
         --type Opaque \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
@@ -22,7 +22,7 @@ options for ceph. The below simply creates the expected `ceph-etc`
 ConfigMap with the ceph.conf needed by Gnocchi to establish a connection
 to the mon host(s) via the rados client.
 
-```shell
+``` shell
 kubectl apply -n openstack -f - <<EOF
 apiVersion: v1
 kind: ConfigMap
@@ -44,7 +44,7 @@ Below is an example of what you're looking for to verify the configmap was
 created as expected - a CSV of the mon hosts, colon seperated with default
 mon port, 6789.
 
-```shell
+``` shell
 (genestack) root@openstack-flex-launcher:/opt/genestack# kubectl get configmap -n openstack ceph-etc -o "jsonpath={.data['ceph\.conf']}"
 [global]
 mon_host = 172.31.3.7:6789,172.31.1.112:6789,172.31.0.46:6789
@@ -52,7 +52,7 @@ mon_host = 172.31.3.7:6789,172.31.1.112:6789,172.31.0.46:6789
 
 ## Run the package deployment
 
-```shell
+``` shell
 cd /opt/genestack/submodules/openstack-helm-infra
 helm upgrade --install gnocchi ./gnocchi \
     --namespace=openstack \
@@ -78,12 +78,12 @@ helm upgrade --install gnocchi ./gnocchi \
 
 ### Pip install gnocchiclient and python-ceilometerclient
 
-```shell
+``` shell
 kubectl exec -it openstack-admin-client -n openstack -- /var/lib/openstack/bin/pip install python-ceilometerclient gnocchiclient
 ```
 
 ### Verify metric list functionality
 
-```shell
+``` shell
 kubectl exec -it openstack-admin-client -n openstack -- openstack metric list
 ```
