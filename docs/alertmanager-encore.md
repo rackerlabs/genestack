@@ -1,9 +1,10 @@
+# Encore Alerts
 
 The following example describes configuration options to send alerts via alertmanager to
 Rackspace encore, the `Encore UUID` is derived by account where the secret `SECRET KEY` is
 used per application submitting webhooks:
 
-```yaml
+``` yaml
 global:
   resolve_timeout: 5m
 receivers:

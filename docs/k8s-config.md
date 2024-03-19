@@ -8,8 +8,16 @@ Install the `kubectl` tool.
 
 ``` shell
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-sudo mv kubectl /usr/local/bin/
-sudo chmod +x /usr/local/bin/kubectl
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+```
+
+### Install the `convert` plugin
+
+The convert plugin can be used to assist with upgrades.
+
+``` shell
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl-convert"
+sudo install -o root -g root -m 0755 kubectl-convert /usr/local/bin/kubectl-convert
 ```
 
 ## Retrieve the kube config
