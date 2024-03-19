@@ -224,9 +224,9 @@ dependencies:
 
 monitoring:
   prometheus:
-    enabled: true
+    enabled: false
     postgresql_exporter:
-      scrape: true
+      scrape: false
 
 volume:
   backup:
@@ -478,10 +478,10 @@ manifests:
   pvc_backup: false
   monitoring:
     prometheus:
-      configmap_bin: true
-      configmap_etc: true
-      deployment_exporter: true
-      job_user_create: true
-      secret_etc: true
-      service_exporter: true
+      configmap_bin: false
+      configmap_etc: false
+      deployment_exporter: false
+      job_user_create: false
+      secret_etc: false
+      service_exporter: false
 ...
