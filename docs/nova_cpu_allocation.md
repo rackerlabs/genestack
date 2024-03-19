@@ -17,20 +17,14 @@ Number of VM per host: Considering max of 60 VM of such flavor can be hosted on 
 Number of CPU on hypervisor: HPE DL380 have 72 PCPU.
 
 Example :
-  Here we have HPE DL380 Gen9 Servers with 2 CPU socket and 18 cores per CPU socket and 2 threads per core:
-
+  ``` shell
   Total physical CPU (PCPU) = 72
-
   No. of vCPU per flavor (VCPU)  = 8
-
   No. of Instance per hypervisor (VM) = 60
-
   Overhead on CPU (OCPU) = 8
-
   Formula to calculate CPU allocation ratio:
-   ``` shell
+ 
    CAR = VM * VCPU / (PCPU - OPCU)
-
    CAR = 60 * 8 / (72 - 8)
        = 480/64
        = ~8
@@ -42,14 +36,11 @@ So here we get approx CPU allocation ratio of 8.1.
 There may be requirement to run CPU pinned VM along with floating instances (shared cpus). In such case CPU allocation for  compute node will be different from rest of nodes. Lets see how to get cpu allocation for such type of compute nodes:
 
 Example :
-
-  No. of CPU dedicated for CPU pinning (RCPUP) : 16
-
-  CPU allocation ratio:   
-
   ``` shell
+  No. of CPU dedicated for CPU pinning (RCPUP) : 16
+  CPU allocation ratio:
+   
   CAR = VM * VCPU / (PCPU - RCPUP - OCPU)
-
   CAR = 60 * 8 / (72 - 16 - 8)
       = 480/48
       = 10
