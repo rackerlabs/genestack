@@ -1375,7 +1375,7 @@ conf:
       default_ephemeral_format: ext4
       ram_allocation_ratio: 1.0
       disk_allocation_ratio: 1.0
-      cpu_allocation_ratio: 3.0
+      cpu_allocation_ratio: 8.0
       state_path: /var/lib/nova
       osapi_compute_listen: 0.0.0.0
       # NOTE(portdirect): the bind port should not be defined, and is manipulated
