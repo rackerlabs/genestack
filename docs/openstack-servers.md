@@ -5,7 +5,7 @@ To read more about Openstack Servers using the [upstream docs](https://docs.open
 #### List and view servers
 
 ``` shell
-$ openstack server list
+openstack server list
     [--quote {all,minimal,none,nonnumeric}]
     [--reservation-id <reservation-id>]
     [--ip <ip-address-regex>]
@@ -32,7 +32,7 @@ $ openstack server list
 #### Create a new server
 
 ``` shell
-$ openstack server create
+openstack server create
     (--image <image> | --volume <volume>)
     --flavor <flavor>
     [--security-group <security-group>]
@@ -56,7 +56,7 @@ $ openstack server create
 #### Delete a server
 
 ``` shell
-$ openstack server delete [--wait] <server> [<server> ...]
+openstack server delete [--wait] <server> [<server> ...]
 ```
 
 # Launch a server from a snapshot
@@ -70,21 +70,22 @@ $ openstack server delete [--wait] <server> [<server> ...]
 1. Shut down the source VM before you take the snapshot to ensure that all data is flushed to disk. Use the openstack server stop command to shut down the instance:
 
     ``` shell
-    $ openstack server stop myInstance
+    openstack server stop myInstance
     ```
+
 2. Use the openstack server list command to confirm that the instance shows a SHUTOFF status.
 
 3. Use the openstack server image create command to take a snapshot:
 
     ``` shell
-    $ openstack server image create myInstance --name myInstanceSnapshot
+    openstack server image create myInstance --name myInstanceSnapshot
     ```
     The above command creates the image myInstance by taking a snapshot of a running server.
 
 4. Use the openstack image list command to check the status until the status is active:
 
     ``` shell
-    $ openstack image list
+    openstack image list
     ```
 
 #### Download the snapshot
@@ -96,7 +97,7 @@ $ openstack server delete [--wait] <server> [<server> ...]
 Download the snapshot by using the image ID:
 
 ``` shell
-$ openstack image save --file snapshot.raw {Image ID}
+openstack image save --file snapshot.raw {Image ID}
 ```
 
 Make the image available to the new environment, either through HTTP or direct upload to a machine (scp).
@@ -106,7 +107,7 @@ Make the image available to the new environment, either through HTTP or direct u
 In the new project or cloud environment, import the snapshot:
 
 ``` shell
-$ openstack image create NEW_IMAGE_NAME \
+openstack image create NEW_IMAGE_NAME \
   --container-format bare --disk-format qcow2 --file IMAGE_URL
 ```
 
@@ -115,8 +116,9 @@ $ openstack image create NEW_IMAGE_NAME \
 In the new project or cloud environment, use the snapshot to create the new instance:
 
 ``` shell
-$ openstack server create --flavor m1.tiny --image myInstanceSnapshot myNewInstance
+openstack server create --flavor m1.tiny --image myInstanceSnapshot myNewInstance
 ```
+
 
 # Launch a server from a volume
 
@@ -126,11 +128,11 @@ You can create a bootable volume from an existing image, volume, or snapshot. Th
 
 1. List available images, noting the ID of the image that you wish to use.
     ``` shell
-    $ openstack image list
+    openstack image list
     ```
 2. Create a bootable volume from the chosen image.
     ``` shell
-    $ openstack volume create \
+    openstack volume create \
     --image {Image ID} --size 10 \
     test-volume
     ```
@@ -143,8 +145,8 @@ You can create a bootable volume from an existing image, volume, or snapshot. Th
     ```
 4. List volumes once again to ensure the status has changed to in-use and the volume is correctly reporting the attachment.
     ``` shell
-    $ openstack volume list
+    openstack volume list
     ```
     ``` shell
-    $ openstack server volume list test-server
+    openstack server volume list test-server
     ```
