@@ -11,13 +11,14 @@ By default openstack helm provide cpu allocation of 3:1. For a production deploy
 Lets consider below two use case to calculate CPU allocation for our deployment with HPE DL380 Server.
 
 ### Case 1: CPU allocation ratio for shared CPU
-
+!!! info
 Type of workload: Considering a flavor with 8 vCPU for workload which will meet its peak demand and required performace.
 Number of VM per host: Considering max of 60 VM of such flavor can be hosted on a single hypervisor as per our scaling/growth forcast.
 Number of CPU on hypervisor: HPE DL380 have 72 PCPU.
+!!!
 
 Example :
-  ``` shell
+``` shell
   Total physical CPU (PCPU) = 72
   No. of vCPU per flavor (VCPU)  = 8
   No. of Instance per hypervisor (VM) = 60
@@ -28,7 +29,7 @@ Example :
    CAR = 60 * 8 / (72 - 8)
        = 480/64
        = ~8
-   ```
+```
 So here we get approx CPU allocation ratio of 8.1.
 
 ### Case 2: Shared workload with CPU pining:
@@ -36,7 +37,7 @@ So here we get approx CPU allocation ratio of 8.1.
 There may be requirement to run CPU pinned VM along with floating instances (shared cpus). In such case CPU allocation for  compute node will be different from rest of nodes. Lets see how to get cpu allocation for such type of compute nodes:
 
 Example :
-  ``` shell
+``` shell
   No. of CPU dedicated for CPU pinning (RCPUP) : 16
   CPU allocation ratio:
    
@@ -44,7 +45,7 @@ Example :
   CAR = 60 * 8 / (72 - 16 - 8)
       = 480/48
       = 10
-  ```
+```
 So, here cpu allocation will be 10.1 on host hosting cpu pinned instances and floating instances.
 
 Please note , above is  an example only. For your use case it is required to considering flavor's CPU specifications based on application benchmark requirments, its peak utilization and scaling needs of future.
