@@ -2,7 +2,7 @@
 
 ## Create Secrets
 
-```shell
+``` shell
 kubectl --namespace openstack create secret generic ceilometer-keystone-admin-password \
         --type Opaque \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
@@ -16,7 +16,7 @@ kubectl --namespace openstack create secret generic ceilometer-rabbitmq-password
 
 ## Run the package deployment
 
-```shell
+``` shell
 cd /opt/genestack/submodules/openstack-helm
 helm upgrade --install ceilometer ./ceilometer \
     --namespace=openstack \
@@ -59,7 +59,7 @@ Without them, metrics can't be stored, so let's verify they exist. The
 output should include named resource types and some attributes for resources
 like `instance`, `instance_disk`, `network`, `volume`, etc.
 
-```shell
+``` shell
 kubectl exec -it openstack-admin-client -n openstack -- openstack metric resource-type list
 ```
 
@@ -67,7 +67,7 @@ kubectl exec -it openstack-admin-client -n openstack -- openstack metric resourc
 
 Confirm that resources are populating in Gnocchi
 
-```shell
+``` shell
 kubectl exec -it openstack-admin-client -n openstack -- openstack metric resource list
 ```
 
@@ -75,6 +75,6 @@ kubectl exec -it openstack-admin-client -n openstack -- openstack metric resourc
 
 Confirm that metrics can be retrieved from Gnocchi
 
-```shell
+``` shell
 kubectl exec -it openstack-admin-client -n openstack -- openstack metric list
 ```

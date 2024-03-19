@@ -17,7 +17,7 @@ In order to avoid putting sensative information on the cli, it is recommended to
 
 example secret file:
 
-```yaml
+``` yaml
 apiversion: v1
 data:
   client_id: base64_encoded_client_id
@@ -37,7 +37,7 @@ If you have specific datasources that should be populated when grafana deploys, 
 
 example datasources yaml file:
 
-```yaml
+``` yaml
 datasources:
   datasources.yaml:
     apiversion: 1
@@ -126,7 +126,7 @@ Your cert and key files should look something like the following (cert and key e
 
 ## Add repo and install
 
-```shell
+``` shell
 helm repo add grafana https://grafana.github.io/helm-charts
 helm repo update
 kubectl create ns grafana
