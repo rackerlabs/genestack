@@ -1,0 +1,10 @@
+resources:
+  - ns-grafana.yaml
+  - grafana-database.yaml
+
+helmCharts:
+  - name: grafana
+    repo: https://grafana.github.io/helm-charts
+    releaseName: grafana
+    namespace: grafana
+    valuesFile: grafana-values.yaml
