@@ -13,7 +13,9 @@ Lets consider below two use case to calculate CPU allocation for our deployment 
 ### Case 1: CPU allocation ratio for shared CPU
 
 Workload type: Considering a flavor with 8 vCPU for workload which will meet its peak demand and required performace.
+
 Max VM per host: Considering max of 60 VM of such flavor can be hosted on a single hypervisor as per our scaling/growth forcast.
+
 CPUs on hypervisor: HPE DL380 have 72 PCPU.
 
 
