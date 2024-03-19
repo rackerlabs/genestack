@@ -4,139 +4,163 @@ The Vault Secrets Operator (VSO) enables Pods to seamlessly consume Vault secret
 
 ## Prerequisites
 
-Before starting the installation, ensure the following prerequisites are met:
-- **HashiCorp Vault:** Ensure HashiCorp Vault is installed in the cluster. You can refer [vault.md](https://github.com/rackerlabs/genestack/blob/main/docs/vault.md) for more details.
+!!! note "Before starting the installation, ensure the following prerequisites are met"
+
+    **HashiCorp Vault:** Ensure HashiCorp Vault is installed in the cluster. You can refer [vault.md](https://github.com/rackerlabs/genestack/blob/main/docs/vault.md) for more details.
 
 ## Installation
-- Navigate to the Vault Secrets Operator base directory:
-   ``` shell
-   cd kustomize/vault-secrets-operator/base
-   ```
 
-- Modify the `values.yaml` file with your desired configurations. Refer to the sample configuration in this directory, already updated for installation.
-   ``` shell
-   vi values.yaml
-   ```
+Navigate to the Vault Secrets Operator base directory:
 
-- Perform the installation:
-   ``` shell
-   kustomize build . --enable-helm | kubectl apply -f -
-   ```
+``` shell
+cd kustomize/vault-secrets-operator/base
+```
+
+Modify the `values.yaml` file with your desired configurations. Refer to the sample configuration in this directory, already updated for installation.
+
+``` shell
+vi values.yaml
+```
+
+Perform the installation.
+
+``` shell
+kustomize build . --enable-helm | kubectl apply -f -
+```
 
 ## Consume secrets from the Vault
+
 After installing the `vault-secrets-operator`, create the necessary resources to consume secrets stored in Vault.
 
 ### Connect to the vault
-- Create a `VaultConnection` resource to establish a connection to Vault:
-   ```
-   apiVersion: secrets.hashicorp.com/v1beta1
-   kind: VaultConnection
-   metadata:
-   namespace: openstack
-   name: vault-connection
-   spec:
-   # required configuration
-   # address to the Vault server.
-   address: https://vault.vault.svc.cluster.local:8200
 
-   # optional configuration
-   # HTTP headers to be included in all Vault requests.
-   # headers: []
-   # TLS server name to use as the SNI host for TLS connections.
-   # tlsServerName: ""
-   # skip TLS verification for TLS connections to Vault.
-   skipTLSVerify: false
-   # the trusted PEM encoded CA certificate chain stored in a Kubernetes Secret
-   caCertSecretRef: "vault-ca-secret"
-   ```
-   `vault-ca-secret`: CA certificate used to sign the Vault certificate for internal communication.
+Create a `VaultConnection` resource to establish a connection to Vault.
+
+``` yaml
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultConnection
+metadata:
+namespace: openstack
+name: vault-connection
+spec:
+# required configuration
+# address to the Vault server.
+address: https://vault.vault.svc.cluster.local:8200
+
+# optional configuration
+# HTTP headers to be included in all Vault requests.
+# headers: []
+# TLS server name to use as the SNI host for TLS connections.
+# tlsServerName: ""
+# skip TLS verification for TLS connections to Vault.
+skipTLSVerify: false
+# the trusted PEM encoded CA certificate chain stored in a Kubernetes Secret
+caCertSecretRef: "vault-ca-secret"
+```
+
+`vault-ca-secret`: CA certificate used to sign the Vault certificate for internal communication.
 
 ### Authenticate with vault:
-- Create a `VaultAuth` resource to authenticate with Vault and access secrets:
-   ```
-   apiVersion: secrets.hashicorp.com/v1beta1
-   kind: VaultAuth
-   metadata:
-   name: keystone-auth
-   namespace: openstack
-   spec:
-   method: kubernetes
-   mount: genestack
-   kubernetes:
-      role: osh
-      serviceAccount: default
-      audiences:
-         - vault
-   vaultConnectionRef: vault-connection
-   ```
+
+Create a `VaultAuth` resource to authenticate with Vault and access secrets.
+
+``` yaml
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+name: keystone-auth
+namespace: openstack
+spec:
+method: kubernetes
+mount: genestack
+kubernetes:
+   role: osh
+   serviceAccount: default
+   audiences:
+     - vault
+vaultConnectionRef: vault-connection
+```
 
 ### Create Vault static:
-- Define a `VaultStaticSecret` resource to fetch a secret from Vault and create a Kubernetes Secret resource:
-   ```
-   apiVersion: secrets.hashicorp.com/v1beta1
-   kind: VaultStaticSecret
-   metadata:
+
+Define a `VaultStaticSecret` resource to fetch a secret from Vault and create a Kubernetes Secret resource.
+
+``` yaml
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+name: keystone-rabbitmq-password
+namespace: openstack
+spec:
+type: kv-v2
+
+# mount path
+mount: 'osh/keystone'
+
+# path of the secret
+path: keystone-rabbitmq-password
+
+# dest k8s secret
+destination:
    name: keystone-rabbitmq-password
-   namespace: openstack
-   spec:
-   type: kv-v2
+   create: true
 
-   # mount path
-   mount: 'osh/keystone'
+# static secret refresh interval
+refreshAfter: 30s
 
-   # path of the secret
-   path: keystone-rabbitmq-password
-
-   # dest k8s secret
-   destination:
-      name: keystone-rabbitmq-password
-      create: true
-
-   # static secret refresh interval
-   refreshAfter: 30s
-
-   # Name of the CRD to authenticate to Vault
-   vaultAuthRef: keystone-auth
-   ```
-   This `VaultStaticSecret` resource fetches the `keystone-rabbitmq-password` secret from Vault and creates a Kubernetes Secret named `keystone-rabbitmq-password` in the openstack namespace which you can further use in the Genestack running on Kubernetes.
-## Example usage:
+# Name of the CRD to authenticate to Vault
+vaultAuthRef: keystone-auth
 ```
-# From Vault:
-/ $ vault kv get osh/keystone/keystone-rabbitmq-password
-================ Secret Path ================
-osh/keystone/data/keystone-rabbitmq-password
 
-======= Metadata =======
-Key                Value
----                -----
-created_time       2024-02-21T12:13:20.961200482Z
-custom_metadata    <nil>
-deletion_time      n/a
-destroyed          false
-version            1
+This `VaultStaticSecret` resource fetches the `keystone-rabbitmq-password` secret from Vault and creates a Kubernetes Secret named `keystone-rabbitmq-password` in the openstack namespace which you can further use in the Genestack running on Kubernetes.
 
-====== Data ======
-Key         Value
----         -----
-password    EENF1SfKOVkILTGVzftJhdj5A6mwnbcCLgdttahhKsQVxCWHrIrhc0theCG3Tzrr
+!!! example "Example usage workflow"
 
-# From Kubernetes:
-$ kubectl apply -f vaultconnection.yaml
-$ kubectl apply -f vault-auth.yaml
-$ kubectl apply -f keystone-rabbitmq-password-vault.yaml
+    ``` shell
+    # From Vault:
+    vault kv get osh/keystone/keystone-rabbitmq-password
+    ================ Secret Path ================
+    osh/keystone/data/keystone-rabbitmq-password
 
-$ kubectl get secret keystone-rabbitmq-password -n openstack
-NAME                            TYPE     DATA   AGE
-keystone-rabbitmq-password   Opaque   2      14h
+    ======= Metadata =======
+    Key                Value
+    ---                -----
+    created_time       2024-02-21T12:13:20.961200482Z
+    custom_metadata    <nil>
+    deletion_time      n/a
+    destroyed          false
+    version            1
 
-$ kubectl get secret keystone-rabbitmq-password -n openstack -o yaml
-apiVersion: v1
-data:
-  _raw: eyJkYXRhIjp7InBhc3N3b3JkIjoiRUVORjFTZktPVmtJTFRHVnpmdEpoZGo1QTZtd25iY0NMZ2R0dGFoaEtzUVZ4Q1dIcklyaGMwdGhlQ0czVHpyciJ9LCJtZXRhZGF0YSI6eyJjcmVhdGVkX3RpbWUiOiIyMDI0LTAyLTIxVDEyOjEzOjIwLjk2MTIwMDQ4MloiLCJjdXN0b21fbWV0YWRhdGEiOm51bGwsImRlbGV0aW9uX3RpbWUiOiIiLCJkZXN0cm95ZWQiOmZhbHNlLCJ2ZXJzaW9uIjoxfX0=
-  password: RUVORjFTZktPVmtJTFRHVnpmdEpoZGo1QTZtd25iY0NMZ2R0dGFoaEtzUVZ4Q1dIcklyaGMwdGhlQ0czVHpycg==
-kind: Secret
-[...]
+    ====== Data ======
+    Key         Value
+    ---         -----
+    password    EENF1SfKOVkILTGVzftJhdj5A6mwnbcCLgdttahhKsQVxCWHrIrhc0theCG3Tzrr
+    ```
 
-$ echo "RUVORjFTZktPVmtJTFRHVnpmdEpoZGo1QTZtd25iY0NMZ2R0dGFoaEtzUVZ4Q1dIcklyaGMwdGhlQ0czVHpycg==" |base64 -d
-EENF1SfKOVkILTGVzftJhdj5A6mwnbcCLgdttahhKsQVxCWHrIrhc0theCG3Tzrr
-```
+    Apply the reuired configuration files.
+
+    ``` shell
+    # From Kubernetes:
+    kubectl apply -f vaultconnection.yaml
+    kubectl apply -f vault-auth.yaml
+    kubectl apply -f keystone-rabbitmq-password-vault.yaml
+    ```
+
+    Return the secret in YAML
+
+    ``` shell
+    kubectl get secret keystone-rabbitmq-password -n openstack -o yaml
+    apiVersion: v1
+    data:
+    _raw:  eyJkYXRhIjp7InBhc3N3b3JkIjoiRUVORjFTZktPVmtJTFRHVnpmdEpoZGo1QTZtd25iY0NMZ2R0dGFoaEtzUVZ4Q1dIcklyaGMwdGhlQ0czVHpyciJ9LCJtZXRhZGF0YSI6eyJjcmVhdGVkX3 RpbWUiOiIyMDI0LTAyLTIxVDEyOjEzOjIwLjk2MTIwMDQ4MloiLCJjdXN0b21fbWV0YWRhdGEiOm51bGwsImRlbGV0aW9uX3RpbWUiOiIiLCJkZXN0cm95ZWQiOmZhbHNlLCJ2ZXJzaW9uIjox fX0=
+    password: RUVORjFTZktPVmtJTFRHVnpmdEpoZGo1QTZtd25iY0NMZ2R0dGFoaEtzUVZ4Q1dIcklyaGMwdGhlQ0czVHpycg==
+    kind: Secret
+    [...]
+    ```
+
+    Check the return password.
+
+    ``` shell
+    echo "RUVORjFTZktPVmtJTFRHVnpmdEpoZGo1QTZtd25iY0NMZ2R0dGFoaEtzUVZ4Q1dIcklyaGMwdGhlQ0czVHpycg==" | base64 -d
+    EENF1SfKOVkILTGVzftJhdj5A6mwnbcCLgdttahhKsQVxCWHrIrhc0theCG3Tzrr
+    ```

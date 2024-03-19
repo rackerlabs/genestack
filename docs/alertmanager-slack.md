@@ -3,7 +3,7 @@
 The following example describes configuration options to send alerts via alertmanager to slack
 using a slack hook.
 
-```yaml
+``` yaml
 alertmanager:
   alertmanagerSpec:
     image:

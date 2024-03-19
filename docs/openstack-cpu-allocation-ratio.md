@@ -26,7 +26,7 @@ Example :
   No. of Instance per hypervisor (VM) = 60
   Overhead on CPU (OCPU) = 8
   Formula to calculate CPU allocation ratio:
- 
+
    CAR = VM * VCPU / (PCPU - OPCU)
    CAR = 60 * 8 / (72 - 8)
        = 480/64
@@ -42,7 +42,7 @@ Example :
 ``` shell
   No. of CPU dedicated for CPU pinning (RCPUP) : 16
   CPU allocation ratio:
-   
+
   CAR = VM * VCPU / (PCPU - RCPUP - OCPU)
   CAR = 60 * 8 / (72 - 16 - 8)
       = 480/48

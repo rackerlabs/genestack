@@ -80,6 +80,7 @@ openstack server delete [--wait] <server> [<server> ...]
     ``` shell
     openstack server image create myInstance --name myInstanceSnapshot
     ```
+
     The above command creates the image myInstance by taking a snapshot of a running server.
 
 4. Use the openstack image list command to check the status until the status is active:
@@ -119,7 +120,6 @@ In the new project or cloud environment, use the snapshot to create the new inst
 openstack server create --flavor m1.tiny --image myInstanceSnapshot myNewInstance
 ```
 
-
 # Launch a server from a volume
 
 #### Boot instance from volume
@@ -127,26 +127,34 @@ openstack server create --flavor m1.tiny --image myInstanceSnapshot myNewInstanc
 You can create a bootable volume from an existing image, volume, or snapshot. This procedure shows you how to create a volume from an image and use the volume to boot an instance.
 
 1. List available images, noting the ID of the image that you wish to use.
+
     ``` shell
     openstack image list
     ```
+
 2. Create a bootable volume from the chosen image.
+
     ``` shell
     openstack volume create \
     --image {Image ID} --size 10 \
     test-volume
     ```
+
 3. Create a server, specifying the volume as the boot device.
+
     ``` shell
-    $ openstack server create \
+    openstack server create \
     --flavor $FLAVOR --network $NETWORK \
     --volume {Volume ID}\
     --wait test-server
     ```
+
 4. List volumes once again to ensure the status has changed to in-use and the volume is correctly reporting the attachment.
+
     ``` shell
     openstack volume list
     ```
+
     ``` shell
     openstack server volume list test-server
     ```
