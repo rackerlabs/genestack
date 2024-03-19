@@ -1,4 +1,4 @@
-# CPU allocation Guide
+# Nova CPU allocation Guide
 
 By default openstack helm provide cpu allocation of 3:1. For a production deployment, cpu allocation ratio need to be decided based on multiple factors like:
 
@@ -10,7 +10,7 @@ By default openstack helm provide cpu allocation of 3:1. For a production deploy
 
 Lets consider below two use case to calculate CPU allocation for our deployment with HPE DL380 Server.
 
-## Case 1: CPU allocation ratio for shared CPU
+### Case 1: CPU allocation ratio for shared CPU
 
 Type of workload: Considering a flavor with 8 vCPU for workload which will meet its peak demand and required performace.
 Number of VM per host: Considering max of 60 VM of such flavor can be hosted on a single hypervisor as per our scaling/growth forcast.
@@ -31,7 +31,7 @@ Example :
    ```
 So here we get approx CPU allocation ratio of 8.1.
 
-## Case 2: Shared workload with CPU pining:
+### Case 2: Shared workload with CPU pining:
 
 There may be requirement to run CPU pinned VM along with floating instances (shared cpus). In such case CPU allocation for  compute node will be different from rest of nodes. Lets see how to get cpu allocation for such type of compute nodes:
 
