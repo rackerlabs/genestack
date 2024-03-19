@@ -27,12 +27,14 @@ No. of Instance per hypervisor (VM) = 60
 
 Overhead on CPU (OCPU) = 8
 
-Formula to calculate CPU allocation ratio (CAR) = VM * VCPU / (PCPU - OPCU)
+Formula to calculate CPU allocation ratio:
+``` shell
+CAR = VM * VCPU / (PCPU - OPCU)
 
           CAR = 60 * 8 / (72 - 8)
                   = 480/64
                   = ~8
-
+```
 So here we get approx CPU allocation ratio of 8.1.
 
 ## Case 2: Shared workload with CPU pining:
