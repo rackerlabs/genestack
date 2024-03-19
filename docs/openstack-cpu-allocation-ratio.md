@@ -6,7 +6,7 @@ By default openstack helm provide cpu allocation of 3:1. For a production deploy
 2. Peformance Requirments: Consider the performace requirment of the workloads. Some applications may require dedicated CPU resource to meet required performace SLA, whereas other can share resources.
 3. Overhead: Account for the overhead introduced by the operating system, hypervidor and virtulization layer. Sometime compute node are used as hyperconserved nodes as well. This can impact the effective allocation ratio.
 4. Peak vs Average Usage: Determin whether to set allocation ratios based on peak or average CPU usage. Peak usages ensure there are enough resources available durig period of high demand, but it may result in underutilization during off-peak hours.
-5. Growth and Scalability: Consider futur growth and scalability needs when setting CPU allocation ratios. Allocating too liberally may result in wated resources while allocating too conservatively may lead to resource shortage as the deployment scale.
+5. Growth and Scalability: Consider future growth and scalability needs when setting CPU allocation ratios. Allocating too liberally may result in wasted resources while allocating too conservatively may lead to resource shortage as the deployment scale.
 
 Lets consider below two use case to calculate CPU allocation for our deployment with HPE DL380 Server.
 
