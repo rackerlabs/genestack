@@ -205,6 +205,7 @@ nav:
           - Generating Clouds YAML: openstack-clouds.md
           - Keystone Federation to Rackspace: openstack-keystone-federation.md
           - Nova Flavor Creation: openstack-flavors.md
+          - Nova CPU Allocation Ratio: openstack-cpu-allocation-ratio.md
           - Creating Networks: openstack-neutron-networks.md
           - Glance Images Creation: openstack-glance-images.md
       - Building Local Images: build-local-images.md
