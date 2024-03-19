@@ -11,11 +11,11 @@ By default openstack helm provide cpu allocation of 3:1. For a production deploy
 Lets consider below two use case to calculate CPU allocation for our deployment with HPE DL380 Server.
 
 ### Case 1: CPU allocation ratio for shared CPU
-!!! info
+
 Type of workload: Considering a flavor with 8 vCPU for workload which will meet its peak demand and required performace.
 Number of VM per host: Considering max of 60 VM of such flavor can be hosted on a single hypervisor as per our scaling/growth forcast.
 Number of CPU on hypervisor: HPE DL380 have 72 PCPU.
-!!!
+
 
 Example :
 ``` shell
