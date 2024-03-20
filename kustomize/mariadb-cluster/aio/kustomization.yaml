@@ -12,3 +12,10 @@ patches:
       - op: replace
         path: /spec/galera/enabled
         value: false
+  - target:
+      kind: MaxScale
+      name: maxscale-galera
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1

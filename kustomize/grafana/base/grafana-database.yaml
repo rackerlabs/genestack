@@ -1,4 +1,4 @@
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: Database
 metadata:
   name: grafana
@@ -13,7 +13,7 @@ spec:
   requeueInterval: 30s
   retryInterval: 5s
 ---
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: User
 metadata:
   name: grafana
@@ -32,7 +32,7 @@ spec:
   requeueInterval: 30s
   retryInterval: 5s
 ---
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: Grant
 metadata:
   name: grant
