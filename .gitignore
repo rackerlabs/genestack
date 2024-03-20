@@ -103,7 +103,7 @@ target/
 .env
 
 # virtualenv
-venv/
+*venv/
 ENV/
 
 # molecule
