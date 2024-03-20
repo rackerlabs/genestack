@@ -44,7 +44,7 @@ If you are configuring grafana to use tls/ssl, you should create a file for your
 
 Your cert and key files should look something like the following (cert and key example taken from [VMware Docs](https://docs.vmware.com/en/VMware-NSX-Data-Center-for-vSphere/6.4/com.vmware.nsx.admin.doc/GUID-BBC4804F-AC54-4DD2-BF6B-ECD2F60083F6.html "VMware Docs")).
 
-These example files are located in `/opt/genestack/kustomize/grafana/base` 
+These example files are located in `/opt/genestack/kustomize/grafana/base`
 
 ??? example
 
@@ -139,7 +139,7 @@ datasources:
 
 The grafana-values.yaml file is located at `/opt/genestack/kustomize/grafana/base`
 
-You must edit this file to include your specific url and 
+You must edit this file to include your specific url and azure tenant id
 
 ---
 
