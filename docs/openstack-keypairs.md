@@ -1,11 +1,11 @@
- Openstack Keypairs
+# Openstack Keypairs
 
 Read more about Openstack keypairs using the [upstream docs](https://docs.openstack.org/python-openstackclient/latest/cli/command-objects/keypair.html).
 
 #### List and view Keypairs
 
 ``` shell
-$ openstack keypair list
+openstack keypair list
     [--sort-column SORT_COLUMN]
     [--sort-ascending | --sort-descending]
     [--user <user>]
@@ -21,7 +21,7 @@ $ openstack keypair list
 Before launching an instance, you must add a public key to the Compute service.
 
 ``` shell
-$ openstack keypair create
+openstack keypair create
     [--public-key <file> | --private-key <file>]
     [--type <type>]
     [--user <user>]
@@ -29,8 +29,9 @@ $ openstack keypair create
     <name>
 ```
 
---type <type>
-Keypair type (supported by –os-compute-api-version 2.2 or above)
+!!! note
+
+    --type <type> Keypair type (supported by –os-compute-api-version 2.2 or above)
 
 This command generates a key pair with the name that you specify for KEY_NAME, writes the private key to the .pem file that you specify, and registers the public key to the Nova database.
 
@@ -39,7 +40,7 @@ This command generates a key pair with the name that you specify for KEY_NAME, w
 If you have already generated a key pair and the public key is located at ~/.ssh/id_rsa.pub, run the following command to upload the public key.
 
 ``` shell
-$ openstack keypair create --public-key ~/.ssh/id_rsa.pub KEY_NAME
+openstack keypair create --public-key ~/.ssh/id_rsa.pub KEY_NAME
 ```
 
 This command registers the public key at the Nova database and names the key pair the name that you specify for KEY_NAME
@@ -47,7 +48,7 @@ This command registers the public key at the Nova database and names the key pai
 #### Delete a Keypair
 
 ``` shell
-$ openstack keypair delete
+openstack keypair delete
     [--user <user>]
     [--user-domain <user-domain>]
     <key>
@@ -57,7 +58,7 @@ $ openstack keypair delete
 #### Show Keypair Details
 
 ``` shell
-$ openstack keypair show
+openstack keypair show
     [--public-key]
     [--user <user>]
     [--user-domain <user-domain>]
