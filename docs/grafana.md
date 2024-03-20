@@ -15,6 +15,13 @@
 
 In order to avoid putting sensative information on the cli, it is recommended to create and use a secret file instead.
 
+You can base64 encode your `client_id` and `client_secret` by using the echo and base64 command:
+
+``` shell
+echo -n "YOUR CLIENT ID OR SECRET" | base64
+```
+
+This example file is located at `/opt/genestack/kustomize/grafana/base`
 example secret file:
 
 ``` yaml
@@ -31,40 +38,17 @@ type: opaque
 
 ---
 
-## Create a datasources yaml
-
-If you have specific datasources that should be populated when grafana deploys, create a seperate datasource.yaml.  The example below shows one way to configure prometheus and loki datasources.
-
-example datasources yaml file:
-
-``` yaml
-datasources:
-  datasources.yaml:
-    apiversion: 1
-    datasources:
-    - name: prometheus
-      type: prometheus
-      access: proxy
-      url: http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090
-      isdefault: true
-    - name: loki
-      type: loki
-      access: proxy
-      url: http://loki-gateway.{{ .release.namespace }}.svc.cluster.local:80
-      editable: false
-```
-
----
-
 ## Create your ssl files
 
 If you are configuring grafana to use tls/ssl, you should create a file for your certificate and a file for your key.  After the deployment, these files can be deleted if desired since the cert and key will now be in a Kubernetes secret.
 
 Your cert and key files should look something like the following (cert and key example taken from [VMware Docs](https://docs.vmware.com/en/VMware-NSX-Data-Center-for-vSphere/6.4/com.vmware.nsx.admin.doc/GUID-BBC4804F-AC54-4DD2-BF6B-ECD2F60083F6.html "VMware Docs")).
 
+These example files are located in `/opt/genestack/kustomize/grafana/base`
+
 ??? example
 
-    === "Cert file"
+    === "Cert file (example-cert.pem)"
         ```
         -----BEGIN CERTIFICATE-----
         MIID0DCCARIGAWIBAGIBATANBGKQHKIG9W0BAQUFADB/MQSWCQYDVQQGEWJGUJET
@@ -91,7 +75,7 @@ Your cert and key files should look something like the following (cert and key e
         -----END CERTIFICATE-----
         ```
 
-    === "Key file"
+    === "Key file (example-key.pem)"
         ```
         -----BEGIN RSA PRIVATE KEY-----
         MIIEOWIBAAKCAQEAVPNAPKLIKDVX98KW68LZ8PGARRCYERSNGQPJPIFMVJJE8LUC
@@ -124,17 +108,46 @@ Your cert and key files should look something like the following (cert and key e
 
 ---
 
-## Add repo and install
+## Update datasources.yaml
+
+The datasource.yaml file is located at `/opt/genestack/kustomize/grafana/base`
+
+If you have specific datasources that should be populated when grafana deploys, update the datasource.yaml to use your values.  The example below shows one way to configure prometheus and loki datasources.
+
+example datasources.yaml file:
+
+``` yaml
+datasources:
+  datasources.yaml:
+    apiversion: 1
+    datasources:
+    - name: prometheus
+      type: prometheus
+      access: proxy
+      url: http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090
+      isdefault: true
+    - name: loki
+      type: loki
+      access: proxy
+      url: http://loki-gateway.{{ $.Release.Namespace }}.svc.cluster.local:80
+      editable: false
+```
+
+---
+
+## Update grafana-values.yaml
+
+The grafana-values.yaml file is located at `/opt/genestack/kustomize/grafana/base`
+
+You must edit this file to include your specific url and azure tenant id
+
+---
+
+## Create the tls secret and install
 
 ``` shell
-helm repo add grafana https://grafana.github.io/helm-charts
-helm repo update
-kubectl create ns grafana
-kubectl -n grafana create secret tls grafana-tls-public --cert=your_cert_file --key=your_key_file
+kubectl -n grafana create secret tls grafana-tls-public --cert=/opt/genestack/kustomize/grafana/base/cert.pem --key=/opt/genestack/kustomize/grafana/base/key.pem
 
-kubectl -n grafana create secret generic azure-client --type opaque --from-literal=client_id="your_client_id" --from-literal=client_secret="your_client_secret"
-or
-kubectl -n grafana apply -f azure-secrets.yaml
-
-helm upgrade --install grafana grafana/grafana --namespace grafana --values overrides.yaml -f datasources.yaml --set tenant_id=your_tenant_id --set custom_host=your_url_for_ingress
+kubectl kustomize --enable-helm /opt/genestack/kustomize/grafana/base | \
+  kubectl -n grafana -f -
 ```

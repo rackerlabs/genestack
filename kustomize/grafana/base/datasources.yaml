@@ -1,0 +1,14 @@
+datasources:
+  datasources.yaml:
+    apiversion: 1
+    datasources:
+    - name: prometheus
+      type: prometheus
+      access: proxy
+      url: http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090
+      isdefault: true
+    - name: loki
+      type: loki
+      access: proxy
+      url: http://loki-gateway.{{ $.Release.Namespace }}.svc.cluster.local:80
+      editable: false

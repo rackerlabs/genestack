@@ -1,5 +1,6 @@
 resources:
   - ns-grafana.yaml
+  - azure-client-secret.yaml
   - grafana-database.yaml
 
 helmCharts:
@@ -8,3 +9,5 @@ helmCharts:
     releaseName: grafana
     namespace: grafana
     valuesFile: grafana-values.yaml
+    additionalValuesFiles:
+      - datasources.yaml

@@ -1,6 +1,7 @@
-custom_host: grafana.example.com # TODO: update this value.  Can be set in CLI.
-tenant_id: 122333 # TODO: update this value.  Can be set in CLI.
-
+#### EDIT THESE TWO VARIABLES WITH YOUR VALUES
+custom_host: grafana.example.com # TODO: update this value to the FQDN of your grafana site
+tenant_id: 122333 # TODO: update this value to use your Azure Tenant ID
+####
 
 ingress:
   enabled: true
