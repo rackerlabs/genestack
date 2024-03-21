@@ -57,72 +57,68 @@ spec:
         # IMPORTANT: If volumes specified by the storageClassName are not portable across nodes
         # this needs to be set to false. For example, if using the local storage provisioner
         # this should be false.
-        portable: true
+        portable: false
         # Certain storage class in the Cloud are slow
         # Rook can configure the OSD running on PVC to accommodate that by tuning some of the Ceph internal
         # Currently, "gp2" has been identified as such
-        tuneDeviceClass: true
+        tuneDeviceClass: false
         # Certain storage class in the Cloud are fast
         # Rook can configure the OSD running on PVC to accommodate that by tuning some of the Ceph internal
         # Currently, "managed-premium" has been identified as such
-        tuneFastDeviceClass: true
+        tuneFastDeviceClass: false
         # whether to encrypt the deviceSet or not
         encrypted: false
         # Since the OSDs could end up on any node, an effort needs to be made to spread the OSDs
         # across nodes as much as possible. Unfortunately the pod anti-affinity breaks down
         # as soon as you have more than one OSD per node. The topology spread constraints will
         # give us an even spread on K8s 1.18 or newer.
-#        placement:
-#          all:
-#            nodeAffinity:
-#              requiredDuringSchedulingIgnoredDuringExecution:
-#              nodeSelectorTerms:
-#              - matchExpressions:
-#                - key: role
-#                  operator: In
-#                  values:
-#                  - openstack-control-plane
-#            tolerations:
-#            - key: openstack-control-plane
-#              operator: Exists
         placement:
-          topologySpreadConstraints:
-            - maxSkew: 1
-              topologyKey: kubernetes.io/hostname
-              whenUnsatisfiable: ScheduleAnyway
-              labelSelector:
-                matchExpressions:
-                  - key: app
-                    operator: In
-                    values:
-                      - rook-ceph-osd
-        preparePlacement:
-          podAntiAffinity:
-            preferredDuringSchedulingIgnoredDuringExecution:
-              - weight: 100
-                podAffinityTerm:
-                  labelSelector:
-                    matchExpressions:
-                      - key: app
-                        operator: In
-                        values:
-                          - rook-ceph-osd
-                      - key: app
-                        operator: In
-                        values:
-                          - rook-ceph-osd-prepare
-                  topologyKey: kubernetes.io/hostname
-          topologySpreadConstraints:
-            - maxSkew: 1
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: openstack-control-plane
+                  operator: In
+                  values:
+                  - enabled
+          tolerations:
+          - key: openstack-control-plane
+            operator: Exists
+
+#        placement:
+#          topologySpreadConstraints:
+#            - maxSkew: 1
+#              topologyKey: kubernetes.io/hostname
+#              whenUnsatisfiable: ScheduleAnyway
+#              labelSelector:
+#                matchExpressions:
+#                  - key: app
+#                    operator: In
+#                    values:
+#                      - openstack-control-plane
+#        preparePlacement:
+#          podAntiAffinity:
+#            preferredDuringSchedulingIgnoredDuringExecution:
+#              - weight: 100
+#                podAffinityTerm:
+#                  labelSelector:
+#                    matchExpressions:
+#                      - key: app
+#                        operator: In
+#                        values:
+#                          - openstack-control-plane
+#                  topologyKey: kubernetes.io/hostname
+#          topologySpreadConstraints:
+#            - maxSkew: 1
 #              # IMPORTANT: If you don't have zone labels, change this to another key such as kubernetes.io/hostname
-              topologyKey: topology.kubernetes.io/hostname
-              whenUnsatisfiable: DoNotSchedule
-              labelSelector:
-                matchExpressions:
-                  - key: app
-                    operator: In
-                    values:
-                      - rook-ceph-osd-prepare
+#              topologyKey: topology.kubernetes.io/hostname
+#              whenUnsatisfiable: DoNotSchedule
+#              labelSelector:
+#                matchExpressions:
+#                  - key: app
+#                    operator: In
+#                    values:
+#                      - openstack-control-plane
         resources:
         # These are the OSD daemon limits. For OSD prepare limits, see the separate section below for "prepareosd" resources
         #   limits:
