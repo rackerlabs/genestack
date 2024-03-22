@@ -3,9 +3,9 @@
 Sometimes an operator may need to connect to the database to troubleshoot things or otherwise make modifications to the databases in place. The following command can be used to connect to the database from a node within the cluster.
 
 ``` shell
-mysql -h $(kubectl -n openstack get service mariadb-galera-primary -o jsonpath='{.spec.clusterIP}') \
-      -p$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d) \
-      -u root
+mysql -h $(kubectl -n openstack get service maxscale-galera -o jsonpath='{.spec.clusterIP}') \
+      -p$(kubectl --namespace openstack get secret maxscale -o jsonpath='{.data.password}' | base64 -d) \
+      -u maxscale-galera-client
 ```
 
 !!! info

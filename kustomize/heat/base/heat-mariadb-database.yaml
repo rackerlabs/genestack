@@ -4,6 +4,8 @@ kind: Database
 metadata:
   name: heat
   namespace: openstack
+  annotations:
+    helm.sh/resource-policy: keep
 spec:
   # If you want the database to be created with a different name than the resource name
   # name: data-custom
@@ -18,6 +20,8 @@ kind: User
 metadata:
   name: heat
   namespace: openstack
+  annotations:
+    helm.sh/resource-policy: keep
 spec:
   # If you want the user to be created with a different name than the resource name
   # name: user-custom
@@ -36,6 +40,8 @@ kind: Grant
 metadata:
   name: heat-grant
   namespace: openstack
+  annotations:
+    helm.sh/resource-policy: keep
 spec:
   mariaDbRef:
     name: mariadb-galera

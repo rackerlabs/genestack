@@ -1,8 +1,12 @@
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: Database
 metadata:
   name: grafana
   namespace: openstack
+  annotations:
+    helm.sh/resource-policy: keep
+  labels:
+    app.kubernetes.io/managed-by: Helm
 spec:
   # If you want the database to be created with a different name than the resource name
   # name: data-custom
@@ -13,11 +17,13 @@ spec:
   requeueInterval: 30s
   retryInterval: 5s
 ---
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: User
 metadata:
   name: grafana
   namespace: openstack
+  annotations:
+    helm.sh/resource-policy: keep
 spec:
   # If you want the user to be created with a different name than the resource name
   # name: user-custom
@@ -32,11 +38,13 @@ spec:
   requeueInterval: 30s
   retryInterval: 5s
 ---
-apiVersion: mariadb.mmontes.io/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: Grant
 metadata:
   name: grant
   namespace: openstack
+  annotations:
+    helm.sh/resource-policy: keep
 spec:
   mariaDbRef:
     name: mariadb-galera
