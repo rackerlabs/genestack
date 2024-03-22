@@ -78,7 +78,7 @@ On each Vault pod (vault-1, vault-2), use any of the 2 unseal keys obtained duri
 ``` shell
 kubectl exec -it vault-1 -n vault -- vault operator unseal
 ```
-```shell
+``` shell
 kubectl exec -it vault-2 -n vault -- vault operator unseal
 ```
 

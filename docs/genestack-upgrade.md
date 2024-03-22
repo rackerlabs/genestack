@@ -31,3 +31,28 @@ An update is generally the same as an install. Many of the Genestack application
 
 * When needing to run an upgrade for the infrastructure operators, consult the operator documentation to validate the steps required.
 * When needing to run an upgrade for the OpenStack components, simply re-run the `helm` charts as documented in the Genestack installation process.
+
+## Kubernetes Upgrade Notes
+
+Over the course of normal operations it's likely that a CRD will change versions, names, or something else. In these cases, should an operator or helm chart not gracefully handle an full upgrade, the `kubectl convert` plugin can be used to make some adjustments where needed.
+
+!!! example "Converting mmontes CRDs to mariadb official ones"
+
+    ``` shell
+    kubectl get --namespace openstack crd.namespace -o yaml value > /tmp/value.crd.namespace.yaml
+    kubectl convert -f /tmp/value.crd.namespace.yaml --output-version new-namespace/VERSION
+    ```
+
+## Kubernetes Finalizers
+
+When processing an upgrade there may come a time when a finalizer is stuck, typically something that happens when an operator or an api reference is changed. If this happens one way to resolve the issue is to patch the Finalizers.
+
+!!! warning
+
+    Patching Finalizers could leave orphaned resources. Before patching a finalizer be sure your "ready."
+
+!!! example "Patching Finalizers"
+
+    ``` shell
+    kubectl patch $@ --type='json' -p='[{"op": "remove", "path": "/metadata/finalizers"}]'
+    ```

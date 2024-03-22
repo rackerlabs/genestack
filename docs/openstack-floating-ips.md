@@ -1,11 +1,11 @@
 # Openstack Floating Ips
 
-To read more about Openstack Floating Ips using the [upstream docs](https://docs.openstack.org/python-openstackclient/pike/cli/command-objects/floating-ip.html).
+To read more about Openstack Floating Ips using the [upstream docs](https://docs.openstack.org/python-openstackclient/latest/cli/command-objects/floating-ip.html).
 
 #### List and view floating ips
 
 ``` shell
-$ openstack floating ip list
+openstack floating ip list
     [--network <network>]
     [--port <port>]
     [--fixed-ip-address <ip-address>]
@@ -18,7 +18,7 @@ $ openstack floating ip list
 #### Create a floating ip
 
 ``` shell
-$ openstack floating ip create
+openstack floating ip create
     [--subnet <subnet>]
     [--port <port>]
     [--floating-ip-address <ip-address>]
@@ -36,7 +36,7 @@ $ openstack floating ip create
 
 
 ``` shell
-$ openstack floating ip delete <floating-ip> [<floating-ip> ...]
+openstack floating ip delete <floating-ip> [<floating-ip> ...]
 ```
 
 #### Floating ip set
@@ -44,7 +44,7 @@ $ openstack floating ip delete <floating-ip> [<floating-ip> ...]
 Set floating IP properties
 
 ``` shell
-$ openstack floating ip set
+openstack floating ip set
     --port <port>
     [--fixed-ip-address <ip-address>]
     <floating-ip>
@@ -53,13 +53,13 @@ $ openstack floating ip set
 #### Display floating ip details
 
 ``` shell
-$ openstack floating ip show <floating-ip>
+openstack floating ip show <floating-ip>
 ```
 
 #### Unset floating IP Properties
 
 ``` shell
-$ openstack floating ip unset
+openstack floating ip unset
     --port
     <floating-ip>
 ```
@@ -71,7 +71,7 @@ You can assign a floating IP address to a project and to an instance.
 Associate an IP address with an instance in the project, as follows:
 
 ``` shell
-$ openstack server add floating ip INSTANCE_NAME_OR_ID FLOATING_IP_ADDRESS
+openstack server add floating ip INSTANCE_NAME_OR_ID FLOATING_IP_ADDRESS
 ```
 
 #### Disassociate floating IP addresses
@@ -79,10 +79,10 @@ $ openstack server add floating ip INSTANCE_NAME_OR_ID FLOATING_IP_ADDRESS
 To disassociate a floating IP address from an instance:
 
 ``` shell
-$ openstack server remove floating ip INSTANCE_NAME_OR_ID FLOATING_IP_ADDRESS
+openstack server remove floating ip INSTANCE_NAME_OR_ID FLOATING_IP_ADDRESS
 ```
 To remove the floating IP address from a project:
 
 ``` shell
-$ openstack floating ip delete FLOATING_IP_ADDRESS
+openstack floating ip delete FLOATING_IP_ADDRESS
 ```

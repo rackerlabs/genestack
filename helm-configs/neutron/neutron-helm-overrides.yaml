@@ -2199,7 +2199,7 @@ endpoints:
         username: neutron
         password: password
     hosts:
-      default: mariadb-galera-primary
+      default: maxscale-galera
     host_fqdn_override:
       default: null
     path: /neutron

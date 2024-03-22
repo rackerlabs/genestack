@@ -1,0 +1,13 @@
+resources:
+  - ns-grafana.yaml
+  - azure-client-secret.yaml
+  - grafana-database.yaml
+
+helmCharts:
+  - name: grafana
+    repo: https://grafana.github.io/helm-charts
+    releaseName: grafana
+    namespace: grafana
+    valuesFile: grafana-values.yaml
+    additionalValuesFiles:
+      - datasources.yaml

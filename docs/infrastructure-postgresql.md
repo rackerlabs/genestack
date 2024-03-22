@@ -2,7 +2,7 @@
 
 ## Create Secrets
 
-```shell
+``` shell
 kubectl --namespace openstack create secret generic postgresql-identity-admin \
         --type Opaque \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
@@ -23,7 +23,7 @@ kubectl --namespace openstack create secret generic postgresql-db-audit \
 
     Consider the PVC size you will need for the environment you're deploying in. Make adjustments as needed near `storage.[pvc|archive_pvc].size` and `volume.backup.size` to your helm overrides.
 
-```shell
+``` shell
 cd /opt/genestack/submodules/openstack-helm-infra
 helm upgrade --install postgresql ./postgresql \
     --namespace=openstack \

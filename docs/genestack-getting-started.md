@@ -2,11 +2,11 @@
 
 # What is Genestack?
 
-Genestack is a complete operations and deployment ecosystem for Kubernetes and OpenStack. The purpose is of
+Genestack is a complete operations and deployment ecosystem for Kubernetes and OpenStack. The purpose of
 this project is to allow hobbyists, operators, and cloud service providers the ability to build, scale, and
 leverage Open-Infrastructure in new and exciting ways.
 
-Genestack’s inner workings are a blend dark magic — crafted with [Kustomize](https://kustomize.io) and
+Genestack’s inner workings are a blend of dark magic — crafted with [Kustomize](https://kustomize.io) and
 [Helm](https://helm.sh). It’s like cooking with cloud. Want to spice things up? Tweak the
 `kustomization.yaml` files or add those extra 'toppings' using Helm's style overrides. However, the
 platform is ready to go with batteries included.
@@ -18,7 +18,7 @@ to manage cloud infrastructure in the way you need it.
 
 ## Getting Started
 
-Before you can do anything we need to get the code. Because we've sold our soul to the submodule devil, you're going to need to recursively clone the repo into your location.
+Before you can do anything, you need to get the code. Because we've sold our soul to the submodule devil, you're going to need to recursively clone the repo into your location.
 
 !!! info
 

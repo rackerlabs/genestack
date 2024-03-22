@@ -28,21 +28,8 @@ spec:
     runAsUser: 0
 
   # point to an existing MaxScale instance. Doing this will delegate tasks such as primary failover to MaxScale.
-  # maxScaleRef:
-  #   name: maxscale
-
-  # provision a MaxScale instance and set 'spec.maxScaleRef' automatically.
-  maxScale:
-    enabled: false
-
-    kubernetesService:
-      type: LoadBalancer
-      annotations:
-        metallb.universe.tf/address-pool: primary
-
-    connection:
-      secretName: mxs-galera-conn
-      port: 3306
+  maxScaleRef:
+    name: maxscale-galera
 
   galera:
     enabled: true
@@ -54,7 +41,7 @@ spec:
     galeraLibPath: /usr/lib/galera/libgalera_smm.so
     replicaThreads: 1
     agent:
-      image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.26
+      image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.27
       port: 5555
       kubernetesAuth:
         enabled: true
@@ -67,7 +54,7 @@ spec:
       podRecoveryTimeout: 3m
       podSyncTimeout: 3m
     initContainer:
-      image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.26
+      image: ghcr.io/mariadb-operator/mariadb-operator:v0.0.27
     config:
       reuseStorageVolume: false
       volumeClaimTemplate:
@@ -132,8 +119,6 @@ spec:
   resources:
     requests:
       memory: 256Mi
-    limits:
-      memory: 16Gi
 
   metrics:
     enabled: true

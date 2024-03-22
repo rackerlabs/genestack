@@ -234,7 +234,7 @@ pod:
       init_container: null
       gnocchi_tests:
   replicas:
-    api: 1
+    api: 3
   lifecycle:
     upgrades:
       deployments:
@@ -246,11 +246,11 @@ pod:
       daemonsets:
         pod_replacement_strategy: RollingUpdate
         metricd:
-          enabled: false
+          enabled: true
           min_ready_seconds: 0
           max_unavailable: 1
         statsd:
-          enabled: false
+          enabled: true
           min_ready_seconds: 0
           max_unavailable: 1
     disruption_budget:
@@ -622,7 +622,7 @@ endpoints:
         username: gnocchi
         password: password
     hosts:
-      default: mariadb-galera-primary
+      default: maxscale-galera
     host_fqdn_override:
       default: null
     path: /gnocchi

@@ -112,6 +112,9 @@ markdown_extensions:
       line_spans: __span
       pygments_lang_class: true
   - pymdownx.inlinehilite
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.snippets:
       restrict_base_path: false
 
@@ -140,6 +143,7 @@ nav:
                   - Kubernetes Dashboard: k8s-dashboard.md
                   - Kubernetes Taint: k8s-taint.md
               - Retrieve kube config: k8s-config.md
+              - Prometheus: prometheus.md
           - Storage:
               - storage-overview.md
               - Ceph Internal: storage-ceph-rook-internal.md
@@ -149,6 +153,7 @@ nav:
           - Secrets:
               - vault.md
               - Vault Operator: vault-secrets-operator.md
+              - Sealed Secrets: sealed-secrets.md
           - Infrastructure:
               - infrastructure-overview.md
               - Namespace: infrastructure-namespace.md
@@ -164,6 +169,7 @@ nav:
                   - infrastructure-ovn.md
                   - OVN Setup: infrastructure-ovn-setup.md
               - MetalLB: infrastructure-metallb.md
+              - Gateway API: infrastructure-gateway-api.md
               - Loki: infrastructure-loki.md
           - OpenStack:
               - openstack-overview.md
@@ -179,13 +185,19 @@ nav:
                       - skyline: openstack-skyline.md
                   - Octavia: openstack-octavia.md
                   - Gnocchi: openstack-gnocchi.md
+                  - Ceilometer: openstack-ceilometer.md
           - Monitoring:
               - Monitoring Overview: prometheus-monitoring-overview.md
-              - Prometheus: prometheus.md
+              - Getting Started: monitoring-getting-started.md
+              - Grafana: grafana.md
               - MySQL Exporter: prometheus-mysql-exporter.md
               - RabbitMQ Exporter: prometheus-rabbitmq-exporter.md
               - Memcached Exporter: prometheus-memcached-exporter.md
-              - Postgres Exporter: prometheus-openstack-metrics-exporter.md
+              - Postgres Exporter: prometheus-postgres-exporter.md
+              - Openstack Exporter: prometheus-openstack-metrics-exporter.md
+              - Alert Manager Examples:
+                  - alertmanager-encore.md
+                  - alertmanager-slack.md
   - Operational Guide:
       - Running Genestack Upgrade: genestack-upgrade.md
       - Running Kubespray Upgrade: k8s-kubespray-upgrade.md
@@ -196,6 +208,7 @@ nav:
           - Generating Clouds YAML: openstack-clouds.md
           - Keystone Federation to Rackspace: openstack-keystone-federation.md
           - Nova Flavor Creation: openstack-flavors.md
+          - Nova CPU Allocation Ratio: openstack-cpu-allocation-ratio.md
           - Creating Networks: openstack-neutron-networks.md
           - Glance Images Creation: openstack-glance-images.md
       - Building Local Images: build-local-images.md
@@ -205,3 +218,4 @@ nav:
   - Cloud Onboarding:
       - Openstack Security Groups: openstack-security-groups.md
       - Openstack Floating Ips: openstack-floating-ips.md
+      - Openstack Servers: openstack-servers.md

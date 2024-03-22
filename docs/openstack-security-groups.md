@@ -5,19 +5,19 @@ To read more about Openstack Security Groups using the [upstream docs](https://d
 #### List and view current security groups
 
 ``` shell
-$ openstack security group list
+openstack security group list
 ```
 
 #### Create Security Groups
 
 ``` shell
-$ openstack security group create SECURITY_GROUP_NAME --description GROUP_DESCRIPTION
+openstack security group create SECURITY_GROUP_NAME --description GROUP_DESCRIPTION
 ```
 
 #### Delete a specific Security Group
 
 ``` shell
-$ openstack security group delete SECURITY_GROUP_NAME
+openstack security group delete SECURITY_GROUP_NAME
 ```
 
 #### Create and manage security group rules
@@ -25,13 +25,13 @@ $ openstack security group delete SECURITY_GROUP_NAME
 To list the rules for a security group, run the following command:
 
 ``` shell
-$ openstack security group rule list SECURITY_GROUP_NAME
+openstack security group rule list SECURITY_GROUP_NAME
 ```
 
 Add a new group rule:
 
 ``` shell
-$ openstack security group rule create SEC_GROUP_NAME \
+openstack security group rule create SEC_GROUP_NAME \
     --protocol PROTOCOL --dst-port FROM_PORT:TO_PORT --remote-ip CIDR
 ```
 
@@ -49,13 +49,13 @@ openstack security group rule create global_http \
 1. Allow access from all IP addresses, specified as IP subnet 0.0.0.0/0 in CIDR notation:
 
     ``` shell
-    $ openstack security group rule create SECURITY_GROUP_NAME \
+    openstack security group rule create SECURITY_GROUP_NAME \
       --protocol tcp --dst-port 22:22 --remote-ip 0.0.0.0/0
     ```
 2. Allow access only from IP addresses from other security groups (source groups) to access the specified port:
 
      ``` shell
-    $ openstack security group rule create SECURITY_GROUP_NAME \
+    openstack security group rule create SECURITY_GROUP_NAME \
       --protocol tcp --dst-port 22:22 --remote-group SOURCE_GROUP_NAME
     ```
 #### To allow pinging of the instances, choose one of the following options:
@@ -63,37 +63,44 @@ openstack security group rule create global_http \
 1. Allow pinging from all IP addresses, specified as IP subnet 0.0.0.0/0 in CIDR notation
 
      ``` shell
-    $ openstack security group rule create --protocol icmp \
+    openstack security group rule create --protocol icmp \
     SECURITY_GROUP_NAME
     ```
+
     This allows access to all codes and all types of ICMP traffic.
 
 2. Allow only members of other security groups (source groups) to ping instances.
+
      ``` shell
-    $ openstack security group rule create --protocol icmp \
+    openstack security group rule create --protocol icmp \
       --remote-group SOURCE_GROUP_NAME SECURITY_GROUP
     ```
+
 #### To allow access through a UDP port, such as allowing access to a DNS server that runs on a VM, choose one of the following options:
 
 1. Allow UDP access from IP addresses, specified as IP subnet 0.0.0.0/0 in CIDR notation.
+
      ``` shell
     openstack security group rule create --protocol udp \
       --dst-port 53:53 SECURITY_GROUP
     ```
+
 2. Allow only IP addresses from other security groups (source groups) to access the specified port.
 
     ``` shell
     openstack security group rule create --protocol udp \
     --dst-port 53:53 --remote-group SOURCE_GROUP_NAME SECURITY_GROUP
     ```
+
 ####  Allow RDP access only from IP addresses from other security groups
 
     ``` shell
-    $ openstack security group rule create SECURITY_GROUP_NAME \
+    openstack security group rule create SECURITY_GROUP_NAME \
       --protocol tcp --dst-port 33:89 --remote-group SOURCE_GROUP_NAME
     ```
+
 #### Delete a security group rule
 
 ``` shell
-$ openstack security group rule delete RULE_ID
+openstack security group rule delete RULE_ID
 ```
