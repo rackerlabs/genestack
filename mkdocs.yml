@@ -150,6 +150,7 @@ nav:
               - Ceph External: storage-ceph-rook-external.md
               - NFS External: storage-nfs-external.md
               - TopoLVM: storage-topolvm.md
+              - External Storage CSI: storage-external-block.md
           - Secrets:
               - vault.md
               - Vault Operator: vault-secrets-operator.md
