@@ -1,6 +1,6 @@
 # External Block - Bring Your Own Storage
 
-For some Topo/Ceph/NFS are not great fits, Genestack allows for external block devices to be used in the stand up and operation of Openstack. 
+For some Topo/Ceph/NFS are not great fits, Genestack allows for external block devices to be used in the stand up and operation of Openstack.
 
 ##  Deploy External CSI driver in Genestack
 
