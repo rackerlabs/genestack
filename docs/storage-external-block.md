@@ -1,4 +1,4 @@
-# External Block - Bring Your Own Storage 
+# External Block - Bring Your Own Storage
 
 For some Topo/Ceph/NFS are not great fits, Genestack allows for external block devices to be used in the stand up and operation of Openstack. 
 
@@ -16,7 +16,7 @@ general (default)      org.democratic-csi.iscsi        Delete          Immediate
 
     OSD placement is done on nodes with label ‘openstack-control-plane’, a minimum of 3 nodes is required for a healthy Ceph cluster.
 
-Deploy Ceph operator 
+Deploy Ceph operator
 
 ``` shell
 kubectl apply -k /opt/genestack/kustomize/rook-operator/
@@ -44,7 +44,7 @@ kubectl apply -k /opt/genestack/kustomize/rook-defaults-external-pvc/
 
 You should now have two storage class providers configured for Genestack
 
-``` shell 
+``` shell
 (genestack) root@genestack-controller1:/opt/genestack/submodules/openstack-helm# kubectl get sc -A
 NAME                   PROVISIONER                     RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
 general (default)      org.democratic-csi.iscsi        Delete          Immediate           true                   3h25m
