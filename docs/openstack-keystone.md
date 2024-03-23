@@ -74,6 +74,11 @@ kubectl create secret generic vault-ca-secret \
 kubectl apply -k /opt/genestack/kustomize/keystone/base/vault/
 ```
 
+- Validate whether the required Kubernetes secrets from Vault are populated:
+``` shell
+kubectl get secrets -n openstack
+```
+
 ### Deploy Keystone helm chart
 
 ``` shell

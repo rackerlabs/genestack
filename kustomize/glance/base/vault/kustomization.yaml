@@ -1,0 +1,7 @@
+namespace: openstack
+resources:
+  - vaultauth.yaml
+  - vaultconnection.yaml
+  - glance-admin.yaml
+  - glance-db-password.yaml
+  - glance-rabbitmq-password.yaml

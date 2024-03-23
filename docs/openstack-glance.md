@@ -2,29 +2,88 @@
 
 [![asciicast](https://asciinema.org/a/629806.svg)](https://asciinema.org/a/629806)
 
-## Create secrets.
+## Pre-requsites:
+
+- Vault should be installed by following the instructions in [vault documentation](https://docs.rackspacecloud.com/vault/)
+- User has access to `osh/glance/` path in the Vault
+
+## Create secrets in the vault:
+
+### Login to the vault:
 
 ``` shell
-kubectl --namespace openstack \
-        create secret generic glance-rabbitmq-password \
-        --type Opaque \
-        --from-literal=username="glance" \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
-kubectl --namespace openstack \
-        create secret generic glance-db-password \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack \
-        create secret generic glance-admin \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+kubectl  exec -it vault-0 -n vault -- \
+    vault login -method userpass username=glance
+```
+
+### List the existing secrets from `osh/glance/`:
+
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv list osh/glance
+```
+
+### Create the secrets:
+
+- Glance RabbitMQ Password:
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv put -mount=osh/glance glance-rabbitmq-password \
+    password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)
+```
+
+- Glance Database Password:
+```
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv put -mount=osh/glance glance-db-password \
+    password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)
+```
+
+- Glance Admin Password:
+```
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv put -mount=osh/glance glance-admin \
+    password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)
+```
+
+### Validate the secrets:
+
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv list osh/glance
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv get -mount=osh/glance  glance-admin
 ```
 
 !!! info
 
     Before running the Glance deployment you should configure the backend which is defined in the `helm-configs/glance/glance-helm-overrides.yaml` file. The default is a making the assumption we're running with Ceph deployed by Rook so the backend is configured to be cephfs with multi-attach functionality. While this works great, you should consider all of the available storage backends and make the right decision for your environment.
 
-## Run the package deployment
+## Install Glance
+
+- Ensure that the `vault-ca-secret` Kubernetes Secret exists in the OpenStack namespace containing the Vault CA certificate:
+```shell
+kubectl get secret vault-ca-secret -o yaml -n openstack
+```
+
+- If it is absent, create one using the following command:
+``` shell
+kubectl create secret generic vault-ca-secret \
+    --from-literal=ca.crt="$(kubectl get secret vault-tls-secret \
+    -o jsonpath='{.data.ca\.crt}' -n vault | base64 -d -)" -n openstack
+```
+
+- Deploy the necessary Vault resources to create Kubernetes secrets required by the Glance installation:
+``` shell
+kubectl apply -k /opt/genestack/kustomize/glance/base/vault/
+```
+
+- Validate whether the required Kubernetes secrets from Vault are populated:
+``` shell
+kubectl get secrets -n openstack
+```
+
+### Deploy Glance helm chart
 
 ``` shell
 cd /opt/genestack/submodules/openstack-helm
