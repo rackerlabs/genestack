@@ -218,4 +218,5 @@ nav:
   - Cloud Onboarding:
       - Openstack Security Groups: openstack-security-groups.md
       - Openstack Floating Ips: openstack-floating-ips.md
+      - Openstack Keypairs: openstack-keypairs.md
       - Openstack Servers: openstack-servers.md
