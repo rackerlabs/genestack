@@ -11,8 +11,26 @@ helmCharts:
         cert:
           certManager:
             enabled: true
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: node-role.kubernetes.io/worker
+                      operator: In
+                      values:
+                        - worker
       metrics:
         enabled: true
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/worker
+                    operator: In
+                    values:
+                      - worker
     includeCRDs: true
     version: 0.27.0
     namespace: mariadb-system
