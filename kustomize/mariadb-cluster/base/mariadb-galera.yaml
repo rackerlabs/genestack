@@ -93,6 +93,14 @@ spec:
 
   affinity:
     enableAntiAffinity: true
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: node-role.kubernetes.io/worker
+                operator: In
+                values:
+                  - worker
 
   tolerations:
     - key: "k8s.mariadb.com/ha"
