@@ -47,6 +47,7 @@ kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
 kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
     vault kv put -mount=osh/mariadb mariadb-root-password root-password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)
 ```
+
 - MaxScale password:
 ``` shell
 kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
