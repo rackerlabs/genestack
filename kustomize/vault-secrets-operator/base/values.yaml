@@ -54,7 +54,16 @@ controller:
   #           values:
   #           - antarctica-east1
   #           - antarctica-west1
-  affinity: {}
+  affinity:
+    enableAntiAffinity: true
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: node-role.kubernetes.io/worker
+                operator: In
+                values:
+                  - worker
 
   # Settings related to the kubeRbacProxy container. This container is an HTTP proxy for the
   # controller manager which performs RBAC authorization against the Kubernetes API using SubjectAccessReviews.

@@ -45,7 +45,12 @@ kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
 - Mariadb root-password:
 ``` shell
 kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
-    vault kv put -mount=osh/mariadb mariadb-root-password root-password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)
+    vault kv put -mount=osh/mariadb mariadb-root-password root-password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)
+```
+- MaxScale password:
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv put -mount=osh/mariadb maxscale password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)
 ```
 
 ### Validate the secrets:
@@ -74,6 +79,11 @@ kubectl create secret generic vault-ca-secret \
 - Deploy the necessary Vault resources to create Kubernetes secrets required by the mariadb installation:
 ``` shell
 kubectl apply -k /opt/genestack/kustomize/mariadb-cluster/base/vault
+```
+
+- Validate whether the required Kubernetes secrets from Vault are populated:
+``` shell
+kubectl get secrets -n openstack
 ```
 
 ### Deploy mariadb-cluster

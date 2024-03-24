@@ -12,5 +12,14 @@ helmCharts:
       persistence:
         enabled: true
         size: 10Gi
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/worker
+                    operator: In
+                    values:
+                      - worker
     includeCRDs: true
     namespace: openstack

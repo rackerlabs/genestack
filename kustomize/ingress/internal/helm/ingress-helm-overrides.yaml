@@ -65,6 +65,14 @@ pod:
         default: kubernetes.io/hostname
       weight:
         default: 10
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: openstack-control-plane
+                operator: In
+                values:
+                  - enabled
   tolerations:
     ingress:
       enabled: false
