@@ -7,7 +7,7 @@ spec:
   type: kv-v2
 
   # mount path
-  mount: 'osh/glace'
+  mount: 'osh/glance'
 
   # path of the secret
   path: glance-admin
