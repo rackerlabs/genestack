@@ -19,7 +19,7 @@ kubectl --namespace mariadb-system get pods -w
 
 ## Deploy the MariaDB Cluster
 
-## Pre-requsites:
+## Pre-requsites
 
 - Vault should be installed by following the instructions in [vault documentation](https://docs.rackspacecloud.com/vault/)
 - User has access to `osh/mariadb/` path in the Vault
@@ -40,49 +40,55 @@ kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
     vault kv list osh/mariadb
 ```
 
-### Create the secrets:
+### Create the secrets
 
 - Mariadb root-password:
+
 ``` shell
 kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
-    vault kv put -mount=osh/mariadb mariadb-root-password root-password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)
+    vault kv put -mount=osh/mariadb mariadb root-password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)
 ```
 
 - MaxScale password:
+
 ``` shell
 kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
     vault kv put -mount=osh/mariadb maxscale password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)
 ```
 
-### Validate the secrets:
+### Validate the secrets
 
 ``` shell
 kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
     vault kv list osh/mariadb
 kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
-    vault kv get -mount=osh/mariadb mariadb-root-password
+    vault kv get -mount=osh/mariadb mariadb
 ```
 
-## Install mariadb cluster:
+## Install mariadb cluster
 
 - Ensure that the `vault-ca-secret` Kubernetes Secret exists in the OpenStack namespace containing the Vault CA certificate:
-```shell
+
+``` shell
 kubectl get secret vault-ca-secret -o yaml -n openstack
 ```
 
 - If it is absent, create one using the following command:
-```shell
+
+``` shell
 kubectl create secret generic vault-ca-secret \
     --from-literal=ca.crt="$(kubectl get secret vault-tls-secret \
     -o jsonpath='{.data.ca\.crt}' -n vault | base64 -d -)" -n openstack
 ```
 
 - Deploy the necessary Vault resources to create Kubernetes secrets required by the mariadb installation:
+
 ``` shell
 kubectl apply -k /opt/genestack/kustomize/mariadb-cluster/base/vault
 ```
 
 - Validate whether the required Kubernetes secrets from Vault are populated:
+
 ``` shell
 kubectl get secrets -n openstack
 ```

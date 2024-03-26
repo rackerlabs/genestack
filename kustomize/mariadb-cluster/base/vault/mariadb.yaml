@@ -10,11 +10,11 @@ spec:
   mount: 'osh/mariadb'
 
 # path of the secret
-  path: mariadb-root-password
+  path: mariadb
 
 # dest k8s secret
   destination:
-     name: mariadb-root-password
+     name: mariadb
      create: true
 
 # static secret refresh interval

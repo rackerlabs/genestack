@@ -2,5 +2,5 @@ namespace: openstack
 resources:
   - vaultauth.yaml
   - vaultconnection.yaml
-  - mariadb-root-password.yaml
+  - mariadb.yaml
   - mariadb-maxscale.yaml

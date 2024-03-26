@@ -5,7 +5,7 @@ metadata:
   namespace: openstack
 spec:
   rootPasswordSecretKeyRef:
-    name: mariadb-root-password
+    name: mariadb
     key: root-password
   username: mariadb
   database: mariadb
