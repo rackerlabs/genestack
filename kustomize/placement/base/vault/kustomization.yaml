@@ -1,0 +1,6 @@
+namespace: openstack
+resources:
+  - vaultauth.yaml
+  - vaultconnection.yaml
+  - placement-admin.yaml
+  - placement-db-password.yaml

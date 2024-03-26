@@ -1,0 +1,24 @@
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: ironic-admin
+  namespace: openstack
+spec:
+  type: kv-v2
+
+  # mount path
+  mount: 'osh/ironic'
+
+  # path of the secret
+  path: ironic-admin
+
+  # dest k8s secret
+  destination:
+    name: ironic-admin
+    create: true
+
+  # static secret refresh interval
+  refreshAfter: 30s
+
+  # Name of the CRD to authenticate to Vault
+  vaultAuthRef: vault-auth
