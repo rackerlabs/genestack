@@ -6,14 +6,17 @@ Before we can get started we need to install a few things.
 
 Installed by default on Mac OS X.
 
-Many Linux distributions provide packages to make setuptools easy to install. Search your package manager for setuptools to find an installation package. If you cannot find one, download the setuptools package directly from https://pypi.python.org/pypi/setuptools.
+Many Linux distributions provide packages to make setuptools easy to install. Search your package manager for setuptools to find an installation package. If you cannot find one, download the setuptools package directly from https://pip.pypa.io/en/stable/installation.
 
 The recommended way to install setuptools on Microsoft Windows is to follow the documentation provided on the setuptools website (https://pypi.python.org/pypi/setuptools).
-
 
 #### Installing pip
 
 MacOS
+
+!!! note
+
+    Users may want to use a Virtual Environment so that they do not have any risk of hurting their default Python environment. For more information on seting up a venv please visit (https://docs.python.org/3/library/venv.html).
 
 ``` shell
 easy_install pip
