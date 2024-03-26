@@ -2,51 +2,57 @@
 
 [![asciicast](https://asciinema.org/a/629806.svg)](https://asciinema.org/a/629806)
 
-## Pre-requsites:
+## Pre-requsites
 
 - Vault should be installed by following the instructions in [vault documentation](https://docs.rackspacecloud.com/vault/)
 - User has access to `osh/glance/` path in the Vault
 
-## Create secrets in the vault:
+## Create secrets in the vault
 
-### Login to the vault:
+### Login to the vault
 
 ``` shell
 kubectl  exec -it vault-0 -n vault -- \
     vault login -method userpass username=glance
 ```
 
-### List the existing secrets from `osh/glance/`:
+### List the existing secrets from `osh/glance/`
 
 ``` shell
 kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
     vault kv list osh/glance
 ```
 
-### Create the secrets:
+### Create the secrets
 
-- Glance RabbitMQ Password:
+- Glance RabbitMQ Username and Password:
+
 ``` shell
 kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
-    vault kv put -mount=osh/glance glance-rabbitmq-password \
+    vault kv put osh/heat/glance-rabbitmq-password username=glance
+
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv patch -mount=osh/glance glance-rabbitmq-password \
     password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)
 ```
 
 - Glance Database Password:
-```
+
+``` shell
 kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
     vault kv put -mount=osh/glance glance-db-password \
     password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)
 ```
 
 - Glance Admin Password:
-```
+
+``` shell
 kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
     vault kv put -mount=osh/glance glance-admin \
     password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)
 ```
 
-### Validate the secrets:
+### Validate the secrets
 
 ``` shell
 kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
@@ -62,11 +68,13 @@ kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
 ## Install Glance
 
 - Ensure that the `vault-ca-secret` Kubernetes Secret exists in the OpenStack namespace containing the Vault CA certificate:
+
 ```shell
 kubectl get secret vault-ca-secret -o yaml -n openstack
 ```
 
 - If it is absent, create one using the following command:
+
 ``` shell
 kubectl create secret generic vault-ca-secret \
     --from-literal=ca.crt="$(kubectl get secret vault-tls-secret \
@@ -74,11 +82,13 @@ kubectl create secret generic vault-ca-secret \
 ```
 
 - Deploy the necessary Vault resources to create Kubernetes secrets required by the Glance installation:
+
 ``` shell
 kubectl apply -k /opt/genestack/kustomize/glance/base/vault/
 ```
 
 - Validate whether the required Kubernetes secrets from Vault are populated:
+
 ``` shell
 kubectl get secrets -n openstack
 ```

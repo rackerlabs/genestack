@@ -2,14 +2,14 @@
 
 [![asciicast](https://asciinema.org/a/629802.svg)](https://asciinema.org/a/629802)
 
-## Pre-requsites:
+## Pre-requsites
 
 - Vault should be installed by following the instructions in [vault documentation](https://docs.rackspacecloud.com/vault/)
 - User has access to `osh/keystone/` path in the Vault
 
-## Create secrets in the vault:
+## Create secrets in the vault
 
-### Login to the vault:
+### Login to the vault
 
 ``` shell
 kubectl  exec -it vault-0 -n vault -- \
@@ -23,16 +23,21 @@ kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
     vault kv list osh/keystone
 ```
 
-### Create the secrets:
+### Create the secrets
 
-- Keystone RabbitMQ Password:
+- Keystone RabbitMQ Username and Password:
+
 ``` shell
 kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
-    vault kv put -mount=osh/keystone keystone-rabbitmq-password \
+    vault kv put osh/heat/keystone-rabbitmq-password username=keystone
+
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv patch -mount=osh/keystone keystone-rabbitmq-password \
     password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)
 ```
 
 - Keystone Database Password:
+
 ``` shell
 kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
     vault kv put -mount=osh/keystone keystone-db-password \
@@ -40,13 +45,14 @@ kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
 ```
 
 - Keystone Admin Password:
+
 ``` shell
 kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
     vault kv put -mount=osh/keystone keystone-admin  \
     password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)
 ```
 
-### Validate the secrets:
+### Validate the secrets
 
 ``` shell
 kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
@@ -58,11 +64,13 @@ kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
 ## Install Keystone
 
 - Ensure that the `vault-ca-secret` Kubernetes Secret exists in the OpenStack namespace containing the Vault CA certificate:
+
 ```shell
 kubectl get secret vault-ca-secret -o yaml -n openstack
 ```
 
 - If it is absent, create one using the following command:
+
 ``` shell
 kubectl create secret generic vault-ca-secret \
     --from-literal=ca.crt="$(kubectl get secret vault-tls-secret \
@@ -70,11 +78,13 @@ kubectl create secret generic vault-ca-secret \
 ```
 
 - Deploy the necessary Vault resources to create Kubernetes secrets required by the Keystone installation:
+
 ``` shell
 kubectl apply -k /opt/genestack/kustomize/keystone/base/vault/
 ```
 
 - Validate whether the required Kubernetes secrets from Vault are populated:
+
 ``` shell
 kubectl get secrets -n openstack
 ```
