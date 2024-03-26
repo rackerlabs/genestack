@@ -241,6 +241,16 @@ network:
         cluster: "nginx-openstack"
       annotations:
         nginx.ingress.kubernetes.io/rewrite-target: /
+        nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+        nginx.ingress.kubernetes.io/configuration-snippet: |
+          proxy_set_header Connection "upgrade";
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_connect_timeout 7d;
+          proxy_send_timeout 7d;
+          proxy_read_timeout 7d;
+          proxy_cache off;
+          client_max_body_size 10240M;
+          client_body_buffer_size 4m;
     node_port:
       enabled: false
       port: 30680
