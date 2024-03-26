@@ -29,7 +29,7 @@ kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
 
 ``` shell
 kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
-    vault kv put osh/heat/keystone-rabbitmq-password username=keystone
+    vault kv put osh/keystone/keystone-rabbitmq-password username=keystone
 
 kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
     vault kv patch -mount=osh/keystone keystone-rabbitmq-password \

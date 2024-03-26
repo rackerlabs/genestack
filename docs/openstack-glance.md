@@ -29,7 +29,7 @@ kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
 
 ``` shell
 kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
-    vault kv put osh/heat/glance-rabbitmq-password username=glance
+    vault kv put osh/glance/glance-rabbitmq-password username=glance
 
 kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
     vault kv patch -mount=osh/glance glance-rabbitmq-password \
