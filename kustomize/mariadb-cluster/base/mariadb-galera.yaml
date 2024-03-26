@@ -123,6 +123,7 @@ spec:
     max_connections=10240
     open_files_limit=10240
     max-connect-errors=1000000
+    wsrep_retry_autocommit=0
 
   resources:
     requests:
