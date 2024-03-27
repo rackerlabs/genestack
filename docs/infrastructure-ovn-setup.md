@@ -98,3 +98,11 @@ kubectl apply -k /opt/genestack/kustomize/ovn
 
 After running the setup, nodes will have the label `ovn.openstack.org/configured` with a date stamp when it was configured.
 If there's ever a need to reconfigure a node, simply remove the label and the DaemonSet will take care of it automatically.
+
+!!! note
+
+    To upload backups to OSPCv1 Cloud Files, edit ovn-backup-config-patch.yaml
+    to set `UPLOAD_OSPC_V1: "true"`, edit the other related options
+    appropriately (for instance, select a Rackspace OSPCv1 Cloud Files region)
+    and put the username and API key of the account to use in
+    `ospcv1-account.env` before running `kubectl apply` an indicated above.

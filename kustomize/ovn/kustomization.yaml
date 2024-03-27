@@ -1,3 +1,10 @@
+secretGenerator:
+  - name: ovn-backup-ospcv1-account
+    namespace: kube-system
+    envs:
+      - ospcv1-account.env
 resources:
   - ovn-setup.yaml
   - ovn-backup.yaml
+patches:
+  - path: ovn-backup-config-patch.yaml
