@@ -132,6 +132,7 @@ nav:
       - Building Virtual Environments: build-test-envs.md
       - Simple Setup: quickstart.md
   - Deployment Guide:
+      - What is Genestack?: genestack-getting-started.md
       - Getting Started: genestack-getting-started.md
       - Open Infrastructure:
           - Kubernetes:
@@ -217,6 +218,7 @@ nav:
       - Third Party Tools:
           - OSIE: extra-osie.md
   - Cloud Onboarding:
+      - Cloud Onboarding Welcome: cloud-onboarding-welcome.md
       - Openstack Security Groups: openstack-security-groups.md
       - Openstack Floating Ips: openstack-floating-ips.md
       - Openstack Keypairs: openstack-keypairs.md
