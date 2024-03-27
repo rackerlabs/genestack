@@ -124,6 +124,7 @@ spec:
     open_files_limit=10240
     max-connect-errors=1000000
     wsrep_retry_autocommit=0
+    innodb_lock_wait_timeout=200
 
   resources:
     requests:
