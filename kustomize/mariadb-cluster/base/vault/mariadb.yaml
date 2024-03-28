@@ -1,7 +1,7 @@
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultStaticSecret
 metadata:
-  name: mariadb-root-password
+  name: mariadb
   namespace: openstack
 spec:
   type: kv-v2
