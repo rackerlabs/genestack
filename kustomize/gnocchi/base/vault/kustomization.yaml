@@ -1,0 +1,7 @@
+namespace: openstack
+resources:
+  - vaultauth.yaml
+  - vaultconnection.yaml
+  - gnocchi-admin.yaml
+  - gnocchi-db-password.yaml
+  - gnocchi-pgsql-password.yaml
