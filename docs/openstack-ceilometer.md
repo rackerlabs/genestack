@@ -1,20 +1,89 @@
 # Deploy Ceilometer
 
-## Create Secrets
+## Pre-requsites
+
+- Vault should be installed by following the instructions in [vault documentation](https://docs.rackspacecloud.com/vault/)
+- User has access to `osh/ceilometer/` path in the Vault
+
+## Create secrets in the vault
+
+### Login to the vault
 
 ``` shell
-kubectl --namespace openstack create secret generic ceilometer-keystone-admin-password \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack create secret generic ceilometer-keystone-test-password \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack create secret generic ceilometer-rabbitmq-password \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+kubectl  exec -it vault-0 -n vault -- \
+    vault login -method userpass username=ceilometer
 ```
 
-## Run the package deployment
+### List the existing secrets from `osh/ceilometer/`:
+
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv list osh/ceilometer
+```
+
+### Create the secrets
+
+- Ceilometer-keystone-admin-password:
+
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv put osh/ceilometer/ceilometer-keystone-admin-password password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)
+```
+
+- Ceilometer-keystone-test-password:
+
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv put -mount=osh/ceilometer ceilometer-keystone-test-password \
+    password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)
+```
+
+- Ceilometer-rabbitmq-password:
+
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv put -mount=osh/ceilometer ceilometer-rabbitmq-password  \
+    password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)
+```
+
+### Validate the secrets
+
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv list osh/ceilometer
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv get -mount=osh/ceilometer  ceilometer-keystone-admin-password
+```
+
+## Install Ceilometer
+
+- Ensure that the `vault-ca-secret` Kubernetes Secret exists in the OpenStack namespace containing the Vault CA certificate:
+
+```shell
+kubectl get secret vault-ca-secret -o yaml -n openstack
+```
+
+- If it is absent, create one using the following command:
+
+``` shell
+kubectl create secret generic vault-ca-secret \
+    --from-literal=ca.crt="$(kubectl get secret vault-tls-secret \
+    -o jsonpath='{.data.ca\.crt}' -n vault | base64 -d -)" -n openstack
+```
+
+- Deploy the necessary Vault resources to create Kubernetes secrets required by the Ceilometer installation:
+
+``` shell
+kubectl apply -k /opt/genestack/kustomize/ceilometer/base/vault/
+```
+
+- Validate whether the required Kubernetes secrets from Vault are populated:
+
+``` shell
+kubectl get secrets -n openstack
+```
+
+### Deploy Ceilometer helm chart
 
 ``` shell
 cd /opt/genestack/submodules/openstack-helm

@@ -1,0 +1,8 @@
+namespace: openstack
+resources:
+  - vaultauth.yaml
+  - vaultconnection.yaml
+  - metadata-shared-secret.yaml
+  - nova-admin.yaml
+  - nova-db-password.yaml
+  - nova-rabbitmq-password.yaml

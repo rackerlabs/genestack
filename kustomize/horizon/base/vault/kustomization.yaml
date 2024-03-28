@@ -1,0 +1,6 @@
+namespace: openstack
+resources:
+  - vaultauth.yaml
+  - vaultconnection.yaml
+  - horizon-db-password.yaml
+  - horizon-secrete-key.yaml

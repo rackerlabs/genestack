@@ -1,0 +1,7 @@
+namespace: openstack
+resources:
+  - vaultauth.yaml
+  - vaultconnection.yaml
+  - neutron-admin.yaml
+  - neutron-db-password.yaml
+  - neutron-rabbitmq-password.yaml

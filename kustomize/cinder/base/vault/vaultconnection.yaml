@@ -1,0 +1,18 @@
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultConnection
+metadata:
+  namespace: openstack
+  name: vault-connection
+spec:
+  # required configuration
+  # address to the Vault server.
+  address: https://vault.vault.svc.cluster.local:8200
+  # optional configuration
+  # HTTP headers to be included in all Vault requests.
+  # headers: []
+  # TLS server name to use as the SNI host for TLS connections.
+  # tlsServerName: ""
+  # skip TLS verification for TLS connections to Vault.
+  skipTLSVerify: false
+  # the trusted PEM encoded CA certificate chain stored in a Kubernetes Secret
+  caCertSecretRef: "vault-ca-secret"

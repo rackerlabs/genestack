@@ -1,0 +1,7 @@
+namespace: openstack
+resources:
+  - vaultauth.yaml
+  - vaultconnection.yaml
+  - cinder-admin.yaml
+  - cinder-db-password.yaml
+  - cinder-rabbitmq-password.yaml

@@ -1,0 +1,9 @@
+namespace: openstack
+resources:
+  - vaultauth.yaml
+  - vaultconnection.yaml
+  - heat-admin.yaml
+  - heat-db-password.yaml
+  - heat-rabbitmq-password.yaml
+  - heat-stack-user.yaml
+  - heat-trustee.yaml

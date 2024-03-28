@@ -2,33 +2,110 @@
 
 [![asciicast](https://asciinema.org/a/629807.svg)](https://asciinema.org/a/629807)
 
-## Create secrets
+## Pre-requsites
+
+- Vault should be installed by following the instructions in [vault documentation](https://docs.rackspacecloud.com/vault/)
+- User has access to `osh/heat/` path in the Vault
+
+## Create secrets in the vault
+
+### Login to the vault
 
 ``` shell
-kubectl --namespace openstack \
-        create secret generic heat-rabbitmq-password \
-        --type Opaque \
-        --from-literal=username="heat" \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
-kubectl --namespace openstack \
-        create secret generic heat-db-password \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack \
-        create secret generic heat-admin \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack \
-        create secret generic heat-trustee \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack \
-        create secret generic heat-stack-user \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+kubectl  exec -it vault-0 -n vault -- \
+    vault login -method userpass username=heat
 ```
 
-## Run the package deployment
+### List the existing secrets from `osh/heat/`
+
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv list osh/heat
+```
+
+### Create the secrets
+
+- Heat RabbitMQ Username and Password:
+
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv put osh/heat/heat-rabbitmq-password username=heat
+
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv patch -mount=osh/heat heat-rabbitmq-password \
+    password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)
+```
+
+- Heat Database Password:
+
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv put -mount=osh/heat heat-db-password \
+    password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)
+```
+
+- Heat Admin Password:
+
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv put -mount=osh/heat heat-admin  \
+    password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)
+```
+
+- Heat Trustee Password:
+
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv put -mount=osh/heat heat-trustee  \
+    password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)
+```
+
+- Heat Stack User Password:
+
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv put -mount=osh/heat heat-stack-user  \
+    password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)
+```
+
+### Validate the secrets
+
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv list osh/heat
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv get -mount=osh/heat  heat-admin
+```
+
+## Install Heat
+
+- Ensure that the `vault-ca-secret` Kubernetes Secret exists in the OpenStack namespace containing the Vault CA certificate:
+
+```shell
+kubectl get secret vault-ca-secret -o yaml -n openstack
+```
+
+- If it is absent, create one using the following command:
+
+``` shell
+kubectl create secret generic vault-ca-secret \
+    --from-literal=ca.crt="$(kubectl get secret vault-tls-secret \
+    -o jsonpath='{.data.ca\.crt}' -n vault | base64 -d -)" -n openstack
+```
+
+- Deploy the necessary Vault resources to create Kubernetes secrets required by the Heat installation:
+
+``` shell
+kubectl apply -k /opt/genestack/kustomize/heat/base/vault/
+```
+
+- Validate whether the required Kubernetes secrets from Vault are populated:
+
+``` shell
+kubectl get secrets -n openstack
+```
+
+### Deploy Heat helm chart
 
 ``` shell
 cd /opt/genestack/submodules/openstack-helm
