@@ -20,7 +20,7 @@ swift --help
 |--------------|-------------------------------------------------------------------------------------------------------------------------------------|
 | list         | Lists the containers for the account or the objects for a container.                                                                |
 | capabilities | Retrieve capability of the proxy.                                                                                                   |
-| post         | Updates meta information for the account, container, or object.<br>If the container is not found, it will be created automatically. |
+| post         | Updates meta information on the account, container, or object.<br>If the container is not found, it will be created automatically. |
 | stat         | Displays information for the account, container, or object.                                                                         |
 | upload       | Uploads specified files and directories to the given container.                                                                     |
 | download     | Download objects from containers.                                                                                                   |
