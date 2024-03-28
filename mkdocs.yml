@@ -132,7 +132,7 @@ nav:
       - Building Virtual Environments: build-test-envs.md
       - Simple Setup: quickstart.md
   - Deployment Guide:
-      - What is Genestack?: genestack-getting-started.md
+      - What is Genestack?: deployment-guide-welcome.md
       - Getting Started: genestack-getting-started.md
       - Open Infrastructure:
           - Kubernetes:
