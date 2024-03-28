@@ -132,6 +132,7 @@ nav:
       - Building Virtual Environments: build-test-envs.md
       - Simple Setup: quickstart.md
   - Deployment Guide:
+      - What is Genestack?: genestack-getting-started.md
       - Getting Started: genestack-getting-started.md
       - Open Infrastructure:
           - Kubernetes:
@@ -150,6 +151,7 @@ nav:
               - Ceph External: storage-ceph-rook-external.md
               - NFS External: storage-nfs-external.md
               - TopoLVM: storage-topolvm.md
+              - External Storage CSI: storage-external-block.md
           - Secrets:
               - vault.md
               - Vault Operator: vault-secrets-operator.md
@@ -216,6 +218,7 @@ nav:
       - Third Party Tools:
           - OSIE: extra-osie.md
   - Cloud Onboarding:
+      - Cloud Onboarding Welcome: cloud-onboarding-welcome.md
       - Openstack Deploying CLI Tools: openstack-deply-cli.md
       - Openstack Security Groups: openstack-security-groups.md
       - Openstack Floating Ips: openstack-floating-ips.md
