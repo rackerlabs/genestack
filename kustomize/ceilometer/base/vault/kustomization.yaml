@@ -1,0 +1,7 @@
+namespace: openstack
+resources:
+  - vaultauth.yaml
+  - vaultconnection.yaml
+  - ceilometer-keystone-admin-password.yaml
+  - ceilometer-keystone-test-password.yaml
+  - ceilometer-rabbitmq-password.yaml
