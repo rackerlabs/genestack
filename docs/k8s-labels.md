@@ -46,7 +46,7 @@ Make sure you label things accordingly.
     kubectl label node $(kubectl get nodes | awk '/compute/ {print $1}') openstack-network-node=enabled
 
     # Label all workers - Recommended and used when deploying Kubernetes specific services
-    kubectl label node $(kubectl get nodes | awk '/worker/ {print $1}')  node-role.kubernetes.io/worker=workerx
+    kubectl label node $(kubectl get nodes | awk '/worker/ {print $1}')  node-role.kubernetes.io/worker=worker
     ```
 
 ### Validate node labels
