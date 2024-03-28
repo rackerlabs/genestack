@@ -219,6 +219,7 @@ nav:
           - OSIE: extra-osie.md
   - Cloud Onboarding:
       - Cloud Onboarding Welcome: cloud-onboarding-welcome.md
+      - Openstack Deploying CLI Tools: openstack-deply-cli.md
       - Openstack Security Groups: openstack-security-groups.md
       - Openstack Floating Ips: openstack-floating-ips.md
       - Openstack Keypairs: openstack-keypairs.md
