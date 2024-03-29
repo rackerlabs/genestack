@@ -162,7 +162,6 @@ nav:
               - Ingress: infrastructure-ingress.md
               - MariaDB:
                   - infrastructure-mariadb.md
-              - PostgreSQL: infrastructure-postgresql.md
               - RabbitMQ:
                   - infrastructure-rabbitmq.md
               - Memcached: infrastructure-memcached.md
@@ -186,8 +185,10 @@ nav:
                       - Horizon: openstack-horizon.md
                       - skyline: openstack-skyline.md
                   - Octavia: openstack-octavia.md
-                  - Gnocchi: openstack-gnocchi.md
-                  - Ceilometer: openstack-ceilometer.md
+                  - Metering:
+                    - PostgreSQL: infrastructure-postgresql.md
+                    - Gnocchi: openstack-gnocchi.md
+                    - Ceilometer: openstack-ceilometer.md
           - Monitoring:
               - Monitoring Overview: prometheus-monitoring-overview.md
               - Getting Started: monitoring-getting-started.md
