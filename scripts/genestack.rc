@@ -17,7 +17,7 @@ if [[ -f "${GENESTACK_CONFIG}/product" ]]; then
   export GENESTACK_PRODUCT=$(head -n1 ${GENESTACK_CONFIG}/product) 
 elif [[ -z "${GENESTACK_PRODUCT}" ]]; then
   export GENESTACK_PRODUCT="${GENESTACK_PRODUCT}"
-else 
+else
   echo -e "No GENESTACK_PRODUCT defined"
   echo -e "Define the environment variable GENESTACK_PRODUCT to continue."
   exit 99
