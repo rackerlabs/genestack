@@ -16,14 +16,17 @@
 export LC_ALL=C.UTF-8
 mkdir -p ~/.venvs
 
-BASEDIR=$(dirname $0)
+BASEDIR="$(dirname $0)"
 cd ${BASEDIR} || error "Could not change to ${BASEDIR}"
 
 source scripts/lib/functions.sh
 
+if [[ -z "${GENESTACK_PRODUCT}" ]]; then
+  exit 99
+fi
+
 # Which config to bootstrap
 test -f "${GENESTACK_CONFIG}/product" 2>/dev/null && export GENESTACK_PRODUCT=$(head -n1 ${GENESTACK_CONFIG}/product)
-export GENESTACK_PRODUCT=${GENESTACK_PRODUCT:-openstack-enterprise}
 
 set -e
 
