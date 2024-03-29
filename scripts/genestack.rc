@@ -14,7 +14,7 @@ test -f "${GENESTACK_CONFIG}/provider" 2>/dev/null && export K8S_PROVIDER=$(head
 export K8S_PROVIDER="${K8S_PROVIDER:-kubespray}"
 
 if [[ -f "${GENESTACK_CONFIG}/product" ]]; then
-  export GENESTACK_PRODUCT=$(head -n1 ${GENESTACK_CONFIG}/product) 
+  export GENESTACK_PRODUCT=$(head -n1 ${GENESTACK_CONFIG}/product)
 elif [[ -z "${GENESTACK_PRODUCT}" ]]; then
   export GENESTACK_PRODUCT="${GENESTACK_PRODUCT}"
 else
