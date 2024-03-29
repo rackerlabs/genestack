@@ -190,6 +190,55 @@ swift delete flex-container01
 
 Deleting a container will delete all files in the container.
 
+### Setting and removing object expiration
+Swift objects can be scheduled to expire by setting either the `X-Delete-At` or `X-Delete-After` header.
+
+Once the object expires, swift will no longer serve the object, and it will be deleted.
+
+#### Expire at a specific time
+Obtain the current Unix epoch timestamp by running `date +%s`.
+
+Set an object to expire at an absolute Unix epoch timestamp:
+``` shell
+swift post flex-container01 document01.rtf -H "X-Delete-At:UNIX_EPOCH_TIMESTAMP"
+```
+
+!!! example
+
+    ``` shell
+    $ swift post flex-container01 document01.rtf -H "X-Delete-At:1711732649"
+    ```
+
+Verify the header has been applied to the object:
+``` shell
+swift stat flex-container01 document01.rtf
+```
+
+#### Expire after a number of seconds
+Set an object to expire after a relative amount of time, in seconds:
+``` shell
+swift post flex-container01 document01.rtf -H "X-Delete-After:SECONDS"
+```
+
+!!! example
+
+    ``` shell
+    $ swift post flex-container01 document01.rtf -H "X-Delete-After:42"
+    ```
+
+The `X-Delete-After` header will be converted to `X-Delete-At`.
+
+Verify the header has been applied to the object:
+``` shell
+swift stat flex-container01 document01.rtf
+```
+
+#### Remove the expire header
+If you no longer want the object to expire, you can remove the `X-Delete-At` header:
+``` shell
+swift post flex-container01 document01.rtf -H "X-Delete-At:"
+```
+
 ## Additional documentation
 
 Additional documentation can be found at the official swift client site, on the Openstack Documentation Site.<br>
