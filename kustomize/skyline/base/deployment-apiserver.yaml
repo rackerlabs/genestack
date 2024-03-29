@@ -293,7 +293,7 @@ spec:
                 name: skyline-apiserver-secrets
                 key: default-region
         - name: skyline-apiserver-db-migrate
-          image: "docker.io/99cloud/skyline:2023.1"
+          image: "docker.io/99cloud/skyline:2023.2"
           imagePullPolicy: IfNotPresent
           resources:
             requests:
@@ -316,11 +316,9 @@ spec:
               readOnly: true
       containers:
         - name: skyline-apiserver
-          image: "docker.io/99cloud/skyline:latest"
+          image: "docker.io/99cloud/skyline:2023.2"
           imagePullPolicy: IfNotPresent
           resources:
-            limits:
-              memory: "1Gi"
             requests:
               cpu: "0.25"
               memory: "64Mi"
