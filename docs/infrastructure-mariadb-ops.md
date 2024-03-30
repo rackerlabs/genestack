@@ -52,3 +52,12 @@ mysqldump --host=$(kubectl -n openstack get service mariadb-galera -o jsonpath='
                   {} \
                   --result-file=/tmp/{}-$(date +%s).sql
     ```
+
+!!! example "Restoring a database"
+
+    ``` shell
+    mysql -h $(kubectl -n openstack get service mariadb-galera -o jsonpath='{.spec.clusterIP}') \
+        -u root \
+        -p$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d) \
+        ${DATABASE_NAME} < /tmp/${DATABASE_FILE}
+    ```
