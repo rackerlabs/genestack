@@ -22,8 +22,13 @@ kubectl --namespace openstack \
         --from-literal=db-username="skyline" \
         --from-literal=db-password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)" \
         --from-literal=secret-key="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)" \
-        --from-literal=keystone-endpoint="http://keystone-api.openstack.svc.cluster.local:5000" \
-        --from-literal=default-region="RegionOne"
+        --from-literal=keystone-endpoint="$(kubectl --namespace openstack get secret keystone-keystone-admin -o jsonpath='{.data.OS_AUTH_URL}' | base64 -d)" \
+        --from-literal=keystone-username="skyline" \
+        --from-literal=default-region="RegionOne" \
+        --from-literal=prometheus_basic_auth_password="" \
+        --from-literal=prometheus_basic_auth_user="" \
+        --from-literal=prometheus_enable_basic_auth="false" \
+        --from-literal=prometheus_endpoint="http://prometheus-operated.openstack.svc.cluster.local:9090"
 ```
 
 !!! note
