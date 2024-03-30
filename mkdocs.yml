@@ -145,6 +145,7 @@ nav:
                   - Kubernetes Taint: k8s-taint.md
               - Retrieve kube config: k8s-config.md
               - Prometheus: prometheus.md
+              - OpenStack Preparations: openstack-helm-make.md
           - Storage:
               - storage-overview.md
               - Ceph Internal: storage-ceph-rook-internal.md
@@ -174,7 +175,6 @@ nav:
               - Loki: infrastructure-loki.md
           - OpenStack:
               - openstack-overview.md
-              - OpenStack Preparations: openstack-helm-make.md
               - OpenStack Services:
                   - Keystone: openstack-keystone.md
                   - Glance: openstack-glance.md
@@ -220,7 +220,7 @@ nav:
           - OSIE: extra-osie.md
   - Cloud Onboarding:
       - Cloud Onboarding Welcome: cloud-onboarding-welcome.md
-      - Openstack Deploying CLI Tools: openstack-deply-cli.md
+      - Openstack Deploying CLI Tools: openstack-deploy-cli.md
       - Openstack Security Groups: openstack-security-groups.md
       - Openstack Floating Ips: openstack-floating-ips.md
       - Openstack Keypairs: openstack-keypairs.md
