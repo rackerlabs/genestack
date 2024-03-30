@@ -206,7 +206,7 @@ nav:
       - Running Kubespray Upgrade: k8s-kubespray-upgrade.md
       - Infrastructure:
           - OVN Database Backup: infrastructure-ovn-db-backup.md
-          - Connecting to MySQL: infrastructure-mariadb-connect.md
+          - MariaDB Operations: infrastructure-mariadb-ops.md
       - OpenStack:
           - Generating Clouds YAML: openstack-clouds.md
           - Keystone Federation to Rackspace: openstack-keystone-federation.md
