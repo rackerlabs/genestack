@@ -11,7 +11,8 @@ RabbitMQ Exporter is used to expose metrics from a running RabbitMQ deployment.
 Install the RabbitMQ Exporter
 
 ``` shell
-kubectl kustomize --enable-helm /opt/genestack/kustomize/prometheus-rabbitmq-exporter | kubectl -n openstack apply --server-side -f -
+kubectl kustomize --enable-helm /opt/genestack/kustomize/prometheus-rabbitmq-exporter | \
+    kubectl --namespace openstack apply --server-side -f -
 ```
 
 !!! success
