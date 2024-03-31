@@ -1,6 +1,6 @@
 ---
 # Choose endpoint type (this will override the value of clouds.yaml)
-endpoint_type: public
+endpoint_type: internal
 # Ignored when multicloud.enabled: true
 cloud: default
 
