@@ -28,7 +28,7 @@ kubectl --namespace openstack \
         --from-literal=prometheus_basic_auth_password="" \
         --from-literal=prometheus_basic_auth_user="" \
         --from-literal=prometheus_enable_basic_auth="false" \
-        --from-literal=prometheus_endpoint="http://prometheus-operated.openstack.svc.cluster.local:9090"
+        --from-literal=prometheus_endpoint="http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090"
 ```
 
 !!! note
