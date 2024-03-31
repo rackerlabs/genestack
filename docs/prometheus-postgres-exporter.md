@@ -11,7 +11,8 @@ PostgresSQL Exporter is used to expose metrics from a running PostgresSQL deploy
 Install the PostgresSQL Exporter
 
 ``` shell
-kubectl kustomize --enable-helm /opt/genestack/kustomize/prometheus-postgres-exporter | kubectl -n openstack apply  -f -
+kubectl kustomize --enable-helm /opt/genestack/kustomize/prometheus-postgres-exporter | \
+    kubectl --namespace openstack apply --server-side -f -
 ```
 
 !!! success
