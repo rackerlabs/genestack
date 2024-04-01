@@ -19,3 +19,17 @@ kubectl kustomize --enable-helm /opt/genestack/kustomize/ingress/internal | kube
 ```
 
 The openstack ingress controller uses the class name `nginx-openstack`.
+
+#### Patching the ingress ConfigMap
+
+Sometimes you may need to make an update to your ingress setup which is managed in the ConfigMaps.
+
+!!! example "Patching the worker processes"
+
+    ``` shell
+    kubectl -n ${NAMESPACE} patch configmaps ingress-conf -p '{"data": {"worker-processes": "8"}}'
+    ```
+
+!!! note
+
+    If you make a system level change in the ConfigMap you will need to recreate the pods.

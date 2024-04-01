@@ -306,6 +306,7 @@ conf:
     enable-vts-status: "true"
     server-tokens: "false"
     ssl-dh-param: openstack/secret-dhparam
+    worker-processes: "4"
   # This block sets the --default-ssl-certificate option
   # https://kubernetes.github.io/ingress-nginx/user-guide/tls/#default-ssl-certificate
   default_ssl_certificate:
