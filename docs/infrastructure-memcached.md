@@ -12,11 +12,11 @@ kubectl kustomize --enable-helm /opt/genestack/kustomize/memcached/base | kubect
 
 ### Alternative - Deploy the Memcached Cluster With Monitoring Enabled
 
-View the [memcached exporter](prometheus-memcached-exporter.md) instructions to install a HA ready memcached cluster with monitoring and metric collection enabled.
-
 !!! note
 
     Memcached has a base-monitoring configuration which is HA and production ready that also includes a metrics exporter for prometheus metrics collection. If you'd like to have monitoring enabled for your memcached cluster ensure the prometheus operator is installed first ([Deploy Prometheus](prometheus.md)).
+
+View the [memcached exporter](prometheus-memcached-exporter.md) instructions to install a HA ready memcached cluster with monitoring and metric collection enabled.
 
 ## Verify readiness with the following command.
 
