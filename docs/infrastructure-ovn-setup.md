@@ -1,14 +1,36 @@
-# Configure OVN for OpenStack
-
-Post deployment we need to setup neutron to work with our integrated OVN environment. To make that work we have to annotate or nodes. Within the following commands we'll use a lookup to label all of our nodes the same way, however, the power of this system is the ability to customize how our machines are labeled and therefore what type of hardware layout our machines will have. This gives us the ability to use different hardware in different machines, in different availability zones. While this example is simple your cloud deployment doesn't have to be.
-
-``` shell
-export ALL_NODES=$(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}')
-```
+# Deploy Open vSwitch OVN
 
 !!! note
 
-    Set the annotations you need within your environment to meet the needs of your workloads on the hardware you have.
+    We're not deploying Openvswitch, however, we are using it. The implementation on Genestack is assumed to be done with Kubespray which deploys OVN as its networking solution. Because those components are handled by our infrastructure there's nothing for us to manage / deploy in this environment. OpenStack will leverage OVN within Kubernetes following the scaling/maintenance/management practices of kube-ovn.
+
+## Configure OVN for OpenStack
+
+Post deployment we need to setup neutron to work with our integrated OVN environment. To make that work we have to annotate or nodes. Within the following commands we'll use a lookup to label all of our nodes the same way, however, the power of this system is the ability to customize how our machines are labeled and therefore what type of hardware layout our machines will have. This gives us the ability to use different hardware in different machines, in different availability zones. While this example is simple your cloud deployment doesn't have to be.
+
+
+## OVN Annotations
+
+| <div style="width:220px">key</div> | type | <div style="width:128px">value</div>  | notes |
+|:-----|--|:----------------:|:------|
+| **ovn.openstack.org/int_bridge** | str | `br-int` | The name of the integration bridge that will be used. |
+| **ovn.openstack.org/bridges** | str | `br-ex` | Comma separated list of bridges that will be created and plugged into OVS for a given node. |
+| **ovn.openstack.org/ports** | str | `br-ex:bond1` | Comma separated list of bridge mappings. Maps values from the **bridges** annotation to physical devices on a given node.  |
+| **ovn.openstack.org/mappings** | str | `physnet1:br-ex` | Comma separated list of neutron mappings. Maps a value that will be used in neutron to a value found in the **ports** annotation. |
+| **ovn.openstack.org/availability_zones** | str | `nova` | Colon separated list of Availability Zones a given node will serve. |
+| **ovn.openstack.org/gateway** | str| `enabled` | If set to `enabled`, the node will be marked as a gateway. |
+
+### Gather the network enabled nodes
+
+You should set the annotations you need within your environment to meet the needs of your workloads on the hardware you have.
+
+!!! example "Store all of the network nodes"
+
+    The following example gathers all of the network enabled nodes. In production you may have different hardware layouts resulting in a more heterogenous device layout.
+
+    ``` shell
+    export ALL_NODES=$(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}')
+    ```
 
 ### Set `ovn.openstack.org/int_bridge`
 

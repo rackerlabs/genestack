@@ -167,9 +167,7 @@ nav:
                   - infrastructure-rabbitmq.md
               - Memcached: infrastructure-memcached.md
               - Libvirt: infrastructure-libvirt.md
-              - OVN:
-                  - infrastructure-ovn.md
-                  - OVN Setup: infrastructure-ovn-setup.md
+              - OVN: infrastructure-ovn-setup.md
               - MetalLB: infrastructure-metallb.md
               - Gateway API: infrastructure-gateway-api.md
               - Loki: infrastructure-loki.md
