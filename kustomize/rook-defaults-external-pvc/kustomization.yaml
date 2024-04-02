@@ -1,0 +1,3 @@
+resources:
+  - filesystem.yaml
+  - storageclass-cephfs.yaml

@@ -4,6 +4,7 @@
 
 ``` shell
 kubectl apply -k /opt/genestack/kustomize/rook-operator/
+kubectl -n rook-ceph set image deploy/rook-ceph-operator rook-ceph-operator=rook/ceph:v1.13.7
 ```
 
 ## Deploy the Rook cluster

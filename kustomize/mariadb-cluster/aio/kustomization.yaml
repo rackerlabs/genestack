@@ -7,11 +7,11 @@ patches:
       name: mariadb-galera
     patch: |-
       - op: replace
-        path: /spec/replicas
-        value: 1
-      - op: replace
-        path: /spec/galera/enabled
+        path: /spec/affinity/enableAntiAffinity
         value: false
+      - op: replace
+        path: /spec/replicas
+        value: 2
   - target:
       kind: MaxScale
       name: maxscale-galera

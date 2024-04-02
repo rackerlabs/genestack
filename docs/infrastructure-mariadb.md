@@ -2,10 +2,11 @@
 
 ## Deploy the mariadb operator
 
-If you've changed your k8s cluster name from the default cluster.local, edit `clusterName` in `/opt/genestack/kustomize/mariadb-operator/kustomization.yaml` prior to deploying the mariadb operator.
-
 ``` shell
-kubectl kustomize --enable-helm /opt/genestack/kustomize/mariadb-operator | \
+cluster_name=`kubectl config view --minify -o jsonpath='{.clusters[0].name}'`
+sed -i -e "s/cluster\.local/$cluster_name/" /opt/genestack/kustomize/mariadb-operator/kustomization.yaml
+
+test -n "$cluster_name" && kubectl kustomize --enable-helm /opt/genestack/kustomize/mariadb-operator | \
   kubectl --namespace mariadb-system apply --server-side --force-conflicts -f -
 ```
 

@@ -13,8 +13,12 @@ export USER_COLLECTION_FILE=${USER_COLLECTION_FILE:-"$(readlink -f ${BASEDIR}/us
 test -f "${GENESTACK_CONFIG}/provider" 2>/dev/null && export K8S_PROVIDER=$(head -n1 ${GENESTACK_CONFIG}/provider)
 export K8S_PROVIDER="${K8S_PROVIDER:-kubespray}"
 
-test -f "${GENESTACK_CONFIG}/product" 2>/dev/null && export GENESTACK_PRODUCT=$(head -n1 ${GENESTACK_CONFIG}/product)
-export GENESTACK_PRODUCT=${GENESTACK_PRODUCT:-openstack-enterprise}
+if [[ -f "${GENESTACK_CONFIG}/product" ]]; then
+  export GENESTACK_PRODUCT=$(head -n1 ${GENESTACK_CONFIG}/product)
+elif [[ -z "${GENESTACK_PRODUCT}" ]]; then
+  echo -e "No GENESTACK_PRODUCT defined"
+  echo -e "Define the environment variable GENESTACK_PRODUCT to continue."
+fi
 
 # Export OSH variables
 export CONTAINER_DISTRO_NAME=ubuntu

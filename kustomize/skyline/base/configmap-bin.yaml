@@ -8,6 +8,7 @@ data:
   data-skyline-db-init.sh: |
     #!/bin/bash
     set -exo pipefail
+    cat /etc/skyline/skyline.yaml
     alembic -c /skyline-apiserver/skyline_apiserver/db/alembic/alembic.ini upgrade head
   data-skyline-run.sh: |
     set -exo pipefail
@@ -54,6 +55,10 @@ data:
     yq -yi ".openstack.default_region=\"${SKYLINE_DEFAULT_REGION}\"" /etc/skyline/skyline.yaml
     yq -yi ".default.secret_key=\"${SKYLINE_SECRET_KEY}\"" /etc/skyline/skyline.yaml
     yq -yi ".default.database_url=\"mysql://${DB_USERNAME}:${DB_PASSWORD}@${DB_ENDPOINT}/${DB_NAME}\"" /etc/skyline/skyline.yaml
+    yq -yi ".default.prometheus_basic_auth_password=\"${PROMETHEUS_BASIC_AUTH_PASSWORD}\"" /etc/skyline/skyline.yaml
+    yq -yi ".default.prometheus_basic_auth_user=\"${PROMETHEUS_BASIC_AUTH_USER}\"" /etc/skyline/skyline.yaml
+    yq -yi ".default.prometheus_enable_basic_auth=${PROMETHEUS_ENABLE_BASIC_AUTH:-false}" /etc/skyline/skyline.yaml
+    yq -yi ".default.prometheus_endpoint=\"${PROMETHEUS_ENDPOINT}\"" /etc/skyline/skyline.yaml
   data-skyline.yaml: |
     default:
       access_token_expire: 3600

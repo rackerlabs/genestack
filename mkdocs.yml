@@ -132,6 +132,7 @@ nav:
       - Building Virtual Environments: build-test-envs.md
       - Simple Setup: quickstart.md
   - Deployment Guide:
+      - What is Genestack?: deployment-guide-welcome.md
       - Getting Started: genestack-getting-started.md
       - Open Infrastructure:
           - Kubernetes:
@@ -144,12 +145,14 @@ nav:
                   - Kubernetes Taint: k8s-taint.md
               - Retrieve kube config: k8s-config.md
               - Prometheus: prometheus.md
+              - OpenStack Preparations: openstack-helm-make.md
           - Storage:
               - storage-overview.md
               - Ceph Internal: storage-ceph-rook-internal.md
               - Ceph External: storage-ceph-rook-external.md
               - NFS External: storage-nfs-external.md
               - TopoLVM: storage-topolvm.md
+              - External Storage CSI: storage-external-block.md
           - Secrets:
               - vault.md
               - Vault Operator: vault-secrets-operator.md
@@ -160,7 +163,6 @@ nav:
               - Ingress: infrastructure-ingress.md
               - MariaDB:
                   - infrastructure-mariadb.md
-              - PostgreSQL: infrastructure-postgresql.md
               - RabbitMQ:
                   - infrastructure-rabbitmq.md
               - Memcached: infrastructure-memcached.md
@@ -173,7 +175,6 @@ nav:
               - Loki: infrastructure-loki.md
           - OpenStack:
               - openstack-overview.md
-              - OpenStack Preparations: openstack-helm-make.md
               - OpenStack Services:
                   - Keystone: openstack-keystone.md
                   - Glance: openstack-glance.md
@@ -184,8 +185,10 @@ nav:
                       - Horizon: openstack-horizon.md
                       - skyline: openstack-skyline.md
                   - Octavia: openstack-octavia.md
-                  - Gnocchi: openstack-gnocchi.md
-                  - Ceilometer: openstack-ceilometer.md
+                  - Metering:
+                    - PostgreSQL: infrastructure-postgresql.md
+                    - Gnocchi: openstack-gnocchi.md
+                    - Ceilometer: openstack-ceilometer.md
           - Monitoring:
               - Monitoring Overview: prometheus-monitoring-overview.md
               - Getting Started: monitoring-getting-started.md
@@ -203,7 +206,7 @@ nav:
       - Running Kubespray Upgrade: k8s-kubespray-upgrade.md
       - Infrastructure:
           - OVN Database Backup: infrastructure-ovn-db-backup.md
-          - Connecting to MySQL: infrastructure-mariadb-connect.md
+          - MariaDB Operations: infrastructure-mariadb-ops.md
       - OpenStack:
           - Generating Clouds YAML: openstack-clouds.md
           - Keystone Federation to Rackspace: openstack-keystone-federation.md
@@ -216,7 +219,10 @@ nav:
       - Third Party Tools:
           - OSIE: extra-osie.md
   - Cloud Onboarding:
+      - Cloud Onboarding Welcome: cloud-onboarding-welcome.md
+      - Openstack Deploying CLI Tools: openstack-deploy-cli.md
       - Openstack Security Groups: openstack-security-groups.md
       - Openstack Floating Ips: openstack-floating-ips.md
       - Openstack Keypairs: openstack-keypairs.md
       - Openstack Servers: openstack-servers.md
+      - Openstack Swift: storage-swift-object-store.md

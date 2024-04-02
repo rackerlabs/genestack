@@ -24,7 +24,7 @@ Next, install the exporter
 
 ``` shell
 kubectl kustomize --enable-helm /opt/genestack/kustomize/prometheus-mysql-exporter | \
-  kubectl -n openstack apply --server-side -f -
+    kubectl --namespace openstack apply --server-side -f -
 ```
 
 !!! success

@@ -17,22 +17,49 @@ Modify genestack/helm-configs/monitoring/openstack-metrics-exporter/clouds-yaml 
 
     See the [documentation](openstack-clouds.md) on generating your own `clouds.yaml` file which can be used to populate the monitoring configuration file.
 
+From your generated clouds.yaml file, create a new manifest for your clouds config.
+
 ``` shell
-kubectl create secret generic clouds-yaml-secret \
-  --from-file /opt/genestack/helm-configs/monitoring/openstack-metrics-exporter/clouds-yaml
+printf -v m "$(cat ~/.config/openstack/clouds.yaml)"; \
+    m="$m" yq -n '."clouds.yaml" = strenv(m)' | \
+        tee /tmp/generated-clouds.yaml
+```
+
+!!! example "generated file will look similar to this"
+
+    ``` yaml
+    --8<-- "helm-configs/monitoring/openstack-metrics-exporter/clouds.yaml"
+    ```
+
+Now create a secrete from your manifest.
+
+``` shell
+kubectl --namespace openstack create secret generic clouds-yaml-secret \
+        --from-file /tmp/generated-clouds.yaml
 ```
 
 ### Install openstack-metrics-exporter helm chart
 
 ``` shell
-cd /opt/genestack/submodules/openstack-exporter/helm-charts/charts
+cd /opt/genestack/submodules/openstack-exporter/charts
 
 helm upgrade --install os-metrics ./prometheus-openstack-exporter \
   --namespace=openstack \
     --timeout 15m \
     -f /opt/genestack/helm-configs/monitoring/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml \
-    --set clouds_yaml_config="$(kubectl get secret clouds-yaml-secret -o jsonpath='{.data.clouds-yaml}' | base64 -d)"
+    --set clouds_yaml_config="$(kubectl --namespace openstack get secret clouds-yaml-secret -o jsonpath='{.data.clouds-yaml}' | base64 -d)"
 ```
 
 !!! success
+
     If the installation is successful, you should see the related exporter pods in the openstack namespace.
+
+    ``` shell
+    kubectl -n openstack  get pods -w | grep os-metrics
+    ```
+
+    !!! example
+
+        ``` shell
+        os-metrics-prometheus-openstack-exporter-76bf579887-bwz5k   1/1     Running     0             7s
+        ```

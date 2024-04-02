@@ -70,6 +70,7 @@ python3 create-external-cluster-resources.py --rbd-data-pool-name general --ceph
 kubectl apply -k /opt/genestack/kustomize/rook-operator/
 /opt/genestack/scripts/import-external-cluster.sh
 helm repo add rook-release https://charts.rook.io/release
+kubectl -n rook-ceph set image deploy/rook-ceph-operator rook-ceph-operator=rook/ceph:v1.13.7
 helm install --create-namespace --namespace rook-ceph-external rook-ceph-cluster     --set operatorNamespace=rook-ceph rook-release/rook-ceph-cluster -f /opt/genestack/submodules/rook/deploy/charts/rook-ceph-cluster/values-external.yaml
 kubectl patch storageclass general -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
 ```

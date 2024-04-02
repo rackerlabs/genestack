@@ -176,11 +176,13 @@ vault kv put -mount=osh/keystone keystone-db-password password=$(< /dev/urandom 
 ```
 
 - Keystone Admin Password:
+
 ``` shell
 vault kv put -mount=osh/keystone keystone-admin  password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)
 ```
 
 - Keystone Credential Key:
+
 ``` shell
 vault kv put -mount=osh/keystone keystone-credential-keys  password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)
 ```
