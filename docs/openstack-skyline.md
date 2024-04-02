@@ -44,8 +44,13 @@ kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
     db-username=skyline \
     db-password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;) \
     secret-key=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;) \
-    keystone-endpoint=http://keystone-api.openstack.svc.cluster.local:5000 \
-    default-region=RegionOne
+    keystone-endpoint="$(kubectl --namespace openstack get secret keystone-keystone-admin -o jsonpath='{.data.OS_AUTH_URL}' | base64 -d)" \
+    keystone-username=skyline \
+    default-region=RegionOne \
+    prometheus_basic_auth_password="" \
+    prometheus_basic_auth_user="" \
+    prometheus_enable_basic_auth=false \
+    prometheus_endpoint=http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090
 ```
 
 ### Validate the secrets
