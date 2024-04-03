@@ -1,3 +1,7 @@
 resources:
   - ovn-setup.yaml
   - ovn-backup.yaml
+  - pinger-monitor.yaml
+  - ovn-monitor.yaml
+  - cni-monitor.yaml
+  - controller-monitor.yaml
