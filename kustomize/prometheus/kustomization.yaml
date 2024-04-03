@@ -10,3 +10,4 @@ helmCharts:
     valuesFile: values.yaml
     additionalValuesFiles:
       - alerting_rules.yaml
+      - alertmanager_config.yaml
