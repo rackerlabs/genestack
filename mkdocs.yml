@@ -191,6 +191,7 @@ nav:
               - Monitoring Overview: prometheus-monitoring-overview.md
               - Getting Started: monitoring-getting-started.md
               - Grafana: grafana.md
+              - Kube-OVN Monitoring: prometheus-kube-ovn.md
               - MySQL Exporter: prometheus-mysql-exporter.md
               - RabbitMQ Exporter: prometheus-rabbitmq-exporter.md
               - Memcached Exporter: prometheus-memcached-exporter.md
