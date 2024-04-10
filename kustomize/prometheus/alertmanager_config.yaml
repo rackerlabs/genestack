@@ -45,4 +45,4 @@ alertmanager:
       - name: 'msteams_config'
         msteams_configs:
         - send_resolved: true
-          webhook_url: https://webhook_url.example
+          webhook_url: https://raxglobal.webhook.office.com/webhookb2/25345ab0-c5f5-4084-a08e-3e42535887bf@570057f4-73ef-41c8-bcbb-08db2fc15c2b/IncomingWebhook/c0b0147df544433888b8d5c691615c36/10fe6f35-daac-48c6-bb07-8daa5ffc83ab

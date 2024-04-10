@@ -17,7 +17,7 @@ Modify genestack/helm-configs/monitoring/openstack-metrics-exporter/clouds-yaml 
 
     See the [documentation](openstack-clouds.md) on generating your own `clouds.yaml` file which can be used to populate the monitoring configuration file.
 
-From your generated clouds.yaml file, create a new manifest for your clouds config.
+From your generated clouds.yaml file, create a new manifest for your cloud config.
 
 ``` shell
 printf -v m "$(cat ~/.config/openstack/clouds.yaml)"; \
@@ -28,14 +28,22 @@ printf -v m "$(cat ~/.config/openstack/clouds.yaml)"; \
 !!! example "generated file will look similar to this"
 
     ``` yaml
-    --8<-- "helm-configs/monitoring/openstack-metrics-exporter/clouds.yaml"
+    --8<-- "helm-configs/monitoring/openstack-metrics-exporter/clouds-yaml"
     ```
+
+Add keystone certificates to the generated clouds yaml
+
+``` shell
+ks_cert="$(kubectl get secret -n openstack keystone-tls-public -o json | jq -r '.data."tls.crt"' | base64 -d)" \
+        yq -I6 '."clouds.yaml" |= (from_yaml | .clouds.default.cacert = strenv(ks_cert) | to_yaml)' \
+        </tmp/generated-clouds.yaml | tee /tmp/gen-clouds-yaml
+```
 
 Now create a secrete from your manifest.
 
 ``` shell
 kubectl --namespace openstack create secret generic clouds-yaml-secret \
-        --from-file /tmp/generated-clouds.yaml
+        --from-file /tmp/gen-clouds-yaml
 ```
 
 ### Install openstack-metrics-exporter helm chart
@@ -47,7 +55,7 @@ helm upgrade --install os-metrics ./prometheus-openstack-exporter \
   --namespace=openstack \
     --timeout 15m \
     -f /opt/genestack/helm-configs/monitoring/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml \
-    --set clouds_yaml_config="$(kubectl --namespace openstack get secret clouds-yaml-secret -o jsonpath='{.data.clouds-yaml}' | base64 -d)"
+    --set clouds_yaml_config="$(kubectl --namespace openstack get secret clouds-yaml-secret -o jsonpath='{.data.gen-clouds-yaml}' | base64 -d)"
 ```
 
 !!! success
