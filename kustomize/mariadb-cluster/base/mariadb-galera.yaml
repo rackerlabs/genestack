@@ -129,6 +129,7 @@ spec:
     performance_schema=ON
     innodb_log_buffer_size=33554432
     wsrep_slave_threads=144
+    wsrep_sync_wait=14
     innodb_flush_log_at_trx_commit=0
     ignore-db-dir=lost+found
     skip-name-resolve
