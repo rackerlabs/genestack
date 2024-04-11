@@ -11,9 +11,9 @@ spec:
   resources:
     requests:
       cpu: 500m
-      memory: 1Gi
+      memory: 32Gi
     limits:
-      memory: 16Gi  # This should be changed to 10Gi for production
+      memory: 32Gi
   rabbitmq:
     additionalConfig: |
       cluster_partition_handling = pause_minority
