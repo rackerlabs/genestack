@@ -1,0 +1,24 @@
+FROM python:3.9-alpine3.17
+
+ARG ETCD_VERSION=v3.4.13
+
+ENV ETCDCTL_ENDPOINTS "https://127.0.0.1:2379"
+ENV ETCDCTL_CACERT "/etc/ssl/etcd/ssl/ca.crt"
+ENV ETCDCTL_KEY "/etc/ssl/etcd/ssl/healthcheck-client.key"
+ENV ETCDCTL_CERT "/etc/ssl/etcd/ssl/healthcheck-client.crt"
+ENV S3_ENDPOINT "10.74.8.135"
+ENV S3_PORT "8081"
+ENV S3_ACCESS_KEY "abcd"
+ENV S3_SECRET_KEY "abcd"
+
+RUN apk add --update --no-cache bash ca-certificates tzdata openssl
+RUN pip install boto
+
+RUN wget https://github.com/etcd-io/etcd/releases/download/${ETCD_VERSION}/etcd-${ETCD_VERSION}-linux-amd64.tar.gz \
+ && tar xzf etcd-${ETCD_VERSION}-linux-amd64.tar.gz \
+ && mv etcd-${ETCD_VERSION}-linux-amd64/etcdctl /usr/local/bin/etcdctl \
+ && rm -rf etcd-${ETCD_VERSION}-linux-amd64*
+
+COPY ./backup.py /backup.py
+
+ENTRYPOINT ["/bin/bash"]

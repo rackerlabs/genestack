@@ -204,6 +204,7 @@ nav:
       - Running Genestack Upgrade: genestack-upgrade.md
       - Running Kubespray Upgrade: k8s-kubespray-upgrade.md
       - Infrastructure:
+          - Etcd Backup: etcd-backup.md
           - OVN Database Backup: infrastructure-ovn-db-backup.md
           - MariaDB Operations: infrastructure-mariadb-ops.md
       - OpenStack:
