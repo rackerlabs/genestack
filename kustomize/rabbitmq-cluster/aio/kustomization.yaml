@@ -9,3 +9,13 @@ patches:
       - op: replace
         path: /spec/replicas
         value: 1
+  - target:
+      kind: RabbitmqCluster
+      name: rabbitmq
+    patch: |-
+      - op: replace
+        path: /spec/resources/requests/memory
+        value: 2Gi
+      - op: replace
+        path: /spec/resources/limits/memory
+        value: 2Gi
