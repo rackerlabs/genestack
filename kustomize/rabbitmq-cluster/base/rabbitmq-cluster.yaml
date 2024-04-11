@@ -27,8 +27,8 @@ spec:
       - rabbitmq_web_mqtt
       - rabbitmq_web_stomp
   persistence:
-    storageClassName: general  # This should be changed to an ssd for production
-    storage: "5Gi"  # This should be changed to 500Gi for production
+    storageClassName: general
+    storage: "20Gi"
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
