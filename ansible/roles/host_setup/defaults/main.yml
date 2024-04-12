@@ -50,6 +50,7 @@ host_nf_conntrack_max: 262144
 
 # System control kernel tuning
 kernel_options:
+  - { key: 'fs.inotify.max_user_instances', value: 8192 }
   - { key: 'fs.inotify.max_user_watches', value: 1048576 }
   - { key: 'net.ipv4.conf.all.rp_filter', value: "{{ host_rp_filter_all }}" }
   - { key: 'net.ipv4.conf.default.rp_filter', value: "{{ host_rp_filter_default }}" }
