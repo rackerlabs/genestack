@@ -226,3 +226,4 @@ nav:
       - Openstack Servers: openstack-servers.md
       - Openstack Images: openstack-images.md
       - Openstack Swift: storage-swift-object-store.md
+      - Openstack Snapshot: openstack-snapshot.md
