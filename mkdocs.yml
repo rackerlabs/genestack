@@ -209,6 +209,7 @@ nav:
       - OpenStack:
           - Generating Clouds YAML: openstack-clouds.md
           - Keystone Federation to Rackspace: openstack-keystone-federation.md
+          - Keystone Readonly Users: openstack-keystone-readonly.md
           - Nova Flavor Creation: openstack-flavors.md
           - Nova CPU Allocation Ratio: openstack-cpu-allocation-ratio.md
           - Creating Networks: openstack-neutron-networks.md
