@@ -1,8 +1,8 @@
 secretGenerator:
-  - name: ovn-backup-ospcv1-account
+  - name: ovn-backup-swift-account
     namespace: kube-system
     envs:
-      - ospcv1-account.env
+      - swift-account.env
 configMapGenerator:
   - name: ovn-backup-script
     namespace: kube-system
@@ -15,4 +15,3 @@ configMapGenerator:
 resources:
   - ovn-setup.yaml
   - ovn-backup.yaml
-  - ovn-backup-pod-template.yaml

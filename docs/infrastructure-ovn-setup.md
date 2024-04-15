@@ -101,8 +101,8 @@ If there's ever a need to reconfigure a node, simply remove the label and the Da
 
 !!! note
 
-    To upload backups to OSPCv1 Cloud Files, edit ovn-backup-config-patch.yaml
-    to set `UPLOAD_OSPC_V1: "true"`, edit the other related options
-    appropriately (for instance, select a Rackspace OSPCv1 Cloud Files region)
-    and put the username and API key of the account to use in
-    `ospcv1-account.env` before running `kubectl apply` an indicated above.
+    To upload backups to a Ceph Swift API gateway, edit ovn-backup.config to set
+    `SWIFT_UPLOAD' "true"`, edit the other related options appropriately (i.e.,
+    set the SWIFT_BASE_URL and CONTAINER) and put the username and secret key of
+    the account to use in `swift-account.env` before running `kubectl apply` an
+    indicated above.
