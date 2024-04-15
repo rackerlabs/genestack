@@ -1,0 +1,50 @@
+[
+    {
+        "local": [
+            {
+                "user": {
+                    "name": "{0}",
+                    "email": "{1}"
+                }
+            },
+            {
+                "projects": [
+                    {
+                        "name": "{2}_Flex",
+                        "roles": [
+                            {
+                                "name": "member"
+                            },
+                            {
+                                "name": "load-balancer_member"
+                            },
+                            {
+                                "name": "heat_stack_user"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "remote": [
+            {
+                "type": "RXT_UserName"
+            },
+            {
+                "type": "RXT_Email"
+            },
+            {
+                "type": "RXT_TenantName"
+            },
+            {
+                "type": "RXT_orgPersonType",
+                "any_one_of": [
+                    "admin",
+                    "default",
+                    "user-admin",
+                    "tenant-access"
+                ]
+            }
+        ]
+    }
+]

@@ -17,61 +17,12 @@ openstack --os-cloud default identity provider create --remote-id rackspace --do
 You're also welcome to generate your own mapping to suit your needs; however, if you want to use the example mapping (which is suitable for production) you can.
 
 ``` json
-[
-    {
-        "local": [
-            {
-                "user": {
-                    "name": "{0}",
-                    "email": "{1}"
-                }
-            },
-            {
-                "projects": [
-                    {
-                        "name": "{2}_Flex",
-                        "roles": [
-                            {
-                                "name": "member"
-                            },
-                            {
-                                "name": "load-balancer_member"
-                            },
-                            {
-                                "name": "heat_stack_user"
-                            }
-                        ]
-                    }
-                ]
-            }
-        ],
-        "remote": [
-            {
-                "type": "RXT_UserName"
-            },
-            {
-                "type": "RXT_Email"
-            },
-            {
-                "type": "RXT_TenantName"
-            },
-            {
-                "type": "RXT_orgPersonType",
-                "any_one_of": [
-                    "admin",
-                    "default",
-                    "user-admin",
-                    "tenant-access"
-                ]
-            }
-        ]
-    }
-]
+--8<-- "etc/keystone/mapping.json"
 ```
 
 !!! tip
 
-    Save the mapping to a local file before uploading it to keystone. In the examples, the mapping is stored at `/tmp/mapping.json`.
+    The example mapping **JSON** file can be found within the genestack repository at `etc/keystone/mapping.json`.
 
 Now register the mapping within Keystone.
 
