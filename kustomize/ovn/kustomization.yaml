@@ -3,8 +3,16 @@ secretGenerator:
     namespace: kube-system
     envs:
       - ospcv1-account.env
+configMapGenerator:
+  - name: ovn-backup-script
+    namespace: kube-system
+    files:
+    - ovn-backup.sh
+  - name: ovn-backup-config
+    namespace: kube-system
+    envs:
+    - ovn-backup.config
 resources:
   - ovn-setup.yaml
   - ovn-backup.yaml
-patches:
-  - path: ovn-backup-config-patch.yaml
+  - ovn-backup-pod-template.yaml
