@@ -204,6 +204,8 @@ nav:
       - Running Kubespray Upgrade: k8s-kubespray-upgrade.md
       - Infrastructure:
           - Etcd Backup: etcd-backup.md
+          - OVN introduction: ovn-intro.md
+          - OVN troubleshooting: ovn-troubleshooting.md
           - OVN Database Backup: infrastructure-ovn-db-backup.md
           - MariaDB Operations: infrastructure-mariadb-ops.md
       - OpenStack:
