@@ -228,3 +228,4 @@ nav:
       - Openstack Images: openstack-images.md
       - Openstack Swift: storage-swift-object-store.md
       - Openstack Snapshot: openstack-snapshot.md
+      - Openstack Volumes: openstack-volumes.md
