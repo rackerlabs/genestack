@@ -23,7 +23,7 @@ troubleshooting tasks.
 
 This will tell you what node an instance runs on.
 
-```
+```shell
 openstack server show <INSTANCE_UUID> -c hypervisor_hostname
 ```
 
@@ -41,8 +41,11 @@ openstack server show <INSTANCE_UUID> -c hypervisor_hostname
 
 You can get help like:
 
+```shell
+kubectl ko help
 ```
-$ kubectl ko help
+
+```
 kubectl ko {subcommand} [option...]
 Available Subcommands:
   [nb|sb] [status|kick|backup|dbstatus|restore]     ovn-db operations show cluster status, kick stale server, backup database, get db consistency status or restore ovn nb db when met 'inconsistent data' error
@@ -64,7 +67,7 @@ Available Subcommands:
 
 For instance,
 
-```
+```shell
 kubectl ko vsctl <K8S_NODE_NAME> show
 ```
 
@@ -73,14 +76,14 @@ works as if had ran `ovs-vsctl show` when logged into the `ovs-ovn` or
 
 Usefully, you can check the status of the NB and SB:
 
-```
+```shell
 kubectl ko nb status
 kubectl ko sb status
 ```
 
 and check `dbstatus`:
 
-```
+```shell
 kubectl ko nb dbstatus
 ```
 
@@ -109,7 +112,7 @@ as applicable.
 
 You can use a command like:
 
-```
+```shell
 kubectl get pods --all-namespaces --field-selector spec.nodeName=$node
 ```
 
@@ -159,7 +162,7 @@ node that has a particular instance.
 
 You can list OVN-central pods like:
 
-```
+```shell
 kubectl -n kube-system get pod -l app=ovn-central
 ```
 
@@ -179,7 +182,7 @@ kubectl -n kube-system get pod -l app=ovn-central
 
 You can get a shell in the `ovs-ovn` pod like:
 
-```
+```shell
 kubectl -n kube-system exec -it ovs-ovn-XXXXX -- /bin/bash
 ```
 
@@ -191,7 +194,7 @@ Additionally, while mostly not shown here, many OVS commands can and do
 simply return results, so you might not want or need to spawn an interactive
 shell as above. As an example:
 
-```
+```shell
 kubectl -n kube-system exec -it ovs-ovn-XXXX -- ovs-vsctl list manager
 ```
 
@@ -200,7 +203,7 @@ interactive shell.
 
 You can find all OVS and OVN commands from bin directories in the pod like this:
 
-```
+```shell
 dpkg -l | perl -lane '$package=$F[1];
   next unless /ovn/ or /openv/;
   chomp(@FILES = `dpkg -L $package`);
@@ -260,8 +263,11 @@ more information:
 For an OVS pod, you can check that it has a manager connection. Nodes
 should have an OVS manager connection for normal operation.
 
+```shell
+kubectl ko vsctl <node> list manager
 ```
-# kubectl ko vsctl <node> list manager
+
+```
 _uuid               : 43c682c2-a6c3-493f-9f6c-079ca55a5aa8
 connection_mode     : []
 external_ids        : {}
@@ -280,15 +286,18 @@ This shows various useful output, such as ports on the bridges, including:
 - `br-int`, which has the tap devices (instance network interfaces)
 - `br-ext`, usually for the public Internet
 
-```
+```shell
 kubectl ko vsctl <node> show
 ```
 
 As an aside, you can just list the bridges without the more verbose output
 of `ovs-vsctl show`:
 
+```shell
+kubectl ko vsctl <node> list-br
 ```
-$ kubectl ko vsctl <node> list-br
+
+```
 br-ex
 br-int
 ```
@@ -308,8 +317,8 @@ the Kubernetes node when you find it this way.
 This shows you the instance name as used by KVM, which does not match the nova
 UUID, and the Kubernetes node as the hypervisor hostname:
 
-```
-$ openstack server show $UUID  -c OS-EXT-SRV-ATTR:instance_name -c hypervisor_hostname -f json
+```shell
+openstack server show $UUID  -c OS-EXT-SRV-ATTR:instance_name -c hypervisor_hostname -f json
 ```
 
 
@@ -317,13 +326,13 @@ Thereafter, you can get the tap devices from `virsh` in the
 `libvirt-libvirt-default` pod for the Kubernetes node, using the `instance_name`
 from the previous command by first getting the domain ID:
 
-```
+```shell
 kubectl -n openstack exec libvirt-libvirt-default-25vcr -- virsh domid instance-000014a6
 ```
 
 and then the tap devices for the domain ID:
 
-```
+```shell
 kubectl -n openstack exec libvirt-libvirt-default-25vcr -- virsh domiflist 1025
 ```
 
@@ -331,7 +340,7 @@ kubectl -n openstack exec libvirt-libvirt-default-25vcr -- virsh domiflist 1025
 
 Then, you can see that the integration bridge has ports:
 
-```
+```shell
 kubectl ko <node> ofctl show br-int | grep -iE 'tap28144317-cd|tap3e6fb108-a4'
 ```
 
@@ -343,7 +352,7 @@ correct Kubernetes node.
 This information will tell you what to look for regarding the instance in OVS,
 and you can see these in the output of `ip a sh` on the compute node itself:
 
-```
+```shell
 ip a sh
 ```
 
@@ -360,14 +369,14 @@ cluster IPs), e.g., use one of your Kubernetes nodes
 If you don't have it, you will need to install a `mysql` command line client
 (on a Kubernetes node or a node on the Kubernetes service network):
 
-```
+```shell
 # On Ubuntu
 sudo apt install mariadb-client-core-10.6
 ```
 
 Then you can connect to the database:
 
-```
+```shell
 mysql -u root \
 -p$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d) \
 -h mariadb-galera-primary.openstack.svc.cluster.local
@@ -379,7 +388,7 @@ away from this default value.
 Maria has databases for Neutron, etc, so you may want `use neutron;` after
 starting the client, or add `neutron` to the MySQL command.
 
-```
+```sql
 use neutron;
 ```
 
