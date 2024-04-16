@@ -36,7 +36,7 @@ export -f log_level
 log_line() {
     local LEVEL
     LEVEL="$(log_level "$1")"
-    if [[ "$LEVEL" -ge "$LOG_LEVEL" ]]
+    if [[ "$LEVEL" -ge "$(log_level "$LOG_LEVEL")" ]]
     then
         local line
         line=$(date +"%b %d %H:%M:%S $*")
@@ -60,8 +60,7 @@ then
     exit 0
 fi
 
-# Everything from here forward deals with uploading to Rackspace OSPCv1 Cloud
-# Files.
+# Everything from here forward deals with uploading to a Ceph Swift API gateway.
 
 cd "$BACKUP_DIR" || exit 2
 CURL="$(which curl)"
@@ -80,14 +79,13 @@ curl_wrap() {
 export -f curl_wrap
 
 # Create the container if it doesn't exist
-# TODO fixme
 check_container=$(curl_wrap -o /dev/null -w "%{http_code}" "$SWIFT_CONTAINER_BASE_URL/$CONTAINER")
 if ! [[ "$check_container" =~ 20[0-9] ]]
 then
   curl_wrap -X PUT "$SWIFT_CONTAINER_BASE_URL/$CONTAINER"
 fi
 
-# upload_file uploads $1 to the CF container
+# upload_file uploads $1 to the container
 upload_file() {
     FILE="$1"
     local curl_return
