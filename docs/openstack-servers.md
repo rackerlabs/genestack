@@ -65,4 +65,4 @@ Please visit the Openstack Snapshot page [here](openstack-snapshot.md).
 
 # Launch a server from a volume
 
-Please visit the Openstack Snapshot page [here](openstack-volumes.md).
+Please visit the Openstack Volumes page [here](openstack-volumes.md).
