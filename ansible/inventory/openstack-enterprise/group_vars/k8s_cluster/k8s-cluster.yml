@@ -139,6 +139,9 @@ kube_proxy_nodeport_addresses: >-
   []
   {%- endif -%}
 
+# Allows binding metrics outside localhost so prometheus can properly scrape the services
+kube_proxy_metrics_bind_address: 0.0.0.0:10249
+
 # If non-empty, will use this string as identification instead of the actual hostname
 # kube_override_hostname: >-
 #   {%- if cloud_provider is defined and cloud_provider in ['aws'] -%}
