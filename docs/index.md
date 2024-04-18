@@ -13,7 +13,7 @@ hide:
     Rackspace would like to once again welcome you to the cloud. If you're developing applications,
     wanting to contribute to OpenStack, or just looking for a better platform; you're in the right place.
 
-    [:octicons-comment-24: Join the Discord](https://discord.gg/Pa2NsbMC)
+    [:octicons-comment-24: Join the Discord](https://discord.gg/2mN5yZvV3a)
 
 -   :material-alpha:{ .xl .middle } - __Genestack__  __/dʒen.ə.stæk/__
 
