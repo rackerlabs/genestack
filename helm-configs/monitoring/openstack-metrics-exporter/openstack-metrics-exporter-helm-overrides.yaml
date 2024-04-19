@@ -15,6 +15,9 @@ serviceMonitor:
   interval: 3m
   scrapeTimeout: 30s
 
+nodeSelector:
+  openstack-control-plane: enabled
+
 multicloud:
   # Enable multicloud (i.e. /probe?... targets)
   # Doc: https://github.com/openstack-exporter/openstack-exporter#description
