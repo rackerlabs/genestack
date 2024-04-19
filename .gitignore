@@ -121,6 +121,7 @@ kubernetes_sigs-kubespray*tar.gz
 ansible_collections
 
 kustomize/**/all.yaml
+kustomize/**/charts
 
 # mkdocs
 site/
