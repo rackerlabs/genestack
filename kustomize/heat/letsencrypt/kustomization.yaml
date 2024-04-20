@@ -1,0 +1,22 @@
+bases:
+  - ../base
+
+patches:
+  - target:
+      kind: Ingress
+      name: heat-namespace-fqdn
+    patch: |-
+      - op: add
+        path: /metadata/annotations
+        value:
+          cert-manager.io/cluster-issuer: letsencrypt-prod
+          acme.cert-manager.io/http01-edit-in-place: "true"
+  - target:
+      kind: Ingress
+      name: cloudformation-namespace-fqdn
+    patch: |-
+      - op: add
+        path: /metadata/annotations
+        value:
+          cert-manager.io/cluster-issuer: letsencrypt-prod
+          acme.cert-manager.io/http01-edit-in-place: "true"
