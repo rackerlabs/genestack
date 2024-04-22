@@ -1,14 +1,4 @@
 _region: &region DFW3
-_certificate: &crt |
-  -----BEGIN CERTIFICATE-----
-  -----END CERTIFICATE-----
-  -----BEGIN CERTIFICATE-----
-  -----END CERTIFICATE-----
-
-_certificate_key: &key |
-  -----BEGIN RSA PRIVATE KEY-----
-  -----END RSA PRIVATE KEY-----
-
 images:
   tags:
     bootstrap: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
@@ -114,11 +104,9 @@ endpoints:
     host_fqdn_override:
       public:
         tls:
-          crt: *crt
-          key: *key
           secretName: nova-tls-api
           issuerRef:
-            name: ca-issuer
+            name: letsencrypt-prod
             kind: ClusterIssuer
         host: nova.dfw-ospcv2-staging.ohthree.com
     port:
@@ -130,11 +118,9 @@ endpoints:
     host_fqdn_override:
       public:
         tls:
-          crt: *crt
-          key: *key
           secretName: metadata-tls-metadata
           issuerRef:
-            name: ca-issuer
+            name: letsencrypt-prod
             kind: ClusterIssuer
         host: metadata.nova.dfw-ospcv2-staging.ohthree.com
     port:
@@ -146,11 +132,9 @@ endpoints:
     host_fqdn_override:
       public:
         tls:
-          crt: *crt
-          key: *key
           secretName: nova-novncproxy-tls-proxy
           issuerRef:
-            name: ca-issuer
+            name: letsencrypt-prod
             kind: ClusterIssuer
         host: novnc.nova.dfw-ospcv2-staging.ohthree.com
     port:
@@ -162,11 +146,9 @@ endpoints:
     host_fqdn_override:
       public:
         tls:
-          crt: *crt
-          key: *key
           secretName: heat-tls-cfn
           issuerRef:
-            name: ca-issuer
+            name: letsencrypt-prod
             kind: ClusterIssuer
         host: cloudformation.heat.dfw-ospcv2-staging.ohthree.com
     port:
@@ -178,11 +160,9 @@ endpoints:
     host_fqdn_override:
       public:
         tls:
-          crt: *crt
-          key: *key
           secretName: heat-tls-cloudwatch
           issuerRef:
-            name: ca-issuer
+            name: letsencrypt-prod
             kind: ClusterIssuer
         host: cloudwatch.heat.dfw-ospcv2-staging.ohthree.com
     port:
@@ -194,11 +174,9 @@ endpoints:
     host_fqdn_override:
       public:
         tls:
-          crt: *crt
-          key: *key
           secretName: horizon-tls-web
           issuerRef:
-            name: ca-issuer
+            name: letsencrypt-prod
             kind: ClusterIssuer
         host: dfw-ospcv2-staging.ohthree.com
     port:
@@ -233,11 +211,9 @@ endpoints:
     host_fqdn_override:
       public:
         tls:
-          crt: *crt
-          key: *key
           secretName: keystone-tls-api
           issuerRef:
-            name: ca-issuer
+            name: letsencrypt-prod
             kind: ClusterIssuer
         host: keystone.dfw-ospcv2-staging.ohthree.com
     port:
@@ -253,11 +229,9 @@ endpoints:
     host_fqdn_override:
       public:
         tls:
-          crt: *crt
-          key: *key
           secretName: glance-tls-api
           issuerRef:
-            name: ca-issuer
+            name: letsencrypt-prod
             kind: ClusterIssuer
         host: glance.dfw-ospcv2-staging.ohthree.com
     port:
@@ -269,11 +243,9 @@ endpoints:
     host_fqdn_override:
       public:
         tls:
-          crt: *crt
-          key: *key
           secretName: octavia-tls-api
           issuerRef:
-            name: ca-issuer
+            name: letsencrypt-prod
             kind: ClusterIssuer
         host: octavia.dfw-ospcv2-staging.ohthree.com
     port:
@@ -285,11 +257,9 @@ endpoints:
     host_fqdn_override:
       public:
         tls:
-          crt: *crt
-          key: *key
           secretName: neutron-tls-server
           issuerRef:
-            name: ca-issuer
+            name: letsencrypt-prod
             kind: ClusterIssuer
         host: neutron.dfw-ospcv2-staging.ohthree.com
     port:
@@ -301,11 +271,9 @@ endpoints:
     host_fqdn_override:
       public:
         tls:
-          crt: *crt
-          key: *key
           secretName: heat-tls-api
           issuerRef:
-            name: ca-issuer
+            name: letsencrypt-prod
             kind: ClusterIssuer
         host: heat.dfw-ospcv2-staging.ohthree.com
     port:
@@ -317,11 +285,9 @@ endpoints:
     host_fqdn_override:
       public:
         tls:
-          crt: *crt
-          key: *key
           secretName: placement-tls-api
           issuerRef:
-            name: ca-issuer
+            name: letsencrypt-prod
             kind: ClusterIssuer
         host: placement.dfw-ospcv2-staging.ohthree.com
     port:
@@ -333,11 +299,9 @@ endpoints:
     host_fqdn_override:
       public:
         tls:
-          crt: *crt
-          key: *key
           secretName: cinder-tls-api
           issuerRef:
-            name: ca-issuer
+            name: letsencrypt-prod
             kind: ClusterIssuer
         host: cinder.dfw-ospcv2-staging.ohthree.com
     port:
@@ -349,11 +313,9 @@ endpoints:
     host_fqdn_override:
       public:
         tls:
-          crt: *crt
-          key: *key
           secretName: cinder-tls-api
           issuerRef:
-            name: ca-issuer
+            name: letsencrypt-prod
             kind: ClusterIssuer
         host: cinder.dfw-ospcv2-staging.ohthree.com
     port:
@@ -365,11 +327,9 @@ endpoints:
     host_fqdn_override:
       public:
         tls:
-          crt: *crt
-          key: *key
           secretName: cinder-tls-api
           issuerRef:
-            name: ca-issuer
+            name: letsencrypt-prod
             kind: ClusterIssuer
         host: cinder.dfw-ospcv2-staging.ohthree.com
     port:
