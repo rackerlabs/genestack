@@ -161,6 +161,7 @@ nav:
               - infrastructure-overview.md
               - Namespace: infrastructure-namespace.md
               - Ingress: infrastructure-ingress.md
+              - LetsEncrypt: infrastructure-letsencrypt.md
               - MariaDB:
                   - infrastructure-mariadb.md
               - RabbitMQ:
