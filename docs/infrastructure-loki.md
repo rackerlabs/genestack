@@ -16,7 +16,8 @@ helm upgrade --install \
              --values my-loki-helm-overrides.yaml \
              loki grafana/loki \
              --create-namespace \
-             --namespace grafana
+             --namespace grafana \
+             --version 5.47.2
 ```
 
 !!! example
