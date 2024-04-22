@@ -78,6 +78,8 @@ extra:
     - icon: fontawesome/brands/discord
       link: https://discord.gg/2mN5yZvV3a
       name: Rackspace on Discord
+    - icon: fontawesome/solid/blog
+      link: https://blog.rackspacecloud.com/
 
 extra_css:
   - overrides/stylesheets/adr.css
@@ -232,3 +234,4 @@ nav:
       - Openstack Swift: storage-swift-object-store.md
       - Openstack Snapshot: openstack-snapshot.md
       - Openstack Volumes: openstack-volumes.md
+  - Blog: https://blog.rackspacecloud.com/
