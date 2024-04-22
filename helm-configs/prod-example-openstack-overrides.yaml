@@ -138,7 +138,7 @@ endpoints:
             kind: ClusterIssuer
         host: metadata.nova.dfw-ospcv2-staging.ohthree.com
     port:
-      api:
+      metadata:
         public: 443
     scheme:
       public: https
@@ -154,7 +154,7 @@ endpoints:
             kind: ClusterIssuer
         host: novnc.nova.dfw-ospcv2-staging.ohthree.com
     port:
-      api:
+      novnc_proxy:
         public: 443
     scheme:
       public: https
