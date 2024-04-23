@@ -58,6 +58,10 @@ kernel_options:
   - { key: 'net.netfilter.nf_conntrack_max', value: "{{ host_nf_conntrack_max }}" }
   - { key: 'net.core.netdev_max_backlog', value: 4096 }
   - { key: 'net.core.somaxconn', value: 8192 }
+  - { key: 'net.ipv4.tcp_rmem', value: "16384 349520 25165824" }
+  - { key: 'net.ipv4.tcp_wmem', value: "16384 349520 25165824" }
+  - { key: 'net.core.rmem_max', value: 25165824 }
+  - { key: 'net.core.wmem_max', value: 25165824 }
   - { key: 'vm.dirty_background_ratio', value: 5 }
   - { key: 'vm.dirty_ratio', value: 10 }
   - { key: 'vm.swappiness', value: 5 }
