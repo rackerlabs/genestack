@@ -102,6 +102,15 @@ spec:
                 operator: In
                 values:
                   - worker
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+              - key: app.kubernetes.io/instance
+                operator: In
+                values:
+                - mariadb-galera
+        topologyKey: kubernetes.io/hostname
 
   tolerations:
     - key: "k8s.mariadb.com/ha"
