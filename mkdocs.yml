@@ -209,6 +209,7 @@ nav:
           - Etcd Backup: etcd-backup.md
           - OVN introduction: ovn-intro.md
           - OVN troubleshooting: ovn-troubleshooting.md
+          - OVN traffic flow introduction: ovn-traffic-flow-intro.md
           - OVN Database Backup: infrastructure-ovn-db-backup.md
           - MariaDB Operations: infrastructure-mariadb-ops.md
       - OpenStack:
