@@ -189,4 +189,72 @@ vault kv put -mount=osh/keystone keystone-credential-keys  password=$(< /dev/ura
 
 ---
 
+## Example to create local users in Vault and provide access to the secret path
+
+- Login with root token and enable userpass authentication method:
+
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- sh
+vault login
+vault auth enable userpass
+```
+
+- Create keystone user and the required policy:
+
+```
+vault policy write keystone - <<EOF
+path "osh/keystone/*" {
+   capabilities = ["create", "read", "update", "patch", "delete", "list"]
+}
+EOF
+exit
+```
+
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault write auth/userpass/users/keystone password=8EaQwtdt policies=keystone
+```
+
+- Tune token duration:
+
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault write sys/auth/userpass/tune default_lease_ttl=8h max_lease_ttl=720h
+```
+
+### Validation
+
+- Login to the vault using `keystone` user and try accessing secret path to which it has access:
+
+``` shell
+kubectl  exec -it vault-0 -n vault -- \
+    vault login -method userpass username=keystone
+
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv list osh/keystone
+```
+
+- Accessing to other secret path will fail:
+
+``` shell
+# kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv list osh/keystone
+Keys
+----
+keystone-admin
+keystone-db-password
+keystone-rabbitmq-password
+
+# kubectl exec --stdin=true --tty=true vault-0 -n vault --  \
+    vault kv list osh/glance
+Error making API request.
+
+URL: GET https://127.0.0.1:8200/v1/sys/internal/ui/mounts/osh/glance
+Code: 403. Errors:
+
+* preflight capability check returned 403, please ensure client's policies grant access to path "osh/glance/"
+```
+
+---
+
 Once the secrets are created in Vault, we can use [vault-secrets-operator](https://github.com/rackerlabs/genestack/blob/main/docs/vault-secrets-operator.md) to populate the Kubernetes secret resources in Kubernetes cluster.

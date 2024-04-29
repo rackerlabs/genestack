@@ -1,0 +1,6 @@
+namespace: openstack
+resources:
+  - vaultauth.yaml
+  - vaultconnection.yaml
+  - mariadb.yaml
+  - mariadb-maxscale.yaml

@@ -1,20 +1,90 @@
 # Deploy Gnocchi
 
-## Create Secrets
+## Pre-requsites
+
+- Vault should be installed by following the instructions in [vault documentation](https://docs.rackspacecloud.com/vault/)
+- User has access to `osh/gnocchi/` path in the Vault
+
+## Create secrets in the vault
+
+### Login to the vault
 
 ``` shell
-kubectl --namespace openstack create secret generic gnocchi-admin \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack create secret generic gnocchi-db-password \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack create secret generic gnocchi-pgsql-password \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+kubectl  exec -it vault-0 -n vault -- \
+    vault login -method userpass username=gnocchi
 ```
 
-## Create ceph-etc configmap
+### List the existing secrets from `osh/gnocchi/`:
+
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv list osh/gnocchi
+```
+
+### Create the secrets
+
+- Gnocchi Database Password:
+
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv put -mount=osh/gnocchi gnocchi-db-password \
+    password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)
+```
+
+- Gnocchi Admin Password:
+
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv put -mount=osh/gnocchi gnocchi-admin  \
+    password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)
+```
+
+- Gnocchi-pgsql Password:
+
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv put -mount=osh/gnocchi gnocchi-pgsql-password \
+    password=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)
+```
+
+### Validate the secrets
+
+``` shell
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv list osh/ghocchi
+kubectl exec --stdin=true --tty=true vault-0 -n vault -- \
+    vault kv get -mount=osh/ghocchi  gnocchi-admin
+```
+
+## Install Gnocchi
+
+- Ensure that the `vault-ca-secret` Kubernetes Secret exists in the OpenStack namespace containing the Vault CA certificate:
+
+```shell
+kubectl get secret vault-ca-secret -o yaml -n openstack
+```
+
+- If it is absent, create one using the following command:
+
+``` shell
+kubectl create secret generic vault-ca-secret \
+    --from-literal=ca.crt="$(kubectl get secret vault-tls-secret \
+    -o jsonpath='{.data.ca\.crt}' -n vault | base64 -d -)" -n openstack
+```
+
+- Deploy the necessary Vault resources to create Kubernetes secrets required by the Gnocchi installation:
+
+``` shell
+kubectl apply -k /opt/genestack/kustomize/gnocchi/base/vault/
+```
+
+- Validate whether the required Kubernetes secrets from Vault are populated:
+
+``` shell
+kubectl get secrets -n openstack
+```
+
+### Create ceph-etc configmap
 
 While the below example should work fine for most environments, depending
 on the use case it may be necessary to provide additional client configuration
@@ -38,7 +108,7 @@ data:
 EOF
 ```
 
-## Verify the ceph-etc configmap is sane
+### Verify the ceph-etc configmap is sane
 
 Below is an example of what you're looking for to verify the configmap was
 created as expected - a CSV of the mon hosts, colon seperated with default
@@ -50,7 +120,7 @@ mon port, 6789.
 mon_host = 172.31.3.7:6789,172.31.1.112:6789,172.31.0.46:6789
 ```
 
-## Run the package deployment
+### Deploy Gnocchi helm chart
 
 ``` shell
 cd /opt/genestack/submodules/openstack-helm-infra

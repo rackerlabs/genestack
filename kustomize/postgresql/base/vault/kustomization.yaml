@@ -1,0 +1,8 @@
+namespace: openstack
+resources:
+  - vaultauth.yaml
+  - vaultconnection.yaml
+  - postgresql-db-audit.yaml
+  - postgresql-identity-admin.yaml
+  - postgresql-db-admin.yaml
+  - postgresql-db-exporter.yaml

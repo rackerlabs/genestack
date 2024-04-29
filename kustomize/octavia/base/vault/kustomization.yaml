@@ -1,0 +1,8 @@
+namespace: openstack
+resources:
+  - vaultauth.yaml
+  - vaultconnection.yaml
+  - octavia-admin.yaml
+  - octavia-db-password.yaml
+  - octavia-rabbitmq-password.yaml
+  - octavia-certificates.yaml
