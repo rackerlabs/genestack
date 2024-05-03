@@ -39,3 +39,4 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/nova-efi:master-ubuntu_jammy
           build-args: |
             VERSION=master-ubuntu_jammy
+            PLUGIN_VERSION=master

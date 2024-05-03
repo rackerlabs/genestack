@@ -1,5 +1,14 @@
 ARG VERSION=master-ubuntu_jammy
-FROM openstackhelm/nova:$VERSION
+FROM openstackhelm/nova:$VERSION as build
+ARG PLUGIN_VERSION=master
+RUN apt update && apt install -y git
+RUN export ORIG_PLUGIN_VERSION="${PLUGIN_VERSION}"; \
+if [ "${PLUGIN_VERSION}" != 'master' ]; then export PLUGIN_VERSION=stable/${PLUGIN_VERSION}; fi; \
+. /var/lib/openstack/bin/activate; \
+/var/lib/openstack/bin/pip install git+https://github.com/openstack/oslo.db@${PLUGIN_VERSION}#egg=oslo_db
+
+FROM openstackhelm/nova:${VERSION}
+COPY --from=build /var/lib/openstack/. /var/lib/openstack/
 # Packages for the following features:
 # - Nova: EFI
 # - Nova: iSCSI
