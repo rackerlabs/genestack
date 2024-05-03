@@ -53,6 +53,31 @@ openstack server create
     <server-name>
 ```
 
+#### Creating a Server with User Data
+
+You can place user data in a local file and pass it through the --user-data <user-data-file> parameter at instance creation.
+
+``` shell
+openstack server create --image ubuntu-cloudimage --flavor 1 \
+    --user-data mydata.file VM_INSTANCE
+```
+
+#### Creating a Server with Config drives
+
+Config drives are special drives that are attached to an instance when it boots. The instance can mount this drive and read files from it to get information that is normally available through the metadata service.
+
+To enable the config drive for an instance, pass the --config-drive true parameter to the openstack server create command.
+
+The following example enables the config drive and passes a user data file and two key/value metadata pairs, all of which are accessible from the config drive:
+
+``` shell
+openstack server create --config-drive true --image my-image-name \
+    --flavor 1 --key-name mykey --user-data ./my-user-data.txt \
+    --property role=webservers --property essential=false MYINSTANCE
+```
+
+Read more about Openstack Config drives using the [upstream docs](https://docs.openstack.org/nova/latest/admin/config-drive.html).
+
 #### Delete a server
 
 ``` shell
