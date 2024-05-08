@@ -1,9 +1,7 @@
-helmGlobals:
-  chartHome: ../../../submodules/openstack-helm-infra
-
 helmCharts:
-  - name: ingress
+  - name: ingress-nginx
     releaseName: ingress-grafana-internal
+    repo: https://kubernetes.github.io/ingress-nginx
     valuesInline:
       deployment:
         cluster:
