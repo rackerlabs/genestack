@@ -589,7 +589,7 @@ endpoints:
         username: glance
         password: password
     hosts:
-      default: maxscale-galera
+      default: mariadb-galera
     host_fqdn_override:
       default: null
     path: /glance
