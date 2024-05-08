@@ -24,6 +24,13 @@ daemonSetVolumeMounts:
   - name: varlogcontainers
     mountPath: /var/log/containers
     readOnly: true
+serviceMonitor:
+  enabled: true
+  namespace: default
+  interval: 10s
+  scrapeTimeout: 10s
+  selector:
+    application: fluentbit-fluent-bit
 config:
   outputs: |
     [OUTPUT]
