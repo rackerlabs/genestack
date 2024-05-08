@@ -120,6 +120,10 @@ kube_network_node_prefix_ipv6: 120
 kube_apiserver_ip: "{{ kube_service_addresses | ipaddr('net') | ipaddr(1) | ipaddr('address') }}"
 kube_apiserver_port: 6443  # (https)
 
+# The eviction timeout period, defaults to 300 seconds.
+kube_apiserver_pod_eviction_not_ready_timeout_seconds: 120
+kube_apiserver_pod_eviction_unreachable_timeout_seconds: 120
+
 # Kube-proxy proxyMode configuration.
 # Can be ipvs, iptables
 kube_proxy_mode: ipvs
