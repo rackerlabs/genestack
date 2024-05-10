@@ -94,7 +94,7 @@ conf:
     cert_file: "/etc/pki/libvirt/servercert.pem"
     key_file: "/etc/pki/libvirt/private/serverkey.pem"
     auth_unix_rw: "none"
-    listen_addr: 127.0.0.1
+    listen_addr: 0.0.0.0
     log_level: "3"
     log_outputs: "1:file:/var/log/libvirt/libvirtd.log"
   qemu:
@@ -222,7 +222,7 @@ pod:
         libvirt:
           enabled: true
           min_ready_seconds: 0
-          max_unavailable: 1
+          max_unavailable: 20%
   resources:
     enabled: false
     libvirt:

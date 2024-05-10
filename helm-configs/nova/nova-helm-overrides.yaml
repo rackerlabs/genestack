@@ -256,7 +256,7 @@ network:
       enabled: false
       port: 30682
   ssh:
-    enabled: false
+    enabled: true
     port: 8022
     from_subnet: 0.0.0.0/0
     key_types:
@@ -1468,6 +1468,7 @@ conf:
     loggers:
       keys:
         - root
+        - oslo.db
         - nova
         - os.brick
     handlers:
@@ -1487,6 +1488,11 @@ conf:
       handlers:
         - stdout
       qualname: nova
+    logger_oslo.db:
+      level: DEBUG
+      handlers:
+        - stdout
+      qualname: oslo_db.api
     logger_os.brick:
       level: INFO
       handlers:
@@ -2324,7 +2330,7 @@ pod:
         compute:
           enabled: true
           min_ready_seconds: 0
-          max_unavailable: 1
+          max_unavailable: 20%
     disruption_budget:
       metadata:
         min_available: 0
