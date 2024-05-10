@@ -24,7 +24,7 @@ spec:
           storage: 10Gi
       storageClassName: general
 
-  replicas: 3
+  replicas: 5
   podSecurityContext:
     runAsUser: 0
 
@@ -114,7 +114,7 @@ spec:
       effect: "NoSchedule"
 
   podDisruptionBudget:
-    maxUnavailable: 33%
+    maxUnavailable: 40%
 
   updateStrategy:
     type: RollingUpdate
