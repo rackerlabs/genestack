@@ -81,7 +81,7 @@ spec:
             - name: PATH
               value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/
             - name: DEPENDENCY_SERVICE
-              value: "openstack:maxscale-galera,openstack:keystone-api,openstack:rabbitmq-nodes,openstack:memcached,openstack:neutron-server"
+              value: "openstack:mariadb-galera-primary,openstack:keystone-api,openstack:rabbitmq-nodes,openstack:memcached,openstack:neutron-server"
             - name: DEPENDENCY_JOBS
               value: "octavia-db-sync,octavia-ks-user,octavia-ks-endpoints"
             - name: DEPENDENCY_DAEMONSET

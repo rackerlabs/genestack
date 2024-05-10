@@ -1,12 +1,10 @@
 resources:
   - ns-ingress-nginx.yaml
 
-helmGlobals:
-  chartHome: ../../../submodules/openstack-helm-infra
-
 helmCharts:
-  - name: ingress
+  - name: ingress-nginx
     releaseName: ingress-nginx
+    repo: https://kubernetes.github.io/ingress-nginx
     valuesInline:
       deployment:
         cluster:
