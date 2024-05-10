@@ -256,7 +256,7 @@ network:
       enabled: false
       port: 30682
   ssh:
-    enabled: false
+    enabled: true
     port: 8022
     from_subnet: 0.0.0.0/0
     key_types:

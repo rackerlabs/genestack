@@ -6,16 +6,18 @@
 
 Part of running Nova is also running placement. Setup all credentials now so we can use them across the nova and placement services.
 
+### Shared
+
 ``` shell
-# Shared
 kubectl --namespace openstack \
         create secret generic metadata-shared-secret \
         --type Opaque \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
 ```
 
+### Placement
+
 ``` shell
-# Placement
 kubectl --namespace openstack \
         create secret generic placement-db-password \
         --type Opaque \
@@ -26,8 +28,9 @@ kubectl --namespace openstack \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
 ```
 
+### Nova
+
 ``` shell
-# Nova
 kubectl --namespace openstack \
         create secret generic nova-db-password \
         --type Opaque \
@@ -41,26 +44,36 @@ kubectl --namespace openstack \
         --type Opaque \
         --from-literal=username="nova" \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
+ssh-keygen -qt ed25519 -N '' -C "nova_ssh" -f nova_ssh_key && \
+kubectl --namespace openstack \
+        create secret generic nova-ssh-keypair \
+        --type Opaque \
+        --from-literal=public_key="$(cat nova_ssh_key.pub)" \
+        --from-literal=private_key="$(cat nova_ssh_key)"
+rm nova_ssh_key nova_ssh_key.pub
 ```
 
+### Ironic (NOT IMPLEMENTED YET)
+
 ``` shell
-# Ironic (NOT IMPLEMENTED YET)
 kubectl --namespace openstack \
         create secret generic ironic-admin \
         --type Opaque \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
 ```
 
+### Designate (NOT IMPLEMENTED YET)
+
 ``` shell
-# Designate (NOT IMPLEMENTED YET)
 kubectl --namespace openstack \
         create secret generic designate-admin \
         --type Opaque \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
 ```
 
+### Neutron
+
 ``` shell
-# Neutron
 kubectl --namespace openstack \
         create secret generic neutron-rabbitmq-password \
         --type Opaque \
@@ -122,6 +135,8 @@ helm upgrade --install nova ./nova \
     --set conf.nova.cell0_database.slave_connection="mysql+pymysql://nova:$(kubectl --namespace openstack get secret nova-db-password -o jsonpath='{.data.password}' | base64 -d)@mariadb-galera-secondary.openstack.svc.cluster.local:3306/nova_cell0" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.nova.password="$(kubectl --namespace openstack get secret nova-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
+    --set network.ssh.public_key="$(kubectl -n openstack get secret nova-ssh-keypair -o jsonpath='{.data.public_key}' | base64 -d)"$'\n' \
+    --set network.ssh.private_key="$(kubectl -n openstack get secret nova-ssh-keypair -o jsonpath='{.data.private_key}' | base64 -d)"$'\n' \
     --post-renderer /opt/genestack/kustomize/kustomize.sh \
     --post-renderer-args nova/base
 ```
