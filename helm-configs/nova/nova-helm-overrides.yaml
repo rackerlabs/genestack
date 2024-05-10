@@ -2330,7 +2330,7 @@ pod:
         compute:
           enabled: true
           min_ready_seconds: 0
-          max_unavailable: 1
+          max_unavailable: 20%
     disruption_budget:
       metadata:
         min_available: 0
