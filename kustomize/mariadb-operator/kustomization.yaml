@@ -22,8 +22,6 @@ helmCharts:
                         - worker
       metrics:
         enabled: true
-      extrArgs:
-        - '--log-maxscale'
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:

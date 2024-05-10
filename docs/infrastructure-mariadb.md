@@ -9,12 +9,6 @@ kubectl --namespace openstack \
         --type Opaque \
         --from-literal=root-password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)" \
         --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-
-# MaxScale
-kubectl --namespace openstack \
-        create secret generic maxscale \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
 ```
 
 ## Deploy the mariadb operator
@@ -50,19 +44,3 @@ kubectl --namespace openstack apply -k /opt/genestack/kustomize/mariadb-cluster/
 ``` shell
 kubectl --namespace openstack get mariadbs -w
 ```
-
-## MaxScale
-
-Within the deployment the OpenStack services use MaxScale for loadlancing and greater reliability. While the MaxScale ecosystem is a good one, there are some limitations that you should be aware of. It is recommended that you review the [MaxScale reference documentation](https://mariadb.com/kb/en/mariadb-maxscale-2302-limitations-and-known-issues-within-mariadb-maxscale) for more about all of the known limitations and potential workarounds available.
-
-``` mermaid
-flowchart TD
-    A[Connection] ---B{MaxScale}
-    B ---|ro| C[ES-0]
-    B ---|rw| D[ES-1] ---|sync| E & C
-    B ---|ro| E[ES-2]
-```
-
-### MaxScale GUI
-
-The MaxScale deployment has access to a built in GUI that can be exposed for further debuging and visibility into the performance of the MariDB backend. For more information on accessing the GUI please refer to the MaxScale documentation that can be found [here](https://mariadb.com/resources/blog/getting-started-with-the-mariadb-maxscale-gui).
