@@ -57,7 +57,7 @@ Before running the Kubernetes deployment, make sure that all hosts have a proper
 ``` shell
 source /opt/genestack/scripts/genestack.rc
 ansible -m shell -a 'hostnamectl set-hostname {{ inventory_hostname }}' --become all
-ansible -m shell -a "grep 127.0.0.1 /etc/hosts | grep -q {{ inventory_hostname }} || sed -i '/^127.0.0.1/ s/$/ {{ inventory_hostname }}/' /etc/hosts" --become all
+ansible -m shell -a "grep 127.0.0.1 /etc/hosts | grep -q {{ inventory_hostname }} || sed -i 's/^127.0.0.1.*/127.0.0.1 {{ inventory_hostname }} localhost.localdomain localhost/' /etc/hosts" --become all
 ```
 
 !!! note
