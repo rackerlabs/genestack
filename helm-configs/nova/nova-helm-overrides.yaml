@@ -1468,6 +1468,7 @@ conf:
     loggers:
       keys:
         - root
+        - oslo.db
         - nova
         - os.brick
     handlers:
@@ -1487,6 +1488,11 @@ conf:
       handlers:
         - stdout
       qualname: nova
+    logger_oslo.db:
+      level: DEBUG
+      handlers:
+        - stdout
+      qualname: oslo_db.api
     logger_os.brick:
       level: INFO
       handlers:
