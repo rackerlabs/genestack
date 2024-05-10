@@ -7,9 +7,9 @@ Tips and tricks for managing and operating the MariaDB cluster within a Genestac
 Sometimes an operator may need to connect to the database to troubleshoot things or otherwise make modifications to the databases in place. The following command can be used to connect to the database from a node within the cluster.
 
 ``` shell
-mysql -h $(kubectl -n openstack get service maxscale-galera -o jsonpath='{.spec.clusterIP}') \
-      -p$(kubectl --namespace openstack get secret maxscale -o jsonpath='{.data.password}' | base64 -d) \
-      -u maxscale-galera-client
+mysql -h $(kubectl -n openstack get service mariadb-galera-primary -o jsonpath='{.spec.clusterIP}') \
+      -p$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d) \
+      -u root
 ```
 
 !!! info
@@ -92,25 +92,3 @@ for more information.
     If you have multiple backups available, the operator is able to infer which
     backup to restore based on the `spec.targetRecoveryTime` field discussed
     in the operator documentation [here](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/BACKUP.md#target-recovery-time).
-
-## Interacting with the MaxScale REST API
-
-Refer to the API reference for MaxScale [here](https://mariadb.com/kb/en/mariadb-maxscale-23-08-rest-api/).
-
-!!! info "Example curl request"
-
-    ``` shell
-    curl -s -u mariadb-operator:$(kubectl get secret -n openstack maxscale -o jsonpath='{.data.password}' | base64 -d) http://maxscale-galera.openstack.svc.cluster.local:8989/v1/ -D -
-    ```
-    ``` shell
-    HTTP/1.1 200 OK
-    Connection: close
-    ETag: "da39a3ee5e6b4b0d3255bfef95601890afd80709"
-    Last-Modified: Tue, 30 Apr 2024 20:10:22 GMT
-    Date: Tue, 30 Apr 24 20:44:17 GMT
-    X-Frame-Options: Deny
-    X-XSS-Protection: 1
-    Referrer-Policy: same-origin
-    Cache-Control: no-cache
-    Content-Length: 0
-    ```

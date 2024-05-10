@@ -28,10 +28,6 @@ spec:
   podSecurityContext:
     runAsUser: 0
 
-  # point to an existing MaxScale instance. Doing this will delegate tasks such as primary failover to MaxScale.
-  maxScaleRef:
-    name: maxscale-galera
-
   galera:
     enabled: true
     primary:

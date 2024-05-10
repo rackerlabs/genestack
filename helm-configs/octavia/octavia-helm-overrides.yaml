@@ -466,7 +466,7 @@ endpoints:
         username: octavia
         password: password
     hosts:
-      default: maxscale-galera
+      default: mariadb-galera-primary
     host_fqdn_override:
       default: null
     path: /octavia
