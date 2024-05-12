@@ -7,6 +7,9 @@ need to be customized to meet the needs of your environment.
 ## Example LB manifest
 
 ``` yaml
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
 metadata:
   name: openstack-external
   namespace: metallb-system
