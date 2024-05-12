@@ -11,7 +11,7 @@ spec:
   resources:
     requests:
       cpu: 500m
-      memory: 32Gi
+      memory: 2Gi
     limits:
       memory: 32Gi
   rabbitmq:
