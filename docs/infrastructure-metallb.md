@@ -7,6 +7,9 @@ need to be customized to meet the needs of your environment.
 ## Example LB manifest
 
 ``` yaml
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
 metadata:
   name: openstack-external
   namespace: metallb-system
@@ -41,8 +44,8 @@ kubectl apply -f /opt/genestack/manifests/metallb/metallb-openstack-service-lb.y
 Assuming your ingress controller is all setup and your metallb loadbalancer is operational you can patch the ingress controller to expose your external VIP address.
 
 ``` shell
-kubectl --namespace openstack patch service ingress -p '{"metadata":{"annotations":{"metallb.universe.tf/allow-shared-ip": "openstack-external-svc", "metallb.universe.tf/address-pool": "openstack-external"}}}'
-kubectl --namespace openstack patch service ingress -p '{"spec": {"type": "LoadBalancer"}}'
+kubectl --namespace openstack patch service ingress-openstack-internal-ingress-nginx-controller -p '{"metadata":{"annotations":{"metallb.universe.tf/allow-shared-ip": "openstack-external-svc", "metallb.universe.tf/address-pool": "openstack-external"}}}'
+kubectl --namespace openstack patch service ingress-openstack-internal-ingress-nginx-controller -p '{"spec": {"type": "LoadBalancer"}}'
 ```
 
 Once patched you can see that the controller is operational with your configured VIP address.
