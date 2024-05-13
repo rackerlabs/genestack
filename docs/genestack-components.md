@@ -60,8 +60,9 @@ At a later stage these components will be added
 
 | Group      | Component         | OpenStack Flex | OpenStack Enterprise |
 |------------|-------------------|----------------|----------------------|
-| Kubernetes | Thanos            | Optional       | Required             |
-| OpenStack  | MongoDB           | Optional       | Required             |
+| Kubernetes | Thanos/Cortex     | Optional       | Required             |
+| OpenStack  | PostgreSQL        | Required       | Required             |
 | OpenStack  | Aodh (Helm)       | Optional       | Required             |
+| OpenStack  | Consul            | Optional       | Required             |
 | OpenStack  | Ceilometer (Helm) | Optional       | Required             |
 | OpenStack  | Masakari (Helm)   | Optional       | Required             |
