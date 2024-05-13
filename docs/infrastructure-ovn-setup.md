@@ -128,3 +128,25 @@ If there's ever a need to reconfigure a node, simply remove the label and the Da
     set the SWIFT_BASE_URL and CONTAINER) and put the username and secret key of
     the account to use in `swift-account.env` before running `kubectl apply` an
     indicated above.
+
+## Centralize `kube-ovn-controller` pods
+
+By default, _Kubespray_ deploys _Kube-OVN_ allowing [`kube-ovn-controller` pods](https://kube-ovn.readthedocs.io/zh-cn/stable/en/reference/architecture/#kube-ovn-controller), which play a central role, to distribute across various kinds of cluster nodes.  In _Genestack_, this would include compute nodes and other kinds of nodes. By contrast, `ovn-central` pods, which also play a crucial central role, run only on nodes labelled `"kube-ovn/role": "master"`. A _Genestack_ installation will typically have control functions centralized on a small set of nodes, which you may have different resource allocations and different redundancy and uptime requirements for relative to other types of nodes, so you can set the `kube-ovn-controller` pods to run in the same location as [`ovn-central`](https://kube-ovn.readthedocs.io/zh-cn/stable/en/reference/architecture/#ovn-central) on _Kube-OVN_ master nodes (which most likely simply match your k8s cluster control nodes unless you've customized it):
+
+``` shell
+kubectl -n kube-system patch deployment kube-ovn-controller -p '{
+  "spec": {
+    "template": {
+      "spec": {
+        "nodeSelector": {
+          "kube-ovn/role": "master",
+          "kubernetes.io/os": "linux"
+        }
+      }
+    }
+  }
+}
+'
+```
+
+This helps keep critical control functions on a known set of nodes.
