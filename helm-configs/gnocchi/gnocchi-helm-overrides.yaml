@@ -260,7 +260,7 @@ pod:
       api:
         timeout: 30
   resources:
-    enabled: false
+    enabled: true
     api:
       requests:
         memory: "124Mi"

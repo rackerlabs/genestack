@@ -2342,7 +2342,7 @@ pod:
       osapi:
         timeout: 30
   resources:
-    enabled: false
+    enabled: true
     compute:
       requests:
         memory: "128Mi"
