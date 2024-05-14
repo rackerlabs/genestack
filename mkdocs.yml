@@ -233,6 +233,7 @@ nav:
       - Openstack Floating Ips: openstack-floating-ips.md
       - Openstack Keypairs: openstack-keypairs.md
       - Openstack Servers: openstack-servers.md
+      - Openstack Routers: openstack-router.md
       - Openstack Images: openstack-images.md
       - Openstack Swift: storage-swift-object-store.md
       - Openstack Snapshot: openstack-snapshot.md
