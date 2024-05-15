@@ -75,8 +75,8 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 5,
-        "w": 3,
+        "h": 6,
+        "w": 5,
         "x": 0,
         "y": 0
       },
@@ -88,7 +88,7 @@
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
-            "mean"
+            "allIsZero"
           ],
           "fields": "",
           "values": false
@@ -103,14 +103,14 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(up{job=\"kube-ovn-monitor\"})",
+          "expr": "sum(pinger_ovs_down{instance=~\"$instance\"})",
           "instant": true,
           "interval": "",
           "legendFormat": "",
           "refId": "A"
         }
       ],
-      "title": "OVN DB Up",
+      "title": "OVS Up",
       "type": "stat"
     },
     {
@@ -138,75 +138,12 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 5,
-        "w": 3,
-        "x": 3,
+        "h": 6,
+        "w": 6,
+        "x": 5,
         "y": 0
       },
-      "id": 16,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "mean"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "10.3.3",
-      "targets": [
-        {
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "expr": "count(kube_ovn_chassis_info{instance=~\"$instance\"})",
-          "instant": true,
-          "interval": "",
-          "legendFormat": "",
-          "refId": "A"
-        }
-      ],
-      "title": "Chassis Count",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "uid": "$datasource"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unitScale": true
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 4,
-        "x": 6,
-        "y": 0
-      },
-      "id": 18,
+      "id": 4,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -229,14 +166,14 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(kube_ovn_cluster_role{instance=~\"$instance\", db_name=\"OVN_Northbound\"}) by (server_role)",
+          "expr": "sum(kube_ovn_ovs_info{instance=~\"$instance\"}) by (db_version)",
           "instant": true,
           "interval": "",
-          "legendFormat": "{{server_role}}",
+          "legendFormat": "{{db_version}}",
           "refId": "A"
         }
       ],
-      "title": "OVN NB Role",
+      "title": "DB Version",
       "type": "stat"
     },
     {
@@ -264,12 +201,12 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 5,
-        "w": 4,
-        "x": 10,
+        "h": 6,
+        "w": 7,
+        "x": 11,
         "y": 0
       },
-      "id": 20,
+      "id": 6,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -292,14 +229,14 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(kube_ovn_cluster_role{instance=~\"$instance\", db_name=\"OVN_Southbound\"}) by (server_role)",
+          "expr": "sum(kube_ovn_ovs_info{instance=~\"$instance\"}) by (ovs_version)",
           "instant": true,
           "interval": "",
-          "legendFormat": "{{server_role}}",
+          "legendFormat": "{{ovs_vsersion}}",
           "refId": "A"
         }
       ],
-      "title": "OVN SB Role",
+      "title": "OVS Version",
       "type": "stat"
     },
     {
@@ -322,185 +259,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 5
-      },
-      "hiddenSeries": false,
-      "id": 8,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "10.3.3",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "expr": "sum(kube_ovn_logical_switch_info{instance=~\"$instance\"}) by (instance)",
-          "interval": "",
-          "legendFormat": "{{instance}}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeRegions": [],
-      "title": "Logical Switch Count",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "mode": "time",
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "logBase": 1,
-          "show": true
-        },
-        {
-          "format": "short",
-          "logBase": 1,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": {
-        "uid": "$datasource"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unitScale": true
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 5
-      },
-      "hiddenSeries": false,
-      "id": 10,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "10.3.3",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "expr": "kube_ovn_logical_switch_ports_num{instance=~\"$instance\"}",
-          "interval": "",
-          "legendFormat": "{{instance}} {{logical_switch_name}}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeRegions": [],
-      "title": "Logical Switch Port Count",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "mode": "time",
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "logBase": 1,
-          "show": true
-        },
-        {
-          "format": "short",
-          "logBase": 1,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": {
-        "uid": "$datasource"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unitScale": true
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 13
+        "y": 6
       },
       "hiddenSeries": false,
       "id": 12,
@@ -533,15 +292,15 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "kube_ovn_db_file_size_bytes{instance=~\"$instance\", hostname!=\"localhost\"}",
+          "expr": "kube_ovn_dp_flows_total{instance=~\"$instance\"}",
           "interval": "",
-          "legendFormat": "{{instance}} {{db_name}}",
+          "legendFormat": "{{instance}}",
           "refId": "A"
         }
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "DB File Size",
+      "title": "Datapath Flow Count",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -577,7 +336,6 @@
       "datasource": {
         "uid": "$datasource"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "unitScale": true
@@ -590,10 +348,188 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 13
+        "y": 6
       },
       "hiddenSeries": false,
       "id": 14,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "10.3.3",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "uid": "$datasource"
+          },
+          "expr": "increase(kube_ovn_dp_flows_lookup_hit{instance=~\"$instance\"}[1m])/(increase(kube_ovn_dp_flows_lookup_hit{instance=~\"$instance\"}[1m])+increase(kube_ovn_dp_flows_lookup_missed{instance=~\"$instance\"}[1m]))",
+          "interval": "",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Flow Hit Ratio",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "percentunit",
+          "logBase": 1,
+          "show": true
+        },
+        {
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "uid": "$datasource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unitScale": true
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 14
+      },
+      "hiddenSeries": false,
+      "id": 8,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "10.3.3",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "uid": "$datasource"
+          },
+          "expr": "kube_ovn_db_file_size_bytes{instance=~\"$instance\", hostname!=\"localhost\"}",
+          "interval": "",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "DB Size",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        },
+        {
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "uid": "$datasource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unitScale": true
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 14
+      },
+      "hiddenSeries": false,
+      "id": 10,
       "legend": {
         "avg": false,
         "current": false,
@@ -631,7 +567,97 @@
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "OVN Log File Size",
+      "title": "Log File Size",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        },
+        {
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "uid": "$datasource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unitScale": true
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 14
+      },
+      "hiddenSeries": false,
+      "id": 16,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "10.3.3",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "uid": "$datasource"
+          },
+          "expr": "kube_ovn_dp_if_total{instance=~\"$instance\"}",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Interface Count",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -679,10 +705,10 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 21
+        "y": 22
       },
       "hiddenSeries": false,
-      "id": 4,
+      "id": 18,
       "legend": {
         "avg": false,
         "current": false,
@@ -709,7 +735,197 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{pod=~\"ovn-central.*\", container!=\"POD\"}) by (pod, node)",
+          "expr": "sum(delta(kube_ovn_interface_rx_packets{instance=~\"$instance\"}[1m])) by (instance)",
+          "interval": "",
+          "legendFormat": "{{instance}} rx",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "uid": "$datasource"
+          },
+          "expr": "sum(delta(kube_ovn_interface_tx_packets{instance=~\"$instance\"}[1m])) by (instance)",
+          "interval": "",
+          "legendFormat": "{{instance}} tx",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Packets Per Minute",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        },
+        {
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "uid": "$datasource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 22
+      },
+      "hiddenSeries": false,
+      "id": 20,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.0",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "uid": "$datasource"
+          },
+          "expr": "sum(delta(kube_ovn_interface_rx_bytes{instance=~\"$instance\"}[1m])) by (instance)",
+          "interval": "",
+          "legendFormat": "{{instance}} rx",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "uid": "$datasource"
+          },
+          "expr": "sum(delta(kube_ovn_interface_tx_bytes{instance=~\"$instance\"}[1m])) by (instance)",
+          "interval": "",
+          "legendFormat": "{{instance}} tx",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Bytes Per Minute",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        },
+        {
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "uid": "$datasource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 30
+      },
+      "hiddenSeries": false,
+      "id": 22,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.0",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "uid": "$datasource"
+          },
+          "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{pod=~\"ovs-ovn.*\", container!=\"POD\"}) by (pod, node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -765,10 +981,10 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 21
+        "y": 30
       },
       "hiddenSeries": false,
-      "id": 6,
+      "id": 24,
       "legend": {
         "avg": false,
         "current": false,
@@ -795,7 +1011,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(node_namespace_pod_container:container_memory_working_set_bytes{pod=~\"ovn-central.*\", container!=\"POD\"}) by (node)",
+          "expr": "sum(node_namespace_pod_container:container_memory_working_set_bytes{pod=~\"ovs-ovn.*\", container!=\"POD\"}) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -817,7 +1033,7 @@
       },
       "yaxes": [
         {
-          "format": "decbytes",
+          "format": "short",
           "logBase": 1,
           "show": true
         },
@@ -859,13 +1075,13 @@
         "datasource": {
           "uid": "$datasource"
         },
-        "definition": "label_values(process_cpu_seconds_total{job=\"kube-ovn-monitor\"}, instance)",
+        "definition": "label_values(process_cpu_seconds_total{job=\"kube-ovn-pinger\"}, instance)",
         "hide": 0,
-        "includeAll": false,
+        "includeAll": true,
         "multi": false,
         "name": "instance",
         "options": [],
-        "query": "label_values(process_cpu_seconds_total{job=\"kube-ovn-monitor\"}, instance)",
+        "query": "label_values(process_cpu_seconds_total{job=\"kube-ovn-pinger\"}, instance)",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -878,7 +1094,7 @@
     ]
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-6h",
     "to": "now"
   },
   "timepicker": {
@@ -895,8 +1111,8 @@
     ]
   },
   "timezone": "",
-  "title": "Kube-OVN / OVN",
-  "uid": "c4ykUItGk",
+  "title": "Kube-OVN / OVS",
+  "uid": "xI0I5dpMk",
   "version": 1,
   "weekStart": ""
 }
