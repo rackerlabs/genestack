@@ -5,9 +5,6 @@ then
     set -x
 fi
 
-SWIFT_CONTAINER_BASE_URL="$SWIFT_BASE_URL/swift/v1"
-export SWIFT_CONTAINER_BASE_URL
-
 log_level() {
     local LEVEL="$1"
     case "$LEVEL" in
@@ -66,11 +63,39 @@ cd "$BACKUP_DIR" || exit 2
 CURL="$(which curl)"
 export CONTAINER CURL # these need to reach the subshell below used with `find`
 HEADER_TEMP_FILE=$(mktemp /tmp/headers.XXXXXXXX)
-$CURL -sS -D "$HEADER_TEMP_FILE" -H "X-Auth-User: $USERNAME" -H "X-Auth-Key: $SECRET_KEY" "$SWIFT_BASE_URL/auth/v1.1"
+CATALOG_TEMP_FILE=$(mktemp /tmp/catalog.XXXXXXXX)
+$CURL -sS -D "$HEADER_TEMP_FILE" \
+  -H "Content-Type: application/json" \
+  -d "
+  { \"auth\": {
+    \"identity\": {
+      \"methods\": [ \"password\" ],
+      \"password\": {
+        \"user\": {
+          \"name\": \"$USERNAME\",
+          \"domain\": { \"name\": \"$DOMAIN_NAME\" },
+          \"password\": \"$PASSWORD\"
+        }
+      }
+    },
+    \"scope\": {
+      \"project\": {
+        \"id\": \"$PROJECT_ID\",
+        \"domain\": {
+          \"id\": \"$DOMAIN_ID\"
+        }
+      }
+    }
+  }
+}" \
+"$KEYSTONE_URL" > "$CATALOG_TEMP_FILE"
 sed -i -e 's/\r//g' "$HEADER_TEMP_FILE" # strip carriage returns
-token=$(awk '/X-Auth-Token/ { print $2 }' "$HEADER_TEMP_FILE")
-rm "$HEADER_TEMP_FILE"
+token=$(awk 'tolower($1) ~ /x-subject-token:/ { print $2 }' "$HEADER_TEMP_FILE")
 export token
+rm "$HEADER_TEMP_FILE"
+SWIFT_URL=$(/backup-script/get-swift-url.pl "$CATALOG_TEMP_FILE" "$REGION" public)
+export SWIFT_URL
+rm "$CATALOG_TEMP_FILE"
 
 # wrap curl with some things we will always use
 curl_wrap() {
@@ -79,10 +104,10 @@ curl_wrap() {
 export -f curl_wrap
 
 # Create the container if it doesn't exist
-check_container=$(curl_wrap -o /dev/null -w "%{http_code}" "$SWIFT_CONTAINER_BASE_URL/$CONTAINER")
+check_container=$(curl_wrap -o /dev/null -w "%{http_code}" "$SWIFT_URL/$CONTAINER")
 if ! [[ "$check_container" =~ 20[0-9] ]]
 then
-  curl_wrap -X PUT "$SWIFT_CONTAINER_BASE_URL/$CONTAINER"
+  curl_wrap -X PUT "$SWIFT_URL/$CONTAINER"
 fi
 
 # upload_file uploads $1 to the container
@@ -90,7 +115,7 @@ upload_file() {
     FILE="$1"
     local curl_return
     curl_return=$(curl_wrap -w "%{http_code}" \
-      -X PUT "${SWIFT_CONTAINER_BASE_URL}/${CONTAINER}/$FILE" -T "$FILE")
+      -X PUT "${SWIFT_URL}/${CONTAINER}/$FILE" -T "$FILE")
     if [[ "$curl_return" == "201" ]]
     then
       log_line INFO "SUCCESSFUL UPLOAD $FILE"

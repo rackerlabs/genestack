@@ -8,6 +8,7 @@ configMapGenerator:
     namespace: kube-system
     files:
     - ovn-backup.sh
+    - get-swift-url.pl
   - name: ovn-backup-config
     namespace: kube-system
     envs:
