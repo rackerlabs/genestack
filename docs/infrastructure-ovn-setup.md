@@ -123,8 +123,20 @@ If there's ever a need to reconfigure a node, simply remove the label and the Da
 
 !!! note
 
-    To upload backups to a Ceph Swift API gateway, edit ovn-backup.config to set
+    To upload backups to Swift, edit
+    /opt/genestack/kustomize/ovn/ovn-backup/ovn-backup.config to set
     `SWIFT_UPLOAD' "true"`, edit the other related options appropriately (i.e.,
-    set the SWIFT_BASE_URL and CONTAINER) and put the username and secret key of
-    the account to use in `swift-account.env` before running `kubectl apply` an
-    indicated above.
+    set the KEYSTONE_URL and CONTAINER) and fill the username, password or API
+    key, domain name, project ID, and domain ID of an user to use for backup (to
+    get a scoped token suitable for uploading to Swift) in `swift-account.env`
+    and then run:
+
+    kubectl apply -k /opt/genestack/kustomize/ovn/ovn-backup \
+    --prune -l app=ovn-backup \
+    --prune-allowlist=core/v1/Secret \
+    --prune-allowlist=core/v1/ConfigMap
+
+    If you need to change variables in the future, you can edit the relevant
+    files and use `kubectl` with these prune options to avoid accumulating
+    old ConfigMaps and Secrets from successive `kubectl apply` operations, but
+    you can omit the pruning options if desired.
