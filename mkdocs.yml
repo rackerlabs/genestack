@@ -199,6 +199,7 @@ nav:
               - Memcached Exporter: prometheus-memcached-exporter.md
               - Postgres Exporter: prometheus-postgres-exporter.md
               - Openstack Exporter: prometheus-openstack-metrics-exporter.md
+              - Blackbox Exporter: prometheus-blackbox-exporter.md
               - Custom Node Metrics: prometheus-custom-node-metrics.md
               - Alert Manager Examples:
                   - alertmanager-encore.md
