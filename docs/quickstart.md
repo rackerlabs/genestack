@@ -18,38 +18,16 @@ The environment variable `GENESTACK_PRODUCT` is used to bootstrap specific confi
 It is persisted at /etc/genestack/product` for subsequent executions, it only has to be used once.
 
 ``` shell
-GENESTACK_PRODUCT=openstack-enterprise
+export GENESTACK_PRODUCT=openstack-enterprise
 #GENESTACK_PRODUCT=openstack-flex
 
 /opt/genestack/bootstrap.sh
 ```
 
+!!! tip
+
+    If running this command with `sudo`, be sure to run with `-E`. `sudo -E /opt/genestack/bootstrap.sh`. This will ensure your active environment is passed into the bootstrap command.
+
 Once the bootstrap is completed the default Kubernetes provider will be configured inside `/etc/genestack/provider`
 
 The ansible inventory is expected at `/etc/genestack/inventory`
-
-## Prepare hosts for installation
-
-``` shell
-source /opt/genestack/scripts/genestack.rc
-cd /opt/genestack/ansible/playbooks
-
-ansible-playbook host-setup.yml
-```
-
-## Installing Kubernetes
-
-Currently only the k8s provider kubespray is supported and included as submodule into the code base.
-A default inventory file for kubespray is provided at `/etc/genestack/inventory` and must be modified.
-Existing OpenStack Ansible inventory can be converted using the `/opt/genestack/scripts/convert_osa_inventory.py`
-script which provides a `hosts.yml`
-
-Once the inventory is updated and configuration altered (networking etc), the Kubernetes cluster can be initialized with
-the `setup-kubernetes.yml` playbook which in addition will also label nodes for OpenStack installation.
-
-``` shell
-source /opt/genestack/scripts/genestack.rc
-cd /opt/genestack/ansible/playbooks
-
-ansible-playbook setup-kubernetes.yml
-```
