@@ -135,7 +135,6 @@ nav:
       - Simple Setup: quickstart.md
   - Deployment Guide:
       - What is Genestack?: deployment-guide-welcome.md
-      - Getting Started: genestack-getting-started.md
       - Open Infrastructure:
           - Kubernetes:
               - k8s-overview.md

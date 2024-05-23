@@ -40,7 +40,7 @@ hide:
 
     Start building now.
 
-    [:octicons-play-24: Deployment Guide](genestack-getting-started.md)
+    [:octicons-play-24: Deployment Guide](quickstart.md)
 
 </div>
 
