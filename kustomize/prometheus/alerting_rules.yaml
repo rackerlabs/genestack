@@ -1,10 +1,10 @@
 additionalPrometheusRulesMap:
   rabbitmq-alerts:
     groups:
-    - name: Prometheus Alerts
+    - name: RabbitMQ Alerts
       rules:
       - alert: RabbitQueueSizeTooLarge
-        expr: rabbitmq_queuesTotal>25
+        expr: rabbitmq_queuesTotal>1600
         for: 5m
         labels:
           severity: critical
@@ -46,3 +46,29 @@ additionalPrometheusRulesMap:
         annotations:
           summary: MySQL restarted (instance {{ $labels.instance }})
           description: "MySQL has just been restarted, less than one minute ago on {{ $labels.instance }}.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+  blackbox-alerts:
+    groups:
+      - name: Blackbox Alerts
+        rules:
+          - alert: TLS certificate expiring
+            expr: (probe_ssl_earliest_cert_expiry - time())/86400 < 60
+            labels:
+              severity: warning
+            annotations:
+              summary: "SSL certificate will expire soon on (instance {{ $labels.instance }})"
+              description: "SSL certificate expires within 60 days\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+          - alert: TLS certificate expiring
+            expr: (probe_ssl_earliest_cert_expiry - time())/86400 < 30
+            labels:
+              severity: critical
+            annotations:
+              summary: "SSL certificate will expire soon on (instance {{ $labels.instance }})"
+              description: "SSL certificate expires within 30 days\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+          - alert: Service Down
+            expr: probe_success == 0
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Service probe has failed for more than two minutes on (instance {{ $labels.instance }})"
+              description: "Service probe has failed for more than two minutes \n  LABELS: {{ $labels }}"
