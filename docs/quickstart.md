@@ -18,9 +18,7 @@ The environment variable `GENESTACK_PRODUCT` is used to bootstrap specific confi
 It is persisted at /etc/genestack/product` for subsequent executions, it only has to be used once.
 
 ``` shell
-export GENESTACK_PRODUCT=openstack-enterprise
-#GENESTACK_PRODUCT=openstack-flex
-
+export GENESTACK_PRODUCT=openstack-flex
 /opt/genestack/bootstrap.sh
 ```
 

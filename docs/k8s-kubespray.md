@@ -145,8 +145,11 @@ Once the cluster is online, you can run `kubectl` to interact with the environme
 
 Currently only the k8s provider kubespray is supported and included as submodule into the code base.
 A default inventory file for kubespray is provided at `/etc/genestack/inventory` and must be modified.
-Existing OpenStack Ansible inventory can be converted using the `/opt/genestack/scripts/convert_osa_inventory.py`
-script which provides a `hosts.yml`
+
+!!! tip
+
+    Existing OpenStack Ansible inventory can be converted using the `/opt/genestack/scripts/convert_osa_inventory.py`
+    script which provides a `hosts.yml`
 
 Once the inventory is updated and configuration altered (networking etc), the Kubernetes cluster can be initialized with
 the `setup-kubernetes.yml` playbook which in addition will also label nodes for OpenStack installation.
