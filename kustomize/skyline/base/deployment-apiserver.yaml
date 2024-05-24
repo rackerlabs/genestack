@@ -340,7 +340,7 @@ spec:
               readOnly: true
       containers:
         - name: skyline-apiserver
-          image: "docker.io/99cloud/skyline:latest"
+          image: "docker.io/99cloud/skyline:2023.1"
           imagePullPolicy: IfNotPresent
           resources:
             limits:
@@ -348,10 +348,12 @@ spec:
             requests:
               cpu: "0.25"
               memory: "64Mi"
+          # Newer versions of SQLAlchemy break logins
+          # Related LP Bug: https://bugs.launchpad.net/skyline-apiserver/+bug/2025755/comments/36
           command:
             - bash
             - -c
-            - /tmp/run.sh
+            - /usr/bin/pip install SQLAlchemy\<=1.4.41 && /tmp/run.sh
           volumeMounts:
             - name: pod-tmp
               mountPath: /tmp
