@@ -132,7 +132,7 @@ openstack --os-cloud={cloud_name} flavor list
 openstack --os-cloud={cloud_name} network list
 ```
 
-Lastly create your server! 
+Lastly create your server!
 
 ``` shell
 openstack --os-cloud={cloud_name} server create --flavor {flavor uuid} --image {image uuid} --boot-from-volume 25 --network {network uuid} my_first_server
