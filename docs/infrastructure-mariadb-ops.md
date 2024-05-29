@@ -7,7 +7,7 @@ Tips and tricks for managing and operating the MariaDB cluster within a Genestac
 Sometimes an operator may need to connect to the database to troubleshoot things or otherwise make modifications to the databases in place. The following command can be used to connect to the database from a node within the cluster.
 
 ``` shell
-mysql -h $(kubectl -n openstack get service mariadb-galera-primary -o jsonpath='{.spec.clusterIP}') \
+mysql -h $(kubectl -n openstack get service mariadb-cluster-primary -o jsonpath='{.spec.clusterIP}') \
       -p$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d) \
       -u root
 ```
@@ -21,7 +21,7 @@ mysql -h $(kubectl -n openstack get service mariadb-galera-primary -o jsonpath='
 When running `mysqldump` or `mariadbdump` the following commands can be useful for generating a quick backup.
 
 ``` shell
-mysqldump --host=$(kubectl -n openstack get service mariadb-galera -o jsonpath='{.spec.clusterIP}')\
+mysqldump --host=$(kubectl -n openstack get service mariadb-cluster -o jsonpath='{.spec.clusterIP}')\
           --user=root \
           --password=$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d) \
           --single-transaction \
@@ -35,14 +35,14 @@ mysqldump --host=$(kubectl -n openstack get service mariadb-galera -o jsonpath='
 !!! example "Dump all databases as individual files in `/tmp`"
 
     ``` shell
-    mysql -h $(kubectl -n openstack get service mariadb-galera -o jsonpath='{.spec.clusterIP}') \
+    mysql -h $(kubectl -n openstack get service mariadb-cluster -o jsonpath='{.spec.clusterIP}') \
           -u root \
           -p$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d) \
           -e 'show databases;' \
           --column-names=false \
           --vertical | \
               awk '/[:alnum:]/' | \
-                  xargs -i mysqldump --host=$(kubectl -n openstack get service mariadb-galera -o jsonpath='{.spec.clusterIP}') \
+                  xargs -i mysqldump --host=$(kubectl -n openstack get service mariadb-cluster -o jsonpath='{.spec.clusterIP}') \
                   --user=root \
                   --password=$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d) \
                   --single-transaction \
@@ -56,7 +56,7 @@ mysqldump --host=$(kubectl -n openstack get service mariadb-galera -o jsonpath='
 !!! example "Restoring a database"
 
     ``` shell
-    mysql -h $(kubectl -n openstack get service mariadb-galera -o jsonpath='{.spec.clusterIP}') \
+    mysql -h $(kubectl -n openstack get service mariadb-cluster -o jsonpath='{.spec.clusterIP}') \
         -u root \
         -p$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d) \
         ${DATABASE_NAME} < /tmp/${DATABASE_FILE}
@@ -81,7 +81,7 @@ for more information.
       name: maria-restore
     spec:
       mariaDbRef:
-        name: mariadb-galera
+        name: mariadb-cluster
       backupRef:
         name: mariadb-backup
     EOF

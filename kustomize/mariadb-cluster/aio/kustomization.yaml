@@ -4,7 +4,7 @@ bases:
 patches:
   - target:
       kind: MariaDB
-      name: mariadb-galera
+      name: mariadb-cluster
     patch: |-
       - op: replace
         path: /spec/affinity/enableAntiAffinity

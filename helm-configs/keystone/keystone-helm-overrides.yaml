@@ -18,21 +18,21 @@ helm3_hook: true
 
 images:
   tags:
-    bootstrap: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    db_init: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    db_drop: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    keystone_api: "ghcr.io/rackerlabs/genestack/keystone-rxt:2023.1-ubuntu_jammy"
-    keystone_bootstrap: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    keystone_credential_rotate: "ghcr.io/rackerlabs/genestack/keystone-rxt:2023.1-ubuntu_jammy"
-    keystone_credential_setup: "ghcr.io/rackerlabs/genestack/keystone-rxt:2023.1-ubuntu_jammy"
-    keystone_db_sync: "ghcr.io/rackerlabs/genestack/keystone-rxt:2023.1-ubuntu_jammy"
-    keystone_domain_manage: "ghcr.io/rackerlabs/genestack/keystone-rxt:2023.1-ubuntu_jammy"
-    keystone_fernet_rotate: "ghcr.io/rackerlabs/genestack/keystone-rxt:2023.1-ubuntu_jammy"
-    keystone_fernet_setup: "ghcr.io/rackerlabs/genestack/keystone-rxt:2023.1-ubuntu_jammy"
-    ks_user: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    bootstrap: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    db_init: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    db_drop: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    keystone_api: "docker.io/aedan/keystone:2024.1-ubuntu_jammy"
+    keystone_bootstrap: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    keystone_credential_rotate: "docker.io/aedan/keystone:2024.1-ubuntu_jammy"
+    keystone_credential_setup: "docker.io/aedan/keystone:2024.1-ubuntu_jammy"
+    keystone_db_sync: "docker.io/aedan/keystone:2024.1-ubuntu_jammy"
+    keystone_domain_manage: "docker.io/aedan/keystone:2024.1-ubuntu_jammy"
+    keystone_fernet_rotate: "docker.io/aedan/keystone:2024.1-ubuntu_jammy"
+    keystone_fernet_setup: "docker.io/aedan/keystone:2024.1-ubuntu_jammy"
+    ks_user: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
     test: docker.io/xrally/xrally-openstack:2.0.0
     rabbit_init: docker.io/rabbitmq:3.7-management
-    keystone_credential_cleanup: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    keystone_credential_cleanup: "docker.io/aedan/heat:2024.1-ubuntu_jammy"
     dep_check: quay.io/airshipit/kubernetes-entrypoint:v1.0.0
     image_repo_sync: docker.io/docker:17.07.0
   pull_policy: "IfNotPresent"
@@ -513,6 +513,9 @@ conf:
     credential:
       key_repository: /etc/keystone/credential-keys/
     database:
+      idle_timeout: 3600
+      connection_recycle_time: 3600
+      pool_timeout: 60
       max_retries: -1
     cache:
       enabled: true
@@ -529,10 +532,10 @@ conf:
       # NOTE(vdrok): The following two options have effect only for SQL backend
       lockout_failure_attempts: 5
       lockout_duration: 1800
-    auth:
-      methods: password,token,application_credential,totp
-      password: rxt
-      totp: rxt
+#    auth:
+#      methods: password,token,application_credential,rxt
+#      password: rxt
+#      totp: rxt
 
   # NOTE(lamt) We can leverage multiple domains with different
   # configurations as outlined in
@@ -972,7 +975,7 @@ endpoints:
         username: keystone
         password: password
     hosts:
-      default: mariadb-galera-primary
+      default: mariadb-cluster-primary
     host_fqdn_override:
       default: null
     path: /keystone
