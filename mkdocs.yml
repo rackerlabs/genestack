@@ -130,11 +130,11 @@ nav:
   - Overview:
       - Architecture: genestack-architecture.md
       - Components: genestack-components.md
-  - Quickstart:
-      - Building Virtual Environments: build-test-envs.md
-      - Simple Setup: quickstart.md
   - Deployment Guide:
       - What is Genestack?: deployment-guide-welcome.md
+      - Getting Started:
+          - Building Virtual Environments: build-test-envs.md
+          - Getting the code: genestack-getting-started.md
       - Open Infrastructure:
           - Kubernetes:
               - k8s-overview.md
@@ -186,9 +186,9 @@ nav:
                       - skyline: openstack-skyline.md
                   - Octavia: openstack-octavia.md
                   - Metering:
-                    - PostgreSQL: infrastructure-postgresql.md
-                    - Gnocchi: openstack-gnocchi.md
-                    - Ceilometer: openstack-ceilometer.md
+                      - PostgreSQL: infrastructure-postgresql.md
+                      - Gnocchi: openstack-gnocchi.md
+                      - Ceilometer: openstack-ceilometer.md
           - Monitoring:
               - Monitoring Overview: prometheus-monitoring-overview.md
               - Getting Started: monitoring-getting-started.md
@@ -196,6 +196,7 @@ nav:
               - Kube-OVN Monitoring: prometheus-kube-ovn.md
               - RabbitMQ Exporter: prometheus-rabbitmq-exporter.md
               - Memcached Exporter: prometheus-memcached-exporter.md
+              - MariaDB Exporter: prometheus-mysql-exporter.md
               - Postgres Exporter: prometheus-postgres-exporter.md
               - Openstack Exporter: prometheus-openstack-metrics-exporter.md
               - Blackbox Exporter: prometheus-blackbox-exporter.md

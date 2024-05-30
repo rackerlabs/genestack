@@ -1,4 +1,4 @@
-# Quick Start Guide
+# Getting the Genestack Repository
 
 Before you can do anything we need to get the code. Because we've sold our soul to the submodule devil, you're going to need to recursively clone the repo into your location.
 

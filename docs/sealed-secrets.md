@@ -1,5 +1,8 @@
-# Sealed Secrets Introduction and Installation Guide
+!!! Danger "This section is still underdevelopment and experimental"
 
+    None of the vault components are required to run a Genestack environment.
+
+# Sealed Secrets Introduction and Installation Guide
 
 Sealed Secrets is a Kubernetes-native solution for securely storing and managing sensitive information within Kubernetes Secrets. It ensures secure secret management by encrypting Kubernetes Secrets and storing them as SealedSecret resources, which can only be decrypted by the cluster itself.
 
