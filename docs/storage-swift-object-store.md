@@ -4,12 +4,6 @@
 
 Use the command-line utility `swift` to perform operations on your object store.
 
-## Requirements
-
-!!! note
-
-    FIXME: TBD
-
 ## Swift client documentation
 
 ``` shell
