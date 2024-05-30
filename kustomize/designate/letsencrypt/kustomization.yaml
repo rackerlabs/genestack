@@ -1,0 +1,13 @@
+bases:
+  - ../base
+
+patches:
+  - target:
+      kind: Ingress
+      name: designate-namespace-fqdn
+    patch: |-
+      - op: add
+        path: /metadata/annotations
+        value:
+          cert-manager.io/cluster-issuer: letsencrypt-prod
+          acme.cert-manager.io/http01-edit-in-place: "true"
