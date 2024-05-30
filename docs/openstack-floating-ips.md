@@ -86,3 +86,27 @@ To remove the floating IP address from a project:
 ``` shell
 openstack floating ip delete FLOATING_IP_ADDRESS
 ```
+
+#### Floating Ip Example
+
+Below is a quick example of how we can assign floating ips.
+
+You will need to get your cloud name from your clouds.yaml. More information on this can be found [here](build-test-envs.md). Underneath "clouds:" you will find your cloud name.
+
+First create a floating ip either from PUBLICNET or the public ip pool.
+
+``` shell
+openstack --os-cloud={cloud_name} floating ip create PUBLICNET
+```
+
+Second get the cloud server UUID.
+
+``` shell
+openstack --os-cloud={cloud_name} server list
+```
+
+Third add the floating ip to the server
+
+``` shell
+openstack --os-cloud={cloud_name} server add floating ip {cloud_server_uuid} {floating_ip}
+```
