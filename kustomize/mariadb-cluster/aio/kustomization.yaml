@@ -7,8 +7,5 @@ patches:
       name: mariadb-cluster
     patch: |-
       - op: replace
-        path: /spec/affinity/enableAntiAffinity
-        value: false
-      - op: replace
         path: /spec/replicas
-        value: 2
+        value: 1
