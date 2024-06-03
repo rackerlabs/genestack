@@ -317,7 +317,7 @@ spec:
                 key: prometheus_endpoint
                 optional: true
         - name: skyline-apiserver-db-migrate
-          image: "docker.io/99cloud/skyline:2023.1"
+          image: "ghcr.io/rackerlabs/skyline-rxt:master-ubuntu_jammy-1717079928"
           imagePullPolicy: IfNotPresent
           resources:
             requests:
@@ -340,7 +340,7 @@ spec:
               readOnly: true
       containers:
         - name: skyline-apiserver
-          image: "docker.io/99cloud/skyline:2023.1"
+          image: "ghcr.io/rackerlabs/skyline-rxt:master-ubuntu_jammy-1717079928"
           imagePullPolicy: IfNotPresent
           resources:
             limits:
@@ -353,7 +353,7 @@ spec:
           command:
             - bash
             - -c
-            - /usr/bin/pip install SQLAlchemy\<=1.4.41 && /tmp/run.sh
+            - /tmp/run.sh
           volumeMounts:
             - name: pod-tmp
               mountPath: /tmp
