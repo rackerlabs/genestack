@@ -863,7 +863,16 @@ conf:
     filter:audit:
       paste.filter_factory: keystonemiddleware.audit:filter_factory
       audit_map_file: /etc/nova/api_audit_map.conf
-  policy: {}
+  policy:
+    "os_compute_api:os-lock-server:unlock:unlock_override": "!"
+    "os_compute_api:os-deferred-delete:force": "rule:context_is_admin"
+    "os_compute_api:servers:migrations:force_complete": "!"
+    "os_compute_api:os-pause-server:pause": "rule:context_is_admin"
+    "os_compute_api:os-pause-server:unpause": "rule:context_is_admin"
+    "os_compute_api:os-suspend-server:resume": "rule:context_is_admin"
+    "os_compute_api:os-suspend-server:suspend": "rule:context_is_admin"
+    "os_compute_api:os-shelve:shelve": "rule:context_is_admin"
+    "os_compute_api:os-shelve:unshelve": "rule:context_is_admin"
   nova_sudoers: |
     # This sudoers file supports rootwrap for both Kolla and LOCI Images.
     Defaults !requiretty
