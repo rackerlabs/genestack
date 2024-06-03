@@ -1458,7 +1458,25 @@ conf:
     oslo_messaging_notifications:
       driver: messagingv2
     oslo_messaging_rabbit:
-      rabbit_ha_queues: true
+      # We define use of quorum queues via kustomize but this was enabling HA queues instead
+      # ha_queues are deprecated, explicitly set to false and set quorum_queue true
+      rabbit_ha_queues: false
+      rabbit_quorum_queue: true
+      # TODO: Not available until 2024.1, but once it is, we want to enable these!
+      # new feature ref; https://docs.openstack.org/releasenotes/oslo.messaging/2024.1.html
+      # rabbit_transient_quorum_queue: true
+      # use_queue_manager: true
+      # Reconnect after a node outage more quickly
+      rabbit_interval_max: 10
+      # Send more frequent heartbeats and fail unhealthy nodes faster
+      # heartbeat_timeout / heartbeat_rate / 2.0 = 30 / 3 / 2.0 = 5
+      # https://opendev.org/openstack/oslo.messaging/commit/36fb5bceabe08a982ebd52e4a8f005cd26fdf6b8
+      heartbeat_rate: 3
+      heartbeat_timeout_threshold: 30
+      # Setting lower kombu_reconnect_delay should resolve isssue with HA failing when one node is down
+      # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
+      # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
+      kombu_reconnect_delay: 0.5
     os_vif_ovs:
       ovsdb_connection: tcp:127.0.0.1:6640
     placement:
@@ -1537,19 +1555,7 @@ conf:
       format: "%(message)s"
       datefmt: "%Y-%m-%d %H:%M:%S"
   rabbitmq:
-    # NOTE(rk760n): adding rmq policy to mirror messages from notification queues and set expiration time for the ones
-    policies:
-      - vhost: "nova"
-        name: "ha_ttl_nova"
-        definition:
-          # mirror messges to other nodes in rmq cluster
-          ha-mode: "all"
-          ha-sync-mode: "automatic"
-          # 70s
-          message-ttl: 70000
-        priority: 0
-        apply-to: all
-        pattern: '^(?!(amq\.|reply_)).*'
+    policies: []
   enable_iscsi: false
   archive_deleted_rows:
     purge_deleted_rows: false
