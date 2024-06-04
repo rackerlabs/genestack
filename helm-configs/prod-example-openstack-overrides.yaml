@@ -103,11 +103,7 @@ endpoints:
   compute:
     host_fqdn_override:
       public:
-        tls:
-          secretName: nova-tls-api
-          issuerRef:
-            name: letsencrypt-prod
-            kind: ClusterIssuer
+        tls: {}
         host: nova.dfw-ospcv2-staging.ohthree.com
     port:
       api:
@@ -117,11 +113,7 @@ endpoints:
   compute_metadata:
     host_fqdn_override:
       public:
-        tls:
-          secretName: metadata-tls-metadata
-          issuerRef:
-            name: letsencrypt-prod
-            kind: ClusterIssuer
+        tls: {}
         host: metadata.nova.dfw-ospcv2-staging.ohthree.com
     port:
       metadata:
@@ -131,11 +123,7 @@ endpoints:
   compute_novnc_proxy:
     host_fqdn_override:
       public:
-        tls:
-          secretName: nova-novncproxy-tls-proxy
-          issuerRef:
-            name: letsencrypt-prod
-            kind: ClusterIssuer
+        tls: {}
         host: novnc.nova.dfw-ospcv2-staging.ohthree.com
     port:
       novnc_proxy:
@@ -145,11 +133,7 @@ endpoints:
   cloudformation:
     host_fqdn_override:
       public:
-        tls:
-          secretName: heat-tls-cfn
-          issuerRef:
-            name: letsencrypt-prod
-            kind: ClusterIssuer
+        tls: {}
         host: cloudformation.heat.dfw-ospcv2-staging.ohthree.com
     port:
       api:
@@ -159,11 +143,7 @@ endpoints:
   cloudwatch:
     host_fqdn_override:
       public:
-        tls:
-          secretName: heat-tls-cloudwatch
-          issuerRef:
-            name: letsencrypt-prod
-            kind: ClusterIssuer
+        tls: {}
         host: cloudwatch.heat.dfw-ospcv2-staging.ohthree.com
     port:
       api:
@@ -173,11 +153,7 @@ endpoints:
   dashboard:
     host_fqdn_override:
       public:
-        tls:
-          secretName: horizon-tls-web
-          issuerRef:
-            name: letsencrypt-prod
-            kind: ClusterIssuer
+        tls: {}
         host: dfw-ospcv2-staging.ohthree.com
     port:
       web:
@@ -210,11 +186,7 @@ endpoints:
         region_name: *region
     host_fqdn_override:
       public:
-        tls:
-          secretName: keystone-tls-api
-          issuerRef:
-            name: letsencrypt-prod
-            kind: ClusterIssuer
+        tls: {}
         host: keystone.dfw-ospcv2-staging.ohthree.com
     port:
       api:
@@ -228,11 +200,7 @@ endpoints:
   image:
     host_fqdn_override:
       public:
-        tls:
-          secretName: glance-tls-api
-          issuerRef:
-            name: letsencrypt-prod
-            kind: ClusterIssuer
+        tls: {}
         host: glance.dfw-ospcv2-staging.ohthree.com
     port:
       api:
@@ -242,11 +210,7 @@ endpoints:
   load_balancer:
     host_fqdn_override:
       public:
-        tls:
-          secretName: octavia-tls-api
-          issuerRef:
-            name: letsencrypt-prod
-            kind: ClusterIssuer
+        tls: {}
         host: octavia.dfw-ospcv2-staging.ohthree.com
     port:
       api:
@@ -256,11 +220,7 @@ endpoints:
   network:
     host_fqdn_override:
       public:
-        tls:
-          secretName: neutron-tls-server
-          issuerRef:
-            name: letsencrypt-prod
-            kind: ClusterIssuer
+        tls: {}
         host: neutron.dfw-ospcv2-staging.ohthree.com
     port:
       api:
@@ -270,11 +230,7 @@ endpoints:
   orchestration:
     host_fqdn_override:
       public:
-        tls:
-          secretName: heat-tls-api
-          issuerRef:
-            name: letsencrypt-prod
-            kind: ClusterIssuer
+        tls: {}
         host: heat.dfw-ospcv2-staging.ohthree.com
     port:
       api:
@@ -284,11 +240,7 @@ endpoints:
   placement:
     host_fqdn_override:
       public:
-        tls:
-          secretName: placement-tls-api
-          issuerRef:
-            name: letsencrypt-prod
-            kind: ClusterIssuer
+        tls: {}
         host: placement.dfw-ospcv2-staging.ohthree.com
     port:
       api:
@@ -298,11 +250,7 @@ endpoints:
   volume:
     host_fqdn_override:
       public:
-        tls:
-          secretName: cinder-tls-api
-          issuerRef:
-            name: letsencrypt-prod
-            kind: ClusterIssuer
+        tls: {}
         host: cinder.dfw-ospcv2-staging.ohthree.com
     port:
       api:
@@ -312,11 +260,7 @@ endpoints:
   volumev2:
     host_fqdn_override:
       public:
-        tls:
-          secretName: cinder-tls-api
-          issuerRef:
-            name: letsencrypt-prod
-            kind: ClusterIssuer
+        tls: {}
         host: cinder.dfw-ospcv2-staging.ohthree.com
     port:
       api:
@@ -326,11 +270,7 @@ endpoints:
   volumev3:
     host_fqdn_override:
       public:
-        tls:
-          secretName: cinder-tls-api
-          issuerRef:
-            name: letsencrypt-prod
-            kind: ClusterIssuer
+        tls: {}
         host: cinder.dfw-ospcv2-staging.ohthree.com
     port:
       api:

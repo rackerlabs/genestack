@@ -9,15 +9,5 @@ kubectl kustomize --enable-helm /opt/genestack/kustomize/libvirt | kubectl apply
 Once deployed you can validate functionality on your compute hosts with `virsh`
 
 ``` shell
-root@openstack-flex-node-3:~# virsh
-Welcome to virsh, the virtualization interactive terminal.
-
-Type:  'help' for help with commands
-       'quit' to quit
-
-virsh # list
- Id   Name   State
---------------------
-
-virsh #
+kubectl exec -it $(kubectl get pods -l application=libvirt -o=jsonpath='{.items[0].metadata.name}' -n openstack) -n openstack -- virsh list
 ```
