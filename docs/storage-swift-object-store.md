@@ -77,10 +77,6 @@ Verify the container's configuration:
 swift stat flex-container01
 ```
 
-!!! example
-
-    FIXME: Example coming soon!
-
 ### Upload files to the container
 
 Upload the entire contents of a folder to the container:

@@ -1,0 +1,519 @@
+_region: &region LAB1
+_certificate: &crt |
+  -----BEGIN CERTIFICATE-----
+  MIIE/zCCA+egAwIBAgISA9N+TziwbmSw14DqU92PwfQkMA0GCSqGSIb3DQEBCwUA
+  MDIxCzAJBgNVBAYTAlVTMRYwFAYDVQQKEw1MZXQncyBFbmNyeXB0MQswCQYDVQQD
+  EwJSMzAeFw0yNDAyMjQxNTEwNDRaFw0yNDA1MjQxNTEwNDNaMCUxIzAhBgNVBAMM
+  GiouYXBpLmxhYjEubGFyLnRyb24ucmF4LmlvMIIBIjANBgkqhkiG9w0BAQEFAAOC
+  AQ8AMIIBCgKCAQEA1KmEt/DW03F2I4P9hcghHUX0SPV/424ggvs1XUrzoIH9TvR4
+  gvkPrtDq8QUn+6/7bRw/iH/3iNgcdQSGhqoyaIiArRnwIieqr/aKPGEcw8TedOXH
+  jBg3MXIwC6hLSen2sbdJQMuewNh6DfpVzQ5APtAo0TaScXqFhGah9lBNkgx3IwCF
+  S5DUB4MSoKVFliqJkEDnjAJUIrA10nbHTTXgCaql3c/oiC/FQuoKBM5jjr4/dEcg
+  +uRJ2Lqo6MlQR47R/bNNiZkpnWUFBfHKJp2rKlKSz2z3QHKi/VWRq25Y1nkc22Uy
+  Q54P6Vv8fGcpfvrlBrl539xdlEvrjsUv7RenNQIDAQABo4ICGjCCAhYwDgYDVR0P
+  AQH/BAQDAgWgMB0GA1UdJQQWMBQGCCsGAQUFBwMBBggrBgEFBQcDAjAMBgNVHRMB
+  Af8EAjAAMB0GA1UdDgQWBBR6lF65uU/OhgNc1DFaCMUNrQKUNjAfBgNVHSMEGDAW
+  gBQULrMXt1hWy65QCUDmH6+dixTCxjBVBggrBgEFBQcBAQRJMEcwIQYIKwYBBQUH
+  MAGGFWh0dHA6Ly9yMy5vLmxlbmNyLm9yZzAiBggrBgEFBQcwAoYWaHR0cDovL3Iz
+  LmkubGVuY3Iub3JnLzAlBgNVHREEHjAcghoqLmFwaS5sYWIxLmxhci50cm9uLnJh
+  eC5pbzATBgNVHSAEDDAKMAgGBmeBDAECATCCAQIGCisGAQQB1nkCBAIEgfMEgfAA
+  7gB1AEiw42vapkc0D+VqAvqdMOscUgHLVt0sgdm7v6s52IRzAAABjdviGuQAAAQD
+  AEYwRAIgf8N3Yo0bgSnj7tV07iMoLyXWrKtPWUYJ9AjHBO3oITwCIBykkwNsY0zW
+  laPPEDtPp9LBaMnZQxP+XJZCwj7KFxM/AHUAdv+IPwq2+5VRwmHM9Ye6NLSkzbsp
+  3GhCCp/mZ0xaOnQAAAGN2+IcXgAABAMARjBEAiBlKxu0kaYUJODFgI+MyljPhweu
+  uEfO3Wq1qM2yxCZQkwIgbikP+yLiz+2/S6FA2FU+5FVnQo6FeEMuJwOpxHPFl+Ew
+  DQYJKoZIhvcNAQELBQADggEBAB7smiU80EBYXH8tKUbI0dRulAsKZ1avCehF9M6B
+  IcbszEAhiAB0EsmmsCXQqiAUJMTfGRrfpOkjLEUIx8zzbUJIAKKRIGdPqfsEWxIB
+  etYECHMc6WCb9ZfX8m6qpO1NNacEuJQn4uogMoJDEuezdIjnbjM8E/BUcrwQVPVD
+  9hC9fAbEeVgdK3ZOin6wJtLmmD2OAbmlr+COonC+bpWvQtF6kss/0c7UHEiJn7o8
+  HyvYB+2Pmdt7eNyQmjjJPv+3y7+GRWpg5VnfLezdB3yMYnYX6zyYVvBpjizvQZHe
+  Tng7olxtJmpurG0yoAzPhABgaUBRbDRCxydbEVHEEHYTbvw=
+  -----END CERTIFICATE-----
+  -----BEGIN CERTIFICATE-----
+  MIIFFjCCAv6gAwIBAgIRAJErCErPDBinU/bWLiWnX1owDQYJKoZIhvcNAQELBQAw
+  TzELMAkGA1UEBhMCVVMxKTAnBgNVBAoTIEludGVybmV0IFNlY3VyaXR5IFJlc2Vh
+  cmNoIEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDEwHhcNMjAwOTA0MDAwMDAw
+  WhcNMjUwOTE1MTYwMDAwWjAyMQswCQYDVQQGEwJVUzEWMBQGA1UEChMNTGV0J3Mg
+  RW5jcnlwdDELMAkGA1UEAxMCUjMwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK
+  AoIBAQC7AhUozPaglNMPEuyNVZLD+ILxmaZ6QoinXSaqtSu5xUyxr45r+XXIo9cP
+  R5QUVTVXjJ6oojkZ9YI8QqlObvU7wy7bjcCwXPNZOOftz2nwWgsbvsCUJCWH+jdx
+  sxPnHKzhm+/b5DtFUkWWqcFTzjTIUu61ru2P3mBw4qVUq7ZtDpelQDRrK9O8Zutm
+  NHz6a4uPVymZ+DAXXbpyb/uBxa3Shlg9F8fnCbvxK/eG3MHacV3URuPMrSXBiLxg
+  Z3Vms/EY96Jc5lP/Ooi2R6X/ExjqmAl3P51T+c8B5fWmcBcUr2Ok/5mzk53cU6cG
+  /kiFHaFpriV1uxPMUgP17VGhi9sVAgMBAAGjggEIMIIBBDAOBgNVHQ8BAf8EBAMC
+  AYYwHQYDVR0lBBYwFAYIKwYBBQUHAwIGCCsGAQUFBwMBMBIGA1UdEwEB/wQIMAYB
+  Af8CAQAwHQYDVR0OBBYEFBQusxe3WFbLrlAJQOYfr52LFMLGMB8GA1UdIwQYMBaA
+  FHm0WeZ7tuXkAXOACIjIGlj26ZtuMDIGCCsGAQUFBwEBBCYwJDAiBggrBgEFBQcw
+  AoYWaHR0cDovL3gxLmkubGVuY3Iub3JnLzAnBgNVHR8EIDAeMBygGqAYhhZodHRw
+  Oi8veDEuYy5sZW5jci5vcmcvMCIGA1UdIAQbMBkwCAYGZ4EMAQIBMA0GCysGAQQB
+  gt8TAQEBMA0GCSqGSIb3DQEBCwUAA4ICAQCFyk5HPqP3hUSFvNVneLKYY611TR6W
+  PTNlclQtgaDqw+34IL9fzLdwALduO/ZelN7kIJ+m74uyA+eitRY8kc607TkC53wl
+  ikfmZW4/RvTZ8M6UK+5UzhK8jCdLuMGYL6KvzXGRSgi3yLgjewQtCPkIVz6D2QQz
+  CkcheAmCJ8MqyJu5zlzyZMjAvnnAT45tRAxekrsu94sQ4egdRCnbWSDtY7kh+BIm
+  lJNXoB1lBMEKIq4QDUOXoRgffuDghje1WrG9ML+Hbisq/yFOGwXD9RiX8F6sw6W4
+  avAuvDszue5L3sz85K+EC4Y/wFVDNvZo4TYXao6Z0f+lQKc0t8DQYzk1OXVu8rp2
+  yJMC6alLbBfODALZvYH7n7do1AZls4I9d1P4jnkDrQoxB3UqQ9hVl3LEKQ73xF1O
+  yK5GhDDX8oVfGKF5u+decIsH4YaTw7mP3GFxJSqv3+0lUFJoi5Lc5da149p90Ids
+  hCExroL1+7mryIkXPeFM5TgO9r0rvZaBFOvV2z0gp35Z0+L4WPlbuEjN/lxPFin+
+  HlUjr8gRsI3qfJOQFy/9rKIJR0Y/8Omwt/8oTWgy1mdeHmmjk7j1nYsvC9JSQ6Zv
+  MldlTTKB3zhThV1+XWYp6rjd5JW1zbVWEkLNxE7GJThEUG3szgBVGP7pSWTUTsqX
+  nLRbwHOoq7hHwg==
+  -----END CERTIFICATE-----
+
+_certificate_key: &key |
+  -----BEGIN PRIVATE KEY-----
+  MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDUqYS38NbTcXYj
+  g/2FyCEdRfRI9X/jbiCC+zVdSvOggf1O9HiC+Q+u0OrxBSf7r/ttHD+If/eI2Bx1
+  BIaGqjJoiICtGfAiJ6qv9oo8YRzDxN505ceMGDcxcjALqEtJ6faxt0lAy57A2HoN
+  +lXNDkA+0CjRNpJxeoWEZqH2UE2SDHcjAIVLkNQHgxKgpUWWKomQQOeMAlQisDXS
+  dsdNNeAJqqXdz+iIL8VC6goEzmOOvj90RyD65EnYuqjoyVBHjtH9s02JmSmdZQUF
+  8comnasqUpLPbPdAcqL9VZGrbljWeRzbZTJDng/pW/x8Zyl++uUGuXnf3F2US+uO
+  xS/tF6c1AgMBAAECggEADc6fxk2FtR61u+KS8D+pHrxu+tmtnveEdtyWf2MhZDds
+  Wdb3iBFhmkkIJ/Pcv7OSUGg4G8WrLaBSYKqVjWK5eR37tMFtXNpUc64/FWJ8up0q
+  kE5m4UqlMrmmMuuPT9I36RvsTp+pw/2KFyQ8s96L/0gGjmbLpUB+MLV1KIfYMXYt
+  UR0CRPMDVTMf3MVU6wKTSpwSrYjfKyCMTt10b0X+hVPMRENdr0VWIK7eKP7lUh/M
+  VpJcb9guIkVzz2hqp3iqnglKJ8b1P0nOn6GXDIi37m0IZK1+PtLB2auNN17tqP9/
+  N2v2dTv/0VnE0h76tWvDcRhmwNUfdu+ue+6/OEDg9QKBgQD+PUY5CT8tTwTRlQ/4
+  pA6YpWGfAlzjr5xbw5acSHZX189Yb8Whe2F9sPJMz7H8071m6s1gK7wOY7/uSvgI
+  jsoqvSsGG/qw7UHGhSPF6FTV2LQVRzNCVyGWTAWmpDHqfJYWrTCV7DOw3SMHk3Vb
+  NDbnTJh1u+ORKnlBzBnBbGEDEwKBgQDWIojR06jQCnhLR444SetuKznvGL6bGzG6
+  NMsnEGTvx1imSgYRtLlCGBMflavvTX8p23AQ75vep/axa3I3bIU8DoqNwal65jjo
+  nzwycTKaxSMalDR6HJOcdckJPEreYcJIIC0oVRoMa7p7BfS0N3wK6V4XnqeeYksl
+  uPgh2mmtlwKBgQCiOMTK9ex645WmiR90vnGV0sjUZfSRT2dMYiOCuvXQHSLvQfpv
+  jENrqPEiM9BVC2Ip/h5ng+BtqhY4XVugUkQLO0LtlgLCy9CRdDicOh+Ph8N4ZEL/
+  zIrg1McySkiTX0WBWKbMsrdU3fVRCzTxqgJyWbxaOzX8VYajhjDU62uHQwKBgQCy
+  nKG1K7COv3zxheEaEIZhIYs0ZVZvuDI1WF3v2pvm6UeHhQ0k7bLtb3lcChMdC247
+  cr86UTKZeU6rVK0zj8BehN6LOXNtgOUNG+0xQfxs3mzWebJ//KAfjJvAqVrlvXM5
+  iCVClCGjJKSqgyBGxlUgIOIMH5k+4kw+TdgjHLSzRwKBgBFF/u4M+7U7+Mu4Dj6Y
+  cQvRcS7M261kC/0uwRvtgF5Z79Lu89ZzOn6u/KNLz6tgsHXSzpk7uQLhHIpCc4pH
+  6nsu1YoXNhPFQv7vnDraXKEHWh+JBUvtZ8ISdeW6QGmms/yUP8qOQCNR3hD0ts4r
+  BYyhqTWdXlXOi3RUNqZW0MWk
+  -----END PRIVATE KEY-----
+
+images:
+  tags:
+    bootstrap: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    db_init: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    db_drop: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    ks_user: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    ks_service: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    ks_endpoints: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    glance_db_sync: "docker.io/openstackhelm/glance:2023.1-ubuntu_jammy"
+    glance_api: "docker.io/openstackhelm/glance:2023.1-ubuntu_jammy"
+    glance_metadefs_load: "docker.io/openstackhelm/glance:2023.1-ubuntu_jammy"
+    glance_storage_init: "docker.io/openstackhelm/ceph-config-helper:ubuntu_focal_18.2.0-1-20231013"
+    entrypoint: quay.io/airshipit/kubernetes-entrypoint:v1.0.0
+    ingress: registry.k8s.io/ingress-nginx/controller:v1.8.2
+    ingress_module_init: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    ingress_routed_vip: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    error_pages: registry.k8s.io/defaultbackend:1.4
+    keepalived: docker.io/osixia/keepalived:1.4.5
+    dep_check: quay.io/airshipit/kubernetes-entrypoint:v1.0.0
+    image_repo_sync: docker.io/library/docker:17.07.0
+    heat_db_sync: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    heat_api: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    heat_cfn: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    heat_cloudwatch: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    heat_engine: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    heat_engine_cleaner: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    heat_purge_deleted: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    test: docker.io/xrally/xrally-openstack:2.0.0
+    rabbit_init: docker.io/rabbitmq:3.7-management
+    cinder_db_sync: "docker.io/openstackhelm/cinder:2023.1-ubuntu_jammy"
+    cinder_api: "docker.io/openstackhelm/cinder:2023.1-ubuntu_jammy"
+    cinder_scheduler: "docker.io/openstackhelm/cinder:2023.1-ubuntu_jammy"
+    cinder_volume: "docker.io/openstackhelm/cinder:2023.1-ubuntu_jammy"
+    cinder_volume_usage_audit: "docker.io/openstackhelm/cinder:2023.1-ubuntu_jammy"
+    cinder_storage_init: "docker.io/openstackhelm/ceph-config-helper:ubuntu_focal_18.2.0-1-20231013"
+    cinder_backup: "docker.io/openstackhelm/cinder:2023.1-ubuntu_jammy"
+    cinder_backup_storage_init: "docker.io/openstackhelm/ceph-config-helper:ubuntu_focal_18.2.0-1-20231013"
+    keystone_api: "ghcr.io/rackerlabs/genestack/keystone-rxt:2023.1-ubuntu_jammy"
+    keystone_bootstrap: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    keystone_credential_rotate: "ghcr.io/rackerlabs/genestack/keystone-rxt:2023.1-ubuntu_jammy"
+    keystone_credential_setup: "ghcr.io/rackerlabs/genestack/keystone-rxt:2023.1-ubuntu_jammy"
+    keystone_db_sync: "ghcr.io/rackerlabs/genestack/keystone-rxt:2023.1-ubuntu_jammy"
+    keystone_domain_manage: "ghcr.io/rackerlabs/genestack/keystone-rxt:2023.1-ubuntu_jammy"
+    keystone_fernet_rotate: "ghcr.io/rackerlabs/genestack/keystone-rxt:2023.1-ubuntu_jammy"
+    keystone_fernet_setup: "ghcr.io/rackerlabs/genestack/keystone-rxt:2023.1-ubuntu_jammy"
+    keystone_credential_cleanup: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    libvirt: docker.io/openstackhelm/libvirt:2023.2-ubuntu_jammy  # We want to use jammy. 2023.2 is the latest version that supports jammy.
+    libvirt_exporter: vexxhost/libvirtd-exporter:latest
+    ceph_config_helper: "docker.io/openstackhelm/ceph-config-helper:ubuntu_focal_18.2.0-1-20231013"
+    kubectl: docker.io/bitnami/kubectl:latest
+    neutron_db_sync: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    neutron_dhcp: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    neutron_l3: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    neutron_l2gw: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    neutron_linuxbridge_agent: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    neutron_metadata: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    neutron_ovn_metadata: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    neutron_openvswitch_agent: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    neutron_server: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    neutron_rpc_server: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    neutron_bagpipe_bgp: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    neutron_netns_cleanup_cron: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    purge_test: docker.io/openstackhelm/ospurge:latest
+    netoffload: ghcr.io/vexxhost/netoffload:v1.0.1
+    neutron_sriov_agent: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    neutron_sriov_agent_init: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    neutron_bgp_dragent: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    neutron_ironic_agent: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    nova_api: "docker.io/openstackhelm/nova:2023.1-ubuntu_jammy"
+    nova_cell_setup: "docker.io/openstackhelm/nova:2023.1-ubuntu_jammy"
+    nova_cell_setup_init: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    nova_compute: "ghcr.io/rackerlabs/genestack/nova-efi:2023.1-ubuntu_jammy"
+    nova_compute_ssh: "ghcr.io/rackerlabs/genestack/nova-efi:2023.1-ubuntu_jammy"
+    nova_conductor: "docker.io/openstackhelm/nova:2023.1-ubuntu_jammy"
+    nova_db_sync: "docker.io/openstackhelm/nova:2023.1-ubuntu_jammy"
+    nova_novncproxy: "docker.io/openstackhelm/nova:2023.1-ubuntu_jammy"
+    nova_novncproxy_assets: "docker.io/openstackhelm/nova:2023.1-ubuntu_jammy"
+    nova_scheduler: "docker.io/openstackhelm/nova:2023.1-ubuntu_jammy"
+    nova_spiceproxy: "docker.io/openstackhelm/nova:2023.1-ubuntu_jammy"
+    nova_spiceproxy_assets: "docker.io/openstackhelm/nova:2023.1-ubuntu_jammy"
+    nova_service_cleaner: "docker.io/openstackhelm/ceph-config-helper:latest-ubuntu_focal"
+    nova_archive_deleted_rows: "docker.io/openstackhelm/nova:2023.1-ubuntu_jammy"
+    nova_compute_ironic: "docker.io/kolla/nova-compute-ironic:2023.2-ubuntu-jammy"
+    nova_wait_for_computes_init: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+    placement: "docker.io/openstackhelm/placement:2023.1-ubuntu_jammy"
+    placement_db_sync: "docker.io/openstackhelm/placement:2023.1-ubuntu_jammy"
+    horizon_db_sync: docker.io/openstackhelm/horizon:2023.1-ubuntu_jammy
+    horizon: docker.io/openstackhelm/horizon:2023.1-ubuntu_jammy
+    octavia_db_sync: ghcr.io/rackerlabs/genestack/octavia-ovn:master-ubuntu_jammy
+    octavia_api: ghcr.io/rackerlabs/genestack/octavia-ovn:master-ubuntu_jammy
+    octavia_worker: ghcr.io/rackerlabs/genestack/octavia-ovn:master-ubuntu_jammy
+    octavia_housekeeping: ghcr.io/rackerlabs/genestack/octavia-ovn:master-ubuntu_jammy
+    octavia_health_manager: ghcr.io/rackerlabs/genestack/octavia-ovn:master-ubuntu_jammy
+    octavia_health_manager_init: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    openvswitch_vswitchd: docker.io/kolla/centos-source-openvswitch-vswitchd:rocky
+
+pod:
+  resources:
+    enabled: false
+
+endpoints:
+  compute:
+    host_fqdn_override:
+      public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: nova-tls-api
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
+        host: nova.api.lab1.lar.tron.rax.io
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  compute_metadata:
+    host_fqdn_override:
+      public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: metadata-tls-metadata
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
+        host: metadata.api.lab1.lar.tron.rax.io
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  compute_novnc_proxy:
+    host_fqdn_override:
+      public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: nova-novncproxy-tls-proxy
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
+        host: novnc.api.lab1.lar.tron.rax.io
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  cloudformation:
+    host_fqdn_override:
+      public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: heat-tls-cfn
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
+        host: cloudformation.api.lab1.lar.tron.rax.io
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  cloudwatch:
+    host_fqdn_override:
+      public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: heat-tls-cloudwatch
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
+        host: cloudwatch.api.lab1.lar.tron.rax.io
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  dashboard:
+    host_fqdn_override:
+      public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: horizon-tls-web
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
+        host: horizon.api.lab1.lar.tron.rax.io
+    port:
+      web:
+        public: 443
+    scheme:
+      public: https
+  metric:
+    host_fqdn_override:
+      public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: gnocchi-tls-web
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
+        host: gnocchi.api.lab1.lar.tron.rax.io
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  identity:
+    auth:
+      admin:
+        region_name: *region
+      ceilometer:
+        region_name: *region
+      cinder:
+        region_name: *region
+      designate:
+        region_name: *region
+      glance:
+        region_name: *region
+      gnocchi:
+        region_name: *region
+      heat:
+        region_name: *region
+      heat_trustee:
+        region_name: *region
+      heat_stack_user:
+        region_name: *region
+      ironic:
+        region_name: *region
+      neutron:
+        region_name: *region
+      nova:
+        region_name: *region
+      placement:
+        region_name: *region
+      test:
+        region_name: *region
+    hosts:
+      default: keystone
+      internal: keystone-api
+    host_fqdn_override:
+      public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: keystone-tls-api
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
+        host: keystone.api.lab1.lar.tron.rax.io
+    port:
+      api:
+        admin: 80
+        default: 80
+        internal: 5000
+        public: 443
+    scheme:
+      public: https
+  ingress:
+    port:
+      ingress:
+        public: 443
+  image:
+    host_fqdn_override:
+      public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: glance-tls-api
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
+        host: glance.api.lab1.lar.tron.rax.io
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  load_balancer:
+    host_fqdn_override:
+      public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: octavia-tls-api
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
+        host: octavia.api.lab1.lar.tron.rax.io
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  network:
+    host_fqdn_override:
+      public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: neutron-tls-server
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
+        host: neutron.api.lab1.lar.tron.rax.io
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  orchestration:
+    host_fqdn_override:
+      public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: heat-tls-api
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
+        host: heat.api.lab1.lar.tron.rax.io
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  placement:
+    host_fqdn_override:
+      public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: placement-tls-api
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
+        host: placement.api.lab1.lar.tron.rax.io
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  volume:
+    host_fqdn_override:
+      public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: cinder-tls-api
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
+        host: cinder.api.lab1.lar.tron.rax.io
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  volumev2:
+    host_fqdn_override:
+      public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: cinder-tls-api
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
+        host: cinder.api.lab1.lar.tron.rax.io
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  volumev3:
+    host_fqdn_override:
+      public:
+        tls:
+          crt: *crt
+          key: *key
+          secretName: cinder-tls-api
+          issuerRef:
+            name: ca-issuer
+            kind: ClusterIssuer
+        host: cinder.api.lab1.lar.tron.rax.io
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+
+manifests:
+  secret_ingress_tls: true
+
+bootstrap:
+  structured:
+    images: {}
+
+network:
+  api:
+    ingress:
+      annotations:
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+volume:
+  class_name: general-multi-attach
+  size: 100Gi
+  # Used for postgreSQL backup
+  backup:
+    size: 10Gi
+
+# Used for postgreSQL storage
+storage:
+  pvc:
+    size: 10Gi
+  archive_pvc:
+    size: 10Gi
+
+conf:
+  postgresql:
+    shared_buffers: '4GB'
