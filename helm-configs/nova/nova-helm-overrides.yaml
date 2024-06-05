@@ -1447,7 +1447,7 @@ conf:
       disk_cachemodes: "network=writeback"
       hw_disk_discard: unmap
       cpu_mode: host-passthrough
-      iscsi_use_multipath: false  # Disabled because multipathd is not configured or running
+      volume_use_multipath: false  # Disabled because multipathd is not configured or running
     upgrade_levels:
       compute: auto
     cache:
