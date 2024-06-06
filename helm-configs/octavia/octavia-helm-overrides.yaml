@@ -185,7 +185,7 @@ conf:
     DEFAULT:
       log_config_append: /etc/octavia/logging.conf
     api_settings:
-      default_provider_driver: ovn
+      default_provider_driver: amphora
       enabled_provider_drivers: >-
         ovn: "The Octavia OVN driver",
         amphora: "The Octavia Amphora driver"
@@ -499,7 +499,7 @@ endpoints:
         password: password
     statefulset:
       replicas: 3
-      name: rabbitmq-rabbitmq
+      name: rabbitmq-server
     hosts:
       default: rabbitmq-nodes
     host_fqdn_override:
@@ -718,7 +718,7 @@ network_policy:
 manifests:
   configmap_bin: true
   configmap_etc: true
-  daemonset_health_manager: false
+  daemonset_health_manager: true
   deployment_api: true
   deployment_worker: true
   deployment_housekeeping: true
