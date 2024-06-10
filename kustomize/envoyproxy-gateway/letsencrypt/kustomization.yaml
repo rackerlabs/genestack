@@ -1,0 +1,33 @@
+resources:  
+  - ../base
+
+patches:
+  - target:
+      kind: Gateway
+      name: flex-gateway
+      namespace: envoy-gateway-system 
+    patch: |-
+      - op: add
+        path: /metadata/annotations
+        value:
+          cert-manager.io/cluster-issuer: letsencrypt-prod
+          acme.cert-manager.io/http01-edit-in-place: "true"
+      - op: replace
+        path: /spec/listeners/0/hostname
+        value: "*.pbandark.com"
+      - op: add
+        path: /spec/listeners/1
+        value:
+          allowedRoutes:
+            namespaces:
+              from: All
+          name: https
+          port: 443
+          protocol: HTTPS
+          hostname: "*.pbandark.com"
+          tls:
+            certificateRefs:
+            - group: ""
+              kind: Secret
+              name: flex-endpoints
+            mode: Terminate          
