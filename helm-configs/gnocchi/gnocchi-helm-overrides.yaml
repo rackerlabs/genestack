@@ -622,7 +622,7 @@ endpoints:
         username: gnocchi
         password: password
     hosts:
-      default: mariadb-galera-primary
+      default: mariadb-cluster-primary
     host_fqdn_override:
       default: null
     path: /gnocchi
