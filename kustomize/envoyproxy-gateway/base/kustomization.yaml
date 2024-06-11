@@ -1,7 +1,6 @@
 resources:
   - './namespace.yaml'
   - './gatewayclass.yaml'
-  - './gateway.yaml'
 namespace: envoy-gateway-system
 helmGlobals:
   chartHome: ../../../submodules/envoyproxy-gateway/charts/
@@ -10,5 +9,3 @@ helmCharts:
   valuesFile: values.yaml
   includeCRDs: true
   releaseName: envoyproxy-gateway
-  valuesInline:
-    kubernetesClusterDomain: cluster.local

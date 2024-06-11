@@ -50,4 +50,3 @@ certgen:
   rbac:
     annotations: {}
     labels: {}
-

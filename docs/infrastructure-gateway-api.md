@@ -7,6 +7,7 @@ Since Gateway APIs are successor to Ingress Controllers there needs to be a one 
 
 
 ### Resource Models in Gateway API
+
 There are 3 main resource models in gateway apis:
 1. GatewayClass - Mostly managed by a controller.
 2. Gateway - An instance of traffic handling infra like a LB.
@@ -21,24 +22,28 @@ From the gateway api sig:
 
     Most Gateway API implementations are API Gateways to some extent, but not all API Gateways are Gateway API implementations.
 
+There are various implementations of the Gateway API. In this document, we will cover two of them:
+- [NGINX Gateway Fabric](https://github.com/nginxinc/nginx-gateway-fabric)
+- [Envoyproxy](https://gateway.envoyproxy.io/)
 
 ### Controller: NGINX Gateway Fabric
+
 [NGINX Gateway Fabric](https://github.com/nginxinc/nginx-gateway-fabric) is an open-source project that provides an implementation of the Gateway API using nginx as the data plane.
 
 Chart Install: https://github.com/nginxinc/nginx-gateway-fabric/blob/main/deploy/helm-chart/values.yaml
 
 Create the Namespace
-```
+```shell
 kubectl create ns nginx-gateway
 ```
 
 First Install the Gateway API Resource from Kubernetes
-```
+```shell
 kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.0.0/standard-install.yaml
 ```
 
 Next, Install the NGINX Gateway Fabric controller
-```
+```shell
 cd /opt/genestack/submodules/nginx-gateway-fabric/deploy/helm-chart
 
 helm upgrade --install nginx-gateway-fabric . --namespace=nginx-gateway -f /opt/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml
@@ -46,18 +51,67 @@ helm upgrade --install nginx-gateway-fabric . --namespace=nginx-gateway -f /opt/
 
 Helm install does not automatically upgrade the crds for this resource. To upgrade the crds you will have to manually install them. Follow the process from :  [Upgrade CRDs](https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#upgrade-nginx-gateway-fabric-crds)
 
-### Example Implementation with Prometheus UI
+### Controller: Envoyproxy
+
+[Envoyproxy](https://gateway.envoyproxy.io/) is an open-source project that provides an implementation of the Gateway API using Envoyproxy as the data plane.
+
+#### Installation
+
+- Update the `/opt/genestack/kustomize/envoyproxy-gateway/base/values.yaml` file according to your requirements.
+
+- Apply the configuration using the following command:
+
+```shell
+kubectl kustomize --enable-helm /opt/genestack/kustomize/envoyproxy-gateway/base | kubectl apply -f -
+```
+
+After installation, you need to create Gateway and HTTPRoute resources based on your requirements.
+
+### Example to expose an application using Gateway API (Envoyproxy)
+
+- In this example, we will demonstrate how to expose an application through a gateway.
+
+- Apply the Kustomize configuration which will create `Gateway` resource:
+
+```shell
+kubectl kustomize /opt/genestack/kustomize/gateway/envoyproxy | kubectl apply -f -
+```
+
+- Once gateway is created, user can expose an application by creating `HTTPRoute` resource.
+  - Sample `HTTPRoute` resource:
+  
+  ```shell
+  apiVersion: gateway.networking.k8s.io/v1
+  kind: HTTPRoute
+  metadata:
+    name: test_application
+    namespace: test_app
+  spec:
+    parentRefs:
+    - name: flex-gateway
+      sectionName: http
+      namespace: envoy-gateway-system
+    hostnames:
+    - "test_application.sjc.ohthree.com"
+    rules:
+      - backendRefs:
+        - name: test_application
+          port: 8774
+    ```
+
+### Example Implementation with Prometheus UI (NGINX Gateway Fabric)
 
 In this example we will look at how Prometheus UI is exposed through the gateway. For other services the gateway kustomization file for the service.
 
 Rackspace specific gateway kustomization files can be applied like so
-```
-cd /opt/genestack/kustomize/gateway
-kubectl kustomize | kubectl apply -f -
+
+```shell
+kubectl kustomize /opt/genestack/kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
 ```
 
 First, create the shared gateway and then the httproute resource for prometheus.
-```
+
+```shell
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -73,7 +127,7 @@ spec:
 
 then
 
-```
+```shell
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -89,6 +143,7 @@ spec:
       - name: kube-prometheus-stack-prometheus
         port: 9090
 ```
+
 At this point, flex-gateway has a listener pointed to the port 80 matching *.sjc.ohthree.com hostname. The HTTPRoute resource configures routes for this gateway. Here, we match all path and simply pass any request from the matching hostname to kube-prometheus-stack-prometheus backend service.
 
 ### Exposing Flex Services
@@ -104,7 +159,6 @@ For each externally exposed service, example: keystone endpoint, we have a Gatew
 
 ```
 External Traffic -> F5 VIP Address -> MetalLB VIP Address -> Gateway Service
-
 ```
 
 This setup can be expended to have multiple MetalLB VIPs with multiple Gateway Services listening on different IP addresses as required by your setup.
