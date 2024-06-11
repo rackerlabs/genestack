@@ -4,12 +4,6 @@
 
 Use the command-line utility `swift` to perform operations on your object store.
 
-## Requirements
-
-!!! note
-
-    FIXME: TBD
-
 ## Swift client documentation
 
 ``` shell
@@ -82,10 +76,6 @@ Verify the container's configuration:
 ``` shell
 swift stat flex-container01
 ```
-
-!!! example
-
-    FIXME: Example coming soon!
 
 ### Upload files to the container
 
