@@ -44,6 +44,7 @@ export -f log_line # exported for upload_file
 
 # Delete old backup files on volume.
 cd "$BACKUP_DIR" || exit 2
+[[ -e "$BACKUP_DIR/last_upload" ]] || touch "$BACKUP_DIR/last_upload" || exit 3
 find "$BACKUP_DIR" -ctime +"$RETENTION_DAYS" -delete;
 
 # Make a backup in YYYY/MM/DD directory in $BACKUP_DIR
@@ -99,7 +100,7 @@ rm "$CATALOG_TEMP_FILE"
 
 # wrap curl with some things we will always use
 curl_wrap() {
-    $CURL -sS -H "X-Auth-Token: $token" "$@"
+    $CURL -k -sS -H "X-Auth-Token: $token" "$@"
 }
 export -f curl_wrap
 
@@ -128,4 +129,5 @@ export -f upload_file
 # find created backups and upload them
 cd "$BACKUP_DIR" || exit 2
 # unusual find syntax to use an exported function from the shell
-find "$YMD" -type f -exec bash -c 'upload_file "$0"' {} \;
+find "$YMD" -type f -newer "$BACKUP_DIR/last_upload" -exec bash -c 'upload_file "$0"' {} \;
+touch "$BACKUP_DIR/last_upload"
