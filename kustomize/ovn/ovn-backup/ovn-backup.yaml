@@ -48,7 +48,7 @@ spec:
               - configMapRef:
                   name: ovn-backup-config
               - secretRef:
-                  name: ovn-backup-swift-account
+                  name: ovn-backup-swift-tempauth-account
             command: ["/backup-script/ovn-backup.sh"]
             image: docker.io/kubeovn/kube-ovn:v1.11.5
             imagePullPolicy: IfNotPresent

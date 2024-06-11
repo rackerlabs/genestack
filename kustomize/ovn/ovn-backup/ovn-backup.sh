@@ -33,7 +33,7 @@ export -f log_level
 log_line() {
     local LEVEL
     LEVEL="$(log_level "$1")"
-    if [[ "$LEVEL" -ge "$(log_level "$LOG_LEVEL")" ]]
+    if [[ "$LEVEL" -le "$(log_level "$LOG_LEVEL")" ]]
     then
         local line
         line=$(date +"%b %d %H:%M:%S $*")
@@ -49,79 +49,44 @@ find "$BACKUP_DIR" -ctime +"$RETENTION_DAYS" -delete;
 
 # Make a backup in YYYY/MM/DD directory in $BACKUP_DIR
 YMD="$(date +"%Y/%m/%d")"
-mkdir -p "$YMD" && cd "$YMD" || exit 2 # kubectl-ko creates backups in $PWD, so we cd first.
+# kubectl-ko creates backups in $PWD, so we cd first.
+mkdir -p "$YMD" && cd "$YMD" || exit 2
 /kube-ovn/kubectl-ko nb backup || log_line ERROR "nb backup failed"
 /kube-ovn/kubectl-ko sb backup || log_line ERROR "sb backup failed"
 
-if [[ "$SWIFT_UPLOAD" != "true" ]]
+if [[ "$SWIFT_TEMPAUTH_UPLOAD" != "true" ]]
 then
     exit 0
 fi
 
-# Everything from here forward deals with uploading to a Ceph Swift API gateway.
+# Everything from here forward deals with uploading to a Swift with tempauth.
 
 cd "$BACKUP_DIR" || exit 2
-CURL="$(which curl)"
-export CONTAINER CURL # these need to reach the subshell below used with `find`
-HEADER_TEMP_FILE=$(mktemp /tmp/headers.XXXXXXXX)
-CATALOG_TEMP_FILE=$(mktemp /tmp/catalog.XXXXXXXX)
-$CURL -sS -D "$HEADER_TEMP_FILE" \
-  -H "Content-Type: application/json" \
-  -d "
-  { \"auth\": {
-    \"identity\": {
-      \"methods\": [ \"password\" ],
-      \"password\": {
-        \"user\": {
-          \"name\": \"$USERNAME\",
-          \"domain\": { \"name\": \"$DOMAIN_NAME\" },
-          \"password\": \"$PASSWORD\"
-        }
-      }
-    },
-    \"scope\": {
-      \"project\": {
-        \"id\": \"$PROJECT_ID\",
-        \"domain\": {
-          \"id\": \"$DOMAIN_ID\"
-        }
-      }
-    }
-  }
-}" \
-"$KEYSTONE_URL" > "$CATALOG_TEMP_FILE"
-sed -i -e 's/\r//g' "$HEADER_TEMP_FILE" # strip carriage returns
-token=$(awk 'tolower($1) ~ /x-subject-token:/ { print $2 }' "$HEADER_TEMP_FILE")
-export token
-rm "$HEADER_TEMP_FILE"
-SWIFT_URL=$(/backup-script/get-swift-url.pl "$CATALOG_TEMP_FILE" "$REGION" public)
-export SWIFT_URL
-rm "$CATALOG_TEMP_FILE"
 
-# wrap curl with some things we will always use
-curl_wrap() {
-    $CURL -k -sS -H "X-Auth-Token: $token" "$@"
-}
-export -f curl_wrap
+# Make a working "swift" command
+SWIFT="kubectl -n openstack exec -i openstack-admin-client --
+env -i ST_AUTH=$ST_AUTH ST_USER=$ST_USER ST_KEY=$ST_KEY
+/var/lib/openstack/bin/swift"
+export SWIFT
 
 # Create the container if it doesn't exist
-check_container=$(curl_wrap -o /dev/null -w "%{http_code}" "$SWIFT_URL/$CONTAINER")
-if ! [[ "$check_container" =~ 20[0-9] ]]
+if ! $SWIFT stat "$CONTAINER" > /dev/null
 then
-  curl_wrap -X PUT "$SWIFT_URL/$CONTAINER"
+  $SWIFT post "$CONTAINER"
 fi
 
 # upload_file uploads $1 to the container
 upload_file() {
     FILE="$1"
-    local curl_return
-    curl_return=$(curl_wrap -w "%{http_code}" \
-      -X PUT "${SWIFT_URL}/${CONTAINER}/$FILE" -T "$FILE")
-    if [[ "$curl_return" == "201" ]]
+    # Using OBJECT_NAME instead of FILE every time doesn't change the behavior,
+    # but stops shellcheck from identifying this as trying to read and write
+    # the same file.
+    OBJECT_NAME="$FILE"
+    if $SWIFT upload "$CONTAINER" --object-name "$OBJECT_NAME" - < "$FILE"
     then
-      log_line INFO "SUCCESSFUL UPLOAD $FILE"
+      log_line INFO "SUCCESSFUL UPLOAD $FILE as object $OBJECT_NAME"
     else
-      log_line ERROR "FAILURE API returned $curl_return uploading $FILE (expected 201)"
+      log_line ERROR "FAILURE API swift exited $? uploading $FILE as $OBJECT_NAME"
     fi
 }
 export -f upload_file
@@ -129,5 +94,6 @@ export -f upload_file
 # find created backups and upload them
 cd "$BACKUP_DIR" || exit 2
 # unusual find syntax to use an exported function from the shell
-find "$YMD" -type f -newer "$BACKUP_DIR/last_upload" -exec bash -c 'upload_file "$0"' {} \;
+find "$YMD" -type f -newer "$BACKUP_DIR/last_upload" \
+-exec bash -c 'upload_file "$0"' {} \;
 touch "$BACKUP_DIR/last_upload"

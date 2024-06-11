@@ -123,13 +123,12 @@ If there's ever a need to reconfigure a node, simply remove the label and the Da
 
 !!! note
 
-    To upload backups to Swift, edit
+    To upload backups to Swift with tempauth, edit
     /opt/genestack/kustomize/ovn/ovn-backup/ovn-backup.config to set
-    `SWIFT_UPLOAD' "true"`, edit the other related options appropriately (i.e.,
-    set the KEYSTONE_URL and CONTAINER) and fill the username, password or API
-    key, domain name, project ID, and domain ID of an user to use for backup (to
-    get a scoped token suitable for uploading to Swift) in `swift-account.env`
-    and then run:
+    `SWIFT_TEMPAUTH_UPLOAD' "true"`, edit the other related options
+    appropriately (i.e., set the CONTAINER) and fill the ST_AUTH, ST_USER, and
+    ST_KEY appproriate for the Swift CLI client in in the `swift-tempauth.env`
+    file and then run:
 
     kubectl apply -k /opt/genestack/kustomize/ovn/ovn-backup \
     --prune -l app=ovn-backup \
