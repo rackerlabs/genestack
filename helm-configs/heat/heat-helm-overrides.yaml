@@ -23,19 +23,19 @@ labels:
 
 images:
   tags:
-    bootstrap: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    db_init: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    db_drop: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    ks_user: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    ks_service: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    ks_endpoints: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    heat_db_sync: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    heat_api: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    heat_cfn: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    heat_cloudwatch: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    heat_engine: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    heat_engine_cleaner: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    heat_purge_deleted: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    bootstrap: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    db_init: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    db_drop: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    ks_user: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    ks_service: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    ks_endpoints: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    heat_db_sync: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    heat_api: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    heat_cfn: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    heat_cloudwatch: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    heat_engine: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    heat_engine_cleaner: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    heat_purge_deleted: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
     test: docker.io/xrally/xrally-openstack:2.0.0
     rabbit_init: docker.io/rabbitmq:3.7-management
     dep_check: quay.io/airshipit/kubernetes-entrypoint:v1.0.0
@@ -336,6 +336,9 @@ conf:
       memcache_security_strategy: ENCRYPT
       service_type: orchestration
     database:
+      idle_timeout: 3600
+      connection_recycle_time: 3600
+      pool_timeout: 60
       max_retries: -1
     trustee:
       auth_type: password
@@ -368,7 +371,25 @@ conf:
     oslo_middleware:
       enable_proxy_headers_parsing: true
     oslo_messaging_rabbit:
-      rabbit_ha_queues: True
+      # We define use of quorum queues via kustomize but this was enabling HA queues instead
+      # ha_queues are deprecated, explicitly set to false and set quorum_queue true
+      rabbit_ha_queues: false
+      rabbit_quorum_queue: true
+      # TODO: Not available until 2024.1, but once it is, we want to enable these!
+      # new feature ref; https://docs.openstack.org/releasenotes/oslo.messaging/2024.1.html
+      # rabbit_transient_quorum_queue: true
+      # use_queue_manager: true
+      # Reconnect after a node outage more quickly
+      rabbit_interval_max: 10
+      # Send more frequent heartbeats and fail unhealthy nodes faster
+      # heartbeat_timeout / heartbeat_rate / 2.0 = 30 / 3 / 2.0 = 5
+      # https://opendev.org/openstack/oslo.messaging/commit/36fb5bceabe08a982ebd52e4a8f005cd26fdf6b8
+      heartbeat_rate: 3
+      heartbeat_timeout_threshold: 30
+      # Setting lower kombu_reconnect_delay should resolve isssue with HA failing when one node is down
+      # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
+      # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
+      kombu_reconnect_delay: 0.5
     oslo_policy:
       policy_file: /etc/heat/policy.yaml
   api_audit_map:
@@ -460,19 +481,7 @@ conf:
       datefmt: "%Y-%m-%d %H:%M:%S"
 
   rabbitmq:
-    # NOTE(rk760n): adding rmq policy to mirror messages from notification queues and set expiration time for the ones
-    policies:
-      - vhost: "heat"
-        name: "ha_ttl_heat"
-        definition:
-          # mirror messges to other nodes in rmq cluster
-          ha-mode: "all"
-          ha-sync-mode: "automatic"
-          # 70s
-          message-ttl: 70000
-        priority: 0
-        apply-to: all
-        pattern: '^(?!(amq\.|reply_)).*'
+    policies: []
 
 network:
   api:
@@ -859,7 +868,7 @@ endpoints:
         username: heat
         password: password
     hosts:
-      default: mariadb-galera-primary
+      default: mariadb-cluster-primary
     host_fqdn_override:
       default: null
     path: /heat

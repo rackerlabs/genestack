@@ -1,0 +1,26 @@
+serviceMonitor:
+  targets:
+
+    # Baseline external probe...
+    - name: google-probe
+      url: https://google.com
+
+    # Openstack services
+    - name: nova-probe
+      url: https://nova.api.sjc3.rackspacecloud.com
+    - name: neutron-probe
+      url: https://neutron.api.sjc3.rackspacecloud.com
+    - name: keystone-probe
+      url: https://keystone.api.sjc3.rackspacecloud.com
+    - name: octavia-probe
+      url: https://octavia.api.sjc3.rackspacecloud.com
+    - name: glance-probe
+      url: https://glance.api.sjc3.rackspacecloud.com
+    - name: heat-probe
+      url: https://heat.api.sjc3.rackspacecloud.com
+    - name: cinder-probe
+      url: https://cinder.api.sjc3.rackspacecloud.com
+    - name: cloudformation-probe
+      url: https://cloudformation.api.sjc3.rackspacecloud.com
+    - name: placement-probe
+      url: https://placement.api.sjc3.rackspacecloud.com

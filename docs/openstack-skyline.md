@@ -17,7 +17,7 @@ kubectl --namespace openstack \
         --from-literal=service-domain="service" \
         --from-literal=service-project="service" \
         --from-literal=service-project-domain="service" \
-        --from-literal=db-endpoint="mariadb-galera-primary.openstack.svc.cluster.local" \
+        --from-literal=db-endpoint="mariadb-cluster-primary.openstack.svc.cluster.local" \
         --from-literal=db-name="skyline" \
         --from-literal=db-username="skyline" \
         --from-literal=db-password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)" \

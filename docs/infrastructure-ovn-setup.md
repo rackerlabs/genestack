@@ -127,7 +127,7 @@ If there's ever a need to reconfigure a node, simply remove the label and the Da
     /opt/genestack/kustomize/ovn/ovn-backup/ovn-backup.config to set
     `SWIFT_TEMPAUTH_UPLOAD' "true"`, edit the other related options
     appropriately (i.e., set the CONTAINER) and fill the ST_AUTH, ST_USER, and
-    ST_KEY appproriate for the Swift CLI client in in the `swift-tempauth.env`
+    ST_KEY as appropriate for the Swift CLI client in the `swift-tempauth.env`
     file and then run:
 
     kubectl apply -k /opt/genestack/kustomize/ovn/ovn-backup \
@@ -139,3 +139,25 @@ If there's ever a need to reconfigure a node, simply remove the label and the Da
     files and use `kubectl` with these prune options to avoid accumulating
     old ConfigMaps and Secrets from successive `kubectl apply` operations, but
     you can omit the pruning options if desired.
+
+## Centralize `kube-ovn-controller` pods
+
+By default, _Kubespray_ deploys _Kube-OVN_ allowing [`kube-ovn-controller` pods](https://kube-ovn.readthedocs.io/zh-cn/stable/en/reference/architecture/#kube-ovn-controller), which play a central role, to distribute across various kinds of cluster nodes.  In _Genestack_, this would include compute nodes and other kinds of nodes. By contrast, `ovn-central` pods, which also play a crucial central role, run only on nodes labelled `"kube-ovn/role": "master"`. A _Genestack_ installation will typically have control functions centralized on a small set of nodes, which you may have different resource allocations and different redundancy and uptime requirements for relative to other types of nodes, so you can set the `kube-ovn-controller` pods to run in the same location as [`ovn-central`](https://kube-ovn.readthedocs.io/zh-cn/stable/en/reference/architecture/#ovn-central) on _Kube-OVN_ master nodes (which most likely simply match your k8s cluster control nodes unless you've customized it):
+
+``` shell
+kubectl -n kube-system patch deployment kube-ovn-controller -p '{
+  "spec": {
+    "template": {
+      "spec": {
+        "nodeSelector": {
+          "kube-ovn/role": "master",
+          "kubernetes.io/os": "linux"
+        }
+      }
+    }
+  }
+}
+'
+```
+
+This helps keep critical control functions on a known set of nodes.

@@ -61,24 +61,12 @@
   "panels": [
     {
       "datasource": {
-        "uid": "$datasource"
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [
-            {
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "N/A"
-                }
-              },
-              "type": "special"
-            }
-          ],
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -92,28 +80,25 @@
               }
             ]
           },
-          "unit": "none",
           "unitScale": true
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
-        "w": 4,
+        "h": 8,
+        "w": 3,
         "x": 0,
         "y": 0
       },
       "id": 2,
-      "links": [],
-      "maxDataPoints": 100,
       "options": {
-        "colorMode": "none",
-        "graphMode": "none",
+        "colorMode": "value",
+        "graphMode": "area",
         "justifyMode": "auto",
-        "orientation": "horizontal",
+        "orientation": "auto",
         "reduceOptions": {
           "calcs": [
-            "min"
+            "mean"
           ],
           "fields": "",
           "values": false
@@ -126,12 +111,12 @@
       "targets": [
         {
           "datasource": {
-            "uid": "$datasource"
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(up{job=\"kube-ovn-controller\"})",
-          "format": "time_series",
+          "expr": "sum(up{job=\"kube-ovn-cni\"})",
           "instant": true,
-          "intervalFactor": 2,
+          "interval": "",
           "legendFormat": "",
           "refId": "A"
         }
@@ -140,93 +125,13 @@
       "type": "stat"
     },
     {
-      "datasource": {
-        "uid": "$datasource"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [
-            {
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "N/A"
-                }
-              },
-              "type": "special"
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "none",
-          "unitScale": true
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 4,
-        "x": 4,
-        "y": 0
-      },
-      "id": 18,
-      "links": [],
-      "maxDataPoints": 100,
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "min"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "10.3.3",
-      "targets": [
-        {
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "expr": "sum(increase(klog_lines_total{level=\"ERROR\", job=\"kube-ovn-controller\", instance=~\"$instance\"}[10m]))",
-          "format": "time_series",
-          "instant": true,
-          "interval": "",
-          "intervalFactor": 2,
-          "legendFormat": "",
-          "refId": "A"
-        }
-      ],
-      "title": "Error Log in 10 Minutes",
-      "type": "stat"
-    },
-    {
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
       "dashes": false,
       "datasource": {
-        "uid": "$datasource"
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -237,36 +142,33 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 7,
-        "w": 16,
-        "x": 8,
+        "h": 8,
+        "w": 10,
+        "x": 3,
         "y": 0
       },
       "hiddenSeries": false,
-      "id": 3,
+      "id": 4,
       "legend": {
-        "alignAsTable": "true",
+        "alignAsTable": false,
         "avg": false,
-        "current": "true",
+        "current": false,
         "max": false,
         "min": false,
-        "rightSide": "true",
-        "show": "true",
-        "sort": "current",
-        "sortDesc": true,
+        "rightSide": false,
+        "show": true,
         "total": false,
-        "values": "true"
+        "values": false
       },
       "lines": true,
       "linewidth": 1,
-      "links": [],
-      "nullPointMode": "null",
+      "nullPointMode": "connected",
       "options": {
         "alertThreshold": true
       },
       "percentage": false,
       "pluginVersion": "10.3.3",
-      "pointradius": 5,
+      "pointradius": 2,
       "points": false,
       "renderer": "flot",
       "seriesOverrides": [],
@@ -276,22 +178,23 @@
       "targets": [
         {
           "datasource": {
-            "uid": "$datasource"
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(rate(workqueue_adds_total{job=\"kube-ovn-controller\", instance=~\"$instance\"}[5m])) by (instance, name)",
-          "format": "time_series",
+          "expr": "sum(increase(cni_op_latency_seconds_count{job=\"kube-ovn-cni\", instance=~\"$instance\"}[5m])) by (instance, method, status_code)",
+          "instant": false,
           "interval": "",
           "intervalFactor": 2,
-          "legendFormat": "{{instance}} {{name}}",
+          "legendFormat": "{{instance}} {{method}} {{status_code}}",
           "refId": "A"
         }
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Work Queue Add Rate",
+      "title": "CNI Operations Count",
       "tooltip": {
         "shared": true,
-        "sort": 2,
+        "sort": 0,
         "value_type": "individual"
       },
       "type": "graph",
@@ -302,12 +205,12 @@
       },
       "yaxes": [
         {
-          "format": "ops",
+          "format": "short",
           "logBase": 1,
           "show": true
         },
         {
-          "format": "ops",
+          "format": "short",
           "logBase": 1,
           "show": true
         }
@@ -335,25 +238,23 @@
       "fillGradient": 0,
       "gridPos": {
         "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 7
+        "w": 11,
+        "x": 13,
+        "y": 0
       },
       "hiddenSeries": false,
-      "id": 13,
+      "id": 14,
       "legend": {
         "avg": false,
-        "current": true,
-        "max": true,
-        "min": true,
-        "rightSide": true,
+        "current": false,
+        "max": false,
+        "min": false,
         "show": true,
         "total": false,
-        "values": true
+        "values": false
       },
       "lines": true,
       "linewidth": 1,
-      "links": [],
       "nullPointMode": "null",
       "options": {
         "alertThreshold": true
@@ -373,209 +274,18 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(delta(workqueue_retries_total{job=\"kube-ovn-controller\", instance=~\"$instance\"}[5m])) by (instance, name)",
-          "format": "time_series",
-          "instant": false,
-          "intervalFactor": 2,
-          "legendFormat": "{{instance}} {{name}}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeRegions": [],
-      "title": "Work Queue Retry Count",
-      "tooltip": {
-        "shared": true,
-        "sort": 2,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "mode": "time",
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "logBase": 1,
-          "show": true
-        },
-        {
-          "format": "short",
-          "logBase": 1,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": {
-        "uid": "$datasource"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unitScale": true
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 7,
-        "w": 24,
-        "x": 0,
-        "y": 15
-      },
-      "hiddenSeries": false,
-      "id": 4,
-      "legend": {
-        "alignAsTable": "true",
-        "avg": false,
-        "current": "true",
-        "max": false,
-        "min": false,
-        "rightSide": "true",
-        "show": "true",
-        "total": false,
-        "values": "true"
-      },
-      "lines": true,
-      "linewidth": 1,
-      "links": [],
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "10.3.3",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "expr": "workqueue_depth{job=\"kube-ovn-controller\", instance=~\"$instance\"}",
-          "format": "time_series",
+          "expr": "delta(cni_op_latency_seconds_sum{instance=~\"$instance\"}[5m])/delta(cni_op_latency_seconds_count{instance=~\"$instance\"}[5m])",
           "interval": "",
-          "intervalFactor": 2,
-          "legendFormat": "{{instance}} {{name}}",
+          "legendFormat": "{{instance}} {{method}} {{status_code}}",
           "refId": "A"
         }
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Work Queue Depth",
+      "title": "CNI Operation Latency",
       "tooltip": {
         "shared": true,
         "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "mode": "time",
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "logBase": 1,
-          "min": 0,
-          "show": true
-        },
-        {
-          "format": "short",
-          "logBase": 1,
-          "min": 0,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": {
-        "uid": "$datasource"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 7,
-        "w": 24,
-        "x": 0,
-        "y": 22
-      },
-      "hiddenSeries": false,
-      "id": 5,
-      "legend": {
-        "alignAsTable": "true",
-        "avg": false,
-        "current": "true",
-        "max": false,
-        "min": false,
-        "rightSide": "true",
-        "show": "true",
-        "sort": "current",
-        "sortDesc": true,
-        "total": false,
-        "values": "true"
-      },
-      "lines": true,
-      "linewidth": 1,
-      "links": [],
-      "nullPointMode": "null",
-      "percentage": false,
-      "pluginVersion": "7.1.0",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "expr": "(sum(delta(workqueue_queue_duration_seconds_sum{instance=~\"$instance\"}[5m])) by (instance))/(sum(delta(workqueue_queue_duration_seconds_count{instance=~\"$instance\"}[5m])) by (instance))",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 2,
-          "legendFormat": "{{instance}}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeRegions": [],
-      "title": "Work Queue Latency",
-      "tooltip": {
-        "shared": true,
-        "sort": 2,
         "value_type": "individual"
       },
       "type": "graph",
@@ -592,7 +302,6 @@
         },
         {
           "format": "short",
-          "label": "",
           "logBase": 1,
           "show": true
         }
@@ -600,6 +309,71 @@
       "yaxis": {
         "align": false
       }
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unitScale": true
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 3,
+        "x": 0,
+        "y": 8
+      },
+      "id": 19,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.3.3",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum(increase(klog_lines_total{level=\"ERROR\", instance=~\"$instance\", job=\"kube-ovn-cni\"}[10m]))",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Error Log in 10 Minutes",
+      "type": "stat"
     },
     {
       "aliasColors": {},
@@ -612,7 +386,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "unitScale": true
         },
         "overrides": []
       },
@@ -620,12 +394,12 @@
       "fillGradient": 0,
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 29
+        "w": 10,
+        "x": 3,
+        "y": 8
       },
       "hiddenSeries": false,
-      "id": 15,
+      "id": 16,
       "legend": {
         "avg": false,
         "current": false,
@@ -638,8 +412,11 @@
       "lines": true,
       "linewidth": 1,
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "percentage": false,
-      "pluginVersion": "7.1.0",
+      "pluginVersion": "10.3.3",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -653,9 +430,9 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(delta(ovs_client_request_latency_milliseconds_count{job=\"kube-ovn-controller\", instance=~\"$instance\"}[1m])) by (instance, db, code )",
+          "expr": "sum(delta(ovs_client_request_latency_milliseconds_count{job=\"kube-ovn-cni\", instance=~\"$instance\"}[1m])) by (instance, code)",
           "interval": "",
-          "legendFormat": "{{instance}} {{db}} {{code}}",
+          "legendFormat": "{{instance}} {{code}}",
           "refId": "A"
         }
       ],
@@ -700,7 +477,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "unitScale": true
         },
         "overrides": []
       },
@@ -708,12 +485,12 @@
       "fillGradient": 0,
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 29
+        "w": 11,
+        "x": 13,
+        "y": 8
       },
       "hiddenSeries": false,
-      "id": 17,
+      "id": 18,
       "legend": {
         "avg": false,
         "current": false,
@@ -726,8 +503,11 @@
       "lines": true,
       "linewidth": 1,
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "percentage": false,
-      "pluginVersion": "7.1.0",
+      "pluginVersion": "10.3.3",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -741,9 +521,9 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "(sum(delta(ovs_client_request_latency_milliseconds_sum{job=\"kube-ovn-controller\", instance=~\"$instance\"}[1m])) by (instance, db, code))/(sum(delta(ovs_client_request_latency_milliseconds_count{job=\"kube-ovn-controller\", instance=~\"$instance\"}[1m])) by (instance, db, code))",
+          "expr": "(sum(delta(ovs_client_request_latency_milliseconds_sum{job=\"kube-ovn-cni\", instance=~\"$instance\"}[1m])) by (instance, code))/(sum(delta(ovs_client_request_latency_milliseconds_count{job=\"kube-ovn-cni\", instance=~\"$instance\"}[1m])) by (instance, code))",
           "interval": "",
-          "legendFormat": "{{instance}} {{db}} {{code}}",
+          "legendFormat": "{{instance}} {{code}}",
           "refId": "A"
         }
       ],
@@ -783,42 +563,43 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": {
-        "uid": "$datasource"
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "unitScale": true
         },
         "overrides": []
       },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 7,
-        "w": 8,
+        "h": 8,
+        "w": 12,
         "x": 0,
-        "y": 37
+        "y": 16
       },
       "hiddenSeries": false,
       "id": 6,
       "legend": {
-        "alignAsTable": false,
         "avg": false,
         "current": false,
         "max": false,
         "min": false,
-        "rightSide": false,
         "show": true,
         "total": false,
         "values": false
       },
       "lines": true,
       "linewidth": 1,
-      "links": [],
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "percentage": false,
-      "pluginVersion": "7.1.0",
-      "pointradius": 5,
+      "pluginVersion": "10.3.3",
+      "pointradius": 2,
       "points": false,
       "renderer": "flot",
       "seriesOverrides": [],
@@ -828,228 +609,12 @@
       "targets": [
         {
           "datasource": {
-            "uid": "$datasource"
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(rate(rest_client_requests_total{job=\"kube-ovn-controller\", instance=~\"$instance\",code=~\"2..\"}[5m]))",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 2,
-          "legendFormat": "2xx",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "expr": "sum(rate(rest_client_requests_total{job=\"kube-ovn-controller\", instance=~\"$instance\",code=~\"3..\"}[5m]))",
-          "format": "time_series",
-          "intervalFactor": 2,
-          "legendFormat": "3xx",
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "expr": "sum(rate(rest_client_requests_total{job=\"kube-ovn-controller\", instance=~\"$instance\",code=~\"4..\"}[5m]))",
-          "format": "time_series",
-          "intervalFactor": 2,
-          "legendFormat": "4xx",
-          "refId": "C"
-        },
-        {
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "expr": "sum(rate(rest_client_requests_total{job=\"kube-ovn-controller\", instance=~\"$instance\",code=~\"5..\"}[5m]))",
-          "format": "time_series",
-          "intervalFactor": 2,
-          "legendFormat": "5xx",
-          "refId": "D"
-        }
-      ],
-      "thresholds": [],
-      "timeRegions": [],
-      "title": "Kube API Request Rate",
-      "tooltip": {
-        "shared": true,
-        "sort": 2,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "mode": "time",
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "ops",
-          "logBase": 1,
-          "show": true
-        },
-        {
-          "format": "ops",
-          "logBase": 1,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": {
-        "uid": "$datasource"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 7,
-        "w": 16,
-        "x": 8,
-        "y": 37
-      },
-      "hiddenSeries": false,
-      "id": 7,
-      "interval": "",
-      "legend": {
-        "alignAsTable": false,
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "rightSide": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "links": [],
-      "nullPointMode": "null",
-      "percentage": false,
-      "pluginVersion": "7.1.0",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_latency_seconds_bucket{job=\"kube-ovn-controller\", instance=~\"$instance\"}[5m])) by (verb, url, le))",
-          "format": "time_series",
+          "expr": "process_resident_memory_bytes{job=\"kube-ovn-cni\", instance=~\"$instance\"}",
           "instant": false,
           "interval": "",
-          "intervalFactor": 2,
-          "legendFormat": "{{verb}}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeRegions": [],
-      "title": "Request Latency 99th Quantile",
-      "tooltip": {
-        "shared": true,
-        "sort": 2,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "mode": "time",
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "s",
-          "logBase": 1,
-          "min": 0,
-          "show": true
-        },
-        {
-          "format": "s",
-          "logBase": 1,
-          "min": 0,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": {
-        "uid": "$datasource"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 0,
-        "y": 44
-      },
-      "hiddenSeries": false,
-      "id": 9,
-      "legend": {
-        "alignAsTable": false,
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "rightSide": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "links": [],
-      "nullPointMode": "null",
-      "percentage": false,
-      "pluginVersion": "7.1.0",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "expr": "process_resident_memory_bytes{job=\"kube-ovn-controller\",instance=~\"$instance\"}",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 2,
           "legendFormat": "{{instance}}",
           "refId": "A"
         }
@@ -1059,7 +624,7 @@
       "title": "Memory",
       "tooltip": {
         "shared": true,
-        "sort": 2,
+        "sort": 0,
         "value_type": "individual"
       },
       "type": "graph",
@@ -1070,12 +635,12 @@
       },
       "yaxes": [
         {
-          "format": "bytes",
+          "format": "short",
           "logBase": 1,
           "show": true
         },
         {
-          "format": "bytes",
+          "format": "short",
           "logBase": 1,
           "show": true
         }
@@ -1090,7 +655,99 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": {
-        "uid": "$datasource"
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unitScale": true
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "hiddenSeries": false,
+      "id": 10,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "10.3.3",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "go_goroutines{job=\"kube-ovn-cni\", instance=~\"$instance\"}",
+          "interval": "",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Goroutine",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        },
+        {
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1101,31 +758,28 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 8,
-        "y": 44
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
       },
       "hiddenSeries": false,
-      "id": 10,
+      "id": 8,
       "legend": {
-        "alignAsTable": false,
         "avg": false,
         "current": false,
         "max": false,
         "min": false,
-        "rightSide": false,
         "show": true,
         "total": false,
         "values": false
       },
       "lines": true,
       "linewidth": 1,
-      "links": [],
       "nullPointMode": "null",
       "percentage": false,
       "pluginVersion": "7.1.0",
-      "pointradius": 5,
+      "pointradius": 2,
       "points": false,
       "renderer": "flot",
       "seriesOverrides": [],
@@ -1135,22 +789,22 @@
       "targets": [
         {
           "datasource": {
-            "uid": "$datasource"
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "rate(process_cpu_seconds_total{job=\"kube-ovn-controller\",instance=~\"$instance\"}[5m])",
-          "format": "time_series",
+          "expr": "rate(process_cpu_seconds_total{job=\"kube-ovn-cni\", instance=~\"$instance\"}[5m])",
+          "instant": false,
           "interval": "",
-          "intervalFactor": 2,
           "legendFormat": "{{instance}}",
           "refId": "A"
         }
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "CPU usage",
+      "title": "CPU",
       "tooltip": {
         "shared": true,
-        "sort": 2,
+        "sort": 0,
         "value_type": "individual"
       },
       "type": "graph",
@@ -1163,13 +817,11 @@
         {
           "format": "percentunit",
           "logBase": 1,
-          "min": 0,
           "show": true
         },
         {
-          "format": "short",
+          "format": "percentunit",
           "logBase": 1,
-          "min": 0,
           "show": false
         }
       ],
@@ -1194,31 +846,28 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 16,
-        "y": 44
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
       },
       "hiddenSeries": false,
-      "id": 11,
+      "id": 12,
       "legend": {
-        "alignAsTable": false,
         "avg": false,
         "current": false,
         "max": false,
         "min": false,
-        "rightSide": false,
         "show": true,
         "total": false,
         "values": false
       },
       "lines": true,
       "linewidth": 1,
-      "links": [],
       "nullPointMode": "null",
       "percentage": false,
       "pluginVersion": "7.1.0",
-      "pointradius": 5,
+      "pointradius": 2,
       "points": false,
       "renderer": "flot",
       "seriesOverrides": [],
@@ -1230,19 +879,18 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "go_goroutines{job=\"kube-ovn-controller\",instance=~\"$instance\"}",
-          "format": "time_series",
-          "intervalFactor": 2,
-          "legendFormat": "{{instance}}",
+          "expr": "rate(rest_client_request_latency_seconds_sum{job=\"kube-ovn-cni\", instance=~\"$instance\"}[5m])/rate(rest_client_request_latency_seconds_count{job=\"kube-ovn-cni\", instance=~\"$instance\"}[5m])",
+          "interval": "",
+          "legendFormat": "{{instance}} {{verb}}",
           "refId": "A"
         }
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Goroutines",
+      "title": "Client-Go Latency",
       "tooltip": {
         "shared": true,
-        "sort": 2,
+        "sort": 0,
         "value_type": "individual"
       },
       "type": "graph",
@@ -1253,7 +901,7 @@
       },
       "yaxes": [
         {
-          "format": "short",
+          "format": "s",
           "logBase": 1,
           "show": true
         },
@@ -1285,7 +933,6 @@
         "name": "datasource",
         "options": [],
         "query": "prometheus",
-        "queryValue": "",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -1296,14 +943,14 @@
         "datasource": {
           "uid": "$datasource"
         },
-        "definition": "label_values(process_cpu_seconds_total{job=\"kube-ovn-controller\"}, instance)",
+        "definition": "label_values(process_cpu_seconds_total{job=\"kube-ovn-cni\"}, instance)",
         "hide": 0,
         "includeAll": true,
         "multi": false,
         "name": "instance",
         "options": [],
-        "query": "label_values(process_cpu_seconds_total{job=\"kube-ovn-controller\"}, instance)",
-        "refresh": 2,
+        "query": "label_values(process_cpu_seconds_total{job=\"kube-ovn-cni\"}, instance)",
+        "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
         "sort": 0,
@@ -1315,7 +962,7 @@
     ]
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-3h",
     "to": "now"
   },
   "timepicker": {
@@ -1329,22 +976,11 @@
       "1h",
       "2h",
       "1d"
-    ],
-    "time_options": [
-      "5m",
-      "15m",
-      "1h",
-      "6h",
-      "12h",
-      "24h",
-      "2d",
-      "7d",
-      "30d"
     ]
   },
   "timezone": "",
-  "title": "Kube-OVN / Controller",
-  "uid": "GWoNlLAWz",
-  "version": 2,
+  "title": "Kube-OVN / Kube-OVN-CNI",
+  "uid": "YYfp8bOGz",
+  "version": 1,
   "weekStart": ""
 }

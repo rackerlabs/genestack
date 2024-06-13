@@ -5,9 +5,6 @@ helmCharts:
   - name: topolvm
     releaseName: topolvm
     valuesInline:
-      node:
-        nodeSelector:
-          node-role.kubernetes.io/control-plane: ""
       controller:
         replicaCount: 1
         nodeSelector:
@@ -38,8 +35,6 @@ helmCharts:
             mountOptions: []
       # lvmd service
       lvmd:
-        nodeSelector:
-          node-role.kubernetes.io/control-plane: ""
         # lvmd.managed -- If true, set up lvmd service with DaemonSet.
         managed: true
         # lvmd.socketName -- Specify socketName.

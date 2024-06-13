@@ -56,8 +56,8 @@ Before running the Kubernetes deployment, make sure that all hosts have a proper
 
 ``` shell
 source /opt/genestack/scripts/genestack.rc
-ansible -m shell -a 'hostnamectl set-hostname {{ inventory_hostname }}' --become all
-ansible -m shell -a "grep 127.0.0.1 /etc/hosts | grep -q {{ inventory_hostname }} || sed -i 's/^127.0.0.1.*/127.0.0.1 {{ inventory_hostname }} localhost.localdomain localhost/' /etc/hosts" --become all
+ansible -i /etc/genestack/inventory/openstack-flex-inventory.ini -m shell -a 'hostnamectl set-hostname {{ inventory_hostname }}' --become all
+ansible -i /etc/genestack/inventory/openstack-flex-inventory.ini -m shell -a "grep 127.0.0.1 /etc/hosts | grep -q {{ inventory_hostname }} || sed -i 's/^127.0.0.1.*/127.0.0.1 {{ inventory_hostname }} localhost.localdomain localhost/' /etc/hosts" --become all
 ```
 
 !!! note
@@ -93,7 +93,7 @@ Confirm openstack-flex-inventory.yaml matches what is in /etc/genestack/inventor
 
 ``` shell
 # Example overriding things on the CLI
-ansible-playbook host-setup.yml --inventory /etc/genestack/inventory/openstack-flex-inventory.yaml \
+ansible-playbook host-setup.yml --inventory /etc/genestack/inventory/openstack-flex-inventory.ini \
                                 --private-key ${HOME}/.ssh/openstack-flex-keypair.key
 ```
 
@@ -128,7 +128,7 @@ Confirm openstack-flex-inventory.yaml matches what is in /etc/genestack/inventor
 
 
 ``` shell
-ansible-playbook --inventory /etc/genestack/inventory/openstack-flex-inventory.yaml \
+ansible-playbook --inventory /etc/genestack/inventory/openstack-flex-inventory.ini \
                  --private-key /home/ubuntu/.ssh/openstack-flex-keypair.key \
                  --user ubuntu \
                  --become \

@@ -91,3 +91,49 @@ Please visit the Openstack Snapshot page [here](openstack-snapshot.md).
 # Launch a server from a volume
 
 Please visit the Openstack Volumes page [here](openstack-volumes.md).
+
+# Server Creation Example
+
+Below is a quick example of how one could set up a server.
+
+You will need to get your cloud name from your clouds.yaml. More information on this can be found [here](build-test-envs.md). Underneath "clouds:" you will find your cloud name.
+
+First we are going to create our network "my_network"
+
+``` shell
+openstack --os-cloud={cloud_name} network create my_network
+```
+
+Second create the subnet "my_subnet"
+
+``` shell
+openstack --os-cloud={cloud_name} subnet create --ip-version 4 --subnet-range {cidr range} --network my_network my_subnet
+```
+
+Third create the router "my_router"
+
+``` shell
+openstack --os-cloud={cloud_name} router create my_router
+```
+
+Fourth add "my_subnet" to "my_router" and set the router's external gateway using PUBLICNET to allow outbound network access.
+
+``` shell
+openstack --os-cloud={cloud_name} router add subnet my_router my_dmz_subnet
+
+openstack --os-cloud={cloud_name} router set --external-gateway PUBLICNET my_router
+```
+
+Fifth gather the UUIDS for our image, flavor and network to create our server.
+
+``` shell
+openstack --os-cloud={cloud_name} image list
+openstack --os-cloud={cloud_name} flavor list
+openstack --os-cloud={cloud_name} network list
+```
+
+Lastly create your server!
+
+``` shell
+openstack --os-cloud={cloud_name} server create --flavor {flavor uuid} --image {image uuid} --boot-from-volume 25 --network {network uuid} my_first_server
+```

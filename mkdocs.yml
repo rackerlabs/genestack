@@ -130,12 +130,11 @@ nav:
   - Overview:
       - Architecture: genestack-architecture.md
       - Components: genestack-components.md
-  - Quickstart:
-      - Building Virtual Environments: build-test-envs.md
-      - Simple Setup: quickstart.md
   - Deployment Guide:
       - What is Genestack?: deployment-guide-welcome.md
-      - Getting Started: genestack-getting-started.md
+      - Getting Started:
+          - Building Virtual Environments: build-test-envs.md
+          - Getting the code: genestack-getting-started.md
       - Open Infrastructure:
           - Kubernetes:
               - k8s-overview.md
@@ -187,9 +186,9 @@ nav:
                       - skyline: openstack-skyline.md
                   - Octavia: openstack-octavia.md
                   - Metering:
-                    - PostgreSQL: infrastructure-postgresql.md
-                    - Gnocchi: openstack-gnocchi.md
-                    - Ceilometer: openstack-ceilometer.md
+                      - PostgreSQL: infrastructure-postgresql.md
+                      - Gnocchi: openstack-gnocchi.md
+                      - Ceilometer: openstack-ceilometer.md
           - Monitoring:
               - Monitoring Overview: prometheus-monitoring-overview.md
               - Getting Started: monitoring-getting-started.md
@@ -197,8 +196,11 @@ nav:
               - Kube-OVN Monitoring: prometheus-kube-ovn.md
               - RabbitMQ Exporter: prometheus-rabbitmq-exporter.md
               - Memcached Exporter: prometheus-memcached-exporter.md
+              - MariaDB Exporter: prometheus-mysql-exporter.md
               - Postgres Exporter: prometheus-postgres-exporter.md
               - Openstack Exporter: prometheus-openstack-metrics-exporter.md
+              - Blackbox Exporter: prometheus-blackbox-exporter.md
+              - Custom Node Metrics: prometheus-custom-node-metrics.md
               - Alert Manager Examples:
                   - alertmanager-encore.md
                   - alertmanager-slack.md
@@ -231,6 +233,7 @@ nav:
       - Openstack Floating Ips: openstack-floating-ips.md
       - Openstack Keypairs: openstack-keypairs.md
       - Openstack Servers: openstack-servers.md
+      - Openstack Routers: openstack-router.md
       - Openstack Images: openstack-images.md
       - Openstack Swift: storage-swift-object-store.md
       - Openstack Snapshot: openstack-snapshot.md

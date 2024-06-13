@@ -25,19 +25,19 @@ release_group: null
 
 images:
   tags:
-    db_init: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    cinder_db_sync: "docker.io/openstackhelm/cinder:2023.1-ubuntu_jammy"
-    db_drop: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    ks_user: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    ks_service: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    ks_endpoints: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    cinder_api: "docker.io/openstackhelm/cinder:2023.1-ubuntu_jammy"
-    bootstrap: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    cinder_scheduler: "docker.io/openstackhelm/cinder:2023.1-ubuntu_jammy"
-    cinder_volume: "docker.io/openstackhelm/cinder:2023.1-ubuntu_jammy"
-    cinder_volume_usage_audit: "docker.io/openstackhelm/cinder:2023.1-ubuntu_jammy"
+    db_init: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    cinder_db_sync: "docker.io/openstackhelm/cinder:2024.1-ubuntu_jammy"
+    db_drop: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    ks_user: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    ks_service: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    ks_endpoints: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    cinder_api: "docker.io/openstackhelm/cinder:2024.1-ubuntu_jammy"
+    bootstrap: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    cinder_scheduler: "docker.io/openstackhelm/cinder:2024.1-ubuntu_jammy"
+    cinder_volume: "docker.io/openstackhelm/cinder:2024.1-ubuntu_jammy"
+    cinder_volume_usage_audit: "docker.io/openstackhelm/cinder:2024.1-ubuntu_jammy"
     cinder_storage_init: "docker.io/openstackhelm/ceph-config-helper:latest-ubuntu_focal"
-    cinder_backup: "docker.io/openstackhelm/cinder:2023.1-ubuntu_jammy"
+    cinder_backup: "docker.io/openstackhelm/cinder:2024.1-ubuntu_jammy"
     cinder_backup_storage_init: "docker.io/openstackhelm/ceph-config-helper:latest-ubuntu_focal"
     test: docker.io/xrally/xrally-openstack:2.0.0
     rabbit_init: docker.io/rabbitmq:3.7-management
@@ -791,6 +791,7 @@ conf:
       internal_project_name: internal_cinder
       internal_user_name: internal_cinder
       rootwrap_config: /etc/cinder/rootwrap.conf
+      use_multipath_for_image_xfer: False #Add Cinder Multipath support for image xfer
     database:
       max_retries: -1
     keystone_authtoken:
@@ -813,7 +814,25 @@ conf:
     oslo_middleware:
       enable_proxy_headers_parsing: true
     oslo_messaging_rabbit:
-      rabbit_ha_queues: true
+      # We define use of quorum queues via kustomize but this was enabling HA queues instead
+      # ha_queues are deprecated, explicitly set to false and set quorum_queue true
+      rabbit_ha_queues: false
+      rabbit_quorum_queue: true
+      # TODO: Not available until 2024.1, but once it is, we want to enable these!
+      # new feature ref; https://docs.openstack.org/releasenotes/oslo.messaging/2024.1.html
+      # rabbit_transient_quorum_queue: true
+      # use_queue_manager: true
+      # Reconnect after a node outage more quickly
+      rabbit_interval_max: 10
+      # Send more frequent heartbeats and fail unhealthy nodes faster
+      # heartbeat_timeout / heartbeat_rate / 2.0 = 30 / 3 / 2.0 = 5
+      # https://opendev.org/openstack/oslo.messaging/commit/36fb5bceabe08a982ebd52e4a8f005cd26fdf6b8
+      heartbeat_rate: 3
+      heartbeat_timeout_threshold: 30
+      # Setting lower kombu_reconnect_delay should resolve isssue with HA failing when one node is down
+      # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
+      # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
+      kombu_reconnect_delay: 0.5
     coordination:
       backend_url: file:///var/lib/cinder/coordination
     service_user:
@@ -880,19 +899,7 @@ conf:
       format: "%(message)s"
       datefmt: "%Y-%m-%d %H:%M:%S"
   rabbitmq:
-    # NOTE(rk760n): adding rmq policy to mirror messages from notification queues and set expiration time for the ones
-    policies:
-      - vhost: "cinder"
-        name: "ha_ttl_cinder"
-        definition:
-          # mirror messges to other nodes in rmq cluster
-          ha-mode: "all"
-          ha-sync-mode: "automatic"
-          # 70s
-          message-ttl: 70000
-        priority: 0
-        apply-to: all
-        pattern: '^(?!(amq\.|reply_)).*'
+    policies: []
   backends:
     # Those options will be written to backends.conf as-is.
     lvmdriver-1:
@@ -1320,7 +1327,7 @@ endpoints:
         username: cinder
         password: password
     hosts:
-      default: mariadb-galera-primary
+      default: mariadb-cluster-primary
     host_fqdn_override:
       default: null
     path: /cinder

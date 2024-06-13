@@ -1,3 +1,7 @@
+!!! Danger "This section is still underdevelopment and experimental"
+
+    None of the vault components are required to run a Genestack environment.
+
 # HashiCorp Vault Setup for Genestack Installation
 
 HashiCorp Vault is a versatile tool designed for secret management and data protection. It allows you to securely store and control access to various sensitive data, such as tokens, passwords, certificates, and API keys. In this guide, we will use HashiCorp Vault to store Kubernetes Secrets for the Genestack installation.

@@ -75,7 +75,7 @@ all:
   children:
     k8s_cluster:
       vars:
-        cluster_name: rackerlabs.dev.local  # This clustername should be changed to match your environment domain name.
+        cluster_name: cluster.local  # If cluster_name is modified then cluster_domain_suffix will need to be modified for all the helm charts and for infrastructure operator configs too
         kube_ovn_iface: vlan206  # see the netplan snippet in etc/netplan/default-DHCP.yaml for more info.
         kube_ovn_default_interface_name: vlan206  # see the netplan snippet in etc/netplan/default-DHCP.yaml for more info.
         kube_ovn_central_hosts: "{{ groups['ovn_network_nodes'] }}"

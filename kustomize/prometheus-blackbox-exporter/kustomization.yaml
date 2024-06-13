@@ -1,0 +1,9 @@
+helmCharts:
+  - name: prometheus-blackbox-exporter
+    repo: https://prometheus-community.github.io/helm-charts
+    releaseName: prometheus-blackbox-exporter
+    namespace: prometheus
+    includeCRDs: true
+    valuesFile: values.yaml
+    additionalValuesFiles:
+      - probe_targets.yaml

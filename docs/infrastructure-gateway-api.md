@@ -39,7 +39,7 @@ kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/downloa
 
 Next, Install the NGINX Gateway Fabric controller
 ```
-cd /opt/genestack/submodules/nginx-gateway-fabric
+cd /opt/genestack/submodules/nginx-gateway-fabric/deploy/helm-chart
 
 helm upgrade --install nginx-gateway-fabric . --namespace=nginx-gateway -f /opt/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml
 ```
@@ -49,6 +49,12 @@ Helm install does not automatically upgrade the crds for this resource. To upgra
 ### Example Implementation with Prometheus UI
 
 In this example we will look at how Prometheus UI is exposed through the gateway. For other services the gateway kustomization file for the service.
+
+Rackspace specific gateway kustomization files can be applied like so
+```
+cd /opt/genestack/kustomize/gateway
+kubectl kustomize | kubectl apply -f -
+```
 
 First, create the shared gateway and then the httproute resource for prometheus.
 ```
