@@ -10,7 +10,7 @@ spec:
   # If you want the database to be created with a different name than the resource name
   # name: data-custom
   mariaDbRef:
-    name: mariadb-galera
+    name: mariadb-cluster
   characterSet: utf8
   collate: utf8_general_ci
   retryInterval: 5s
@@ -26,7 +26,7 @@ spec:
   # If you want the user to be created with a different name than the resource name
   # name: user-custom
   mariaDbRef:
-    name: mariadb-galera
+    name: mariadb-cluster
   passwordSecretKeyRef:
     name: keystone-db-password
     key: password
@@ -44,7 +44,7 @@ metadata:
     helm.sh/resource-policy: keep
 spec:
   mariaDbRef:
-    name: mariadb-galera
+    name: mariadb-cluster
   privileges:
     - "ALL"
   database: "keystone"

@@ -32,12 +32,9 @@ EOF
 ## Use the proper TLS issuerRef
 
 !!! danger "Important for later helm installations!"
-    You must ensure your helm configuration is such that you set the
-    `endpoints.$service.host_fqdn_override.public.tls.issuerRef.name` for any
-    given endpoint to use our `letsencrypt-prod` ClusterIssuer. Similarly,
-    ensure that `endpoints.$service.host_fqdn_override.public.host`
-    is set to the external DNS hostname you plan to expose for a given
-    service endpoint.
+    The `letsencrypt-prod` ClusterIssuer is used to generate the certificate through cert-manager. This ClusterIssuer is applied using a Kustomize patch. However, to ensure that the certificate generation process is initiated, it is essential to include `endpoints.$service.host_fqdn_override.public.tls: {}` in the service helm override file.
+    Similarly, ensure that `endpoints.$service.host_fqdn_override.public.host` is set to the external DNS hostname you plan to expose for a given service endpoint.
+    This configuration is necessary for proper certificate generation and to ensure the service is accessible via the specified hostname.
 
 !!! example
     You can find several examples of this in the
@@ -48,11 +45,7 @@ EOF
       image:
         host_fqdn_override:
           public:
-            tls:
-              secretName: glance-tls-api
-              issuerRef:
-                name: letsencrpyt-prod
-                kind: ClusterIssuer
+            tls: {}
             host: glance.api.your.domain.tld
         port:
           api:
