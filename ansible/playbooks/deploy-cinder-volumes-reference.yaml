@@ -4,7 +4,7 @@
   gather_facts: true
   become: true
   vars:
-    cinder_release: "2023.1"
+    cinder_release: "2024.1"
     cinder_storage_network_interface: ansible_br_storage
     cinder_backend_name: "lvmdriver-1"
   handlers:
