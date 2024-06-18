@@ -84,6 +84,7 @@
       loop:
         - /var/lib/cinder/backup
         - /var/lib/cinder/tmp
+        - /var/lib/cinder/volumes
 
     - name: Create symlink for the etc directory
       ansible.builtin.file:
