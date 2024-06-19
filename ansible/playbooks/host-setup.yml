@@ -40,3 +40,22 @@
   environment: "{{ deployment_environment_variables | default({}) }}"
   roles:
     - host_setup
+
+- hosts: nova_compute_nodes
+  become: true
+  gather_facts: "{{ gather_facts | default(true) }}"
+  environment: "{{ deployment_environment_variables | default({}) }}"
+  tasks:
+  - name : Install open-iscsi and multipath on nova compute nodes
+    apt: name={{ item }} state=latest update_cache=true
+    loop: [open-iscsi, multipath-tools]
+  - name: Make sure open-iscsi is started and enabled
+    systemd:
+    name: iscsid.service
+    state: started
+    enabled: true
+  - name: Make sure multipathd is started and enabled
+    systemd:
+    name: multipathd.service
+    state: started
+    enabled: true
