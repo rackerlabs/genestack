@@ -213,7 +213,7 @@ The use of iSCSI without multipath is discouraged and will lead to VMs having is
 
 !!! Note
 
-This configuration will use two storage CIDRs, please make sure there are two network paths back to storage. 
+This configuration will use two storage CIDRs, please make sure there are two network paths back to storage.
 
 ## Enable multipath in Nova Compute:
 
@@ -267,7 +267,7 @@ Target 4: iqn.2010-10.org.openstack:dd88d4b9-1297-44c1-b9bc-efd6514be035
             Thin-provisioning: No
             Backing store type: null
             Backing store path: None
-            Backing store flags: 
+            Backing store flags:
         LUN: 1
             Type: disk
             SCSI ID: IET     00040001
@@ -281,7 +281,7 @@ Target 4: iqn.2010-10.org.openstack:dd88d4b9-1297-44c1-b9bc-efd6514be035
             Thin-provisioning: No
             Backing store type: rdwr
             Backing store path: /dev/cinder-volumes-1/dd88d4b9-1297-44c1-b9bc-efd6514be035
-            Backing store flags: 
+            Backing store flags:
     Account information:
         sRs8FV73FeaF2LFnPb4j
     ACL information:
