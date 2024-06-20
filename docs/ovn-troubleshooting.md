@@ -379,7 +379,7 @@ Then you can connect to the database:
 ```shell
 mysql -u root \
 -p$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d) \
--h mariadb-galera-primary.openstack.svc.cluster.local
+-h mariadb-cluster-primary.openstack.svc.cluster.local
 ```
 
 Make sure to change `svc.cluster.local` if you have set the name of your cluster

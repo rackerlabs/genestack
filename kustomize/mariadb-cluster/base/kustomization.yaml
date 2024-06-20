@@ -1,4 +1,4 @@
 resources:
   - mariadb-configmap.yaml
-  - mariadb-galera.yaml
+  - mariadb-replication.yaml
   - mariadb-backup.yaml

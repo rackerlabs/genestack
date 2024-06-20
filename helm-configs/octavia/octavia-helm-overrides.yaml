@@ -21,13 +21,13 @@ labels:
 images:
   tags:
     test: docker.io/xrally/xrally-openstack:2.0.0
-    bootstrap: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    db_init: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    db_drop: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    bootstrap: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    db_init: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    db_drop: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
     rabbit_init: docker.io/rabbitmq:3.7-management
-    ks_user: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    ks_service: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    ks_endpoints: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    ks_user: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    ks_service: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    ks_endpoints: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
     dep_check: quay.io/airshipit/kubernetes-entrypoint:v1.0.0
     image_repo_sync: docker.io/docker:17.07.0
     octavia_db_sync: ghcr.io/rackerlabs/genestack/octavia-ovn:master-ubuntu_jammy
@@ -35,7 +35,7 @@ images:
     octavia_worker: ghcr.io/rackerlabs/genestack/octavia-ovn:master-ubuntu_jammy
     octavia_housekeeping: ghcr.io/rackerlabs/genestack/octavia-ovn:master-ubuntu_jammy
     octavia_health_manager: ghcr.io/rackerlabs/genestack/octavia-ovn:master-ubuntu_jammy
-    octavia_health_manager_init: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+    octavia_health_manager_init: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
     openvswitch_vswitchd: docker.io/kolla/centos-source-openvswitch-vswitchd:rocky
   pull_policy: "IfNotPresent"
   local_registry:
@@ -185,7 +185,7 @@ conf:
     DEFAULT:
       log_config_append: /etc/octavia/logging.conf
     api_settings:
-      default_provider_driver: ovn
+      default_provider_driver: amphora
       enabled_provider_drivers: >-
         ovn: "The Octavia OVN driver",
         amphora: "The Octavia Amphora driver"
@@ -466,7 +466,7 @@ endpoints:
         username: octavia
         password: password
     hosts:
-      default: mariadb-galera-primary
+      default: mariadb-cluster-primary
     host_fqdn_override:
       default: null
     path: /octavia
@@ -499,7 +499,7 @@ endpoints:
         password: password
     statefulset:
       replicas: 3
-      name: rabbitmq-rabbitmq
+      name: rabbitmq-server
     hosts:
       default: rabbitmq-nodes
     host_fqdn_override:
@@ -718,7 +718,7 @@ network_policy:
 manifests:
   configmap_bin: true
   configmap_etc: true
-  daemonset_health_manager: false
+  daemonset_health_manager: true
   deployment_api: true
   deployment_worker: true
   deployment_housekeeping: true

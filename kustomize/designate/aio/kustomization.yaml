@@ -1,0 +1,14 @@
+bases:
+  - ../base
+
+patches:
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: designate-api
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 1

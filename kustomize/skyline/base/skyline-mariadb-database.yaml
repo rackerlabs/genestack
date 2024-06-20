@@ -8,7 +8,7 @@ spec:
   # If you want the database to be created with a different name than the resource name
   # name: data-custom
   mariaDbRef:
-    name: mariadb-galera
+    name: mariadb-cluster
   characterSet: utf8
   collate: utf8_general_ci
   retryInterval: 5s
@@ -22,7 +22,7 @@ spec:
   # If you want the user to be created with a different name than the resource name
   # name: user-custom
   mariaDbRef:
-    name: mariadb-galera
+    name: mariadb-cluster
   passwordSecretKeyRef:
     name: skyline-apiserver-secrets
     key: db-password
@@ -38,7 +38,7 @@ metadata:
   namespace: openstack
 spec:
   mariaDbRef:
-    name: mariadb-galera
+    name: mariadb-cluster
   privileges:
     - "ALL"
   database: "skyline"
