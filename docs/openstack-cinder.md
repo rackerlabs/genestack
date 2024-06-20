@@ -288,7 +288,7 @@ Target 4: iqn.2010-10.org.openstack:dd88d4b9-1297-44c1-b9bc-efd6514be035
         ALL
 ```
 
-On Compute nodes 
+On Compute nodes
 
 ``` shell
 
