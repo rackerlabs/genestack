@@ -1,14 +1,12 @@
 release_group: null
-
 labels:
   agent:
     libvirt:
       node_selector_key: openstack-compute-node
       node_selector_value: enabled
-
 images:
   tags:
-    libvirt: docker.io/openstackhelm/libvirt:2023.2-ubuntu_jammy  # We want to use jammy. 2023.2 is the latest version that supports jammy.
+    libvirt: docker.io/openstackhelm/libvirt:2023.2-ubuntu_jammy # We want to use jammy. 2023.2 is the latest version that supports jammy.
     libvirt_exporter: vexxhost/libvirtd-exporter:latest
     ceph_config_helper: 'docker.io/openstackhelm/ceph-config-helper:ubuntu_focal_18.2.0-1-20231013'
     dep_check: quay.io/airshipit/kubernetes-entrypoint:v1.0.0
@@ -20,13 +18,11 @@ images:
     exclude:
       - dep_check
       - image_repo_sync
-
 network:
   # provide what type of network wiring will be used
   # possible options: ovn, openvswitch, linuxbridge, sriov
   backend:
     - ovn
-
 endpoints:
   cluster_domain_suffix: cluster.local
   local_image_registry:
@@ -60,21 +56,18 @@ endpoints:
     port:
       metrics:
         default: 9474
-
 network_policy:
   libvirt:
     ingress:
       - {}
     egress:
       - {}
-
 ceph_client:
   configmap: ceph-etc
   user_secret_name: pvc-ceph-client-key
-
 conf:
   ceph:
-    enabled: false  # Set to true when we has ceph support for openstack.
+    enabled: false # Set to true when we has ceph support for openstack.
     admin_keyring: null
     cinder:
       user: "cinder"
@@ -158,7 +151,6 @@ conf:
       kubectl -n ${POD_NAMESPACE} get secret ${POD_NAME}-${TYPE} -o jsonpath='{.data.tls\.crt}' | base64 -d > /tmp/${TYPE}.crt
       kubectl -n ${POD_NAMESPACE} get secret ${POD_NAME}-${TYPE} -o jsonpath='{.data.tls\.key}' | base64 -d > /tmp/${TYPE}.key
       kubectl -n ${POD_NAMESPACE} get secret ${POD_NAME}-${TYPE} -o jsonpath='{.data.ca\.crt}' | base64 -d > /tmp/${TYPE}-ca.crt
-
 pod:
   probes:
     libvirt:
@@ -191,7 +183,6 @@ pod:
           privileged: true
   sidecars:
     libvirt_exporter: false
-
   affinity:
     anti:
       type:
@@ -204,12 +195,12 @@ pod:
     libvirt:
       enabled: false
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
-      - key: node-role.kubernetes.io/control-plane
-        operator: Exists
-        effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
   dns_policy: "ClusterFirstWithHostNet"
   mounts:
     libvirt:
@@ -244,7 +235,6 @@ pod:
         cpu: "100m"
       limits:
         memory: "256Mi"
-
 dependencies:
   dynamic:
     common:
@@ -257,11 +247,11 @@ dependencies:
     targeted:
       ovn:
         libvirt:
-          pod: []  # In a hybrid deployment, we don't want to run ovn-controller on the same node as libvirt
-            # - requireSameNode: true
-            #   labels:
-            #     application: ovn
-            #     component: ovn-controller
+          pod: [] # In a hybrid deployment, we don't want to run ovn-controller on the same node as libvirt
+          # - requireSameNode: true
+          #   labels:
+          #     application: ovn
+          #     component: ovn-controller
       openvswitch:
         libvirt:
           pod:
@@ -290,7 +280,6 @@ dependencies:
       services:
         - endpoint: internal
           service: local_image_registry
-
 manifests:
   configmap_bin: true
   configmap_etc: true
@@ -299,7 +288,6 @@ manifests:
   network_policy: false
   role_cert_manager: false
   secret_registry: true
-
 secrets:
   oci_image_registry:
     libvirt: libvirt-oci-image-registry-key

@@ -32,5 +32,5 @@ helmCharts:
                     values:
                       - worker
     includeCRDs: true
-    version: 0.27.0
+    version: 0.28.1
     namespace: mariadb-system

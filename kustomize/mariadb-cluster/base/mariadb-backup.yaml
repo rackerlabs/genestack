@@ -5,7 +5,7 @@ metadata:
   namespace: openstack
 spec:
   mariaDbRef:
-    name: mariadb-galera
+    name: mariadb-cluster
     namespace: openstack
   schedule:
     cron: "0 0 * * *"

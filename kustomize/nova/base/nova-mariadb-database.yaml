@@ -10,7 +10,7 @@ spec:
   # If you want the database to be created with a different name than the resource name
   # name: data-custom
   mariaDbRef:
-    name: mariadb-galera
+    name: mariadb-cluster
   characterSet: utf8
   collate: utf8_general_ci
   retryInterval: 5s
@@ -27,7 +27,7 @@ spec:
   # name: data-custom
   name: nova_api
   mariaDbRef:
-    name: mariadb-galera
+    name: mariadb-cluster
   characterSet: utf8
   collate: utf8_general_ci
   retryInterval: 5s
@@ -44,7 +44,7 @@ spec:
   # name: data-custom
   name: nova_cell0
   mariaDbRef:
-    name: mariadb-galera
+    name: mariadb-cluster
   characterSet: utf8
   collate: utf8_general_ci
   retryInterval: 5s
@@ -60,7 +60,7 @@ spec:
   # If you want the user to be created with a different name than the resource name
   # name: user-custom
   mariaDbRef:
-    name: mariadb-galera
+    name: mariadb-cluster
   passwordSecretKeyRef:
     name: nova-db-password
     key: password
@@ -78,7 +78,7 @@ metadata:
     helm.sh/resource-policy: keep
 spec:
   mariaDbRef:
-    name: mariadb-galera
+    name: mariadb-cluster
   privileges:
     - "ALL"
   database: "nova"
@@ -97,7 +97,7 @@ metadata:
     helm.sh/resource-policy: keep
 spec:
   mariaDbRef:
-    name: mariadb-galera
+    name: mariadb-cluster
   privileges:
     - "ALL"
   database: "nova_api"
@@ -116,7 +116,7 @@ metadata:
     helm.sh/resource-policy: keep
 spec:
   mariaDbRef:
-    name: mariadb-galera
+    name: mariadb-cluster
   privileges:
     - "ALL"
   database: "nova_cell0"

@@ -5,7 +5,7 @@ metadata:
 spec:
   name: monitoring
   mariaDbRef:
-    name: mariadb-galera
+    name: mariadb-cluster
   passwordSecretKeyRef:
     name: mariadb-monitoring
     key: password

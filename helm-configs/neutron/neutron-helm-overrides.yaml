@@ -2,24 +2,24 @@ release_group: null
 
 images:
   tags:
-    bootstrap: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    db_init: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    db_drop: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    ks_user: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    ks_service: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    ks_endpoints: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
-    neutron_db_sync: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
-    neutron_dhcp: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
-    neutron_l3: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
-    neutron_l2gw: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
-    neutron_linuxbridge_agent: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
-    neutron_metadata: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
-    neutron_ovn_metadata: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
-    neutron_openvswitch_agent: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
-    neutron_server: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
-    neutron_rpc_server: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
-    neutron_bagpipe_bgp: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
-    neutron_netns_cleanup_cron: "docker.io/openstackhelm/neutron:2023.1-ubuntu_jammy"
+    bootstrap: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    db_init: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    db_drop: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    ks_user: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    ks_service: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    ks_endpoints: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    neutron_db_sync: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
+    neutron_dhcp: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
+    neutron_l3: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
+    neutron_l2gw: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
+    neutron_linuxbridge_agent: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
+    neutron_metadata: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
+    neutron_ovn_metadata: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
+    neutron_openvswitch_agent: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
+    neutron_server: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
+    neutron_rpc_server: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
+    neutron_bagpipe_bgp: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
+    neutron_netns_cleanup_cron: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
     test: docker.io/xrally/xrally-openstack:2.0.0
     purge_test: docker.io/openstackhelm/ospurge:latest
     rabbit_init: docker.io/rabbitmq:3.7-management
@@ -1779,6 +1779,12 @@ conf:
     oslo_concurrency:
       lock_path: /var/lib/neutron/tmp
     database:
+      mysql_sql_mode: ""
+      connection_debug: 100
+      connection_trace: true
+      use_db_reconnect: True
+      idle_timeout: 3600
+      connection_recycle_time: 3600
       max_retries: -1
     agent:
       availability_zone: nova
@@ -2205,7 +2211,7 @@ endpoints:
         username: neutron
         password: password
     hosts:
-      default: mariadb-galera-primary
+      default: mariadb-cluster-primary
     host_fqdn_override:
       default: null
     path: /neutron

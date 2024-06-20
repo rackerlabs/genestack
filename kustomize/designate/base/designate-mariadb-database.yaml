@@ -2,7 +2,7 @@
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: Database
 metadata:
-  name: keystone
+  name: designate
   namespace: openstack
   annotations:
     helm.sh/resource-policy: keep
@@ -18,7 +18,7 @@ spec:
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: User
 metadata:
-  name: keystone
+  name: designate
   namespace: openstack
   annotations:
     helm.sh/resource-policy: keep
@@ -28,7 +28,7 @@ spec:
   mariaDbRef:
     name: mariadb-cluster
   passwordSecretKeyRef:
-    name: keystone-db-password
+    name: designate-db-password
     key: password
   # This field is immutable and defaults to 10, 0 means unlimited.
   maxUserConnections: 0
@@ -38,7 +38,7 @@ spec:
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: Grant
 metadata:
-  name: keystone-grant
+  name: designate-grant
   namespace: openstack
   annotations:
     helm.sh/resource-policy: keep
@@ -47,9 +47,9 @@ spec:
     name: mariadb-cluster
   privileges:
     - "ALL"
-  database: "keystone"
+  database: "designate"
   table: "*"
-  username: keystone
+  username: designate
   grantOption: true
   host: "%"
   retryInterval: 5s
