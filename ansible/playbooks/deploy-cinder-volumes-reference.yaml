@@ -164,7 +164,7 @@
       notify:
         - Restart cinder-volume systemd services
 
-#    Uncomment lines below to enable ISCSI multipath 
+#    Uncomment lines below to enable ISCSI multipath
 #    - name: Add secondary IP for multipath config
 #      community.general.ini_file:
 #        path: /etc/cinder/backends.conf
