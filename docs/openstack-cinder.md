@@ -219,6 +219,12 @@ This configuration will use two storage CIDRs, please make sure there are two ne
 
 Toggle volume_use_multipath to true in /opt/genestack/helm-configs/nova/nova-helm-overrides.yaml
 
+``` shell
+
+sed -i 's/volume_use_multipath: false/volume_use_multipath: true/' /opt/genestack/helm-configs/nova/nova-helm-overrides.yaml
+
+```
+
 ## Enable iSCSi and Multipath services on Compute Nodes
 
 Add variable to your inventory file and re-run host-setup.yaml
