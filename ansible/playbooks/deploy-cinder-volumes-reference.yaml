@@ -169,7 +169,7 @@
 #      community.general.ini_file:
 #        path: /etc/cinder/backends.conf
 #        section: "{{ cinder_backend_name }}"
-#        option: "target_secondary_ip_address"
+#        option: "iscsi_secondary_ip_addresses"
 #        value: "{{ hostvars[inventory_hostname][cinder_storage_network_interface_secondary]['ipv4']['address'] | default(ansible_default_ipv4.address) }}"
 #        create: true
 #      notify:
