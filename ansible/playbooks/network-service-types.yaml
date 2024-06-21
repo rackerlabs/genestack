@@ -1,0 +1,132 @@
+# This playbook ensures all subnets of a given network have the specified
+# service types, but has defaults to prevent nova instances from connecting
+# directly to a network named PUBLICNET (so that they have to use floating IPs.)
+#
+# This works by setting service types network:floatingip,
+# network:router_gateway, and network:distributed on all subnets of PUBLICNET
+# (or the specified network.)
+#
+# Usage:
+#
+# ansible-playbook publicnet.yaml
+#
+# Optionally, -e network_name=<network_name>, and/or -e revert=true to remove
+# the above-listed service types from the subnets of the network.
+#
+# It saves a copy of the subnets every time you run the playbook (unless you
+# use something like -e save_copy=false)
+#
+# Dependencies:
+#
+# - You will need a working clouds.yaml. You can see how to generate one in:
+#   $GENESTACK/docs/openstack-clouds.md
+# - a working `openstack` command
+#   - unfortunately, the Ansible collection openstack.cloud can only create
+#     and delete subnets, not modify them
+# - Ansible collection openstack.cloud
+#   - however, you probably will not need to install this because you will
+#     typically find this already available in the venv the genestack creates
+#     for the 'root' user on the bastion by default
+#
+# See comments at the end of the playbook for an example of creating network(s)
+# to test on, since you can use -e network_name and specify a test network.
+
+- name: Set service types on subnets to prevent instances from connecting directly to PUBLICNET
+  hosts: localhost
+  gather_facts: no
+
+  vars:
+    cloud: default
+    network_name: PUBLICNET
+    revert: false
+    save_copy: true
+    service_types:
+      - 'network:floatingip'
+      - 'network:router_gateway'
+      - 'network:distributed'
+
+  tasks:
+
+    - name: List cloud networks
+      openstack.cloud.networks_info:
+        cloud: "{{ cloud }}"
+        name: "{{ network_name }}"
+      register: networks_result
+
+    - name: Fail unless matching one network.
+      fail:
+        msg: "Failed to match exactly one network. Try -e network_name=<network_uuid>"
+      when:
+        - networks_result.networks | length != 1
+
+    - name: Get subnet info
+      openstack.cloud.subnets_info:
+        cloud: "{{ cloud }}"
+        name: "{{ item }}"
+      register: subnets_result
+      with_items:
+        - "{{ networks_result.networks[0].subnet_ids }}"
+
+    - name: Gather timestamp for subnet backup info
+      ansible.builtin.setup:
+        filter: "ansible_date_time"
+      when: save_copy | bool
+
+    # If we operated on the wrong subnet or it has some complicated set of
+    # service types, we have a full copy of what everything looked like before
+    # the playbook changed anything and can manually fix it.
+    - name: Save a copy of pre-change subnet info
+      # While saving a file should technically result in an Ansible 'changed',
+      # I only wanted to see 'changed' when Ansible changes service types on
+      # subnets.
+      #
+      # While the task never reports 'changed', it can still fail the playbook
+      # run, which seems like desirable behavior if we couldn't save a copy.
+      changed_when: false
+      copy:
+        content: >
+          {{ item.subnets[0] }}
+        dest: "{{ item.subnets[0].id }}_{{ ansible_date_time.year }}-{{ ansible_date_time.month }}-{{ ansible_date_time.day }}-{{ ansible_date_time.hour }}-{{ ansible_date_time.minute }}-{{ ansible_date_time.second }}.json"
+      when: save_copy | bool
+      with_items:
+        - "{{ subnets_result.results }}"
+
+    # Unfortunately, openstack.cloud.subnet cannot modify subnets. It can only
+    # create and delete them: https://docs.ansible.com/ansible/latest/collections/openstack/cloud/subnet_module.html#ansible-collections-openstack-cloud-subnet-module
+    # We have to use the CLI tool here (or the raw Neutron API; we just can't
+    # use the module.)
+    #
+    # If you try to set a service type that already exists on a subnet, Neutron
+    # will take a very long time and then give you a http 409, so in addition
+    # to generating one Ansible 'change' per service type and subnet changed
+    # (which seems good), we definitely have to set only the ones the subnet
+    # doesn't already have anyway, so we loop through the full cross-product
+    # of subnets and service types here.
+    - name: Set service types on subnets.
+      shell: >
+        openstack subnet set {{ item.0.subnets[0].id }} --service-type {{ item.1 }}
+      loop: "{{ subnets_result.results | product(service_types) | list }}"
+      when:
+        - item.1 not in item.0.subnets[0].service_types
+        - not revert | bool
+
+    # Unsetting only happens on 'revert'.
+    - name: Unset service types on subnets.
+      shell: >
+        openstack subnet unset {{ item.0.subnets[0].id }} --service-type {{ item.1 }}
+      loop: "{{ subnets_result.results | product(service_types) | list }}"
+      when:
+        - item.1 in item.0.subnets[0].service_types
+        - revert | bool
+
+# Test network
+#
+# You can easily create a test network with a few subnets to see how this works,
+# if desired:
+#
+# openstack network create testnet
+# openstack subnet create testsubnet \
+# --network testnet --subnet-range 192.168.8.0/24
+# openstack subnet create testsubnet2 \
+# --network testnet --subnet-range 192.168.9.0/24
+# ansible-playbook -e network_name=testnet
