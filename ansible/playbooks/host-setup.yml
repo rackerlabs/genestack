@@ -55,7 +55,7 @@
             name:
               - open-iscsi
               - multipath-tools
-            state: latest # noqa package-latest
+            state: "{{ iscsi_package_state | default('present') }}"
             update_cache: true
           register: _multipath_packages
         - name: Make sure open-iscsi is started and enabled
