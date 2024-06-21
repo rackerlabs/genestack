@@ -220,6 +220,7 @@ Toggle volume_use_multipath to true in /opt/genestack/helm-configs/nova/nova-hel
 ``` shell
 
 sed -i 's/volume_use_multipath: false/volume_use_multipath: true/' /opt/genestack/helm-configs/nova/nova-helm-overrides.yaml
+sed -i 's/enable_iscsi: false/enable_iscsi: true/' /opt/genestack/helm-configs/nova/nova-helm-overrides.yaml
 
 ```
 
