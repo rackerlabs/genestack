@@ -41,7 +41,7 @@
   roles:
     - host_setup
 
-- hosts: nova_compute_nodes
+- hosts: openstack_compute_nodes
   become: true
   gather_facts: true
   environment: "{{ deployment_environment_variables | default({}) }}"
