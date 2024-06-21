@@ -227,9 +227,11 @@ sed -i 's/volume_use_multipath: false/volume_use_multipath: true/' /opt/genestac
 
 Add variable to your inventory file and re-run host-setup.yaml
 
+``` shell
 storage:
   vars:
     enable_iscsi: true
+```
 
 ## Enable iSCSI with LVM
 
