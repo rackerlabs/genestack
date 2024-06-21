@@ -209,11 +209,11 @@ root@openstack-flex-node-4:~# lvs
 
 !!! tip
 
-        The use of iSCSI without multipath is discouraged and will lead to VMs having issues reaching attached storage during networking events.
+    The use of iSCSI without multipath is discouraged and will lead to VMs having issues reaching attached storage during networking events.
 
 !!! note
 
-        This configuration will use two storage CIDRs, please make sure there are two network paths back to storage.
+    This configuration will use two storage CIDRs, please make sure there are two network paths back to storage.
 
 ## Enable multipath in Nova Compute:
 
