@@ -8,11 +8,22 @@ Label-based overrides allow you to configure service-specific settings for an en
 
 ### Example: Helm Label Overrides YAML
 
-The following YAML example demonstrates how to set label-based overrides:
+The following YAML example demonstrates how to set label-based overrides for a cloud deployment that will have two different cpu types, enables some additional scheduler filters by default, and defines a set of shared CPUs that can be used on a given compute host for heterogeneous computing.
+
+| cpu-types   | config overrides |
+| ----------- | ---------- |
+| default     | Sets an alias for the p2000 GPU for passthrough. Enables additional scheduler filters |
+| amd-3900    | Sets a single reserved core for the host. Sets a PCI device specification in support of the p2000 GPU for passthrough. |
+| intel-12700 | Sets a set of shared CPUs (used to ensure nova only schedules to P-Cores). |
 
 ``` yaml title="Configuration Overrides using Labels"
 conf:
   nova:
+    filter_scheduler:
+      enabled_filters: >-
+        ComputeFilter,ComputeCapabilitiesFilter,ImagePropertiesFilter,ServerGroupAntiAffinityFilter,
+        ServerGroupAffinityFilter,PciPassthroughFilter
+      available_filters: nova.scheduler.filters.all_filters
     pci:
       alias: >-
         {"vendor_id": "10de", "product_id": "1c30", "device_type": "type-PCI", "name": "p2000"}
@@ -30,24 +41,19 @@ conf:
               pci:
                 device_spec: >-
                   {"vendor_id": "10de", "product_id": "1c30"}
-              filter_scheduler:
-                enabled_filters: >-
-                  ComputeFilter,ComputeCapabilitiesFilter,ImagePropertiesFilter,ServerGroupAntiAffinityFilter,
-                  ServerGroupAffinityFilter,PciPassthroughFilter
-                available_filters: nova.scheduler.filters.all_filters
         - label:
             key: openstack-compute-cpu-type  # Defines a KEY
             values:
               - "intel-12700"  # Defines a VALUE
           conf:
             nova:
-              DEFAULT:
+              compute:
                 cpu_shared_set: "0-15"
 ```
 
 !!! note "PCI-Passthrough and Filters Notice"
 
-    The above overrides are used to [passthrough a PCI](https://docs.openstack.org/nova/latest/admin/pci-passthrough.html) device in support of a GPU type. For more information on GPU passthrough, and how to interact with some of the [advanced scheduling](https://docs.openstack.org/nova/latest/admin/scheduling.html) filter capabilities found in OpenStack, have a look at the official upstream documentation.
+    The above overrides are used to [passthrough a PCI](openstack-pci-passthrough.md) device in support of a GPU type. For more information on GPU passthrough, and how to interact with some of the [advanced scheduling](https://docs.openstack.org/nova/latest/admin/scheduling.html) filter capabilities found in OpenStack, have a look at the official upstream documentation.
 
 #### Label Overrides Explanation
 
