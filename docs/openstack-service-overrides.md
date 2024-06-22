@@ -12,6 +12,10 @@ The following YAML example demonstrates how to set label-based overrides:
 
 ``` yaml title="Configuration Overrides using Labels"
 conf:
+  nova:
+    pci:
+      alias: >-
+        {"vendor_id": "10de", "product_id": "1c30", "device_type": "type-PCI", "name": "p2000"}
   overrides:
     nova_compute:  # Chart + "_" + Daemonset (nova_compute)
       labels:
@@ -23,15 +27,27 @@ conf:
             nova:
               DEFAULT:
                 reserved_host_cpus: "1"
+              pci:
+                device_spec: >-
+                  {"vendor_id": "10de", "product_id": "1c30"}
+              filter_scheduler:
+                enabled_filters: >-
+                  ComputeFilter,ComputeCapabilitiesFilter,ImagePropertiesFilter,ServerGroupAntiAffinityFilter,
+                  ServerGroupAffinityFilter,PciPassthroughFilter
+                available_filters: nova.scheduler.filters.all_filters
         - label:
             key: openstack-compute-cpu-type  # Defines a KEY
             values:
               - "intel-12700"  # Defines a VALUE
           conf:
             nova:
-              compute:
+              DEFAULT:
                 cpu_shared_set: "0-15"
 ```
+
+!!! note "PCI-Passthrough and Filters Notice"
+
+    The above overrides are used to [passthrough a PCI](https://docs.openstack.org/nova/latest/admin/pci-passthrough.html) device in support of a GPU type. For more information on GPU passthrough, and how to interact with some of the [advanced scheduling](https://docs.openstack.org/nova/latest/admin/scheduling.html) filter capabilities found in OpenStack, have a look at the official upstream documentation.
 
 #### Label Overrides Explanation
 
