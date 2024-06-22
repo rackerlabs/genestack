@@ -145,7 +145,7 @@ lspci | grep -i nvidia
 
 Assuming this is running an NVIDIA GPU, you can run install the relevant drivers and run the `nvidia-smi` command to validate everything is running normally.
 
-``` shell "Example nvidia GPU running in a VM"
+``` shell title="Example nvidia GPU running in a VM"
 +-----------------------------------------------------------------------------+
 | NVIDIA-SMI 525.147.05   Driver Version: 525.147.05   CUDA Version: 12.0     |
 |-------------------------------+----------------------+----------------------+
