@@ -33,7 +33,7 @@
 
 - name: Set service types on subnets to prevent instances from connecting directly to PUBLICNET
   hosts: localhost
-  gather_facts: no
+  gather_facts: false
 
   vars:
     cloud: default
@@ -64,8 +64,7 @@
         cloud: "{{ cloud }}"
         name: "{{ item }}"
       register: subnets_result
-      with_items:
-        - "{{ networks_result.networks[0].subnet_ids }}"
+      loop: "{{ networks_result.networks[0].subnet_ids }}"
 
     - name: Gather timestamp for subnet backup info
       ansible.builtin.setup:
@@ -88,8 +87,7 @@
           {{ item.subnets[0] }}
         dest: "{{ item.subnets[0].id }}_{{ ansible_date_time.year }}-{{ ansible_date_time.month }}-{{ ansible_date_time.day }}-{{ ansible_date_time.hour }}-{{ ansible_date_time.minute }}-{{ ansible_date_time.second }}.json"
       when: save_copy | bool
-      with_items:
-        - "{{ subnets_result.results }}"
+      loop: "{{ subnets_result.results }}"
 
     # Unfortunately, openstack.cloud.subnet cannot modify subnets. It can only
     # create and delete them: https://docs.ansible.com/ansible/latest/collections/openstack/cloud/subnet_module.html#ansible-collections-openstack-cloud-subnet-module
