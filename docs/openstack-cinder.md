@@ -204,3 +204,107 @@ root@openstack-flex-node-4:~# lvs
   LV                                   VG               Attr       LSize Pool Origin Data%  Meta%  Move Log Cpy%Sync Convert
   c744af27-fb40-4ffa-8a84-b9f44cb19b2b cinder-volumes-1 -wi-a----- 1.00g
 ```
+
+### LVM iSCSI and Multipath
+
+!!! tip
+    The use of iSCSI without multipath is discouraged and will lead to VMs having issues reaching attached storage during networking events.
+
+!!! note
+    This configuration will use two storage CIDRs, please make sure there are two network paths back to storage.
+
+## Enable multipath in Nova Compute:
+
+Toggle volume_use_multipath to true in /opt/genestack/helm-configs/nova/nova-helm-overrides.yaml
+
+``` shell
+
+sed -i 's/volume_use_multipath: false/volume_use_multipath: true/' /opt/genestack/helm-configs/nova/nova-helm-overrides.yaml
+sed -i 's/enable_iscsi: false/enable_iscsi: true/' /opt/genestack/helm-configs/nova/nova-helm-overrides.yaml
+
+```
+
+## Enable iSCSi and Multipath services on Compute Nodes
+
+Add variable to your inventory file and re-run host-setup.yaml
+
+``` shell
+storage:
+  vars:
+    enable_iscsi: true
+```
+
+## Enable iSCSI with LVM
+
+Edit /opt/genestack/ansible/playbooks/deploy-cinder-volumes-reference.yaml and uncomment out lines under "Uncomment lines below to enable ISCSI multipath"
+
+There should be two networks defined on the openstack cluster: br_storage and br_storage_secondary
+
+## Verify operations
+
+Once a cinder volume is attach you should see on the LVM iSCSI node the following:
+
+``` shell
+
+root@genestack-storage1:~# tgtadm --mode target --op show
+Target 4: iqn.2010-10.org.openstack:dd88d4b9-1297-44c1-b9bc-efd6514be035
+    System information:
+        Driver: iscsi
+        State: ready
+    I_T nexus information:
+        I_T nexus: 4
+            Initiator: iqn.2004-10.com.ubuntu:01:8392e3447710 alias: genestack-compute2.cluster.local
+            Connection: 0
+                IP Address: 10.1.2.213
+        I_T nexus: 5
+            Initiator: iqn.2004-10.com.ubuntu:01:8392e3447710 alias: genestack-compute2.cluster.local
+            Connection: 0
+                IP Address: 10.1.1.213
+    LUN information:
+        LUN: 0
+            Type: controller
+            SCSI ID: IET     00040000
+            SCSI SN: beaf40
+            Size: 0 MB, Block size: 1
+            Online: Yes
+            Removable media: No
+            Prevent removal: No
+            Readonly: No
+            SWP: No
+            Thin-provisioning: No
+            Backing store type: null
+            Backing store path: None
+            Backing store flags:
+        LUN: 1
+            Type: disk
+            SCSI ID: IET     00040001
+            SCSI SN: beaf41
+            Size: 10737 MB, Block size: 512
+            Online: Yes
+            Removable media: No
+            Prevent removal: No
+            Readonly: No
+            SWP: No
+            Thin-provisioning: No
+            Backing store type: rdwr
+            Backing store path: /dev/cinder-volumes-1/dd88d4b9-1297-44c1-b9bc-efd6514be035
+            Backing store flags:
+    Account information:
+        sRs8FV73FeaF2LFnPb4j
+    ACL information:
+        ALL
+```
+
+On Compute nodes
+
+``` shell
+
+root@genestack-compute2:~# multipath -ll
+mpathb (360000000000000000e00000000040001) dm-0 IET,VIRTUAL-DISK
+size=20G features='0' hwhandler='0' wp=rw
+|-+- policy='service-time 0' prio=1 status=active
+| `- 2:0:0:1 sda 8:0  active ready running
+`-+- policy='service-time 0' prio=1 status=enabled
+  `- 4:0:0:1 sdb 8:16 active ready running
+
+```
