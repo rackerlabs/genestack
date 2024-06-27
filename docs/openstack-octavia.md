@@ -5,7 +5,7 @@
 ### Create secrets
 !!! info
 
-This step is not needed if you ran the create-secrets.sh script located in /opt/genestack/bin
+    This step is not needed if you ran the create-secrets.sh script located in /opt/genestack/bin
 
 ``` shell
 kubectl --namespace openstack \
