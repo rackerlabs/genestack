@@ -1,27 +1,4 @@
-# Deploy Horizon
-
-[![asciicast](https://asciinema.org/a/629815.svg)](https://asciinema.org/a/629815)
-
-## Create secrets
-!!! info
-
-This step is not needed if you ran the create-secrets.sh script located in /opt/genestack/bin
-
-``` shell
-kubectl --namespace openstack \
-        create secret generic horizon-secrete-key \
-        --type Opaque \
-        --from-literal=username="horizon" \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
-kubectl --namespace openstack \
-        create secret generic horizon-db-password \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-```
-
-## Run the package deployment
-
-``` shell
+#!/bin/bash
 cd /opt/genestack/submodules/openstack-helm
 
 helm upgrade --install horizon ./horizon \
@@ -35,8 +12,3 @@ helm upgrade --install horizon ./horizon \
     --set endpoints.oslo_db.auth.horizon.password="$(kubectl --namespace openstack get secret horizon-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --post-renderer /etc/genestack/kustomize/kustomize.sh \
     --post-renderer-args horizon/base
-```
-
-!!! tip
-
-    In a production like environment you may need to include production specific files like the example variable file found in `helm-configs/prod-example-openstack-overrides.yaml`.
