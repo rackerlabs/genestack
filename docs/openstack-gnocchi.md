@@ -1,6 +1,9 @@
 # Deploy Gnocchi
 
 ## Create Secrets
+!!! info
+
+This step is not needed if you ran the create-secrets.sh script located in /opt/genestack/bin
 
 ``` shell
 kubectl --namespace openstack create secret generic gnocchi-admin \
@@ -58,7 +61,7 @@ helm upgrade --install gnocchi ./gnocchi \
     --namespace=openstack \
     --wait \
     --timeout 10m \
-    -f /opt/genestack/helm-configs/gnocchi/gnocchi-helm-overrides.yaml \
+    -f /etc/genestack/helm-configs/gnocchi/gnocchi-helm-overrides.yaml \
     --set conf.ceph.admin_keyring="$(kubectl get secret --namespace rook-ceph rook-ceph-admin-keyring -o jsonpath='{.data.keyring}' | base64 -d)" \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.gnocchi.password="$(kubectl --namespace openstack get secret gnocchi-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -66,7 +69,7 @@ helm upgrade --install gnocchi ./gnocchi \
     --set endpoints.oslo_db.auth.gnocchi.password="$(kubectl --namespace openstack get secret gnocchi-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db_postgresql.auth.admin.password="$(kubectl --namespace openstack get secret postgresql-db-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db_postgresql.auth.gnocchi.password="$(kubectl --namespace openstack get secret gnocchi-pgsql-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /opt/genestack/kustomize/kustomize.sh \
+    --post-renderer /etc/genestack/kustomize/kustomize.sh \
     --post-renderer-args gnocchi/base
 ```
 

@@ -1,6 +1,9 @@
 # Deploy PostgreSQL
 
 ## Create Secrets
+!!! info
+
+This step is not needed if you ran the create-secrets.sh script located in /opt/genestack/bin
 
 ``` shell
 kubectl --namespace openstack create secret generic postgresql-identity-admin \
@@ -29,7 +32,7 @@ helm upgrade --install postgresql ./postgresql \
     --namespace=openstack \
     --wait \
     --timeout 10m \
-    -f /opt/genestack/helm-configs/postgresql/postgresql-helm-overrides.yaml \
+    -f /etc/genestack/helm-configs/postgresql/postgresql-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.postgresql.password="$(kubectl --namespace openstack get secret postgresql-identity-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.postgresql.auth.admin.password="$(kubectl --namespace openstack get secret postgresql-db-admin -o jsonpath='{.data.password}' | base64 -d)" \

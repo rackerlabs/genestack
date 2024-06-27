@@ -3,6 +3,10 @@
 [![asciicast](https://asciinema.org/a/629808.svg)](https://asciinema.org/a/629808)
 
 ## Create secrets
+!!! info
+
+This step is not needed if you ran the create-secrets.sh script located in /opt/genestack/bin
+
 
 ``` shell
 kubectl --namespace openstack \
@@ -29,7 +33,7 @@ helm upgrade --install cinder ./cinder \
   --namespace=openstack \
     --wait \
     --timeout 120m \
-    -f /opt/genestack/helm-configs/cinder/cinder-helm-overrides.yaml \
+    -f /etc/genestack/helm-configs/cinder/cinder-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
@@ -37,7 +41,7 @@ helm upgrade --install cinder ./cinder \
     --set conf.cinder.database.slave_connection="mysql+pymysql://cinder:$(kubectl --namespace openstack get secret cinder-db-password -o jsonpath='{.data.password}' | base64 -d)@mariadb-cluster-secondary.openstack.svc.cluster.local:3306/cinder" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /opt/genestack/kustomize/kustomize.sh \
+    --post-renderer /etc/genestack/kustomize/kustomize.sh \
     --post-renderer-args cinder/base
 ```
 
@@ -215,12 +219,12 @@ root@openstack-flex-node-4:~# lvs
 
 ## Enable multipath in Nova Compute:
 
-Toggle volume_use_multipath to true in /opt/genestack/helm-configs/nova/nova-helm-overrides.yaml
+Toggle volume_use_multipath to true in /etc/genestack/helm-configs/nova/nova-helm-overrides.yaml
 
 ``` shell
 
-sed -i 's/volume_use_multipath: false/volume_use_multipath: true/' /opt/genestack/helm-configs/nova/nova-helm-overrides.yaml
-sed -i 's/enable_iscsi: false/enable_iscsi: true/' /opt/genestack/helm-configs/nova/nova-helm-overrides.yaml
+sed -i 's/volume_use_multipath: false/volume_use_multipath: true/' /etc/genestack/helm-configs/nova/nova-helm-overrides.yaml
+sed -i 's/enable_iscsi: false/enable_iscsi: true/' /etc/genestack/helm-configs/nova/nova-helm-overrides.yaml
 
 ```
 

@@ -1,35 +1,4 @@
-# Deploy Octavia
-
-[![asciicast](https://asciinema.org/a/629814.svg)](https://asciinema.org/a/629814)
-
-### Create secrets
-!!! info
-
-This step is not needed if you ran the create-secrets.sh script located in /opt/genestack/bin
-
-``` shell
-kubectl --namespace openstack \
-        create secret generic octavia-rabbitmq-password \
-        --type Opaque \
-        --from-literal=username="octavia" \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
-kubectl --namespace openstack \
-        create secret generic octavia-db-password \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack \
-        create secret generic octavia-admin \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack \
-        create secret generic octavia-certificates \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-```
-
-## Run the package deployment
-
-``` shell
+#!/bin/bash
 cd /opt/genestack/submodules/openstack-helm
 
 helm upgrade --install octavia ./octavia \
@@ -49,14 +18,3 @@ helm upgrade --install octavia ./octavia \
     --set conf.octavia.ovn.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')" \
     --post-renderer /etc/genestack/kustomize/kustomize.sh \
     --post-renderer-args octavia/base
-```
-
-!!! tip
-
-    In a production like environment you may need to include production specific files like the example variable file found in `helm-configs/prod-example-openstack-overrides.yaml`.
-
-Now validate functionality
-
-``` shell
-
-```

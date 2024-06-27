@@ -1,25 +1,4 @@
-# Deploy Ceilometer
-
-## Create Secrets
-!!! info
-
-This step is not needed if you ran the create-secrets.sh script located in /opt/genestack/bin
-
-``` shell
-kubectl --namespace openstack create secret generic ceilometer-keystone-admin-password \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack create secret generic ceilometer-keystone-test-password \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack create secret generic ceilometer-rabbitmq-password \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-```
-
-## Run the package deployment
-
-``` shell
+#!/bin/bash
 cd /opt/genestack/submodules/openstack-helm
 helm upgrade --install ceilometer ./ceilometer \
     --namespace=openstack \
@@ -42,42 +21,3 @@ rabbit://heat:$(kubectl --namespace openstack get secret heat-rabbitmq-password 
 rabbit://keystone:$(kubectl --namespace openstack get secret keystone-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)@rabbitmq.openstack.svc.cluster.local:5672/keystone,\
 rabbit://neutron:$(kubectl --namespace openstack get secret neutron-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)@rabbitmq.openstack.svc.cluster.local:5672/neutron,\
 rabbit://nova:$(kubectl --namespace openstack get secret nova-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)@rabbitmq.openstack.svc.cluster.local:5672/nova}"
-```
-
-!!! tip
-
-    In a production like environment you may need to include production specific files like the example variable file found in `helm-configs/prod-example-openstack-overrides.yaml`.
-
-## Verify Ceilometer Workers
-
-As there is no Ceilometer API, we will do a quick validation against the
-Gnocchi API via a series of `openstack metric` commands to confirm that
-Ceilometer workers are ingesting metric and event data then persisting them
-storage.
-
-### Verify metric resource types exist
-
-The Ceilomter db-sync job will create the various resource types in Gnocchi.
-Without them, metrics can't be stored, so let's verify they exist. The
-output should include named resource types and some attributes for resources
-like `instance`, `instance_disk`, `network`, `volume`, etc.
-
-``` shell
-kubectl exec -it openstack-admin-client -n openstack -- openstack metric resource-type list
-```
-
-### Verify metric resources
-
-Confirm that resources are populating in Gnocchi
-
-``` shell
-kubectl exec -it openstack-admin-client -n openstack -- openstack metric resource list
-```
-
-### Verify metrics
-
-Confirm that metrics can be retrieved from Gnocchi
-
-``` shell
-kubectl exec -it openstack-admin-client -n openstack -- openstack metric list
-```

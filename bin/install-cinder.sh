@@ -1,39 +1,4 @@
-# Deploy Heat
-
-[![asciicast](https://asciinema.org/a/629807.svg)](https://asciinema.org/a/629807)
-
-## Create secrets
-!!! info
-
-This step is not needed if you ran the create-secrets.sh script located in /opt/genestack/bin
-
-``` shell
-kubectl --namespace openstack \
-        create secret generic heat-rabbitmq-password \
-        --type Opaque \
-        --from-literal=username="heat" \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
-kubectl --namespace openstack \
-        create secret generic heat-db-password \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack \
-        create secret generic heat-admin \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack \
-        create secret generic heat-trustee \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack \
-        create secret generic heat-stack-user \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-```
-
-## Run the package deployment
-
-``` shell
+#!/bin/bash
 cd /opt/genestack/submodules/openstack-helm
 
 helm upgrade --install heat ./heat \
@@ -51,14 +16,3 @@ helm upgrade --install heat ./heat \
     --set endpoints.oslo_messaging.auth.heat.password="$(kubectl --namespace openstack get secret heat-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
     --post-renderer /etc/genestack/kustomize/kustomize.sh \
     --post-renderer-args heat/base
-```
-
-!!! tip
-
-    In a production like environment you may need to include production specific files like the example variable file found in `helm-configs/prod-example-openstack-overrides.yaml`.
-
-## Validate functionality
-
-``` shell
-kubectl --namespace openstack exec -ti openstack-admin-client -- openstack --os-interface internal orchestration service list
-```
