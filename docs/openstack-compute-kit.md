@@ -7,7 +7,7 @@
 Part of running Nova is also running placement. Setup all credentials now so we can use them across the nova and placement services.
 !!! info
 
-This step is not needed if you ran the create-secrets.sh script located in /opt/genestack/bin
+    This step is not needed if you ran the create-secrets.sh script located in /opt/genestack/bin
 
 ### Shared
 
