@@ -4,7 +4,7 @@ helm upgrade --install keystone ./keystone \
     --namespace=openstack \
     --wait \
     --timeout 120m \
-    -f /opt/genestack/helm-configs/keystone/keystone-helm-overrides.yaml \
+    -f /etc/genestack/helm-configs/keystone/keystone-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.keystone.password="$(kubectl --namespace openstack get secret keystone-db-password -o jsonpath='{.data.password}' | base64 -d)" \
@@ -17,7 +17,7 @@ helm upgrade --install glance ./glance \
     --namespace=openstack \
     --wait \
     --timeout 120m \
-    -f /opt/genestack/helm-configs/glance/glance-helm-overrides.yaml \
+    -f /etc/genestack/helm-configs/glance/glance-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.glance.password="$(kubectl --namespace openstack get secret glance-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
@@ -30,7 +30,7 @@ helm upgrade --install glance ./glance \
 helm upgrade --install heat ./heat \
   --namespace=openstack \
     --timeout 120m \
-    -f /opt/genestack/helm-configs/heat/heat-helm-overrides.yaml \
+    -f /etc/genestack/helm-configs/heat/heat-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.heat.password="$(kubectl --namespace openstack get secret heat-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.heat_trustee.password="$(kubectl --namespace openstack get secret heat-trustee -o jsonpath='{.data.password}' | base64 -d)" \
@@ -46,7 +46,7 @@ helm upgrade --install cinder ./cinder \
   --namespace=openstack \
     --wait \
     --timeout 120m \
-    -f /opt/genestack/helm-configs/cinder/cinder-helm-overrides.yaml \
+    -f /etc/genestack/helm-configs/cinder/cinder-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
@@ -59,7 +59,7 @@ helm upgrade --install cinder ./cinder \
 helm upgrade --install neutron ./neutron \
   --namespace=openstack \
     --timeout 120m \
-    -f /opt/genestack/helm-configs/neutron/neutron-helm-overrides.yaml \
+    -f /etc/genestack/helm-configs/neutron/neutron-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.neutron.password="$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.nova.password="$(kubectl --namespace openstack get secret nova-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -80,7 +80,7 @@ helm upgrade --install neutron ./neutron \
 helm upgrade --install nova ./nova \
   --namespace=openstack \
     --timeout 120m \
-    -f /opt/genestack/helm-configs/nova/nova-helm-overrides.yaml \
+    -f /etc/genestack/helm-configs/nova/nova-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.nova.password="$(kubectl --namespace openstack get secret nova-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.neutron.password="$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -101,7 +101,7 @@ helm upgrade --install nova ./nova \
 helm upgrade --install placement ./placement --namespace=openstack \
   --namespace=openstack \
     --timeout 120m \
-    -f /opt/genestack/helm-configs/placement/placement-helm-overrides.yaml \
+    -f /etc/genestack/helm-configs/placement/placement-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.placement.password="$(kubectl --namespace openstack get secret placement-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
@@ -114,7 +114,7 @@ helm upgrade --install octavia ./octavia \
     --namespace=openstack \
     --wait \
     --timeout 120m \
-    -f /opt/genestack/helm-configs/octavia/octavia-helm-overrides.yaml \
+    -f /etc/genestack/helm-configs/octavia/octavia-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.octavia.password="$(kubectl --namespace openstack get secret octavia-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
@@ -131,7 +131,7 @@ helm upgrade --install horizon ./horizon \
     --namespace=openstack \
     --wait \
     --timeout 120m \
-    -f /opt/genestack/helm-configs/horizon/horizon-helm-overrides.yaml \
+    -f /etc/genestack/helm-configs/horizon/horizon-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set conf.horizon.local_settings.config.horizon_secret_key="$(kubectl --namespace openstack get secret horizon-secrete-key -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \

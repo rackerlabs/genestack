@@ -3,7 +3,7 @@
 ## Deploy the Memcached Cluster
 
 ``` shell
-kubectl kustomize --enable-helm /opt/genestack/kustomize/memcached/base | kubectl apply --namespace openstack -f -
+kubectl kustomize --enable-helm /etc/genestack/kustomize/memcached/base | kubectl apply --namespace openstack -f -
 ```
 
 !!! note
