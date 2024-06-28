@@ -148,6 +148,6 @@ You must edit this file to include your specific url and azure tenant id
 ``` shell
 kubectl -n grafana create secret tls grafana-tls-public --cert=/opt/genestack/kustomize/grafana/base/cert.pem --key=/opt/genestack/kustomize/grafana/base/key.pem
 
-kubectl kustomize --enable-helm /opt/genestack/kustomize/grafana/base | \
+kubectl kustomize --enable-helm /etc/genestack/kustomize/grafana/base | \
   kubectl -n grafana -f -
 ```

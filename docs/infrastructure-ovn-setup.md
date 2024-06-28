@@ -115,7 +115,7 @@ kubectl annotate \
 With all of the annotations defined, we can now apply the network policy with the following command.
 
 ``` shell
-kubectl apply -k /opt/genestack/kustomize/ovn
+kubectl apply -k /etc/genestack/kustomize/ovn
 ```
 
 After running the setup, nodes will have the label `ovn.openstack.org/configured` with a date stamp when it was configured.
@@ -130,7 +130,7 @@ If there's ever a need to reconfigure a node, simply remove the label and the Da
     ST_KEY as appropriate for the Swift CLI client in the `swift-tempauth.env`
     file and then run:
 
-    kubectl apply -k /opt/genestack/kustomize/ovn/ovn-backup \
+    kubectl apply -k /etc/genestack/kustomize/ovn/ovn-backup \
     --prune -l app=ovn-backup \
     --prune-allowlist=core/v1/Secret \
     --prune-allowlist=core/v1/ConfigMap

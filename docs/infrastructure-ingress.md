@@ -9,13 +9,13 @@ We need two different Ingress controllers, one in the `openstack` namespace, the
 ### Deploy our ingress controller within the ingress-nginx Namespace
 
 ``` shell
-kubectl kustomize --enable-helm /opt/genestack/kustomize/ingress/external | kubectl apply --namespace ingress-nginx -f -
+kubectl kustomize --enable-helm /etc/genestack/kustomize/ingress/external | kubectl apply --namespace ingress-nginx -f -
 ```
 
 ### Deploy our ingress controller within the OpenStack Namespace
 
 ``` shell
-kubectl kustomize --enable-helm /opt/genestack/kustomize/ingress/internal | kubectl apply --namespace openstack -f -
+kubectl kustomize --enable-helm /etc/genestack/kustomize/ingress/internal | kubectl apply --namespace openstack -f -
 ```
 
 The openstack ingress controller uses the class name `nginx-openstack`.

@@ -3,7 +3,7 @@
 The following command will generate our OpenStack namespace and ensure we have everything needed to proceed with the deployment.
 
 ``` shell
-kubectl apply -k /opt/genestack/kustomize/openstack
+kubectl apply -k /etc/genestack/kustomize/openstack
 ```
 
 Then you can create all needed secrets by running the create-secrets.sh command located in /opt/genestack/bin

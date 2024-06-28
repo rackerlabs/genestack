@@ -20,7 +20,7 @@ sed -i -e "s#https://webhook_url.example#$webhook_url#" /opt/genestack/kustomize
 ## Install the prometheus stack
 
 ``` shell
-kubectl kustomize --enable-helm /opt/genestack/kustomize/prometheus | kubectl apply --server-side -f -
+kubectl kustomize --enable-helm /etc/genestack/kustomize/prometheus | kubectl apply --server-side -f -
 ```
 
 !!! success

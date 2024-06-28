@@ -8,7 +8,7 @@ The blackbox exporter ideally would be ran outside the cluster but can still pro
 
 
 ``` shell
-kubectl kustomize --enable-helm /opt/genestack/kustomize/prometheus-blackbox-exporter | kubectl apply -f -
+kubectl kustomize --enable-helm /etc/genestack/kustomize/prometheus-blackbox-exporter | kubectl apply -f -
 ```
 
 !!! success
