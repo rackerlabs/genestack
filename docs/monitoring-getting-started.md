@@ -47,5 +47,5 @@ Within the genestack repo we can update our alerting rules via the alerting_rule
 View alerting_rules.yaml in:
 
 ``` shell
-less /opt/genestack/kustomize/prometheus/alerting_rules.yaml
+less /etc/genestack/kustomize/prometheus/alerting_rules.yaml
 ```

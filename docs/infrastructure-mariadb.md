@@ -15,7 +15,7 @@ kubectl --namespace openstack \
 
 ``` shell
 cluster_name=`kubectl config view --minify -o jsonpath='{.clusters[0].name}'`
-sed -i -e "s/cluster\.local/$cluster_name/" /opt/genestack/kustomize/mariadb-operator/kustomization.yaml
+sed -i -e "s/cluster\.local/$cluster_name/" /etc/genestack/kustomize/mariadb-operator/kustomization.yaml
 
 test -n "$cluster_name" && kubectl kustomize --enable-helm /etc/genestack/kustomize/mariadb-operator | \
   kubectl --namespace mariadb-system apply --server-side --force-conflicts -f -

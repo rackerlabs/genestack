@@ -7,12 +7,14 @@ Since Gateway APIs are successor to Ingress Controllers there needs to be a one 
 
 
 ### Resource Models in Gateway API
+
 There are 3 main resource models in gateway apis:
 1. GatewayClass - Mostly managed by a controller.
 2. Gateway - An instance of traffic handling infra like a LB.
 3. Routes - Defines HTTP-specific rules for mapping traffic from a Gateway listener to a representation of backend network endpoints.
 
 **k8s Gateway API is NOT the same as API Gateways**
+
 While both sound the same, API Gateway is a more of a general concept that defines a set of resources that exposes capabilities of a backend service but also provide other functionalities like traffic management, rate limiting, authentication and more. It is geared towards commercial API management and monetisation.
 
 From the gateway api sig:
@@ -21,24 +23,27 @@ From the gateway api sig:
 
     Most Gateway API implementations are API Gateways to some extent, but not all API Gateways are Gateway API implementations.
 
-
 ### Controller: NGINX Gateway Fabric
+
 [NGINX Gateway Fabric](https://github.com/nginxinc/nginx-gateway-fabric) is an open-source project that provides an implementation of the Gateway API using nginx as the data plane.
 
 Chart Install: https://github.com/nginxinc/nginx-gateway-fabric/blob/main/deploy/helm-chart/values.yaml
 
 Create the Namespace
-```
+
+``` shell
 kubectl create ns nginx-gateway
 ```
 
 First Install the Gateway API Resource from Kubernetes
-```
+
+``` shell
 kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.0.0/standard-install.yaml
 ```
 
 Next, Install the NGINX Gateway Fabric controller
-```
+
+``` shell
 cd /opt/genestack/submodules/nginx-gateway-fabric/deploy/helm-chart
 
 helm upgrade --install nginx-gateway-fabric . --namespace=nginx-gateway -f /etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml
@@ -51,13 +56,15 @@ Helm install does not automatically upgrade the crds for this resource. To upgra
 In this example we will look at how Prometheus UI is exposed through the gateway. For other services the gateway kustomization file for the service.
 
 Rackspace specific gateway kustomization files can be applied like so
-```
-cd /opt/genestack/kustomize/gateway
+
+``` shell
+cd /etc/genestack/kustomize/gateway
 kubectl kustomize | kubectl apply -f -
 ```
 
 First, create the shared gateway and then the httproute resource for prometheus.
-```
+
+``` yaml
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -73,7 +80,7 @@ spec:
 
 then
 
-```
+``` yaml
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -89,6 +96,7 @@ spec:
       - name: kube-prometheus-stack-prometheus
         port: 9090
 ```
+
 At this point, flex-gateway has a listener pointed to the port 80 matching *.sjc.ohthree.com hostname. The HTTPRoute resource configures routes for this gateway. Here, we match all path and simply pass any request from the matching hostname to kube-prometheus-stack-prometheus backend service.
 
 ### Exposing Flex Services
@@ -104,7 +112,6 @@ For each externally exposed service, example: keystone endpoint, we have a Gatew
 
 ```
 External Traffic -> F5 VIP Address -> MetalLB VIP Address -> Gateway Service
-
 ```
 
 This setup can be expended to have multiple MetalLB VIPs with multiple Gateway Services listening on different IP addresses as required by your setup.
@@ -112,11 +119,8 @@ This setup can be expended to have multiple MetalLB VIPs with multiple Gateway S
 !!! tip
 
     The metalLB speaker wont advertise the service if :
-
     1. There is no active endpoint backing the service
-
     2. There are no matching L2 or BGP speaker nodes
-
     3. If the service has external Traffic Policy set to local you need to have the running endpoint on the speaker node.
 
 
