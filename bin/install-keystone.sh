@@ -15,4 +15,4 @@ helm upgrade --install keystone ./keystone \
     --post-renderer /etc/genestack/kustomize/kustomize.sh \
     --post-renderer-args keystone/base
 
-kubectl --namespace openstack apply -f /opt/genestack/manifests/utils/utils-openstack-client-admin.yaml
+kubectl --namespace openstack apply -f /etc/genestack/manifests/utils/utils-openstack-client-admin.yaml

@@ -58,7 +58,7 @@ helm upgrade --install keystone ./keystone \
 Deploy the openstack admin client pod (optional)
 
 ``` shell
-kubectl --namespace openstack apply -f /opt/genestack/manifests/utils/utils-openstack-client-admin.yaml
+kubectl --namespace openstack apply -f /etc/genestack/manifests/utils/utils-openstack-client-admin.yaml
 ```
 
 ## Validate functionality

@@ -62,6 +62,9 @@ fi
 if [ ! -d "/opt/genestack/kustomize" ]; then
   cp -r /opt/genestack/kustomize.example /etc/genestack/kustomize
 fi
+if [ ! -d "/opt/genestack/manifests" ]; then
+  cp -r /opt/genestack/manifests /etc/genestack/manifests
+fi
 
 # Copy default k8s config
 test -d "ansible/inventory/${GENESTACK_PRODUCT}" || error "Product Config ${GENESTACK_PRODUCT} does not exist here"
