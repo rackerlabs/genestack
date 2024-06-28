@@ -41,7 +41,7 @@ Next, Install the NGINX Gateway Fabric controller
 ```
 cd /opt/genestack/submodules/nginx-gateway-fabric/deploy/helm-chart
 
-helm upgrade --install nginx-gateway-fabric . --namespace=nginx-gateway -f /opt/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml
+helm upgrade --install nginx-gateway-fabric . --namespace=nginx-gateway -f /etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml
 ```
 
 Helm install does not automatically upgrade the crds for this resource. To upgrade the crds you will have to manually install them. Follow the process from :  [Upgrade CRDs](https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#upgrade-nginx-gateway-fabric-crds)
