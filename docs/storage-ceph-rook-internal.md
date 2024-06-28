@@ -11,7 +11,7 @@ kubectl -n rook-ceph set image deploy/rook-ceph-operator rook-ceph-operator=rook
 
 !!! note
 
-    Rook will deploy against nodes labeled `role=storage-node`. Make sure to have a look at the `/opt/genestack/kustomize/rook-cluster/rook-cluster.yaml` file to ensure it's setup to your liking, pay special attention to your `deviceFilter` settings, especially if different devices have different device layouts.
+    Rook will deploy against nodes labeled `role=storage-node`. Make sure to have a look at the `/etc/genestack/kustomize/rook-cluster/rook-cluster.yaml` file to ensure it's setup to your liking, pay special attention to your `deviceFilter` settings, especially if different devices have different device layouts.
 
 ``` shell
 kubectl apply -k /etc/genestack/kustomize/rook-cluster/

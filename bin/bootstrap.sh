@@ -56,10 +56,10 @@ test -L $GENESTACK_CONFIG 2>&1 || mkdir -p ${GENESTACK_CONFIG}
 test -f $GENESTACK_CONFIG/provider || echo ${K8S_PROVIDER} > ${GENESTACK_CONFIG}/provider
 test -f $GENESTACK_CONFIG/product || echo ${GENESTACK_PRODUCT} > ${GENESTACK_CONFIG}/product
 mkdir -p $GENESTACK_CONFIG/inventory/group_vars ${GENESTACK_CONFIG}/inventory/credentials
-if [ ! -d "/etc/genestack/helm-configs" ]; then
-  cp -r /etc/genestack/helm-configs.example /etc/genestack/helm-configs
+if [ ! -d "/opt/genestack/helm-configs" ]; then
+  cp -r /opt/genestack/helm-configs.example /etc/genestack/helm-configs
 fi
-if [ ! -d "/etc/genestack/kustomize" ]; then
+if [ ! -d "/opt/genestack/kustomize" ]; then
   cp -r /opt/genestack/kustomize.example /etc/genestack/kustomize
 fi
 
