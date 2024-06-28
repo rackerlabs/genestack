@@ -19,7 +19,7 @@ It is persisted at /etc/genestack/product` for subsequent executions, it only ha
 
 ``` shell
 export GENESTACK_PRODUCT=openstack-flex
-/opt/genestack/bin/bootstrap.sh
+/opt/genestack/bootstrap.sh
 ```
 
 !!! tip
