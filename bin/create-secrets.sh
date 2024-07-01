@@ -64,8 +64,8 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  root-password: $(echo -n $mariadb_root_password | base64)
-  password: $(echo -n $mariadb_password | base64)
+  root-password: $(echo -n $mariadb_root_password | base64 | tr -d '\n')
+  password: $(echo -n $mariadb_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -75,7 +75,7 @@ metadata:
 type: Opaque
 data:
   username: $(echo -n "keystone" | base64)
-  password: $(echo -n $keystone_rabbitmq_password | base64)
+  password: $(echo -n $keystone_rabbitmq_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -84,7 +84,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $keystone_db_password | base64)
+  password: $(echo -n $keystone_db_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -93,7 +93,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $keystone_admin_password | base64)
+  password: $(echo -n $keystone_admin_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -102,7 +102,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $keystone_credential_keys_password | base64)
+  password: $(echo -n $keystone_credential_keys_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -112,7 +112,7 @@ metadata:
 type: Opaque
 data:
   username: $(echo -n "glance" | base64)
-  password: $(echo -n $glance_rabbitmq_password | base64)
+  password: $(echo -n $glance_rabbitmq_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -121,7 +121,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $glance_db_password | base64)
+  password: $(echo -n $glance_db_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -130,7 +130,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $glance_admin_password | base64)
+  password: $(echo -n $glance_admin_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -140,7 +140,7 @@ metadata:
 type: Opaque
 data:
   username: $(echo -n "heat" | base64)
-  password: $(echo -n $heat_rabbitmq_password | base64)
+  password: $(echo -n $heat_rabbitmq_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -149,7 +149,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $heat_db_password | base64)
+  password: $(echo -n $heat_db_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -158,7 +158,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $heat_admin_password | base64)
+  password: $(echo -n $heat_admin_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -167,7 +167,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $heat_trustee_password | base64)
+  password: $(echo -n $heat_trustee_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -176,7 +176,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $heat_stack_user_password | base64)
+  password: $(echo -n $heat_stack_user_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -186,7 +186,7 @@ metadata:
 type: Opaque
 data:
   username: $(echo -n "cinder" | base64)
-  password: $(echo -n $cinder_rabbitmq_password | base64)
+  password: $(echo -n $cinder_rabbitmq_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -195,7 +195,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $cinder_db_password | base64)
+  password: $(echo -n $cinder_db_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -204,7 +204,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $cinder_admin_password | base64)
+  password: $(echo -n $cinder_admin_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -213,7 +213,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $metadata_shared_secret_password | base64)
+  password: $(echo -n $metadata_shared_secret_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -222,7 +222,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $placement_db_password | base64)
+  password: $(echo -n $placement_db_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -231,7 +231,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $placement_admin_password | base64)
+  password: $(echo -n $placement_admin_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -240,7 +240,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $nova_db_password | base64)
+  password: $(echo -n $nova_db_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -249,7 +249,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $nova_admin_password | base64)
+  password: $(echo -n $nova_admin_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -259,7 +259,7 @@ metadata:
 type: Opaque
 data:
   username: $(echo -n "nova" | base64)
-  password: $(echo -n $nova_rabbitmq_password | base64)
+  password: $(echo -n $nova_rabbitmq_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -268,8 +268,8 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  public_key: $(echo -n $nova_ssh_public_key | base64)
-  private_key: $(echo -n $nova_ssh_private_key | base64)
+  public_key: $(echo -n $nova_ssh_public_key | base64 | tr -d '\n')
+  private_key: $(echo -n $nova_ssh_private_key | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -278,7 +278,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $ironic_admin_password | base64)
+  password: $(echo -n $ironic_admin_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -287,7 +287,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $designate_admin_password | base64)
+  password: $(echo -n $designate_admin_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -297,7 +297,7 @@ metadata:
 type: Opaque
 data:
   username: $(echo -n "neutron" | base64)
-  password: $(echo -n $neutron_rabbitmq_password | base64)
+  password: $(echo -n $neutron_rabbitmq_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -306,7 +306,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $neutron_db_password | base64)
+  password: $(echo -n $neutron_db_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -315,7 +315,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $neutron_admin_password | base64)
+  password: $(echo -n $neutron_admin_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -325,7 +325,7 @@ metadata:
 type: Opaque
 data:
   username: $(echo -n "horizon" | base64)
-  password: $(echo -n $horizon_secret_key_password | base64)
+  password: $(echo -n $horizon_secret_key_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -334,7 +334,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $horizon_db_password | base64)
+  password: $(echo -n $horizon_db_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -344,22 +344,22 @@ metadata:
 type: Opaque
 data:
   service-username: $(echo -n "skyline" | base64)
-  service-password: $(echo -n $skyline_service_password | base64)
+  service-password: $(echo -n $skyline_service_password | base64 | tr -d '\n')
   service-domain: $(echo -n "service" | base64)
   service-project: $(echo -n "service" | base64)
   service-project-domain: $(echo -n "service" | base64)
-  db-endpoint: $(echo -n "mariadb-cluster-primary.openstack.svc.cluster.local" | base64)
+  db-endpoint: $(echo -n "mariadb-cluster-primary.openstack.svc.cluster.local" | base64 | tr -d '\n')
   db-name: $(echo -n "skyline" | base64)
   db-username: $(echo -n "skyline" | base64)
-  db-password: $(echo -n $skyline_db_password | base64)
-  secret-key: $(echo -n $skyline_secret_key_password | base64)
-  keystone-endpoint: $(echo -n $keystone_admin_password | base64) # Using the generated keystone-keystone-admin password
+  db-password: $(echo -n $skyline_db_password | base64 | tr -d '\n')
+  secret-key: $(echo -n $skyline_secret_key_password | base64 | tr -d '\n')
+  keystone-endpoint: $(echo -n $keystone_admin_password | base64 | tr -d '\n') # Using the generated keystone-keystone-admin password
   keystone-username: $(echo -n "skyline" | base64)
   default-region: $(echo -n "RegionOne" | base64)
   prometheus_basic_auth_password: $(echo -n "" | base64)
   prometheus_basic_auth_user: $(echo -n "" | base64)
   prometheus_enable_basic_auth: $(echo -n "false" | base64)
-  prometheus_endpoint: $(echo -n "http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090" | base64)
+  prometheus_endpoint: $(echo -n "http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090" | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -369,7 +369,7 @@ metadata:
 type: Opaque
 data:
   username: $(echo -n "octavia" | base64)
-  password: $(echo -n $octavia_rabbitmq_password | base64)
+  password: $(echo -n $octavia_rabbitmq_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -378,7 +378,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $octavia_db_password | base64)
+  password: $(echo -n $octavia_db_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -387,7 +387,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $octavia_admin_password | base64)
+  password: $(echo -n $octavia_admin_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -396,7 +396,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $octavia_certificates_password | base64)
+  password: $(echo -n $octavia_certificates_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -405,7 +405,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $postgresql_identity_admin_password | base64)
+  password: $(echo -n $postgresql_identity_admin_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -414,7 +414,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $postgresql_db_admin_password | base64)
+  password: $(echo -n $postgresql_db_admin_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -423,7 +423,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $postgresql_db_exporter_password | base64)
+  password: $(echo -n $postgresql_db_exporter_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -432,7 +432,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $postgresql_db_audit_password | base64)
+  password: $(echo -n $postgresql_db_audit_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -441,7 +441,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $gnocchi_admin_password | base64)
+  password: $(echo -n $gnocchi_admin_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -450,7 +450,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $gnocchi_db_password | base64)
+  password: $(echo -n $gnocchi_db_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -459,7 +459,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $gnocchi_pgsql_password | base64)
+  password: $(echo -n $gnocchi_pgsql_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -468,7 +468,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $ceilometer_keystone_admin_password | base64)
+  password: $(echo -n $ceilometer_keystone_admin_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -477,7 +477,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $ceilometer_keystone_test_password | base64)
+  password: $(echo -n $ceilometer_keystone_test_password | base64 | tr -d '\n')
 ---
 apiVersion: v1
 kind: Secret
@@ -486,7 +486,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $ceilometer_rabbitmq_password | base64)
+  password: $(echo -n $ceilometer_rabbitmq_password | base64 | tr -d '\n')
 EOF
 
 rm nova_ssh_key nova_ssh_key.pub
