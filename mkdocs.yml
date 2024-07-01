@@ -220,6 +220,8 @@ nav:
           - Keystone Readonly Users: openstack-keystone-readonly.md
           - Nova Flavor Creation: openstack-flavors.md
           - Nova CPU Allocation Ratio: openstack-cpu-allocation-ratio.md
+          - Nova PCI Passthrough: openstack-pci-passthrough.md
+          - Service Overrides: openstack-service-overrides.md
           - Creating Networks: openstack-neutron-networks.md
           - Glance Images Creation: openstack-glance-images.md
       - Building Local Images: build-local-images.md

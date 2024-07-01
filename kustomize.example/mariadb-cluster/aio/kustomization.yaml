@@ -1,0 +1,11 @@
+bases:
+  - "../base"
+
+patches:
+  - target:
+      kind: MariaDB
+      name: mariadb-cluster
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1

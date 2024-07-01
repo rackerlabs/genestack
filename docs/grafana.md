@@ -21,7 +21,7 @@ You can base64 encode your `client_id` and `client_secret` by using the echo and
 echo -n "YOUR CLIENT ID OR SECRET" | base64
 ```
 
-This example file is located at `/opt/genestack/kustomize/grafana/base`
+This example file is located at `/etc/genestack/kustomize/grafana/base`
 example secret file:
 
 ``` yaml
@@ -44,7 +44,7 @@ If you are configuring grafana to use tls/ssl, you should create a file for your
 
 Your cert and key files should look something like the following (cert and key example taken from [VMware Docs](https://docs.vmware.com/en/VMware-NSX-Data-Center-for-vSphere/6.4/com.vmware.nsx.admin.doc/GUID-BBC4804F-AC54-4DD2-BF6B-ECD2F60083F6.html "VMware Docs")).
 
-These example files are located in `/opt/genestack/kustomize/grafana/base`
+These example files are located in `/etc/genestack/kustomize/grafana/base`
 
 ??? example
 
@@ -110,7 +110,7 @@ These example files are located in `/opt/genestack/kustomize/grafana/base`
 
 ## Update datasources.yaml
 
-The datasource.yaml file is located at `/opt/genestack/kustomize/grafana/base`
+The datasource.yaml file is located at `/etc/genestack/kustomize/grafana/base`
 
 If you have specific datasources that should be populated when grafana deploys, update the datasource.yaml to use your values.  The example below shows one way to configure prometheus and loki datasources.
 
@@ -137,7 +137,7 @@ datasources:
 
 ## Update grafana-values.yaml
 
-The grafana-values.yaml file is located at `/opt/genestack/kustomize/grafana/base`
+The grafana-values.yaml file is located at `/etc/genestack/kustomize/grafana/base`
 
 You must edit this file to include your specific url and azure tenant id
 
@@ -146,8 +146,8 @@ You must edit this file to include your specific url and azure tenant id
 ## Create the tls secret and install
 
 ``` shell
-kubectl -n grafana create secret tls grafana-tls-public --cert=/opt/genestack/kustomize/grafana/base/cert.pem --key=/opt/genestack/kustomize/grafana/base/key.pem
+kubectl -n grafana create secret tls grafana-tls-public --cert=/etc/genestack/kustomize/grafana/base/cert.pem --key=/etc/genestack/kustomize/grafana/base/key.pem
 
-kubectl kustomize --enable-helm /opt/genestack/kustomize/grafana/base | \
+kubectl kustomize --enable-helm /etc/genestack/kustomize/grafana/base | \
   kubectl -n grafana -f -
 ```

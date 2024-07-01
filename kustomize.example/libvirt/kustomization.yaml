@@ -1,0 +1,9 @@
+helmGlobals:
+  chartHome: /opt/genestack/submodules/openstack-helm-infra
+
+helmCharts:
+  - name: libvirt
+    releaseName: libvirt
+    valuesFile: helm/libvirt-helm-overrides.yaml
+    namespace: openstack
+    includeCRDs: true

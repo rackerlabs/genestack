@@ -1,6 +1,9 @@
 # Deploy Ceilometer
 
 ## Create Secrets
+!!! info
+
+    This step is not needed if you ran the create-secrets.sh script located in /opt/genestack/bin
 
 ``` shell
 kubectl --namespace openstack create secret generic ceilometer-keystone-admin-password \
@@ -22,7 +25,7 @@ helm upgrade --install ceilometer ./ceilometer \
     --namespace=openstack \
     --wait \
     --timeout 10m \
-    -f /opt/genestack/helm-configs/ceilometer/ceilometer-helm-overrides.yaml \
+    -f /etc/genestack/helm-configs/ceilometer/ceilometer-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.ceilometer.password="$(kubectl --namespace openstack get secret ceilometer-keystone-admin-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.test.password="$(kubectl --namespace openstack get secret ceilometer-keystone-test-password -o jsonpath='{.data.password}' | base64 -d)" \

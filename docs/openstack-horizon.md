@@ -3,6 +3,9 @@
 [![asciicast](https://asciinema.org/a/629815.svg)](https://asciinema.org/a/629815)
 
 ## Create secrets
+!!! info
+
+    This step is not needed if you ran the create-secrets.sh script located in /opt/genestack/bin
 
 ``` shell
 kubectl --namespace openstack \
@@ -25,12 +28,12 @@ helm upgrade --install horizon ./horizon \
     --namespace=openstack \
     --wait \
     --timeout 120m \
-    -f /opt/genestack/helm-configs/horizon/horizon-helm-overrides.yaml \
+    -f /etc/genestack/helm-configs/horizon/horizon-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set conf.horizon.local_settings.config.horizon_secret_key="$(kubectl --namespace openstack get secret horizon-secrete-key -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.horizon.password="$(kubectl --namespace openstack get secret horizon-db-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /opt/genestack/kustomize/kustomize.sh \
+    --post-renderer /etc/genestack/kustomize/kustomize.sh \
     --post-renderer-args horizon/base
 ```
 

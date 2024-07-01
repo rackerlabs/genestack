@@ -56,6 +56,15 @@ test -L $GENESTACK_CONFIG 2>&1 || mkdir -p ${GENESTACK_CONFIG}
 test -f $GENESTACK_CONFIG/provider || echo ${K8S_PROVIDER} > ${GENESTACK_CONFIG}/provider
 test -f $GENESTACK_CONFIG/product || echo ${GENESTACK_PRODUCT} > ${GENESTACK_CONFIG}/product
 mkdir -p $GENESTACK_CONFIG/inventory/group_vars ${GENESTACK_CONFIG}/inventory/credentials
+if [ ! -d "/etc/genestack/helm-configs" ]; then
+  cp -r /opt/genestack/helm-configs.example /etc/genestack/helm-configs
+fi
+if [ ! -d "/etc/genestack/kustomize" ]; then
+  cp -r /opt/genestack/kustomize.example /etc/genestack/kustomize
+fi
+if [ ! -d "/etc/genestack/manifests" ]; then
+  cp -r /opt/genestack/manifests /etc/genestack/manifests
+fi
 
 # Copy default k8s config
 test -d "ansible/inventory/${GENESTACK_PRODUCT}" || error "Product Config ${GENESTACK_PRODUCT} does not exist here"

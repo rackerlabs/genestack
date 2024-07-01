@@ -4,8 +4,9 @@
   gather_facts: true
   become: true
   vars:
-    cinder_release: "2023.1"
+    cinder_release: "2024.1"
     cinder_storage_network_interface: ansible_br_storage
+    cinder_storage_network_interface_secondary: ansible_br_storage_secondary
     cinder_backend_name: "lvmdriver-1"
   handlers:
     - name: Restart cinder-volume systemd services
@@ -84,6 +85,7 @@
       loop:
         - /var/lib/cinder/backup
         - /var/lib/cinder/tmp
+        - /var/lib/cinder/volumes
 
     - name: Create symlink for the etc directory
       ansible.builtin.file:
@@ -161,6 +163,18 @@
         create: true
       notify:
         - Restart cinder-volume systemd services
+
+#    Uncomment lines below to enable ISCSI multipath
+#    - name: Add secondary IP for multipath config
+#      community.general.ini_file:
+#        path: /etc/cinder/backends.conf
+#        section: "{{ cinder_backend_name }}"
+#        option: "iscsi_secondary_ip_addresses"
+#        value: "{{ hostvars[inventory_hostname][cinder_storage_network_interface_secondary]['ipv4']['address'] | default(ansible_default_ipv4.address) }}"
+#        create: true
+#      notify:
+#        - Restart cinder-volume systemd services
+
 
     - name: Replace exec path in rootwrap
       community.general.ini_file:
