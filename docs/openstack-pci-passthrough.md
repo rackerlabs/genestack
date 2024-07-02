@@ -104,6 +104,12 @@ lspci -knn | grep NVIDIA
 
 Note the "Kernel driver in use: vfio-pci" section. If the kernel driver is anything other than `vfio-pci` you many need to blacklist the referenced driver before you continue. See the following docs on how to [blacklist a kernel module](https://wiki.debian.org/KernelModuleBlacklisting).
 
+!!! tip
+        You can verify that IOMMU is loaded once the server is rebooted by running:
+
+        sudo dmesg | grep -e IOMMU
+
+
 ## Configure Nova Compute
 
 With the same `lspci` information used in the `vfio` setup, create a `device_spec` and `alias` in JSON string format. The `device_spec` needs the **vendor_id** and **product_id** which are within our known PCI information. For `10de:1c30` and `10de:10f1`, the left side of the `:` is the **vendor_id** and the right side is the **product_id**.
