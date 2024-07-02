@@ -1,0 +1,11 @@
+resources:
+  - './namespace.yaml'
+  - './gatewayclass.yaml'
+namespace: envoy-gateway-system
+helmGlobals:
+  chartHome: ../../../submodules/envoyproxy-gateway/charts/
+helmCharts:
+- name: gateway-helm
+  valuesFile: values.yaml
+  includeCRDs: true
+  releaseName: envoyproxy-gateway
