@@ -21,14 +21,14 @@ images:
     bootstrap: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
     db_init: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
     db_drop: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    keystone_api: "docker.io/aedan/keystone:2024.1-ubuntu_jammy"
+    keystone_api: "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1720466623"
     keystone_bootstrap: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    keystone_credential_rotate: "docker.io/aedan/keystone:2024.1-ubuntu_jammy"
-    keystone_credential_setup: "docker.io/aedan/keystone:2024.1-ubuntu_jammy"
-    keystone_db_sync: "docker.io/aedan/keystone:2024.1-ubuntu_jammy"
-    keystone_domain_manage: "docker.io/aedan/keystone:2024.1-ubuntu_jammy"
-    keystone_fernet_rotate: "docker.io/aedan/keystone:2024.1-ubuntu_jammy"
-    keystone_fernet_setup: "docker.io/aedan/keystone:2024.1-ubuntu_jammy"
+    keystone_credential_rotate: "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1720466623"
+    keystone_credential_setup: "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1720466623"
+    keystone_db_sync: "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1720466623"
+    keystone_domain_manage: "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1720466623"
+    keystone_fernet_rotate: "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1720466623"
+    keystone_fernet_setup: "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1720466623"
     ks_user: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
     test: docker.io/xrally/xrally-openstack:2.0.0
     rabbit_init: docker.io/rabbitmq:3.7-management
@@ -550,10 +550,13 @@ conf:
       # NOTE(vdrok): The following two options have effect only for SQL backend
       lockout_failure_attempts: 5
       lockout_duration: 1800
-#    auth:
-#      methods: password,token,application_credential,rxt
-#      password: rxt
-#      totp: rxt
+    auth:
+      methods: password,token,application_credential,totp
+      password: rxt
+      totp: rxt
+    rackspace:
+      role_attribute: os_flex
+      role_attribute_enforcement: False  # This should be set to true in production environments.
 
   # NOTE(lamt) We can leverage multiple domains with different
   # configurations as outlined in

@@ -4,13 +4,19 @@
             {
                 "user": {
                     "name": "{0}",
-                    "email": "{1}"
+                    "email": "{1}",
+                    "domain": {
+                        "name": "rackspace_cloud_domain"
+                    }
                 }
             },
             {
                 "projects": [
                     {
-                        "name": "{2}_Flex",
+                        "name": "{2}",
+                        "domain": {
+                            "name": "rackspace_cloud_domain"
+                        },
                         "roles": [
                             {
                                 "name": "member"

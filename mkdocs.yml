@@ -214,23 +214,29 @@ nav:
           - OVN traffic flow introduction: ovn-traffic-flow-intro.md
           - OVN Database Backup: infrastructure-ovn-db-backup.md
           - MariaDB Operations: infrastructure-mariadb-ops.md
-      - OpenStack:
-          - Generating Clouds YAML: openstack-clouds.md
-          - Keystone Federation to Rackspace: openstack-keystone-federation.md
-          - Keystone Readonly Users: openstack-keystone-readonly.md
-          - Nova Flavor Creation: openstack-flavors.md
-          - Nova CPU Allocation Ratio: openstack-cpu-allocation-ratio.md
-          - Nova PCI Passthrough: openstack-pci-passthrough.md
-          - Service Overrides: openstack-service-overrides.md
-          - Creating Networks: openstack-neutron-networks.md
-          - Glance Images Creation: openstack-glance-images.md
-      - Building Local Images: build-local-images.md
-      - Working Locallly With Docs: mkdocs-howto.md
+          - Building Local Images: build-local-images.md
       - Third Party Tools:
           - OSIE: extra-osie.md
+      - OpenStack:
+          - CLI Access:
+              - Generating Clouds YAML: openstack-clouds.md
+          - Compute:
+              - Nova Flavor Creation: openstack-flavors.md
+              - Nova CPU Allocation Ratio: openstack-cpu-allocation-ratio.md
+              - Nova PCI Passthrough: openstack-pci-passthrough.md
+          - Images:
+              - Glance Images Creation: openstack-glance-images.md
+          - Identity:
+              - Keystone Federation to Rackspace: openstack-keystone-federation.md
+              - Keystone Readonly Users: openstack-keystone-readonly.md
+          - Networking:
+              - Creating Networks: openstack-neutron-networks.md
+          - Service Overrides: openstack-service-overrides.md
+      - Working locally With Docs: mkdocs-howto.md
   - Cloud Onboarding:
       - Cloud Onboarding Welcome: cloud-onboarding-welcome.md
-      - Openstack Deploying CLI Tools: openstack-deploy-cli.md
+      - Openstack Installing CLI Tools: openstack-deploy-cli.md
+      - OpenStack Getting Started: openstack-getting-started-cli.md
       - Openstack Security Groups: openstack-security-groups.md
       - Openstack Floating Ips: openstack-floating-ips.md
       - Openstack Keypairs: openstack-keypairs.md

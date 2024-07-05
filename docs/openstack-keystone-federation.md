@@ -27,7 +27,7 @@ You're also welcome to generate your own mapping to suit your needs; however, if
 Now register the mapping within Keystone.
 
 ``` shell
-openstack --os-cloud default mapping create --rules /tmp/mapping.json rackspace_mapping
+openstack --os-cloud default mapping create --rules /tmp/mapping.json --schema-version 2.0 rackspace_mapping
 ```
 
 ## Create the federation protocol
@@ -35,3 +35,13 @@ openstack --os-cloud default mapping create --rules /tmp/mapping.json rackspace_
 ``` shell
 openstack --os-cloud default federation protocol create rackspace --mapping rackspace_mapping --identity-provider rackspace
 ```
+
+## Rackspace Configuration Options
+
+The `[rackspace]` section can also be used in your `keystone.conf` to allow you to configure how to anchor on
+roles.
+
+| key | value | default |
+| --- | ----- | ------- |
+| `role_attribute` | A string option used as an anchor to discover roles attributed to a given user | **os_flex** |
+| `role_attribute_enforcement` | When set `true` will limit a users project to only the discovered GUID for the defined `role_attribute` | **false** |
