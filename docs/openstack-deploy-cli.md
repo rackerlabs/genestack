@@ -2,49 +2,66 @@
 
 Before we can get started we need to install a few things.
 
-#### Installing Python
+## Installing Python
 
-Installed by default on Mac OS X.
+While most operating systems have some form of Python already installed, you will need to ensure you have python available on your system to use the standard command line utilities. If you need to install python, consult your operating system documentation or the upstream python [documentation](https://www.python.org/downloads) to get started.
 
-Many Linux distributions provide packages to make setuptools easy to install. Search your package manager for setuptools to find an installation package. If you cannot find one, download the setuptools package directly from https://pip.pypa.io/en/stable/installation.
+### Installing `pip`
 
-The recommended way to install setuptools on Microsoft Windows is to follow the documentation provided on the setuptools website (https://pypi.python.org/pypi/setuptools).
+Pip is the python package manager and can make installing libraries very simple; however, some build tools may be required. For more information on installing `pip`, consult the [upstream documentation](https://pip.pypa.io/en/stable/installation).
 
-#### Installing pip
-
-MacOS
-
-!!! note
-
-    Users may want to use a Virtual Environment so that they do not have any risk of hurting their default Python environment. For more information on seting up a venv please visit (https://docs.python.org/3/library/venv.html).
+#### MacOS
 
 ``` shell
-easy_install pip
+python -m ensurepip --upgrade
 ```
 
-Microsoft Windows
+#### Microsoft Windows
 
 Ensure that the C:\Python27\Scripts directory is defined in the PATH environment variable, and use the easy_install command from the setuptools package:
 
 ``` shell
-C:\>easy_install pip
+C:> py -m ensurepip --upgrade
 ```
 
-Ubuntu or Debian
+#### Linux
 
 ``` shell
-apt-get install python-dev python-pip
+python -m ensurepip --upgrade
 ```
 
-#### Installing the Openstack Client Using Pip
+### Installing the Openstack Client Using `pip`
+
+Assuming you have `pip` installed, it can be used to install the openstack client utilities.
+
+!!! tip
+
+    Users may want to use a Virtual Environment so that they do not have any risk of hurting their default Python environment. For more information on seting up a venv please visit the python [documentation](https://packaging.python.org/en/latest/tutorials/installing-packages/#creating-and-using-virtual-environments) on working with virtual environments.
 
 ``` shell
 pip install python-openstackclient
 ```
 
-!!! note
-
-    You may want to set the PATH to you opesntack to more easily use the commands.
-
-
 For further information on Openstack Command Line and Authentication please visit the [upstream docs](https://docs.openstack.org/python-openstackclient/latest/cli/man/openstack.html).
+
+### Installing the OpenStack Client with packages
+
+Package based client install is a great way to simplify the installation process, however, it does come with a greater possibility to lag behind a given release and may not be as featurefull.
+
+#### MacOS
+
+``` shell
+brew install openstackclient
+```
+
+#### Ubuntu or Debian
+
+``` shell
+apt install python3-openstackclient
+```
+
+#### Enterprise Linux
+
+``` shell
+dnf install python3-openstackclient
+```
