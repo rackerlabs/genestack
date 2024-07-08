@@ -1,0 +1,5 @@
+resources:
+  - barbican-mariadb-database.yaml
+  - barbican-rabbitmq-queue.yaml
+  - all.yaml
+  - hpa-barbican-api.yaml

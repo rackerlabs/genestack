@@ -1,0 +1,55 @@
+name: Helm GitHub Actions for Barbican
+
+on:
+  pull_request:
+    paths:
+      - helm-configs/barbican/**
+      - kustomize/barbican/**
+      - .github/workflows/helm-barbican.yaml
+jobs:
+  helm:
+    strategy:
+      matrix:
+        overlays:
+          - base
+          - aio
+    name: Helm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: azure/setup-helm@v3
+        with:
+          version: latest
+          token: "${{ secrets.GITHUB_TOKEN }}"
+        id: helm
+      - name: Kubectl Install
+        working-directory: /usr/local/bin/
+        run: |
+            if [ ! -f /usr/local/bin/kubectl ]; then
+              curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+              chmod +x ./kubectl
+            fi
+      - name: Pull OSH submodules
+        run: |
+            git submodule update --init submodules/openstack-helm
+            git submodule update --init submodules/openstack-helm-infra
+      - name: Make OSH submodule
+        run: |
+            cd submodules/openstack-helm
+            make barbican
+      - name: Run Helm Template
+        run: |
+          cd submodules/openstack-helm
+          ${{ steps.helm.outputs.helm-path }} template barbican ./barbican \
+            --namespace=openstack \
+            --wait \
+            --timeout 120m \
+            -f ${{ github.workspace }}/helm-configs.example/barbican/barbican-helm-overrides.yaml \
+            --post-renderer ${{ github.workspace }}/kustomize.example/kustomize.sh \
+            --post-renderer-args barbican/${{ matrix.overlays }} > /tmp/rendered.yaml
+      - name: Return helm Build
+        uses: actions/upload-artifact@v2
+        with:
+          name: helm-barbican-artifact-${{ matrix.overlays }}
+          path: /tmp/rendered.yaml
