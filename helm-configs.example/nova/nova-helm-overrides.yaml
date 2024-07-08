@@ -1436,7 +1436,7 @@ conf:
       rbd_secret_uuid: 457eb676-33da-42ec-9a8c-9293d545c337
       disk_cachemodes: "network=writeback"
       hw_disk_discard: unmap
-      cpu_mode: host-passthrough
+      cpu_mode: host-model
       volume_use_multipath: false  # Disabled because multipathd is not configured or running
     upgrade_levels:
       compute: auto
