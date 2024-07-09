@@ -3,8 +3,8 @@ name: Helm GitHub Actions for placement
 on:
   pull_request:
     paths:
-      - helm-configs/placement/**
-      - kustomize/placement/**
+      - helm-configs.example/placement/**
+      - kustomize.example/placement/**
       - .github/workflows/helm-placement.yaml
 jobs:
   helm:
@@ -45,8 +45,8 @@ jobs:
             --namespace=openstack \
             --wait \
             --timeout 120m \
-            -f ${{ github.workspace }}/helm-configs/placement/placement-helm-overrides.yaml \
-            --post-renderer ${{ github.workspace }}/kustomize/kustomize.sh \
+            -f ${{ github.workspace }}/helm-configs.example/placement/placement-helm-overrides.yaml \
+            --post-renderer ${{ github.workspace }}/kustomize.example/kustomize.sh \
             --post-renderer-args placement/${{ matrix.overlays }} > /tmp/rendered.yaml
       - name: Return helm Build
         uses: actions/upload-artifact@v2

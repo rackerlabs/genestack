@@ -3,7 +3,7 @@ name: Kustomize GitHub Actions for openstack
 on:
   pull_request:
     paths:
-      - kustomize/openstack/**
+      - kustomize.example/openstack/**
       - .github/workflows/kustomize-openstack.yaml
 jobs:
   kustomize:
@@ -20,7 +20,7 @@ jobs:
           fi
       - name: Run Kustomize Build
         run: |
-          kustomize build kustomize/openstack > /tmp/rendered.yaml
+          kustomize build kustomize.example/openstack > /tmp/rendered.yaml
       - name: Return Kustomize Build
         uses: actions/upload-artifact@v2
         with:

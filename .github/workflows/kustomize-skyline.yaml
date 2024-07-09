@@ -3,7 +3,7 @@ name: Kustomize GitHub Actions for skyline
 on:
   pull_request:
     paths:
-      - kustomize/skyline/**
+      - kustomize.example/skyline/**
       - .github/workflows/kustomize-skyline.yaml
 jobs:
   kustomize:
@@ -26,7 +26,7 @@ jobs:
           fi
       - name: Run Kustomize Build
         run: |
-          kustomize build kustomize/skyline/${{ matrix.overlays }} > /tmp/rendered.yaml
+          kustomize build kustomize.example/skyline/${{ matrix.overlays }} > /tmp/rendered.yaml
       - name: Return Kustomize Build
         uses: actions/upload-artifact@v2
         with:

@@ -185,6 +185,7 @@ nav:
                       - Horizon: openstack-horizon.md
                       - skyline: openstack-skyline.md
                   - Octavia: openstack-octavia.md
+                  - Barbican: openstack-barbican.md
                   - Metering:
                       - PostgreSQL: infrastructure-postgresql.md
                       - Gnocchi: openstack-gnocchi.md

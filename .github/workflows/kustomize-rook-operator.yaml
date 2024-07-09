@@ -3,7 +3,7 @@ name: Kustomize GitHub Actions for rook-operator
 on:
   pull_request:
     paths:
-      - kustomize/rook-operator/**
+      - kustomize.example/rook-operator/**
       - .github/workflows/kustomize-rook-operator.yaml
 jobs:
   kustomize:
@@ -20,7 +20,7 @@ jobs:
           fi
       - name: Run Kustomize Build
         run: |
-          kustomize build kustomize/rook-operator > /tmp/rendered.yaml
+          kustomize build kustomize.example/rook-operator > /tmp/rendered.yaml
       - name: Return Kustomize Build
         uses: actions/upload-artifact@v2
         with:

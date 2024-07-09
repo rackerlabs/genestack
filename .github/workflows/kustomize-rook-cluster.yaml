@@ -3,7 +3,7 @@ name: Kustomize GitHub Actions for rook-cluster
 on:
   pull_request:
     paths:
-      - kustomize/rook-cluster/**
+      - kustomize.example/rook-cluster/**
       - .github/workflows/kustomize-rook-cluster.yaml
 jobs:
   kustomize:
@@ -20,7 +20,7 @@ jobs:
           fi
       - name: Run Kustomize Build
         run: |
-          kustomize build kustomize/rook-cluster > /tmp/rendered.yaml
+          kustomize build kustomize.example/rook-cluster > /tmp/rendered.yaml
       - name: Return Kustomize Build
         uses: actions/upload-artifact@v2
         with:

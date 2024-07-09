@@ -3,7 +3,7 @@ name: Kustomize GitHub Actions for rabbitmq-operator
 on:
   pull_request:
     paths:
-      - kustomize/rabbitmq-operator/**
+      - kustomize.example/rabbitmq-operator/**
       - .github/workflows/kustomize-rabbitmq-operator.yaml
 jobs:
   kustomize:
@@ -20,7 +20,7 @@ jobs:
           fi
       - name: Run Kustomize Build
         run: |
-          kustomize build kustomize/rabbitmq-operator > /tmp/rendered.yaml
+          kustomize build kustomize.example/rabbitmq-operator > /tmp/rendered.yaml
       - name: Return Kustomize Build
         uses: actions/upload-artifact@v2
         with:

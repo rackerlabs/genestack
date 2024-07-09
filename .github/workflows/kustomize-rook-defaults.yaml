@@ -3,7 +3,7 @@ name: Kustomize GitHub Actions for rook-defaults
 on:
   pull_request:
     paths:
-      - kustomize/rook-defaults/**
+      - kustomize.example/rook-defaults/**
       - .github/workflows/kustomize-rook-defaults.yaml
 jobs:
   kustomize:
@@ -20,7 +20,7 @@ jobs:
           fi
       - name: Run Kustomize Build
         run: |
-          kustomize build kustomize/rook-defaults > /tmp/rendered.yaml
+          kustomize build kustomize.example/rook-defaults > /tmp/rendered.yaml
       - name: Return Kustomize Build
         uses: actions/upload-artifact@v2
         with:

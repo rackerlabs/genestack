@@ -3,7 +3,7 @@ name: Kustomize GitHub Actions for mariadb-cluster
 on:
   pull_request:
     paths:
-      - kustomize/mariadb-cluster/**
+      - kustomize.example/mariadb-cluster/**
       - .github/workflows/kustomize-mariadb-cluster.yaml
 jobs:
   kustomize:
@@ -25,7 +25,7 @@ jobs:
           fi
       - name: Run Kustomize Build
         run: |
-          kustomize build kustomize/mariadb-cluster/${{ matrix.overlays }} > /tmp/rendered.yaml
+          kustomize build kustomize.example/mariadb-cluster/${{ matrix.overlays }} > /tmp/rendered.yaml
       - name: Return Kustomize Build
         uses: actions/upload-artifact@v2
         with:

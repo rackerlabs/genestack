@@ -3,7 +3,7 @@ name: Kustomize GitHub Actions for argocd
 on:
   pull_request:
     paths:
-      - kustomize/argocd/**
+      - kustomize.example/argocd/**
       - .github/workflows/kustomize-argocd.yaml
 jobs:
   kustomize:
@@ -29,7 +29,7 @@ jobs:
           fi
       - name: Run Kustomize Build
         run: |
-          kustomize build kustomize/argocd/${{ matrix.overlays }} --enable-helm --helm-command ${{ steps.helm.outputs.helm-path }} > /tmp/rendered.yaml
+          kustomize build kustomize.example/argocd/${{ matrix.overlays }} --enable-helm --helm-command ${{ steps.helm.outputs.helm-path }} > /tmp/rendered.yaml
       - name: Return Kustomize Build
         uses: actions/upload-artifact@v2
         with:

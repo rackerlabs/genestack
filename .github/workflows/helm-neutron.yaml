@@ -3,8 +3,8 @@ name: Helm GitHub Actions for neutron
 on:
   pull_request:
     paths:
-      - helm-configs/neutron/**
-      - kustomize/neutron/**
+      - helm-configs.example/neutron/**
+      - kustomize.example/neutron/**
       - .github/workflows/helm-neutron.yaml
 jobs:
   helm:
@@ -45,8 +45,8 @@ jobs:
             --namespace=openstack \
             --wait \
             --timeout 120m \
-            -f ${{ github.workspace }}/helm-configs/neutron/neutron-helm-overrides.yaml \
-            --post-renderer ${{ github.workspace }}/kustomize/kustomize.sh \
+            -f ${{ github.workspace }}/helm-configs.example/neutron/neutron-helm-overrides.yaml \
+            --post-renderer ${{ github.workspace }}/kustomize.example/kustomize.sh \
             --post-renderer-args neutron/${{ matrix.overlays }} > /tmp/rendered.yaml
       - name: Return helm Build
         uses: actions/upload-artifact@v2

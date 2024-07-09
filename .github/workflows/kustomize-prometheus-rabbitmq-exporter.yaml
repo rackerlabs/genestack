@@ -3,7 +3,7 @@ name: Kustomize GitHub Actions for Prometheus Rabbitmq exporter
 on:
   pull_request:
     paths:
-      - kustomize/prometheus-rabbitmq-exporter/**
+      - kustomize.example/prometheus-rabbitmq-exporter/**
       - .github/workflows/kustomize-prometheus-rabbitmq-exporter.yaml
 jobs:
   kustomize:
@@ -25,7 +25,7 @@ jobs:
           fi
       - name: Run Kustomize Build
         run: |
-          kustomize build kustomize/prometheus-rabbitmq-exporter/ --enable-helm --helm-command ${{ steps.helm.outputs.helm-path }} > /tmp/rendered.yaml
+          kustomize build kustomize.example/prometheus-rabbitmq-exporter/ --enable-helm --helm-command ${{ steps.helm.outputs.helm-path }} > /tmp/rendered.yaml
       - name: Return Kustomize Build
         uses: actions/upload-artifact@v2
         with:

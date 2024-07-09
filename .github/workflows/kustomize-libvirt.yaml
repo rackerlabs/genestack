@@ -3,7 +3,7 @@ name: Kustomize GitHub Actions for libvirt
 on:
   pull_request:
     paths:
-      - kustomize/libvirt/**
+      - kustomize.example/libvirt/**
       - .github/workflows/kustomize-libvirt.yaml
 jobs:
   kustomize:
@@ -32,7 +32,7 @@ jobs:
           make libvirt
       - name: Run Kustomize Build
         run: |
-          kustomize build kustomize/libvirt --enable-helm --helm-command ${{ steps.helm.outputs.helm-path }} > /tmp/rendered.yaml
+          kustomize build kustomize.example/libvirt --enable-helm --helm-command ${{ steps.helm.outputs.helm-path }} > /tmp/rendered.yaml
       - name: Return Kustomize Build
         uses: actions/upload-artifact@v2
         with:

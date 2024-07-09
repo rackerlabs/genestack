@@ -3,7 +3,7 @@ name: Helm GitHub Actions for loki
 on:
   pull_request:
     paths:
-      - helm-configs/loki/**
+      - helm-configs.example/loki/**
       - .github/workflows/helm-loki.yaml
 jobs:
   helm:
@@ -28,8 +28,9 @@ jobs:
         run: |
           ${{ steps.helm.outputs.helm-path }} repo add grafana https://grafana.github.io/helm-charts
           ${{ steps.helm.outputs.helm-path }} repo update
-          ${{ steps.helm.outputs.helm-path }} template --values ${{ github.workspace }}/helm-configs/loki/loki-helm-minio-overrides-example.yaml \
+          ${{ steps.helm.outputs.helm-path }} template --values ${{ github.workspace }}/helm-configs.example/loki/loki-helm-minio-overrides-example.yaml \
                                                        --namespace grafana \
+                                                       --set loki.useTestSchema=true \
                                                         loki grafana/loki > /tmp/rendered.yaml
       - name: Return helm Build
         uses: actions/upload-artifact@v2

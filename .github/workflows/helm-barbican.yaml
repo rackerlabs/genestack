@@ -3,8 +3,8 @@ name: Helm GitHub Actions for Barbican
 on:
   pull_request:
     paths:
-      - helm-configs/barbican/**
-      - kustomize/barbican/**
+      - helm-configs.example/barbican/**
+      - kustomize.example/barbican/**
       - .github/workflows/helm-barbican.yaml
 jobs:
   helm:
