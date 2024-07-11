@@ -1472,6 +1472,9 @@ conf:
     placement:
       auth_type: password
       auth_version: v3
+    workarounds:
+      skip_cpu_compare_at_startup: false
+      skip_cpu_compare_on_dest: false
   logging:
     loggers:
       keys:
