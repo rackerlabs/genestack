@@ -35,7 +35,7 @@ openstack --os-cloud default image create \
           --disk-format qcow2 \
           --container-format bare \
           --public \
-          --file jammy-server-cloudimg-amd64.img \
+          --file noble-server-cloudimg-amd64.img \
           --property hw_scsi_model=virtio-scsi \
           --property hw_disk_bus=scsi \
           --property hw_vif_multiqueue_enabled=true \
@@ -209,6 +209,36 @@ openstack --os-cloud default image create \
           --property os_distro=centos \
           --property os_version=8 \
           CentOS-Stream-8
+```
+
+!!! note
+
+    Make sure you get the most up to date image URL from the [upstream documentation](https://fedoraproject.org/coreos/download).
+
+``` shell
+# NOTE: CoreOS provides a compressed image.
+wget https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/40.20240616.3.0/x86_64/fedora-coreos-40.20240616.3.0-openstack.x86_64.qcow2.xz
+xz -d fedora-coreos-40.20240616.3.0-openstack.x86_64.qcow2.xz
+openstack --os-cloud default image create \
+          --progress \
+          --disk-format qcow2 \
+          --container-format bare \
+          --public \
+          --file fedora-coreos-40.20240616.3.0-openstack.x86_64.qcow2 \
+          --property hw_scsi_model=virtio-scsi \
+          --property hw_disk_bus=scsi \
+          --property hw_vif_multiqueue_enabled=true \
+          --property hw_qemu_guest_agent=yes \
+          --property hypervisor_type=kvm \
+          --property img_config_drive=optional \
+          --property hw_machine_type=q35 \
+          --property hw_firmware_type=uefi \
+          --property os_require_quiesce=yes \
+          --property os_type=linux \
+          --property os_admin_user=coreos \
+          --property os_distro=coreos \
+          --property os_version=40 \
+          fedora-coreos-40
 ```
 
 ## Get openSUSE Leap
