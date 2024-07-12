@@ -26,6 +26,32 @@ The properties of note are the following.
 
 ## Get Ubuntu
 
+### Ubuntu 24.04 (Nobel)
+
+``` shell
+wget https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
+openstack --os-cloud default image create \
+          --progress \
+          --disk-format qcow2 \
+          --container-format bare \
+          --public \
+          --file jammy-server-cloudimg-amd64.img \
+          --property hw_scsi_model=virtio-scsi \
+          --property hw_disk_bus=scsi \
+          --property hw_vif_multiqueue_enabled=true \
+          --property hw_qemu_guest_agent=yes \
+          --property hypervisor_type=kvm \
+          --property img_config_drive=optional \
+          --property hw_machine_type=q35 \
+          --property hw_firmware_type=uefi \
+          --property os_require_quiesce=yes \
+          --property os_type=linux \
+          --property os_admin_user=ubuntu \
+          --property os_distro=ubuntu \
+          --property os_version=24.04 \
+          Ubuntu-24.04
+```
+
 ### Ubuntu 22.04 (Jammy)
 
 ``` shell
