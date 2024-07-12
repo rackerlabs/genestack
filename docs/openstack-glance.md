@@ -36,7 +36,7 @@ helm upgrade --install glance ./glance \
     --namespace=openstack \
     --wait \
     --timeout 120m \
-    -f /etc/genestack/helm-configs/glance/glance-helm-overrides.yaml \
+    -f /opt/genestack/base-helm-configs/glance/glance-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.glance.password="$(kubectl --namespace openstack get secret glance-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
@@ -44,13 +44,14 @@ helm upgrade --install glance ./glance \
     --set conf.glance.database.slave_connection="mysql+pymysql://glance:$(kubectl --namespace openstack get secret glance-db-password -o jsonpath='{.data.password}' | base64 -d)@mariadb-cluster-secondary.openstack.svc.cluster.local:3306/glance" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.glance.password="$(kubectl --namespace openstack get secret glance-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /etc/genestack/kustomize/kustomize.sh \
+    --post-renderer /opt/genestack/base-kustomize/kustomize.sh \
     --post-renderer-args glance/base
 ```
 
 !!! tip
 
-    In a production like environment you may need to include production specific files like the example variable file found in `helm-configs/prod-example-openstack-overrides.yaml`.
+    You may need to provide custom values to configure your openstack services, for a simple single region or lab deployment you can supply an additional overrides flag using the example found at `base-helm-configs/aio-example-openstack-overrides.yaml`.
+    In other cases such as a multi-region deployment you may want to view the [Multi-Region Support](mult-region-support.md) guide to for a workflow solution.
 
 !!! note
 

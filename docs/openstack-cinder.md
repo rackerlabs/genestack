@@ -33,7 +33,7 @@ helm upgrade --install cinder ./cinder \
   --namespace=openstack \
     --wait \
     --timeout 120m \
-    -f /etc/genestack/helm-configs/cinder/cinder-helm-overrides.yaml \
+    -f /opt/genestack/base-helm-configs/cinder/cinder-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
@@ -41,13 +41,14 @@ helm upgrade --install cinder ./cinder \
     --set conf.cinder.database.slave_connection="mysql+pymysql://cinder:$(kubectl --namespace openstack get secret cinder-db-password -o jsonpath='{.data.password}' | base64 -d)@mariadb-cluster-secondary.openstack.svc.cluster.local:3306/cinder" \
     --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_messaging.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /etc/genestack/kustomize/kustomize.sh \
+    --post-renderer /opt/genestack/base-kustomize/kustomize.sh \
     --post-renderer-args cinder/base
 ```
 
 !!! tip
 
-    In a production like environment you may need to include production specific files like the example variable file found in `helm-configs/prod-example-openstack-overrides.yaml`.
+    You may need to provide custom values to configure your openstack services, for a simple single region or lab deployment you can supply an additional overrides flag using the example found at `base-helm-configs/aio-example-openstack-overrides.yaml`.
+    In other cases such as a multi-region deployment you may want to view the [Multi-Region Support](mult-region-support.md) guide to for a workflow solution.
 
 Once the helm deployment is complete cinder and all of it's API services will be online. However, using this setup there will be
 no volume node at this point. The reason volume deployments have been disabled is because we didn't expose ceph to the openstack
@@ -219,12 +220,12 @@ root@openstack-flex-node-4:~# lvs
 
 ## Enable multipath in Nova Compute:
 
-Toggle volume_use_multipath to true in /etc/genestack/helm-configs/nova/nova-helm-overrides.yaml
+Toggle volume_use_multipath to true in /opt/genestack/base-helm-configs/nova/nova-helm-overrides.yaml
 
 ``` shell
 
-sed -i 's/volume_use_multipath: false/volume_use_multipath: true/' /etc/genestack/helm-configs/nova/nova-helm-overrides.yaml
-sed -i 's/enable_iscsi: false/enable_iscsi: true/' /etc/genestack/helm-configs/nova/nova-helm-overrides.yaml
+sed -i 's/volume_use_multipath: false/volume_use_multipath: true/' /opt/genestack/base-helm-configs/nova/nova-helm-overrides.yaml
+sed -i 's/enable_iscsi: false/enable_iscsi: true/' /opt/genestack/base-helm-configs/nova/nova-helm-overrides.yaml
 
 ```
 

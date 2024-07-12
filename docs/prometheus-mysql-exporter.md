@@ -23,7 +23,7 @@ kubectl --namespace openstack \
 Next, install the exporter
 
 ``` shell
-kubectl kustomize --enable-helm /etc/genestack/kustomize/prometheus-mysql-exporter | \
+kubectl kustomize --enable-helm /opt/genestack/base-kustomize/prometheus-mysql-exporter | \
     kubectl --namespace openstack apply --server-side -f -
 ```
 

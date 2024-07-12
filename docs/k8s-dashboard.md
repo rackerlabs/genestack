@@ -3,7 +3,7 @@
 While the dashboard is installed you will have no ability to access it until we setup some basic RBAC.
 
 ``` shell
-kubectl apply -k /etc/genestack/kustomize/k8s-dashboard
+kubectl apply -k /opt/genestack/base-kustomize/k8s-dashboard
 ```
 
 You can now retrieve a permanent token.

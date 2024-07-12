@@ -38,7 +38,7 @@ spec:
 ```
 
 ``` shell
-kubectl apply -f /etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml
+kubectl apply -f /opt/genestack/manifests/metallb/metallb-openstack-service-lb.yml
 ```
 
 Assuming your ingress controller is all setup and your metallb loadbalancer is operational you can patch the ingress controller to expose your external VIP address.

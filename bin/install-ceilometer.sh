@@ -4,7 +4,7 @@ helm upgrade --install ceilometer ./ceilometer \
     --namespace=openstack \
     --wait \
     --timeout 10m \
-    -f /etc/genestack/helm-configs/ceilometer/ceilometer-helm-overrides.yaml \
+    -f /opt/genestack/base-helm-configs/ceilometer/ceilometer-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.ceilometer.password="$(kubectl --namespace openstack get secret ceilometer-keystone-admin-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.test.password="$(kubectl --namespace openstack get secret ceilometer-keystone-test-password -o jsonpath='{.data.password}' | base64 -d)" \

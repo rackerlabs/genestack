@@ -67,7 +67,7 @@ python3 create-external-cluster-resources.py --rbd-data-pool-name general --ceph
     Run the following commands to import the cluster after pasting in exports from external cluster
 
 ``` shell
-kubectl apply -k /etc/genestack/kustomize/rook-operator/
+kubectl apply -k /opt/genestack/base-kustomize/rook-operator/
 /opt/genestack/scripts/import-external-cluster.sh
 helm repo add rook-release https://charts.rook.io/release
 kubectl -n rook-ceph set image deploy/rook-ceph-operator rook-ceph-operator=rook/ceph:v1.13.7
