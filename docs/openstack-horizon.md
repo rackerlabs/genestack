@@ -28,15 +28,16 @@ helm upgrade --install horizon ./horizon \
     --namespace=openstack \
     --wait \
     --timeout 120m \
-    -f /etc/genestack/helm-configs/horizon/horizon-helm-overrides.yaml \
+    -f /opt/genestack/base-helm-configs/horizon/horizon-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set conf.horizon.local_settings.config.horizon_secret_key="$(kubectl --namespace openstack get secret horizon-secrete-key -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.horizon.password="$(kubectl --namespace openstack get secret horizon-db-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /etc/genestack/kustomize/kustomize.sh \
+    --post-renderer /opt/genestack/base-kustomize/kustomize.sh \
     --post-renderer-args horizon/base
 ```
 
 !!! tip
 
-    In a production like environment you may need to include production specific files like the example variable file found in `helm-configs/prod-example-openstack-overrides.yaml`.
+    You may need to provide custom values to configure your openstack services, for a simple single region or lab deployment you can supply an additional overrides flag using the example found at `base-helm-configs/aio-example-openstack-overrides.yaml`.
+    In other cases such as a multi-region deployment you may want to view the [Multi-Region Support](mult-region-support.md) guide to for a workflow solution.

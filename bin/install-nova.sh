@@ -4,7 +4,7 @@ cd /opt/genestack/submodules/openstack-helm
 helm upgrade --install nova ./nova \
   --namespace=openstack \
     --timeout 120m \
-    -f /etc/genestack/helm-configs/nova/nova-helm-overrides.yaml \
+    -f /opt/genestack/base-helm-configs/nova/nova-helm-overrides.yaml \
     --set conf.nova.neutron.metadata_proxy_shared_secret="$(kubectl --namespace openstack get secret metadata-shared-secret -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.nova.password="$(kubectl --namespace openstack get secret nova-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -25,5 +25,5 @@ helm upgrade --install nova ./nova \
     --set endpoints.oslo_messaging.auth.nova.password="$(kubectl --namespace openstack get secret nova-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set network.ssh.public_key="$(kubectl -n openstack get secret nova-ssh-keypair -o jsonpath='{.data.public_key}' | base64 -d)"$'\n' \
     --set network.ssh.private_key="$(kubectl -n openstack get secret nova-ssh-keypair -o jsonpath='{.data.private_key}' | base64 -d)"$'\n' \
-    --post-renderer /etc/genestack/kustomize/kustomize.sh \
+    --post-renderer /opt/genestack/base-kustomize/kustomize.sh \
     --post-renderer-args nova/base

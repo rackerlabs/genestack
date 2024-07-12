@@ -3,7 +3,7 @@
 ## Deploy the Rook operator
 
 ``` shell
-kubectl apply -k /etc/genestack/kustomize/rook-operator/
+kubectl apply -k /opt/genestack/base-kustomize/rook-operator/
 kubectl -n rook-ceph set image deploy/rook-ceph-operator rook-ceph-operator=rook/ceph:v1.13.7
 ```
 
@@ -11,10 +11,10 @@ kubectl -n rook-ceph set image deploy/rook-ceph-operator rook-ceph-operator=rook
 
 !!! note
 
-    Rook will deploy against nodes labeled `role=storage-node`. Make sure to have a look at the `/etc/genestack/kustomize/rook-cluster/rook-cluster.yaml` file to ensure it's setup to your liking, pay special attention to your `deviceFilter` settings, especially if different devices have different device layouts.
+    Rook will deploy against nodes labeled `role=storage-node`. Make sure to have a look at the `/opt/genestack/base-kustomize/rook-cluster/rook-cluster.yaml` file to ensure it's setup to your liking, pay special attention to your `deviceFilter` settings, especially if different devices have different device layouts.
 
 ``` shell
-kubectl apply -k /etc/genestack/kustomize/rook-cluster/
+kubectl apply -k /opt/genestack/base-kustomize/rook-cluster/
 ```
 
 ## Validate the cluster is operational
@@ -32,7 +32,7 @@ kubectl --namespace rook-ceph get cephclusters.ceph.rook.io
 Once the rook cluster is online with a HEALTH status of `HEALTH_OK`, deploy the filesystem, storage-class, and pool defaults.
 
 ``` shell
-kubectl apply -k /etc/genestack/kustomize/rook-defaults
+kubectl apply -k /opt/genestack/base-kustomize/rook-defaults
 ```
 
 !!! note

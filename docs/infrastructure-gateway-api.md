@@ -49,7 +49,7 @@ Next, Install the NGINX Gateway Fabric controller
 ```shell
 cd /opt/genestack/submodules/nginx-gateway-fabric/deploy/helm-chart
 
-helm upgrade --install nginx-gateway-fabric . --namespace=nginx-gateway -f /etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml
+helm upgrade --install nginx-gateway-fabric . --namespace=nginx-gateway -f /opt/genestack/base-helm-configs/nginx-gateway-fabric/helm-overrides.yaml
 ```
 
 Helm install does not automatically upgrade the crds for this resource. To upgrade the crds you will have to manually install them. Follow the process from :  [Upgrade CRDs](https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#upgrade-nginx-gateway-fabric-crds)
@@ -60,12 +60,12 @@ Helm install does not automatically upgrade the crds for this resource. To upgra
 
 #### Installation
 
-- Update the `/etc/genestack/kustomize/envoyproxy-gateway/base/values.yaml` file according to your requirements.
+- Update the `/opt/genestack/base-kustomize/envoyproxy-gateway/base/values.yaml` file according to your requirements.
 
 - Apply the configuration using the following command:
 
 ```shell
-kubectl kustomize --enable-helm /etc/genestack/kustomize/envoyproxy-gateway/base | kubectl apply -f -
+kubectl kustomize --enable-helm /opt/genestack/base-kustomize/envoyproxy-gateway/base | kubectl apply -f -
 ```
 
 After installation, you need to create Gateway and HTTPRoute resources based on your requirements.
@@ -77,7 +77,7 @@ After installation, you need to create Gateway and HTTPRoute resources based on 
 - Apply the Kustomize configuration which will create `Gateway` resource:
 
 ```shell
-kubectl kustomize /etc/genestack/kustomize/gateway/envoyproxy | kubectl apply -f -
+kubectl kustomize /opt/genestack/base-kustomize/gateway/envoyproxy | kubectl apply -f -
 ```
 
 - Once gateway is created, user can expose an application by creating `HTTPRoute` resource.
@@ -109,7 +109,7 @@ In this example we will look at how Prometheus UI is exposed through the gateway
 Rackspace specific gateway kustomization files can be applied like so
 
 ```shell
-kubectl kustomize /etc/genestack/kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
+kubectl kustomize /opt/genestack/base-kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
 ```
 
 First, create the shared gateway and then the httproute resource for prometheus.

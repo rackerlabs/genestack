@@ -61,7 +61,7 @@ helm upgrade --install gnocchi ./gnocchi \
     --namespace=openstack \
     --wait \
     --timeout 10m \
-    -f /etc/genestack/helm-configs/gnocchi/gnocchi-helm-overrides.yaml \
+    -f /opt/genestack/base-helm-configs/gnocchi/gnocchi-helm-overrides.yaml \
     --set conf.ceph.admin_keyring="$(kubectl get secret --namespace rook-ceph rook-ceph-admin-keyring -o jsonpath='{.data.keyring}' | base64 -d)" \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.gnocchi.password="$(kubectl --namespace openstack get secret gnocchi-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -69,13 +69,14 @@ helm upgrade --install gnocchi ./gnocchi \
     --set endpoints.oslo_db.auth.gnocchi.password="$(kubectl --namespace openstack get secret gnocchi-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db_postgresql.auth.admin.password="$(kubectl --namespace openstack get secret postgresql-db-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db_postgresql.auth.gnocchi.password="$(kubectl --namespace openstack get secret gnocchi-pgsql-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /etc/genestack/kustomize/kustomize.sh \
+    --post-renderer /opt/genestack/base-kustomize/kustomize.sh \
     --post-renderer-args gnocchi/base
 ```
 
 !!! tip
 
-    In a production like environment you may need to include production specific files like the example variable file found in `helm-configs/prod-example-openstack-overrides.yaml`.
+    You may need to provide custom values to configure your openstack services, for a simple single region or lab deployment you can supply an additional overrides flag using the example found at `base-helm-configs/aio-example-openstack-overrides.yaml`.
+    In other cases such as a multi-region deployment you may want to view the [Multi-Region Support](mult-region-support.md) guide to for a workflow solution.
 
 ## Validate the metric endpoint
 

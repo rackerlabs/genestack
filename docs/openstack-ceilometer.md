@@ -25,7 +25,7 @@ helm upgrade --install ceilometer ./ceilometer \
     --namespace=openstack \
     --wait \
     --timeout 10m \
-    -f /etc/genestack/helm-configs/ceilometer/ceilometer-helm-overrides.yaml \
+    -f /opt/genestack/base-helm-configs/ceilometer/ceilometer-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.ceilometer.password="$(kubectl --namespace openstack get secret ceilometer-keystone-admin-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.test.password="$(kubectl --namespace openstack get secret ceilometer-keystone-test-password -o jsonpath='{.data.password}' | base64 -d)" \
@@ -46,7 +46,8 @@ rabbit://nova:$(kubectl --namespace openstack get secret nova-rabbitmq-password 
 
 !!! tip
 
-    In a production like environment you may need to include production specific files like the example variable file found in `helm-configs/prod-example-openstack-overrides.yaml`.
+    You may need to provide custom values to configure your openstack services, for a simple single region or lab deployment you can supply an additional overrides flag using the example found at `base-helm-configs/aio-example-openstack-overrides.yaml`.
+    In other cases such as a multi-region deployment you may want to view the [Multi-Region Support](mult-region-support.md) guide to for a workflow solution.
 
 ## Verify Ceilometer Workers
 

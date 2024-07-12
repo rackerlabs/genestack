@@ -42,8 +42,8 @@ kubectl --namespace openstack \
 
 !!! tip
 
-    Pause for a moment to consider if you will be wanting to access Skyline via your ingress controller over a specific FQDN. If so, modify `/etc/genestack/kustomize/skyline/fqdn/kustomization.yaml` to suit your needs then use `fqdn` below in lieu of `base`...
+    Pause for a moment to consider if you will be wanting to access Skyline via your ingress controller over a specific FQDN. If so, modify `/opt/genestack/base-kustomize/skyline/fqdn/kustomization.yaml` to suit your needs then use `fqdn` below in lieu of `base`...
 
 ``` shell
-kubectl --namespace openstack apply -k /etc/genestack/kustomize/skyline/base
+kubectl --namespace openstack apply -k /opt/genestack/base-kustomize/skyline/base
 ```

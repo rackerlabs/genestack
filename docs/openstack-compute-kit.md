@@ -100,14 +100,14 @@ cd /opt/genestack/submodules/openstack-helm
 helm upgrade --install placement ./placement --namespace=openstack \
   --namespace=openstack \
     --timeout 120m \
-    -f /etc/genestack/helm-configs/placement/placement-helm-overrides.yaml \
+    -f /opt/genestack/base-helm-configs/placement/placement-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.placement.password="$(kubectl --namespace openstack get secret placement-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
     --set endpoints.oslo_db.auth.placement.password="$(kubectl --namespace openstack get secret placement-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set conf.placement.placement_database.slave_connection="mysql+pymysql://placement:$(kubectl --namespace openstack get secret placement-db-password -o jsonpath='{.data.password}' | base64 -d)@mariadb-cluster-secondary.openstack.svc.cluster.local:3306/placement" \
     --set endpoints.oslo_db.auth.nova_api.password="$(kubectl --namespace openstack get secret nova-db-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /etc/genestack/kustomize/kustomize.sh \
+    --post-renderer /opt/genestack/base-kustomize/kustomize.sh \
     --post-renderer-args placement/base
 ```
 
@@ -119,7 +119,7 @@ cd /opt/genestack/submodules/openstack-helm
 helm upgrade --install nova ./nova \
   --namespace=openstack \
     --timeout 120m \
-    -f /etc/genestack/helm-configs/nova/nova-helm-overrides.yaml \
+    -f /opt/genestack/base-helm-configs/nova/nova-helm-overrides.yaml \
     --set conf.nova.neutron.metadata_proxy_shared_secret="$(kubectl --namespace openstack get secret metadata-shared-secret -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.nova.password="$(kubectl --namespace openstack get secret nova-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -140,13 +140,14 @@ helm upgrade --install nova ./nova \
     --set endpoints.oslo_messaging.auth.nova.password="$(kubectl --namespace openstack get secret nova-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set network.ssh.public_key="$(kubectl -n openstack get secret nova-ssh-keypair -o jsonpath='{.data.public_key}' | base64 -d)"$'\n' \
     --set network.ssh.private_key="$(kubectl -n openstack get secret nova-ssh-keypair -o jsonpath='{.data.private_key}' | base64 -d)"$'\n' \
-    --post-renderer /etc/genestack/kustomize/kustomize.sh \
+    --post-renderer /opt/genestack/base-kustomize/kustomize.sh \
     --post-renderer-args nova/base
 ```
 
 !!! tip
 
-    In a production like environment you may need to include production specific files like the example variable file found in `helm-configs/prod-example-openstack-overrides.yaml`.
+    You may need to provide custom values to configure your openstack services, for a simple single region or lab deployment you can supply an additional overrides flag using the example found at `base-helm-configs/aio-example-openstack-overrides.yaml`.
+    In other cases such as a multi-region deployment you may want to view the [Multi-Region Support](mult-region-support.md) guide to for a workflow solution.
 
 !!! note
 
@@ -160,7 +161,8 @@ If running in an environment that doesn't have hardware virtualization extension
 
 !!! tip
 
-    In a production like environment you may need to include production specific files like the example variable file found in `helm-configs/prod-example-openstack-overrides.yaml`.
+    You may need to provide custom values to configure your openstack services, for a simple single region or lab deployment you can supply an additional overrides flag using the example found at `base-helm-configs/aio-example-openstack-overrides.yaml`.
+    In other cases such as a multi-region deployment you may want to view the [Multi-Region Support](mult-region-support.md) guide to for a workflow solution.
 
 ## Deploy Neutron
 
@@ -170,7 +172,7 @@ cd /opt/genestack/submodules/openstack-helm
 helm upgrade --install neutron ./neutron \
   --namespace=openstack \
     --timeout 120m \
-    -f /etc/genestack/helm-configs/neutron/neutron-helm-overrides.yaml \
+    -f /opt/genestack/base-helm-configs/neutron/neutron-helm-overrides.yaml \
     --set conf.metadata_agent.DEFAULT.metadata_proxy_shared_secret="$(kubectl --namespace openstack get secret metadata-shared-secret -o jsonpath='{.data.password}' | base64 -d)" \
     --set conf.ovn_metadata_agent.DEFAULT.metadata_proxy_shared_secret="$(kubectl --namespace openstack get secret metadata-shared-secret -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -188,13 +190,14 @@ helm upgrade --install neutron ./neutron \
     --set conf.neutron.ovn.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')" \
     --set conf.plugins.ml2_conf.ovn.ovn_nb_connection="tcp:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')" \
     --set conf.plugins.ml2_conf.ovn.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')" \
-    --post-renderer /etc/genestack/kustomize/kustomize.sh \
+    --post-renderer /opt/genestack/base-kustomize/kustomize.sh \
     --post-renderer-args neutron/base
 ```
 
 !!! tip
 
-    In a production like environment you may need to include production specific files like the example variable file found in `helm-configs/prod-example-openstack-overrides.yaml`.
+    You may need to provide custom values to configure your openstack services, for a simple single region or lab deployment you can supply an additional overrides flag using the example found at `base-helm-configs/aio-example-openstack-overrides.yaml`.
+    In other cases such as a multi-region deployment you may want to view the [Multi-Region Support](mult-region-support.md) guide to for a workflow solution.
 
 !!! info
 
