@@ -26,7 +26,7 @@ The properties of note are the following.
 
 ## Get Ubuntu
 
-### Ubuntu 24.04 (Nobel)
+### Ubuntu 24.04 (Noble)
 
 ``` shell
 wget https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
