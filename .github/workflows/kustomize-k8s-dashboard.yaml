@@ -3,7 +3,7 @@ name: Kustomize GitHub Actions for k8s-dashboard
 on:
   pull_request:
     paths:
-      - kustomize/k8s-dashboard/**
+      - base-kustomize/k8s-dashboard/**
       - .github/workflows/kustomize-k8s-dashboard.yaml
 jobs:
   kustomize:
@@ -20,7 +20,7 @@ jobs:
           fi
       - name: Run Kustomize Build
         run: |
-          kustomize build kustomize/k8s-dashboard > /tmp/rendered.yaml
+          kustomize build base-kustomize/k8s-dashboard > /tmp/rendered.yaml
       - name: Return Kustomize Build
         uses: actions/upload-artifact@v2
         with:

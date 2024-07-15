@@ -3,8 +3,8 @@ name: Helm GitHub Actions for Barbican
 on:
   pull_request:
     paths:
-      - helm-configs/barbican/**
-      - kustomize/barbican/**
+      - base-helm-configs/barbican/**
+      - base-kustomize/barbican/**
       - .github/workflows/helm-barbican.yaml
 jobs:
   helm:
@@ -45,8 +45,8 @@ jobs:
             --namespace=openstack \
             --wait \
             --timeout 120m \
-            -f ${{ github.workspace }}/helm-configs.example/barbican/barbican-helm-overrides.yaml \
-            --post-renderer ${{ github.workspace }}/kustomize.example/kustomize.sh \
+            -f ${{ github.workspace }}/base-helm-configs/barbican/barbican-helm-overrides.yaml \
+            --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
             --post-renderer-args barbican/${{ matrix.overlays }} > /tmp/rendered.yaml
       - name: Return helm Build
         uses: actions/upload-artifact@v2

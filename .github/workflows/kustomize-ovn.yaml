@@ -3,7 +3,7 @@ name: Kustomize GitHub Actions for ovn
 on:
   pull_request:
     paths:
-      - kustomize/ovn/**
+      - base-kustomize/ovn/**
       - .github/workflows/kustomize-ovn.yaml
 jobs:
   kustomize:
@@ -20,7 +20,7 @@ jobs:
           fi
       - name: Run Kustomize Build
         run: |
-          kustomize build kustomize/ovn > /tmp/rendered.yaml
+          kustomize build base-kustomize/ovn > /tmp/rendered.yaml
       - name: Return Kustomize Build
         uses: actions/upload-artifact@v2
         with:

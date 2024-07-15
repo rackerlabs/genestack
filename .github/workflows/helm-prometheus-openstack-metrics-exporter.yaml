@@ -3,8 +3,8 @@ name: Helm GitHub Actions for openstack-metrics-exporter
 on:
   pull_request:
     paths:
-      - helm-configs/monitoring/openstack-metrics-exporter/**
-      - kustomize/monitoring/openstack-metrics-exporter/**
+      - base-helm-configs/monitoring/openstack-metrics-exporter/**
+      - base-kustomize/monitoring/openstack-metrics-exporter/**
       - .github/workflows/helm-openstack-metrics-exporter.yaml
 jobs:
   helm:
@@ -35,7 +35,7 @@ jobs:
             --namespace=openstack \
             --wait \
             --timeout 120m \
-            -f ${{ github.workspace }}/helm-configs/monitoring/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml  > /tmp/rendered.yaml
+            -f ${{ github.workspace }}/base-helm-configs/monitoring/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml  > /tmp/rendered.yaml
       - name: Return helm Build
         uses: actions/upload-artifact@v2
         with:

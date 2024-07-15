@@ -3,8 +3,8 @@ name: Helm GitHub Actions for octavia
 on:
   pull_request:
     paths:
-      - helm-configs/octavia/**
-      - kustomize/octavia/**
+      - base-helm-configs/octavia/**
+      - base-kustomize/octavia/**
       - .github/workflows/helm-octavia.yaml
 jobs:
   helm:
@@ -45,8 +45,8 @@ jobs:
             --namespace=openstack \
             --wait \
             --timeout 120m \
-            -f ${{ github.workspace }}/helm-configs/octavia/octavia-helm-overrides.yaml \
-            --post-renderer ${{ github.workspace }}/kustomize/kustomize.sh \
+            -f ${{ github.workspace }}/base-helm-configs/octavia/octavia-helm-overrides.yaml \
+            --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
             --post-renderer-args octavia/${{ matrix.overlays }} > /tmp/rendered.yaml
       - name: Return helm Build
         uses: actions/upload-artifact@v2
