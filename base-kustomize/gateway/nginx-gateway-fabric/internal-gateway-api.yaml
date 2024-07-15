@@ -3,30 +3,23 @@ kind: Gateway
 metadata:
   name: flex-gateway
   namespace: nginx-gateway
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod-gw
+  annotations: # This is the name of the ClusterIssuer created in the previous step
+    cert-manager.io/cluster-issuer: flex-gateway-issuer
     acme.cert-manager.io/http01-edit-in-place: "true"
 spec:
   gatewayClassName: nginx
   listeners:
-  - name: o3-http
+  - name: cluster-http
     port: 80
     protocol: HTTP
-    hostname: "*.sjc.ohthree.com"
+    hostname: "*.cluster.local"
     allowedRoutes:
       namespaces:
         from: All
-  - name: rackspacecloud-http
-    port: 80
-    protocol: HTTP
-    hostname: "*.sjc3.rackspacecloud.com"
-    allowedRoutes:
-      namespaces:
-        from: All
-  - name: am-https
-    hostname: "alertmanager.sjc.ohthree.com"
+  - name: cluster-tls
     port: 443
     protocol: HTTPS
+    hostname: "*.cluster.local"
     allowedRoutes:
       namespaces:
         from: All
@@ -34,28 +27,4 @@ spec:
       mode: Terminate
       certificateRefs:
       - kind: Secret
-        name: alertmanager-gw-tls-secret
-  - name: prom-https
-    hostname: "prometheus.sjc.ohthree.com"
-    port: 443
-    protocol: HTTPS
-    allowedRoutes:
-      namespaces:
-        from: All
-    tls:
-      mode: Terminate
-      certificateRefs:
-      - kind: Secret
-        name: prometheus-gw-tls-secret
-  - name: graf-https
-    hostname: "grafana.sjc3.rackspacecloud.com"
-    port: 443
-    protocol: HTTPS
-    allowedRoutes:
-      namespaces:
-        from: All
-    tls:
-      mode: Terminate
-      certificateRefs:
-      - kind: Secret
-        name: grafana-gw-tls-secret
+        name: wildcard-cluster-tls-secret

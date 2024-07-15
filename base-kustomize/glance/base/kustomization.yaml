@@ -3,6 +3,8 @@ resources:
   - glance-rabbitmq-queue.yaml
   - all.yaml
   - hpa-glance-api.yaml
+  - glance-routes.yaml
+  - client-settings.yaml
 
 patches:
   - target:

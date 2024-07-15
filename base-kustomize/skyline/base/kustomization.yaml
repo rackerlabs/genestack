@@ -6,3 +6,4 @@ resources:
   - ingress-apiserver.yaml
   - hpa-skyline-apiserver.yaml
   - pdb-apiserver.yaml
+  - skyline-routes.yaml
