@@ -20,6 +20,8 @@ mysql -h $(kubectl -n openstack get service mariadb-cluster-primary -o jsonpath=
 
 When running `mysqldump` or `mariadbdump` the following commands can be useful for generating a quick backup.
 
+### Individual Database Backups
+
 ``` shell
 mysqldump --host=$(kubectl -n openstack get service mariadb-cluster -o jsonpath='{.spec.clusterIP}')\
           --user=root \
@@ -53,10 +55,24 @@ mysqldump --host=$(kubectl -n openstack get service mariadb-cluster -o jsonpath=
                   --result-file=/tmp/{}-$(date +%s).sql
     ```
 
+### Individual Database Restores
+
+!!! tip "Ensure the destination database exists"
+
+    The destination database must exist prior to restoring individual SQL
+    backups. If it does not already exist, it's important to create the
+    database with the correct charset and collate values. Failing to do so can
+    result in errors such as `Foreign Key Constraint is Incorrectly Formed`
+    during DB upgrades.
+
+    ```
+    CREATE DATABASE ${DATABASE_NAME} DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+    ```
+
 !!! example "Restoring a database"
 
     ``` shell
-    mysql -h $(kubectl -n openstack get service mariadb-cluster -o jsonpath='{.spec.clusterIP}') \
+    mysql -h $(kubectl -n openstack get service mariadb-cluster-primary -o jsonpath='{.spec.clusterIP}') \
         -u root \
         -p$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d) \
         ${DATABASE_NAME} < /tmp/${DATABASE_FILE}
