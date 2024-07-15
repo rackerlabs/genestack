@@ -76,7 +76,7 @@ Now, set the hardware property to ensure that `pci_passthrough:alias` is **p2000
 ``` shell
 openstack --os-cloud default flavor set gpu-p2000.medium \
           --property pci_passthrough:alias=p2000:1 \
-          --property hide_hypervisor_id=true
+          --property hw:hide_hypervisor_id='true'
 ```
 
 !!! note
@@ -85,7 +85,7 @@ openstack --os-cloud default flavor set gpu-p2000.medium \
 
 !!! note
 
-    The `hide_hypervisor_id` will hide the Hypervisor ID from an instances. This useful in a lot of environments, see the [upstream documentation](https://bugs.launchpad.net/nova/+bug/1841932) for more information.
+    The `hw:hide_hypervisor_id` will hide the Hypervisor ID from an instances. This useful in a lot of environments, see the [upstream documentation](https://bugs.launchpad.net/nova/+bug/1841932) for more information.
 
 ## Benefits of Custom Flavors
 
