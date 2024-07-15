@@ -3,7 +3,7 @@ name: Kustomize GitHub Actions for Prometheus PostgresSQL exporter
 on:
   pull_request:
     paths:
-      - kustomize/prometheus-postgres-exporter/**
+      - base-kustomize/prometheus-postgres-exporter/**
       - .github/workflows/kustomize-prometheus-postgres-exporter.yaml
 jobs:
   kustomize:
@@ -25,7 +25,7 @@ jobs:
           fi
       - name: Run Kustomize Build
         run: |
-          kustomize build kustomize/prometheus-postgres-exporter/ --enable-helm --helm-command ${{ steps.helm.outputs.helm-path }} > /tmp/rendered.yaml
+          kustomize build base-kustomize/prometheus-postgres-exporter/ --enable-helm --helm-command ${{ steps.helm.outputs.helm-path }} > /tmp/rendered.yaml
       - name: Return Kustomize Build
         uses: actions/upload-artifact@v2
         with:

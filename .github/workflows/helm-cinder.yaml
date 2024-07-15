@@ -3,8 +3,8 @@ name: Helm GitHub Actions for cinder
 on:
   pull_request:
     paths:
-      - helm-configs/cinder/**
-      - kustomize/cinder/**
+      - base-helm-configs/cinder/**
+      - base-kustomize/cinder/**
       - .github/workflows/helm-cinder.yaml
 jobs:
   helm:
@@ -45,8 +45,8 @@ jobs:
             --namespace=openstack \
             --wait \
             --timeout 120m \
-            -f ${{ github.workspace }}/helm-configs/cinder/cinder-helm-overrides.yaml \
-            --post-renderer ${{ github.workspace }}/kustomize/kustomize.sh \
+            -f ${{ github.workspace }}/base-helm-configs/cinder/cinder-helm-overrides.yaml \
+            --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
             --post-renderer-args cinder/${{ matrix.overlays }} > /tmp/rendered.yaml
       - name: Return helm Build
         uses: actions/upload-artifact@v2

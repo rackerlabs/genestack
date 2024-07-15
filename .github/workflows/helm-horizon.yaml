@@ -3,8 +3,8 @@ name: Helm GitHub Actions for horizon
 on:
   pull_request:
     paths:
-      - helm-configs/horizon/**
-      - kustomize/horizon/**
+      - base-helm-configs/horizon/**
+      - base-kustomize/horizon/**
       - .github/workflows/helm-horizon.yaml
 jobs:
   helm:
@@ -45,8 +45,8 @@ jobs:
             --namespace=openstack \
             --wait \
             --timeout 120m \
-            -f ${{ github.workspace }}/helm-configs/horizon/horizon-helm-overrides.yaml \
-            --post-renderer ${{ github.workspace }}/kustomize/kustomize.sh \
+            -f ${{ github.workspace }}/base-helm-configs/horizon/horizon-helm-overrides.yaml \
+            --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
             --post-renderer-args horizon/${{ matrix.overlays }} > /tmp/rendered.yaml
       - name: Return helm Build
         uses: actions/upload-artifact@v2

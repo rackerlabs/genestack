@@ -3,8 +3,8 @@ name: Helm GitHub Actions for nova
 on:
   pull_request:
     paths:
-      - helm-configs/nova/**
-      - kustomize/nova/**
+      - base-helm-configs/nova/**
+      - base-kustomize/nova/**
       - .github/workflows/helm-nova.yaml
 jobs:
   helm:
@@ -45,8 +45,8 @@ jobs:
             --namespace=openstack \
             --wait \
             --timeout 120m \
-            -f ${{ github.workspace }}/helm-configs/nova/nova-helm-overrides.yaml \
-            --post-renderer ${{ github.workspace }}/kustomize/kustomize.sh \
+            -f ${{ github.workspace }}/base-helm-configs/nova/nova-helm-overrides.yaml \
+            --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
             --post-renderer-args nova/${{ matrix.overlays }} > /tmp/rendered.yaml
       - name: Return helm Build
         uses: actions/upload-artifact@v2

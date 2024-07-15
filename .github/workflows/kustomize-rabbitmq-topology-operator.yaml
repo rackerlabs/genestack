@@ -3,7 +3,7 @@ name: Kustomize GitHub Actions for rabbitmq-topology-operator
 on:
   pull_request:
     paths:
-      - kustomize/rabbitmq-topology-operator/**
+      - base-kustomize/rabbitmq-topology-operator/**
       - .github/workflows/kustomize-rabbitmq-topology-operator.yaml
 jobs:
   kustomize:
@@ -20,7 +20,7 @@ jobs:
           fi
       - name: Run Kustomize Build
         run: |
-          kustomize build kustomize/rabbitmq-topology-operator > /tmp/rendered.yaml
+          kustomize build base-kustomize/rabbitmq-topology-operator > /tmp/rendered.yaml
       - name: Return Kustomize Build
         uses: actions/upload-artifact@v2
         with:
