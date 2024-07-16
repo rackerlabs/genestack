@@ -53,15 +53,13 @@ openstack floating ip set
 #### Display floating ip details
 
 ``` shell
-openstack floating ip show <floating-ip>
+openstack floating ip show $VIP
 ```
 
 #### Unset floating IP Properties
 
 ``` shell
-openstack floating ip unset
-    --port
-    <floating-ip>
+openstack floating ip unset --port $VIP
 ```
 
 #### Associate floating IP addresses
@@ -71,7 +69,7 @@ You can assign a floating IP address to a project and to an instance.
 Associate an IP address with an instance in the project, as follows:
 
 ``` shell
-openstack server add floating ip INSTANCE_NAME_OR_ID FLOATING_IP_ADDRESS
+openstack server add floating ip $INSTANCE_UUID $VIP
 ```
 
 #### Disassociate floating IP addresses
@@ -79,36 +77,37 @@ openstack server add floating ip INSTANCE_NAME_OR_ID FLOATING_IP_ADDRESS
 To disassociate a floating IP address from an instance:
 
 ``` shell
-openstack server remove floating ip INSTANCE_NAME_OR_ID FLOATING_IP_ADDRESS
+openstack server remove floating ip $INSTANCE_UUID $VIP
 ```
+
 To remove the floating IP address from a project:
 
 ``` shell
-openstack floating ip delete FLOATING_IP_ADDRESS
+openstack floating ip delete $VIP
 ```
 
 #### Floating Ip Example
 
 Below is a quick example of how we can assign floating ips.
 
-You will need to get your cloud name from your clouds.yaml. More information on this can be found [here](build-test-envs.md). Underneath "clouds:" you will find your cloud name.
+You will need to get your cloud name from your `clouds.yaml`. More information on this can be found [here](build-test-envs.md). Underneath "clouds:" you will find your cloud name.
 
 First create a floating ip either from PUBLICNET or the public ip pool.
 
 ``` shell
-openstack --os-cloud={cloud_name} floating ip create PUBLICNET
+openstack --os-cloud $CLOUD floating ip create PUBLICNET
 ```
 
 Second get the cloud server UUID.
 
 ``` shell
-openstack --os-cloud={cloud_name} server list
+openstack --os-cloud $CLOUD server list
 ```
 
 Third add the floating ip to the server
 
 ``` shell
-openstack --os-cloud={cloud_name} server add floating ip {cloud_server_uuid} {floating_ip}
+openstack --os-cloud $CLOUD server add floating ip $UUID $VIP
 ```
 
 #### Shared floating IP and virtual IP
@@ -140,21 +139,37 @@ With that caveat, you can set up a shared floating IP like this:
 2. Create a subnet for the network
 
     ``` shell
-    openstack subnet create --network tester-network --subnet-range 192.168.0.0/24 tester-subnet
+    openstack subnet create --network tester-network \
+                            --subnet-range $CIDR \
+                            tester-subnet
     ```
 
 3. Create servers on the network
 
+    Create `tester1` server.
+
     ``` shell
-    openstack server create tester1 --flavor m1.tiny --key-name keypair --network tester-network --image $IMAGE_UUID
-        openstack server create tester2 --flavor m1.tiny --key-name keypair --network tester-network --image $IMAGE_UUID
+    openstack server create tester1 --flavor m1.tiny \
+                                    --key-name keypair \
+                                    --network tester-network \
+                                    --image $IMAGE_UUID
+    ```
+
+    Create `tester2` server.
+
+    ``` shell
+    openstack server create tester2 --flavor m1.tiny \
+                                    --key-name keypair \
+                                    --network tester-network \
+                                    --image $IMAGE_UUID
     ```
 
 4. Create a port with a fixed IP for the VIP.
 
     ``` shell
     openstack port create --fixed-ip subnet=tester-subnet \
-    --network tester-network --no-security-group tester-vip-port
+                          --network tester-network \
+                          --no-security-group tester-vip-port
     ```
 
    You will probably want to note the IP on the port here as your VIP.
@@ -164,7 +179,7 @@ With that caveat, you can set up a shared floating IP like this:
     You will typically need a router with an external gateway to use any
     public IP, depending on your configuration.
 
-    ```
+    ``` shell
     openstack router create tester-router
     ```
 
@@ -174,7 +189,7 @@ With that caveat, you can set up a shared floating IP like this:
     PUBLICNET. You can use the name or ID that provides external networks
     for your own installation.
 
-    ```
+    ``` shell
     openstack router set --external-gateway PUBLICNET tester-router
     ```
 
@@ -209,10 +224,13 @@ With that caveat, you can set up a shared floating IP like this:
    You use the private VIP because the DNAT occurs before it reaches the
    instances.
 
-   ```
+   ``` shell
    openstack port list server tester1 # retrieve port UUID
-   openstack port list server tester2 # retrieve port UUID
    openstack port set --allowed-address ip-address=<VIP> <port1UUID>
+   ```
+
+   ``` shell
+   openstack port list server tester2 # retrieve port UUID
    openstack port set --allowed-address ip-address=<VIP> <port2UUID>
    ```
 
@@ -229,16 +247,17 @@ steps allow you to test it.
 
     ``` shell
     openstack server create tester-bastion --flavor m1.tiny \
-    --key-name keypair --network tester-network --image $IMAGE_UUID
+                                           --key-name keypair \
+                                           --network tester-network \
+                                           --image $IMAGE_UUID
     ```
 
 2. Add floating IP to bastion server.
 
     You can specify the UUID or IP of the floating IP.
 
-     ```
-     openstack server add floating ip tester-bastion \
-     8a991c65-24c6-4125-a9c8-38d15e851c78
+     ``` shell
+     openstack server add floating ip tester-bastion $UUID
      ```
 
 3. Alter security group rules to allow SSH and ICMP:
@@ -247,20 +266,25 @@ steps allow you to test it.
     instance unless you've altered your default security group or taken other
     steps because the default security group will prevent all ingress traffic.
 
-    We also add ICMP here for testing.
-
+    ``` shell
+    openstack security group rule create --proto tcp \
+                                         --dst-port 22 \
+                                         --remote-ip 0.0.0.0/0 default
     ```
-    openstack security group rule create --proto tcp --dst-port 22 \
-    --remote-ip 0.0.0.0/0 default
-    openstack security group rule create --proto icmp --dst-port -1 default
+
+    Now enable ICMP.
+
+    ``` shell
+    openstack security group rule create --proto icmp \
+                                         --dst-port -1 default
     ```
 
 4. SSH to the first test instance from the bastion.
 
 5. Configure the VIP on the interface as a test on the first test instance:
 
-    ```
-    sudo ip address add <VIP>/24 dev enp3s0
+    ``` shell
+    sudo ip address add $VIP/24 dev enp3s0
     ```
 
     Note that you add the internal VIP here, not the floating public IP. Use
@@ -273,7 +297,7 @@ steps allow you to test it.
     bastion.
 
     ``` shell
-    ping <floating IP>
+    ping $VIP
     ```
 
     Since the ports for the two servers look almost identical, if it works on
@@ -281,7 +305,7 @@ steps allow you to test it.
     instance and try it on the second:
 
     ``` shell
-    sudo ip address del <VIP>/24 dev enp3s0
+    sudo ip address del $VIP/24 dev enp3s0
     ```
 
     You may need to ping the internal IP address from your bastion server or
@@ -289,7 +313,7 @@ steps allow you to test it.
     the instance with the VIP for that:
 
     ``` shell
-    sudo arping -i enp3s0 -U -S <VIP> <VIP> # VIP twice
+    sudo arping -i enp3s0 -U -S $VIP $VIP  # VIP twice
     ```
 
     and ^C/break out of it once ping starts working with the address.
