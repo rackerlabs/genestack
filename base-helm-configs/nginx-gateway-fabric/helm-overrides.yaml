@@ -38,7 +38,7 @@ nginxGateway:
   image:
     ## The NGINX Gateway Fabric image to use
     repository: ghcr.io/nginxinc/nginx-gateway-fabric
-    tag: 1.1.0
+    tag: 1.3.0
     pullPolicy: IfNotPresent
 
   securityContext:
@@ -55,7 +55,7 @@ nginx:
   ## The NGINX image to use
   image:
     repository: ghcr.io/nginxinc/nginx-gateway-fabric/nginx
-    tag: 1.1.0
+    tag: 1.3.0
     pullPolicy: IfNotPresent
 
   ## The lifecycle of the nginx container.
@@ -85,7 +85,7 @@ service:
   ## The type of service to create for the NGINX Gateway Fabric.
   type: LoadBalancer
   ## The externalTrafficPolicy of the service. The value Local preserves the client source IP.
-  externalTrafficPolicy: Local
+  externalTrafficPolicy: Cluster
   ## The annotations of the NGINX Gateway Fabric service.
   annotations:
     "metallb.universe.tf/address-pool": "openstack-external"

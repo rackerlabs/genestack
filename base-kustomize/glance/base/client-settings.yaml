@@ -1,0 +1,13 @@
+---
+apiVersion: gateway.nginx.org/v1alpha1
+kind: ClientSettingsPolicy
+metadata:
+  name: gateway-client-settings
+  namespace: nginx-gateway
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: flex-gateway
+  body:
+    maxSize: "120g" # sizes without a unit are bytes.

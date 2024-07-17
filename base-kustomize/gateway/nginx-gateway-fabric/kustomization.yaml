@@ -1,4 +1,5 @@
 resources:
   - internal-gateway-api.yaml # namespace: nginx-gateway (common gateway)
+  - internal-gateway-issuer.yaml #namespace: nginx-gateway
   - alertmanager-routes.yaml  # namespace: prometheus
   - prometheus-routes.yaml    # namespace: prometheus

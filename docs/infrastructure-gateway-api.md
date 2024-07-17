@@ -24,83 +24,120 @@ From the gateway api sig:
 
     Most Gateway API implementations are API Gateways to some extent, but not all API Gateways are Gateway API implementations.
 
+### Controller Selection
+
 There are various implementations of the Gateway API. In this document, we will cover two of them:
-- [NGINX Gateway Fabric](https://github.com/nginxinc/nginx-gateway-fabric)
-- [Envoyproxy](https://gateway.envoyproxy.io/)
 
-### Controller: NGINX Gateway Fabric
+* [NGINX Gateway Fabric](https://github.com/nginxinc/nginx-gateway-fabric)
+* [Envoyproxy](https://gateway.envoyproxy.io/)
 
+=== "NGINX Gateway Fabric"
 
-[NGINX Gateway Fabric](https://github.com/nginxinc/nginx-gateway-fabric) is an open-source project that provides an implementation of the Gateway API using nginx as the data plane.
+    [NGINX Gateway Fabric](https://github.com/nginxinc/nginx-gateway-fabric) is an open-source project that provides an implementation of the Gateway API using nginx as the data plane.
 
-Chart Install: https://github.com/nginxinc/nginx-gateway-fabric/blob/main/deploy/helm-chart/values.yaml
+    Chart Install: https://github.com/nginxinc/nginx-gateway-fabric/blob/main/deploy/helm-chart/values.yaml
 
-Create the Namespace
-```shell
-kubectl create ns nginx-gateway
-```
-
-First Install the Gateway API Resource from Kubernetes
-```shell
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.0.0/standard-install.yaml
-```
-
-Next, Install the NGINX Gateway Fabric controller
-```shell
-cd /opt/genestack/submodules/nginx-gateway-fabric/deploy/helm-chart
-
-helm upgrade --install nginx-gateway-fabric . --namespace=nginx-gateway -f /opt/genestack/base-helm-configs/nginx-gateway-fabric/helm-overrides.yaml
-```
-
-Helm install does not automatically upgrade the crds for this resource. To upgrade the crds you will have to manually install them. Follow the process from :  [Upgrade CRDs](https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#upgrade-nginx-gateway-fabric-crds)
-
-### Controller: Envoyproxy
-
-[Envoyproxy](https://gateway.envoyproxy.io/) is an open-source project that provides an implementation of the Gateway API using Envoyproxy as the data plane.
-
-#### Installation
-
-- Update the `/opt/genestack/base-kustomize/envoyproxy-gateway/base/values.yaml` file according to your requirements.
-
-- Apply the configuration using the following command:
-
-```shell
-kubectl kustomize --enable-helm /opt/genestack/base-kustomize/envoyproxy-gateway/base | kubectl apply -f -
-```
-
-After installation, you need to create Gateway and HTTPRoute resources based on your requirements.
-
-### Example to expose an application using Gateway API (Envoyproxy)
-
-- In this example, we will demonstrate how to expose an application through a gateway.
-
-- Apply the Kustomize configuration which will create `Gateway` resource:
-
-```shell
-kubectl kustomize /opt/genestack/base-kustomize/gateway/envoyproxy | kubectl apply -f -
-```
-
-- Once gateway is created, user can expose an application by creating `HTTPRoute` resource.
-  - Sample `HTTPRoute` resource:
-
-  ```shell
-  apiVersion: gateway.networking.k8s.io/v1
-  kind: HTTPRoute
-  metadata:
-    name: test_application
-    namespace: test_app
-  spec:
-    parentRefs:
-    - name: flex-gateway
-      sectionName: http
-      namespace: envoy-gateway-system
-    hostnames:
-    - "test_application.sjc.ohthree.com"
-    rules:
-      - backendRefs:
-        - name: test_application
-          port: 8774
+    Create the Namespace
+    ```shell
+    kubectl create ns nginx-gateway
     ```
+
+    First Install the Gateway API Resource from Kubernetes
+    ```shell
+    kubectl kustomize "https://github.com/nginxinc/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v1.3.0" | kubectl apply -f -
+    ```
+
+    Next, Install the NGINX Gateway Fabric controller
+    ```shell
+    cd /opt/genestack/submodules/nginx-gateway-fabric/deploy/helm-chart
+
+    helm upgrade --install nginx-gateway-fabric . --namespace=nginx-gateway -f /opt/genestack/base-helm-configs/nginx-gateway-fabric/helm-overrides.yaml
+    ```
+
+    Helm install does not automatically upgrade the crds for this resource. To upgrade the crds you will have to manually install them. Follow the process from :  [Upgrade CRDs](https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#upgrade-nginx-gateway-fabric-crds)
+
+    !!! note
+        Following these instructions will deploy a generic gateway using a hostname of *.cluster.local.  To add specific hostnames/listeners to the gateway, you can either create a patch or update the gateway yaml to include your specific hostnames and then apply the patch/update.  Each listener must have a unique name.  Example patch file:
+        ```json
+        [
+            {
+                "op": "add",
+                "path": "/spec/listeners/-",
+                "value": {
+                    "name": "keystone-https",
+                    "port": 443,
+                    "protocol": "HTTPS",
+                    "hostname": "keystone.example.com",
+                    "allowedRoutes": {
+                        "namespaces": {
+                            "from": "All"
+                        }
+                    },
+                    "tls": {
+                        "certificateRefs": [
+                            {
+                                "group": "",
+                                "kind": "Secret",
+                                "name": "keystone-gw-tls-secret"
+                            }
+                        ],
+                        "mode": "Terminate"
+                    }
+                }
+            }
+        ]
+        ```
+        With the patch file created, you can apply the patch as follows:
+
+        `kubectl patch -n nginx-gateway gateway flex-gateway --type='json' --patch-file keystone-patch.json`
+
+=== "Envoyproxy"
+
+    [Envoyproxy](https://gateway.envoyproxy.io/) is an open-source project that provides an implementation of the Gateway API using Envoyproxy as the data plane.
+
+    #### Installation
+
+    - Update the `/opt/genestack/base-kustomize/envoyproxy-gateway/base/values.yaml` file according to your requirements.
+
+    - Apply the configuration using the following command:
+
+    ```shell
+    kubectl kustomize --enable-helm /opt/genestack/base-kustomize/envoyproxy-gateway/base | kubectl apply -f -
+    ```
+
+    After installation, you need to create Gateway and HTTPRoute resources based on your requirements.
+
+    ### Example to expose an application using Gateway API (Envoyproxy)
+
+    - In this example, we will demonstrate how to expose an application through a gateway.
+
+    - Apply the Kustomize configuration which will create `Gateway` resource:
+
+    ```shell
+    kubectl kustomize /opt/genestack/base-kustomize/gateway/envoyproxy | kubectl apply -f -
+    ```
+
+    - Once gateway is created, user can expose an application by creating `HTTPRoute` resource.
+      - Sample `HTTPRoute` resource:
+
+      ```shell
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: HTTPRoute
+      metadata:
+        name: test_application
+        namespace: test_app
+      spec:
+        parentRefs:
+        - name: flex-gateway
+          sectionName: http
+          namespace: envoy-gateway-system
+        hostnames:
+        - "test_application.sjc.ohthree.com"
+        rules:
+          - backendRefs:
+            - name: test_application
+              port: 8774
+        ```
 
 ### Example Implementation with Prometheus UI (NGINX Gateway Fabric)
 
