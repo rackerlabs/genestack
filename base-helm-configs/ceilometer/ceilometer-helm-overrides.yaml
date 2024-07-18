@@ -2178,5 +2178,5 @@ manifests:
   secret_rabbitmq: true
   secret_registry: true
   service_api: true
-  service_ingress_api: true
+  service_ingress_api: false
 ...

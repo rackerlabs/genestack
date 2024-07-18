@@ -459,10 +459,10 @@ manifests:
   job_ks_user: true
   network_policy: false
   secret_db: true
-  secret_ingress_tls: true
+  secret_ingress_tls: false
   secret_registry: true
   pdb: true
-  ingress: true
+  ingress: false
   secret_keystone: true
-  service_ingress: true
+  service_ingress: false
   service: true

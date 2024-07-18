@@ -1224,8 +1224,8 @@ manifests:
   deployment_cfn: true
   deployment_cloudwatch: false
   deployment_engine: true
-  ingress_api: true
-  ingress_cfn: true
+  ingress_api: false
+  ingress_cfn: false
   ingress_cloudwatch: false
   job_bootstrap: true
   job_db_init: false
@@ -1244,14 +1244,14 @@ manifests:
   pod_rally_test: false
   network_policy: false
   secret_db: true
-  secret_ingress_tls: true
+  secret_ingress_tls: false
   secret_keystone: true
   secret_rabbitmq: true
   secret_registry: true
   service_api: true
   service_cfn: true
   service_cloudwatch: false
-  service_ingress_api: true
-  service_ingress_cfn: true
+  service_ingress_api: false
+  service_ingress_cfn: false
   service_ingress_cloudwatch: false
   statefulset_engine: false

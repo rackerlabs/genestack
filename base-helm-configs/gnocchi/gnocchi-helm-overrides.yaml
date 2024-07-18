@@ -653,7 +653,7 @@ manifests:
   daemonset_metricd: true
   daemonset_statsd: true
   deployment_api: true
-  ingress_api: true
+  ingress_api: false
   job_bootstrap: true
   job_clean: true
   job_db_drop: false
@@ -670,8 +670,8 @@ manifests:
   pod_gnocchi_test: false
   secret_db: true
   secret_keystone: true
-  secret_ingress_tls: true
+  secret_ingress_tls: false
   service_api: true
-  service_ingress_api: true
+  service_ingress_api: false
   service_statsd: true
 ...

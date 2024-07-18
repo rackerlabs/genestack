@@ -51,16 +51,3 @@ spec:
     release_group: skyline
     application: skyline
     component: api
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: skyline
-spec:
-  ports:
-    - name: http
-      port: 80
-    - name: https
-      port: 443
-  selector:
-    app: ingress-api

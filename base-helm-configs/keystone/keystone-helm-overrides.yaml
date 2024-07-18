@@ -1092,7 +1092,7 @@ manifests:
   cron_credential_rotate: true
   cron_fernet_rotate: true
   deployment_api: true
-  ingress_api: true
+  ingress_api: false
   job_bootstrap: true
   job_credential_cleanup: false
   job_credential_setup: true
@@ -1109,9 +1109,9 @@ manifests:
   secret_credential_keys: true
   secret_db: true
   secret_fernet_keys: true
-  secret_ingress_tls: true
+  secret_ingress_tls: false
   secret_keystone: true
   secret_rabbitmq: true
   secret_registry: true
-  service_ingress_api: true
+  service_ingress_api: false
   service_api: true

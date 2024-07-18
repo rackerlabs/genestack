@@ -722,7 +722,7 @@ manifests:
   deployment_api: true
   deployment_worker: true
   deployment_housekeeping: true
-  ingress_api: true
+  ingress_api: false
   job_bootstrap: true
   job_db_init: false
   job_db_sync: true
@@ -737,9 +737,9 @@ manifests:
   network_policy: false
   secret_credential_keys: true
   secret_db: true
-  secret_ingress_tls: true
+  secret_ingress_tls: false
   secret_keystone: true
   secret_rabbitmq: true
   secret_registry: true
-  service_ingress_api: true
+  service_ingress_api: false
   service_api: true
