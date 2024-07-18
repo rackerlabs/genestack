@@ -3,7 +3,6 @@ resources:
   - services.yaml
   - configmap-bin.yaml
   - deployment-apiserver.yaml
-  - ingress-apiserver.yaml
   - hpa-skyline-apiserver.yaml
   - pdb-apiserver.yaml
   - skyline-routes.yaml

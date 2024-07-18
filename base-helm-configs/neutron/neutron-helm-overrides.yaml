@@ -2517,7 +2517,7 @@ manifests:
   daemonset_ovn_metadata_agent: true
   deployment_ironic_agent: false
   deployment_server: true
-  ingress_server: true
+  ingress_server: false
   job_bootstrap: true
   job_db_init: false
   job_db_sync: true
@@ -2531,9 +2531,9 @@ manifests:
   pod_rally_test: false
   network_policy: false
   secret_db: false
-  secret_ingress_tls: true
+  secret_ingress_tls: false
   secret_keystone: true
   secret_rabbitmq: false
   secret_registry: true
-  service_ingress_server: true
+  service_ingress_server: false
   service_server: true

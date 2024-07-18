@@ -101,15 +101,15 @@ rbd_provisioner_enabled: false
 ingress_nginx_enabled: false
 # ingress_nginx_host_network: false
 ingress_publish_status_address: ""
-ingress_nginx_nodeselector:
-  kubernetes.io/os: "linux"
-  node-role.kubernetes.io/control-plane: ""
-ingress_nginx_tolerations:
-  - key: "openstack-compute-node"
-    operator: "Equal"
-    value: "enabled"
-    effect: "NoSchedule"
-ingress_nginx_namespace: "ingress-nginx"
+#ingress_nginx_nodeselector:
+#  kubernetes.io/os: "linux"
+#  node-role.kubernetes.io/control-plane: ""
+#ingress_nginx_tolerations:
+#  - key: "openstack-compute-node"
+#    operator: "Equal"
+#    value: "enabled"
+#    effect: "NoSchedule"
+#ingress_nginx_namespace: "ingress-nginx"
 # ingress_nginx_insecure_port: 80
 # ingress_nginx_secure_port: 443
 # ingress_nginx_configmap:
@@ -122,9 +122,9 @@ ingress_nginx_namespace: "ingress-nginx"
 # ingress_nginx_extra_args:
 #   - --default-ssl-certificate=default/foo-tls
 # ingress_nginx_termination_grace_period_seconds: 300
-ingress_nginx_class: nginx
-ingress_nginx_without_class: false
-ingress_nginx_default: true
+#ingress_nginx_class: nginx
+#ingress_nginx_without_class: false
+#ingress_nginx_default: false
 
 # ALB ingress controller deployment
 ingress_alb_enabled: false

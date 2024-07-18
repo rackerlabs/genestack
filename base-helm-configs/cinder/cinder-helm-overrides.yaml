@@ -1438,7 +1438,7 @@ manifests:
   deployment_backup: false
   deployment_scheduler: true
   deployment_volume: false
-  ingress_api: true
+  ingress_api: false
   job_backup_storage_init: true
   job_bootstrap: false
   job_clean: true
@@ -1457,9 +1457,9 @@ manifests:
   pvc_backup: true
   network_policy: false
   secret_db: false
-  secret_ingress_tls: true
+  secret_ingress_tls: false
   secret_keystone: true
   secret_rabbitmq: false
   secret_registry: true
   service_api: true
-  service_ingress_api: true
+  service_ingress_api: false

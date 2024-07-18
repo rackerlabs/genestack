@@ -161,7 +161,7 @@ nav:
           - Infrastructure:
               - infrastructure-overview.md
               - Namespace: infrastructure-namespace.md
-              - Ingress: infrastructure-ingress.md
+              - Gateway API: infrastructure-gateway-api.md
               - LetsEncrypt: infrastructure-letsencrypt.md
               - MariaDB:
                   - infrastructure-mariadb.md
@@ -171,7 +171,6 @@ nav:
               - Libvirt: infrastructure-libvirt.md
               - OVN: infrastructure-ovn-setup.md
               - MetalLB: infrastructure-metallb.md
-              - Gateway API: infrastructure-gateway-api.md
               - Loki: infrastructure-loki.md
           - OpenStack:
               - openstack-overview.md
@@ -216,7 +215,6 @@ nav:
           - OVN traffic flow introduction: ovn-traffic-flow-intro.md
           - OVN Database Backup: infrastructure-ovn-db-backup.md
           - MariaDB Operations: infrastructure-mariadb-ops.md
-          - Building Local Images: build-local-images.md
       - Third Party Tools:
           - OSIE: extra-osie.md
       - OpenStack:

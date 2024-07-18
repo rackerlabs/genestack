@@ -21,7 +21,7 @@ server:
   ingress:
     annotations:
       nginx.ingress.kubernetes.io/backend-protocol: HTTPS
-    enabled: true
+    enabled: false
     ingressClassName: "nginx-cluster"
     hosts: ["argocd.dfw-ospcv2-staging.ohthree.com"]
     tls:

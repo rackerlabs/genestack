@@ -4,7 +4,7 @@ tenant_id: 122333 # TODO: update this value to use your Azure Tenant ID
 ####
 
 ingress:
-  enabled: true
+  enabled: false
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
   path: /

@@ -2532,10 +2532,10 @@ manifests:
   deployment_novncproxy: true
   deployment_spiceproxy: false
   deployment_scheduler: true
-  ingress_metadata: true
-  ingress_novncproxy: true
+  ingress_metadata: false
+  ingress_novncproxy: false
   ingress_spiceproxy: false
-  ingress_osapi: true
+  ingress_osapi: false
   job_bootstrap: true
   job_storage_init: false
   job_db_init: false
@@ -2554,14 +2554,14 @@ manifests:
   secret_db_api: true
   secret_db_cell0: true
   secret_db: true
-  secret_ingress_tls: true
+  secret_ingress_tls: false
   secret_keystone: true
   secret_rabbitmq: true
   secret_registry: true
-  service_ingress_metadata: true
-  service_ingress_novncproxy: true
+  service_ingress_metadata: false
+  service_ingress_novncproxy: false
   service_ingress_spiceproxy: false
-  service_ingress_osapi: true
+  service_ingress_osapi: false
   service_metadata: true
   service_novncproxy: true
   service_spiceproxy: false

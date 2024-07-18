@@ -728,7 +728,7 @@ manifests:
   deployment_producer: true
   deployment_mdns: true
   deployment_sink: false
-  ingress_api: true
+  ingress_api: false
   job_bootstrap: true
   job_db_init: true
   job_db_sync: true
@@ -743,11 +743,11 @@ manifests:
   pdb_mdns: true
   pdb_sink: false
   secret_db: true
-  secret_ingress_tls: true
+  secret_ingress_tls: false
   secret_keystone: true
   secret_rabbitmq: true
   secret_registry: true
   service_api: true
   service_mdns: true
-  service_ingress_api: true
+  service_ingress_api: false
 ...

@@ -12,7 +12,6 @@ jobs:
         overlays:
           - base
           - aio
-          - fqdn
     name: Kustomize
     runs-on: ubuntu-latest
     steps:

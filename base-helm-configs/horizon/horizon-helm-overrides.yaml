@@ -7292,7 +7292,7 @@ manifests:
   configmap_etc: true
   configmap_logo: true
   deployment: true
-  ingress_api: true
+  ingress_api: false
   job_db_init: false
   job_db_sync: true
   job_db_drop: false
@@ -7301,8 +7301,8 @@ manifests:
   pod_helm_test: false
   network_policy: false
   secret_db: true
-  secret_ingress_tls: true
+  secret_ingress_tls: false
   secret_keystone: true
   secret_registry: true
-  service_ingress: true
+  service_ingress: false
   service: true
