@@ -67,14 +67,7 @@ clouds:
 
 ### Simple example for public access with Multi-factor Authentication
 
-!!! note
-
-    Multi-factor authentication will prompt you for a token for every CLI interaction, unless you have caching enabled, where tokens can be cached for a set amount of time.
-
 ``` yaml
-cache:
-  auth: true
-  expiration_time: 3600
 clouds:
   regionone-mfa:
     auth_type: "v3multifactor"
@@ -92,4 +85,36 @@ clouds:
       - RegionOne
     interface: public
     identity_api_version: "3"
+  regionone-token:
+    auth_type: "v3token"
+    auth:
+      auth_url: https://$YOUR_KEYSTONE_HOST/v3
+      project_name: $PROJECT_NAME
+      project_domain_name: $PROJECT_DOMAIN_NAME
+    region_name:
+      - RegionOne
+    interface: public
+    identity_api_version: "3"
+```
+
+When working with MFA enabled accounts we generally recommend a two step process. While a single multi-factor enabled cloud account is more than enough to run commands within the cloud, the client will require a one time use token every time a command is executed. For this reason we recommend two cloud stanzas which provide a much better over all user experience with working with MFA.
+
+#### Step one - MFA
+
+``` shell
+export OS_TOKEN=$(openstack --os-cloud regionone-mfa token issue -c id -f value)
+```
+
+!!! Note
+
+    This command will prompt you for your TOTP key before returning a valid token.
+
+This command will return the token ID and store the value within an environment variable which will be used within Step Two.
+
+#### Step Two - Token Auth
+
+Run project specific commands within the defined token
+
+``` shell
+openstack --os-cloud regionone-token ...
 ```
