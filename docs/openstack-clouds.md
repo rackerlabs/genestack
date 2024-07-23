@@ -8,6 +8,46 @@ There are a lot of ways you can go to connect to your cluster. This example will
 mkdir -p ~/.config/openstack
 ```
 
+## Token Caching
+
+In the following examples authentication caching is able by default in config, however, to make this work on most modern operating systems you will need to install the `keyring` package. Installing the `keyring` is simple and can be done across a number of operating systems with the default package manager.
+
+#### MacOS
+
+``` shell
+brew install keyring
+```
+
+#### Ubuntu or Debian
+
+``` shell
+apt install python3-keyring
+```
+
+#### Enterprise Linux
+
+``` shell
+dnf install python3-keyring
+```
+
+#### Source
+
+!!! tip
+
+    Users may want to use a Virtual Environment so that they do not have any risk of hurting their default Python environment. For more information on seting up a venv please visit the python [documentation](https://packaging.python.org/en/latest/tutorials/installing-packages/#creating-and-using-virtual-environments) on working with virtual environments.
+
+``` shell
+python -m pip install keyring
+```
+
+##### Microsoft Windows Example
+
+Ensure that the C:\Python27\Scripts directory is defined in the PATH environment variable, and use the easy_install command from the setuptools package:
+
+``` shell
+C:> py -m pip install keyring
+```
+
 ## Generate the cloud config file from within the environment
 
 ``` shell
