@@ -248,4 +248,5 @@ nav:
       - Openstack Swift: storage-swift-object-store.md
       - Openstack Snapshot: openstack-snapshot.md
       - Openstack Volumes: openstack-volumes.md
+      - Openstack Load Balancers: openstack-load-balancer.md
   - Blog: https://blog.rackspacecloud.com/
