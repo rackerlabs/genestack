@@ -1,0 +1,55 @@
+name: Helm GitHub Actions for Magnum
+
+on:
+  pull_request:
+    paths:
+      - base-helm-configs/magnum/**
+      - base-kustomize/magnum/**
+      - .github/workflows/helm-magnum.yaml
+jobs:
+  helm:
+    strategy:
+      matrix:
+        overlays:
+          - base
+          - aio
+    name: Helm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: azure/setup-helm@v3
+        with:
+          version: latest
+          token: "${{ secrets.GITHUB_TOKEN }}"
+        id: helm
+      - name: Kubectl Install
+        working-directory: /usr/local/bin/
+        run: |
+            if [ ! -f /usr/local/bin/kubectl ]; then
+              curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+              chmod +x ./kubectl
+            fi
+      - name: Pull OSH submodules
+        run: |
+            git submodule update --init submodules/openstack-helm
+            git submodule update --init submodules/openstack-helm-infra
+      - name: Make OSH submodule
+        run: |
+            cd submodules/openstack-helm
+            make magnum
+      - name: Run Helm Template
+        run: |
+          cd submodules/openstack-helm
+          ${{ steps.helm.outputs.helm-path }} template magnum ./magnum \
+            --namespace=openstack \
+            --wait \
+            --timeout 120m \
+            -f ${{ github.workspace }}/base-helm-configs/magnum/magnum-helm-overrides.yaml \
+            --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
+            --post-renderer-args magnum/${{ matrix.overlays }} > /tmp/rendered.yaml
+      - name: Return helm Build
+        uses: actions/upload-artifact@v2
+        with:
+          name: helm-magnum-artifact-${{ matrix.overlays }}
+          path: /tmp/rendered.yaml

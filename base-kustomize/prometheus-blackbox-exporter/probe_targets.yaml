@@ -26,3 +26,5 @@ serviceMonitor:
       url: https://placement.api.sjc3.rackspacecloud.com
     - name: barbican-probe
       url: https://barbican.api.sjc3.rackspacecloud.com
+    - name: magnum-probe
+      url: https://magnum.api.sjc3.rackspacecloud.com
