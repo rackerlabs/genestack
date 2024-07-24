@@ -1,0 +1,5 @@
+resources:
+  - magnum-mariadb-database.yaml
+  - magnum-rabbitmq-queue.yaml
+  - all.yaml
+  - hpa-magnum-api.yaml
