@@ -1,5 +1,5 @@
 # radosgw, rbd, swift or pvc
-storage: pvc  # Use override to switch to pvc in dev env
+storage: pvc
 
 labels:
   api:
