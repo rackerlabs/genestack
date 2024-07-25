@@ -647,7 +647,7 @@ manifests:
   configmap_bin: true
   configmap_etc: true
   deployment_api: true
-  ingress_api: true
+  ingress_api: false
   job_bootstrap: true
   job_db_init: false
   job_db_sync: true
@@ -665,6 +665,6 @@ manifests:
   secret_rabbitmq: true
   secret_registry: true
   service_api: true
-  service_ingress_api: true
+  service_ingress_api: false
   statefulset_conductor: true
 ...
