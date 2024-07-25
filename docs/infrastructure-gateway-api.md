@@ -49,7 +49,7 @@ There are various implementations of the Gateway API. In this document, we will 
 
     Next, Install the NGINX Gateway Fabric controller
     ```shell
-    cd /opt/genestack/submodules/nginx-gateway-fabric/deploy/helm-chart
+    cd /opt/genestack/submodules/nginx-gateway-fabric/charts/nginx-gateway-fabric
 
     helm upgrade --install nginx-gateway-fabric . --namespace=nginx-gateway -f /opt/genestack/base-helm-configs/nginx-gateway-fabric/helm-overrides.yaml
     ```
