@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -e
-pushd $(dirname "${BASH_SOURCE[0]}") &>/dev/null
-    cat <&0 > ${1}/../base/all.yaml
-    kubectl kustomize --reorder='none' ${1}
+KUSTOMIZE_DIR=${1:-$GENESTACK_KUSTOMIZE_ARG}
+pushd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null
+    cat <&0 > "${KUSTOMIZE_DIR}"/../base/all.yaml
+    kubectl kustomize --reorder='none' "${KUSTOMIZE_DIR}"
 popd &>/dev/null
