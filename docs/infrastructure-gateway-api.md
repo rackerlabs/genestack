@@ -52,6 +52,8 @@ There are various implementations of the Gateway API. In this document, we will 
     cd /opt/genestack/submodules/nginx-gateway-fabric/charts/nginx-gateway-fabric
 
     helm upgrade --install nginx-gateway-fabric . --namespace=nginx-gateway -f /opt/genestack/base-helm-configs/nginx-gateway-fabric/helm-overrides.yaml
+
+    kubectl rollout restart deployment cert-manager -n cert-manager
     ```
 
     Helm install does not automatically upgrade the crds for this resource. To upgrade the crds you will have to manually install them. Follow the process from :  [Upgrade CRDs](https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#upgrade-nginx-gateway-fabric-crds)
