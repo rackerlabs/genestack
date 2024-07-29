@@ -61,6 +61,7 @@ declare -A metric_types=(
     ["upload_pairs_failure_count"]="counter"
     ["upload_pairs_failure_timestamp"]="counter"
     ["disk_files_gauge"]="gauge"
+    ["disk_used_percent_gauge"]="gauge"
     ["swift_objects_gauge"]="gauge"
 )
 
@@ -116,6 +117,9 @@ finalize_and_upload_metrics() {
     local FILE_COUNT
     FILE_COUNT=$(find "$BACKUP_DIR" -name \*.backup | wc -l)
     update_metric disk_files_gauge "$FILE_COUNT"
+    local DISK_PERCENT_USED
+    DISK_PERCENT_USED=$(df "$BACKUP_DIR" | perl -lane 'next unless $. == 2; print int($F[4])')
+    update_metric disk_used_percent_gauge "$DISK_PERCENT_USED"
     local OBJECT_COUNT
     if [[ "$SWIFT_TEMPAUTH_UPLOAD" == "true" ]]
     then
