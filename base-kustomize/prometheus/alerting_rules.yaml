@@ -46,3 +46,42 @@ additionalPrometheusRulesMap:
         annotations:
           summary: MySQL restarted (instance {{ $labels.instance }})
           description: "MySQL has just been restarted, less than one minute ago on {{ $labels.instance }}.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+  backup-alerts:
+    groups:
+    - name: OVN backup alerts
+      rules:
+      - alert: ovnBackupUploadWarning
+        expr: time() - upload_pairs_success_timestamp{job="ovn-backup"} > 21600 # 21600s = 6 hours
+        # This bases the `expr` on the run normal interval, and allows `for`
+        # to account for the amount of time to complete and upload before
+        # alerting.
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: Last OVN backup not uploaded within 1 hour of scheduled run
+          description: "Last OVN backup not uploaded within 1 hour of scheduled run"
+      - alert: ovnBackuUploadCritical
+        expr: time() - upload_pairs_success_timestamp{job="ovn-backup"} > 43200
+        for: 1h
+        labels:
+          severity: critical
+        annotations:
+          summary: Second successive of OVN backup not uploaded within 1 hour of scheduled run
+          description: "Second successive of OVN backup not within 1 hour of scheduled run"
+      - alert: ovnBackupDiskUsageWarning
+        expr: disk_used_percent_gauge{job="ovn-backup"} > 80
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: OVN backup volume >= 80% disk usage
+          description: "OVN backup volume >= 80% disk usage"
+      - alert: ovnBackupDiskUsageCritical
+        expr: disk_used_percent_gauge{job="ovn-backup"} > 90
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: OVN backup volume >= 90% disk usage
+          description: "OVN backup volume >= 90% disk usage"
