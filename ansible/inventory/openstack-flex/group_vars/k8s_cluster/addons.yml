@@ -165,7 +165,9 @@ cert_manager_dns_config:
     - "208.67.222.222"
     - "8.8.8.8"
 
-# cert_manager_controller_extra_args:
+cert_manager_controller_extra_args:
+  - "--feature-gates=ExperimentalGatewayAPISupport=true"
+#   - "--enable-gateway-api"  # Not available until cert manager v1.15
 #   - "--dns01-recursive-nameservers-only=true"
 #   - "--dns01-recursive-nameservers=1.1.1.1:53,8.8.8.8:53"
 
