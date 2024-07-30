@@ -73,7 +73,7 @@ additionalPrometheusRulesMap:
         annotations:
           summary: Last OVN backup not uploaded within 1 hour of scheduled run
           description: "Last OVN backup not uploaded within 1 hour of scheduled run"
-      - alert: ovnBackuUploadCritical
+      - alert: ovnBackupUploadCritical
         expr: time() - upload_pairs_success_timestamp{job="ovn-backup"} > 43200
         for: 1h
         labels:
