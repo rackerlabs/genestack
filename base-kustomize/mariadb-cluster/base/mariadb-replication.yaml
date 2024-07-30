@@ -102,4 +102,4 @@ spec:
     table_definition_cache=1024
 
   metrics:
-    enabled: true
+    enabled: false
