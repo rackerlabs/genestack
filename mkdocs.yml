@@ -161,8 +161,8 @@ nav:
           - Infrastructure:
               - infrastructure-overview.md
               - Namespace: infrastructure-namespace.md
+              - MetalLB: infrastructure-metallb.md
               - Gateway API: infrastructure-gateway-api.md
-              - LetsEncrypt: infrastructure-letsencrypt.md
               - MariaDB:
                   - infrastructure-mariadb.md
               - RabbitMQ:
@@ -170,7 +170,6 @@ nav:
               - Memcached: infrastructure-memcached.md
               - Libvirt: infrastructure-libvirt.md
               - OVN: infrastructure-ovn-setup.md
-              - MetalLB: infrastructure-metallb.md
               - Loki: infrastructure-loki.md
           - OpenStack:
               - openstack-overview.md
