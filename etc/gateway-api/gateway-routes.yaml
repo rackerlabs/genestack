@@ -15,14 +15,14 @@ spec:
   hostnames:
   - "barbican.your.domain.tld"
   rules:
-    - backendRefs:
-      - name: barbican-api
-        port: 9311
     - filters:
       - type: RequestRedirect
         requestRedirect:
           scheme: https
           statusCode: 301
+    - backendRefs:
+      - name: barbican-api
+        port: 9311
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -44,14 +44,14 @@ spec:
   hostnames:
   - "cinder.your.domain.tld"
   rules:
-    - backendRefs:
-      - name: cinder-api
-        port: 8776
     - filters:
       - type: RequestRedirect
         requestRedirect:
           scheme: https
           statusCode: 301
+    - backendRefs:
+      - name: cinder-api
+        port: 8776
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -73,14 +73,14 @@ spec:
   hostnames:
   - "glance.your.domain.tld"
   rules:
-    - backendRefs:
-      - name: glance-api
-        port: 9292
     - filters:
       - type: RequestRedirect
         requestRedirect:
           scheme: https
           statusCode: 301
+    - backendRefs:
+      - name: glance-api
+        port: 9292
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -102,14 +102,14 @@ spec:
   hostnames:
   - "cloudformation.your.domain.tld"
   rules:
-    - backendRefs:
-      - name: heat-cfn
-        port: 8000
     - filters:
       - type: RequestRedirect
         requestRedirect:
           scheme: https
           statusCode: 301
+    - backendRefs:
+      - name: heat-cfn
+        port: 8000
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -131,14 +131,14 @@ spec:
   hostnames:
   - "heat.your.domain.tld"
   rules:
-    - backendRefs:
-      - name: heat-api
-        port: 8004
     - filters:
       - type: RequestRedirect
         requestRedirect:
           scheme: https
           statusCode: 301
+    - backendRefs:
+      - name: heat-api
+        port: 8004
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -156,14 +156,14 @@ spec:
   hostnames:
   - "keystone.your.domain.tld"
   rules:
-    - backendRefs:
-      - name: keystone-api
-        port: 5000
     - filters:
       - type: RequestRedirect
         requestRedirect:
           scheme: https
           statusCode: 301
+    - backendRefs:
+      - name: keystone-api
+        port: 5000
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -185,14 +185,14 @@ spec:
   hostnames:
   - "neutron.your.domain.tld"
   rules:
-    - backendRefs:
-      - name: neutron-server
-        port: 9696
     - filters:
       - type: RequestRedirect
         requestRedirect:
           scheme: https
           statusCode: 301
+    - backendRefs:
+      - name: neutron-server
+        port: 9696
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -214,14 +214,14 @@ spec:
   hostnames:
   - "octavia.your.domain.tld"
   rules:
-    - backendRefs:
-      - name: octavia-api
-        port: 9876
     - filters:
       - type: RequestRedirect
         requestRedirect:
           scheme: https
           statusCode: 301
+    - backendRefs:
+      - name: octavia-api
+        port: 9876
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -243,14 +243,14 @@ spec:
   hostnames:
   - "placement.your.domain.tld"
   rules:
-    - backendRefs:
-      - name: placement-api
-        port: 8778
     - filters:
       - type: RequestRedirect
         requestRedirect:
           scheme: https
           statusCode: 301
+    - backendRefs:
+      - name: placement-api
+        port: 8778
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -272,14 +272,14 @@ spec:
   hostnames:
   - "metadata.your.domain.tld"
   rules:
-    - backendRefs:
-      - name: nova-metadata
-        port: 8775
     - filters:
       - type: RequestRedirect
         requestRedirect:
           scheme: https
           statusCode: 301
+    - backendRefs:
+      - name: nova-metadata
+        port: 8775
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -301,14 +301,14 @@ spec:
   hostnames:
   - "nova.your.domain.tld"
   rules:
-    - backendRefs:
-      - name: nova-api
-        port: 8774
     - filters:
       - type: RequestRedirect
         requestRedirect:
           scheme: https
           statusCode: 301
+    - backendRefs:
+      - name: nova-api
+        port: 8774
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -330,14 +330,14 @@ spec:
   hostnames:
   - "novnc.your.domain.tld"
   rules:
-    - backendRefs:
-      - name: nova-novncproxy
-        port: 6080
     - filters:
       - type: RequestRedirect
         requestRedirect:
           scheme: https
           statusCode: 301
+    - backendRefs:
+      - name: nova-novncproxy
+        port: 6080
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -359,11 +359,11 @@ spec:
   hostnames:
   - "skyline.your.domain.tld"
   rules:
-    - backendRefs:
-      - name: skyline-apiserver
-        port: 9999
     - filters:
       - type: RequestRedirect
         requestRedirect:
           scheme: https
           statusCode: 301
+    - backendRefs:
+      - name: skyline-apiserver
+        port: 9999
