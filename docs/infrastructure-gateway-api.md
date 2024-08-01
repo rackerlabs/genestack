@@ -132,11 +132,13 @@ There are various implementations of the Gateway API. In this document, we will 
           port: 8774
     ```
 
-## Let's Encrypt Certificates
+## Deploy with Let's Encrypt Certificates
 
 By default, certificates are issued by an instance of the
 selfsigned-cluster-issuer. This section focuses on replacing that with a
 Let's Encrypt issuer to ensure valid certificates are deployed in our cluster.
+
+[![asciicast](https://asciinema.org/a/h7npXnDjkSpn3uQtuQwWG9zju.svg)](https://asciinema.org/a/h7npXnDjkSpn3uQtuQwWG9zju)
 
 ### Apply the Let's Encrypt Cluster Issuer
 
@@ -168,6 +170,28 @@ spec:
 EOF
 ```
 
+### Patch Gateway with valid listeners
+
+An example with most of the OpenStack services can be found at
+`/etc/genestack/gateway-api/gateway-patches.json`. If you haven't already, you
+must modify and apply it as shown below, or apply your own.
+
+```yaml
+sed -i 's/your.domain.tld/<YOUR_DOMAIN>/g' /etc/genestack/gateway-api/gateway-patches.json
+kubectl patch -n nginx-gateway gateway flex-gateway --type='json' --patch-file /etc/genestack/gateway-api/gateway-patches.json
+```
+
+### Apply Related Gateway routes
+
+Another example with most of the OpenStack services is located at
+`/etc/genestack/gateway-api/gateway-routes.yaml`. Similarly, you must modify
+and apply them as shown below, or apply your own.
+
+```yaml
+sed -i 's/your.domain.tld/<YOUR_DOMAIN>/g' /etc/genestack/gateway-api/gateway-routes.yaml
+kubectl apply -f /etc/genestack/gateway-api/gateway-routes.yaml
+```
+
 ### Patch Gateway with Let's Encrypt Cluster Issuer
 
 ```yaml
@@ -182,28 +206,6 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt-prod
 EOF
 )"
-```
-
-### Patch Gateway with valid listeners
-
-An example with most of the OpenStack services can be found at
-`/etc/genestack/gateway-api/gateway-patches.json`. If you haven't already, you
-should modify and apply it like so:
-
-```yaml
-sed -i 's/your.domain.tld/<YOUR_DOMAIN>/g' /etc/genestack/gateway-api/gateway-patches.json
-kubectl patch -n nginx-gateway gateway flex-gateway --type='json' --patch-file /etc/genestack/gateway-api/gateway-patches.json
-```
-
-### Apply Related Gateway routes
-
-Another example with most of the OpenStack services is located at
-`/etc/genestack/gateway-api/gateway-routes.yaml`. You must modify and apply
-it like so:
-
-```yaml
-sed -i 's/your.domain.tld/<YOUR_DOMAIN>/g' /etc/genestack/gateway-api/gateway-routes.yaml
-kubectl apply -f /etc/genestack/gateway-api/gateway-routes.yaml
 ```
 
 ## Example Implementation with Prometheus UI (NGINX Gateway Fabric)
