@@ -64,6 +64,9 @@ if [ $(find ${GENESTACK_CONFIG}/inventory -name \*.yaml -o -name \*.yml 2>/dev/n
   cp -r ${PRODUCT_DIR}/* ${GENESTACK_CONFIG}/inventory
 fi
 
+# Copy gateway-api exmaple configs
+test -d "$GENESTACK_CONFIG"/gateway-api || cp -a "${BASEDIR}"/etc/gateway-api "$GENESTACK_CONFIG"/
+
 # Prepare Ansible
 python3 -m venv ~/.venvs/genestack
 ~/.venvs/genestack/bin/pip install pip --upgrade
