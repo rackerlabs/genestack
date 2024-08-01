@@ -342,5 +342,3 @@ size=10G features='0' hwhandler='0' wp=rw
   `- 3:0:0:1 sdb 8:16 active ready running
 
 ```
-
-
