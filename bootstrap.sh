@@ -27,7 +27,7 @@ fi
 
 # Which config to bootstrap
 if test -f "${GENESTACK_CONFIG}/product" 2>/dev/null; then
-  GENESTACK_PRODUCT=$(head -n1 "${GENESTACK_CONFIG}"/product)
+  GENESTACK_PRODUCT=$(head -n1 "${GENESTACK_CONFIG}/product")
   export GENESTACK_PRODUCT
 fi
 
@@ -56,31 +56,32 @@ success "Installing genestack dependencies"
 test -L "$GENESTACK_CONFIG" 2>&1 || mkdir -p "${GENESTACK_CONFIG}"
 
 # Set config
-test -f "$GENESTACK_CONFIG"/provider || echo "${K8S_PROVIDER}" > "${GENESTACK_CONFIG}"/provider
-test -f "$GENESTACK_CONFIG"/product || echo "${GENESTACK_PRODUCT}" > "${GENESTACK_CONFIG}"/product
-mkdir -p "$GENESTACK_CONFIG"/inventory/group_vars "${GENESTACK_CONFIG}"/inventory/credentials
+test -f "$GENESTACK_CONFIG/provider" || echo "${K8S_PROVIDER}" > "${GENESTACK_CONFIG}"/provider
+test -f "$GENESTACK_CONFIG/product" || echo "${GENESTACK_PRODUCT}" > "${GENESTACK_CONFIG}"/product
+mkdir -p "$GENESTACK_CONFIG/inventory/group_vars" "${GENESTACK_CONFIG}"/inventory/credentials
 
 # Copy default k8s config
 test -d "ansible/inventory/${GENESTACK_PRODUCT}" || error "Product Config ${GENESTACK_PRODUCT} does not exist here"
 PRODUCT_DIR="ansible/inventory/${GENESTACK_PRODUCT}"
-if [ "$(find "${GENESTACK_CONFIG}"/inventory -name \*.yaml -o -name \*.yml 2>/dev/null |wc -l)" -eq 0 ]; then
-  cp -r "${PRODUCT_DIR}"/* "${GENESTACK_CONFIG}"/inventory
+# shellcheck disable=SC2086
+if [ "$(find ${GENESTACK_CONFIG}/inventory -name \*.yaml -o -name \*.yml 2>/dev/null |wc -l)" -eq 0 ]; then
+  cp -r "${PRODUCT_DIR}"/* "${GENESTACK_CONFIG}/inventory"
 fi
 
 # Copy gateway-api exmaple configs
-test -d "$GENESTACK_CONFIG"/gateway-api || cp -a "${BASEDIR}"/etc/gateway-api "$GENESTACK_CONFIG"/
+test -d "$GENESTACK_CONFIG/gateway-api" || cp -a "${BASEDIR}/etc/gateway-api" "$GENESTACK_CONFIG"/
 
 # Create venv and prepare Ansible
 python3 -m venv ~/.venvs/genestack
 ~/.venvs/genestack/bin/pip install pip --upgrade
 # shellcheck disable=SC1090
 source ~/.venvs/genestack/bin/activate && success "Switched to venv ~/.venvs/genestack"
-pip install -r "${BASEDIR}"/requirements.txt && success "Installed ansible package"
-ansible-playbook "${BASEDIR}"/scripts/get-ansible-collection-requirements.yml \
+pip install -r "${BASEDIR}/requirements.txt" && success "Installed ansible package"
+ansible-playbook "${BASEDIR}/scripts/get-ansible-collection-requirements.yml" \
   -e collections_file="${ANSIBLE_COLLECTION_FILE}" \
   -e user_collections_file="${USER_COLLECTION_FILE}"
 
-source  "${BASEDIR}"/scripts/genestack.rc
+source  "${BASEDIR}/scripts/genestack.rc"
 success "Environment sourced per ${BASEDIR}/scripts/genestack.rc"
 
 message "OpenStack Release: ${OPENSTACK_RELEASE}"
