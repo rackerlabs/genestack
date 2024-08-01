@@ -29,7 +29,7 @@ some cases, a cursory explanation gets provided in passing.
 - _Genestack_ installs OVN with _Kube-OVN_.
     - this includes OVS, described later.
 - To complete the architecture reading, you should read the
-  [Kube-OVN architecture](https://kube-ovn.readthedocs.io/zh-cn/stable/en/reference/architecture/)
+  [Kube-OVN architecture](https://kubeovn.github.io/docs/stable/en/reference/architecture/)
   documentation.
 - Reading and understanding the two canonical architecture documentation
   references above will give you more information than shown here, but this
@@ -108,7 +108,7 @@ some cases, a cursory explanation gets provided in passing.
     - The CMS/OVN plugin must get implemented separately for each CMS.
     - However, _Kube-OVN_, in use in _Genestack_, actually has made some minor
       modifications as described
-      [here](https://kube-ovn.readthedocs.io/zh-cn/stable/en/reference/ovs-ovn-customized/)
+      [here](https://kubeovn.github.io/docs/stable/en/reference/ovs-ovn-customized/)
         - so you might need to know about that relative to stock OVN.
 
 #### OVN databases and _ovn-northd_
@@ -223,13 +223,13 @@ some cases, a cursory explanation gets provided in passing.
 
 - _Genestack_ installs OVN via _Kube-OVN_ "for" the Kubernetes cluster.
 - _Genestack_ does not install OVN separately for _OpenStack_.
-- You should see the [_Kube-OVN architecture page_](https://kube-ovn.readthedocs.io/zh-cn/stable/en/reference/architecture/)
+- You should see the [_Kube-OVN architecture page_](https://kubeovn.github.io/docs/stable/en/reference/architecture/)
   for more detailed explanation
 
 ### `ovn-central` in _Kube-OVN_ and _Genestack_
 
 - In _Kube-OVN_ and _Genestack_,
-  [OVN central](https://kube-ovn.readthedocs.io/zh-cn/stable/en/reference/architecture/#ovn-central):
+  [OVN central](https://kubeovn.github.io/docs/stable/en/reference/architecture/#ovn-central):
     - as described in the documentation, "runs the control plane components of OVN, including ovn-nb, ovn-sb, and ovn-northd."
     - runs in the `kube-system` namespace
     - runs on three pods:
@@ -258,7 +258,7 @@ some cases, a cursory explanation gets provided in passing.
 
 ### `kube-ovn-controller`
 
-- [`kube-ovn-controller` pods](https://kube-ovn.readthedocs.io/zh-cn/stable/en/reference/architecture/#kube-ovn-controller)
+- [`kube-ovn-controller` pods](https://kubeovn.github.io/docs/stable/en/reference/architecture/#kube-ovn-controller)
 
     the linked documentation describes, in part (see the documentation link for
     further details):
@@ -271,7 +271,7 @@ some cases, a cursory explanation gets provided in passing.
 
 ### `kube-ovn-monitor`
 
-- [`kube-ovn-monitor`](https://kube-ovn.readthedocs.io/zh-cn/stable/en/reference/architecture/#kube-ovn-monitor)
+- [`kube-ovn-monitor`](https://kubeovn.github.io/docs/stable/en/reference/architecture/#kube-ovn-monitor)
 
     the linked documentation describes it:
 
@@ -287,7 +287,7 @@ A number of components run on all nodes as a _DaemonSet_.
 
 ##### `ovs-ovn` pods
 
-- [`ovs-ovn` pods](https://kube-ovn.readthedocs.io/zh-cn/stable/en/reference/architecture/#ovs-ovn)
+- [`ovs-ovn` pods](https://kubeovn.github.io/docs/stable/en/reference/architecture/#ovs-ovn)
 
     the linked documentation describes it:
 
@@ -298,7 +298,7 @@ A number of components run on all nodes as a _DaemonSet_.
 
 ##### `kube-ovn-cni` pods
 
-- [`kube-ovn-cni`](https://kube-ovn.readthedocs.io/zh-cn/stable/en/reference/architecture/#kube-ovn-cni) pods:
+- [`kube-ovn-cni`](https://kubeovn.github.io/docs/stable/en/reference/architecture/#kube-ovn-cni) pods:
 
     the linked documentation describes it, in part  (see the documentation link
     for further details):
@@ -318,7 +318,7 @@ A number of components run on all nodes as a _DaemonSet_.
 
 ##### `kube-ovn-pinger` pods
 
-- [`kube-ovn-pinger` pods](https://kube-ovn.readthedocs.io/zh-cn/stable/en/reference/architecture/#kube-ovn-pinger)
+- [`kube-ovn-pinger` pods](https://kubeovn.github.io/docs/stable/en/reference/architecture/#kube-ovn-pinger)
 
     the linked documentation describes it:
 
