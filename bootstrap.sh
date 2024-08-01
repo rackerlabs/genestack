@@ -56,16 +56,16 @@ success "Installing genestack dependencies"
 test -L "$GENESTACK_CONFIG" 2>&1 || mkdir -p "${GENESTACK_CONFIG}"
 
 # Set config
-test -f "$GENESTACK_CONFIG/provider" || echo "${K8S_PROVIDER}" > "${GENESTACK_CONFIG}"/provider
-test -f "$GENESTACK_CONFIG/product" || echo "${GENESTACK_PRODUCT}" > "${GENESTACK_CONFIG}"/product
-mkdir -p "$GENESTACK_CONFIG/inventory/group_vars" "${GENESTACK_CONFIG}"/inventory/credentials
+test -f "$GENESTACK_CONFIG/provider" || echo "${K8S_PROVIDER}" > "${GENESTACK_CONFIG}/provider"
+test -f "$GENESTACK_CONFIG/product" || echo "${GENESTACK_PRODUCT}" > "${GENESTACK_CONFIG}/product"
+mkdir -p "$GENESTACK_CONFIG/inventory/group_vars" "${GENESTACK_CONFIG}/inventory/credentials"
 
 # Copy default k8s config
 test -d "ansible/inventory/${GENESTACK_PRODUCT}" || error "Product Config ${GENESTACK_PRODUCT} does not exist here"
 PRODUCT_DIR="ansible/inventory/${GENESTACK_PRODUCT}"
 # shellcheck disable=SC2086
 if [ "$(find ${GENESTACK_CONFIG}/inventory -name \*.yaml -o -name \*.yml 2>/dev/null |wc -l)" -eq 0 ]; then
-  cp -r "${PRODUCT_DIR}"/* "${GENESTACK_CONFIG}/inventory"
+  cp -r "${PRODUCT_DIR}/*" "${GENESTACK_CONFIG}/inventory"
 fi
 
 # Copy gateway-api exmaple configs
