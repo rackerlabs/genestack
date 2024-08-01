@@ -30,7 +30,7 @@ There are various implementations of the Gateway API. In this document, we will 
 * [NGINX Gateway Fabric](https://github.com/nginxinc/nginx-gateway-fabric)
 * [Envoyproxy](https://gateway.envoyproxy.io/)
 
-=== "NGINX Gateway Fabric"
+=== "NGINX Gateway Fabric _(Recommended)_"
 
     [NGINX Gateway Fabric](https://github.com/nginxinc/nginx-gateway-fabric)
     is an open-source project that provides an implementation of the Gateway
@@ -50,6 +50,9 @@ There are various implementations of the Gateway API. In this document, we will 
 
     **Next, install the NGINX Gateway Fabric controller**
 
+    !!! tip
+        Iff attempting to perform an **upgrade** of an existing Gateway API deployment, note that the  Helm install does not automatically upgrade the CRDs for this resource. To upgrade them, refer to the process outlined by the [Nginx upgrade documentation](https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#upgrade-nginx-gateway-fabric-crds). You can safely ignore this note for new installations.
+
     ```shell
     cd /opt/genestack/submodules/nginx-gateway-fabric/charts/nginx-gateway-fabric
 
@@ -58,54 +61,28 @@ There are various implementations of the Gateway API. In this document, we will 
     kubectl rollout restart deployment cert-manager -n cert-manager
     ```
 
-    !!! tip
-        Helm install does not automatically upgrade the crds for this resource. To upgrade the crds you will have to manually install them. Follow the process from :  [Upgrade CRDs](https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#upgrade-nginx-gateway-fabric-crds)
-
     **Finally, create the shared gateway resource**
 
     ```shell
     kubectl kustomize /opt/genestack/base-kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
     ```
 
-    !!! note
-        Following these instructions will deploy a generic gateway using a
-        hostname of *.cluster.local.  To add specific hostnames/listeners to
-        the gateway, you can either create a patch or update the gateway yaml
-        to include your specific hostnames and then apply the patch/update.
-        Each listener must have a unique name. An example patch is below; a
-        full example can be found in `etc/gateway-api/gateway-patches.json`.
-        ```json
-        [
-            {
-                "op": "add",
-                "path": "/spec/listeners/-",
-                "value": {
-                    "name": "keystone-https",
-                    "port": 443,
-                    "protocol": "HTTPS",
-                    "hostname": "keystone.example.com",
-                    "allowedRoutes": {
-                        "namespaces": {
-                            "from": "All"
-                        }
-                    },
-                    "tls": {
-                        "certificateRefs": [
-                            {
-                                "group": "",
-                                "kind": "Secret",
-                                "name": "keystone-gw-tls-secret"
-                            }
-                        ],
-                        "mode": "Terminate"
-                    }
-                }
-            }
-        ]
-        ```
-        With the patch file created, you can apply the patch as follows:
+    **Optionally, Add Custom Listeners**
 
-        `kubectl patch -n nginx-gateway gateway flex-gateway --type='json' --patch-file keystone-patch.json`
+    By default, a generic Gateway is created using a hostname of `*.cluster.local`.
+    To add specific hostnames/listeners to the gateway, you can either
+    create a patch or update the gateway YAML to include your specific
+    hostnames and then apply the patch/update.  Each listener must have a
+    unique name.  An example patch file you can modify to include your own
+    domain name can be found at
+    `/etc/genestack/gateway-api/gateway-patches.json`.
+
+    **Modify and apply the patch**:
+
+    ```shell
+    sed -i 's/your.domain.tld/<YOUR_DOMAIN>/g' /etc/genestack/gateway-api/gateway-patches.json
+    kubectl patch -n nginx-gateway gateway flex-gateway --type='json' --patch-file /etc/genestack/gateway-api/gateway-patches.json
+    ```
 
 === "Envoyproxy"
 
@@ -157,8 +134,9 @@ There are various implementations of the Gateway API. In this document, we will 
 
 ## Let's Encrypt Certificates
 
-Are you tired of manually renewing and deploying a countless number of
-certificates across your environments? Us too!
+By default, certificates are issued by an instance of the
+selfsigned-cluster-issuer. This section focuses on replacing that with a
+Let's Encrypt issuer to ensure valid certificates are deployed in our cluster.
 
 ### Apply the Let's Encrypt Cluster Issuer
 
@@ -209,20 +187,22 @@ EOF
 ### Patch Gateway with valid listeners
 
 An example with most of the OpenStack services can be found at
-`etc/gateway-api/gateway-patches.json`. You should copy, modify, and apply
-it like so:
+`/etc/genestack/gateway-api/gateway-patches.json`. If you haven't already, you
+should modify and apply it like so:
 
 ```yaml
+sed -i 's/your.domain.tld/<YOUR_DOMAIN>/g' /etc/genestack/gateway-api/gateway-patches.json
 kubectl patch -n nginx-gateway gateway flex-gateway --type='json' --patch-file /etc/genestack/gateway-api/gateway-patches.json
 ```
 
-### Apply related Gateway routes
+### Apply Related Gateway routes
 
 Another example with most of the OpenStack services is located at
-`etc/gateway-api/gateway-routes.yaml`. You should copy, modify, and apply
+`/etc/genestack/gateway-api/gateway-routes.yaml`. You must modify and apply
 it like so:
 
 ```yaml
+sed -i 's/your.domain.tld/<YOUR_DOMAIN>/g' /etc/genestack/gateway-api/gateway-routes.yaml
 kubectl apply -f /etc/genestack/gateway-api/gateway-routes.yaml
 ```
 
