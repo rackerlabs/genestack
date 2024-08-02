@@ -75,6 +75,9 @@ octavia_rabbitmq_password=$(generate_password 64)
 octavia_db_password=$(generate_password 32)
 octavia_admin_password=$(generate_password 32)
 octavia_certificates_password=$(generate_password 32)
+barbican_rabbitmq_password=$(generate_password 64)
+barbican_db_password=$(generate_password 32)
+barbican_admin_password=$(generate_password 32)
 postgresql_identity_admin_password=$(generate_password 32)
 postgresql_db_admin_password=$(generate_password 32)
 postgresql_db_exporter_password=$(generate_password 32)
@@ -429,6 +432,33 @@ metadata:
 type: Opaque
 data:
   password: $(echo -n $octavia_certificates_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: barbican-rabbitmq-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $barbican_rabbitmq_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: barbican-db-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $barbican_db_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: barbican-admin
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $barbican_admin_password | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret
