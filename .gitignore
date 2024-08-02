@@ -120,8 +120,8 @@ tmp.md
 kubernetes_sigs-kubespray*tar.gz
 ansible_collections
 
-kustomize/**/all.yaml
-kustomize/**/charts
+base-kustomize/**/all.yaml
+base-kustomize/**/charts
 
 # mkdocs
 site/
