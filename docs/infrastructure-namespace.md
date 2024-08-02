@@ -12,10 +12,10 @@ Then you can create all needed secrets by running the create-secrets.sh command 
 /opt/genestack/bin/create-secrets.sh
 ```
 
-That will create a secrets.yaml file located in /etc/genestack
+That will create a kubesecrets.yaml file located in /etc/genestack
 
 You can then apply them to kubernetes with the following command:
 
 ``` shell
-kubectl apply -f /etc/genestack/secrets.yaml -n openstack
+kubectl apply -f /etc/genestack/kubesecrets.yaml -n openstack
 ```

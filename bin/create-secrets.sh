@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2086
 
 generate_password() {
     < /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32}
@@ -54,7 +55,7 @@ ceilometer_keystone_admin_password=$(generate_password 32)
 ceilometer_keystone_test_password=$(generate_password 32)
 ceilometer_rabbitmq_password=$(generate_password 32)
 
-OUTPUT_FILE="/etc/genestack/secrets.yaml"
+OUTPUT_FILE="/etc/genestack/kubesecrets.yaml"
 
 cat <<EOF > $OUTPUT_FILE
 apiVersion: v1
@@ -490,6 +491,5 @@ data:
 EOF
 
 rm nova_ssh_key nova_ssh_key.pub
-
+chmod 0640 ${OUTPUT_FILE}
 echo "Secrets YAML file created as ${OUTPUT_FILE}"
-
