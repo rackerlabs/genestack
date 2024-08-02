@@ -65,7 +65,7 @@ test -d "ansible/inventory/${GENESTACK_PRODUCT}" || error "Product Config ${GENE
 PRODUCT_DIR="ansible/inventory/${GENESTACK_PRODUCT}"
 # shellcheck disable=SC2086
 if [ "$(find ${GENESTACK_CONFIG}/inventory -name \*.yaml -o -name \*.yml 2>/dev/null |wc -l)" -eq 0 ]; then
-  cp -r "${PRODUCT_DIR}/*" "${GENESTACK_CONFIG}/inventory"
+  cp -r "${PRODUCT_DIR}"/* "${GENESTACK_CONFIG}/inventory"
 fi
 
 # Copy gateway-api exmaple configs
