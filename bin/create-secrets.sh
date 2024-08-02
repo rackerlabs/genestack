@@ -1,6 +1,37 @@
 #!/bin/bash
 # shellcheck disable=SC2086
 
+usage() {
+    echo "Usage: $0 [--region <region> default: RegionOne]"
+    exit 1
+}
+
+region="RegionOne"
+
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --help)
+            usage
+            ;;
+        -h)
+            usage
+            ;;
+        --region)
+            region="$2"
+            shift 2
+            ;;
+        *)
+            echo "Unknown parameter passed: $1"
+            usage
+            ;;
+    esac
+done
+
+# Check if the region argument is provided
+if [ -z "$region" ]; then
+    usage
+fi
+
 generate_password() {
     < /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32}
 }
@@ -354,9 +385,9 @@ data:
   db-username: $(echo -n "skyline" | base64)
   db-password: $(echo -n $skyline_db_password | base64 -w0)
   secret-key: $(echo -n $skyline_secret_key_password | base64 -w0)
-  keystone-endpoint: $(echo -n $keystone_admin_password | base64 -w0) # Using the generated keystone-keystone-admin password
+  keystone-endpoint: $(echo -n "http://keystone-api.openstack.svc.cluster.local:5000/v3" | base64 -w0)
   keystone-username: $(echo -n "skyline" | base64)
-  default-region: $(echo -n "RegionOne" | base64)
+  default-region: $(echo -n "$region" | base64)
   prometheus_basic_auth_password: $(echo -n "" | base64)
   prometheus_basic_auth_user: $(echo -n "" | base64)
   prometheus_enable_basic_auth: $(echo -n "false" | base64)
