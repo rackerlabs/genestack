@@ -215,6 +215,7 @@ nav:
           - OVN troubleshooting: ovn-troubleshooting.md
           - OVN traffic flow introduction: ovn-traffic-flow-intro.md
           - OVN Database Backup: infrastructure-ovn-db-backup.md
+          - OVN Monitoring introduction: ovn-monitoring-introduction.md
           - MariaDB Operations: infrastructure-mariadb-ops.md
       - Third Party Tools:
           - OSIE: extra-osie.md
