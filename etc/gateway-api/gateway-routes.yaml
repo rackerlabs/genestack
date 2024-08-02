@@ -2,6 +2,29 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
+  name: http2https-route
+  namespace: openstack
+  labels:
+    application: gateway-api
+    service: HTTPRoute
+    route: http2https
+spec:
+  parentRefs:
+  - name: flex-gateway
+    sectionName: http-wildcard-listener
+    namespace: nginx-gateway
+  hostnames:
+  - "*.your.domain.tld"
+  rules:
+    - filters:
+      - type: RequestRedirect
+        requestRedirect:
+          scheme: https
+          statusCode: 301
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
   name: custom-barbican-gateway-route
   namespace: openstack
 spec:
@@ -9,17 +32,9 @@ spec:
   - name: flex-gateway
     sectionName: barbican-https
     namespace: nginx-gateway
-  - name: flex-gateway
-    sectionName: http-wildcard-listener
-    namespace: nginx-gateway
   hostnames:
   - "barbican.your.domain.tld"
   rules:
-    - filters:
-      - type: RequestRedirect
-        requestRedirect:
-          scheme: https
-          statusCode: 301
     - backendRefs:
       - name: barbican-api
         port: 9311
@@ -38,17 +53,9 @@ spec:
   - name: flex-gateway
     sectionName: cinder-https
     namespace: nginx-gateway
-  - name: flex-gateway
-    sectionName: http-wildcard-listener
-    namespace: nginx-gateway
   hostnames:
   - "cinder.your.domain.tld"
   rules:
-    - filters:
-      - type: RequestRedirect
-        requestRedirect:
-          scheme: https
-          statusCode: 301
     - backendRefs:
       - name: cinder-api
         port: 8776
@@ -67,17 +74,9 @@ spec:
   - name: flex-gateway
     sectionName: glance-https
     namespace: nginx-gateway
-  - name: flex-gateway
-    sectionName: http-wildcard-listener
-    namespace: nginx-gateway
   hostnames:
   - "glance.your.domain.tld"
   rules:
-    - filters:
-      - type: RequestRedirect
-        requestRedirect:
-          scheme: https
-          statusCode: 301
     - backendRefs:
       - name: glance-api
         port: 9292
@@ -96,17 +95,9 @@ spec:
   - name: flex-gateway
     sectionName: cloudformation-https
     namespace: nginx-gateway
-  - name: flex-gateway
-    sectionName: http-wildcard-listener
-    namespace: nginx-gateway
   hostnames:
   - "cloudformation.your.domain.tld"
   rules:
-    - filters:
-      - type: RequestRedirect
-        requestRedirect:
-          scheme: https
-          statusCode: 301
     - backendRefs:
       - name: heat-cfn
         port: 8000
@@ -125,17 +116,9 @@ spec:
   - name: flex-gateway
     sectionName: heat-https
     namespace: nginx-gateway
-  - name: flex-gateway
-    sectionName: http-wildcard-listener
-    namespace: nginx-gateway
   hostnames:
   - "heat.your.domain.tld"
   rules:
-    - filters:
-      - type: RequestRedirect
-        requestRedirect:
-          scheme: https
-          statusCode: 301
     - backendRefs:
       - name: heat-api
         port: 8004
@@ -150,17 +133,9 @@ spec:
   - name: flex-gateway
     sectionName: keystone-https
     namespace: nginx-gateway
-  - name: flex-gateway
-    sectionName: http-wildcard-listener
-    namespace: nginx-gateway
   hostnames:
   - "keystone.your.domain.tld"
   rules:
-    - filters:
-      - type: RequestRedirect
-        requestRedirect:
-          scheme: https
-          statusCode: 301
     - backendRefs:
       - name: keystone-api
         port: 5000
@@ -179,17 +154,9 @@ spec:
   - name: flex-gateway
     sectionName: neutron-https
     namespace: nginx-gateway
-  - name: flex-gateway
-    sectionName: http-wildcard-listener
-    namespace: nginx-gateway
   hostnames:
   - "neutron.your.domain.tld"
   rules:
-    - filters:
-      - type: RequestRedirect
-        requestRedirect:
-          scheme: https
-          statusCode: 301
     - backendRefs:
       - name: neutron-server
         port: 9696
@@ -237,17 +204,9 @@ spec:
   - name: flex-gateway
     sectionName: placement-https
     namespace: nginx-gateway
-  - name: flex-gateway
-    sectionName: http-wildcard-listener
-    namespace: nginx-gateway
   hostnames:
   - "placement.your.domain.tld"
   rules:
-    - filters:
-      - type: RequestRedirect
-        requestRedirect:
-          scheme: https
-          statusCode: 301
     - backendRefs:
       - name: placement-api
         port: 8778
@@ -266,17 +225,9 @@ spec:
   - name: flex-gateway
     sectionName: metadata-https
     namespace: nginx-gateway
-  - name: flex-gateway
-    sectionName: http-wildcard-listener
-    namespace: nginx-gateway
   hostnames:
   - "metadata.your.domain.tld"
   rules:
-    - filters:
-      - type: RequestRedirect
-        requestRedirect:
-          scheme: https
-          statusCode: 301
     - backendRefs:
       - name: nova-metadata
         port: 8775
@@ -295,17 +246,9 @@ spec:
   - name: flex-gateway
     sectionName: nova-https
     namespace: nginx-gateway
-  - name: flex-gateway
-    sectionName: http-wildcard-listener
-    namespace: nginx-gateway
   hostnames:
   - "nova.your.domain.tld"
   rules:
-    - filters:
-      - type: RequestRedirect
-        requestRedirect:
-          scheme: https
-          statusCode: 301
     - backendRefs:
       - name: nova-api
         port: 8774
@@ -324,17 +267,9 @@ spec:
   - name: flex-gateway
     sectionName: novnc-https
     namespace: nginx-gateway
-  - name: flex-gateway
-    sectionName: http-wildcard-listener
-    namespace: nginx-gateway
   hostnames:
   - "novnc.your.domain.tld"
   rules:
-    - filters:
-      - type: RequestRedirect
-        requestRedirect:
-          scheme: https
-          statusCode: 301
     - backendRefs:
       - name: nova-novncproxy
         port: 6080
@@ -353,17 +288,9 @@ spec:
   - name: flex-gateway
     sectionName: skyline-https
     namespace: nginx-gateway
-  - name: flex-gateway
-    sectionName: http-wildcard-listener
-    namespace: nginx-gateway
   hostnames:
   - "skyline.your.domain.tld"
   rules:
-    - filters:
-      - type: RequestRedirect
-        requestRedirect:
-          scheme: https
-          statusCode: 301
     - backendRefs:
       - name: skyline-apiserver
         port: 9999
