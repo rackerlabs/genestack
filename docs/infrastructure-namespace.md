@@ -9,7 +9,8 @@ kubectl apply -k /opt/genestack/base-kustomize/openstack
 Then you can create all needed secrets by running the create-secrets.sh command located in /opt/genestack/bin
 
 ``` shell
-/opt/genestack/bin/create-secrets.sh
+/opt/genestack/bin/create-secrets.sh -h
+Usage: ./create-secrets.sh [--region <region> default: RegionOne]
 ```
 
 That will create a kubesecrets.yaml file located in /etc/genestack
