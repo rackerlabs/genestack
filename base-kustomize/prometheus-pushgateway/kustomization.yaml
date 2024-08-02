@@ -1,0 +1,7 @@
+helmCharts:
+  - name: prometheus-pushgateway
+    repo: https://prometheus-community.github.io/helm-charts
+    releaseName: prometheus-pushgateway
+    namespace: prometheus
+    includeCRDs: true
+    valuesFile: values.yaml

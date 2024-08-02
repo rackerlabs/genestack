@@ -200,6 +200,7 @@ nav:
               - Postgres Exporter: prometheus-postgres-exporter.md
               - Openstack Exporter: prometheus-openstack-metrics-exporter.md
               - Blackbox Exporter: prometheus-blackbox-exporter.md
+              - Pushgateway: prometheus-pushgateway.md
               - Custom Node Metrics: prometheus-custom-node-metrics.md
               - Alert Manager Examples:
                   - alertmanager-encore.md
