@@ -605,7 +605,7 @@ endpoints:
         username: gnocchi
         password: password
     hosts:
-      default: postgresql
+      default: postgres-cluster
     host_fqdn_override:
       default: null
     path: /gnocchi
