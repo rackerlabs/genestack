@@ -9,11 +9,11 @@ spec:
   postgresql:
     version: "16"
     parameters:
-      shared_buffers: "32MB"
-      max_connections: "10"
+      shared_buffers: "2GB"
+      max_connections: "1024"
       log_statement: "all"
   volume:
-    size: 10Gi
+    size: 40Gi
   nodeAffinity:
     requiredDuringSchedulingIgnoredDuringExecution:
       nodeSelectorTerms:
