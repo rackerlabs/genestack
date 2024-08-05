@@ -818,6 +818,8 @@ conf:
     oslo_middleware:
       enable_proxy_headers_parsing: true
     oslo_messaging_rabbit:
+      # explicitly disable amqp durable queues because quorum is enabled
+      amqp_durable_queues: false
       # We define use of quorum queues via kustomize but this was enabling HA queues instead
       # ha_queues are deprecated, explicitly set to false and set quorum_queue true
       rabbit_ha_queues: false
