@@ -101,6 +101,7 @@ conf:
     oslo_messaging_rabbit:
       # We define use of quorum queues via kustomize but this was enabling HA queues instead
       # ha_queues are deprecated, explicitly set to false and set quorum_queue true
+      amqp_durable_queues: false
       rabbit_ha_queues: false
       rabbit_quorum_queue: true
       # TODO: Not available until 2024.1, but once it is, we want to enable these!
