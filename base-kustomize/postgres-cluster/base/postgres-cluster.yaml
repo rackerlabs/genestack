@@ -2,7 +2,7 @@ apiVersion: "acid.zalan.do/v1"
 kind: postgresql
 metadata:
   name: postgres-cluster
-  namespace: postgres-system
+  namespace: openstack
 spec:
   dockerImage: ghcr.io/zalando/spilo-16:3.2-p3
   teamId: "acid"
