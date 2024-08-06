@@ -119,7 +119,6 @@ dependencies:
     db_sync:
       jobs:
         - gnocchi-storage-init
-        - gnocchi-db-init
         - gnocchi-db-init-indexer
       services:
         - endpoint: internal
@@ -656,7 +655,7 @@ manifests:
   job_clean: true
   job_db_drop: false
   job_db_init_indexer: true
-  job_db_init: true
+  job_db_init: false
   job_image_repo_sync: true
   secret_db_indexer: true
   job_db_sync: true
