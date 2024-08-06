@@ -31,5 +31,6 @@ RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
 RUN pip install \
     "gnocchi[postgresql,ceph,keystone] @ git+https://github.com/gnocchixyz/gnocchi.git@${GNOCCHI_VERSION}" \
     "pymemcache"
+RUN ln -s /usr/bin/python3 /usr/bin/python
 RUN adduser gnocchi --disabled-password
 RUN sed -i 's@^ErrorLog.*@ErrorLog /dev/stderr@' /etc/apache2/apache2.conf
