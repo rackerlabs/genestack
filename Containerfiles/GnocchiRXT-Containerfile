@@ -29,5 +29,6 @@ RUN apt install -y \
     libprotobuf-dev
 RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
 RUN pip install \
-    "gnocchi[postgresql,ceph,keystone] @ git+https://github.com/gnocchixyz/gnocchi.git@${GNOCCHI_VERSION}"
+    "gnocchi[postgresql,ceph,keystone] @ git+https://github.com/gnocchixyz/gnocchi.git@${GNOCCHI_VERSION}" \
+    "pymemcache"
 RUN adduser gnocchi --disabled-password
