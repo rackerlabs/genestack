@@ -46,7 +46,7 @@ images:
     ks_user: docker.io/openstackhelm/heat:wallaby-ubuntu_focal
     ks_service: docker.io/openstackhelm/heat:wallaby-ubuntu_focal
     ks_endpoints: docker.io/openstackhelm/heat:wallaby-ubuntu_focal
-    gnocchi_api: ghcr.io/lukerepko/genestack/gnocchi:4.6.2
+    gnocchi_api: ghcr.io/lukerepko/genestack/gnocchi:4.6.2-1722962258
     gnocchi_statsd: quay.io/openstack.kolla/ubuntu-source-gnocchi-statsd:yoga
     gnocchi_metricd: quay.io/openstack.kolla/ubuntu-source-gnocchi-metricd:yoga
     gnocchi_resources_cleaner: quay.io/openstack.kolla/ubuntu-source-gnocchi-base:yoga
