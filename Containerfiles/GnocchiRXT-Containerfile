@@ -1,0 +1,10 @@
+FROM ubuntu:22.04
+ARG VERSION=4.6.2
+ENV GNOCCHI_VERSION ${VERSION:-master}
+RUN apt update
+RUN apt install -y build-essential software-properties-common git curl apache2
+RUN add-apt-repository ppa:deadsnakes/ppa -y
+RUN apt update
+RUN apt install -y python3.10 python3.10-dev
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
+RUN pip install git+https://github.com/gnocchixyz/gnocchi.git@${GNOCCHI_VERSION}
