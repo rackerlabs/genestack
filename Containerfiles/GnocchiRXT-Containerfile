@@ -32,3 +32,4 @@ RUN pip install \
     "gnocchi[postgresql,ceph,keystone] @ git+https://github.com/gnocchixyz/gnocchi.git@${GNOCCHI_VERSION}" \
     "pymemcache"
 RUN adduser gnocchi --disabled-password
+RUN sed -i 's@^ErrorLog.*@ErrorLog /dev/stderr@' /etc/apache2/apache2.conf
