@@ -68,4 +68,4 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/gnocchi:${{ github.event.inputs.imageTag || env.PUSH_VERSION }}-${{ env.MY_DATE }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            VERSION=${{ github.event.inputs.imageTag }}
+            VERSION=${{ github.event.inputs.imageTag || env.PUSH_VERSION}}
