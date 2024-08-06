@@ -9,6 +9,7 @@ RUN apt update
 RUN apt install -y \
     python3.10 \
     python3.10-dev \
+    python3-memcache \
     git \
     wget \
     curl \
@@ -20,8 +21,6 @@ RUN apt install -y \
     libpq-dev \
     postgresql \
     memcached \
-    mysql-client \
-    mysql-server \
     librados-dev \
     liberasurecode-dev \
     python3-rados \
@@ -29,5 +28,6 @@ RUN apt install -y \
     libsnappy-dev \
     libprotobuf-dev
 RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
-RUN pip install "gnocchi[postgresql,ceph,keystone] @ git+https://github.com/gnocchixyz/gnocchi.git@${GNOCCHI_VERSION}"
+RUN pip install \
+    "gnocchi[postgresql,ceph,keystone] @ git+https://github.com/gnocchixyz/gnocchi.git@${GNOCCHI_VERSION}"
 RUN adduser gnocchi --disabled-password
