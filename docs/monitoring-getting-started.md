@@ -22,15 +22,16 @@ We can then deploy our visualization dashboard Grafana
 
 Grafana is used to visualize various metrics provided by the monitoring system as well as alerts and logs, take a look at the [Grafana](https://grafana.com/) documentation for more information
 
-## Install the metric exporters
+## Install the metric exporters and pushgateway
 
-Now let's deploy our exporters!
+Now let's deploy our exporters and pushgateway!
 
 * [Mysql Exporter](prometheus-mysql-exporter.md)
 * [RabbitMQ Exporter](prometheus-rabbitmq-exporter.md)
 * [Postgres Exporter](prometheus-postgres-exporter.md)
 * [Memcached Exporter](prometheus-memcached-exporter.md)
 * [Openstack Exporter](prometheus-openstack-metrics-exporter.md)
+* [Pushgateway](prometheus-pushgateway.md)
 
 ## Next steps
 

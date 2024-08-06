@@ -8,14 +8,21 @@ kubectl apply -k /opt/genestack/base-kustomize/openstack
 
 Then you can create all needed secrets by running the create-secrets.sh command located in /opt/genestack/bin
 
+!!! tip "Optional --region param"
+
+    Note that the `create-secrets.sh` script by default creates a secret
+    with a default region of RegionOne. This can be overridden with the
+    `--region` parameter to specify your custom region name in Keystone.
+    > Usage: ./create-secrets.sh [--region <region> default: RegionOne]
+
 ``` shell
 /opt/genestack/bin/create-secrets.sh
 ```
 
-That will create a secrets.yaml file located in /etc/genestack
+That will create a kubesecrets.yaml file located in /etc/genestack
 
-You can then apply them to kubernetes with the following command:
+You can then apply it to kubernetes with the following command:
 
 ``` shell
-kubectl apply -f /etc/genestack/secrets.yaml -n openstack
+kubectl create -f /etc/genestack/kubesecrets.yaml -n openstack
 ```

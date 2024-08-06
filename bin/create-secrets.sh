@@ -1,4 +1,36 @@
 #!/bin/bash
+# shellcheck disable=SC2086
+
+usage() {
+    echo "Usage: $0 [--region <region> default: RegionOne]"
+    exit 1
+}
+
+region="RegionOne"
+
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --help)
+            usage
+            ;;
+        -h)
+            usage
+            ;;
+        --region)
+            region="$2"
+            shift 2
+            ;;
+        *)
+            echo "Unknown parameter passed: $1"
+            usage
+            ;;
+    esac
+done
+
+# Check if the region argument is provided
+if [ -z "$region" ]; then
+    usage
+fi
 
 generate_password() {
     < /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32}
@@ -43,6 +75,9 @@ octavia_rabbitmq_password=$(generate_password 64)
 octavia_db_password=$(generate_password 32)
 octavia_admin_password=$(generate_password 32)
 octavia_certificates_password=$(generate_password 32)
+barbican_rabbitmq_password=$(generate_password 64)
+barbican_db_password=$(generate_password 32)
+barbican_admin_password=$(generate_password 32)
 postgresql_identity_admin_password=$(generate_password 32)
 postgresql_db_admin_password=$(generate_password 32)
 postgresql_db_exporter_password=$(generate_password 32)
@@ -54,7 +89,7 @@ ceilometer_keystone_admin_password=$(generate_password 32)
 ceilometer_keystone_test_password=$(generate_password 32)
 ceilometer_rabbitmq_password=$(generate_password 32)
 
-OUTPUT_FILE="/etc/genestack/secrets.yaml"
+OUTPUT_FILE="/etc/genestack/kubesecrets.yaml"
 
 cat <<EOF > $OUTPUT_FILE
 apiVersion: v1
@@ -353,9 +388,9 @@ data:
   db-username: $(echo -n "skyline" | base64)
   db-password: $(echo -n $skyline_db_password | base64 -w0)
   secret-key: $(echo -n $skyline_secret_key_password | base64 -w0)
-  keystone-endpoint: $(echo -n $keystone_admin_password | base64 -w0) # Using the generated keystone-keystone-admin password
+  keystone-endpoint: $(echo -n "http://keystone-api.openstack.svc.cluster.local:5000/v3" | base64 -w0)
   keystone-username: $(echo -n "skyline" | base64)
-  default-region: $(echo -n "RegionOne" | base64)
+  default-region: $(echo -n "$region" | base64)
   prometheus_basic_auth_password: $(echo -n "" | base64)
   prometheus_basic_auth_user: $(echo -n "" | base64)
   prometheus_enable_basic_auth: $(echo -n "false" | base64)
@@ -397,6 +432,33 @@ metadata:
 type: Opaque
 data:
   password: $(echo -n $octavia_certificates_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: barbican-rabbitmq-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $barbican_rabbitmq_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: barbican-db-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $barbican_db_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: barbican-admin
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $barbican_admin_password | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret
@@ -490,6 +552,5 @@ data:
 EOF
 
 rm nova_ssh_key nova_ssh_key.pub
-
+chmod 0640 ${OUTPUT_FILE}
 echo "Secrets YAML file created as ${OUTPUT_FILE}"
-

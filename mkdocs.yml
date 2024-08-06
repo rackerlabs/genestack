@@ -161,8 +161,8 @@ nav:
           - Infrastructure:
               - infrastructure-overview.md
               - Namespace: infrastructure-namespace.md
+              - MetalLB: infrastructure-metallb.md
               - Gateway API: infrastructure-gateway-api.md
-              - LetsEncrypt: infrastructure-letsencrypt.md
               - MariaDB:
                   - infrastructure-mariadb.md
               - RabbitMQ:
@@ -170,7 +170,6 @@ nav:
               - Memcached: infrastructure-memcached.md
               - Libvirt: infrastructure-libvirt.md
               - OVN: infrastructure-ovn-setup.md
-              - MetalLB: infrastructure-metallb.md
               - Loki: infrastructure-loki.md
           - OpenStack:
               - openstack-overview.md
@@ -201,6 +200,7 @@ nav:
               - Postgres Exporter: prometheus-postgres-exporter.md
               - Openstack Exporter: prometheus-openstack-metrics-exporter.md
               - Blackbox Exporter: prometheus-blackbox-exporter.md
+              - Pushgateway: prometheus-pushgateway.md
               - Custom Node Metrics: prometheus-custom-node-metrics.md
               - Alert Manager Examples:
                   - alertmanager-encore.md
@@ -248,4 +248,5 @@ nav:
       - Openstack Snapshot: openstack-snapshot.md
       - Openstack Volumes: openstack-volumes.md
       - Openstack Load Balancers: openstack-load-balancer.md
+      - Openstack Networks: openstack-networks.md
   - Blog: https://blog.rackspacecloud.com/

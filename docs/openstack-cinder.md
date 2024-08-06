@@ -239,6 +239,22 @@ storage:
     enable_iscsi: true
 ```
 
+## Enable iSCSI and Custom Mutlipath configuration
+
+!!! note
+    The included custom multipath config file uses queue-length and sends IO out all active paths when using iSCSI LVM, configure to your environment as you see fit.
+
+
+Add variable to your inventory file, edit /opt/genestack/ansible/playbooks/templates/genestack-multipath.conf and re-run host-setup.yaml
+
+``` shell
+storage:
+  vars:
+    enable_iscsi: true
+    custom_multipath: true
+```
+
+
 ## Enable iSCSI with LVM
 
 Edit /opt/genestack/ansible/playbooks/deploy-cinder-volumes-reference.yaml and uncomment out lines under "Uncomment lines below to enable ISCSI multipath"
@@ -300,7 +316,7 @@ Target 4: iqn.2010-10.org.openstack:dd88d4b9-1297-44c1-b9bc-efd6514be035
         ALL
 ```
 
-On Compute nodes
+On Compute nodes using generic multipath configuration file.
 
 ``` shell
 
@@ -311,5 +327,18 @@ size=20G features='0' hwhandler='0' wp=rw
 | `- 2:0:0:1 sda 8:0  active ready running
 `-+- policy='service-time 0' prio=1 status=enabled
   `- 4:0:0:1 sdb 8:16 active ready running
+
+```
+
+Using custom multipath configuration file
+
+``` shell
+
+root@genestack-compute1:~# multipath -ll
+360000000000000000e00000000010001 dm-0 IET,VIRTUAL-DISK
+size=10G features='0' hwhandler='0' wp=rw
+`-+- policy='queue-length 0' prio=1 status=active
+  |- 2:0:0:1 sda 8:0  active ready running
+  `- 3:0:0:1 sdb 8:16 active ready running
 
 ```
