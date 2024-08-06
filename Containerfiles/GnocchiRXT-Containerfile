@@ -3,12 +3,32 @@ ARG VERSION=4.6.2
 ENV GNOCCHI_VERSION ${VERSION:-master}
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update
-RUN apt install -y build-essential software-properties-common git curl apache2
+RUN apt install -y software-properties-common
 RUN add-apt-repository ppa:deadsnakes/ppa -y
 RUN apt update
-RUN apt install -y python3.10 python3.10-dev
+RUN apt install -y \
+    python3.10 \
+    python3.10-dev \
+    git \
+    wget \
+    curl \
+    apache2 \
+    locales \
+    libapache2-mod-wsgi-py3 \
+    build-essential \
+    libffi-dev \
+    libpq-dev \
+    postgresql \
+    memcached \
+    mysql-client \
+    mysql-server \
+    librados-dev \
+    liberasurecode-dev \
+    python3-rados \
+    ceph \
+    libsnappy-dev \
+    libprotobuf-dev
 RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
 RUN pip install "gnocchi[postgresql,ceph,keystone] @ git+https://github.com/gnocchixyz/gnocchi.git@${GNOCCHI_VERSION}"
 RUN mkdir /var/run/apache2
-RUN apt install -y libapache2-mod-wsgi-py3
 RUN adduser gnocchi --disabled-password
