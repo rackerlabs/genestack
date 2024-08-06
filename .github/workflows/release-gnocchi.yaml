@@ -3,6 +3,9 @@ name: Create and publish a Gnocchi image
 
 on:
   push:
+    paths:
+    - '.github/workflows/release-gnocchi.yaml'
+    - 'Containerfiles/GnocchiRXT-Containerfile'
     branches:
       - development
   workflow_dispatch:
