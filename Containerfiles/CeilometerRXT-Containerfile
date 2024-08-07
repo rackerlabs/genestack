@@ -1,0 +1,25 @@
+FROM ubuntu:22.04
+ARG VERSION=""
+ENV CEILOMETER_VERSION ${VERSION:-master}
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt update && \
+    apt install -y software-properties-common && \
+    add-apt-repository ppa:deadsnakes/ppa -y
+RUN apt update && \
+    apt install -y \
+    python3.10 \
+    python3.10-dev \
+    git \
+    wget \
+    curl \
+    apache2 \
+    locales \
+    libapache2-mod-wsgi-py3 \
+    build-essential
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10 && \
+    pip install \
+    "ceilometer @ git+https://opendev.org/openstack/ceilometer.git@${CEILOMETER_VERSION}"
+RUN ln -s /usr/bin/python3 /usr/bin/python && \
+    adduser ceilometer --disabled-password && \
+    sed -i 's@^ErrorLog.*@ErrorLog /dev/stderr@' /etc/apache2/apache2.conf && \
+    apt clean && rm -rf /var/lib/apt/lists/*
