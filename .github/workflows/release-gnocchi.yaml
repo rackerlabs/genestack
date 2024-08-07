@@ -8,6 +8,7 @@ on:
     - 'Containerfiles/GnocchiRXT-Containerfile'
     branches:
       - development
+      - main
   workflow_dispatch:
     inputs:
       imageTag:
