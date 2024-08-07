@@ -24,13 +24,13 @@ labels:
 images:
   tags:
     test: docker.io/xrally/xrally-openstack:2.0.0
-    ceilometer_db_sync: docker.io/kolla/ubuntu-source-ceilometer-base:yoga
+    ceilometer_db_sync: ghcr.io/lukerepko/genestack/ceilometer:2024.1-ubuntu_jammy
     rabbit_init: docker.io/rabbitmq:3.7-management
-    ks_user: docker.io/openstackhelm/heat:wallaby-ubuntu_focal
-    ks_service: docker.io/openstackhelm/heat:wallaby-ubuntu_focal
+    ks_user: docker.io/openstackhelm/heat:2024.1-ubuntu_jammy
+    ks_service: docker.io/openstackhelm/heat:2024.1-ubuntu_jammy
     ceilometer_central: ghcr.io/lukerepko/genestack/ceilometer:2024.1-ubuntu_jammy
     ceilometer_compute: ghcr.io/lukerepko/genestack/ceilometer:2024.1-ubuntu_jammy
-    ceilometer_ipmi: docker.io/kolla/ubuntu-source-ceilometer-base:yoga
+    ceilometer_ipmi: ghcr.io/lukerepko/genestack/ceilometer:2024.1-ubuntu_jammy
     ceilometer_notification: ghcr.io/lukerepko/genestack/ceilometer:2024.1-ubuntu_jammy
     dep_check: quay.io/airshipit/kubernetes-entrypoint:v1.0.0
     image_repo_sync: docker.io/docker:17.07.0
