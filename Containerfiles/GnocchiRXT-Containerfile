@@ -1,5 +1,5 @@
 FROM ubuntu:22.04
-ARG VERSION=4.6.2
+ARG VERSION=""
 ENV GNOCCHI_VERSION ${VERSION:-master}
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update

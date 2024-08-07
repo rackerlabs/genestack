@@ -13,16 +13,26 @@ on:
       imageTag:
         description: 'Set tag for the image'
         required: true
+        default: '2024.1-ubuntu_jammy'
+        type: choice
+        options:
+          - 2024.1-ubuntu_jammy
+      buildVersion:
+        description: 'Set version to build'
+        required: true
         default: '4.6.2'
         type: choice
         options:
           - 4.6.2
+          - stable/4.6
+          - master
 
 # Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository  }}
-  PUSH_VERSION: 4.6.2
+  DEF_TAG_NAME: 2024.1-ubuntu_jammy
+  DEF_BUILD_VERSION: 4.6.2
 
 # There is a single job in this workflow. It's configured to run on the latest available version of Ubuntu.
 jobs:
@@ -64,8 +74,8 @@ jobs:
           file: Containerfiles/GnocchiRXT-Containerfile
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/gnocchi:${{ github.event.inputs.imageTag || env.PUSH_VERSION }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/gnocchi:${{ github.event.inputs.imageTag || env.PUSH_VERSION }}-${{ env.MY_DATE }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/gnocchi:${{ github.event.inputs.imageTag || env.DEF_TAG_NAME }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/gnocchi:${{ github.event.inputs.imageTag || env.DEF_TAG_NAME }}-${{ env.MY_DATE }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            VERSION=${{ github.event.inputs.imageTag || env.PUSH_VERSION}}
+            VERSION=${{ github.event.inputs.buildVersion || env.DEF_BUILD_VERSION}}
