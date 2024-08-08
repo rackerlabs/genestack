@@ -776,7 +776,6 @@ conf:
           fields: payload.detail
         type:
           fields: payload.type
-
   gnocchi_resources:
     archive_policy_default: ceilometer-low
     archive_policies:
@@ -1592,6 +1591,17 @@ conf:
       - name: meter_sink
         publishers:
           - gnocchi
+  event_pipeline:
+    sinks:
+      - name: event_sink
+        publishers:
+          - gnocchi://
+    sources:
+      - events:
+          - '*'
+        name: event_source
+        sinks:
+          - event_sink
   policy: {}
   audit_api_map:
     DEFAULT:
