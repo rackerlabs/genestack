@@ -5,7 +5,7 @@ Read more about Openstack Routers using the [upstream docs](https://docs.opensta
 #### Get List of Routers
 
 ``` shell
-openstack router list
+openstack --os-cloud {user cloud name router list
     [--sort-column SORT_COLUMN]
     [--sort-ascending | --sort-descending]
     [--name <name>]
@@ -23,7 +23,7 @@ openstack router list
 #### Create a Router
 
 ``` shell
-openstack router create
+openstack --os-cloud {user cloud name router create
     [--extra-property type=<property_type>,name=<property_name>,value=<property_value>]
     [--enable | --disable]
     [--distributed | --centralized]
@@ -48,7 +48,7 @@ openstack router create
 #### Add a Gateway to Router
 
 ``` shell
-openstack router add gateway
+openstack --os-cloud {user cloud name router add gateway
     [--fixed-ip subnet=<subnet>,ip-address=<ip-address>]
     <router>
     <network>
@@ -57,19 +57,19 @@ openstack router add gateway
 #### Add a Subnet to Router
 
 ``` shell
-openstack router add subnet <router> <subnet>
+openstack --os-cloud {user cloud name router add subnet <router> <subnet>
 ```
 
 #### Add a Port to Router
 
 ``` shell
-openstack router add port <router> <port>
+openstack --os-cloud {user cloud name router add port <router> <port>
 ```
 
 #### Set Router Properties
 
 ``` shell
-openstack router set
+openstack --os-cloud {user cloud name router set
     [--extra-property type=<property_type>,name=<property_name>,value=<property_value>]
     [--name <name>]
     [--description <description>]
@@ -95,5 +95,34 @@ openstack router set
 #### Delete Router
 
 ``` shell
-openstack router add subnet <router> <subnet>
+openstack --os-cloud {user cloud name router add subnet <router> <subnet>
+```
+
+#### Create Router Port
+
+
+``` shell
+openstack --os-cloud {user cloud name port create [-h] [-f {json,shell,table,value,yaml}]
+                             [-c COLUMN] [--noindent] [--prefix PREFIX]
+                             [--max-width <integer>] [--fit-width]
+                             [--print-empty] --network <network>
+                             [--description <description>]
+                             [--device <device-id>]
+                             [--mac-address <mac-address>]
+                             [--device-owner <device-owner>]
+                             [--vnic-type <vnic-type>] [--host <host-id>]
+                             [--dns-domain dns-domain] [--dns-name <dns-name>]
+                             [--fixed-ip subnet=<subnet>,ip-address=<ip-address> | --no-fixed-ip]
+                             [--binding-profile <binding-profile>]
+                             [--enable | --disable]
+                             [--enable-uplink-status-propagation | --disable-uplink-status-propagation]
+                             [--project <project>]
+                             [--project-domain <project-domain>]
+                             [--extra-dhcp-option name=<name>[,value=<value>,ip-version={4,6}]]
+                             [--security-group <security-group> | --no-security-group]
+                             [--qos-policy <qos-policy>]
+                             [--enable-port-security | --disable-port-security]
+                             [--allowed-address ip-address=<ip-address>[,mac-address=<mac-address>]]
+                             [--tag <tag> | --no-tag]
+                             <name>
 ```
