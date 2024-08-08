@@ -947,8 +947,9 @@ endpoints:
       #   project_domain_name: default
       #   default_domain_id: default
     hosts:
-      default: keystone
+      default: keystone-api
       internal: keystone-api
+      admin: keystone-api
     host_fqdn_override:
       default: null
       # NOTE(portdirect): this chart supports TLS for fqdn over-ridden public
