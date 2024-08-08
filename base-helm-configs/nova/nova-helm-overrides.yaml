@@ -1409,6 +1409,8 @@ conf:
       auth_version: v3
     cinder:
       catalog_info: volumev3::internalURL
+    key_manager:
+      backend: barbican
     database:
       max_retries: -1
     api_database:
