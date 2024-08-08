@@ -1696,11 +1696,6 @@ dependencies:
           service: identity
         - endpoint: internal
           service: metric
-      services:
-        - endpoint: internal
-          service: identity
-        - endpoint: internal
-          service: metric
     compute:
       jobs:
         - ceilometer-db-sync
