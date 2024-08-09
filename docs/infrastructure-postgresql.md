@@ -1,8 +1,7 @@
 # Deploy PostgreSQL
 
-PostgreSQL is used by [Gnocchi](https://github.com/gnocchixyz/gnocchi)
-to index the data collected and sent by
-[Ceilometer](https://opendev.org/openstack/ceilometer).
+PostgreSQL is used by [Gnocchi](openstack-gnocchi.md) to index the data
+collected and sent by [Ceilometer](openstack-ceilometer.md).
 
 ## Install the Postgres Operator
 
