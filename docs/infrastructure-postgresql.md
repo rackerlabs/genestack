@@ -1,46 +1,69 @@
 # Deploy PostgreSQL
 
-## Create Secrets
-!!! info
+PostgreSQL is used by [Gnocchi](openstack-gnocchi.md) to index the data
+collected and sent by [Ceilometer](openstack-ceilometer.md).
 
-    This step is not needed if you ran the create-secrets.sh script located in /opt/genestack/bin
+## Install the Postgres Operator
 
-``` shell
-kubectl --namespace openstack create secret generic postgresql-identity-admin \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack create secret generic postgresql-db-admin \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack create secret generic postgresql-db-exporter \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack create secret generic postgresql-db-audit \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-```
+We are using the [Zalando postgres-operator](https://github.
+com/zalando/postgres-operator/) which offers easy to run and
+highly-available PostgreSQL clusters on Kubernetes.
 
-## Run the package deployment
-
-!!! tip
-
-    Consider the PVC size you will need for the environment you're deploying in. Make adjustments as needed near `storage.[pvc|archive_pvc].size` and `volume.backup.size` to your helm overrides.
+_The following command to install the operator must be run twice, at least for
+now, due to a race condition with the way kubectl handles the CRD
+installation._
 
 ``` shell
-cd /opt/genestack/submodules/openstack-helm-infra
-helm upgrade --install postgresql ./postgresql \
-    --namespace=openstack \
-    --wait \
-    --timeout 10m \
-    -f /opt/genestack/base-helm-configs/postgresql/postgresql-helm-overrides.yaml \
-    --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.identity.auth.postgresql.password="$(kubectl --namespace openstack get secret postgresql-identity-admin -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.postgresql.auth.admin.password="$(kubectl --namespace openstack get secret postgresql-db-admin -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.postgresql.auth.exporter.password="$(kubectl --namespace openstack get secret postgresql-db-exporter -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.postgresql.auth.audit.password="$(kubectl --namespace openstack get secret postgresql-db-audit -o jsonpath='{.data.password}' | base64 -d)"
+kubectl kustomize --enable-helm /opt/genestack/base-kustomize/postgres-operator | kubectl apply -f -
+sleep 10
+kubectl kustomize --enable-helm /opt/genestack/base-kustomize/postgres-operator | kubectl apply -f -
 ```
 
-!!! tip
+## Create the PostgreSQL Cluster
 
-    You may need to provide custom values to configure your openstack services, for a simple single region or lab deployment you can supply an additional overrides flag using the example found at `base-helm-configs/aio-example-openstack-overrides.yaml`.
-    In other cases such as a multi-region deployment you may want to view the [Multi-Region Support](multi-region-support.md) guide to for a workflow solution.
+=== "With kubectl _(Recommended)_"
+
+    !!! info "Customize as needed"
+
+        Be sure to modify the cluster parameters to suit your needs. The below
+        values should work fine for a small lab or staging envionrment, however
+        more disk space and other changes may be required in production.
+
+        ```shell
+        kubectl apply -f - <<EOF
+        apiVersion: "acid.zalan.do/v1"
+        kind: postgresql
+        metadata:
+          name: postgres-cluster
+          namespace: openstack
+        spec:
+          dockerImage: ghcr.io/zalando/spilo-16:3.2-p3
+          teamId: "acid"
+          numberOfInstances: 3
+          postgresql:
+            version: "16"
+            parameters:
+              shared_buffers: "2GB"
+              max_connections: "1024"
+              log_statement: "all"
+          volume:
+            size: 40Gi
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                  - key: node-role.kubernetes.io/worker
+                    operator: In
+                    values:
+                    - worker
+        EOF
+        ```
+
+=== "With kubectl kustomize Overlay"
+
+    Two overlays exist - `base` which includes 3 replicas, and an `aio` overlay
+    which has a single replica and less default resource utilization.
+
+    ```shell
+    kubectl kustomize /opt/genestack/base-kustomize/postgres-cluster/base | kubectl apply -f -
+    ```

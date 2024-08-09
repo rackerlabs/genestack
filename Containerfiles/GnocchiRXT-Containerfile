@@ -1,0 +1,39 @@
+FROM ubuntu:22.04
+ARG VERSION=""
+ENV GNOCCHI_VERSION ${VERSION:-master}
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt update && \
+    apt install -y software-properties-common && \
+    add-apt-repository ppa:deadsnakes/ppa -y
+RUN apt update && \
+    apt install -y \
+    python3.10 \
+    python3.10-dev \
+    python3-memcache \
+    git \
+    wget \
+    curl \
+    apache2 \
+    locales \
+    libapache2-mod-wsgi-py3 \
+    build-essential \
+    libffi-dev \
+    libpq-dev \
+    postgresql \
+    memcached \
+    librados-dev \
+    liberasurecode-dev \
+    python3-rados \
+    ceph \
+    libsnappy-dev \
+    libprotobuf-dev
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10 && \
+    pip install \
+    "gnocchi[postgresql,ceph,keystone] @ git+https://github.com/gnocchixyz/gnocchi.git@${GNOCCHI_VERSION}" \
+    "pymemcache" \
+    "pymysql" \
+    "sqlalchemy>=1.4.24,<2"
+RUN ln -s /usr/bin/python3 /usr/bin/python && \
+    adduser gnocchi --disabled-password && \
+    sed -i 's@^ErrorLog.*@ErrorLog /dev/stderr@' /etc/apache2/apache2.conf && \
+    apt clean && rm -rf /var/lib/apt/lists/*

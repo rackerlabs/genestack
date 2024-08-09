@@ -947,7 +947,8 @@ endpoints:
       #   project_domain_name: default
       #   default_domain_id: default
     hosts:
-      default: keystone
+      default: keystone-api
+      admin: keystone-api
       internal: keystone-api
     host_fqdn_override:
       default: null
