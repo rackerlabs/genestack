@@ -39,15 +39,15 @@ images:
     dep_check: quay.io/airshipit/kubernetes-entrypoint:v1.0.0
     gnocchi_storage_init: docker.io/openstackhelm/ceph-config-helper:latest-ubuntu_focal
     db_init_indexer: docker.io/library/postgres:14.5
-    db_init: ghcr.io/lukerepko/genestack/gnocchi:2024.1-ubuntu_jammy
-    db_sync: ghcr.io/lukerepko/genestack/gnocchi:2024.1-ubuntu_jammy
+    db_init: ghcr.io/rackerlabs/genestack/gnocchi:2024.1-ubuntu_jammy
+    db_sync: ghcr.io/rackerlabs/genestack/gnocchi:2024.1-ubuntu_jammy
     ks_user: docker.io/openstackhelm/heat:2024.1-ubuntu_jammy
     ks_service: docker.io/openstackhelm/heat:2024.1-ubuntu_jammy
     ks_endpoints: docker.io/openstackhelm/heat:2024.1-ubuntu_jammy
-    gnocchi_api: ghcr.io/lukerepko/genestack/gnocchi:2024.1-ubuntu_jammy
-    gnocchi_statsd: ghcr.io/lukerepko/genestack/gnocchi:2024.1-ubuntu_jammy
-    gnocchi_metricd: ghcr.io/lukerepko/genestack/gnocchi:2024.1-ubuntu_jammy
-    gnocchi_resources_cleaner: ghcr.io/lukerepko/genestack/gnocchi:2024.1-ubuntu_jammy
+    gnocchi_api: ghcr.io/rackerlabs/genestack/gnocchi:2024.1-ubuntu_jammy
+    gnocchi_statsd: ghcr.io/rackerlabs/genestack/gnocchi:2024.1-ubuntu_jammy
+    gnocchi_metricd: ghcr.io/rackerlabs/genestack/gnocchi:2024.1-ubuntu_jammy
+    gnocchi_resources_cleaner: ghcr.io/rackerlabs/genestack/gnocchi:2024.1-ubuntu_jammy
     image_repo_sync: docker.io/library/docker:17.07.0
   pull_policy: "Always"
   local_registry:
