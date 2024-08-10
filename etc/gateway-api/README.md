@@ -1,6 +1,6 @@
 # Gateway API Resources
 
-These files are intended to be modifed before use. Therein are example
+These files are intended to be modified before use. Therein are example
 domains that can be replaced with your own custom domain before being
 applied to your gateway resource.
 
