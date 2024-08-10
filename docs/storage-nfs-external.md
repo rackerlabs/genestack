@@ -1,3 +1,8 @@
+---
+hide:
+  - footer
+---
+
 # NFS - External
 
 While NFS in K8S works great, it's not suitable for use in all situations.
@@ -12,7 +17,7 @@ In Genestack, the `general` storage class is used by default for systems like Ra
 
 NFS requires utilities to be installed on the host. Before you create workloads that require NFS make sure you have `nfs-common` installed on your target storage hosts (e.g. the controllers).
 
-## Add the NFS Provisioner Helm repo
+### Add the NFS Provisioner Helm repo
 
 ``` shell
 helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/

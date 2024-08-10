@@ -1,3 +1,8 @@
+---
+hide:
+  - footer
+---
+
 # Cephadm/ceph-ansible/Rook (Ceph) - External
 
 We can use an external ceph cluster and present it via rook-ceph to your cluster.
@@ -33,7 +38,7 @@ yum install wget -y ; wget https://raw.githubusercontent.com/rook/rook/release-1
 python3 create-external-cluster-resources.py --rbd-data-pool-name general --cephfs-filesystem-name general-multi-attach --namespace rook-ceph-external --format bash
 ```
 
-!!! example  "Example create-external-cluster-resources.py output"
+!!! example "Example create-external-cluster-resources.py output"
 
     The script generates a lot of output, you will need to capture all of the exports. These exports will be used in the next command.
 
@@ -62,9 +67,7 @@ python3 create-external-cluster-resources.py --rbd-data-pool-name general --ceph
     export RGW_POOL_PREFIX=default
     ```
 
-!!! info
-
-    Run the following commands to import the cluster after pasting in exports from external cluster
+Run the following commands to import the cluster after pasting in exports from external cluster
 
 ``` shell
 kubectl apply -k /opt/genestack/base-kustomize/rook-operator/

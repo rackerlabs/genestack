@@ -1,3 +1,8 @@
+---
+hide:
+  - footer
+---
+
 # Rook (Ceph) - In Cluster
 
 ## Deploy the Rook operator
