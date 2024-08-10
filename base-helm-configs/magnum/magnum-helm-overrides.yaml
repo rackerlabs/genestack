@@ -264,13 +264,12 @@ dependencies:
       services:
         - endpoint: internal
           service: oslo_db
-#    db_init:
-#      services:
-#        - endpoint: internal
-#          service: oslo_db
+    db_init:
+      services:
+        - endpoint: internal
+          service: oslo_db
     db_sync:
-      jobs:
-        #- magnum-db-init
+      jobs: null
       services:
         - endpoint: internal
           service: oslo_db
@@ -288,10 +287,10 @@ dependencies:
       services:
         - endpoint: internal
           service: identity
-    #rabbit_init:
-    #  services:
-    #    - endpoint: internal
-    #     service: oslo_messaging
+    rabbit_init:
+      services:
+        - endpoint: internal
+          service: oslo_messaging
     image_repo_sync:
       services:
         - endpoint: internal
@@ -666,5 +665,5 @@ manifests:
   secret_registry: true
   service_api: true
   service_ingress_api: false
-  statefulset_conductor: true
+  statefulset_conductor: false
 ...
