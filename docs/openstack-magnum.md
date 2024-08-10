@@ -22,7 +22,7 @@ kubectl --namespace openstack \
 ## Run the package deployment
 
 ``` shell
-cd /etc/genestack/submodules/openstack-helm
+cd /opt/genestack/submodules/openstack-helm
 
 helm upgrade --install magnum ./magnum \
     --namespace=openstack \
