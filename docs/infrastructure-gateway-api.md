@@ -1,6 +1,7 @@
 # Gateway API
 
-Gateway API is L4 and L7 layer routing project in Kubernetes. It represents next generation of k8s Ingress, LB and Service Mesh APIs. For more information on the project see: [Gateway API SIG.](https://gateway-api.sigs.k8s.io/)
+Gateway API is L4 and L7 layer routing project in Kubernetes. It represents next generation of k8s Ingress, LB and Service Mesh APIs.
+For more information on the project see: [Gateway API SIG.](https://gateway-api.sigs.k8s.io/)
 
 ### Move from Ingress to Gateway APIs
 
@@ -18,7 +19,8 @@ There are 3 main resource models in gateway apis:
 
 !!! warning "k8s Gateway API is NOT the same as API Gateways"
 
-While both sound the same, API Gateway is a more of a general concept that defines a set of resources that exposes capabilities of a backend service but also provide other functionalities like traffic management, rate limiting, authentication and more. It is geared towards commercial API management and monetisation.
+While both sound the same, API Gateway is a more of a general concept that defines a set of resources that exposes capabilities of a backend service but
+also provide other functionalities like traffic management, rate limiting, authentication and more. It is geared towards commercial API management and monetisation.
 
 From the gateway api sig:
 
@@ -32,8 +34,7 @@ There are various implementations of the Gateway API. In this document, we will 
 
 === "NGINX Gateway Fabric _(Recommended)_"
 
-    [NGINX Gateway Fabric](https://github.com/nginxinc/nginx-gateway-fabric)
-    is an open-source project that provides an implementation of the Gateway
+    [NGINX Gateway Fabric](https://github.com/nginxinc/nginx-gateway-fabric) is an open-source project that provides an implementation of the Gateway
     API using nginx as the data plane.
 
     ### Create the Namespace
@@ -52,7 +53,10 @@ There are various implementations of the Gateway API. In this document, we will 
 
     !!! tip
 
-        If attempting to perform an **upgrade** of an existing Gateway API deployment, note that the Helm install does not automatically upgrade the CRDs for this resource. To upgrade them, refer to the process outlined by the [Nginx upgrade documentation](https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#upgrade-nginx-gateway-fabric-crds). You can safely ignore this note for new installations.
+        If attempting to perform an **upgrade** of an existing Gateway API deployment, note that the Helm install does not automatically upgrade the CRDs for
+        this resource. To upgrade them, refer to the process outlined by the
+        [Nginx upgrade documentation](https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#upgrade-nginx-gateway-fabric-crds). You
+        can safely ignore this note for new installations.
 
     ``` shell
     cd /opt/genestack/submodules/nginx-gateway-fabric/charts/nginx-gateway-fabric
@@ -116,8 +120,7 @@ There are various implementations of the Gateway API. In this document, we will 
 
 ## Deploy with Let's Encrypt Certificates
 
-By default, certificates are issued by an instance of the
-selfsigned-cluster-issuer. This section focuses on replacing that with a
+By default, certificates are issued by an instance of the selfsigned-cluster-issuer. This section focuses on replacing that with a
 Let's Encrypt issuer to ensure valid certificates are deployed in our cluster.
 
 [![asciicast](https://asciinema.org/a/h7npXnDjkSpn3uQtuQwWG9zju.svg)](https://asciinema.org/a/h7npXnDjkSpn3uQtuQwWG9zju)
@@ -155,7 +158,7 @@ EOF
 ## Patch Gateway with valid listeners
 
 By default, a generic Gateway is created using a hostname of `*.cluster.local`. To add specific hostnames/listeners to the gateway, you can either
-create a patch or update the gateway YAML to include your specific hostnames and then apply the patch/update.  Each listener must have a
+create a patch or update the gateway YAML to include your specific hostnames and then apply the patch/update. Each listener must have a
 unique name.
 
 ??? example "An example patch file you can modify to include your own domain name can be found at `/etc/genestack/gateway-api/gateway-patches.json`"
@@ -164,20 +167,22 @@ unique name.
     --8<-- "etc/gateway-api/gateway-patches.json"
     ```
 
-!!! example "Example modifying and apply the patch"
+!!! example "Example modifying the Gateway patch"
 
     ``` shell
     mkdir -p /etc/genestack/gateway-api
     sed 's/your.domain.tld/<YOUR_DOMAIN>/g' /opt/genestack/etc/gateway-api/gateway-patches.json > /etc/genestack/gateway-api/gateway-patches.json
-    kubectl patch -n nginx-gateway gateway flex-gateway \
-                  --type='json' \
-                  --patch-file /etc/genestack/gateway-api/gateway-patches.json
     ```
+
+``` shell
+kubectl patch -n nginx-gateway gateway flex-gateway \
+              --type='json' \
+              --patch-file /etc/genestack/gateway-api/gateway-patches.json
+```
 
 ## Apply Related Gateway routes
 
-Another example with most of the OpenStack services is located at
-`/etc/genestack/gateway-api/gateway-routes.yaml`. Similarly, you must modify
+Another example with most of the OpenStack services is located at `/etc/genestack/gateway-api/gateway-routes.yaml`. Similarly, you must modify
 and apply them as shown below, or apply your own.
 
 ??? example "An example routes file you can modify to include your own domain name can be found at `/etc/genestack/gateway-api/gateway-routes.yaml`"
@@ -186,13 +191,16 @@ and apply them as shown below, or apply your own.
     --8<-- "etc/gateway-api/gateway-routes.yaml"
     ```
 
-!!! example "Example modifying and apply the Gateway routes"
+!!! example "Example modifying the Gateway routes"
 
     ``` shell
     mkdir -p /etc/genestack/gateway-api
     sed 's/your.domain.tld/<YOUR_DOMAIN>/g' /opt/genestack/etc/gateway-api/gateway-routes.yaml > /etc/genestack/gateway-api/gateway-routes.yaml
-    kubectl apply -f /etc/genestack/gateway-api/gateway-routes.yaml
     ```
+
+``` shell
+kubectl apply -f /etc/genestack/gateway-api/gateway-routes.yaml
+```
 
 ## Patch Gateway with Let's Encrypt Cluster Issuer
 
@@ -221,22 +229,27 @@ First, create the shared gateway and then the httproute resource for prometheus.
     --8<-- "etc/gateway-api/gateway-prometheus.yaml"
     ```
 
-!!! example "Example modifying and apply the Prometheus' Gateway deployment"
+!!! example "Example modifying Prometheus' Gateway deployment"
 
     ``` shell
     mkdir -p /etc/genestack/gateway-api
     sed 's/your.domain.tld/<YOUR_DOMAIN>/g' /opt/genestack/etc/gateway-api/gateway-prometheus.yaml > /etc/genestack/gateway-api/gateway-prometheus.yaml
-    kubectl apply -f /etc/genestack/gateway-api/gateway-prometheus.yaml
     ```
+
+``` shell
+kubectl apply -f /etc/genestack/gateway-api/gateway-prometheus.yaml
+```
 
 At this point, flex-gateway has a listener pointed to the port 80 matching *.your.domain.tld hostname. The HTTPRoute resource configures routes
 for this gateway. Here, we match all path and simply pass any request from the matching hostname to kube-prometheus-stack-prometheus backend service.
 
-!!! note "Example applying Rackspace specific gateway kustomization files"
+## Example Implementation from Rackspace
 
-    ``` shell
-    kubectl kustomize /opt/genestack/base-kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
-    ```
+This example is not required and is only intended to show how Rackspace deploys specific gateway kustomization files.
+
+``` shell
+kubectl kustomize /opt/genestack/base-kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
+```
 
 ## Exposing Flex Services
 
@@ -247,7 +260,10 @@ We have a requirement to expose a service
 
 ![Flex Service Expose External with F5 Loadbalancer](assets/images/flexingress.png)
 
-For each externally exposed service, example: keystone endpoint, we have a GatewayAPI resource setup to use listeners on services with matching rules based on hostname, for example keystone.sjc.api.rackspacecloud.com. When a request comes in to the f5 vip for this the vip is setup to pass the traffic to the Metallb external vip address. Metallb then forwards the traffic to the appropriate service endpoint for the gateway controller which matches the hostname and passes the traffic onto the right service. The same applies to internal services. Anything that matches ohthree.com hostname can be considered internal and handled accordingly.
+For each externally exposed service, example: keystone endpoint, we have a GatewayAPI resource setup to use listeners on services with matching rules based on
+hostname, for example keystone.sjc.api.rackspacecloud.com. When a request comes in to the f5 vip for this the vip is setup to pass the traffic to the Metallb
+external vip address. Metallb then forwards the traffic to the appropriate service endpoint for the gateway controller which matches the hostname and passes the
+traffic onto the right service. The same applies to internal services. Anything that matches ohthree.com hostname can be considered internal and handled accordingly.
 
 ``` mermaid
 flowchart LR
@@ -265,6 +281,8 @@ This setup can be expended to have multiple MetalLB VIPs with multiple Gateway S
 
 ## Cross Namespace Routing
 
-Gateway API has support for multi-ns and cross namespace routing. Routes can be deployed into different Namespaces and Routes can attach to Gateways across Namespace boundaries. This allows user access control to be applied differently across Namespaces for Routes and Gateways, effectively segmenting access and control to different parts of the cluster-wide routing configuration.
+Gateway API has support for multi-ns and cross namespace routing. Routes can be deployed into different Namespaces and Routes can attach to Gateways across
+Namespace boundaries. This allows user access control to be applied differently across Namespaces for Routes and Gateways, effectively segmenting access and
+control to different parts of the cluster-wide routing configuration.
 
 More information on cross namespace routing can be found [here](https://gateway-api.sigs.k8s.io/guides/multiple-ns/).
