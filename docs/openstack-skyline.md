@@ -8,9 +8,9 @@ Skyline is an alternative Web UI for OpenStack. If you deploy horizon there's no
 
 !!! note "Information about the secretes used"
 
-    Manual secrete generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
+    Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
 
-    ??? example "Manual secrete generation"
+    ??? example "Example secret generation"
 
         Skyline is a little different because there's no helm integration. Given this difference the deployment is far simpler, and all secrets
         can be managed in one object.

@@ -12,9 +12,9 @@ gnocchi-metricd).
 
 !!! note "Information about the secretes used"
 
-    Manual secrete generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
+    Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
 
-    ??? example "Manual secrete generation"
+    ??? example "Example secret generation"
 
         ``` shell
         kubectl --namespace openstack create secret generic gnocchi-admin \
