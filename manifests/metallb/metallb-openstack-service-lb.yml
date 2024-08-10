@@ -6,7 +6,7 @@ metadata:
   namespace: metallb-system
 spec:
   addresses:
-  - 172.28.232.10/32  # This is assumed to be the public LB vip address
+    - 10.74.8.99/32  # This is assumed to be the public LB vip address
   autoAssign: false
 ---
 apiVersion: metallb.io/v1beta1
@@ -16,4 +16,13 @@ metadata:
   namespace: metallb-system
 spec:
   ipAddressPools:
-  - openstack-external
+    - openstack-external
+  nodeSelectors:  # Optional block to limit nodes for a given advertisement
+    - matchLabels:
+        kubernetes.io/hostname: controller01.sjc.ohthree.com
+    - matchLabels:
+        kubernetes.io/hostname: controller02.sjc.ohthree.com
+    - matchLabels:
+        kubernetes.io/hostname: controller03.sjc.ohthree.com
+  interfaces:  # Optional block to limit ifaces used to advertise VIPs
+    - br-mgmt

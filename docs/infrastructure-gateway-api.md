@@ -2,18 +2,19 @@
 
 Gateway API is L4 and L7 layer routing project in Kubernetes. It represents next generation of k8s Ingress, LB and Service Mesh APIs. For more information on the project see: [Gateway API SIG.](https://gateway-api.sigs.k8s.io/)
 
-**Move from Ingress to Gateway APIs**
-Since Gateway APIs are successor to Ingress Controllers there needs to be a one time migration from Ingress -> GW API resources. To learn more about it refer to: [Ingress Migration](https://gateway-api.sigs.k8s.io/guides/migrating-from-ingress/#migrating-from-ingress)
+## Move from Ingress to Gateway APIs
 
+Since Gateway APIs are successor to Ingress Controllers there needs to be a one time migration from Ingress -> GW API resources. To learn more about it refer to: [Ingress Migration](https://gateway-api.sigs.k8s.io/guides/migrating-from-ingress/#migrating-from-ingress)
 
 ## Resource Models in Gateway API
 
 There are 3 main resource models in gateway apis:
+
 1. GatewayClass - Mostly managed by a controller.
 2. Gateway - An instance of traffic handling infra like a LB.
 3. Routes - Defines HTTP-specific rules for mapping traffic from a Gateway listener to a representation of backend network endpoints.
 
-**k8s Gateway API is NOT the same as API Gateways**
+!!! warning "k8s Gateway API is NOT the same as API Gateways"
 
 While both sound the same, API Gateway is a more of a general concept that defines a set of resources that exposes capabilities of a backend service but also provide other functionalities like traffic management, rate limiting, authentication and more. It is geared towards commercial API management and monetisation.
 
@@ -38,50 +39,36 @@ There are various implementations of the Gateway API. In this document, we will 
 
     **First, create the Namespace**
 
-    ```shell
+    ``` shell
     kubectl create ns nginx-gateway
     ```
 
     **Then, install the Gateway API Resource from Kubernetes**
 
-    ```shell
+    ``` shell
     kubectl kustomize "https://github.com/nginxinc/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v1.3.0" | kubectl apply -f -
     ```
 
     **Next, install the NGINX Gateway Fabric controller**
 
     !!! tip
-        Iff attempting to perform an **upgrade** of an existing Gateway API deployment, note that the  Helm install does not automatically upgrade the CRDs for this resource. To upgrade them, refer to the process outlined by the [Nginx upgrade documentation](https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#upgrade-nginx-gateway-fabric-crds). You can safely ignore this note for new installations.
 
-    ```shell
+        If attempting to perform an **upgrade** of an existing Gateway API deployment, note that the Helm install does not automatically upgrade the CRDs for this resource. To upgrade them, refer to the process outlined by the [Nginx upgrade documentation](https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#upgrade-nginx-gateway-fabric-crds). You can safely ignore this note for new installations.
+
+    ``` shell
     cd /opt/genestack/submodules/nginx-gateway-fabric/charts/nginx-gateway-fabric
 
-    helm upgrade --install nginx-gateway-fabric . --namespace=nginx-gateway -f /opt/genestack/base-helm-configs/nginx-gateway-fabric/helm-overrides.yaml
+    helm upgrade --install nginx-gateway-fabric . \
+                 --namespace=nginx-gateway \
+                 -f /opt/genestack/base-helm-configs/nginx-gateway-fabric/helm-overrides.yaml
 
-    kubectl rollout restart deployment cert-manager -n cert-manager
+    kubectl rollout restart deployment cert-manager --namespace cert-manager
     ```
 
     **Finally, create the shared gateway resource**
 
-    ```shell
+    ``` shell
     kubectl kustomize /opt/genestack/base-kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
-    ```
-
-    **Optionally, Add Custom Listeners**
-
-    By default, a generic Gateway is created using a hostname of `*.cluster.local`.
-    To add specific hostnames/listeners to the gateway, you can either
-    create a patch or update the gateway YAML to include your specific
-    hostnames and then apply the patch/update.  Each listener must have a
-    unique name.  An example patch file you can modify to include your own
-    domain name can be found at
-    `/etc/genestack/gateway-api/gateway-patches.json`.
-
-    **Modify and apply the patch**:
-
-    ```shell
-    sed -i 's/your.domain.tld/<YOUR_DOMAIN>/g' /etc/genestack/gateway-api/gateway-patches.json
-    kubectl patch -n nginx-gateway gateway flex-gateway --type='json' --patch-file /etc/genestack/gateway-api/gateway-patches.json
     ```
 
 === "Envoyproxy"
@@ -94,7 +81,7 @@ There are various implementations of the Gateway API. In this document, we will 
 
     - Apply the configuration using the following command:
 
-    ```shell
+    ``` shell
     kubectl kustomize --enable-helm /opt/genestack/base-kustomize/envoyproxy-gateway/base | kubectl apply -f -
     ```
 
@@ -106,14 +93,14 @@ There are various implementations of the Gateway API. In this document, we will 
 
     - Apply the Kustomize configuration which will create `Gateway` resource:
 
-    ```shell
+    ``` shell
     kubectl kustomize /opt/genestack/base-kustomize/gateway/envoyproxy | kubectl apply -f -
     ```
 
     - Once gateway is created, user can expose an application by creating `HTTPRoute` resource.
       - Sample `HTTPRoute` resource:
 
-    ```shell
+    ``` shell
     apiVersion: gateway.networking.k8s.io/v1
     kind: HTTPRoute
     metadata:
@@ -146,7 +133,7 @@ Before we can have Cert Manager start coordinating Let's Encrypt certificate
 requests for us, we need to add an ACME issuer with a valid, monitored
 email (for expiration reminders and other important ACME related information).
 
-```yaml
+``` yaml
 read -p "Enter a valid email address for use with ACME: " ACME_EMAIL; \
 cat <<EOF | kubectl apply -f -
 apiVersion: cert-manager.io/v1
@@ -172,14 +159,19 @@ EOF
 
 ### Patch Gateway with valid listeners
 
-An example with most of the OpenStack services can be found at
-`/etc/genestack/gateway-api/gateway-patches.json`. If you haven't already, you
-must modify and apply it as shown below, or apply your own.
+By default, a generic Gateway is created using a hostname of `*.cluster.local`. To add specific hostnames/listeners to the gateway, you can either
+create a patch or update the gateway YAML to include your specific hostnames and then apply the patch/update.  Each listener must have a
+unique name.  An example patch file you can modify to include your own domain name can be found at `/etc/genestack/gateway-api/gateway-patches.json`.
 
-```yaml
-sed -i 's/your.domain.tld/<YOUR_DOMAIN>/g' /etc/genestack/gateway-api/gateway-patches.json
-kubectl patch -n nginx-gateway gateway flex-gateway --type='json' --patch-file /etc/genestack/gateway-api/gateway-patches.json
-```
+!!! example "Modify and apply the patch"
+
+    ``` shell
+    mkdir -p /etc/genestack/gateway-api
+    sed 's/your.domain.tld/<YOUR_DOMAIN>/g' /opt/genestack/etc/gateway-api/gateway-patches.json > /etc/genestack/gateway-api/gateway-patches.json
+    kubectl patch -n nginx-gateway gateway flex-gateway \
+                  --type='json' \
+                  --patch-file /etc/genestack/gateway-api/gateway-patches.json
+    ```
 
 ### Apply Related Gateway routes
 
@@ -187,14 +179,17 @@ Another example with most of the OpenStack services is located at
 `/etc/genestack/gateway-api/gateway-routes.yaml`. Similarly, you must modify
 and apply them as shown below, or apply your own.
 
-```yaml
-sed -i 's/your.domain.tld/<YOUR_DOMAIN>/g' /etc/genestack/gateway-api/gateway-routes.yaml
-kubectl apply -f /etc/genestack/gateway-api/gateway-routes.yaml
-```
+!!! example "Modify and apply the routes"
+
+    ``` shell
+    mkdir -p /etc/genestack/gateway-api
+    sed 's/your.domain.tld/<YOUR_DOMAIN>/g' /opt/genestack/etc/gateway-api/gateway-routes.yaml > /etc/genestack/gateway-api/gateway-routes.yaml
+    kubectl apply -f /etc/genestack/gateway-api/gateway-routes.yaml
+    ```
 
 ### Patch Gateway with Let's Encrypt Cluster Issuer
 
-```yaml
+``` shell
 kubectl patch -n nginx-gateway --type merge gateway flex-gateway -p "$(cat <<EOF
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
@@ -211,12 +206,6 @@ EOF
 ## Example Implementation with Prometheus UI (NGINX Gateway Fabric)
 
 In this example we will look at how Prometheus UI is exposed through the gateway. For other services the gateway kustomization file for the service.
-
-Rackspace specific gateway kustomization files can be applied like so
-
-```shell
-kubectl kustomize /opt/genestack/base-kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
-```
 
 First, create the shared gateway and then the httproute resource for prometheus.
 
@@ -253,7 +242,14 @@ spec:
         port: 9090
 ```
 
-At this point, flex-gateway has a listener pointed to the port 80 matching *.sjc.ohthree.com hostname. The HTTPRoute resource configures routes for this gateway. Here, we match all path and simply pass any request from the matching hostname to kube-prometheus-stack-prometheus backend service.
+Rackspace specific gateway kustomization files can be applied like so
+
+``` shell
+kubectl kustomize /opt/genestack/base-kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
+```
+
+At this point, flex-gateway has a listener pointed to the port 80 matching *.sjc.ohthree.com hostname. The HTTPRoute resource configures routes
+for this gateway. Here, we match all path and simply pass any request from the matching hostname to kube-prometheus-stack-prometheus backend service.
 
 ### Exposing Flex Services
 
@@ -266,8 +262,9 @@ We have a requirement to expose a service
 
 For each externally exposed service, example: keystone endpoint, we have a GatewayAPI resource setup to use listeners on services with matching rules based on hostname, for example keystone.sjc.api.rackspacecloud.com. When a request comes in to the f5 vip for this the vip is setup to pass the traffic to the Metallb external vip address. Metallb then forwards the traffic to the appropriate service endpoint for the gateway controller which matches the hostname and passes the traffic onto the right service. The same applies to internal services. Anything that matches ohthree.com hostname can be considered internal and handled accordingly.
 
-```
-External Traffic -> F5 VIP Address -> MetalLB VIP Address -> Gateway Service
+``` mermaid
+flowchart LR
+    External --> External_VIP_Address --> MetalLB_VIP_Address --> Gateway_Service
 ```
 
 This setup can be expended to have multiple MetalLB VIPs with multiple Gateway Services listening on different IP addresses as required by your setup.

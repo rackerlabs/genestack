@@ -155,8 +155,6 @@ nav:
               - TopoLVM: storage-topolvm.md
               - External Storage CSI: storage-external-block.md
           - Secrets:
-              - vault.md
-              - Vault Operator: vault-secrets-operator.md
               - Sealed Secrets: sealed-secrets.md
           - Infrastructure:
               - infrastructure-overview.md
