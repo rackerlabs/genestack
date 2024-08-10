@@ -1,23 +1,29 @@
 # Deploy Barbican
 
 
-### Create secrets
+## Create secrets
 
-``` shell
-kubectl --namespace openstack \
-        create secret generic barbican-rabbitmq-password \
-        --type Opaque \
-        --from-literal=username="barbican" \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
-kubectl --namespace openstack \
-        create secret generic barbican-db-password \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack \
-        create secret generic barbican-admin \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-```
+!!! note "Information about the secretes used"
+
+    Manual secrete generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
+
+    ??? example "Manual secrete generation"
+
+        ``` shell
+        kubectl --namespace openstack \
+                create secret generic barbican-rabbitmq-password \
+                --type Opaque \
+                --from-literal=username="barbican" \
+                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
+        kubectl --namespace openstack \
+                create secret generic barbican-db-password \
+                --type Opaque \
+                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+        kubectl --namespace openstack \
+                create secret generic barbican-admin \
+                --type Opaque \
+                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+        ```
 
 ## Run the package deployment
 

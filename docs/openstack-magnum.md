@@ -4,23 +4,29 @@
 
     Before Magnum can be deployed, you must setup and deploy [Barbican](openstack-barbican.md) first.
 
-### Create secrets
+## Create secrets
 
-``` shell
-kubectl --namespace openstack \
-        create secret generic magnum-rabbitmq-password \
-        --type Opaque \
-        --from-literal=username="magnum" \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
-kubectl --namespace openstack \
-        create secret generic magnum-db-password \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack \
-        create secret generic magnum-admin \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-```
+!!! note "Information about the secretes used"
+
+    Manual secrete generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
+
+    ??? example "Manual secrete generation"
+
+        ``` shell
+        kubectl --namespace openstack \
+                create secret generic magnum-rabbitmq-password \
+                --type Opaque \
+                --from-literal=username="magnum" \
+                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
+        kubectl --namespace openstack \
+                create secret generic magnum-db-password \
+                --type Opaque \
+                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+        kubectl --namespace openstack \
+                create secret generic magnum-admin \
+                --type Opaque \
+                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+        ```
 
 ## Run the package deployment
 

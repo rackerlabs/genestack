@@ -3,33 +3,36 @@
 [![asciicast](https://asciinema.org/a/629807.svg)](https://asciinema.org/a/629807)
 
 ## Create secrets
-!!! info
 
-    This step is not needed if you ran the create-secrets.sh script located in /opt/genestack/bin
+!!! note "Information about the secretes used"
 
-``` shell
-kubectl --namespace openstack \
-        create secret generic heat-rabbitmq-password \
-        --type Opaque \
-        --from-literal=username="heat" \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
-kubectl --namespace openstack \
-        create secret generic heat-db-password \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack \
-        create secret generic heat-admin \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack \
-        create secret generic heat-trustee \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack \
-        create secret generic heat-stack-user \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-```
+    Manual secrete generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
+
+    ??? example "Manual secrete generation"
+
+        ``` shell
+        kubectl --namespace openstack \
+                create secret generic heat-rabbitmq-password \
+                --type Opaque \
+                --from-literal=username="heat" \
+                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
+        kubectl --namespace openstack \
+                create secret generic heat-db-password \
+                --type Opaque \
+                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+        kubectl --namespace openstack \
+                create secret generic heat-admin \
+                --type Opaque \
+                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+        kubectl --namespace openstack \
+                create secret generic heat-trustee \
+                --type Opaque \
+                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+        kubectl --namespace openstack \
+                create secret generic heat-stack-user \
+                --type Opaque \
+                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+        ```
 
 ## Run the package deployment
 

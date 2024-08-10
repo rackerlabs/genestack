@@ -20,7 +20,7 @@ kubectl label node etcd01.sjc.ohthree.com is-etcd-backup-node=true
 
 Create the secret:
 
-```
+``` shell
 kubectl --namespace openstack \
         create secret generic etcd-backup-secrets \
         --type Opaque \
