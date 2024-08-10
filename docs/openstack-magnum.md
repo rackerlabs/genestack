@@ -1,5 +1,8 @@
 # Deploy Magnum
 
+!!! note
+
+    Before Magnum can be deployed, you must setup and deploy [Barbican](openstack-barbican.md) first.
 
 ### Create secrets
 
