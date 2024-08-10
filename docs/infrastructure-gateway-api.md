@@ -2,11 +2,13 @@
 
 Gateway API is L4 and L7 layer routing project in Kubernetes. It represents next generation of k8s Ingress, LB and Service Mesh APIs. For more information on the project see: [Gateway API SIG.](https://gateway-api.sigs.k8s.io/)
 
-## Move from Ingress to Gateway APIs
+### Move from Ingress to Gateway APIs
 
-Since Gateway APIs are successor to Ingress Controllers there needs to be a one time migration from Ingress -> GW API resources. To learn more about it refer to: [Ingress Migration](https://gateway-api.sigs.k8s.io/guides/migrating-from-ingress/#migrating-from-ingress)
+Since Gateway APIs are successor to Ingress Controllers there needs to be a one time migration from Ingress to GW API resources.
 
-## Resource Models in Gateway API
+!!! tip "Learn more about migrating to the Gateway API: [Ingress Migration](https://gateway-api.sigs.k8s.io/guides/migrating-from-ingress/#migrating-from-ingress)"
+
+### Resource Models in Gateway API
 
 There are 3 main resource models in gateway apis:
 
@@ -28,28 +30,25 @@ From the gateway api sig:
 
 There are various implementations of the Gateway API. In this document, we will cover two of them:
 
-* [NGINX Gateway Fabric](https://github.com/nginxinc/nginx-gateway-fabric)
-* [Envoyproxy](https://gateway.envoyproxy.io/)
-
 === "NGINX Gateway Fabric _(Recommended)_"
 
     [NGINX Gateway Fabric](https://github.com/nginxinc/nginx-gateway-fabric)
     is an open-source project that provides an implementation of the Gateway
     API using nginx as the data plane.
 
-    **First, create the Namespace**
+    ### Create the Namespace
 
     ``` shell
     kubectl create ns nginx-gateway
     ```
 
-    **Then, install the Gateway API Resource from Kubernetes**
+    ### Install the Gateway API Resource from Kubernetes
 
     ``` shell
     kubectl kustomize "https://github.com/nginxinc/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v1.3.0" | kubectl apply -f -
     ```
 
-    **Next, install the NGINX Gateway Fabric controller**
+    ### Install the NGINX Gateway Fabric controller
 
     !!! tip
 
@@ -65,7 +64,7 @@ There are various implementations of the Gateway API. In this document, we will 
     kubectl rollout restart deployment cert-manager --namespace cert-manager
     ```
 
-    **Finally, create the shared gateway resource**
+    ### Create the shared gateway resource
 
     ``` shell
     kubectl kustomize /opt/genestack/base-kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
@@ -75,49 +74,45 @@ There are various implementations of the Gateway API. In this document, we will 
 
     [Envoyproxy](https://gateway.envoyproxy.io/) is an open-source project that provides an implementation of the Gateway API using Envoyproxy as the data plane.
 
-    **Installation**
+    ### Installation
 
-    - Update the `/opt/genestack/base-kustomize/envoyproxy-gateway/base/values.yaml` file according to your requirements.
+    Update the `/opt/genestack/base-kustomize/envoyproxy-gateway/base/values.yaml` file according to your requirements.
 
-    - Apply the configuration using the following command:
+    Apply the configuration using the following command:
 
     ``` shell
     kubectl kustomize --enable-helm /opt/genestack/base-kustomize/envoyproxy-gateway/base | kubectl apply -f -
     ```
 
-    **After installation, you need to create Gateway and HTTPRoute resources based on your requirements.**
+    ### After installation
 
-    **Example to expose an application using Gateway API (Envoyproxy)**
+    You need to create Gateway and HTTPRoute resources based on your requirements
 
-    - In this example, we will demonstrate how to expose an application through a gateway.
+    !!! example "exposing an application using Gateway API (Envoyproxy)"
 
-    - Apply the Kustomize configuration which will create `Gateway` resource:
+        In this example, we will demonstrate how to expose an application through a gateway. Apply the Kustomize configuration which will create `Gateway` resource:
 
-    ``` shell
-    kubectl kustomize /opt/genestack/base-kustomize/gateway/envoyproxy | kubectl apply -f -
-    ```
+        ``` shell
+        kubectl kustomize /opt/genestack/base-kustomize/gateway/envoyproxy | kubectl apply -f -
+        ```
 
-    - Once gateway is created, user can expose an application by creating `HTTPRoute` resource.
-      - Sample `HTTPRoute` resource:
+    Once gateway is created, user can expose an application by creating `HTTPRoute` resource.
 
-    ``` shell
-    apiVersion: gateway.networking.k8s.io/v1
-    kind: HTTPRoute
-    metadata:
-    name: test_application
-    namespace: test_app
-    spec:
-    parentRefs:
-    - name: flex-gateway
-      sectionName: http
-      namespace: envoy-gateway-system
-    hostnames:
-    - "test_application.sjc.ohthree.com"
-    rules:
-      - backendRefs:
-        - name: test_application
-          port: 8774
-    ```
+    ??? example "Sample `HTTPRoute` resource"
+
+        ``` yaml
+        --8<-- "etc/gateway-api/gateway-envoy-http-routes.yaml"
+        ```
+
+    !!! example "Example modifying and apply the routes"
+
+        ``` shell
+        mkdir -p /etc/genestack/gateway-api
+        sed 's/your.domain.tld/<YOUR_DOMAIN>/g' /opt/genestack/etc/gateway-api/gateway-envoy-http-routes.yaml > /etc/genestack/gateway-api/gateway-envoy-http-routes.yaml
+        kubectl apply -f /etc/genestack/gateway-api/gateway-envoy-http-routes.yaml
+        ```
+
+----
 
 ## Deploy with Let's Encrypt Certificates
 
@@ -157,13 +152,19 @@ spec:
 EOF
 ```
 
-### Patch Gateway with valid listeners
+## Patch Gateway with valid listeners
 
 By default, a generic Gateway is created using a hostname of `*.cluster.local`. To add specific hostnames/listeners to the gateway, you can either
 create a patch or update the gateway YAML to include your specific hostnames and then apply the patch/update.  Each listener must have a
-unique name.  An example patch file you can modify to include your own domain name can be found at `/etc/genestack/gateway-api/gateway-patches.json`.
+unique name.
 
-!!! example "Modify and apply the patch"
+??? example "An example patch file you can modify to include your own domain name can be found at `/etc/genestack/gateway-api/gateway-patches.json`"
+
+    ``` json
+    --8<-- "etc/gateway-api/gateway-patches.json"
+    ```
+
+!!! example "Example modifying and apply the patch"
 
     ``` shell
     mkdir -p /etc/genestack/gateway-api
@@ -173,13 +174,19 @@ unique name.  An example patch file you can modify to include your own domain na
                   --patch-file /etc/genestack/gateway-api/gateway-patches.json
     ```
 
-### Apply Related Gateway routes
+## Apply Related Gateway routes
 
 Another example with most of the OpenStack services is located at
 `/etc/genestack/gateway-api/gateway-routes.yaml`. Similarly, you must modify
 and apply them as shown below, or apply your own.
 
-!!! example "Modify and apply the routes"
+??? example "An example routes file you can modify to include your own domain name can be found at `/etc/genestack/gateway-api/gateway-routes.yaml`"
+
+    ``` yaml
+    --8<-- "etc/gateway-api/gateway-routes.yaml"
+    ```
+
+!!! example "Example modifying and apply the Gateway routes"
 
     ``` shell
     mkdir -p /etc/genestack/gateway-api
@@ -187,20 +194,19 @@ and apply them as shown below, or apply your own.
     kubectl apply -f /etc/genestack/gateway-api/gateway-routes.yaml
     ```
 
-### Patch Gateway with Let's Encrypt Cluster Issuer
+## Patch Gateway with Let's Encrypt Cluster Issuer
+
+??? example "Example patch to enable LetsEncrypt `/etc/genestack/gateway-api/gateway-letsencrypt.yaml`"
+
+    ``` yaml
+    --8<-- "etc/gateway-api/gateway-letsencrypt.yaml"
+    ```
 
 ``` shell
-kubectl patch -n nginx-gateway --type merge gateway flex-gateway -p "$(cat <<EOF
-apiVersion: gateway.networking.k8s.io/v1
-kind: Gateway
-metadata:
-  name: flex-gateway
-  namespace: nginx-gateway
-  annotations:
-    acme.cert-manager.io/http01-edit-in-place: "true"
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-EOF
-)"
+kubectl patch --namespace nginx-gateway \
+              --type merge \
+              --patch-file /etc/genestack/gateway-api/gateway-letsencrypt.yaml \
+              gateway flex-gateway
 ```
 
 ## Example Implementation with Prometheus UI (NGINX Gateway Fabric)
@@ -209,49 +215,30 @@ In this example we will look at how Prometheus UI is exposed through the gateway
 
 First, create the shared gateway and then the httproute resource for prometheus.
 
-``` yaml
-apiVersion: gateway.networking.k8s.io/v1
-kind: Gateway
-metadata:
-  name: flex-gateway
-spec:
-  gatewayClassName: nginx
-  listeners:
-  - name: http
-    port: 80
-    protocol: HTTP
-    hostname: "*.sjc.ohthree.com"
-```
+??? example "Example patch to enable Prometheus `/etc/genestack/gateway-api/gateway-prometheus.yaml`"
 
-then
+    ``` yaml
+    --8<-- "etc/gateway-api/gateway-prometheus.yaml"
+    ```
 
-``` yaml
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: prometheus-gateway-route
-spec:
-  parentRefs:
-  - name: flex-gateway
-    sectionName: http
-  hostnames:
-  - "prometheus.sjc.ohthree.com"
-  rules:
-    - backendRefs:
-      - name: kube-prometheus-stack-prometheus
-        port: 9090
-```
+!!! example "Example modifying and apply the Prometheus' Gateway deployment"
 
-Rackspace specific gateway kustomization files can be applied like so
+    ``` shell
+    mkdir -p /etc/genestack/gateway-api
+    sed 's/your.domain.tld/<YOUR_DOMAIN>/g' /opt/genestack/etc/gateway-api/gateway-prometheus.yaml > /etc/genestack/gateway-api/gateway-prometheus.yaml
+    kubectl apply -f /etc/genestack/gateway-api/gateway-prometheus.yaml
+    ```
 
-``` shell
-kubectl kustomize /opt/genestack/base-kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
-```
-
-At this point, flex-gateway has a listener pointed to the port 80 matching *.sjc.ohthree.com hostname. The HTTPRoute resource configures routes
+At this point, flex-gateway has a listener pointed to the port 80 matching *.your.domain.tld hostname. The HTTPRoute resource configures routes
 for this gateway. Here, we match all path and simply pass any request from the matching hostname to kube-prometheus-stack-prometheus backend service.
 
-### Exposing Flex Services
+!!! note "Example applying Rackspace specific gateway kustomization files"
+
+    ``` shell
+    kubectl kustomize /opt/genestack/base-kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
+    ```
+
+## Exposing Flex Services
 
 We have a requirement to expose a service
 
@@ -276,8 +263,8 @@ This setup can be expended to have multiple MetalLB VIPs with multiple Gateway S
     2. There are no matching L2 or BGP speaker nodes
     3. If the service has external Traffic Policy set to local you need to have the running endpoint on the speaker node.
 
-### Cross Namespace Routing
+## Cross Namespace Routing
 
 Gateway API has support for multi-ns and cross namespace routing. Routes can be deployed into different Namespaces and Routes can attach to Gateways across Namespace boundaries. This allows user access control to be applied differently across Namespaces for Routes and Gateways, effectively segmenting access and control to different parts of the cluster-wide routing configuration.
 
-See: https://gateway-api.sigs.k8s.io/guides/multiple-ns/ for more information on cross namespace routing.
+More information on cross namespace routing can be found [here](https://gateway-api.sigs.k8s.io/guides/multiple-ns/).
