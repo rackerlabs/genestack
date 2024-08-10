@@ -2,14 +2,19 @@
 
 ## Create secret
 
-``` shell
-# MariaDB
-kubectl --namespace openstack \
-        create secret generic mariadb \
-        --type Opaque \
-        --from-literal=root-password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)" \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-```
+!!! note "Information about the secretes used"
+
+    Manual secrete generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
+
+    ??? example "Manual secrete generation"
+
+        ``` shell
+        kubectl --namespace openstack \
+                create secret generic mariadb \
+                --type Opaque \
+                --from-literal=root-password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)" \
+                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+        ```
 
 ## Deploy the mariadb operator
 

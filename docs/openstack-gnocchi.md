@@ -9,21 +9,24 @@ gnocchi-metricd).
 [![Gnocchi Architecture](assets/images/gnocchi-architecture.svg)](openstack-gnocchi.md)
 
 ## Create Secrets
-!!! info
 
-    This step is not needed if you ran the create-secrets.sh script located in /opt/genestack/bin
+!!! note "Information about the secretes used"
 
-``` shell
-kubectl --namespace openstack create secret generic gnocchi-admin \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack create secret generic gnocchi-db-password \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack create secret generic gnocchi-pgsql-password \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-```
+    Manual secrete generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
+
+    ??? example "Manual secrete generation"
+
+        ``` shell
+        kubectl --namespace openstack create secret generic gnocchi-admin \
+                --type Opaque \
+                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+        kubectl --namespace openstack create secret generic gnocchi-db-password \
+                --type Opaque \
+                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+        kubectl --namespace openstack create secret generic gnocchi-pgsql-password \
+                --type Opaque \
+                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+        ```
 
 ## Object Storage Options
 
