@@ -1,6 +1,6 @@
 # Deploy Heat
 
-[![asciicast](https://asciinema.org/a/629807.svg)](https://asciinema.org/a/629807)
+OpenStack Heat is the orchestration service within the OpenStack ecosystem, designed to automate the deployment of cloud applications by orchestrating infrastructure resources such as compute instances, storage volumes, and networking components. Heat allows users to define the infrastructure and application stack in a template format, which can then be deployed and managed as a single unit. This capability facilitates the automated, repeatable, and consistent deployment of complex cloud environments, reducing manual intervention and minimizing errors. In this document, we will cover the deployment of OpenStack Heat using Genestack. With Genestack, the deployment of Heat is optimized, ensuring that cloud applications are efficiently orchestrated and managed, leading to improved scalability and reliability.
 
 ## Create secrets
 
@@ -66,3 +66,7 @@ helm upgrade --install heat ./heat \
 ``` shell
 kubectl --namespace openstack exec -ti openstack-admin-client -- openstack --os-interface internal orchestration service list
 ```
+
+## Demo
+
+[![asciicast](https://asciinema.org/a/629807.svg)](https://asciinema.org/a/629807)

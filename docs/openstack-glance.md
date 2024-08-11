@@ -1,8 +1,8 @@
 # Deploy Glance
 
-[![asciicast](https://asciinema.org/a/629806.svg)](https://asciinema.org/a/629806)
+OpenStack Glance is the image service within the OpenStack ecosystem, responsible for discovering, registering, and retrieving virtual machine images. Glance provides a centralized repository where users can store and manage a wide variety of VM images, ranging from standard operating system snapshots to custom machine images tailored for specific workloads. This service plays a crucial role in enabling rapid provisioning of instances by providing readily accessible, pre-configured images that can be deployed across the cloud. In this document, we will outline the deployment of OpenStack Glance using Genestack. The deployment process is streamlined, ensuring Glance is robustly integrated with other OpenStack services to deliver seamless image management and retrieval.
 
-## Create secrets.
+## Create secrets
 
 !!! note "Information about the secretes used"
 
@@ -65,3 +65,7 @@ helm upgrade --install glance ./glance \
 ``` shell
 kubectl --namespace openstack exec -ti openstack-admin-client -- openstack image list
 ```
+
+## Demo
+
+[![asciicast](https://asciinema.org/a/629806.svg)](https://asciinema.org/a/629806)
