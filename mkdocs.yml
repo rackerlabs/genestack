@@ -175,13 +175,13 @@ nav:
                   - Keystone: openstack-keystone.md
                   - Glance: openstack-glance.md
                   - Heat: openstack-heat.md
+                  - Barbican: openstack-barbican.md
                   - Cinder: openstack-cinder.md
                   - Compute Kit: openstack-compute-kit.md
                   - Dashboards:
                       - Horizon: openstack-horizon.md
                       - skyline: openstack-skyline.md
                   - Octavia: openstack-octavia.md
-                  - Barbican: openstack-barbican.md
                   - Magnum: openstack-magnum.md
                   - Metering:
                       - PostgreSQL: infrastructure-postgresql.md
