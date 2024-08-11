@@ -4,8 +4,6 @@
 
     The information on this page is only needed when building an environment in Virtual Machines.
 
-[![asciicast](https://asciinema.org/a/629776.svg)](https://asciinema.org/a/629776)
-
 ## Prerequisites
 
 Take a moment to orient yourself, there are a few items to consider before moving forward to help you get underway.
@@ -131,3 +129,7 @@ If you have not set your .ssh config do not forget to  put in your path for your
 ssh -i /path/to/.ssh/openstack-flex-keypair.key ubuntu@X.X.X.X
 
 ```
+
+## Demo
+
+[![asciicast](https://asciinema.org/a/629776.svg)](https://asciinema.org/a/629776)
