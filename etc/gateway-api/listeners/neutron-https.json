@@ -1,0 +1,27 @@
+[
+    {
+        "op": "add",
+        "path": "/spec/listeners/-",
+        "value": {
+            "name": "neutron-https",
+            "port": 443,
+            "protocol": "HTTPS",
+            "hostname": "neutron.your.domain.tld",
+            "allowedRoutes": {
+                "namespaces": {
+                    "from": "All"
+                }
+            },
+            "tls": {
+                "certificateRefs": [
+                    {
+                        "group": "",
+                        "kind": "Secret",
+                        "name": "neutron-gw-tls-secret"
+                    }
+                ],
+                "mode": "Terminate"
+            }
+        }
+    }
+]

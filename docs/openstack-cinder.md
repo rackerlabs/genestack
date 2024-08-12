@@ -54,6 +54,36 @@ helm upgrade --install cinder ./cinder \
     You may need to provide custom values to configure your openstack services, for a simple single region or lab deployment you can supply an additional overrides flag using the example found at `base-helm-configs/aio-example-openstack-overrides.yaml`.
     In other cases such as a multi-region deployment you may want to view the [Multi-Region Support](multi-region-support.md) guide to for a workflow solution.
 
+### Custom Listeners
+
+!!! note "This step is not needed if all listeners were applied when the Gateway API was deployed"
+
+??? abstract "Example listener patch file found in `/opt/genestack/etc/gateway-api/listeners`"
+
+    ``` yaml
+    --8<-- "etc/gateway-api/listeners/cinder-https.json"
+    ```
+
+#### Modify the Listener Patch
+
+This example changes the placeholder domain to `<YOUR_DOMAIN>`. Review the [gateway documentation](https://gateway-api.sigs.k8s.io/api-types/gateway)
+for more information on listener types.
+
+``` shell
+mkdir -p /etc/genestack/gateway-api/listeners
+sed 's/your.domain.tld/<YOUR_DOMAIN>/g' \
+    /opt/genestack/etc/gateway-api/listeners/cinder-https.json \
+    > /etc/genestack/gateway-api/listeners/cinder-https.json
+```
+
+#### Apply the Listener Patch
+
+``` shell
+kubectl patch -n nginx-gateway gateway flex-gateway \
+              --type='json' \
+              --patch-file /etc/genestack/gateway-api/listeners/cinder-https.json
+```
+
 ### Custom Routes
 
 !!! note "This step is not needed if all routes were applied when the Gateway API was deployed"

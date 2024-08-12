@@ -1,0 +1,27 @@
+[
+    {
+        "op": "add",
+        "path": "/spec/listeners/-",
+        "value": {
+            "name": "placement-https",
+            "port": 443,
+            "protocol": "HTTPS",
+            "hostname": "placement.your.domain.tld",
+            "allowedRoutes": {
+                "namespaces": {
+                    "from": "All"
+                }
+            },
+            "tls": {
+                "certificateRefs": [
+                    {
+                        "group": "",
+                        "kind": "Secret",
+                        "name": "placement-gw-tls-secret"
+                    }
+                ],
+                "mode": "Terminate"
+            }
+        }
+    }
+]
