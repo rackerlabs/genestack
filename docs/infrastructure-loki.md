@@ -22,30 +22,30 @@ helm upgrade --install \
 
 === "Swift _(Recommended)_"
 
-!!! abstract
+    !!! abstract
 
-    If you plan on using **Swift** as a backend for log storage see the `loki-helm-swift-overrides-example.yaml` file in the `helm-configs/loki` directory.
+        If you plan on using **Swift** as a backend for log storage see the `loki-helm-swift-overrides-example.yaml` file in the `helm-configs/loki` directory.
 
-    ``` yaml
-    --8<-- "base-helm-configs/loki/loki-helm-swift-overrides-example.yaml"
-    ```
+        ``` yaml
+        --8<-- "base-helm-configs/loki/loki-helm-swift-overrides-example.yaml"
+        ```
 
 === "S3"
 
-!!! abstract
+    !!! abstract
 
-    If you plan on using **S3** as a backend for log storage see the `loki-helm-s3-overrides-example.yaml` file in the `helm-configs/loki` directory.
+        If you plan on using **S3** as a backend for log storage see the `loki-helm-s3-overrides-example.yaml` file in the `helm-configs/loki` directory.
 
-    ``` yaml
-    --8<-- "base-helm-configs/loki/loki-helm-s3-overrides-example.yaml"
-    ```
+        ``` yaml
+        --8<-- "base-helm-configs/loki/loki-helm-s3-overrides-example.yaml"
+        ```
 
 === "MinIO"
 
-!!! abstract
+    !!! abstract
 
-    If you plan on using **Minio** as a backend for log storage see the `loki-helm-s3-overrides-example.yaml` file in the `helm-configs/loki` directory.
+        If you plan on using **Minio** as a backend for log storage see the `loki-helm-s3-overrides-example.yaml` file in the `helm-configs/loki` directory.
 
-    ``` yaml
-    --8<-- "base-helm-configs/loki/loki-helm-minio-overrides-example.yaml"
-    ```
+        ``` yaml
+        --8<-- "base-helm-configs/loki/loki-helm-minio-overrides-example.yaml"
+        ```
