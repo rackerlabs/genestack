@@ -6,7 +6,7 @@ need to be customized to meet the needs of your environment.
 
 ## Example LB manifest
 
-??? example "Example for `metallb-openstack-service-lb.yml` file."
+??? abstract "Example for `metallb-openstack-service-lb.yml` file."
 
     ``` yaml
     --8<-- "manifests/metallb/metallb-openstack-service-lb.yml"
@@ -22,6 +22,8 @@ need to be customized to meet the needs of your environment.
     ```
 
     Edit the `metallb-openstack-service-lb.yml` file following the comment instructions with the details of your cluster.
+
+Apply the metallb service manifest.
 
 ``` shell
 kubectl apply -f /etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml
