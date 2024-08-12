@@ -20,7 +20,9 @@ helm upgrade --install \
              --version 5.47.2
 ```
 
-!!! example
+=== "Swift _(Recommended)_"
+
+!!! abstract
 
     If you plan on using **Swift** as a backend for log storage see the `loki-helm-swift-overrides-example.yaml` file in the `helm-configs/loki` directory.
 
@@ -28,7 +30,9 @@ helm upgrade --install \
     --8<-- "base-helm-configs/loki/loki-helm-swift-overrides-example.yaml"
     ```
 
-!!! example
+=== "S3"
+
+!!! abstract
 
     If you plan on using **S3** as a backend for log storage see the `loki-helm-s3-overrides-example.yaml` file in the `helm-configs/loki` directory.
 
@@ -36,7 +40,9 @@ helm upgrade --install \
     --8<-- "base-helm-configs/loki/loki-helm-s3-overrides-example.yaml"
     ```
 
-!!! example
+=== "MinIO"
+
+!!! abstract
 
     If you plan on using **Minio** as a backend for log storage see the `loki-helm-s3-overrides-example.yaml` file in the `helm-configs/loki` directory.
 

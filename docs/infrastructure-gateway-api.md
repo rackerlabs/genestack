@@ -102,7 +102,7 @@ There are various implementations of the Gateway API. In this document, we will 
 
     Once gateway is created, user can expose an application by creating `HTTPRoute` resource.
 
-    ??? example "Sample `HTTPRoute` resource"
+    ??? abstract "Sample `HTTPRoute` resource"
 
         ``` yaml
         --8<-- "etc/gateway-api/gateway-envoy-http-routes.yaml"
@@ -161,7 +161,7 @@ By default, a generic Gateway is created using a hostname of `*.cluster.local`. 
 create a patch or update the gateway YAML to include your specific hostnames and then apply the patch/update. Each listener must have a
 unique name.
 
-??? example "An example patch file you can modify to include your own domain name can be found at `/etc/genestack/gateway-api/gateway-patches.json`"
+??? abstract "An example patch file you can modify to include your own domain name can be found at `/etc/genestack/gateway-api/gateway-patches.json`"
 
     ``` json
     --8<-- "etc/gateway-api/gateway-patches.json"
@@ -185,7 +185,7 @@ kubectl patch -n nginx-gateway gateway flex-gateway \
 Another example with most of the OpenStack services is located at `/etc/genestack/gateway-api/gateway-routes.yaml`. Similarly, you must modify
 and apply them as shown below, or apply your own.
 
-??? example "Example routes file"
+??? abstract "Example routes file"
 
     ``` yaml
     --8<-- "etc/gateway-api/routes/http-wildcard-listener.yaml"
@@ -208,7 +208,7 @@ kubectl apply -f /etc/genestack/gateway-api/routes
 
 ## Patch Gateway with Let's Encrypt Cluster Issuer
 
-??? example "Example patch to enable LetsEncrypt `/etc/genestack/gateway-api/gateway-letsencrypt.yaml`"
+??? abstract "Example patch to enable LetsEncrypt `/etc/genestack/gateway-api/gateway-letsencrypt.yaml`"
 
     ``` yaml
     --8<-- "etc/gateway-api/gateway-letsencrypt.yaml"
@@ -227,7 +227,7 @@ In this example we will look at how Prometheus UI is exposed through the gateway
 
 First, create the shared gateway and then the httproute resource for prometheus.
 
-??? example "Example patch to enable Prometheus `/etc/genestack/gateway-api/gateway-prometheus.yaml`"
+??? abstract "Example patch to enable Prometheus `/etc/genestack/gateway-api/gateway-prometheus.yaml`"
 
     ``` yaml
     --8<-- "etc/gateway-api/gateway-prometheus.yaml"

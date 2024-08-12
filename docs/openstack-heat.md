@@ -73,7 +73,7 @@ kubectl --namespace openstack exec -ti openstack-admin-client -- openstack --os-
 
 A custom gateway route can be used when setting up the service. The custom route make it possible to for a domain like `your.domain.tld` to be used for the service.
 
-??? example "Example routes file found in `/opt/genestack/etc/gateway-api/routes`"
+??? abstract "Example routes file found in `/opt/genestack/etc/gateway-api/routes`"
 
     ``` yaml
     --8<-- "etc/gateway-api/routes/custom-heat-gateway-route.yaml"

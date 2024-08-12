@@ -16,15 +16,15 @@ openstack --os-cloud default identity provider create --remote-id rackspace --do
 
 You're also welcome to generate your own mapping to suit your needs; however, if you want to use the example mapping (which is suitable for production) you can.
 
-``` json
---8<-- "etc/keystone/mapping.json"
-```
+??? abstract "Example keystone `mapping.json` file"
 
-!!! tip
+    ``` json
+    --8<-- "etc/keystone/mapping.json"
+    ```
 
-    The example mapping **JSON** file can be found within the genestack repository at `etc/keystone/mapping.json`.
+The example mapping **JSON** file can be found within the genestack repository at `/opt/genestack/etc/keystone/mapping.json`.
 
-Now register the mapping within Keystone.
+## Now register the mapping within Keystone
 
 ``` shell
 openstack --os-cloud default mapping create --rules /tmp/mapping.json --schema-version 2.0 rackspace_mapping

@@ -126,7 +126,7 @@ helm upgrade --install placement ./placement --namespace=openstack \
 
 A custom gateway route can be used when setting up the service. The custom route make it possible to for a domain like `your.domain.tld` to be used for the service.
 
-??? example "Example routes file found in `/opt/genestack/etc/gateway-api/routes`"
+??? abstract "Example routes file found in `/opt/genestack/etc/gateway-api/routes`"
 
     ``` yaml
     --8<-- "etc/gateway-api/routes/custom-placement-gateway-route.yaml"
@@ -209,7 +209,7 @@ If running in an environment that doesn't have hardware virtualization extension
 
 A custom gateway route can be used when setting up the service. The custom route make it possible to for a domain like `your.domain.tld` to be used for the service.
 
-??? example "Example routes file found in `/opt/genestack/etc/gateway-api/routes`"
+??? abstract "Example routes file found in `/opt/genestack/etc/gateway-api/routes`"
 
     ``` yaml
     --8<-- "etc/gateway-api/routes/custom-nova-gateway-route.yaml"
@@ -310,7 +310,7 @@ helm upgrade --install neutron ./neutron \
 
 A custom gateway route can be used when setting up the service. The custom route make it possible to for a domain like `your.domain.tld` to be used for the service.
 
-??? example "Example routes file found in `/opt/genestack/etc/gateway-api/routes`"
+??? abstract "Example routes file found in `/opt/genestack/etc/gateway-api/routes`"
 
     ``` yaml
     --8<-- "etc/gateway-api/routes/custom-neutron-gateway-route.yaml"
