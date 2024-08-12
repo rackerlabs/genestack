@@ -176,7 +176,9 @@ nav:
                   - Glance: openstack-glance.md
                   - Heat: openstack-heat.md
                   - Barbican: openstack-barbican.md
-                  - Cinder: openstack-cinder.md
+                  - Block Storage:
+                      - Cinder: openstack-cinder.md
+                      - LVM iSCSI: openstack-cinder-lvmisci.md
                   - Compute Kit:
                       - Compute Overview: openstack-compute-kit.md
                       - Secrets: openstack-compute-kit-secrets.md
