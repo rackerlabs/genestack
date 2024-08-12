@@ -1,0 +1,23 @@
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: http2https-route
+  namespace: openstack
+  labels:
+    application: gateway-api
+    service: HTTPRoute
+    route: http2https
+spec:
+  parentRefs:
+  - name: flex-gateway
+    sectionName: http-wildcard-listener
+    namespace: nginx-gateway
+  hostnames:
+  - "*.your.domain.tld"
+  rules:
+    - filters:
+      - type: RequestRedirect
+        requestRedirect:
+          scheme: https
+          statusCode: 301
