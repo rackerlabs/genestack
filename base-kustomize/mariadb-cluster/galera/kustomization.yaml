@@ -6,9 +6,9 @@ patches:
       kind: MariaDB
       name: mariadb-cluster
     patch: |-
-      - op: replace
-        path: /spec/replicas
-        value: 1
+      - op: add
+        path: /spec/galera
+        value: {"enabled": true}
       - op: replace
         path: /spec/replication/enabled
         value: false
