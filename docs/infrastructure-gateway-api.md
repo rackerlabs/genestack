@@ -185,21 +185,25 @@ kubectl patch -n nginx-gateway gateway flex-gateway \
 Another example with most of the OpenStack services is located at `/etc/genestack/gateway-api/gateway-routes.yaml`. Similarly, you must modify
 and apply them as shown below, or apply your own.
 
-??? example "An example routes file you can modify to include your own domain name can be found at `/etc/genestack/gateway-api/gateway-routes.yaml`"
+??? example "Example routes file"
 
     ``` yaml
-    --8<-- "etc/gateway-api/gateway-routes.yaml"
+    --8<-- "etc/gateway-api/routes/http-wildcard-listener.yaml"
     ```
 
-!!! example "Example modifying the Gateway routes"
+All routes can be found at `/etc/genestack/gateway-api/routes`.
+
+!!! example "Example modifying all available Gateway routes with `your.domain.tld`"
 
     ``` shell
-    mkdir -p /etc/genestack/gateway-api
-    sed 's/your.domain.tld/<YOUR_DOMAIN>/g' /opt/genestack/etc/gateway-api/gateway-routes.yaml > /etc/genestack/gateway-api/gateway-routes.yaml
+    mkdir -p /etc/genestack/gateway-api/routes
+    for route in $(ls -1 /opt/genestack/etc/gateway-api/routes); do
+        sed 's/your.domain.tld/<YOUR_DOMAIN>/g' /opt/genestack/etc/gateway-api/routes/$route > /etc/genestack/gateway-api/routes/$route
+    done
     ```
 
 ``` shell
-kubectl apply -f /etc/genestack/gateway-api/gateway-routes.yaml
+kubectl apply -f /etc/genestack/gateway-api/routes
 ```
 
 ## Patch Gateway with Let's Encrypt Cluster Issuer
