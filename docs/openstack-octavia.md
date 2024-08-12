@@ -83,7 +83,7 @@ sed 's/your.domain.tld/<YOUR_DOMAIN>/g' \
     > /etc/genestack/gateway-api/routes/custom-octavia-gateway-route.yaml
 ```
 
-### Apply the Route
+#### Apply the Route
 
 ``` shell
 kubectl --namespace openstack apply -f /etc/gateway-api/routes/custom-octavia-gateway-route.yaml

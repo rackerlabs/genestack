@@ -1,0 +1,21 @@
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: custom-gnocchi-gateway-route
+  namespace: openstack
+  labels:
+    application: gateway-api
+    service: HTTPRoute
+    route: gnocchi
+spec:
+  parentRefs:
+  - name: flex-gateway
+    sectionName: gnocchi-https
+    namespace: nginx-gateway
+  hostnames:
+  - "gnocchi.your.domain.tld"
+  rules:
+    - backendRefs:
+      - name: gnocchi-api
+        port: 8041
