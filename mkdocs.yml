@@ -177,7 +177,12 @@ nav:
                   - Heat: openstack-heat.md
                   - Barbican: openstack-barbican.md
                   - Cinder: openstack-cinder.md
-                  - Compute Kit: openstack-compute-kit.md
+                  - Compute Kit:
+                      - Compute Overview: openstack-compute-kit.md
+                      - Secrets: openstack-compute-kit-secrets.md
+                      - Placement: openstack-compute-kit-placement.md
+                      - Nova: openstack-compute-kit-nova.md
+                      - Neutron: openstack-compute-kit-neutron.md
                   - Dashboards:
                       - Horizon: openstack-horizon.md
                       - skyline: openstack-skyline.md
