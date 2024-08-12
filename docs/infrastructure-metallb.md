@@ -6,20 +6,20 @@ need to be customized to meet the needs of your environment.
 
 ## Example LB manifest
 
-``` yaml
---8<-- "manifests/metallb/metallb-openstack-service-lb.yml"
-```
+??? example "Example for `metallb-openstack-service-lb.yml` file."
+
+    ``` yaml
+    --8<-- "manifests/metallb/metallb-openstack-service-lb.yml"
+    ```
 
 !!! tip
 
     It is recommended that you modify the file locally so that your changes are not impacted by the git tree.
 
-    ??? example "Example for creating a local `metallb-openstack-service-lb.yml` file."
-
-        ``` shell
-        mkdir -p /etc/genestack/manifests/metallb/
-        cp /opt/genestack/manifests/metallb/metallb-openstack-service-lb.yml /etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml
-        ```
+    ``` shell
+    mkdir -p /etc/genestack/manifests/metallb/
+    cp /opt/genestack/manifests/metallb/metallb-openstack-service-lb.yml /etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml
+    ```
 
     Edit the `metallb-openstack-service-lb.yml` file following the comment instructions with the details of your cluster.
 
