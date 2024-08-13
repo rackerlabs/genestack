@@ -432,7 +432,7 @@ server:
     # configure the ingress to point to the Vault active service.
     activeService: true
     hosts:
-      - host: vault.dfw-ospcv2-staging.ohthree.com
+      - host: vault.your.domain.tld
         paths:
           - /
     ## Extra paths to prepend to the host configuration. This is useful when working with annotation based services.
@@ -446,7 +446,7 @@ server:
     tls:
      - secretName: vault-tls-public
        hosts:
-         - vault.dfw-ospcv2-staging.ohthree.com
+         - vault.your.domain.tld
 
   # hostAliases is a list of aliases to be added to /etc/hosts. Specified as a YAML list.
   hostAliases: []

@@ -104,7 +104,7 @@ endpoints:
     host_fqdn_override:
       public:
         tls: {}
-        host: nova.dfw-ospcv2-staging.ohthree.com
+        host: nova.your.domain.tld
     port:
       api:
         public: 443
@@ -114,7 +114,7 @@ endpoints:
     host_fqdn_override:
       public:
         tls: {}
-        host: metadata.nova.dfw-ospcv2-staging.ohthree.com
+        host: metadata.nova.your.domain.tld
     port:
       metadata:
         public: 443
@@ -124,7 +124,7 @@ endpoints:
     host_fqdn_override:
       public:
         tls: {}
-        host: novnc.nova.dfw-ospcv2-staging.ohthree.com
+        host: novnc.nova.your.domain.tld
     port:
       novnc_proxy:
         public: 443
@@ -134,7 +134,7 @@ endpoints:
     host_fqdn_override:
       public:
         tls: {}
-        host: cloudformation.heat.dfw-ospcv2-staging.ohthree.com
+        host: cloudformation.heat.your.domain.tld
     port:
       api:
         public: 443
@@ -144,7 +144,7 @@ endpoints:
     host_fqdn_override:
       public:
         tls: {}
-        host: cloudwatch.heat.dfw-ospcv2-staging.ohthree.com
+        host: cloudwatch.heat.your.domain.tld
     port:
       api:
         public: 443
@@ -154,7 +154,7 @@ endpoints:
     host_fqdn_override:
       public:
         tls: {}
-        host: dfw-ospcv2-staging.ohthree.com
+        host: your.domain.tld
     port:
       web:
         public: 443
@@ -187,7 +187,7 @@ endpoints:
     host_fqdn_override:
       public:
         tls: {}
-        host: keystone.dfw-ospcv2-staging.ohthree.com
+        host: keystone.your.domain.tld
     port:
       api:
         public: 443
@@ -201,7 +201,7 @@ endpoints:
     host_fqdn_override:
       public:
         tls: {}
-        host: glance.dfw-ospcv2-staging.ohthree.com
+        host: glance.your.domain.tld
     port:
       api:
         public: 443
@@ -211,7 +211,7 @@ endpoints:
     host_fqdn_override:
       public:
         tls: {}
-        host: octavia.dfw-ospcv2-staging.ohthree.com
+        host: octavia.your.domain.tld
     port:
       api:
         public: 443
@@ -221,7 +221,7 @@ endpoints:
     host_fqdn_override:
       public:
         tls: {}
-        host: neutron.dfw-ospcv2-staging.ohthree.com
+        host: neutron.your.domain.tld
     port:
       api:
         public: 443
@@ -231,7 +231,7 @@ endpoints:
     host_fqdn_override:
       public:
         tls: {}
-        host: heat.dfw-ospcv2-staging.ohthree.com
+        host: heat.your.domain.tld
     port:
       api:
         public: 443
@@ -241,7 +241,7 @@ endpoints:
     host_fqdn_override:
       public:
         tls: {}
-        host: placement.dfw-ospcv2-staging.ohthree.com
+        host: placement.your.domain.tld
     port:
       api:
         public: 443
@@ -251,7 +251,7 @@ endpoints:
     host_fqdn_override:
       public:
         tls: {}
-        host: cinder.dfw-ospcv2-staging.ohthree.com
+        host: cinder.your.domain.tld
     port:
       api:
         public: 443
@@ -261,7 +261,7 @@ endpoints:
     host_fqdn_override:
       public:
         tls: {}
-        host: cinder.dfw-ospcv2-staging.ohthree.com
+        host: cinder.your.domain.tld
     port:
       api:
         public: 443
@@ -271,7 +271,7 @@ endpoints:
     host_fqdn_override:
       public:
         tls: {}
-        host: cinder.dfw-ospcv2-staging.ohthree.com
+        host: cinder.your.domain.tld
     port:
       api:
         public: 443

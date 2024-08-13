@@ -267,9 +267,9 @@ We have a requirement to expose a service
 ![Flex Service Expose External with F5 Loadbalancer](assets/images/flexingress.png)
 
 For each externally exposed service, example: keystone endpoint, we have a GatewayAPI resource setup to use listeners on services with matching rules based on
-hostname, for example keystone.sjc.api.rackspacecloud.com. When a request comes in to the f5 vip for this the vip is setup to pass the traffic to the Metallb
+hostname, for example `keystone.your.domain.tld`. When a request comes in to the f5 vip for this the vip is setup to pass the traffic to the Metallb
 external vip address. Metallb then forwards the traffic to the appropriate service endpoint for the gateway controller which matches the hostname and passes the
-traffic onto the right service. The same applies to internal services. Anything that matches ohthree.com hostname can be considered internal and handled accordingly.
+traffic onto the right service. The same applies to internal services. Anything that matches `your.domain.tld` hostname can be considered internal and handled accordingly.
 
 ``` mermaid
 flowchart LR

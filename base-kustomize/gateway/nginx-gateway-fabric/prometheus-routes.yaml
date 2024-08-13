@@ -9,7 +9,7 @@ spec:
     sectionName: http
     namespace: nginx-gateway
   hostnames:
-  - "prometheus.sjc.ohthree.com"
+  - "prometheus.your.domain.tld"
   rules:
     - backendRefs:
       - name: kube-prometheus-stack-prometheus

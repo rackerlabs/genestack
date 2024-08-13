@@ -15,14 +15,14 @@ spec:
   - name: http
     port: 80
     protocol: HTTP
-    hostname: "*.sjc.ohthree.com"
+    hostname: "*.your.domain.tld"
     allowedRoutes:
       namespaces:
         from: All
   - allowedRoutes:
       namespaces:
         from: All
-    hostname: '*.sjc.ohthree.com'
+    hostname: '*.your.domain.tld'
     name: https
     port: 443
     protocol: HTTPS
