@@ -3,13 +3,13 @@
 Gateway API is L4 and L7 layer routing project in Kubernetes. It represents next generation of k8s Ingress, LB and Service Mesh APIs.
 For more information on the project see: [Gateway API SIG.](https://gateway-api.sigs.k8s.io/)
 
-### Move from Ingress to Gateway APIs
+## Move from Ingress to Gateway APIs
 
 Since Gateway APIs are successor to Ingress Controllers there needs to be a one time migration from Ingress to GW API resources.
 
 !!! tip "Learn more about migrating to the Gateway API: [Ingress Migration](https://gateway-api.sigs.k8s.io/guides/migrating-from-ingress/#migrating-from-ingress)"
 
-### Resource Models in Gateway API
+## Resource Models in Gateway API
 
 There are 3 main resource models in gateway apis:
 
@@ -161,28 +161,30 @@ By default, a generic Gateway is created using a hostname of `*.cluster.local`. 
 create a patch or update the gateway YAML to include your specific hostnames and then apply the patch/update. Each listener must have a
 unique name.
 
-??? abstract "An example patch file you can modify to include your own domain name can be found at `/etc/genestack/gateway-api/gateway-patches.json`"
+??? abstract "An example patch file you can modify to include your own domain name can be found at `/opt/genestack/etc/gateway-api/listeners/gateway-api/http-wildcard-listener.json`"
 
     ``` json
-    --8<-- "etc/gateway-api/gateway-patches.json"
+    --8<-- "etc/gateway-api/listeners/http-wildcard-listener.json"
     ```
 
-!!! example "Example modifying the Gateway patch"
+!!! example "Example modifying the Gateway listener patches"
 
     ``` shell
-    mkdir -p /etc/genestack/gateway-api
-    sed 's/your.domain.tld/<YOUR_DOMAIN>/g' /opt/genestack/etc/gateway-api/gateway-patches.json > /etc/genestack/gateway-api/gateway-patches.json
+    mkdir -p /etc/genestack/gateway-api/listeners
+    for listener in $(ls -1 /opt/genestack/etc/gateway-api/listeners); do
+        sed 's/your.domain.tld/<YOUR_DOMAIN>/g' /opt/genestack/etc/gateway-api/listeners/$listener > /etc/genestack/gateway-api/listeners/$listener
+    done
     ```
 
 ``` shell
 kubectl patch -n nginx-gateway gateway flex-gateway \
               --type='json' \
-              --patch-file /etc/genestack/gateway-api/gateway-patches.json
+              --patch="$(jq -s 'flatten | .' etc/gateway-api/listeners/*)"
 ```
 
 ## Apply Related Gateway routes
 
-Another example with most of the OpenStack services is located at `/etc/genestack/gateway-api/gateway-routes.yaml`. Similarly, you must modify
+Another example with most of the OpenStack services is located at `/opt/genestack/etc/gateway-api/routes/http-wildcard-listener.yaml`. Similarly, you must modify
 and apply them as shown below, or apply your own.
 
 ??? abstract "Example routes file"
@@ -265,9 +267,9 @@ We have a requirement to expose a service
 ![Flex Service Expose External with F5 Loadbalancer](assets/images/flexingress.png)
 
 For each externally exposed service, example: keystone endpoint, we have a GatewayAPI resource setup to use listeners on services with matching rules based on
-hostname, for example keystone.sjc.api.rackspacecloud.com. When a request comes in to the f5 vip for this the vip is setup to pass the traffic to the Metallb
+hostname, for example `keystone.your.domain.tld`. When a request comes in to the f5 vip for this the vip is setup to pass the traffic to the Metallb
 external vip address. Metallb then forwards the traffic to the appropriate service endpoint for the gateway controller which matches the hostname and passes the
-traffic onto the right service. The same applies to internal services. Anything that matches ohthree.com hostname can be considered internal and handled accordingly.
+traffic onto the right service. The same applies to internal services. Anything that matches `your.domain.tld` hostname can be considered internal and handled accordingly.
 
 ``` mermaid
 flowchart LR

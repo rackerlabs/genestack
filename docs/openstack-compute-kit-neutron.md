@@ -37,6 +37,36 @@ helm upgrade --install neutron ./neutron \
 
     The above command derives the OVN north/south bound database from our K8S environment. The insert `set` is making the assumption we're using **tcp** to connect.
 
+## Custom Listeners
+
+!!! note "This step is not needed if all listeners were applied when the Gateway API was deployed"
+
+??? abstract "Example listener patch file found in `/opt/genestack/etc/gateway-api/listeners`"
+
+    ``` yaml
+    --8<-- "etc/gateway-api/listeners/neutron-https.json"
+    ```
+
+This example changes the placeholder domain to `<YOUR_DOMAIN>`. Review the [gateway documentation](https://gateway-api.sigs.k8s.io/api-types/gateway)
+for more information on listener types.
+
+### Modify the Listener Patch
+
+``` shell
+mkdir -p /etc/genestack/gateway-api/listeners
+sed 's/your.domain.tld/<YOUR_DOMAIN>/g' \
+    /opt/genestack/etc/gateway-api/listeners/neutron-https.json \
+    > /etc/genestack/gateway-api/listeners/neutron-https.json
+```
+
+### Apply the Listener Patch
+
+``` shell
+kubectl patch -n nginx-gateway gateway flex-gateway \
+              --type='json' \
+              --patch-file /etc/genestack/gateway-api/listeners/neutron-https.json
+```
+
 ## Custom Neutron Routes
 
 !!! note "This step is not needed if all routes were applied when the Gateway API was deployed"

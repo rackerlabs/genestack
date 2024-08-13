@@ -67,6 +67,63 @@ helm upgrade --install heat ./heat \
 kubectl --namespace openstack exec -ti openstack-admin-client -- openstack --os-interface internal orchestration service list
 ```
 
+### Custom Heat Listeners
+
+!!! note "This step is not needed if all listeners were applied when the Gateway API was deployed"
+
+??? abstract "Example listener patch file found in `/opt/genestack/etc/gateway-api/listeners`"
+
+    ``` yaml
+    --8<-- "etc/gateway-api/listeners/heat-https.json"
+    ```
+
+#### Modify the Heat Listener Patch
+
+This example changes the placeholder domain to `<YOUR_DOMAIN>`. Review the [gateway documentation](https://gateway-api.sigs.k8s.io/api-types/gateway)
+for more information on listener types.
+
+``` shell
+mkdir -p /etc/genestack/gateway-api/listeners
+sed 's/your.domain.tld/<YOUR_DOMAIN>/g' \
+    /opt/genestack/etc/gateway-api/listeners/heat-https.json \
+    > /etc/genestack/gateway-api/listeners/heat-https.json
+```
+
+#### Apply the Heat Listener Patch
+
+``` shell
+kubectl patch -n nginx-gateway gateway flex-gateway \
+              --type='json' \
+              --patch-file /etc/genestack/gateway-api/listeners/heat-https.json
+```
+
+### Custom Cloudformation Listeners
+
+!!! note "This step is not needed if all listeners were applied when the Gateway API was deployed"
+
+??? abstract "Example listener patch file found in `/opt/genestack/etc/gateway-api/listeners`"
+
+    ``` yaml
+    --8<-- "etc/gateway-api/listeners/cloudformation-https.json"
+    ```
+
+#### Modify the Cloudformation Listener Patch
+
+``` shell
+mkdir -p /etc/genestack/gateway-api/listeners
+sed 's/your.domain.tld/<YOUR_DOMAIN>/g' \
+    /opt/genestack/etc/gateway-api/listeners/cloudformation-https.json \
+    > /etc/genestack/gateway-api/listeners/cloudformation-https.json
+```
+
+#### Apply the Cloudformation Listener Patch
+
+``` shell
+kubectl patch -n nginx-gateway gateway flex-gateway \
+              --type='json' \
+              --patch-file /etc/genestack/gateway-api/listeners/cloudformation-https.json
+```
+
 ### Custom Routes
 
 !!! note "This step is not needed if all routes were applied when the Gateway API was deployed"
@@ -79,7 +136,7 @@ A custom gateway route can be used when setting up the service. The custom route
     --8<-- "etc/gateway-api/routes/custom-heat-gateway-route.yaml"
     ```
 
-#### Modify the Route
+#### Modifying the Routes
 
 This example changes the placeholder domain to `<YOUR_DOMAIN>`. Review the [gateway route documentation](https://gateway-api.sigs.k8s.io/api-types/httproute)
 for more information on route types.

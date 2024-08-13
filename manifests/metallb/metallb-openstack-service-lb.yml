@@ -19,10 +19,10 @@ spec:
     - openstack-external
   nodeSelectors:  # Optional block to limit nodes for a given advertisement
     - matchLabels:
-        kubernetes.io/hostname: controller01.sjc.ohthree.com
+        kubernetes.io/hostname: controller01.your.domain.tld
     - matchLabels:
-        kubernetes.io/hostname: controller02.sjc.ohthree.com
+        kubernetes.io/hostname: controller02.your.domain.tld
     - matchLabels:
-        kubernetes.io/hostname: controller03.sjc.ohthree.com
+        kubernetes.io/hostname: controller03.your.domain.tld
   interfaces:  # Optional block to limit ifaces used to advertise VIPs
     - br-mgmt
