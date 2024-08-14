@@ -105,7 +105,7 @@ There are various implementations of the Gateway API. In this document, we will 
     ??? abstract "Sample `HTTPRoute` resource"
 
         ``` yaml
-        --8<-- "etc/gateway-api/gateway-envoy-http-routes.yaml"
+        --8<-- "/etc/genestack/gateway-api/gateway-envoy-http-routes.yaml"
         ```
 
     !!! example "Example modifying and apply the routes"
@@ -164,7 +164,7 @@ unique name.
 ??? abstract "An example patch file you can modify to include your own domain name can be found at `/opt/genestack/etc/gateway-api/listeners/gateway-api/http-wildcard-listener.json`"
 
     ``` json
-    --8<-- "etc/gateway-api/listeners/http-wildcard-listener.json"
+    --8<-- "/etc/genestack/gateway-api/listeners/http-wildcard-listener.json"
     ```
 
 !!! example "Example modifying the Gateway listener patches"
@@ -179,7 +179,7 @@ unique name.
 ``` shell
 kubectl patch -n nginx-gateway gateway flex-gateway \
               --type='json' \
-              --patch="$(jq -s 'flatten | .' etc/gateway-api/listeners/*)"
+              --patch="$(jq -s 'flatten | .' /etc/genestack/gateway-api/listeners/*)"
 ```
 
 ## Apply Related Gateway routes
@@ -190,7 +190,7 @@ and apply them as shown below, or apply your own.
 ??? abstract "Example routes file"
 
     ``` yaml
-    --8<-- "etc/gateway-api/routes/http-wildcard-listener.yaml"
+    --8<-- "/etc/genestack/gateway-api/routes/http-wildcard-listener.yaml"
     ```
 
 All routes can be found at `/etc/genestack/gateway-api/routes`.
@@ -213,7 +213,7 @@ kubectl apply -f /etc/genestack/gateway-api/routes
 ??? abstract "Example patch to enable LetsEncrypt `/etc/genestack/gateway-api/gateway-letsencrypt.yaml`"
 
     ``` yaml
-    --8<-- "etc/gateway-api/gateway-letsencrypt.yaml"
+    --8<-- "/etc/genestack/gateway-api/gateway-letsencrypt.yaml"
     ```
 
 ``` shell
@@ -232,7 +232,7 @@ First, create the shared gateway and then the httproute resource for prometheus.
 ??? abstract "Example patch to enable Prometheus `/etc/genestack/gateway-api/gateway-prometheus.yaml`"
 
     ``` yaml
-    --8<-- "etc/gateway-api/gateway-prometheus.yaml"
+    --8<-- "/etc/genestack/gateway-api/gateway-prometheus.yaml"
     ```
 
 !!! example "Example modifying Prometheus' Gateway deployment"
