@@ -179,7 +179,7 @@ unique name.
 ``` shell
 kubectl patch -n nginx-gateway gateway flex-gateway \
               --type='json' \
-              --patch="$(jq -s 'flatten | .' etc/gateway-api/listeners/*)"
+              --patch="$(jq -s 'flatten | .' /etc/genestack/gateway-api/listeners/*)"
 ```
 
 ## Apply Related Gateway routes
