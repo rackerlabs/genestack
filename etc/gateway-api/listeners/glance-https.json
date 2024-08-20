@@ -1,0 +1,27 @@
+[
+    {
+        "op": "add",
+        "path": "/spec/listeners/-",
+        "value": {
+            "name": "glance-https",
+            "port": 443,
+            "protocol": "HTTPS",
+            "hostname": "glance.your.domain.tld",
+            "allowedRoutes": {
+                "namespaces": {
+                    "from": "All"
+                }
+            },
+            "tls": {
+                "certificateRefs": [
+                    {
+                        "group": "",
+                        "kind": "Secret",
+                        "name": "glance-gw-tls-secret"
+                    }
+                ],
+                "mode": "Terminate"
+            }
+        }
+    }
+]

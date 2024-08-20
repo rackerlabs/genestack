@@ -1,0 +1,14 @@
+bases:
+  - "../base"
+
+patches:
+  - target:
+      kind: MariaDB
+      name: mariadb-cluster
+    patch: |-
+      - op: add
+        path: /spec/galera
+        value: {"enabled": true}
+      - op: replace
+        path: /spec/replication/enabled
+        value: false

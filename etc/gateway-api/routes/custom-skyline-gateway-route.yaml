@@ -1,0 +1,21 @@
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: custom-skyline-gateway-route
+  namespace: openstack
+  labels:
+    application: gateway-api
+    service: HTTPRoute
+    route: skyline
+spec:
+  parentRefs:
+  - name: flex-gateway
+    sectionName: skyline-https
+    namespace: nginx-gateway
+  hostnames:
+  - "skyline.your.domain.tld"
+  rules:
+    - backendRefs:
+      - name: skyline-apiserver
+        port: 9999

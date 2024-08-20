@@ -1,11 +1,8 @@
 # Infrastructure Deployment Demo
 
-[![asciicast](https://asciinema.org/a/629790.svg)](https://asciinema.org/a/629790)
-
+![Genestack Infra](assets/images/genstack-local-arch-k8s-flex.svg)
 
 ## Infrastructure Overview
-
-![Genestack Infra](assets/images/genstack-local-arch-k8s-flex.svg)
 
 The full scale Genestack infrastructure is bound to change over time, however, the idea is to keep things simple and transparent. The above graphic highlights how we deploy our environments and what the overall makeup of our platforms are expected to look like.
 
@@ -19,3 +16,7 @@ When you're building the cloud, many of the underlying infrastructure components
 
 * `base` creates a production-ready environment that ensures an HA system is deployed across the hardware available in your cloud.
 * `aio` creates a minimal cloud environment which is suitable for test, which may have low resources.
+
+## Demo
+
+[![asciicast](https://asciinema.org/a/629790.svg)](https://asciinema.org/a/629790)

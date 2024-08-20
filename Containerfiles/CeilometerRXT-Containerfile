@@ -1,0 +1,26 @@
+FROM ubuntu:22.04
+ARG VERSION=""
+ENV CEILOMETER_VERSION ${VERSION:-master}
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt update && \
+    apt install -y software-properties-common && \
+    add-apt-repository ppa:deadsnakes/ppa -y
+RUN apt update && \
+    apt install -y \
+    python3.10 \
+    python3.10-dev \
+    python3-memcache \
+    git \
+    wget \
+    curl \
+    locales \
+    build-essential \
+    pkg-config \
+    libvirt-dev
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10 && \
+    pip install \
+    "ceilometer @ git+https://opendev.org/openstack/ceilometer.git@${CEILOMETER_VERSION}" \
+    "libvirt-python"
+RUN ln -s /usr/bin/python3 /usr/bin/python && \
+    adduser ceilometer --disabled-password && \
+    apt clean && rm -rf /var/lib/apt/lists/*

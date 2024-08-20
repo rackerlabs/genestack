@@ -115,7 +115,7 @@ These instructions apply to all the openstack services, we are focusing on nova 
 
 Everything there will be reused, especially if we haven't set things up prior, the difference for this multi-region workflow example is that we'll be adding an additional override file to the command.
 
-Looking at [Deploy Nova](openstack-compute-kit.md#Deploy Nova) in the compute kit installation documentation we see the `helm upgrade` command. You'll notice it has a single `-f` flag pointing to our `base-helm-configs` at `-f /opt/genestack/base-helm-configs/nova/nova-helm-overrides.yaml`.
+Looking at [Deploy Nova](openstack-compute-kit.md) in the compute kit installation documentation we see the `helm upgrade` command. You'll notice it has a single `-f` flag pointing to our `base-helm-configs` at `-f /opt/genestack/base-helm-configs/nova/nova-helm-overrides.yaml`.
 We're going to simply add another `-f` flag below that one to include our overrides. Helm will see this and apply the values in order in the arguments. In otherwords, the second `-f` flag will override anything provided in the first.
 
 So, our helm command that we'll run against sjc will now look like:

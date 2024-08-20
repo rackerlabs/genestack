@@ -23,10 +23,10 @@ server:
       nginx.ingress.kubernetes.io/backend-protocol: HTTPS
     enabled: false
     ingressClassName: "nginx-cluster"
-    hosts: ["argocd.dfw-ospcv2-staging.ohthree.com"]
+    hosts: ["argocd.your.domain.tld"]
     tls:
       - hosts:
-          - argocd.dfw-ospcv2-staging.ohthree.com
+          - argocd.your.domain.tld
         secretName: argocd-tls-public
     https: true
 

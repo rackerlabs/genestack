@@ -15,12 +15,12 @@ S3 endpoint, access keys, and etcd certs to access etcd endpoints.
 Label one or more box in the cluster to run the job:
 
 ```
-kubectl label node etcd01.sjc.ohthree.com is-etcd-backup-node=true
+kubectl label node etcd01.your.domain.tld is-etcd-backup-node=true
 ```
 
 Create the secret:
 
-```
+``` shell
 kubectl --namespace openstack \
         create secret generic etcd-backup-secrets \
         --type Opaque \
@@ -31,8 +31,8 @@ kubectl --namespace openstack \
         --from-literal=ETCDCTL_API="3" \
         --from-literal=ETCDCTL_ENDPOINTS="https://127.0.0.1:2379" \
         --from-literal=ETCDCTL_CACERT="/etc/ssl/etcd/ssl/ca.pem" \
-        --from-literal=ETCDCTL_CERT="/etc/ssl/etcd/ssl/member-etcd01.sjc.ohthree.com.pem" \
-        --from-literal=ETCDCTL_KEY="/etc/ssl/etcd/ssl/member-etcd01.sjc.ohthree.com-key.pem"
+        --from-literal=ETCDCTL_CERT="/etc/ssl/etcd/ssl/member-etcd01.your.domain.tld.pem" \
+        --from-literal=ETCDCTL_KEY="/etc/ssl/etcd/ssl/member-etcd01.your.domain.tld-key.pem"
 ```
 
 !!! note
