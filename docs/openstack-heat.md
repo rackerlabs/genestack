@@ -162,13 +162,13 @@ sed 's/your.domain.tld/<YOUR_DOMAIN>/g' \
 #### Apply the Heat Route
 
 ``` shell
-kubectl --namespace openstack apply -f /etc/gateway-api/routes/custom-heat-gateway-route.yaml
+kubectl --namespace openstack apply -f /etc/genestack/gateway-api/routes/custom-heat-gateway-route.yaml
 ```
 
 #### Apply the Cloudformation Route
 
 ``` shell
-kubectl --namespace openstack apply -f /etc/gateway-api/routes/custom-cloudformation-gateway-route.yaml
+kubectl --namespace openstack apply -f /etc/genestack/gateway-api/routes/custom-cloudformation-gateway-route.yaml
 ```
 
 ## Demo
