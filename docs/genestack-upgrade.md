@@ -19,7 +19,7 @@ git rebase origin/main
 
     You may want to checkout a specific SHA or tag when running a stable environment.
 
-## Update the submodules.
+## Update the submodules
 
 ``` shell
 git pull --recurse-submodules
@@ -32,6 +32,12 @@ An update is generally the same as an install. Many of the Genestack application
 * When needing to run an upgrade for the infrastructure operators, consult the operator documentation to validate the steps required.
 * When needing to run an upgrade for the OpenStack components, simply re-run the `helm` charts as documented in the Genestack installation process.
 
+!!! note "Before running upgrades, make sure cached charts are cleaned up"
+
+    ``` shell
+    find /opt/genestack/base-kustomize/ -name charts -type d -exec rm -rf {} \;
+    ```
+
 ## Kubernetes Upgrade Notes
 
 Over the course of normal operations it's likely that a CRD will change versions, names, or something else. In these cases, should an operator or helm chart not gracefully handle an full upgrade, the `kubectl convert` plugin can be used to make some adjustments where needed.
@@ -41,6 +47,12 @@ Over the course of normal operations it's likely that a CRD will change versions
     ``` shell
     kubectl get --namespace openstack crd.namespace -o yaml value > /tmp/value.crd.namespace.yaml
     kubectl convert -f /tmp/value.crd.namespace.yaml --output-version new-namespace/VERSION
+    ```
+
+!!! example "Cleaning up nova jobs before upgrading"
+
+    ``` shell
+    kubectl --namespace openstack delete jobs $(kubectl --namespace openstack get jobs --no-headers -o custom-columns=":metadata.name" | grep nova)
     ```
 
 ## Kubernetes Finalizers

@@ -155,8 +155,6 @@ nav:
               - TopoLVM: storage-topolvm.md
               - External Storage CSI: storage-external-block.md
           - Secrets:
-              - vault.md
-              - Vault Operator: vault-secrets-operator.md
               - Sealed Secrets: sealed-secrets.md
           - Infrastructure:
               - infrastructure-overview.md
@@ -177,13 +175,20 @@ nav:
                   - Keystone: openstack-keystone.md
                   - Glance: openstack-glance.md
                   - Heat: openstack-heat.md
-                  - Cinder: openstack-cinder.md
-                  - Compute Kit: openstack-compute-kit.md
+                  - Barbican: openstack-barbican.md
+                  - Block Storage:
+                      - Cinder: openstack-cinder.md
+                      - LVM iSCSI: openstack-cinder-lvmisci.md
+                  - Compute Kit:
+                      - Compute Overview: openstack-compute-kit.md
+                      - Secrets: openstack-compute-kit-secrets.md
+                      - Placement: openstack-compute-kit-placement.md
+                      - Nova: openstack-compute-kit-nova.md
+                      - Neutron: openstack-compute-kit-neutron.md
                   - Dashboards:
                       - Horizon: openstack-horizon.md
                       - skyline: openstack-skyline.md
                   - Octavia: openstack-octavia.md
-                  - Barbican: openstack-barbican.md
                   - Magnum: openstack-magnum.md
                   - Metering:
                       - PostgreSQL: infrastructure-postgresql.md

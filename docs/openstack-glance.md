@@ -1,27 +1,30 @@
 # Deploy Glance
 
-[![asciicast](https://asciinema.org/a/629806.svg)](https://asciinema.org/a/629806)
+OpenStack Glance is the image service within the OpenStack ecosystem, responsible for discovering, registering, and retrieving virtual machine images. Glance provides a centralized repository where users can store and manage a wide variety of VM images, ranging from standard operating system snapshots to custom machine images tailored for specific workloads. This service plays a crucial role in enabling rapid provisioning of instances by providing readily accessible, pre-configured images that can be deployed across the cloud. In this document, we will outline the deployment of OpenStack Glance using Genestack. The deployment process is streamlined, ensuring Glance is robustly integrated with other OpenStack services to deliver seamless image management and retrieval.
 
-## Create secrets.
-!!! info
+## Create secrets
 
-    This step is not needed if you ran the create-secrets.sh script located in /opt/genestack/bin
+!!! note "Information about the secretes used"
 
-``` shell
-kubectl --namespace openstack \
-        create secret generic glance-rabbitmq-password \
-        --type Opaque \
-        --from-literal=username="glance" \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
-kubectl --namespace openstack \
-        create secret generic glance-db-password \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-kubectl --namespace openstack \
-        create secret generic glance-admin \
-        --type Opaque \
-        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-```
+    Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
+
+    ??? example "Example secret generation"
+
+        ``` shell
+        kubectl --namespace openstack \
+                create secret generic glance-rabbitmq-password \
+                --type Opaque \
+                --from-literal=username="glance" \
+                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
+        kubectl --namespace openstack \
+                create secret generic glance-db-password \
+                --type Opaque \
+                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+        kubectl --namespace openstack \
+                create secret generic glance-admin \
+                --type Opaque \
+                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+        ```
 
 !!! info
 
@@ -62,3 +65,67 @@ helm upgrade --install glance ./glance \
 ``` shell
 kubectl --namespace openstack exec -ti openstack-admin-client -- openstack image list
 ```
+
+### Custom Listeners
+
+!!! note "This step is not needed if all listeners were applied when the Gateway API was deployed"
+
+??? abstract "Example listener patch file found in `/opt/genestack/etc/gateway-api/listeners`"
+
+    ``` yaml
+    --8<-- "etc/gateway-api/listeners/glance-https.json"
+    ```
+
+#### Modify the Listener Patch
+
+This example changes the placeholder domain to `<YOUR_DOMAIN>`. Review the [gateway listener documentation](https://gateway-api.sigs.k8s.io/api-types/gateway)
+for more information on listener types.
+
+``` shell
+mkdir -p /etc/genestack/gateway-api/listeners
+sed 's/your.domain.tld/<YOUR_DOMAIN>/g' \
+    /opt/genestack/etc/gateway-api/listeners/glance-https.json \
+    > /etc/genestack/gateway-api/listeners/glance-https.json
+```
+
+#### Apply the Listener Patch
+
+``` shell
+kubectl patch -n nginx-gateway gateway flex-gateway \
+              --type='json' \
+              --patch-file /etc/genestack/gateway-api/listeners/glance-https.json
+```
+
+### Custom Routes
+
+!!! note "This step is not needed if all routes were applied when the Gateway API was deployed"
+
+A custom gateway route can be used when setting up the service. The custom route make it possible to for a domain like `your.domain.tld` to be used for the service.
+
+??? abstract "Example routes file found in `/opt/genestack/etc/gateway-api/routes`"
+
+    ``` yaml
+    --8<-- "etc/gateway-api/routes/custom-glance-gateway-route.yaml"
+    ```
+
+#### Modify the Route
+
+This example changes the placeholder domain to `<YOUR_DOMAIN>`. Review the [gateway route documentation](https://gateway-api.sigs.k8s.io/api-types/httproute)
+for more information on route types.
+
+``` shell
+mkdir -p /etc/genestack/gateway-api/routes
+sed 's/your.domain.tld/<YOUR_DOMAIN>/g' \
+    /opt/genestack/etc/gateway-api/routes/custom-glance-gateway-route.yaml \
+    > /etc/genestack/gateway-api/routes/custom-glance-gateway-route.yaml
+```
+
+#### Apply the Route
+
+``` shell
+kubectl --namespace openstack apply -f /etc/gateway-api/routes/custom-glance-gateway-route.yaml
+```
+
+## Demo
+
+[![asciicast](https://asciinema.org/a/629806.svg)](https://asciinema.org/a/629806)

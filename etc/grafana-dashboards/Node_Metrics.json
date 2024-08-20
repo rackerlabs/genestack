@@ -24077,8 +24077,8 @@
       {
         "current": {
           "selected": false,
-          "text": "block01.sjc.ohthree.com",
-          "value": "block01.sjc.ohthree.com"
+          "text": "block01.your.domain.tld",
+          "value": "block01.your.domain.tld"
         },
         "datasource": {
           "type": "prometheus",

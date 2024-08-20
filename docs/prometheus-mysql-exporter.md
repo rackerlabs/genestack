@@ -7,7 +7,6 @@ by the exporter and expressed in values.yaml file.
 
     To deploy metric exporters you will first need to deploy the Prometheus Operator, see: ([Deploy Prometheus](prometheus.md)).
 
-
 ## Installation
 
 First create secret containing password for monitoring user

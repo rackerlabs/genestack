@@ -34,9 +34,9 @@ host_kernel_modules:
 ## Bare metal base packages
 _host_distro_packages:
   - acl
-  - apt-utils
   - apparmor-utils
   - apt-transport-https
+  - apt-utils
   - bridge-utils
   - cgroup-lite
   - curl
@@ -48,17 +48,16 @@ _host_distro_packages:
   - irqbalance
   - libkmod2
   - lvm2
+  - nfs-client
   - rsync
   - software-properties-common
   - sysstat
   - time
   - vlan
   - wget
-  - nfs-client
 
 _hosts_package_list:
   - name: ubuntu-cloud-keyring
     state: "{{ host_package_state }}"
   - name: ca-certificates
     state: latest
-

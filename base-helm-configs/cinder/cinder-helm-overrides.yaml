@@ -796,6 +796,8 @@ conf:
       use_multipath_for_image_xfer: False #Add Cinder Multipath support for image xfer
     database:
       max_retries: -1
+    key_manager:
+      backend: barbican
     keystone_authtoken:
       service_token_roles: service
       service_token_roles_required: true
@@ -816,6 +818,8 @@ conf:
     oslo_middleware:
       enable_proxy_headers_parsing: true
     oslo_messaging_rabbit:
+      # explicitly disable amqp durable queues because quorum is enabled
+      amqp_durable_queues: false
       # We define use of quorum queues via kustomize but this was enabling HA queues instead
       # ha_queues are deprecated, explicitly set to false and set quorum_queue true
       rabbit_ha_queues: false

@@ -1,0 +1,27 @@
+[
+    {
+        "op": "add",
+        "path": "/spec/listeners/-",
+        "value": {
+            "name": "novnc-https",
+            "port": 443,
+            "protocol": "HTTPS",
+            "hostname": "novnc.your.domain.tld",
+            "allowedRoutes": {
+                "namespaces": {
+                    "from": "All"
+                }
+            },
+            "tls": {
+                "certificateRefs": [
+                    {
+                        "group": "",
+                        "kind": "Secret",
+                        "name": "novnc-gw-tls-secret"
+                    }
+                ],
+                "mode": "Terminate"
+            }
+        }
+    }
+]

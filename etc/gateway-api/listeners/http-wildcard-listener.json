@@ -1,0 +1,17 @@
+[
+    {
+        "op": "add",
+        "path": "/spec/listeners/-",
+        "value": {
+            "name": "http-wildcard-listener",
+            "port": 80,
+            "protocol": "HTTP",
+            "hostname": "*.your.domain.tld",
+            "allowedRoutes": {
+                "namespaces": {
+                    "from": "All"
+                }
+            }
+        }
+    }
+]

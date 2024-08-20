@@ -6,37 +6,25 @@ need to be customized to meet the needs of your environment.
 
 ## Example LB manifest
 
-``` yaml
----
-apiVersion: metallb.io/v1beta1
-kind: IPAddressPool
-metadata:
-  name: openstack-external
-  namespace: metallb-system
-spec:
-  addresses:
-  - 10.74.8.99/32  # This is assumed to be the public LB vip address
-  autoAssign: false
----
-apiVersion: metallb.io/v1beta1
-kind: L2Advertisement
-metadata:
-  name: openstack-external-advertisement
-  namespace: metallb-system
-spec:
-  ipAddressPools:
-  - openstack-external
-  nodeSelectors:  # Optional block to limit nodes for a given advertisement
-  - matchLabels:
-      kubernetes.io/hostname: controller01.sjc.ohthree.com
-  - matchLabels:
-      kubernetes.io/hostname: controller02.sjc.ohthree.com
-  - matchLabels:
-      kubernetes.io/hostname: controller03.sjc.ohthree.com
-  interfaces:  # Optional block to limit ifaces used to advertise VIPs
-  - br-mgmt
-```
+??? abstract "Example for `metallb-openstack-service-lb.yml` file."
+
+    ``` yaml
+    --8<-- "manifests/metallb/metallb-openstack-service-lb.yml"
+    ```
+
+!!! tip
+
+    It is recommended that you modify the file locally so that your changes are not impacted by the git tree.
+
+    ``` shell
+    mkdir -p /etc/genestack/manifests/metallb/
+    cp /opt/genestack/manifests/metallb/metallb-openstack-service-lb.yml /etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml
+    ```
+
+    Edit the `metallb-openstack-service-lb.yml` file following the comment instructions with the details of your cluster.
+
+Apply the metallb service manifest.
 
 ``` shell
-kubectl apply -f /opt/genestack/manifests/metallb/metallb-openstack-service-lb.yml
+kubectl apply -f /etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml
 ```

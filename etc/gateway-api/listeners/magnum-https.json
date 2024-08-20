@@ -1,0 +1,27 @@
+[
+    {
+        "op": "add",
+        "path": "/spec/listeners/-",
+        "value": {
+            "name": "magnum-https",
+            "port": 443,
+            "protocol": "HTTPS",
+            "hostname": "magnum.your.domain.tld",
+            "allowedRoutes": {
+                "namespaces": {
+                    "from": "All"
+                }
+            },
+            "tls": {
+                "certificateRefs": [
+                    {
+                        "group": "",
+                        "kind": "Secret",
+                        "name": "magnum-gw-tls-secret"
+                    }
+                ],
+                "mode": "Terminate"
+            }
+        }
+    }
+]
