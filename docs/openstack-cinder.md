@@ -111,7 +111,7 @@ sed 's/your.domain.tld/<YOUR_DOMAIN>/g' \
 #### Apply the Route
 
 ``` shell
-kubectl --namespace openstack apply -f /etc/gateway-api/routes/custom-cinder-gateway-route.yaml
+kubectl --namespace openstack apply -f /etc/genestack/gateway-api/routes/custom-cinder-gateway-route.yaml
 ```
 
 ## Demo
