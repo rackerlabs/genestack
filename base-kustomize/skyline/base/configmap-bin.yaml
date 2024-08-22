@@ -119,8 +119,18 @@ data:
       system_user_name: ""
       system_user_password: ""
     setting:
-      base_settings: []
-      flavor_families: []
+      base_settings:
+      - flavor_families
+      - gpu_models
+      flavor_families:
+      - architecture: x86_architecture
+        categories:
+        - name: general_purpose
+          properties: []
+        - name: compute_optimized
+          properties: []
+        - name: memory_optimized
+          properties: []
       gpu_models: []
       usb_models: []
   data-gunicorn.py : |
