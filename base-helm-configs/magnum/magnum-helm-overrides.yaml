@@ -73,6 +73,12 @@ conf:
     DEFAULT:
       log_config_append: /etc/magnum/logging.conf
       transport_url: null
+    octavia_client:
+      region_name: RegionOne
+      endpoint_type: internalURL
+    cinder_client:
+      region_name: RegionOne
+      endpoint_type: internalURL
     glance_client:
       api_version: 2
       region_name: RegionOne
@@ -85,10 +91,13 @@ conf:
       endpoint_type: internalURL
     barbican_client:
       endpoint_type: internalURL
+      region_name: RegionOne
     heat_client:
       endpoint_type: internalURL
+      region_name: RegionOne
     magnum_client:
       endpoint_type: publicURL
+      region_name: RegionOne
     cluster:
       temp_cache_dir: /var/lib/magnum/certificate-cache
     oslo_messaging_notifications:
@@ -103,6 +112,9 @@ conf:
       max_retries: -1
     trust:
       trustee_domain_name: magnum
+      trustee_domain_admin_name: magnum-domain
+      trustee_domain_admin_password: password
+      trustee_keystone_region_name: RegionOne
       cluster_user_trust: true
       trustee_keystone_interface: public
     keystone_authtoken:
@@ -110,8 +122,25 @@ conf:
       service_token_roles_required: true
       auth_type: password
       auth_version: v3
+      region_name: RegionOne
       memcache_security_strategy: ENCRYPT
       service_type: container-infra
+      auth_url: http://keystone-api.openstack.svc.cluster.local:5000/v3
+      password: ZO3uwtM4JQgysbHJBNvEi7x9SRvm2y5Z
+      project_domain_name: service
+      project_name: service
+      region_name: RegionOne
+      user_domain_name: service
+      username: magnum
+    keystone_auth:
+      auth_type: password
+      auth_url: http://keystone-api.openstack.svc.cluster.local:5000/v3
+      password: ZO3uwtM4JQgysbHJBNvEi7x9SRvm2y5Z
+      project_domain_name: service
+      project_name: service
+      region_name: RegionOne
+      user_domain_name: service
+      username: magnum
     api:
       # NOTE(portdirect): the bind port should not be defined, and is manipulated
       # via the endpoints section.
@@ -135,7 +164,7 @@ conf:
       level: WARNING
       handlers: 'null'
     logger_magnum:
-      level: INFO
+      level: DEBUG
       handlers:
         - stdout
       qualname: magnum
@@ -264,10 +293,10 @@ dependencies:
       services:
         - endpoint: internal
           service: oslo_db
-    db_init:
-      services:
-        - endpoint: internal
-          service: oslo_db
+            #db_init:
+            #services:
+            #- endpoint: internal
+            #service: oslo_db
     db_sync:
       jobs: null
       services:
@@ -287,10 +316,10 @@ dependencies:
       services:
         - endpoint: internal
           service: identity
-    rabbit_init:
-      services:
-        - endpoint: internal
-          service: oslo_messaging
+            #rabbit_init:
+            #services:
+            #- endpoint: internal
+            #service: oslo_messaging
     image_repo_sync:
       services:
         - endpoint: internal
@@ -665,5 +694,5 @@ manifests:
   secret_registry: true
   service_api: true
   service_ingress_api: false
-  statefulset_conductor: false
+  statefulset_conductor: true
 ...
