@@ -38,7 +38,7 @@ nginxGateway:
   image:
     ## The NGINX Gateway Fabric image to use
     repository: ghcr.io/nginxinc/nginx-gateway-fabric
-    tag: 1.3.0
+    tag: 1.4.0
     pullPolicy: IfNotPresent
 
   securityContext:
@@ -55,7 +55,7 @@ nginx:
   ## The NGINX image to use
   image:
     repository: ghcr.io/nginxinc/nginx-gateway-fabric/nginx
-    tag: 1.3.0
+    tag: 1.4.0
     pullPolicy: IfNotPresent
 
   ## The lifecycle of the nginx container.
