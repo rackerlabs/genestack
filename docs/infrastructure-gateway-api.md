@@ -45,9 +45,17 @@ There are various implementations of the Gateway API. In this document, we will 
 
     ### Install the Gateway API Resource from Kubernetes
 
-    ``` shell
-    kubectl kustomize "https://github.com/nginxinc/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v1.3.0" | kubectl apply -f -
-    ```
+    === "Stable _(Recommended)_"
+
+        ``` shell
+        kubectl kustomize "https://github.com/nginxinc/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v1.4.0" | kubectl apply -f -
+        ```
+
+    === "Experimental"
+
+        ``` shell
+        kubectl kustomize "https://github.com/nginxinc/nginx-gateway-fabric/config/crd/gateway-api/experimental?ref=v1.4.0" | kubectl apply -f -
+        ```
 
     ### Install the NGINX Gateway Fabric controller
 
@@ -58,21 +66,48 @@ There are various implementations of the Gateway API. In this document, we will 
         [Nginx upgrade documentation](https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#upgrade-nginx-gateway-fabric-crds). You
         can safely ignore this note for new installations.
 
+    === "Stable _(Recommended)_"
+
+        ``` shell
+        cd /opt/genestack/submodules/nginx-gateway-fabric/charts/nginx-gateway-fabric
+
+        helm upgrade --install nginx-gateway-fabric . \
+                    --namespace=nginx-gateway \
+                    -f /opt/genestack/base-helm-configs/nginx-gateway-fabric/helm-overrides.yaml
+        ```
+
+    === "Experimental"
+
+        ``` shell
+        cd /opt/genestack/submodules/nginx-gateway-fabric/charts/nginx-gateway-fabric
+
+        helm upgrade --install nginx-gateway-fabric . \
+                    --namespace=nginx-gateway \
+                    -f /opt/genestack/base-helm-configs/nginx-gateway-fabric/helm-overrides.yaml \
+                    --set nginxGateway.gwAPIExperimentalFeatures.enable=true
+        ```
+
+    Once deployed ensure a system rollout has been completed for Cert Manager.
+
     ``` shell
-    cd /opt/genestack/submodules/nginx-gateway-fabric/charts/nginx-gateway-fabric
-
-    helm upgrade --install nginx-gateway-fabric . \
-                 --namespace=nginx-gateway \
-                 -f /opt/genestack/base-helm-configs/nginx-gateway-fabric/helm-overrides.yaml
-
     kubectl rollout restart deployment cert-manager --namespace cert-manager
     ```
 
     ### Create the shared gateway resource
 
-    ``` shell
-    kubectl kustomize /opt/genestack/base-kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
-    ```
+    === "Stable _(Recommended)_"
+
+        ``` shell
+        kubectl kustomize /opt/genestack/base-kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
+        ```
+
+    === "Experimental"
+
+        Edit the file `/opt/genestack/base-kustomize/gateway/nginx-gateway-fabric/internal-gateway-api.yaml` to set the `apiVersion` according to the experimental version of your choice. Review the Gateway [API Compatibility Matrix](https://docs.nginx.com/nginx-gateway-fabric/overview/gateway-api-compatibility).
+
+        ``` shell
+        kubectl kustomize /opt/genestack/base-kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
+        ```
 
 === "Envoyproxy"
 
