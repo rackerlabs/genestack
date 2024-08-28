@@ -238,6 +238,8 @@ nav:
               - Keystone Readonly Users: openstack-keystone-readonly.md
           - Networking:
               - Creating Networks: openstack-neutron-networks.md
+          - Magnum:
+              - Creating kubernetes clusters: magnum-kubernetes-cluster-setup-guide.md
           - Service Overrides: openstack-service-overrides.md
       - Working locally With Docs: mkdocs-howto.md
   - Cloud Onboarding:
