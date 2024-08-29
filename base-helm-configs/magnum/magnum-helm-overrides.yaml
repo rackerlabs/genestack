@@ -111,6 +111,7 @@ conf:
     database:
       max_retries: -1
     trust:
+      cluster_user_trust: true
       trustee_domain_name: magnum
     keystone_auth:
       auth_section: keystone_authtoken
