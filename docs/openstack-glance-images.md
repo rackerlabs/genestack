@@ -12,8 +12,6 @@ The properties of note are the following.
 
 | Property | Value | Documentation |
 | ---------|-------|-------------|
-| hw_scsi_model | STRING | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
-| hw_disk_bus | STRING | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
 | hw_vif_multiqueue_enabled | BOOL | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
 | hw_qemu_guest_agent | BOOL | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
 | hw_machine_type | STRING | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
@@ -36,8 +34,6 @@ openstack --os-cloud default image create \
           --container-format bare \
           --public \
           --file noble-server-cloudimg-amd64.img \
-          --property hw_scsi_model=virtio-scsi \
-          --property hw_disk_bus=scsi \
           --property hw_vif_multiqueue_enabled=true \
           --property hw_qemu_guest_agent=yes \
           --property hypervisor_type=kvm \
@@ -62,8 +58,6 @@ openstack --os-cloud default image create \
           --container-format bare \
           --public \
           --file jammy-server-cloudimg-amd64.img \
-          --property hw_scsi_model=virtio-scsi \
-          --property hw_disk_bus=scsi \
           --property hw_vif_multiqueue_enabled=true \
           --property hw_qemu_guest_agent=yes \
           --property hypervisor_type=kvm \
@@ -88,8 +82,6 @@ openstack --os-cloud default image create \
           --container-format bare \
           --public \
           --file focal-server-cloudimg-amd64.img \
-          --property hw_scsi_model=virtio-scsi \
-          --property hw_disk_bus=scsi \
           --property hw_vif_multiqueue_enabled=true \
           --property hw_qemu_guest_agent=yes \
           --property hypervisor_type=kvm \
@@ -116,8 +108,6 @@ openstack --os-cloud default image create \
           --container-format bare \
           --public \
           --file debian-12-genericcloud-amd64.qcow2 \
-          --property hw_scsi_model=virtio-scsi \
-          --property hw_disk_bus=scsi \
           --property hw_vif_multiqueue_enabled=true \
           --property hw_qemu_guest_agent=yes \
           --property hypervisor_type=kvm \
@@ -142,8 +132,6 @@ openstack --os-cloud default image create \
           --container-format bare \
           --public \
           --file debian-11-genericcloud-amd64.qcow2 \
-          --property hw_scsi_model=virtio-scsi \
-          --property hw_disk_bus=scsi \
           --property hw_vif_multiqueue_enabled=true \
           --property hw_qemu_guest_agent=yes \
           --property hypervisor_type=kvm \
@@ -170,8 +158,6 @@ openstack --os-cloud default image create \
           --container-format bare \
           --public \
           --file CentOS-Stream-GenericCloud-9-latest.x86_64.qcow2 \
-          --property hw_scsi_model=virtio-scsi \
-          --property hw_disk_bus=scsi \
           --property hw_vif_multiqueue_enabled=true \
           --property hw_qemu_guest_agent=yes \
           --property hypervisor_type=kvm \
@@ -195,8 +181,6 @@ openstack --os-cloud default image create \
           --container-format bare \
           --public \
           --file CentOS-Stream-GenericCloud-8-latest.x86_64.qcow2 \
-          --property hw_scsi_model=virtio-scsi \
-          --property hw_disk_bus=scsi \
           --property hw_vif_multiqueue_enabled=true \
           --property hw_qemu_guest_agent=yes \
           --property hypervisor_type=kvm \
@@ -229,8 +213,6 @@ openstack --os-cloud default image create \
           --container-format bare \
           --public \
           --file fedora-coreos-40.20240616.3.0-openstack.x86_64.qcow2 \
-          --property hw_scsi_model=virtio-scsi \
-          --property hw_disk_bus=scsi \
           --property hw_vif_multiqueue_enabled=true \
           --property hw_qemu_guest_agent=yes \
           --property hypervisor_type=kvm \
@@ -260,8 +242,6 @@ openstack --os-cloud default image create \
           --container-format bare \
           --public \
           --file fedora-coreos-40.20240728.3.0-openstack.x86_64.qcow2 \
-          --property hw_scsi_model=virtio-scsi \
-          --property hw_disk_bus=scsi \
           --property hw_vif_multiqueue_enabled=true \
           --property hw_qemu_guest_agent=yes \
           --property hypervisor_type=kvm \
@@ -281,15 +261,13 @@ openstack --os-cloud default image create \
 ### Leap 15
 
 ``` shell
-wget https://download.opensuse.org/distribution/leap/15.5/appliances/openSUSE-Leap-15.5-Minimal-VM.x86_64-kvm-and-xen.qcow2
+wget https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.2/images/openSUSE-Leap-15.2-OpenStack.x86_64-0.0.4-Build8.25.qcow2
 openstack --os-cloud default image create \
           --progress \
           --disk-format qcow2 \
           --container-format bare \
           --public \
           --file openSUSE-Leap-15.5-Minimal-VM.x86_64-kvm-and-xen.qcow2 \
-          --property hw_scsi_model=virtio-scsi \
-          --property hw_disk_bus=scsi \
           --property hw_vif_multiqueue_enabled=true \
           --property hw_qemu_guest_agent=yes \
           --property hypervisor_type=kvm \
