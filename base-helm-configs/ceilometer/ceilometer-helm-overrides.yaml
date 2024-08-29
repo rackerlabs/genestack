@@ -954,6 +954,9 @@ conf:
           name: resource_metadata.name
           container_format: resource_metadata.container_format
           disk_format: resource_metadata.disk_format
+          os_type: resource_metadata.properties.os_type
+          os_distro: resource_metadata.properties.os_distro
+          os_version: resource_metadata.properties.os_version
         event_delete: image.delete
         event_attributes:
           id: resource_id
