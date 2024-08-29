@@ -2,7 +2,7 @@
 
 !!! note
 
-    Octavia and Barbican are mandatory components for OpenStack Magnum. Octavia delivers essential load balancing capabilities that significantly enhance the availability and distribution of network traffic for your containerized applications. Barbican is crucial for the secure management of encryption keys and secrets, which is vital for maintaining the security of your applications and data. Ensuring these services are integrated into your OpenStack environment is necessary for optimizing the functionality and security of your Magnum-based deployments.
+    Octavia and Barbican are mandatory components for OpenStack Magnum. Octavia provides advanced load balancing capabilities, which can enhance the availability and distribution of network traffic across your containerized applications. Barbican offers secure management of encryption keys and secrets, which is valuable for maintaining the security of your applications and data. Ensuring these services are integrated into your OpenStack environment is necessary for optimizing the functionality and security of your Magnum-based deployments.
 
 This document is intended for users who use Magnum to deploy and manage clusters of hosts for a Container Orchestration Engine. It describes the infrastructure that Magnum creates and how to work with them. You can provision clusters made up of virtual machines or baremetal servers. Magnum service uses Cluster Templates to describe how a Cluster is constructed. The process involves creating a Cluster Template for a specific COE and then you will provision a Cluster using the corresponding Cluster Template.  Once the cluster is provisioned, you can use the appropriate COE client or endpoint to manage and deploy containers. For more detailed information on cluster creation and management, please refer to the [Magnum User Documentation](https://docs.openstack.org/magnum/latest/user/index.html).
 
@@ -66,4 +66,3 @@ openstack coe cluster create new-k8s-cluster \
           --node-count 4 \
           --keypair mykey
 ```
-
