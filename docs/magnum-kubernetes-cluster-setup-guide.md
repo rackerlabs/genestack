@@ -4,7 +4,7 @@
 
     Octavia and Barbican are mandatory components for OpenStack Magnum. Octavia provides advanced load balancing capabilities, which can enhance the availability and distribution of network traffic across your containerized applications. Barbican offers secure management of encryption keys and secrets, which is valuable for maintaining the security of your applications and data. Ensuring these services are integrated into your OpenStack environment is necessary for optimizing the functionality and security of your Magnum-based deployments.
 
-This document is intended for users who use Magnum to deploy and manage clusters of hosts for a Container Orchestration Engine. It describes the infrastructure that Magnum creates and how to work with them. You can provision clusters made up of virtual machines or baremetal servers. Magnum service uses Cluster Templates to describe how a Cluster is constructed. The process involves creating a Cluster Template for a specific COE and then you will provision a Cluster using the corresponding Cluster Template.  Once the cluster is provisioned, you can use the appropriate COE client or endpoint to manage and deploy containers. For more detailed information on cluster creation and management, please refer to the [Magnum User Documentation](https://docs.openstack.org/magnum/latest/user/index.html).
+This document is intended for users who use Magnum to deploy and manage clusters of hosts for a Container Orchestration Engine. It describes the infrastructure that Magnum creates and how to work with them. You can provision clusters made up of virtual machines or baremetal servers. Magnum service uses Cluster Templates to describe how a Cluster is constructed. The process involves creating a Cluster Template for a specific COE and then you will provision a Cluster using the corresponding Cluster Template.  Once the cluster is provisioned, you can use the appropriate COE client or endpoint to manage and deploy containers. For more detailed information on cluster creation and management, please refer to the [Magnum User Guide](https://docs.openstack.org/magnum/latest/user/index.html).
 
 ## Create an image
 
@@ -12,7 +12,7 @@ To create an image required by Magnum, please refer to the [Glance Image Creatio
 
 ## Create an external network (optional)
 
-To create a Magnum cluster, you need an external network. If there are no external networks, create one with an appropriate provider based on your cloud provider support for your case: Below is the example command:
+To create a Magnum cluster, you need an external network. If there are no external networks, create one with an appropriate provider based on your usecase. Here is an example command:
 
 ``` shell
 openstack network create public --provider-network-type vlan --external --project service
@@ -36,7 +36,7 @@ A ClusterTemplate is a collection of parameters to describe how a cluster can be
 
 ### Create a ClusterTemplate
 
-Create a cluster template for a Kubernetes cluster using the fedora-coreos-latest image, m1.large as the flavor for the master and the node, public as the external network and 8.8.8.8 for the DNS nameserver. Below is the example command to create the clustertemplate. For more detailed information about the parameters and labels used in the ClusterTemplate, please refer to the [ClusterTemplate]https://docs.openstack.org/magnum/latest/user/index.html#clustertemplate documentation.
+Create a Kubernetes cluster template using the `magnum-fedora-coreos-40` image with the following configuration: `m1.large` flavor for both master and nodes, `public` as the external network, `8.8.8.8` for the DNS nameserver, `calico` for the network driver, and `cinder` for the volume driver. Below is the example command to create the clustertemplate. For more detailed information about the parameters and labels used in the ClusterTemplate, please refer to the [ClusterTemplate](https://docs.openstack.org/magnum/latest/user/index.html#clustertemplate).
 
 ``` shell
 openstack coe cluster template create new-cluster-template \
@@ -48,16 +48,16 @@ openstack coe cluster template create new-cluster-template \
           --network-driver calico \
           --volume-driver cinder \
           --docker-volume-size 3 \
-          --coe "kubernetes"
+          --coe kubernetes
 ```
 
 ## Cluster
 
-A cluster is an instance of the ClusterTemplate of a COE. Magnum deploys a cluster by referring to the attributes defined in the particular ClusterTemplate as well as a few additional parameters for the cluster. Magnum deploys the orchestration templates provided by the cluster driver to create and configure all the necessary infrastructure. When ready, the cluster is a fully operational COE that can host containers.
+A cluster is an instance of the ClusterTemplate of a COE. Magnum deploys a cluster by referring to the attributes defined in the particular ClusterTemplate as well as a few additional parameters for the cluster. Magnum deploys the orchestration templates provided by the cluster driver to create and configure all the necessary infrastructure. When ready, the cluster is a fully operational COE that can host containers. For details on parameters and labels used in cluster creation, see the [Cluster](https://docs.openstack.org/magnum/latest/user/index.html#cluster) documentation.
 
 ### Provision a Kubernetes cluster
 
-Create a cluster with 4 nodes and 3 masters using mykey as the keypair, using the following command:
+Create a cluster with `4` nodes and `3` masters using `mykey` as the keypair, using the following command:
 
 ``` shell
 openstack coe cluster create new-k8s-cluster \
