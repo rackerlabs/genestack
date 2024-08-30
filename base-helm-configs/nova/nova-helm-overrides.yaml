@@ -1378,6 +1378,8 @@ conf:
       instance_usage_audit: True
       instance_usage_audit_period: hour
       resume_guests_state_on_host_boot: True
+    compute:
+      max_disk_devices_to_attach: 8
     vnc:
       auth_schemes: none
       novncproxy_host: 0.0.0.0
@@ -1440,6 +1442,8 @@ conf:
       hw_disk_discard: unmap
       cpu_mode: host-model
       volume_use_multipath: false  # Disabled because multipathd is not configured or running
+      num_pcie_ports: 16
+      max_queues: 8
     upgrade_levels:
       compute: auto
     cache:
