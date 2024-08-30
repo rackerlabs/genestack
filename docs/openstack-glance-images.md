@@ -10,17 +10,19 @@ in these examples.
 
 The properties of note are the following.
 
-| Property | Value | Documentation |
-| ---------|-------|-------------|
-| hw_vif_multiqueue_enabled | BOOL | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
-| hw_qemu_guest_agent | BOOL | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
-| hw_machine_type | STRING | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
-| hw_firmware_type | STRING | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
-| os_require_quiesce | BOOL | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
-| os_type | STRING | [Link](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html) |
-| os_admin_user | STRING | [Link](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html) |
-| os_distro | STRING | [Link](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html) |
-| os_version | STRING | [Link](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html) |
+| Property                                                                                                 | Value  | Notes                |
+|----------------------------------------------------------------------------------------------------------|--------|----------------------|
+| [hw_scsi_model](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html)             | STRING | Needed for multipath |
+| [hw_disk_bus](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html)               | STRING | Needed for multipath |
+| [hw_vif_multiqueue_enabled](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) | BOOL   |
+| [hw_qemu_guest_agent](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html)       | BOOL   |
+| [hw_machine_type](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html)           | STRING |
+| [hw_firmware_type](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html)          | STRING |
+| [os_require_quiesce](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html)        | BOOL   |
+| [os_type](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html)             | STRING |
+| [os_admin_user](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html)       | STRING |
+| [os_distro](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html)           | STRING |
+| [os_version](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html)          | STRING |
 
 ## Get Ubuntu
 
