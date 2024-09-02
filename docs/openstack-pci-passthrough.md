@@ -70,6 +70,7 @@ GRUB_CMDLINE_LINUX_DEFAULT="... vfio-pci.ids=10de:1c30,10de:10f1"
 
     The value of `vfio-pci.ids` is the same as the noted from the *lspci output*.
 
+
 ### Update GRUB and reboot
 
 ``` shell
@@ -109,6 +110,12 @@ Note the "Kernel driver in use: vfio-pci" section. If the kernel driver is anyth
 
         sudo dmesg | grep -e IOMMU
 
+
+!!! example "example config that uses iommu and also disables nvidia modules in favor of vfio"
+
+    ``` shell
+    GRUB_CMDLINE_LINUX_DEFAULT="quiet splash intel_iommu=on iommu=pt mitigations=off vfio-pci.ids=10de:1b38 vfio_iommu_type1.allow_unsafe_interrupts=1 modprobe.blacklist=nvidiafb,nouveau,nvidia,nvidia_drm rs.driver.blacklist=nouveau,nvidia,nvidia_drm,nvidiafb kvm.ignore_msrs=1"
+    ```
 
 ## Configure Nova Compute
 

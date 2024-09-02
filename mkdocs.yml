@@ -222,6 +222,7 @@ nav:
           - OVN Database Backup: infrastructure-ovn-db-backup.md
           - OVN Monitoring introduction: ovn-monitoring-introduction.md
           - MariaDB Operations: infrastructure-mariadb-ops.md
+          - Adding New Node: adding-new-node.md
       - Third Party Tools:
           - OSIE: extra-osie.md
       - OpenStack:
