@@ -5,7 +5,7 @@ To read more about Openstack Floating Ips using the [upstream docs](https://docs
 #### List and view floating ips
 
 ``` shell
-openstack floating ip list
+openstack --os-cloud={cloud name} floating ip list
     [--network <network>]
     [--port <port>]
     [--fixed-ip-address <ip-address>]
@@ -18,7 +18,7 @@ openstack floating ip list
 #### Create a floating ip
 
 ``` shell
-openstack floating ip create
+openstack --os-cloud={cloud name} floating ip create
     [--subnet <subnet>]
     [--port <port>]
     [--floating-ip-address <ip-address>]
@@ -36,7 +36,7 @@ openstack floating ip create
 
 
 ``` shell
-openstack floating ip delete <floating-ip> [<floating-ip> ...]
+openstack --os-cloud={cloud name} floating ip delete <floating-ip> [<floating-ip> ...]
 ```
 
 #### Floating ip set
@@ -44,7 +44,7 @@ openstack floating ip delete <floating-ip> [<floating-ip> ...]
 Set floating IP properties
 
 ``` shell
-openstack floating ip set
+openstack --os-cloud={cloud name} floating ip set
     --port <port>
     [--fixed-ip-address <ip-address>]
     <floating-ip>
@@ -53,13 +53,13 @@ openstack floating ip set
 #### Display floating ip details
 
 ``` shell
-openstack floating ip show $VIP
+openstack --os-cloud={cloud name} floating ip show $VIP
 ```
 
 #### Unset floating IP Properties
 
 ``` shell
-openstack floating ip unset --port $VIP
+openstack --os-cloud={cloud name} floating ip unset --port $VIP
 ```
 
 #### Associate floating IP addresses
@@ -69,7 +69,7 @@ You can assign a floating IP address to a project and to an instance.
 Associate an IP address with an instance in the project, as follows:
 
 ``` shell
-openstack server add floating ip $INSTANCE_UUID $VIP
+openstack --os-cloud={cloud name} server add floating ip $INSTANCE_UUID $VIP
 ```
 
 #### Disassociate floating IP addresses
@@ -77,13 +77,13 @@ openstack server add floating ip $INSTANCE_UUID $VIP
 To disassociate a floating IP address from an instance:
 
 ``` shell
-openstack server remove floating ip $INSTANCE_UUID $VIP
+openstack --os-cloud={cloud name} server remove floating ip $INSTANCE_UUID $VIP
 ```
 
 To remove the floating IP address from a project:
 
 ``` shell
-openstack floating ip delete $VIP
+openstack --os-cloud={cloud name} floating ip delete $VIP
 ```
 
 #### Floating Ip Example
@@ -95,19 +95,19 @@ You will need to get your cloud name from your `clouds.yaml`. More information o
 First create a floating ip either from PUBLICNET or the public ip pool.
 
 ``` shell
-openstack --os-cloud $CLOUD floating ip create PUBLICNET
+openstack --os-cloud={cloud name} floating ip create PUBLICNET
 ```
 
 Second get the cloud server UUID.
 
 ``` shell
-openstack --os-cloud $CLOUD server list
+openstack --os-cloud={cloud name} server list
 ```
 
 Third add the floating ip to the server
 
 ``` shell
-openstack --os-cloud $CLOUD server add floating ip $UUID $VIP
+openstack --os-cloud={cloud name} server add floating ip $UUID $VIP
 ```
 
 #### Shared floating IP and virtual IP
@@ -133,13 +133,13 @@ With that caveat, you can set up a shared floating IP like this:
 1. Create a Neutron network
 
     ``` shell
-    openstack network create tester-network
+    openstack --os-cloud={cloud name} network create tester-network
     ```
 
 2. Create a subnet for the network
 
     ``` shell
-    openstack subnet create --network tester-network \
+    openstack --os-cloud={cloud name} subnet create --network tester-network \
                             --subnet-range $CIDR \
                             tester-subnet
     ```
@@ -149,7 +149,7 @@ With that caveat, you can set up a shared floating IP like this:
     Create `tester1` server.
 
     ``` shell
-    openstack server create tester1 --flavor m1.tiny \
+    openstack --os-cloud={cloud name} server create tester1 --flavor m1.tiny \
                                     --key-name keypair \
                                     --network tester-network \
                                     --image $IMAGE_UUID
@@ -158,7 +158,7 @@ With that caveat, you can set up a shared floating IP like this:
     Create `tester2` server.
 
     ``` shell
-    openstack server create tester2 --flavor m1.tiny \
+    openstack --os-cloud={cloud name} server create tester2 --flavor m1.tiny \
                                     --key-name keypair \
                                     --network tester-network \
                                     --image $IMAGE_UUID
@@ -167,7 +167,7 @@ With that caveat, you can set up a shared floating IP like this:
 4. Create a port with a fixed IP for the VIP.
 
     ``` shell
-    openstack port create --fixed-ip subnet=tester-subnet \
+    openstack --os-cloud={cloud name} port create --fixed-ip subnet=tester-subnet \
                           --network tester-network \
                           --no-security-group tester-vip-port
     ```
@@ -180,7 +180,7 @@ With that caveat, you can set up a shared floating IP like this:
     public IP, depending on your configuration.
 
     ``` shell
-    openstack router create tester-router
+    openstack --os-cloud={cloud name} router create tester-router
     ```
 
 6. Add at external Internet gateway to the router
@@ -190,13 +190,13 @@ With that caveat, you can set up a shared floating IP like this:
     for your own installation.
 
     ``` shell
-    openstack router set --external-gateway PUBLICNET tester-router
+    openstack --os-cloud={cloud name} router set --external-gateway PUBLICNET tester-router
     ```
 
 7. Add the subnet to the router
 
     ``` shell
-    openstack router add subnet tester-router tester-subnet
+    openstack --os-cloud={cloud name} router add subnet tester-router tester-subnet
     ```
 
 8. Create a floating IP for the port
@@ -207,7 +207,7 @@ With that caveat, you can set up a shared floating IP like this:
     here.
 
     ``` shell
-    openstack floating ip create --port tester-vip-port PUBLICNET
+    openstack --os-cloud={cloud name} floating ip create --port tester-vip-port PUBLICNET
     ```
 
     Note and retain the ID and/or IP returned, since you will need it for the
@@ -225,13 +225,13 @@ With that caveat, you can set up a shared floating IP like this:
    instances.
 
    ``` shell
-   openstack port list server tester1 # retrieve port UUID
-   openstack port set --allowed-address ip-address=<VIP> <port1UUID>
+   openstack --os-cloud={cloud name} port list server tester1 # retrieve port UUID
+   openstack --os-cloud={cloud name} port set --allowed-address ip-address=<VIP> <port1UUID>
    ```
 
    ``` shell
-   openstack port list server tester2 # retrieve port UUID
-   openstack port set --allowed-address ip-address=<VIP> <port2UUID>
+   openstack --os-cloud={cloud name} port list server tester2 # retrieve port UUID
+   openstack --os-cloud={cloud name} port set --allowed-address ip-address=<VIP> <port2UUID>
    ```
 
 The steps above complete creating the shared floating IP and VIP. The following
@@ -246,7 +246,7 @@ steps allow you to test it.
     shows only a test.
 
     ``` shell
-    openstack server create tester-bastion --flavor m1.tiny \
+    openstack --os-cloud={cloud name} server create tester-bastion --flavor m1.tiny \
                                            --key-name keypair \
                                            --network tester-network \
                                            --image $IMAGE_UUID
@@ -257,7 +257,7 @@ steps allow you to test it.
     You can specify the UUID or IP of the floating IP.
 
      ``` shell
-     openstack server add floating ip tester-bastion $UUID
+     openstack --os-cloud={cloud name} server add floating ip tester-bastion $UUID
      ```
 
 3. Alter security group rules to allow SSH and ICMP:
@@ -267,7 +267,7 @@ steps allow you to test it.
     steps because the default security group will prevent all ingress traffic.
 
     ``` shell
-    openstack security group rule create --proto tcp \
+    openstack --os-cloud={cloud name} security group rule create --proto tcp \
                                          --dst-port 22 \
                                          --remote-ip 0.0.0.0/0 default
     ```
@@ -275,7 +275,7 @@ steps allow you to test it.
     Now enable ICMP.
 
     ``` shell
-    openstack security group rule create --proto icmp \
+    openstack --os-cloud={cloud name} security group rule create --proto icmp \
                                          --dst-port -1 default
     ```
 
