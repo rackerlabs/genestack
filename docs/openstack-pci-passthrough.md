@@ -138,6 +138,8 @@ With the same `lspci` information used in the `vfio` setup, create a `device_spe
 {"vendor_id": "10de", "product_id": "1c30", "device_type": "type-PCI", "name": "p2000"}
 ```
 
+If you are configuring a PCI passthrough for say a GPU compute follow the instruction in the Node Overrides Explanation section of the service override documentation.
+
 1. See the [Genestack service override documentation](openstack-service-overrides.md) on how update your compute infrastructure to use the `device_spec` and `alias`.
 
 1. Create a custom flavor which has your alias name as a property. See the [Genestack flavor documentation](openstack-flavors.md) on how to craft custom flavors.

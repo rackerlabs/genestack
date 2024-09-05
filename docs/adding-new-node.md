@@ -75,3 +75,14 @@ labels and annotations.
 ```
 
 At this point the compute node should be up and running and your `openstack` cli command should list the compute node under hosts.
+
+## For PCI passthrough
+
+If you are adding a new node to be a PCI passthrough compute, say for exposing GPU to the vm, at this stage you will have to
+setup your PCI Passthrough configuration. Follow steps from:  [Configuring PCI Passthrough in OpenStack](openstack-pci-passthrough.md)
+
+Once the PCI setup is complete follow the instructions from: [Adding Host Aggregates](openstack-host-aggregates.md) to setup host
+aggregates for the group of PCI devices. This helps us control the image/flavor/tennant build restriction on a given aggregate to
+better use underlying GPU resources.
+
+Once the host aggregate is setup follow the instructions from: [Genestack flavor documentation](openstack-flavors.md) to setup the right flavor.
