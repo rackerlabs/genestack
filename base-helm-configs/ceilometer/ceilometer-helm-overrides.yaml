@@ -216,7 +216,7 @@ conf:
         image_id:
           fields: payload.glance_metadata[?key=image_id].value
         instance_id:
-          fields: payload.volume_attachment[0].server_id
+          fields: payload.volume_attachment[0].instance_uuid
     - event_type: ['volume.transfer.*', 'volume.exists', 'volume.retype', 'volume.create.*', 'volume.delete.*', 'volume.resize.*', 'volume.attach.*', 'volume.detach.*', 'volume.update.*', 'snapshot.transfer.accept.end']
       traits:
         <<: *cinder_traits
@@ -1029,15 +1029,20 @@ conf:
           volume_type: resource_metadata.volume_type
           image_id: resource_metadata.image_id
           instance_id: resource_metadata.instance_id
+        event_create:
+          - volume.create.end
         event_delete:
           - volume.delete.end
           - snapshot.delete.end
         event_update:
+          - volume.attach.end
           - volume.transfer.accept.end
           - snapshot.transfer.accept.end
         event_attributes:
           id: resource_id
           project_id: project_id
+          image_id: image_id
+          instance_id: instance_id
 
       - resource_type: volume_provider
         metrics:
@@ -1262,7 +1267,7 @@ conf:
           display_name: $.payload.display_name
           volume_type: $.payload.volume_type
           image_id: $.payload.glance_metadata[?key=image_id].value
-          instance_id: $.payload.volume_attachment[0].server_id
+          instance_id: $.payload.volume_attachment[0].instance_uuid
 
       - name: 'snapshot.size'
         event_type:
