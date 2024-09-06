@@ -10,19 +10,19 @@ in these examples.
 
 The properties of note are the following.
 
-| Property | Value | Documentation |
-| ---------|-------|-------------|
-| hw_scsi_model | STRING | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
-| hw_disk_bus | STRING | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
-| hw_vif_multiqueue_enabled | BOOL | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
-| hw_qemu_guest_agent | BOOL | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
-| hw_machine_type | STRING | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
-| hw_firmware_type | STRING | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
-| os_require_quiesce | BOOL | [Link](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) |
-| os_type | STRING | [Link](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html) |
-| os_admin_user | STRING | [Link](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html) |
-| os_distro | STRING | [Link](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html) |
-| os_version | STRING | [Link](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html) |
+| Property                                                                                                 | Value  | Notes                |
+|----------------------------------------------------------------------------------------------------------|--------|----------------------|
+| [hw_scsi_model](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html)             | STRING | Needed for multipath |
+| [hw_disk_bus](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html)               | STRING | Needed for multipath |
+| [hw_vif_multiqueue_enabled](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html) | BOOL   |
+| [hw_qemu_guest_agent](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html)       | BOOL   |
+| [hw_machine_type](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html)           | STRING |
+| [hw_firmware_type](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html)          | STRING |
+| [os_require_quiesce](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html)        | BOOL   |
+| [os_type](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html)             | STRING |
+| [os_admin_user](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html)       | STRING |
+| [os_distro](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html)           | STRING |
+| [os_version](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html)          | STRING |
 
 ## Get Ubuntu
 
@@ -36,8 +36,6 @@ openstack --os-cloud default image create \
           --container-format bare \
           --public \
           --file noble-server-cloudimg-amd64.img \
-          --property hw_scsi_model=virtio-scsi \
-          --property hw_disk_bus=scsi \
           --property hw_vif_multiqueue_enabled=true \
           --property hw_qemu_guest_agent=yes \
           --property hypervisor_type=kvm \
@@ -62,8 +60,6 @@ openstack --os-cloud default image create \
           --container-format bare \
           --public \
           --file jammy-server-cloudimg-amd64.img \
-          --property hw_scsi_model=virtio-scsi \
-          --property hw_disk_bus=scsi \
           --property hw_vif_multiqueue_enabled=true \
           --property hw_qemu_guest_agent=yes \
           --property hypervisor_type=kvm \
@@ -88,8 +84,6 @@ openstack --os-cloud default image create \
           --container-format bare \
           --public \
           --file focal-server-cloudimg-amd64.img \
-          --property hw_scsi_model=virtio-scsi \
-          --property hw_disk_bus=scsi \
           --property hw_vif_multiqueue_enabled=true \
           --property hw_qemu_guest_agent=yes \
           --property hypervisor_type=kvm \
@@ -116,8 +110,6 @@ openstack --os-cloud default image create \
           --container-format bare \
           --public \
           --file debian-12-genericcloud-amd64.qcow2 \
-          --property hw_scsi_model=virtio-scsi \
-          --property hw_disk_bus=scsi \
           --property hw_vif_multiqueue_enabled=true \
           --property hw_qemu_guest_agent=yes \
           --property hypervisor_type=kvm \
@@ -142,8 +134,6 @@ openstack --os-cloud default image create \
           --container-format bare \
           --public \
           --file debian-11-genericcloud-amd64.qcow2 \
-          --property hw_scsi_model=virtio-scsi \
-          --property hw_disk_bus=scsi \
           --property hw_vif_multiqueue_enabled=true \
           --property hw_qemu_guest_agent=yes \
           --property hypervisor_type=kvm \
@@ -170,8 +160,6 @@ openstack --os-cloud default image create \
           --container-format bare \
           --public \
           --file CentOS-Stream-GenericCloud-9-latest.x86_64.qcow2 \
-          --property hw_scsi_model=virtio-scsi \
-          --property hw_disk_bus=scsi \
           --property hw_vif_multiqueue_enabled=true \
           --property hw_qemu_guest_agent=yes \
           --property hypervisor_type=kvm \
@@ -195,8 +183,6 @@ openstack --os-cloud default image create \
           --container-format bare \
           --public \
           --file CentOS-Stream-GenericCloud-8-latest.x86_64.qcow2 \
-          --property hw_scsi_model=virtio-scsi \
-          --property hw_disk_bus=scsi \
           --property hw_vif_multiqueue_enabled=true \
           --property hw_qemu_guest_agent=yes \
           --property hypervisor_type=kvm \
@@ -210,6 +196,10 @@ openstack --os-cloud default image create \
           --property os_version=8 \
           CentOS-Stream-8
 ```
+
+## Get Fedora CoreOS
+
+### CoreOS 40
 
 !!! note
 
@@ -225,8 +215,6 @@ openstack --os-cloud default image create \
           --container-format bare \
           --public \
           --file fedora-coreos-40.20240616.3.0-openstack.x86_64.qcow2 \
-          --property hw_scsi_model=virtio-scsi \
-          --property hw_disk_bus=scsi \
           --property hw_vif_multiqueue_enabled=true \
           --property hw_qemu_guest_agent=yes \
           --property hypervisor_type=kvm \
@@ -241,20 +229,47 @@ openstack --os-cloud default image create \
           fedora-coreos-40
 ```
 
+### Fedora CoreOS Image Required by Magnum
+
+!!! note
+
+    When configuring the ClusterTemplate, you must specify the image used to boot the servers. To do this, register the image with OpenStack Glance and ensure that the os_distro property is set to fedora-coreos. The os_distro attribute must be defined and accurately reflect the distribution used by the cluster driver. This parameter is mandatory and does not have a default value, so it must be specified explicitly. Note that the os_distro attribute is case-sensitive. Currently, only Fedora CoreOS is supported. For more detailed information, refer to the [upstream magnum documentation](https://docs.openstack.org/magnum/latest/user/index.html).
+
+``` shell
+wget https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/40.20240728.3.0/x86_64/fedora-coreos-40.20240728.3.0-openstack.x86_64.qcow2.xz
+xz -d fedora-coreos-40.20240728.3.0-openstack.x86_64.qcow2.xz
+openstack --os-cloud default image create \
+          --progress \
+          --disk-format qcow2 \
+          --container-format bare \
+          --public \
+          --file fedora-coreos-40.20240728.3.0-openstack.x86_64.qcow2 \
+          --property hw_vif_multiqueue_enabled=true \
+          --property hw_qemu_guest_agent=yes \
+          --property hypervisor_type=kvm \
+          --property img_config_drive=optional \
+          --property hw_machine_type=q35 \
+          --property hw_firmware_type=uefi \
+          --property os_require_quiesce=yes \
+          --property os_type=linux \
+          --property os_admin_user=coreos \
+          --property os_distro=fedora-coreos \
+          --property os_version=40 \
+          magnum-fedora-coreos-40
+```
+
 ## Get openSUSE Leap
 
 ### Leap 15
 
 ``` shell
-wget https://download.opensuse.org/distribution/leap/15.5/appliances/openSUSE-Leap-15.5-Minimal-VM.x86_64-kvm-and-xen.qcow2
+wget https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.2/images/openSUSE-Leap-15.2-OpenStack.x86_64-0.0.4-Build8.25.qcow2
 openstack --os-cloud default image create \
           --progress \
           --disk-format qcow2 \
           --container-format bare \
           --public \
           --file openSUSE-Leap-15.5-Minimal-VM.x86_64-kvm-and-xen.qcow2 \
-          --property hw_scsi_model=virtio-scsi \
-          --property hw_disk_bus=scsi \
           --property hw_vif_multiqueue_enabled=true \
           --property hw_qemu_guest_agent=yes \
           --property hypervisor_type=kvm \

@@ -80,15 +80,24 @@ conf:
     nova_client:
       region_name: RegionOne
       endpoint_type: internalURL
+    cinder_client:
+      region_name: RegionOne
+      endpoint_type: internalURL
     neutron_client:
       region_name: RegionOne
       endpoint_type: internalURL
     barbican_client:
       endpoint_type: internalURL
+      region_name: RegionOne
     heat_client:
       endpoint_type: internalURL
+      region_name: RegionOne
     magnum_client:
+      region_name: RegionOne
       endpoint_type: publicURL
+    octavia_client:
+      region_name: RegionOne
+      endpoint_type: internalURL
     cluster:
       temp_cache_dir: /var/lib/magnum/certificate-cache
     oslo_messaging_notifications:
@@ -102,9 +111,10 @@ conf:
     database:
       max_retries: -1
     trust:
-      trustee_domain_name: magnum
       cluster_user_trust: true
-      trustee_keystone_interface: public
+      trustee_domain_name: magnum
+    keystone_auth:
+      auth_section: keystone_authtoken
     keystone_authtoken:
       service_token_roles: service
       service_token_roles_required: true
@@ -665,5 +675,5 @@ manifests:
   secret_registry: true
   service_api: true
   service_ingress_api: false
-  statefulset_conductor: false
+  statefulset_conductor: true
 ...

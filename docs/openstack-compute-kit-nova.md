@@ -164,17 +164,17 @@ sed 's/your.domain.tld/<YOUR_DOMAIN>/g' \
 #### Apply the Nova Route
 
 ``` shell
-kubectl --namespace openstack apply -f /etc/gateway-api/routes/custom-nova-gateway-route.yaml
+kubectl --namespace openstack apply -f /etc/genestack/gateway-api/routes/custom-nova-gateway-route.yaml
 ```
 
 #### Apply the Novnc Route
 
 ``` shell
-kubectl --namespace openstack apply -f /etc/gateway-api/routes/custom-novnc-gateway-route.yaml
+kubectl --namespace openstack apply -f /etc/genestack/gateway-api/routes/custom-novnc-gateway-route.yaml
 ```
 
 #### Apply the Metadata Route
 
 ``` shell
-kubectl --namespace openstack apply -f /etc/gateway-api/routes/custom-metadata-gateway-route.yaml
+kubectl --namespace openstack apply -f /etc/genestack/gateway-api/routes/custom-metadata-gateway-route.yaml
 ```

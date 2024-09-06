@@ -183,3 +183,15 @@ the IP, the information from the dashboard may *come from* the pinger pod, but
 This dashboard prominently displays the OVS up count, OVN-Controller up count,
 and API server accessible count. These should all have the same number, equal to
 your number of nodes.
+
+##### Inconsistent port binding nums
+
+The _Kube-OVN_ documentation for this metric says "The number of mismatch port
+bindings between ovs and ovn-sb" and provides no additional information.
+However, in _Genestack_, you find ovn metadata 'localport' types in the NB that
+don't need an SB binding, which increases this count. _Kube-OVN_'s OVN itself
+often gets used for k8s alone and would in that case often have a 0 count here,
+but _Genestack_ (Flex, not Enterprise) uses _OpenStack Neutron_ as a second CMS
+for _Kube-OVN_'s OVN installation, resulting in the existence of ports that
+increase this count but don't indicate a problem, so _Genestack_ will generally
+have a significant count for each compute node for this metric.

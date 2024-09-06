@@ -37,7 +37,6 @@ cd /opt/genestack/submodules/openstack-helm
 
 helm upgrade --install magnum ./magnum \
     --namespace=openstack \
-    --wait \
     --timeout 120m \
     -f /opt/genestack/base-helm-configs/magnum/magnum-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -112,5 +111,5 @@ sed 's/your.domain.tld/<YOUR_DOMAIN>/g' \
 #### Apply the Route
 
 ``` shell
-kubectl --namespace openstack apply -f /etc/gateway-api/routes/custom-magnum-gateway-route.yaml
+kubectl --namespace openstack apply -f /etc/genestack/gateway-api/routes/custom-magnum-gateway-route.yaml
 ```

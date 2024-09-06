@@ -70,6 +70,7 @@ GRUB_CMDLINE_LINUX_DEFAULT="... vfio-pci.ids=10de:1c30,10de:10f1"
 
     The value of `vfio-pci.ids` is the same as the noted from the *lspci output*.
 
+
 ### Update GRUB and reboot
 
 ``` shell
@@ -110,6 +111,12 @@ Note the "Kernel driver in use: vfio-pci" section. If the kernel driver is anyth
         sudo dmesg | grep -e IOMMU
 
 
+!!! example "example config that uses iommu and also disables nvidia modules in favor of vfio"
+
+    ``` shell
+    GRUB_CMDLINE_LINUX_DEFAULT="quiet splash intel_iommu=on iommu=pt mitigations=off vfio-pci.ids=10de:1b38 vfio_iommu_type1.allow_unsafe_interrupts=1 modprobe.blacklist=nvidiafb,nouveau,nvidia,nvidia_drm rs.driver.blacklist=nouveau,nvidia,nvidia_drm,nvidiafb kvm.ignore_msrs=1"
+    ```
+
 ## Configure Nova Compute
 
 With the same `lspci` information used in the `vfio` setup, create a `device_spec` and `alias` in JSON string format. The `device_spec` needs the **vendor_id** and **product_id** which are within our known PCI information. For `10de:1c30` and `10de:10f1`, the left side of the `:` is the **vendor_id** and the right side is the **product_id**.
@@ -130,6 +137,8 @@ With the same `lspci` information used in the `vfio` setup, create a `device_spe
 ``` json
 {"vendor_id": "10de", "product_id": "1c30", "device_type": "type-PCI", "name": "p2000"}
 ```
+
+If you are configuring a PCI passthrough for say a GPU compute follow the instruction in the Node Overrides Explanation section of the service override documentation.
 
 1. See the [Genestack service override documentation](openstack-service-overrides.md) on how update your compute infrastructure to use the `device_spec` and `alias`.
 
