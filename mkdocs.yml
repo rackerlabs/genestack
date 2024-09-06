@@ -222,6 +222,8 @@ nav:
           - OVN Database Backup: infrastructure-ovn-db-backup.md
           - OVN Monitoring introduction: ovn-monitoring-introduction.md
           - MariaDB Operations: infrastructure-mariadb-ops.md
+          - Adding New Node: adding-new-node.md
+          - Host Aggregates: openstack-host-aggregates.md
       - Third Party Tools:
           - OSIE: extra-osie.md
       - OpenStack:
@@ -240,6 +242,8 @@ nav:
               - Creating Networks: openstack-neutron-networks.md
           - Magnum:
               - Creating kubernetes clusters: magnum-kubernetes-cluster-setup-guide.md
+          - Octavia:
+              - Creating Cloud Load Balancers: octavia-loadbalancer-setup-guide.md
           - Service Overrides: openstack-service-overrides.md
       - Working locally With Docs: mkdocs-howto.md
   - Cloud Onboarding:

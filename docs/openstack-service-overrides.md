@@ -98,6 +98,55 @@ conf:
 
 In this example, the configuration sets the `cpu_shared_set` to "8-15" for a specific node identified by `${NODE_NAME}`.
 
+Now, lets also look at a specific example of using pci device address to pass to nova.
+Once you have validated that IOMMU is enbled:
+
+```shell title="Get device id"
+   lspci -nn | grep -i nvidia
+   > 3f:00.0 3D controller [0302]: NVIDIA Corporation GA103 [10de:2321] (rev a1)
+   > 56:00.0 3D controller [0302]: NVIDIA Corporation GA103 [10de:2321] (rev a1)
+```
+In this example, `3f:00.0` and `56:00.0` is the address of the PCI device. The veendor ID is `10de` (for nvidia) and the product ID is `2321`.
+
+You can also confirm that the device is available for PCI passthrough:
+```shell
+   ls -ld /sys/kernel/iommu_groups/*/devices/*3f:00.?/
+```
+We can now deploy the configuration override in nova like so:
+
+```yaml title="Configuration Overrides using Hosts"
+conf:
+  nova:
+    pci:
+      alias:
+        type: multistring
+        values:
+          - '{"vendor_id": "10de", "product_id": "2321", "device_type": "type-PCI", "name": "h100", "numa_policy": "preferred"}'
+          - '{"vendor_id": "10de", "product_id": "1389", "device_type": "type-PCI", "name": "h100", "numa_policy": "preferred"}'
+    filter_scheduler:
+      enabled_filters: >-
+        ComputeFilter,ComputeCapabilitiesFilter,ImagePropertiesFilter,ServerGroupAntiAffinityFilter,ServerGroupAffinityFilter,AggregateInstanceExtraSpecsFilter,NUMATopologyFilter,PciPassthroughFilter
+      available_filters: nova.scheduler.filters.all_filters
+  overrides:
+    nova_compute:  # Chart + "_" + Daemonset (nova_compute)
+      hosts:
+        - name: "compute001.h100.example.com"
+          conf:
+            nova:
+                pci:
+                  alias:
+                    type: multistring
+                    values:
+                      - '{"vendor_id": "10de", "product_id": "2321", "device_type": "type-PCI", "name": "h100", "numa_policy": "preferred"}'
+                      - '{"vendor_id": "10de", "product_id": "1389", "device_type": "type-PCI", "name": "h100", "numa_policy": "preferred"}'
+                  device_spec: >-
+                    [{"address": "0000:3f:00.0"}, {"address": "0000:56:00.0"}]
+                filter_scheduler:
+                  enabled_filters: >-
+                    ComputeFilter,ComputeCapabilitiesFilter,ImagePropertiesFilter,ServerGroupAntiAffinityFilter,ServerGroupAffinityFilter,AggregateInstanceExtraSpecsFilter,NUMATopologyFilter,PciPassthroughFilter
+                  available_filters: nova.scheduler.filters.all_filters
+```
+
 ## Deploying Configuration Changes
 
 Once the overrides are in place, simply rerun the `helm` deployment command to apply the changes:
