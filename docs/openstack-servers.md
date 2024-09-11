@@ -108,13 +108,13 @@ You will need to get your cloud name from your `clouds.yaml`. More information o
 First we are going to create our network "my_network"
 
 ``` shell
-openstack --os-cloud=$CLOUD network create my_network
+openstack --os-cloud={cloud name} network create my_network
 ```
 
 Second create the subnet "my_subnet"
 
 ``` shell
-openstack --os-cloud=$CLOUD subnet create --ip-version 4 \
+openstack --os-cloud={cloud name} subnet create --ip-version 4 \
                                           --subnet-range $CIDR \
                                           --network $NETWORK_NAME \
                                           $CIDR
@@ -123,33 +123,33 @@ openstack --os-cloud=$CLOUD subnet create --ip-version 4 \
 Third create the router "my_router"
 
 ``` shell
-openstack --os-cloud=$CLOUD router create my_router
+openstack --os-cloud={cloud name} router create my_router
 ```
 
 Fourth add "my_subnet" to "my_router" and set the router's external gateway using PUBLICNET to allow outbound network access.
 
 ``` shell
-openstack --os-cloud=$CLOUD router add subnet my_router my_dmz_subnet
+openstack --os-cloud={cloud name} router add subnet my_router my_dmz_subnet
 ```
 
 Set the external gateway
 
 ``` shell
-openstack --os-cloud=$CLOUD router set --external-gateway PUBLICNET my_router
+openstack --os-cloud={cloud name} router set --external-gateway PUBLICNET my_router
 ```
 
 Fifth gather the UUIDS for our image, flavor and network to create our server.
 
 ``` shell
-openstack --os-cloud=$CLOUD image list
-openstack --os-cloud=$CLOUD flavor list
-openstack --os-cloud=$CLOUD network list
+openstack --os-cloud={cloud name} image list
+openstack --os-cloud={cloud name} flavor list
+openstack --os-cloud={cloud name} network list
 ```
 
 Lastly create your server!
 
 ``` shell
-openstack --os-cloud=$CLOUD server create --flavor $FLAVOR_NAME \
+openstack --os-cloud={cloud name} server create --flavor $FLAVOR_NAME \
                                           --image $IMAGE_NAME \
                                           --boot-from-volume 25 \
                                           --network $NETWORK_NAME \
