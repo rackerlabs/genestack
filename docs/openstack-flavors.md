@@ -2,14 +2,109 @@
 
 Flavors in OpenStack are pre-defined configurations of compute, memory, and storage resources for virtual machines. They allow administrators to offer a range of instance sizes to users. Below are the default flavors typically expected in an OpenStack cloud. These flavors can be customized based on your specific requirements. For more detailed information on managing flavors, refer to the [upstream admin documentation](https://docs.openstack.org/nova/latest/admin/flavors.html).
 
-``` shell
-openstack --os-cloud default flavor create --public m1.extra_tiny --ram 512 --disk 0 --vcpus 1 --ephemeral 0 --swap 0
-openstack --os-cloud default flavor create --public m1.tiny --ram 1024 --disk 10 --vcpus 1 --ephemeral 0 --swap 0
-openstack --os-cloud default flavor create --public m1.small --ram 2048 --disk 20 --vcpus 2 --ephemeral 0 --swap 0
-openstack --os-cloud default flavor create --public m1.medium --ram 4096 --disk 40 --vcpus 4 --ephemeral 8 --swap 2048
-openstack --os-cloud default flavor create --public m1.large --ram 8192 --disk 80 --vcpus 6 --ephemeral 16 --swap 4096
-openstack --os-cloud default flavor create --public m1.extra_large --ram 16384 --disk 160 --vcpus 8 --ephemeral 32 --swap 8192
+## Flavor Anatomy
+
+Our flavors follow a simple to understand flow which lets a user better understand what they're getting at a glance.
+
+``` mermaid
+flowchart LR
+    id1{{NAME}} o-.-o id2{{GENERATION}} o-.-o id3{{CPU}} o-.-o id4{{MEMORY}}
 ```
+
+### Flavor Naming
+
+The current naming conventions are all strings and fall under one of four classes.
+
+| Key | Description |
+| --- | ----------- |
+| gp | General Purpose |
+| co | Compute Optimized |
+| ao | Accelerator Optimized |
+| mo | Memory Optimized |
+
+### Flavor Generation
+
+The generation slot is an integer that starts at 0. Within the Rackspace OpenStack this value is tied to the hardware generation being supported by the flavor itself.
+
+### Flavor CPU
+
+The CPU slot is an integrate representing the number of vCPU a flavor will provide to an instance.
+
+### Flavor Memory
+
+The Memory slot is an integrate representing the gigabytes of RAM a flavor will provide to an instance.
+
+## Flavor Resource Breakdown
+
+The flavors used within our Genestack environment have been built to provide the best possible default user experience. Our flavors create an environment with the following specifications.
+
+| Name | GB | vCPU | Local Disk (GB) | Ephemeral Disk (GB) | Swap Space (MB) |
+| ---- | -- | ---- | --------------- | ------------------- | --------------- |
+| gp.0.1.2 | 2 | 1 | 10 | 0 | 0 |
+| gp.0.1.4 | 4 | 1 | 10 | 0 | 0 |
+| gp.0.2.2 | 2 | 2 | 40 | 0 | 1024 |
+| gp.0.2.4 | 4 | 2 | 40 | 0 | 1024 |
+| gp.0.2.6 | 6 | 2 | 40 | 0 | 1024 |
+| gp.0.2.8 | 8 | 2 | 40 | 0 | 1024 |
+| gp.0.4.4 | 4 | 4 | 80 | 64 | 4096 |
+| gp.0.4.8 | 8 | 4 | 80 | 64 | 4096 |
+| gp.0.4.12 | 12 | 4 | 80 | 64 | 4096 |
+| gp.0.4.16 | 16 | 4 | 80 | 64 | 4096 |
+| gp.0.8.16 | 16 | 8 | 160 | 128 | 8192 |
+| gp.0.8.24 | 24 | 8 | 160 | 128 | 8192 |
+| gp.0.8.32 | 32 | 8 | 160 | 128 | 8192 |
+| gp.0.16.64 | 64 | 16 | 240 | 128 | 8192 |
+| gp.0.24.96 | 96 | 24 | 240 | 128 | 8192 |
+| gp.0.32.128 | 128 | 32 | 240 | 128 | 8192 |
+| gp.0.48.192 | 192 | 48 | 240 | 128 | 8192 |
+| mo.1.2.12 | 12 | 2 | 80 | 0 | 0 |
+| mo.1.2.16 | 16 | 2 | 80 | 0 | 0 |
+| mo.1.4.20 | 20 | 4 | 80 | 0 | 0 |
+| mo.1.4.24 | 24 | 4 | 80 | 0 | 0 |
+| mo.1.4.32 | 32 | 4 | 80 | 0 | 0 |
+| mo.1.8.64 | 64 | 8 | 80 | 0 | 0 |
+
+## Flavor Properties
+
+Flavor properties provide some additional configuration to highlight placement and create hardware functionality.
+
+| Property | Value | Description |
+| ---------|-------|-------------|
+| hw:mem_page_size | any | Defines how hughpages are used within the instance type, our default is auto, acceptible options could also be `small` or `large` |
+| hw:cpu_max_threads | 1 | Sets the max number of threads per-core used within the instances. |
+| hw:cpu_max_sockets | 2 | Sets the max number of sockets used within the instances. While any integer is acceptible, the highest recommended maximum is 4. |
+| :category | String | Display property used within skyline to group flavor classes. Our options are `general_purpose`, `memory_optimized`, and `compute_optimized`. |
+| :architecture | x86_architecture | Display property used within skyline to group flavor classes. Our option is currently limited to `x86_architecture` |
+
+----
+
+??? example "Example Creation of Flavors Built for Production"
+
+    ``` shell
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 2048 --vcpu 1 --disk 10 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.1.2
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 4096 --vcpu 1 --disk 10 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.1.4
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 2048 --vcpu 2 --disk 40 --ephemeral 0 --swap 1024 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.2.2
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 4096 --vcpu 2 --disk 40 --ephemeral 0 --swap 1024 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.2.4
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 6144 --vcpu 2 --disk 40 --ephemeral 0 --swap 1024 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.2.6
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 8192 --vcpu 2 --disk 40 --ephemeral 0 --swap 1024 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.2.8
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 4096 --vcpu 4 --disk 80 --ephemeral 64 --swap 4096 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.4.4
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 8192 --vcpu 4 --disk 80 --ephemeral 64 --swap 4096 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.4.8
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 12288 --vcpu 4 --disk 80 --ephemeral 64 --swap 4096 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.4.12
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 16384 --vcpu 4 --disk 80 --ephemeral 64 --swap 4096 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.4.16
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 16384 --vcpu 8 --disk 160 --ephemeral 128 --swap 8192 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.8.16
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 24576 --vcpu 8 --disk 160 --ephemeral 128 --swap 8192 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.8.24
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 32768 --vcpu 8 --disk 160 --ephemeral 128 --swap 8192 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.8.32
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 65536 --vcpu 16 --disk 240 --ephemeral 128 --swap 8192 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.16.64
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 98304 --vcpu 24 --disk 240 --ephemeral 128 --swap 8192 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.24.96
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 131072 --vcpu 32 --disk 240 --ephemeral 128 --swap 8192 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.32.128
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 196608 --vcpu 48 --disk 240 --ephemeral 128 --swap 8192 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.48.192
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 12288 --vcpu 2 --disk 80 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=memory_optimized" --property ":architecture=x86_architecture" mo.0.2.12
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 16384 --vcpu 2 --disk 80 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=memory_optimized" --property ":architecture=x86_architecture" mo.0.2.16
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 20480 --vcpu 4 --disk 80 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=memory_optimized" --property ":architecture=x86_architecture" mo.0.4.20
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 24576 --vcpu 4 --disk 80 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=memory_optimized" --property ":architecture=x86_architecture" mo.0.4.24
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 32768 --vcpu 4 --disk 80 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=memory_optimized" --property ":architecture=x86_architecture" mo.0.4.32
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 65536 --vcpu 8 --disk 80 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=memory_optimized" --property ":architecture=x86_architecture" mo.0.8.64
+    ```
 
 ## Use Case Specific Flavors
 
