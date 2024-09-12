@@ -902,6 +902,56 @@ conf:
           instance_network_interface: '{"=": {"instance_id": "%s"}}'
           instance_disk: '{"=": {"instance_id": "%s"}}'
 
+      - resource_type: instance
+        metrics:
+          memory:
+          memory.usage:
+          memory.resident:
+          memory.swap.in:
+          memory.swap.out:
+          memory.bandwidth.total:
+          memory.bandwidth.local:
+          vcpus:
+          cpu:
+            archive_policy_name: ceilometer-low-rate
+          cpu_l3_cache:
+          disk.root.size:
+          disk.ephemeral.size:
+          disk.latency:
+          disk.iops:
+          disk.capacity:
+          disk.allocation:
+          disk.usage:
+          compute.instance.booting.time:
+          perf.cpu.cycles:
+          perf.instructions:
+          perf.cache.references:
+          perf.cache.misses:
+        attributes:
+          host: resource_metadata.(instance_host|host)
+          image_ref: resource_metadata.image_ref
+          launched_at: resource_metadata.launched_at
+          created_at: resource_metadata.created_at
+          deleted_at: resource_metadata.deleted_at
+          display_name: resource_metadata.display_name
+          flavor_id: resource_metadata.(instance_flavor_id|(flavor.id)|flavor_id)
+          flavor_name: resource_metadata.(instance_type|(flavor.name)|flavor_name)
+          server_group: resource_metadata.user_metadata.server_group
+        event_update:
+          - compute.instance.update
+          - compute.instance.exists
+          - compute.instance.resize_confirm.end
+          - compute.instance.resize_revert.end
+        event_attributes:
+          id: instance_id
+          display_name: display_name
+          host: host
+          availability_zone: availability_zone
+          flavor_id: instance_type_id
+          flavor_name: instance_type
+          user_id: user_id
+          project_id: project_id
+
       - resource_type: instance_network_interface
         metrics:
           network.outgoing.packets:
