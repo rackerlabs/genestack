@@ -889,6 +889,11 @@ conf:
           server_group: resource_metadata.user_metadata.server_group
         event_delete: compute.instance.delete.start
         event_create: compute.instance.create.end
+        event_update:
+          - compute.instance.update
+          - compute.instance.exists
+          - compute.instance.resize_confirm.end
+          - compute.instance.resize_revert.end
         event_attributes:
           id: instance_id
           display_name: display_name
