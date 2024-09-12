@@ -9,7 +9,7 @@
 1. Shut down the source VM before you take the snapshot to ensure that all data is flushed to disk. Use the openstack server stop command to shut down the instance:
 
     ``` shell
-    openstack server stop myInstance
+    openstack --os-cloud={cloud name} server stop myInstance
     ```
 
 2. Use the openstack server list command to confirm that the instance shows a SHUTOFF status.
@@ -17,7 +17,7 @@
 3. Use the openstack server image create command to take a snapshot:
 
     ``` shell
-    openstack server image create myInstance --name myInstanceSnapshot
+    openstack --os-cloud={cloud name} server image create myInstance --name myInstanceSnapshot
     ```
 
     The above command creates the image myInstance by taking a snapshot of a running server.
@@ -25,13 +25,13 @@
 4. Use the openstack image list command to check the status until the status is active:
 
     ``` shell
-    openstack image list
+    openstack --os-cloud={cloud name} image list
     ```
 
 #### Show Image Details
 
 ``` shell
-openstack image show [--human-readable] <image>
+openstack --os-cloud={cloud name} image show [--human-readable] <image>
 ```
 
 #### Download the snapshot
@@ -43,7 +43,7 @@ openstack image show [--human-readable] <image>
 Download the snapshot by using the image ID:
 
 ``` shell
-openstack image save --file snapshot.raw {Image ID}
+openstack --os-cloud={cloud name} image save --file snapshot.raw {Image ID}
 ```
 
 Make the image available to the new environment, either through HTTP or direct upload to a machine (scp).
@@ -53,7 +53,7 @@ Make the image available to the new environment, either through HTTP or direct u
 In the new project or cloud environment, import the snapshot:
 
 ``` shell
-openstack image create NEW_IMAGE_NAME \
+openstack --os-cloud={cloud name} image create NEW_IMAGE_NAME \
   --container-format bare --disk-format qcow2 --file IMAGE_URL
 ```
 
@@ -62,5 +62,5 @@ openstack image create NEW_IMAGE_NAME \
 In the new project or cloud environment, use the snapshot to create the new instance:
 
 ``` shell
-openstack server create --flavor m1.tiny --image myInstanceSnapshot myNewInstance
+openstack --os-cloud={cloud name} server create --flavor m1.tiny --image myInstanceSnapshot myNewInstance
 ```

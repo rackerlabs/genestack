@@ -33,7 +33,7 @@ jobs:
                                                        --namespace grafana \
                                                         loki grafana/loki > /tmp/rendered.yaml
       - name: Return helm Build
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: helm-loki-artifact
           path: /tmp/rendered.yaml

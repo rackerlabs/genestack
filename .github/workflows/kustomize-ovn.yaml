@@ -22,7 +22,7 @@ jobs:
         run: |
           kustomize build base-kustomize/ovn > /tmp/rendered.yaml
       - name: Return Kustomize Build
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: kustomize-ovn-artifact
           path: /tmp/rendered.yaml

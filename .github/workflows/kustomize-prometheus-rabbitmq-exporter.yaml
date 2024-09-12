@@ -27,7 +27,7 @@ jobs:
         run: |
           kustomize build base-kustomize/prometheus-rabbitmq-exporter/ --enable-helm --helm-command ${{ steps.helm.outputs.helm-path }} > /tmp/rendered.yaml
       - name: Return Kustomize Build
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: kustomize-prometheus-rabbitmq-exporter-artifact
           path: /tmp/rendered.yaml
