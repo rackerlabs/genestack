@@ -31,7 +31,7 @@ jobs:
         run: |
           kustomize build base-kustomize/vault/${{ matrix.overlays }} --enable-helm --helm-command ${{ steps.helm.outputs.helm-path }} > /tmp/rendered.yaml
       - name: Return Kustomize Build
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: kustomize-vault-artifact-${{ matrix.overlays }}
           path: /tmp/rendered.yaml

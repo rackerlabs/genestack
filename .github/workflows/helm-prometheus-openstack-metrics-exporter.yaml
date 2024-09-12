@@ -37,7 +37,7 @@ jobs:
             --timeout 120m \
             -f ${{ github.workspace }}/base-helm-configs/monitoring/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml  > /tmp/rendered.yaml
       - name: Return helm Build
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: helm-openstack-exporter-artifact-${{ matrix.overlays }}
           path: /tmp/rendered.yaml
