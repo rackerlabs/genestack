@@ -21,7 +21,7 @@ openstack --os-cloud default project create --description 'platform-services ena
     ```
 
 ``` shell
-openstack --os-cloud default user create --project zamboni --password ${PASSWORD} platform-services --domain default
+openstack --os-cloud default user create --project platform-services --password ${PASSWORD} zamboni --domain default
 ```
 
 ##### Add the member role to the new user
@@ -60,10 +60,11 @@ openstack --os-cloud default role add --user zamboni --system all reader
 openstack --os-cloud default user create --project platform-services --password ${PASSWORD} platform-services --domain default
 ```
 
-##### Add the member role to the new platform-services user
+##### Add the member roles to the new platform-services user
 
 ``` shell
 openstack --os-cloud default role add --user platform-services --project platform-services member --inherited
+openstack --os-cloud default role add --user platform-services --domain default member --inherited
 ```
 
 #### Create a new core user
@@ -75,7 +76,7 @@ openstack --os-cloud default role add --user platform-services --project platfor
     ```
 
 ``` shell
-openstack --os-cloud default user create --project platform-services-core --password ${PASSWORD} platform-services --domain default
+openstack --os-cloud default user create --project platform-services --password ${PASSWORD} platform-services-core --domain default
 ```
 
 ##### Add the member role to the new core user
@@ -111,7 +112,7 @@ openstack --os-cloud default role add --user platform-services-core --system all
     ```
 
 ``` shell
-openstack --os-cloud default user create --project platform-services-core-alt --password ${PASSWORD} platform-services --domain default
+openstack --os-cloud default user create --project platform-services --password ${PASSWORD} platform-services-core-alt --domain default
 ```
 
 ##### Add the member role to the new core-alt user
