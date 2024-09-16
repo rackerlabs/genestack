@@ -1,6 +1,7 @@
 resources:
   - gnocchi-temp-keyring.yaml
   - all.yaml
+  - hpa-gnocchi-api.yaml
 
 patches:
   - path: configmap-bin.yaml

@@ -2038,7 +2038,7 @@ pod:
         compute:
           enabled: true
           min_ready_seconds: 0
-          max_unavailable: 1
+          max_unavailable: 20%
   resources:
     enabled: false
     compute:
