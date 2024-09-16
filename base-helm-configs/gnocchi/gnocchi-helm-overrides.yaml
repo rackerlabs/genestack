@@ -232,7 +232,7 @@ pod:
       init_container: null
       gnocchi_tests:
   replicas:
-    api: 3
+    api: 1
   lifecycle:
     upgrades:
       deployments:
@@ -246,11 +246,11 @@ pod:
         metricd:
           enabled: true
           min_ready_seconds: 0
-          max_unavailable: 1
+          max_unavailable: 20%
         statsd:
           enabled: true
           min_ready_seconds: 0
-          max_unavailable: 1
+          max_unavailable: 20%
     disruption_budget:
       api:
         min_available: 0
