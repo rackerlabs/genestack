@@ -55,3 +55,13 @@ data:
       key: $( echo ${ENCODED_KEYRING} )
     EOF
     kubectl apply --namespace ${NAMESPACE} -f ${SECRET}
+
+  gnocchi-resources-cleaner.sh: |
+    #!/bin/bash
+
+    set -ex
+
+    echo "Purging the deleted resources with its associated metrics which have lived more than ${DELETED_RESOURCES_TTL}"
+    gnocchi resource batch delete "ended_at < '-${DELETED_RESOURCES_TTL}'"
+
+    exit 0
