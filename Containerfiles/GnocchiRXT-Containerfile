@@ -30,6 +30,7 @@ RUN apt update && \
 RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10 && \
     pip install \
     "gnocchi[postgresql,ceph,keystone] @ git+https://github.com/gnocchixyz/gnocchi.git@${GNOCCHI_VERSION}" \
+    "gnocchiclient" \
     "pymemcache" \
     "pymysql" \
     "sqlalchemy>=1.4.24,<2"
