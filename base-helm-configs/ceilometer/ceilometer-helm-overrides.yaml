@@ -144,6 +144,8 @@ conf:
           fields: publisher_id.`split(., 1, 1)`
         service:
           fields: publisher_id.`split(., 0, -1)`
+        node:
+          fields: payload.node
         memory_mb:
           type: int
           fields: payload.memory_mb
@@ -160,7 +162,7 @@ conf:
           type: int
           fields: payload.vcpus
         instance_type_id:
-          fields: payload.instance_type_id
+          fields: payload.instance_flavor_id
         instance_type:
           fields: payload.instance_type
         state:
@@ -853,7 +855,7 @@ conf:
           radosgw.containers.objects.size:
 
       - resource_type: instance
-        metrics:
+        metrics: &instance_metrics
           memory:
           memory.usage:
           memory.resident:
@@ -878,7 +880,7 @@ conf:
           perf.cache.references:
           perf.cache.misses:
         attributes:
-          host: resource_metadata.(instance_host|host)
+          host: resource_metadata.(node|instance_host|host)
           image_ref: resource_metadata.image_ref
           launched_at: resource_metadata.launched_at
           created_at: resource_metadata.created_at
@@ -892,7 +894,7 @@ conf:
         event_attributes:
           id: instance_id
           display_name: display_name
-          host: host
+          host: node
           availability_zone: availability_zone
           flavor_id: instance_type_id
           flavor_name: instance_type
@@ -904,31 +906,9 @@ conf:
 
       - resource_type: instance
         metrics:
-          memory:
-          memory.usage:
-          memory.resident:
-          memory.swap.in:
-          memory.swap.out:
-          memory.bandwidth.total:
-          memory.bandwidth.local:
-          vcpus:
-          cpu:
-            archive_policy_name: ceilometer-low-rate
-          cpu_l3_cache:
-          disk.root.size:
-          disk.ephemeral.size:
-          disk.latency:
-          disk.iops:
-          disk.capacity:
-          disk.allocation:
-          disk.usage:
-          compute.instance.booting.time:
-          perf.cpu.cycles:
-          perf.instructions:
-          perf.cache.references:
-          perf.cache.misses:
+          <<: *instance_metrics
         attributes:
-          host: resource_metadata.(instance_host|host)
+          host: resource_metadata.(node|instance_host|host)
           image_ref: resource_metadata.image_ref
           launched_at: resource_metadata.launched_at
           created_at: resource_metadata.created_at
@@ -945,12 +925,10 @@ conf:
         event_attributes:
           id: instance_id
           display_name: display_name
-          host: host
-          availability_zone: availability_zone
+          host: node
           flavor_id: instance_type_id
           flavor_name: instance_type
-          user_id: user_id
-          project_id: project_id
+          image_ref: image_ref
 
       - resource_type: instance_network_interface
         metrics:
