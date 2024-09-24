@@ -1,4 +1,4 @@
-# Deploy the MariaDB Operator and a Galera Cluster
+# Deploy the MariaDB Operator and Mariadb Cluster
 
 ## Create secret
 
