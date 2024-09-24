@@ -3,7 +3,7 @@
 The first part of the compute kit is Libvirt.
 
 ``` shell
-cd /opt/genestack/submodules/openstack-helm-infra/
+cd /opt/genestack/submodules/openstack-helm
 kubectl kustomize --enable-helm /etc/genestack/kustomize/libvirt | kubectl apply --namespace openstack -f -
 ```
 
