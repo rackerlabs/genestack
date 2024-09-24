@@ -43,5 +43,5 @@ kubectl --namespace openstack \
 Next, Deploy the backup job:
 
 ```
-kubectl apply -k /opt/genestack/base-kustomize/backups/etcd/etcd-backup.yaml --namespace openstack
+kubectl apply -k /etc/genestack/kustomize/backups/etcd/etcd-backup.yaml --namespace openstack
 ```

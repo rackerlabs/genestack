@@ -21,15 +21,9 @@ cd "${BASEDIR}" || error "Could not change to ${BASEDIR}"
 
 source scripts/lib/functions.sh
 
-if [[ -z "${GENESTACK_PRODUCT}" ]]; then
-  exit 99
-fi
-
-# Which config to bootstrap
-if test -f "${GENESTACK_CONFIG}/product" 2>/dev/null; then
-  GENESTACK_PRODUCT=$(head -n1 "${GENESTACK_CONFIG}/product")
-  export GENESTACK_PRODUCT
-fi
+# Set GENESTACK_PRODUCT to 'genestack'
+GENESTACK_PRODUCT="genestack"
+export GENESTACK_PRODUCT
 
 set -e
 
@@ -43,7 +37,6 @@ DEBIAN_FRONTEND=noninteractive \
   apt-get -o "Dpkg::Options::=--force-confdef" \
           -o "Dpkg::Options::=--force-confold" \
           -qy install make git python3-pip python3-venv jq make > ~/genestack-base-package-install.log 2>&1
-
 
 if [ $? -gt 1 ]; then
   error "Check for ansible errors at ~/genestack-base-package-install.log"
@@ -61,20 +54,17 @@ test -f "$GENESTACK_CONFIG/product" || echo "${GENESTACK_PRODUCT}" > "${GENESTAC
 mkdir -p "$GENESTACK_CONFIG/inventory/group_vars" "${GENESTACK_CONFIG}/inventory/credentials"
 
 # Copy default k8s config
-test -d "ansible/inventory/${GENESTACK_PRODUCT}" || error "Product Config ${GENESTACK_PRODUCT} does not exist here"
-PRODUCT_DIR="ansible/inventory/${GENESTACK_PRODUCT}"
-# shellcheck disable=SC2086
-if [ "$(find ${GENESTACK_CONFIG}/inventory -name \*.yaml -o -name \*.yml 2>/dev/null |wc -l)" -eq 0 ]; then
+PRODUCT_DIR="ansible/inventory/genestack"
+if [ "$(find ${GENESTACK_CONFIG}/inventory -name \*.yaml -o -name \*.yml 2>/dev/null | wc -l)" -eq 0 ]; then
   cp -r "${PRODUCT_DIR}"/* "${GENESTACK_CONFIG}/inventory"
 fi
 
-# Copy gateway-api exmaple configs
+# Copy gateway-api example configs
 test -d "$GENESTACK_CONFIG/gateway-api" || cp -a "${BASEDIR}/etc/gateway-api" "$GENESTACK_CONFIG"/
 
 # Create venv and prepare Ansible
 python3 -m venv ~/.venvs/genestack
 ~/.venvs/genestack/bin/pip install pip --upgrade
-# shellcheck disable=SC1090
 source ~/.venvs/genestack/bin/activate && success "Switched to venv ~/.venvs/genestack"
 pip install -r "${BASEDIR}/requirements.txt" && success "Installed ansible package"
 ansible-playbook "${BASEDIR}/scripts/get-ansible-collection-requirements.yml" \
@@ -87,5 +77,32 @@ success "Environment sourced per ${BASEDIR}/scripts/genestack.rc"
 message "OpenStack Release: ${OPENSTACK_RELEASE}"
 message "Target OS Distro: ${CONTAINER_DISTRO_NAME}:${CONTAINER_DISTRO_VERSION}"
 message "Deploy Mulinode: ${OSH_DEPLOY_MULTINODE}"
+
+# Ensure /etc/genestack exists
+mkdir -p /etc/genestack
+
+# Copy base-kustomize if it does not already exist
+if [ ! -d "/etc/genestack/kustomize" ]; then
+  cp -r /opt/genestack/base-kustomize /etc/genestack/kustomize
+  success "Copied kustomize to /etc/genestack/"
+else
+  message "kustomize already exists in /etc/genestack, skipping copy."
+fi
+
+# Copy base-helm-configs if it does not already exist
+if [ ! -d "/etc/genestack/helm-configs" ]; then
+  cp -r /opt/genestack/base-helm-configs /etc/genestack/helm-configs
+  success "Copied helm-configs to /etc/genestack/"
+else
+  message "helm-configs already exists in /etc/genestack, skipping copy."
+fi
+
+# Copy manifests if it does not already exist
+if [ ! -d "/etc/genestack/manifests" ]; then
+  cp -r /opt/genestack/manifests /etc/genestack/
+  success "Copied manifests to /etc/genestack/"
+else
+  message "manifests already exists in /etc/genestack, skipping copy."
+fi
 
 echo

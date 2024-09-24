@@ -6,7 +6,7 @@ cd /opt/genestack/submodules/openstack-helm
 helm upgrade --install neutron ./neutron \
   --namespace=openstack \
     --timeout 120m \
-    -f /opt/genestack/base-helm-configs/neutron/neutron-helm-overrides.yaml \
+    -f /etc/genestack/helm-configs/neutron/neutron-helm-overrides.yaml \
     --set conf.metadata_agent.DEFAULT.metadata_proxy_shared_secret="$(kubectl --namespace openstack get secret metadata-shared-secret -o jsonpath='{.data.password}' | base64 -d)" \
     --set conf.ovn_metadata_agent.DEFAULT.metadata_proxy_shared_secret="$(kubectl --namespace openstack get secret metadata-shared-secret -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -24,7 +24,7 @@ helm upgrade --install neutron ./neutron \
     --set conf.neutron.ovn.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')" \
     --set conf.plugins.ml2_conf.ovn.ovn_nb_connection="tcp:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')" \
     --set conf.plugins.ml2_conf.ovn.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')" \
-    --post-renderer /opt/genestack/base-kustomize/kustomize.sh \
+    --post-renderer /etc/genestack/kustomize/kustomize.sh \
     --post-renderer-args neutron/base
 ```
 
@@ -119,7 +119,7 @@ conf:
 ```
 
 (You can see the Neutron helm overrides file in the installation command above
-as `-f /opt/genestack/base-helm-configs/neutron/neutron-helm-overrides.yaml`,
+as `-f /etc/genestack/helm-configs/neutron/neutron-helm-overrides.yaml`,
 but you can supply this information with a second `-f` switch in a separate
 overrides file for your environment if desired. If so, place your second
 `-f` after the first.)
