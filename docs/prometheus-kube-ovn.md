@@ -7,7 +7,7 @@ create a service monitor to pull these metrics into Prometheus.
 ## Installation
 
 ``` shell
-kubectl apply -f /opt/genestack/base-kustomize/prometheus-ovn/
+kubectl apply -f /etc/genestack/kustomize/prometheus-ovn/
 ```
 
 !!! success

@@ -14,9 +14,9 @@ now, due to a race condition with the way kubectl handles the CRD
 installation._
 
 ``` shell
-kubectl kustomize --enable-helm /opt/genestack/base-kustomize/postgres-operator | kubectl apply -f -
+kubectl kustomize --enable-helm /etc/genestack/kustomize/postgres-operator | kubectl apply -f -
 sleep 10
-kubectl kustomize --enable-helm /opt/genestack/base-kustomize/postgres-operator | kubectl apply -f -
+kubectl kustomize --enable-helm /etc/genestack/kustomize/postgres-operator | kubectl apply -f -
 ```
 
 ## Create the PostgreSQL Cluster
@@ -65,5 +65,5 @@ kubectl kustomize --enable-helm /opt/genestack/base-kustomize/postgres-operator 
     which has a single replica and less default resource utilization.
 
     ```shell
-    kubectl kustomize /opt/genestack/base-kustomize/postgres-cluster/base | kubectl apply -f -
+    kubectl kustomize /etc/genestack/kustomize/postgres-cluster/base | kubectl apply -f -
     ```

@@ -6,5 +6,5 @@ helm upgrade --install osie osie/osie \
              --create-namespace \
              --wait \
              --timeout 120m \
-             -f /opt/genestack/base-helm-configs/osie/osie-helm-overrides.yaml
+             -f /etc/genestack/helm-configs/osie/osie-helm-overrides.yaml
 ```

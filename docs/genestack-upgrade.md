@@ -35,7 +35,7 @@ An update is generally the same as an install. Many of the Genestack application
 !!! note "Before running upgrades, make sure cached charts are cleaned up"
 
     ``` shell
-    find /opt/genestack/base-kustomize/ -name charts -type d -exec rm -rf {} \;
+    find /etc/genestack/kustomize/ -name charts -type d -exec rm -rf {} \;
     ```
 
 ## Kubernetes Upgrade Notes

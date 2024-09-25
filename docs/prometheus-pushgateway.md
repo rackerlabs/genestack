@@ -11,7 +11,7 @@ the OVN backup _CronJob_.
 
 
 ``` shell
-kubectl kustomize --enable-helm /opt/genestack/base-kustomize/prometheus-pushgateway | kubectl apply -f -
+kubectl kustomize --enable-helm /etc/genestack/kustomize/prometheus-pushgateway | kubectl apply -f -
 ```
 
 !!! success

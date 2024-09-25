@@ -26,5 +26,5 @@ Once the volume group is on your storage nodes, the node is ready for use.
 ### Deploy the TopoLVM Provisioner
 
 ``` shell
-kubectl kustomize --enable-helm /opt/genestack/base-kustomize/topolvm/general | kubectl apply -f -
+kubectl kustomize --enable-helm /etc/genestack/kustomize/topolvm/general | kubectl apply -f -
 ```
