@@ -8,6 +8,7 @@
     cinder_storage_network_interface: ansible_br_storage
     cinder_storage_network_interface_secondary: ansible_br_storage_secondary
     cinder_backend_name: "lvmdriver-1"
+    enable_iscsi: false
   handlers:
     - name: Restart cinder-volume systemd services
       ansible.builtin.systemd:
@@ -123,10 +124,6 @@
         group: root
         mode: "0644"
       loop:
-        - src: "cinder.conf"
-          dest: /etc/cinder/cinder.conf
-        - src: "backends.conf"
-          dest: /etc/cinder/backends.conf
         - src: "logging.conf"
           dest: /etc/cinder/logging.conf
         - src: "volume.filters"
@@ -134,47 +131,57 @@
       notify:
         - Restart cinder-volume systemd services
 
-    - name: Replace the host in the cinder.conf with the current Ansible FQDN
+    - name: Create the cinder-volume configuration stage file
+      changed_when: false
+      ansible.builtin.copy:
+        content: "{{ _kubernetes_cinder_etc_secret.resources[0].data['cinder.conf'] | b64decode }}"
+        dest: "/etc/cinder/cinder.conf.stage"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Replace the host in the cinder.conf with the current Ansible FQDN in the stage file
+      changed_when: false
       community.general.ini_file:
-        path: /etc/cinder/cinder.conf
+        path: "/etc/cinder/cinder.conf.stage"
         section: DEFAULT
         option: host
         value: "{{ ansible_fqdn }}"
         create: true
+
+    - name: Create the cinder-volume configuration
+      ansible.builtin.copy:
+        src: "/etc/cinder/cinder.conf.stage"
+        dest: "/etc/cinder/cinder.conf"
+        owner: root
+        group: root
+        mode: "0644"
+        remote_src: true
       notify:
         - Restart cinder-volume systemd services
 
-    - name: Replace the my_ip in the cinder.conf with the current Ansible FQDN
-      community.general.ini_file:
-        path: /etc/cinder/cinder.conf
-        section: DEFAULT
-        option: "my_ip"
-        value: "{{ hostvars[inventory_hostname][cinder_storage_network_interface]['ipv4']['address'] | default(ansible_default_ipv4.address) }}"
-        create: true
+    - name: Set enabled backend fact
+      set_fact:
+        cinder_backend: |
+          {% set default_backend = (_kubernetes_cinder_etc_secret.resources[0].data['backends.conf'] | b64decode | community.general.from_ini)[cinder_backend_name] %}
+          {% set network_interface = hostvars[inventory_hostname][cinder_storage_network_interface]['ipv4']['address'] | default(ansible_default_ipv4.address) %}
+          {% set network_interface_secondary = hostvars[inventory_hostname][cinder_storage_network_interface_secondary]['ipv4']['address'] %}
+          {% set _ = default_backend.__setitem__("target_ip_address", network_interface) %}
+          {% if (enable_iscsi | bool) %}
+          {%   set _ = default_backend.__setitem__("iscsi_secondary_ip_addresses", network_interface_secondary) %}
+          {% endif %}
+          {% set rendered_backend = {cinder_backend_name: default_backend} %}
+          {{ rendered_backend }}
+
+    - name: Create the cinder-volume backend configuration
+      ansible.builtin.copy:
+        content: "{{ cinder_backend | community.general.to_ini }}"
+        dest: "/etc/cinder/backends.conf"
+        owner: root
+        group: root
+        mode: "0644"
       notify:
         - Restart cinder-volume systemd services
-
-    - name: Replace the target_ip_address in the backends.conf with the current Ansible FQDN
-      community.general.ini_file:
-        path: /etc/cinder/backends.conf
-        section: "{{ cinder_backend_name }}"
-        option: "target_ip_address"
-        value: "{{ hostvars[inventory_hostname][cinder_storage_network_interface]['ipv4']['address'] | default(ansible_default_ipv4.address) }}"
-        create: true
-      notify:
-        - Restart cinder-volume systemd services
-
-#    Uncomment lines below to enable ISCSI multipath
-#    - name: Add secondary IP for multipath config
-#      community.general.ini_file:
-#        path: /etc/cinder/backends.conf
-#        section: "{{ cinder_backend_name }}"
-#        option: "iscsi_secondary_ip_addresses"
-#        value: "{{ hostvars[inventory_hostname][cinder_storage_network_interface_secondary]['ipv4']['address'] | default(ansible_default_ipv4.address) }}"
-#        create: true
-#      notify:
-#        - Restart cinder-volume systemd services
-
 
     - name: Replace exec path in rootwrap
       community.general.ini_file:

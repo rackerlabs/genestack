@@ -78,6 +78,10 @@ units to run the cinder-volume process.
 
 ### Example without storage network interface override
 
+!!! note
+
+    When deploying with multipath, the `enable_iscsi` variable must be set to `true`. this can be done on the CLI or in the inventory file.
+
 ``` shell
 ansible-playbook -i inventory-example.yaml deploy-cinder-volumes-reference.yaml
 ```
@@ -202,8 +206,6 @@ storage:
 ```
 
 ## Enable iSCSI with LVM
-
-Edit /opt/genestack/ansible/playbooks/deploy-cinder-volumes-reference.yaml and uncomment out lines under "Uncomment lines below to enable ISCSI multipath"
 
 There should be two networks defined on the openstack cluster: br_storage and br_storage_secondary
 
