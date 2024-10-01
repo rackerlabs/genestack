@@ -262,3 +262,4 @@ nav:
       - Openstack Load Balancers: openstack-load-balancer.md
       - Openstack Networks: openstack-networks.md
   - Blog: https://blog.rackspacecloud.com/
+  - Status: api-status.md
