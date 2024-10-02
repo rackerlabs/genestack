@@ -76,20 +76,28 @@ conf:
     glance_client:
       api_version: 2
       endpoint_type: publicURL
+      region_name: RegionOne
     nova_client:
       endpoint_type: publicURL
+      region_name: RegionOne
     cinder_client:
       endpoint_type: publicURL
+      region_name: RegionOne
     neutron_client:
       endpoint_type: publicURL
+      region_name: RegionOne
     barbican_client:
       endpoint_type: publicURL
+      region_name: RegionOne
     heat_client:
       endpoint_type: publicURL
+      region_name: RegionOne
     magnum_client:
       endpoint_type: publicURL
+      region_name: RegionOne
     octavia_client:
       endpoint_type: publicURL
+      region_name: RegionOne
     cluster:
       temp_cache_dir: /var/lib/magnum/certificate-cache
     oslo_messaging_notifications:

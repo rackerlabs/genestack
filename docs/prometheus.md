@@ -14,13 +14,13 @@ Currently you can supply a Teams webhook url to send all current alerts to a tea
 
 ``` shell
 webhook_url='https://my.webhook.example'
-sed -i -e "s#https://webhook_url.example#$webhook_url#" /opt/genestack/base-kustomize/prometheus/alertmanager_config.yaml
+sed -i -e "s#https://webhook_url.example#$webhook_url#" /etc/genestack/kustomize/prometheus/alertmanager_config.yaml
 ```
 
 ## Install the prometheus stack
 
 ``` shell
-kubectl kustomize --enable-helm /opt/genestack/base-kustomize/prometheus | kubectl apply --server-side -f -
+kubectl kustomize --enable-helm /etc/genestack/kustomize/prometheus | kubectl apply --server-side -f -
 ```
 
 !!! success

@@ -3,7 +3,7 @@
 ## Deploy the RabbitMQ operator.
 
 ``` shell
-kubectl apply -k /opt/genestack/base-kustomize/rabbitmq-operator
+kubectl apply -k /etc/genestack/kustomize/rabbitmq-operator
 ```
 
 !!! note
@@ -13,13 +13,13 @@ kubectl apply -k /opt/genestack/base-kustomize/rabbitmq-operator
 ## Deploy the RabbitMQ topology operator.
 
 ``` shell
-kubectl apply -k /opt/genestack/base-kustomize/rabbitmq-topology-operator
+kubectl apply -k /etc/genestack/kustomize/rabbitmq-topology-operator
 ```
 
 ## Deploy the RabbitMQ cluster.
 
 ``` shell
-kubectl apply -k /opt/genestack/base-kustomize/rabbitmq-cluster/base
+kubectl apply -k /etc/genestack/kustomize/rabbitmq-cluster/base
 ```
 
 !!! note

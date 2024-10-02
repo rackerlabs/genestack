@@ -170,11 +170,11 @@ root@openstack-flex-node-4:~# lvs
 
 ## Enable multipath in Nova Compute
 
-Toggle volume_use_multipath to true in /opt/genestack/base-helm-configs/nova/nova-helm-overrides.yaml
+Toggle volume_use_multipath to true in /etc/genestack/helm-configs/nova/nova-helm-overrides.yaml
 
 ``` shell
-sed -i 's/volume_use_multipath: false/volume_use_multipath: true/' /opt/genestack/base-helm-configs/nova/nova-helm-overrides.yaml
-sed -i 's/enable_iscsi: false/enable_iscsi: true/' /opt/genestack/base-helm-configs/nova/nova-helm-overrides.yaml
+sed -i 's/volume_use_multipath: false/volume_use_multipath: true/' /etc/genestack/helm-configs/nova/nova-helm-overrides.yaml
+sed -i 's/enable_iscsi: false/enable_iscsi: true/' /etc/genestack/helm-configs/nova/nova-helm-overrides.yaml
 ```
 
 ## Enable iSCSi and Multipath services on Compute Nodes

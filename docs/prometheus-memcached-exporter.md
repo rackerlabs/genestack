@@ -17,7 +17,7 @@ Install the Memcached Exporter
 ### Deploy the Memcached Cluster With Monitoring Enabled
 
 ``` shell
-kubectl kustomize --enable-helm /opt/genestack/base-kustomize/memcached/base-monitoring | \
+kubectl kustomize --enable-helm /etc/genestack/kustomize/memcached/base-monitoring | \
     kubectl apply --namespace openstack --server-side -f -
 ```
 

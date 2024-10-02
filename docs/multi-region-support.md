@@ -115,7 +115,7 @@ These instructions apply to all the openstack services, we are focusing on nova 
 
 Everything there will be reused, especially if we haven't set things up prior, the difference for this multi-region workflow example is that we'll be adding an additional override file to the command.
 
-Looking at [Deploy Nova](openstack-compute-kit.md) in the compute kit installation documentation we see the `helm upgrade` command. You'll notice it has a single `-f` flag pointing to our `base-helm-configs` at `-f /opt/genestack/base-helm-configs/nova/nova-helm-overrides.yaml`.
+Looking at [Deploy Nova](openstack-compute-kit.md) in the compute kit installation documentation we see the `helm upgrade` command. You'll notice it has a single `-f` flag pointing to our `base-helm-configs` at `-f /etc/genestack/helm-configs/nova/nova-helm-overrides.yaml`.
 We're going to simply add another `-f` flag below that one to include our overrides. Helm will see this and apply the values in order in the arguments. In otherwords, the second `-f` flag will override anything provided in the first.
 
 So, our helm command that we'll run against sjc will now look like:
@@ -126,7 +126,7 @@ cd /opt/genestack/submodules/openstack-helm
 helm upgrade --install nova ./nova \
   --namespace=openstack \
     --timeout 120m \
-    -f /opt/genestack/base-helm-configs/nova/nova-helm-overrides.yaml \
+    -f /etc/genestack/helm-configs/nova/nova-helm-overrides.yaml \
     -f /etc/genestack/helm-configs/nova/my-custom-sjc-nova-helm-overrides.yaml \
     --set conf.nova.neutron.metadata_proxy_shared_secret="$(kubectl --namespace openstack get secret metadata-shared-secret -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -148,7 +148,7 @@ helm upgrade --install nova ./nova \
     --set endpoints.oslo_messaging.auth.nova.password="$(kubectl --namespace openstack get secret nova-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set network.ssh.public_key="$(kubectl -n openstack get secret nova-ssh-keypair -o jsonpath='{.data.public_key}' | base64 -d)"$'\n' \
     --set network.ssh.private_key="$(kubectl -n openstack get secret nova-ssh-keypair -o jsonpath='{.data.private_key}' | base64 -d)"$'\n' \
-    --post-renderer /opt/genestack/base-kustomize/kustomize.sh \
+    --post-renderer /etc/genestack/kustomize/kustomize.sh \
     --post-renderer-args nova/base
 ```
 

@@ -1,5 +1,5 @@
 helmGlobals:
-  chartHome: ../../submodules/openstack-helm-infra
+  chartHome: /opt/genestack/submodules/openstack-helm-infra
 
 helmCharts:
   - name: libvirt

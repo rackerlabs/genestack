@@ -25,7 +25,6 @@ export CONTAINER_DISTRO_NAME=ubuntu
 export CONTAINER_DISTRO_VERSION=jammy
 export OSH_DEPLOY_MULTINODE=True
 
-## OpenStack Antelope 2023.1
-export OPENSTACK_RELEASE=2023.1
+export OPENSTACK_RELEASE=2024.1
 
 test -f ~/.venvs/genestack/bin/activate 2>/dev/null && source ~/.venvs/genestack/bin/activate
