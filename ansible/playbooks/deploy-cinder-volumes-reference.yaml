@@ -8,7 +8,7 @@
     cinder_storage_network_interface: ansible_br_storage
     cinder_storage_network_interface_secondary: ansible_br_storage_secondary
     cinder_backend_name: "lvmdriver-1"
-    enable_iscsi: false
+    enable_multipath: false
   handlers:
     - name: Restart cinder-volume systemd services
       ansible.builtin.systemd:
@@ -167,7 +167,7 @@
           {% set network_interface = hostvars[inventory_hostname][cinder_storage_network_interface]['ipv4']['address'] | default(ansible_default_ipv4.address) %}
           {% set network_interface_secondary = hostvars[inventory_hostname][cinder_storage_network_interface_secondary]['ipv4']['address'] %}
           {% set _ = default_backend.__setitem__("target_ip_address", network_interface) %}
-          {% if (enable_iscsi | bool) %}
+          {% if (enable_multipath | bool) %}
           {%   set _ = default_backend.__setitem__("iscsi_secondary_ip_addresses", network_interface_secondary) %}
           {% endif %}
           {% set rendered_backend = {cinder_backend_name: default_backend} %}
