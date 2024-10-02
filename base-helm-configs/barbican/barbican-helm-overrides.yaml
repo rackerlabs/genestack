@@ -375,7 +375,7 @@ conf:
       processes: 1
   barbican:
     DEFAULT:
-      host_href: http://barbican.openstack.svc.cluster.local
+      host_href: http://barbican-api.openstack.svc.cluster.local:9311
       transport_url: null
       log_config_append: /etc/barbican/logging.conf
     keystone_authtoken:
