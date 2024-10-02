@@ -80,7 +80,7 @@ units to run the cinder-volume process.
 
 !!! note
 
-    When deploying with multipath, the `enable_iscsi` variable must be set to `true`. this can be done on the CLI or in the inventory file.
+    When deploying with multipath, the `enable_multipath` variable must be set to `true`. this can be done on the CLI or in the inventory file.
 
 ``` shell
 ansible-playbook -i inventory-example.yaml deploy-cinder-volumes-reference.yaml
