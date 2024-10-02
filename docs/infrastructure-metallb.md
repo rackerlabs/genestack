@@ -18,7 +18,7 @@ need to be customized to meet the needs of your environment.
 
     ``` shell
     mkdir -p /etc/genestack/manifests/metallb/
-    cp /opt/genestack/manifests/metallb/metallb-openstack-service-lb.yml /etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml
+    cp /etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml /etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml
     ```
 
     Edit the `metallb-openstack-service-lb.yml` file following the comment instructions with the details of your cluster.

@@ -61,7 +61,7 @@ cd /opt/genestack/submodules/openstack-exporter/charts
 helm upgrade --install os-metrics ./prometheus-openstack-exporter \
   --namespace=openstack \
     --timeout 15m \
-    -f /opt/genestack/base-helm-configs/monitoring/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml \
+    -f /etc/genestack/helm-configs/monitoring/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml \
     --set clouds_yaml_config="$(kubectl --namespace openstack get secret clouds-yaml-secret -o jsonpath='{.data.generated-clouds-yaml}' | base64 -d)"
 ```
 
@@ -73,7 +73,7 @@ cd /opt/genestack/submodules/openstack-exporter/charts
 helm upgrade --install os-metrics ./prometheus-openstack-exporter \
   --namespace=openstack \
     --timeout 15m \
-    -f /opt/genestack/base-helm-configs/monitoring/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml \
+    -f /etc/genestack/helm-configs/monitoring/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml \
     --set clouds_yaml_config="$(kubectl --namespace openstack get secret clouds-yaml-secret -o jsonpath='{.data.generated-clouds-certs-yaml}' | base64 -d)"
 ```
 

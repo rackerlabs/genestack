@@ -30,7 +30,7 @@ helm upgrade --install ceilometer ./ceilometer \
     --namespace=openstack \
     --wait \
     --timeout 10m \
-    -f /opt/genestack/base-helm-configs/ceilometer/ceilometer-helm-overrides.yaml \
+    -f /etc/genestack/helm-configs/ceilometer/ceilometer-helm-overrides.yaml \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.ceilometer.password="$(kubectl --namespace openstack get secret ceilometer-keystone-admin-password -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.test.password="$(kubectl --namespace openstack get secret ceilometer-keystone-test-password -o jsonpath='{.data.password}' | base64 -d)" \
@@ -46,7 +46,9 @@ rabbit://glance:$(kubectl --namespace openstack get secret glance-rabbitmq-passw
 rabbit://heat:$(kubectl --namespace openstack get secret heat-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)@rabbitmq.openstack.svc.cluster.local:5672/heat,\
 rabbit://keystone:$(kubectl --namespace openstack get secret keystone-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)@rabbitmq.openstack.svc.cluster.local:5672/keystone,\
 rabbit://neutron:$(kubectl --namespace openstack get secret neutron-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)@rabbitmq.openstack.svc.cluster.local:5672/neutron,\
-rabbit://nova:$(kubectl --namespace openstack get secret nova-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)@rabbitmq.openstack.svc.cluster.local:5672/nova}"
+rabbit://nova:$(kubectl --namespace openstack get secret nova-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)@rabbitmq.openstack.svc.cluster.local:5672/nova}" \
+    --post-renderer /etc/genestack/kustomize/kustomize.sh \
+    --post-renderer-args ceilometer/base
 ```
 
 !!! tip

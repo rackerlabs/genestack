@@ -5,7 +5,7 @@ To read more about Openstack images please visit the [upstream docs](https://doc
 #### List and view images
 
 ``` shell
-openstack image list
+openstack --os-cloud={cloud name} image list
     [--sort-column SORT_COLUMN]
     [--sort-ascending | --sort-descending]
     [--public | --private]
@@ -17,13 +17,13 @@ openstack image list
 #### View image details
 
 ``` shell
-openstack image show <imageName>
+openstack --os-cloud={cloud name} image show <imageName>
 ```
 
 #### Create a image
 
 ``` shell
-openstack image create
+openstack --os-cloud={cloud name} image create
     [--id <id>]
     [--store <store>]
     [--container-format <container-format>]
@@ -46,7 +46,7 @@ openstack image create
 #### Delete a image
 
 ``` shell
-openstack image delete <image> [<image> ...]
+openstack --os-cloud={cloud name} image delete <image> [<image> ...]
 ```
 
 #### Retrieving Images
@@ -58,7 +58,7 @@ Please visit this page for examples of retrieving images [here](https://docs.ope
 Specify the server name, flavor ID, and image ID.
 
 ``` shell
-openstack server create --flavor FLAVOR_ID --image IMAGE_ID --key-name KEY_NAME \
+openstack --os-cloud={cloud name} server create --flavor FLAVOR_ID --image IMAGE_ID --key-name KEY_NAME \
   --user-data USER_DATA_FILE --security-group SEC_GROUP_NAME --property KEY=VALUE \
   INSTANCE_NAME
 ```

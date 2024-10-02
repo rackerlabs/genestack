@@ -73,7 +73,7 @@ There are various implementations of the Gateway API. In this document, we will 
 
         helm upgrade --install nginx-gateway-fabric . \
                     --namespace=nginx-gateway \
-                    -f /opt/genestack/base-helm-configs/nginx-gateway-fabric/helm-overrides.yaml
+                    -f /etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml
         ```
 
     === "Experimental"
@@ -83,7 +83,7 @@ There are various implementations of the Gateway API. In this document, we will 
 
         helm upgrade --install nginx-gateway-fabric . \
                     --namespace=nginx-gateway \
-                    -f /opt/genestack/base-helm-configs/nginx-gateway-fabric/helm-overrides.yaml \
+                    -f /etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml \
                     --set nginxGateway.gwAPIExperimentalFeatures.enable=true
         ```
 
@@ -98,15 +98,15 @@ There are various implementations of the Gateway API. In this document, we will 
     === "Stable _(Recommended)_"
 
         ``` shell
-        kubectl kustomize /opt/genestack/base-kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
+        kubectl kustomize /etc/genestack/kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
         ```
 
     === "Experimental"
 
-        Edit the file `/opt/genestack/base-kustomize/gateway/nginx-gateway-fabric/internal-gateway-api.yaml` to set the `apiVersion` according to the experimental version of your choice. Review the Gateway [API Compatibility Matrix](https://docs.nginx.com/nginx-gateway-fabric/overview/gateway-api-compatibility).
+        Edit the file `/etc/genestack/kustomize/gateway/nginx-gateway-fabric/internal-gateway-api.yaml` to set the `apiVersion` according to the experimental version of your choice. Review the Gateway [API Compatibility Matrix](https://docs.nginx.com/nginx-gateway-fabric/overview/gateway-api-compatibility).
 
         ``` shell
-        kubectl kustomize /opt/genestack/base-kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
+        kubectl kustomize /etc/genestack/kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
         ```
 
 === "Envoyproxy"
@@ -115,12 +115,12 @@ There are various implementations of the Gateway API. In this document, we will 
 
     ### Installation
 
-    Update the `/opt/genestack/base-kustomize/envoyproxy-gateway/base/values.yaml` file according to your requirements.
+    Update the `/etc/genestack/kustomize/envoyproxy-gateway/base/values.yaml` file according to your requirements.
 
     Apply the configuration using the following command:
 
     ``` shell
-    kubectl kustomize --enable-helm /opt/genestack/base-kustomize/envoyproxy-gateway/base | kubectl apply -f -
+    kubectl kustomize --enable-helm /etc/genestack/kustomize/envoyproxy-gateway/base | kubectl apply -f -
     ```
 
     ### After installation
@@ -132,7 +132,7 @@ There are various implementations of the Gateway API. In this document, we will 
         In this example, we will demonstrate how to expose an application through a gateway. Apply the Kustomize configuration which will create `Gateway` resource:
 
         ``` shell
-        kubectl kustomize /opt/genestack/base-kustomize/gateway/envoyproxy | kubectl apply -f -
+        kubectl kustomize /etc/genestack/kustomize/gateway/envoyproxy | kubectl apply -f -
         ```
 
     Once gateway is created, user can expose an application by creating `HTTPRoute` resource.
@@ -289,7 +289,7 @@ for this gateway. Here, we match all path and simply pass any request from the m
 This example is not required and is only intended to show how Rackspace deploys specific gateway kustomization files.
 
 ``` shell
-kubectl kustomize /opt/genestack/base-kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
+kubectl kustomize /etc/genestack/kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
 ```
 
 ## Exposing Flex Services

@@ -75,29 +75,29 @@ conf:
       transport_url: null
     glance_client:
       api_version: 2
+      endpoint_type: publicURL
       region_name: RegionOne
-      endpoint_type: internalURL
     nova_client:
+      endpoint_type: publicURL
       region_name: RegionOne
-      endpoint_type: internalURL
     cinder_client:
+      endpoint_type: publicURL
       region_name: RegionOne
-      endpoint_type: internalURL
     neutron_client:
+      endpoint_type: publicURL
       region_name: RegionOne
-      endpoint_type: internalURL
     barbican_client:
-      endpoint_type: internalURL
+      endpoint_type: publicURL
       region_name: RegionOne
     heat_client:
-      endpoint_type: internalURL
+      endpoint_type: publicURL
       region_name: RegionOne
     magnum_client:
-      region_name: RegionOne
       endpoint_type: publicURL
-    octavia_client:
       region_name: RegionOne
-      endpoint_type: internalURL
+    octavia_client:
+      endpoint_type: publicURL
+      region_name: RegionOne
     cluster:
       temp_cache_dir: /var/lib/magnum/certificate-cache
     oslo_messaging_notifications:
@@ -112,10 +112,12 @@ conf:
       max_retries: -1
     trust:
       cluster_user_trust: true
+      trustee_keystone_interface: public
       trustee_domain_name: magnum
     keystone_auth:
       auth_section: keystone_authtoken
     keystone_authtoken:
+      interface: public
       service_token_roles: service
       service_token_roles_required: true
       auth_type: password

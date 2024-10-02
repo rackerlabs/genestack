@@ -326,6 +326,7 @@ conf:
   policy: {}
   heat:
     DEFAULT:
+      server_keystone_endpoint_type: public
       log_config_append: /etc/heat/logging.conf
       num_engine_workers: 1
       trusts_delegated_roles: ""
@@ -335,6 +336,7 @@ conf:
       auth_version: v3
       memcache_security_strategy: ENCRYPT
       service_type: orchestration
+      interface: public
     database:
       idle_timeout: 3600
       connection_recycle_time: 3600
@@ -365,7 +367,7 @@ conf:
     clients_heat:
       endpoint_type: publicURL
     clients_keystone:
-      endpoint_type: internalURL
+      endpoint_type: publicURL
     oslo_messaging_notifications:
       driver: messagingv2
     oslo_middleware:
