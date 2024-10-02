@@ -140,7 +140,7 @@
         group: root
         mode: "0644"
 
-    - name: Replace the host in the cinder.conf with the current Ansible FQDN in the stage file
+    - name: Replace the host in the cinder.conf.stage with the current Ansible FQDN in the stage file
       changed_when: false
       community.general.ini_file:
         path: "/etc/cinder/cinder.conf.stage"
