@@ -1,3 +1,30 @@
 resources:
   - internal-gateway-api.yaml # namespace: nginx-gateway (common gateway)
   - internal-gateway-issuer.yaml #namespace: nginx-gateway
+patches:
+- patch: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: nginx-gateway-fabric
+      namespace: nginx-gateway
+    spec:
+      template:
+        spec:
+          containers:
+            - name: nginx-gateway
+              volumeMounts:
+                - mountPath: /etc/nginx/nginx.conf
+                  name: nginx-conf-override
+                  subPath: nginx.conf
+          volumes:
+            - name: nginx-conf-override
+              configMap:
+                name: nginx-conf-override
+configMapGenerator:
+  - name: nginx-conf-override
+    namespace: nginx-gateway
+    options:
+      disableNameSuffixHash: true
+    files:
+      - configs/nginx.conf
