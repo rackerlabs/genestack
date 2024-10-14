@@ -189,6 +189,10 @@ Assuming this is running an NVIDIA GPU, you can run install the relevant drivers
 - **Device Not Found:** Ensure the PCI device is available and not used by the host.
 - **Configuration Errors:** Check `nova-compute` logs.
 - **IOMMU Not Enabled:** Confirm that IOMMU is enabled in the BIOS/UEFI and in the GRUB configuration.
+- **Scheduler Error:** Example errors like `Dropped device(s) due to mismatched PCI attribute(s)` or `allocation_candidate: doesn't have the required PCI devices` This and scheduler removing all compute nodes during pci filter is a sign that your **device_type** attribute on nova.conf does not correctly match the PCI device installed on the sytem.
+
+!!! tip
+	The device_type attribute must match one of type-PCI, type-PF or type-VF. If you have a SR-IOV capable device, you must set your device_type to type-PF even if you do not use the SR-IOV functionality.
 
 ## Conclusion
 
