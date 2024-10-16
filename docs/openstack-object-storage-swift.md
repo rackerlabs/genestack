@@ -4,15 +4,15 @@ Swift Object Storage is a component of the greater Openstack ecosystem.  It was 
 
 ## <u>Why Openstack Swift Object Storage?</u>
 
-**Scalability:** Swift is designed to handle vast amounts of data operating in a single or multi tenant environment.  Each of the core services can be scaled up and out independently of each other.  If hotspots start to happen on a single tier such as Object additional resources can be added mitigate the issue.  Each service can be broken out and scaled independently of each other depending on the use case and the data rate occurring on each tier. 
+**Scalability:** Swift is designed to handle vast amounts of data operating in a single or multi tenant environment.  Each of the core services can be scaled up and out independently of each other.  If hotspots start to happen on a single tier such as Object additional resources can be added mitigate the issue.  Each service can be broken out and scaled independently of each other depending on the use case and the data rate occurring on each tier.
 
 **Durability**: Data placement is controlled by the operator of the cluster and Swift supports two distinctive methods of storing data.  **Replica** is the most common, fastest and least efficient means to store objects.  Replicated count is configured based on durability and environmental needs.  Swift supports Replicated copies 2-N, and can be changed gradually on a cluster if the need arises (scale out, multi region, etc).  Swift also support erasure coding support in its object storage class, powered by liberasurecode, it supports multiple K+M values to store your data.  Benefits from using erasure coded objects include higher durability in the event of a disk failure, better storage efficiency of object but at the cost of higher CPU consumption.  Swift also performs background audits on all data, ensuring that your data is retrievable, readable and unaltered.
 
-**Total Cost of Ownership:** By combining Swift's scale up and out architecture of its services we can pinpoint hotspots in a Swift deployment and be highly prescriptive in how we tackle the issue.  Gone are the days of "throwing hardware" at the solution.  Understanding the pedigree of the data and the use case Swift can also use that same prescriptive methodology to architecting and maintaining the right durability of your data to meet your organizations needs. 
+**Total Cost of Ownership:** By combining Swift's scale up and out architecture of its services we can pinpoint hotspots in a Swift deployment and be highly prescriptive in how we tackle the issue.  Gone are the days of "throwing hardware" at the solution.  Understanding the pedigree of the data and the use case Swift can also use that same prescriptive methodology to architecting and maintaining the right durability of your data to meet your organizations needs.
 
 ## Use Cases for Swift Object
 
-**Backup:** Most popular software backup suites can use Swift/S3 endpoint natively out of the box with little to no effort.  Swift Object can be used as the primary, secondary or offsite backup to meet the needs of your organization.  By leveraging Swift we deliver a cost effect and durable solution to your backup data.  You can also leverage multiple distinctive Swift endpoints to further separate your data and give clear distinctive regional boundaries of where your data lives at any given time.  
+**Backup:** Most popular software backup suites can use Swift/S3 endpoint natively out of the box with little to no effort.  Swift Object can be used as the primary, secondary or offsite backup to meet the needs of your organization.  By leveraging Swift we deliver a cost effect and durable solution to your backup data.  You can also leverage multiple distinctive Swift endpoints to further separate your data and give clear distinctive regional boundaries of where your data lives at any given time.
 
 **Archival**: By leveraging Swift CLI's, S3 CLI's, rclone or other popular GUI based Object managers such as Cyberduck you can leverage Swift for longterm storage of archival storage of your files.  If consuming a block device is more inline with your organizational needs Storage Gateways or FUSE drivers can be leveraged over changing the pipeline in your organization.   Swift helps maintain automatic deletion of files when used in conjunction with Swift Object Expirer, this will help keep costs under control by setting delete-at-dates, this can be especially useful for CCTV footage.
 
@@ -22,11 +22,11 @@ Swift Object Storage is a component of the greater Openstack ecosystem.  It was 
 
 # Getting Started with Swift Object Storage
 
-Onboarding with Openstack Swift Object store is covered in the following trove of documents located here: 
+Onboarding with Openstack Swift Object store is covered in the following trove of documents located here:
 
 [Rackspace Flex Cloud Onboarding](https://docs.rackspacecloud.com/cloud-onboarding-welcome/)
 
-Topics include Swift CLI, S3cmd, rclone setup. 
+Topics include Swift CLI, S3cmd, rclone setup.
 
 ------
 
@@ -34,9 +34,9 @@ Topics include Swift CLI, S3cmd, rclone setup.
 
 ------
 
-## **Object Versioning**: 
+## **Object Versioning**:
 
-Swift allows the end user to store multiple versions of the same object so you can recover from an unintended overwrite or rollback of an object to an earlier date in time.  Object versioning works with any type of content uploaded to Swift. 
+Swift allows the end user to store multiple versions of the same object so you can recover from an unintended overwrite or rollback of an object to an earlier date in time.  Object versioning works with any type of content uploaded to Swift.
 
 **Example Using `X-Versions-Location`**
 
@@ -317,7 +317,7 @@ Date: Thu, 23 Jan 2014 21:57:12 GMT
 
 ------
 
-## **Custom Object Metadata**: 
+## **Custom Object Metadata**:
 
 Swift allows end users the ability to tag Object metadata, this is extremely useful in identifying the source of data, notes about the object or the current processing state when the object is consumed by a data lake process.
 
@@ -371,7 +371,7 @@ Using Swift Object you can serve static websites built in HTML to clients, this 
 
 > [!NOTE]
 >
-> More information on static websites can be found here: 
+> More information on static websites can be found here:
 >
 > [Swift Create static website](https://docs.openstack.org/ocata/user-guide/cli-swift-static-website.html)
 
@@ -465,4 +465,4 @@ Managing cost in Openstack Swift can be accomplished using object lifecycle mana
 
 **Usage Monitoring:** Keep tabs on your Object storage spend by looking at overall container sizes for your organization, using 'swift stat container' will show you the overall usage of each container being hosted on Swift.
 
-**Storage Classes:** Consider implementing different storage classes based on access frequency and performance needs. For example, frequently accessed data can be stored in faster, more expensive storage, while infrequently accessed data can be moved to slower, cheaper storage.  Use Swift to store archival data at lower costs, particularly for data that needs to be retained but is rarely accessed, by locking into a longer commitment on storing archival data you will save money month over month. 
+**Storage Classes:** Consider implementing different storage classes based on access frequency and performance needs. For example, frequently accessed data can be stored in faster, more expensive storage, while infrequently accessed data can be moved to slower, cheaper storage.  Use Swift to store archival data at lower costs, particularly for data that needs to be retained but is rarely accessed, by locking into a longer commitment on storing archival data you will save money month over month.
