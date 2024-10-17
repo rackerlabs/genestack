@@ -103,4 +103,3 @@ At this time, setting and removing object expiration can be done using the the [
 
 Additional documentation can be found at the official skyline site, on the Openstack Documentation Site.\
 https://wiki.openstack.org/wiki/Skyline
-
