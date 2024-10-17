@@ -1,5 +1,5 @@
 #!/bin/bash
-cd /opt/genestack/submodules/openstack-helm
+cd /opt/genestack/submodules/openstack-helm || exit
 
 helm upgrade --install keystone ./keystone \
     --namespace=openstack \
