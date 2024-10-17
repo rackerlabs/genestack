@@ -233,4 +233,3 @@ swift post flex-container01 document01.rtf -H "X-Delete-At:"
 
 Additional documentation can be found at the official swift client site, on the Openstack Documentation Site.\
 https://docs.openstack.org/python-openstackclient/latest/
-
