@@ -2,7 +2,7 @@
 
 ## Cluster Health using swift-recon:
 
-```json
+```shell
 # swift-recon --all
 ===============================================================================
 --> Starting reconnaissance on 4 hosts
@@ -94,7 +94,7 @@ Disk usage: lowest: 0.13%, highest: 8.4%, avg: 4.97616898532%
 
 ## Unmounted disks:
 
-```json
+```shell
 # swift-recon -uv
 ===============================================================================
 --> Starting reconnaissance on 4 hosts
@@ -135,7 +135,7 @@ Not mounted: sdb on 10.240.1.60:6000
 
 Healthy dispersion report:
 
-```json
+```shell
 # swift-dispersion-report
 Using storage policy: default
 Queried 128 containers for dispersion reporting, 1s, 0 retries
@@ -149,7 +149,7 @@ Sample represents 50.00% of the object partition space
 
 Unmounted Drive:
 
-```json
+```shell
 # swift-dispersion-report
 Using storage policy: default
 Queried 128 containers for dispersion reporting, 5s, 0 retries
@@ -165,7 +165,7 @@ Sample represents 50.00% of the object partition space
 
 Dispersion report after failed disk replacement:
 
-```json
+```shell
 # swift-dispersion-report
 Using storage policy: default
 Queried 128 containers for dispersion reporting, 2s, 0 retries
@@ -180,7 +180,7 @@ Sample represents 50.00% of the object partition space
 
 Dispersion report after a failed disk replacement minutes later:
 
-```json
+```shell
 swift-dispersion-report
 Using storage policy: default
 Queried 128 containers for dispersion reporting, 1s, 0 retries
@@ -195,7 +195,7 @@ Sample represents 50.00% of the object partition space
 
 Dispersion report errors while running:
 
-```json
+```shell
 # swift-dispersion-report
 Using storage policy: default
 Queried 128 containers for dispersion reporting, 2s, 0 retries
@@ -227,7 +227,7 @@ We will be uploading a file to swift, showing the account/container and object i
 
 
 
-```json
+```shell
 # swift upload iso xenial-server-cloudimg-amd64-disk1.img
 xenial-server-cloudimg-amd64-disk1.img
 # swift stat
@@ -251,7 +251,7 @@ xenial-server-cloudimg-amd64-disk1.img
 
 ## Consult the Account ring and verify Account DB placement is correct:
 
-```json
+```shell
 # swift-get-nodes -a /etc/swift/account.ring.gz AUTH_0b4e002d1ab94385ab0895f2aaee33c9
 
 Account     AUTH_0b4e002d1ab94385ab0895f2aaee33c9
@@ -284,7 +284,7 @@ Verify placement of the account database, account db should be on primary nodes,
 
 Primary Node:
 
-```json
+```shell
 # curl -I -XHEAD "http://10.240.1.60:6002/sdd/108/AUTH_0b4e002d1ab94385ab0895f2aaee33c9"
 HTTP/1.1 204 No Content
 X-Account-Sysmeta-Project-Domain-Id: default
@@ -303,7 +303,7 @@ Date: Wed, 11 Jan 2017 19:16:46 GMT
 
  Primary Node:
 
-```json
+```shell
 # curl -I -XHEAD "http://10.240.0.61:6002/sdd/108/AUTH_0b4e002d1ab94385ab0895f2aaee33c9"
 HTTP/1.1 204 No Content
 X-Account-Sysmeta-Project-Domain-Id: default
@@ -322,7 +322,7 @@ Date: Wed, 11 Jan 2017 19:16:46 GMT
 
  Handoff (404 is expected)
 
-```json
+```shell
 # curl -I -XHEAD "http://10.240.0.60:6002/sdd/108/AUTH_0b4e002d1ab94385ab0895f2aaee33c9" # [Handoff]
 HTTP/1.1 404 Not Found
 Content-Length: 0
@@ -332,7 +332,7 @@ Date: Wed, 11 Jan 2017 19:16:46 GMT
 
   Handoff (404 is expected)
 
-```json
+```shell
 # curl -I -XHEAD "http://10.240.1.61:6002/sdd/108/AUTH_0b4e002d1ab94385ab0895f2aaee33c9" # [Handoff]
 HTTP/1.1 404 Not Found
 Content-Length: 0
@@ -342,7 +342,7 @@ Date: Wed, 11 Jan 2017 19:16:46 GMT
 
 ## Consult the Container ring and verify Container DB placement is correct:
 
-```json
+```shell
 # swift-get-nodes AUTH_0b4e002d1ab94385ab0895f2aaee33c9 iso
 
 Account     AUTH_0b4e002d1ab94385ab0895f2aaee33c9
@@ -373,7 +373,7 @@ note: `/srv/node*` is used as default value of `devices`, the real value is set 
 
  Primary Node:
 
-```json
+```shell
 # curl -I -XHEAD "http://10.240.1.61:6001/sdd/70/AUTH_0b4e002d1ab94385ab0895f2aaee33c9/iso"
 HTTP/1.1 204 No Content
 X-Backend-Timestamp: 1484158003.81339
@@ -392,7 +392,7 @@ Date: Wed, 11 Jan 2017 19:17:38 GMT
 
  Primary Node:
 
-```json
+```shell
 # curl -I -XHEAD "http://10.240.0.61:6001/sdd/70/AUTH_0b4e002d1ab94385ab0895f2aaee33c9/iso"
 HTTP/1.1 204 No Content
 X-Backend-Timestamp: 1484158003.81339
@@ -411,7 +411,7 @@ Date: Wed, 11 Jan 2017 19:17:38 GMT
 
    Handoff (404 is expected)
 
-```json
+```shell
 # curl -I -XHEAD "http://10.240.0.60:6001/sdd/70/AUTH_0b4e002d1ab94385ab0895f2aaee33c9/iso" # [Handoff]
 HTTP/1.1 404 Not Found
 X-Backend-Timestamp: 0000000000.00000
@@ -426,7 +426,7 @@ Date: Wed, 11 Jan 2017 19:17:38 GMT
 
    Handoff (404 is expected)
 
-```json
+```shell
 # curl -I -XHEAD "http://10.240.1.60:6001/sdd/70/AUTH_0b4e002d1ab94385ab0895f2aaee33c9/iso" # [Handoff]
 HTTP/1.1 404 Not Found
 X-Backend-Timestamp: 0000000000.00000
@@ -441,7 +441,7 @@ Date: Wed, 11 Jan 2017 19:17:39 GMT
 
 ##  Consult Object ring and verify placement of Objects
 
-```json
+```shell
 # swift-get-nodes -a /etc/swift/object.ring.gz AUTH_0b4e002d1ab94385ab0895f2aaee33c9 iso xenial-server-cloudimg-amd64-disk1.img
 
 Account     AUTH_0b4e002d1ab94385ab0895f2aaee33c9
@@ -474,7 +474,7 @@ Use curl commands above to verify the object is correctly placed on the primary 
 
 ## Inspect Swift Object on storage disk:
 
-```json
+```shell
 # swift-object-info sdb/objects/182/2d4/b6716383aa4a99bf3eb68c46453652d4/1484158024.61997.data
 Path: /AUTH_0b4e002d1ab94385ab0895f2aaee33c9/iso/xenial-server-cloudimg-amd64-disk1.img
  ``Account: AUTH_0b4e002d1ab94385ab0895f2aaee33c9
