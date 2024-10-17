@@ -10,7 +10,7 @@
 >
 > https://review.opendev.org/c/openstack/cinder/+/597148
 >
-> https://review.opendev.org/c/openstack/cinder/+/749155 
+> https://review.opendev.org/c/openstack/cinder/+/749155
 >
 > https://bugs.launchpad.net/nova/+bug/1987311
 >
