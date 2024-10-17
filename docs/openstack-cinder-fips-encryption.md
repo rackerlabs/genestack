@@ -149,5 +149,4 @@ root@genestack-storage1:~# dd if=/dev/mapper/cinder--volumes--1-7b2a9061--bcb8--
 1073741824 bytes (1.1 GB, 1.0 GiB) copied, 4.75154 s, 226 MB/s
 root@genestack-storage1:~# head /root/verify-luks 
 LUKS??aesxts-plain64sha256 ?76???N??_voTa?"M??}?? <SNIP>
-
 ```
