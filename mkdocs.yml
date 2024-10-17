@@ -179,6 +179,7 @@ nav:
                   - Block Storage:
                       - Cinder: openstack-cinder.md
                       - LVM iSCSI: openstack-cinder-lvmisci.md
+                      - FIPS Cinder Encryption: openstack-cinder-fips-encryption.md
                   - Compute Kit:
                       - Compute Overview: openstack-compute-kit.md
                       - Secrets: openstack-compute-kit-secrets.md
