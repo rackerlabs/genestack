@@ -1,3 +1,4 @@
+#!/bin/bash
 cd /opt/genestack/submodules/openstack-helm
 
 helm upgrade --install keystone ./keystone \
