@@ -13,3 +13,4 @@ aggregates (like averages or minimums) when queried, Gnocchi simplifies this by
 pre-aggregating data during ingestion. This makes retrieving data much faster
 since the system only needs to read the already processed results.
 
+![Gnocchi Architecture](assets/images/gnocchi-architecture.svg)

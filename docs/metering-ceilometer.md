@@ -9,8 +9,6 @@ gathering data from other OpenStack components like Nova (compute), Cinder
 as instance creation and volume attachment via hooks into the message
 notification system (RabbitMQ).
 
-## Architecture
-
 ## Meters
 
 Meters are quantitative measures like CPU time, memory usage, or disk 
