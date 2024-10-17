@@ -206,4 +206,3 @@ At this time, setting and removing object expiration can be done using the the [
 Additional documentation can be found at the official openstack client site, on the Openstack Documentation Site.\
 https://docs.openstack.org/python-openstackclient/ussuri/cli/command-objects/container.html\
 https://docs.openstack.org/python-openstackclient/ussuri/cli/command-objects/object.html
-
