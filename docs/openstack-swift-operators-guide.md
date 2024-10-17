@@ -32,7 +32,7 @@
 [replication_failure] low: 16, high: 33, avg: 22.5, total: 90, Failed: 0.0%, no_result: 0, reported: 4
 [replication_success] low: 127, high: 128, avg: 127.5, total: 510, Failed: 0.0%, no_result: 0, reported: 4
 [replication_time] low: 0, high: 0, avg: 0.8, total: 3, Failed: 0.0%, no_result: 0, reported: 4
-[replication_attempted] low: 128, high: 128, avg: 128.0, total: 512, Failed: 0.0%, no_result: 0, reported: 4 
+[replication_attempted] low: 128, high: 128, avg: 128.0, total: 512, Failed: 0.0%, no_result: 0, reported: 4
 Oldest completion was 2016-11-16 15:54:40 (44 seconds ago) by 10.240.0.61:6000.
 Most recent completion was 2016-11-16 15:55:23 (1 seconds ago) by 10.240.0.60:6000.
 =========================================================================== ====
@@ -120,7 +120,7 @@ Not mounted: sdb on 10.240.1.60:6000
 > Login to the problematic host and find the root cause of the issue, some common issues where a drive is reported unmounted:
 >
 > - Drive has XFS errors, check syslog and dmesg for XFS related issues. XFS issues are common, further triage will be needed to make sure there is not underlying hardware issues at play.
->   - If you find XFS errors in the logs, first try to umount (umount /srv/node/diskXX) the drive and remount (mount -a), this will replay the XFS journal and repair. 
+>   - If you find XFS errors in the logs, first try to umount (umount /srv/node/diskXX) the drive and remount (mount -a), this will replay the XFS journal and repair.
 >   - If the drive fails to mount, you will need to try and perform XFS repair (xfs_repair /dev/sXX), if xfs_repair errors out and cannot repair drive you will be instructed to run xfs_repair with -L flag THIS IS VERY DANGEROUS! YOU ARE AT RISK OF LOOSING DATA. If sufficient replicas exist on the ring you might be better off formatting the drive and have Swift re-create the missing replica on disk.
 > - Check S.M.A.R.T data (Self-Monitoring, Analysis and Reporting Technology) Each hard drive has a built on diagnostics and record keeping device. You can query this data to see performance metrics on the misbehaving drive.
 >   - Two key things to observe
