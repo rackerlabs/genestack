@@ -6,21 +6,21 @@
 
 > [!CAUTION]
 >
-> LUKS encrypted volumes are currently only supported in iSCSI workloads.  Ceph RBD is needs additional testing.  NFS backed Cinder volumes are known not to work: 
+> LUKS encrypted volumes are currently only supported in iSCSI workloads.  Ceph RBD is needs additional testing.  NFS backed Cinder volumes are known not to work:
 >
-> https://review.opendev.org/c/openstack/cinder/+/597148 
+> https://review.opendev.org/c/openstack/cinder/+/597148
 >
 > https://review.opendev.org/c/openstack/cinder/+/749155 
 >
-> https://bugs.launchpad.net/nova/+bug/1987311 
+> https://bugs.launchpad.net/nova/+bug/1987311
 >
 > https://review.opendev.org/c/openstack/nova/+/854030
 
-To create a FIPS enabled Cinder front end to be consumed by clients the folllowing command is run
+To create a FIPS enabled Cinder front end to be consumed by clients the folllowing command is run:
 
 > [!NOTE]
 >
-> These set of commands is ran against our standard LVM iSCSI deployment covered in [Genestack Cinder LVM iSCSI](https://docs.rackspacecloud.com/openstack-cinder-lvmisci/) With modified commands to be run after cinder service is deployed on your storage nodes. 
+> These set of commands is ran against our standard LVM iSCSI deployment covered in [Genestack Cinder LVM iSCSI](https://docs.rackspacecloud.com/openstack-cinder-lvmisci/) With modified commands to be run after cinder service is deployed on your storage nodes.
 
 ```shell
 # kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume type create --encryption-provider luks \
