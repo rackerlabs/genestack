@@ -119,34 +119,34 @@ loop3                                                           7:3    0 40.4M  
 loop4                                                           7:4    0   87M  1 loop /snap/lxd/28373
 loop5                                                           7:5    0 38.8M  1 loop /snap/snapd/21759
 loop6                                                           7:6    0   87M  1 loop /snap/lxd/29351
-nbd0                                                           43:0    0    0B  0 disk 
-nbd1                                                           43:32   0    0B  0 disk 
-nbd2                                                           43:64   0    0B  0 disk 
-nbd3                                                           43:96   0    0B  0 disk 
-nbd4                                                           43:128  0    0B  0 disk 
-nbd5                                                           43:160  0    0B  0 disk 
-nbd6                                                           43:192  0    0B  0 disk 
-nbd7                                                           43:224  0    0B  0 disk 
-xvda                                                          202:0    0   60G  0 disk 
+nbd0                                                           43:0    0    0B  0 disk
+nbd1                                                           43:32   0    0B  0 disk
+nbd2                                                           43:64   0    0B  0 disk
+nbd3                                                           43:96   0    0B  0 disk
+nbd4                                                           43:128  0    0B  0 disk
+nbd5                                                           43:160  0    0B  0 disk
+nbd6                                                           43:192  0    0B  0 disk
+nbd7                                                           43:224  0    0B  0 disk
+xvda                                                          202:0    0   60G  0 disk
 ├─xvda1                                                       202:1    0 59.9G  0 part /
-├─xvda14                                                      202:14   0    4M  0 part 
+├─xvda14                                                      202:14   0    4M  0 part
 └─xvda15                                                      202:15   0  106M  0 part /boot/efi
-xvdb                                                          202:16   0   12M  0 disk 
-└─xvdb1                                                       202:17   0   10M  0 part 
-xvdc                                                          202:32   0  100G  0 disk 
-└─cinder--volumes--1-7b2a9061--bcb8--46d2--8b20--ecc70b35da7d 253:0    0    1G  0 lvm  
-nbd8                                                           43:256  0    0B  0 disk 
-nbd9                                                           43:288  0    0B  0 disk 
-nbd10                                                          43:320  0    0B  0 disk 
-nbd11                                                          43:352  0    0B  0 disk 
-nbd12                                                          43:384  0    0B  0 disk 
-nbd13                                                          43:416  0    0B  0 disk 
-nbd14                                                          43:448  0    0B  0 disk 
-nbd15                                                          43:480  0    0B  0 disk 
+xvdb                                                          202:16   0   12M  0 disk
+└─xvdb1                                                       202:17   0   10M  0 part
+xvdc                                                          202:32   0  100G  0 disk
+└─cinder--volumes--1-7b2a9061--bcb8--46d2--8b20--ecc70b35da7d 253:0    0    1G  0 lvm
+nbd8                                                           43:256  0    0B  0 disk
+nbd9                                                           43:288  0    0B  0 disk
+nbd10                                                          43:320  0    0B  0 disk
+nbd11                                                          43:352  0    0B  0 disk
+nbd12                                                          43:384  0    0B  0 disk
+nbd13                                                          43:416  0    0B  0 disk
+nbd14                                                          43:448  0    0B  0 disk
+nbd15                                                          43:480  0    0B  0 disk
 root@genestack-storage1:~# dd if=/dev/mapper/cinder--volumes--1-7b2a9061--bcb8--46d2--8b20--ecc70b35da7d of=/root/verify-luks bs=1M
 1024+0 records in
 1024+0 records out
 1073741824 bytes (1.1 GB, 1.0 GiB) copied, 4.75154 s, 226 MB/s
-root@genestack-storage1:~# head /root/verify-luks 
+root@genestack-storage1:~# head /root/verify-luks
 LUKS??aesxts-plain64sha256 ?76???N??_voTa?"M??}?? <SNIP>
 ```
