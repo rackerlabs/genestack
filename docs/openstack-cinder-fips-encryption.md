@@ -1,6 +1,6 @@
 # FIPS Enabled Cinder Storage (LUKS)
 
-> [!NOTE]
+> !!! note
 >
 > Genestack ships with Barbican key manager enabled by default for Cinder and Nova services. No further configuration is needed.
 
