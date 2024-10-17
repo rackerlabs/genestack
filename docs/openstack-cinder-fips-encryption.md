@@ -4,7 +4,7 @@
 >
 > Genestack ships with Barbican key manager enabled by default for Cinder and Nova services. No further configuration is needed.
 
-> [!CAUTION]
+> !!! warning
 >
 > LUKS encrypted volumes are currently only supported in iSCSI workloads.  Ceph RBD is needs additional testing.  NFS backed Cinder volumes are known not to work:
 >
@@ -18,7 +18,7 @@
 
 To create a FIPS enabled Cinder front end to be consumed by clients the folllowing command is run:
 
-> [!NOTE]
+> !!! note
 >
 > These set of commands is ran against our standard LVM iSCSI deployment covered in [Genestack Cinder LVM iSCSI](https://docs.rackspacecloud.com/openstack-cinder-lvmisci/) With modified commands to be run after cinder service is deployed on your storage nodes.
 
