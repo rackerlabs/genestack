@@ -14,3 +14,16 @@ pre-aggregating data during ingestion. This makes retrieving data much faster
 since the system only needs to read the already processed results.
 
 ![Gnocchi Architecture](assets/images/gnocchi-architecture.svg)
+
+## Resource Types
+
+stub
+
+## Metricd
+
+stub
+
+## REST API Usage
+
+The Metrics API is RESTful in nature, and has a community supported python
+module aptly named [python-gnocchiclient](https://github.com/gnocchixyz/python-gnocchiclient)
