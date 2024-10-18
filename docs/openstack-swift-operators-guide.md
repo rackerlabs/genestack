@@ -84,13 +84,13 @@ Disk usage: lowest: 0.13%, highest: 8.4%, avg: 4.97616898532%
 ===============================================================================
 ```
 
-> [!NOTE]
->
-> - **async_pending:** The amount of asyncs or updates to account/container databases, a non-zero value here is normal, if the number is increasing at an alarming rate for the cluster you may have an unmounted account/container drive, a host is down, the cluster is undersized for workload are just a few possible causes.
-> - **Replication (Oldest completion,Most recent):** These times should be close to each other if all services are up and no recent downtime on the cluster has occurred (down node, replaced drive). If this is not the case investigate "Oldest completion" node and inspect swift's object log for signs of "swift-object-replicator" entries that occurred recently. If there is a lack of entries restart swift-object-replicator (service swift-object-replicator), you may also wish to restart rsync daemon if /var/log/rsync.log is not being updated after restarting swift-object-replicator.
-> - **Getting unmounted drives**: Self explanatory drive is unmounted on server, check/repair/replace.
-> - **Checking load:** Check for any high values from mean average, run "swift-recon -lv" for verbose output to identify host with high load. Check node with high load for: Recently unmounted/replaced drive, XFS hang on object file system, hardware defect, read/write cache disabled, BBU drained or dead, bad SAS cable, bad SAS expander, bad JBOD, URE/Pending Sector/Read Errors (check smartctl + dmesg to identify drive) check dmesg for general warnings.
-> - **md5 check of swift.conf and rings:** If any nodes fail you may need to inspect configuration and ring files as one or many disagree with each other.
+!!! note
+
+    - **async_pending:** The amount of asyncs or updates to account/container databases, a non-zero value here is normal, if the number is increasing at an alarming rate for the cluster you may have an unmounted account/container drive, a host is down, the cluster is undersized for workload are just a few possible causes.
+    - **Replication (Oldest completion,Most recent):** These times should be close to each other if all services are up and no recent downtime on the cluster has occurred (down node, replaced drive). If this is not the case investigate "Oldest completion" node and inspect swift's object log for signs of "swift-object-replicator" entries that occurred recently. If there is a lack of entries restart swift-object-replicator (service swift-object-replicator), you may also wish to restart rsync daemon if /var/log/rsync.log is not being updated after restarting swift-object-replicator.
+    - **Getting unmounted drives**: Self explanatory drive is unmounted on server, check/repair/replace.
+    - **Checking load:** Check for any high values from mean average, run "swift-recon -lv" for verbose output to identify host with high load. Check node with high load for: Recently unmounted/replaced drive, XFS hang on object file system, hardware defect, read/write cache disabled, BBU drained or dead, bad SAS cable, bad SAS expander, bad JBOD, URE/Pending Sector/Read Errors (check smartctl + dmesg to identify drive) check dmesg for general warnings.
+    - **md5 check of swift.conf and rings:** If any nodes fail you may need to inspect configuration and ring files as one or many disagree with each other.
 
 ## Unmounted disks:
 
@@ -115,23 +115,23 @@ Not mounted: sdb on 10.240.1.60:6000
 ===============================================================================
 ```
 
-> [!NOTE]
->
-> Login to the problematic host and find the root cause of the issue, some common issues where a drive is reported unmounted:
->
-> - Drive has XFS errors, check syslog and dmesg for XFS related issues. XFS issues are common, further triage will be needed to make sure there is not underlying hardware issues at play.
->   - If you find XFS errors in the logs, first try to umount (umount /srv/node/diskXX) the drive and remount (mount -a), this will replay the XFS journal and repair.
->   - If the drive fails to mount, you will need to try and perform XFS repair (xfs_repair /dev/sXX), if xfs_repair errors out and cannot repair drive you will be instructed to run xfs_repair with -L flag THIS IS VERY DANGEROUS! YOU ARE AT RISK OF LOOSING DATA. If sufficient replicas exist on the ring you might be better off formatting the drive and have Swift re-create the missing replica on disk.
-> - Check S.M.A.R.T data (Self-Monitoring, Analysis and Reporting Technology) Each hard drive has a built on diagnostics and record keeping device. You can query this data to see performance metrics on the misbehaving drive.
->   - Two key things to observe
->     - Pending Sectors/URE (Unrecoverable Read Error) When a drive attempts to read data from a block and there is underlying issues, usually mechanical or surface defects it will flag the block as a pending sector, meaning it cannot read from that block anymore, whatever data was on that block is corrupt and no longer reliable. The drive will NOT revector that sector until the block is WRITTEN to again. You will continue to have errors until the pending sector is written to. UREs will cause XFS hangs and in some causes system instability. Running badblocks on the device will cause all pending sectors to be vectored.
->     - Remapped Sector: There are special reserve space on all drives that user land does not have access to, part of this restricted space are reserve blocks designated by the manufacture in case they shipped the drive with surface/mechanical defects. Once the drive detects a URE and is forced to remap, the URE is "converted" into a remapped sector. Basically the drive will put a pointer from the old bad sector to its reserve space.  Values over 10-20 are cause for concern as there is a high probability that there are mechanical defects.
+!!! note
+
+Login to the problematic host and find the root cause of the issue, some common issues where a drive is reported unmounted:
+
+    - Drive has XFS errors, check syslog and dmesg for XFS related issues. XFS issues are common, further triage will be needed to make sure there is not underlying hardware issues at play.
+    - If you find XFS errors in the logs, first try to umount (umount /srv/node/diskXX) the drive and remount (mount -a), this will replay the XFS journal and repair.
+    - If the drive fails to mount, you will need to try and perform XFS repair (xfs_repair /dev/sXX), if xfs_repair errors out and cannot repair drive you will be instructed to run xfs_repair with -L flag THIS IS VERY DANGEROUS! YOU ARE AT RISK OF LOOSING DATA. If sufficient replicas exist on the ring you might be better off formatting the drive and have Swift re-create the missing replica on disk.
+    - Check S.M.A.R.T data (Self-Monitoring, Analysis and Reporting Technology) Each hard drive has a built on diagnostics and record keeping device. You can query this data to see performance metrics on the misbehaving drive.
+      - Two key things to observe
+        - Pending Sectors/URE (Unrecoverable Read Error) When a drive attempts to read data from a block and there is underlying issues, usually mechanical or surface defects it will flag the block as a pending sector, meaning it cannot read from that block anymore, whatever data was on that block is corrupt and no longer reliable. The drive will NOT revector that sector until the block is WRITTEN to again. You will continue to have errors until the pending sector is written to. UREs will cause XFS hangs and in some causes system instability. Running badblocks on the device will cause all pending sectors to be vectored.
+       - Remapped Sector: There are special reserve space on all drives that user land does not have access to, part of this restricted space are reserve blocks designated by the manufacture in case they shipped the drive with surface/mechanical defects. Once the drive detects a URE and is forced to remap, the URE is "converted" into a remapped sector. Basically the drive will put a pointer from the old bad sector to its reserve space.  Values over 10-20 are cause for concern as there is a high probability that there are mechanical defects.
 
 ## Dispersion report:
 
-> [!NOTE]
->
-> swift-dispersion-report should be ran on the designated dispersion proxy container in the environment. The purpose of dispersion is to strategically place container and objects along the ring to fulfill the percentage of coverage specified in the /etc/swift/swift-disperson.conf, default is 1%. If you run swift-dispersion-report and it reports no containers exist, your either on the wrong node or swift-dispersion-populate has not been ran. Dispersion is a great tool at determining ring heath and also checks for any permission issues. Permission issues on /srv/node/diskXX wont be flagged with swift-recon since the drive is not unmounted but has issues preventing reads/writes from occurring.   Dispersion is very useful when rebalancing or drive replacement. The data is static so running dispersion after a node reboot or failure/remounting a failed disk will show nothing of value since the dispersion data does not reflect asyncs or missing replicas from disk or current replication lag.
+!!! note
+
+    swift-dispersion-report should be ran on the designated dispersion proxy container in the environment. The purpose of dispersion is to strategically place container and objects along the ring to fulfill the percentage of coverage specified in the /etc/swift/swift-disperson.conf, default is 1%. If you run swift-dispersion-report and it reports no containers exist, your either on the wrong node or swift-dispersion-populate has not been ran. Dispersion is a great tool at determining ring heath and also checks for any permission issues. Permission issues on /srv/node/diskXX wont be flagged with swift-recon since the drive is not unmounted but has issues preventing reads/writes from occurring.   Dispersion is very useful when rebalancing or drive replacement. The data is static so running dispersion after a node reboot or failure/remounting a failed disk will show nothing of value since the dispersion data does not reflect asyncs or missing replicas from disk or current replication lag.
 
 Healthy dispersion report:
 
@@ -208,22 +208,22 @@ ERROR: 10.240.0.61:6000/sdc: 15 seconds
 ERROR: 10.240.0.61:6000/sdb: 15 seconds
 ```
 
-> [!NOTE]
->
-> - Out of workers for account/container/object, check load on object server for high usage, you may need to increase worker count, however increasing worker threads might over subscribe node, proceed with caution!
-> - Drive is having issues, login to node and check disk that is causing errors.
+!!! note
+
+    - Out of workers for account/container/object, check load on object server for high usage, you may need to increase worker count, however increasing worker threads might over subscribe node, proceed with caution!
+    - Drive is having issues, login to node and check disk that is causing errors.
 
 ## Locating Objects in Swift
 
 We will be uploading a file to swift, showing the account/container and object interactions and verifying account/container and object are in their correct place.
 
-> [!IMPORTANT]
->
-> Examples provided are with TWO replicas
+!!! info
 
-> [!CAUTION]
->
-> Using swift-get-nodes will not verify the AUTH/Container/Object is valid, the use of swift-get-nodes is to provide the hash of the objects location, there is no error checking or validation used in swift-get-nodes!
+    Examples provided are with TWO replicas
+
+!!! warning
+
+    Using swift-get-nodes will not verify the AUTH/Container/Object is valid, the use of swift-get-nodes is to provide the hash of the objects location, there is no error checking or validation used in swift-get-nodes!
 
 
 
