@@ -130,6 +130,7 @@ nav:
   - Overview:
       - Architecture: genestack-architecture.md
       - Components: genestack-components.md
+      - Swift Object Storage: openstack-object-storage-swift.md
   - Deployment Guide:
       - What is Genestack?: deployment-guide-welcome.md
       - Getting Started:
@@ -245,6 +246,8 @@ nav:
               - Creating kubernetes clusters: magnum-kubernetes-cluster-setup-guide.md
           - Octavia:
               - Creating Cloud Load Balancers: octavia-loadbalancer-setup-guide.md
+          - Object Storage:
+              - Operating Swift Object Storage: openstack-swift-operators-guide.md
           - Service Overrides: openstack-service-overrides.md
       - Working locally With Docs: mkdocs-howto.md
   - Cloud Onboarding:
