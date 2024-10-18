@@ -22,6 +22,22 @@ Once step 3 competes succesfully, validate that the node is up and running in th
    kubectl get nodes | grep computegpu001.p40.example.com
 ```
 
+### PreferNoSchedule Taint
+
+`PreferNoSchedule` is a preference or "soft" version of `NoSchedule`. The
+control plane will try to avoid placing a Pod that does not tolerate the taint
+on the node, but it is not guaranteed. This is useful if you want to herd
+pods away from specific nodes without preventing them from being scheduled
+on entirely. For example, tainting compute nodes is generally recommended so
+there is less opportunity for competition of system resources between local
+pods and the Nova VMs therein.
+
+!!! tip "Setting this is a matter of architerural preference:"
+
+    ```shell
+    kubectl taint nodes computegpu001.p40.example.com key1=value1:PreferNoSchedule
+    ```
+
 ## Adding the node in openstack
 
 Once the node is added in k8s cluster, adding the node to openstack service is simply a matter of labeling the node with the right
