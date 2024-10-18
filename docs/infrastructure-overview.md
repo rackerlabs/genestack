@@ -1,6 +1,6 @@
 # Infrastructure Deployment Demo
 
-![Genestack Infra](assets/images/genstack-local-arch-k8s-flex.svg)
+![Genestack Infra](assets/images/genstack-local-arch-k8s.svg)
 
 ## Infrastructure Overview
 

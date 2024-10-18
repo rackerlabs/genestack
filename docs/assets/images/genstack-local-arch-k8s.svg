@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns:xl="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" xmlns:dc="http://purl.org/dc/elements/1.1/" version="1.1" viewBox="82.5 18.5 846.5368 400.5392" width="846.5368" height="400.5392">
+<svg xmlns:xl="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" xmlns:dc="http://purl.org/dc/elements/1.1/" version="1.1" viewBox="82 18 848 365" width="848" height="365">
   <defs>
-    <filter id="Shadow" filterUnits="userSpaceOnUse" x="-2.1536765" y="-21.553922">
+    <filter id="Shadow" filterUnits="userSpaceOnUse" x="-2.8" y="-18.5">
       <feGaussianBlur in="SourceAlpha" result="blur" stdDeviation="1.3030978"/>
       <feOffset in="blur" result="offset" dx="0" dy="2"/>
       <feFlood flood-color="black" flood-opacity=".2" result="flood"/>
@@ -13,95 +13,81 @@
       </feMerge>
     </filter>
   </defs>
-  <g id="Enterprise_K8s_Components" fill-opacity="1" stroke="none" stroke-dasharray="none" stroke-opacity="1" fill="none">
+  <g id="Enterprise_K8s_Components" fill="none" stroke="none" fill-opacity="1" stroke-opacity="1" stroke-dasharray="none">
     <title>Enterprise K8s Components</title>
-    <rect fill="white" x="82.5" y="18.5" width="846.5368" height="400.5392"/>
     <g id="Enterprise_K8s_Components_Layer_1">
       <title>Layer 1</title>
       <g id="Graphic_24" filter="url(#Shadow)">
-        <path d="M 191.125 303.5392 L 917.5368 303.5392 C 922.5073 303.5392 926.5368 307.56865 926.5368 312.5392 L 926.5368 344.5392 C 926.5368 349.50978 922.5073 353.5392 917.5368 353.5392 L 191.125 353.5392 C 186.15444 353.5392 182.125 349.50978 182.125 344.5392 L 182.125 312.5392 C 182.125 307.56865 186.15444 303.5392 191.125 303.5392 Z" fill="#ffff80"/>
-        <path d="M 191.125 303.5392 L 917.5368 303.5392 C 922.5073 303.5392 926.5368 307.56865 926.5368 312.5392 L 926.5368 344.5392 C 926.5368 349.50978 922.5073 353.5392 917.5368 353.5392 L 191.125 353.5392 C 186.15444 353.5392 182.125 349.50978 182.125 344.5392 L 182.125 312.5392 C 182.125 307.56865 186.15444 303.5392 191.125 303.5392 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-        <text transform="translate(187.125 317.5392)" fill="black">
-          <tspan font-family="Helvetica" font-size="18" fill="black" x="295.1751" y="18">Operating System</tspan>
+        <path d="M 191.125 287.81534 L 917.5368 287.81534 C 922.5073 287.81534 926.5368 291.84478 926.5368 296.81534 L 926.5368 319.77613 C 926.5368 324.7467 922.5073 328.77613 917.5368 328.77613 L 191.125 328.77613 C 186.15444 328.77613 182.125 324.7467 182.125 319.77613 L 182.125 296.81534 C 182.125 291.84478 186.15444 287.81534 191.125 287.81534 Z" fill="#ffff80"/>
+        <path d="M 191.125 287.81534 L 917.5368 287.81534 C 922.5073 287.81534 926.5368 291.84478 926.5368 296.81534 L 926.5368 319.77613 C 926.5368 324.7467 922.5073 328.77613 917.5368 328.77613 L 191.125 328.77613 C 186.15444 328.77613 182.125 324.7467 182.125 319.77613 L 182.125 296.81534 C 182.125 291.84478 186.15444 287.81534 191.125 287.81534 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(187.125 297.29574)" fill="black">
+          <tspan font-family="Helvetica" font-size="18" fill="black" x="295.1751" y="18" xml:space="preserve">Operating System</tspan>
         </text>
       </g>
       <g id="Graphic_23" filter="url(#Shadow)">
-        <path d="M 564.14216 242.53922 L 664.64216 242.53922 C 669.6127 242.53922 673.64216 246.56865 673.64216 251.53922 L 673.64216 283.5392 C 673.64216 288.50978 669.6127 292.5392 664.64216 292.5392 L 564.14216 292.5392 C 559.1716 292.5392 555.14216 288.50978 555.14216 283.5392 L 555.14216 251.53922 C 555.14216 246.56865 559.1716 242.53922 564.14216 242.53922 Z" fill="#203dd7" fill-opacity=".8"/>
-        <path d="M 564.14216 242.53922 L 664.64216 242.53922 C 669.6127 242.53922 673.64216 246.56865 673.64216 251.53922 L 673.64216 283.5392 C 673.64216 288.50978 669.6127 292.5392 664.64216 292.5392 L 564.14216 292.5392 C 559.1716 292.5392 555.14216 288.50978 555.14216 283.5392 L 555.14216 251.53922 C 555.14216 246.56865 559.1716 242.53922 564.14216 242.53922 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-        <text transform="translate(560.14216 256.53922)" fill="black">
-          <tspan font-family="Helvetica" font-size="18" fill="black" x="8.740234" y="18">CNI: Calico</tspan>
+        <path d="M 547.21276 229.40767 L 678.5706 229.40767 C 683.5412 229.40767 687.5706 233.4371 687.5706 238.40767 L 687.5706 270.40767 C 687.5706 275.37824 683.5412 279.40767 678.5706 279.40767 L 547.21276 279.40767 C 542.2422 279.40767 538.21276 275.37824 538.21276 270.40767 L 538.21276 238.40767 C 538.21276 233.4371 542.2422 229.40767 547.21276 229.40767 Z" fill="#203dd7" fill-opacity=".8"/>
+        <path d="M 547.21276 229.40767 L 678.5706 229.40767 C 683.5412 229.40767 687.5706 233.4371 687.5706 238.40767 L 687.5706 270.40767 C 687.5706 275.37824 683.5412 279.40767 678.5706 279.40767 L 547.21276 279.40767 C 542.2422 279.40767 538.21276 275.37824 538.21276 270.40767 L 538.21276 238.40767 C 538.21276 233.4371 542.2422 229.40767 547.21276 229.40767 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(543.21276 232.40767)" fill="black">
+          <tspan font-family="Helvetica" font-size="18" fill="black" x="54.17941" y="18" xml:space="preserve">CNI</tspan>
+          <tspan font-family="Helvetica" font-size="18" fill="black" x="1.6471863" y="40" xml:space="preserve">Calico/KubeOVN</tspan>
         </text>
       </g>
       <g id="Graphic_22" filter="url(#Shadow)">
-        <path d="M 440.1299 242.78922 L 540.6299 242.78922 C 545.60046 242.78922 549.6299 246.81865 549.6299 251.78922 L 549.6299 283.7892 C 549.6299 288.75978 545.60046 292.7892 540.6299 292.7892 L 440.1299 292.7892 C 435.15934 292.7892 431.1299 288.75978 431.1299 283.7892 L 431.1299 251.78922 C 431.1299 246.81865 435.15934 242.78922 440.1299 242.78922 Z" fill="#203dd7" fill-opacity=".8"/>
-        <path d="M 440.1299 242.78922 L 540.6299 242.78922 C 545.60046 242.78922 549.6299 246.81865 549.6299 251.78922 L 549.6299 283.7892 C 549.6299 288.75978 545.60046 292.7892 540.6299 292.7892 L 440.1299 292.7892 C 435.15934 292.7892 431.1299 288.75978 431.1299 283.7892 L 431.1299 251.78922 C 431.1299 246.81865 435.15934 242.78922 440.1299 242.78922 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-        <text transform="translate(436.1299 256.78922)" fill="black">
-          <tspan font-family="Helvetica" font-size="18" fill="black" x="12.220703" y="18">containerd</tspan>
+        <path d="M 431.6652 229.40767 L 521.54756 229.40767 C 526.5181 229.40767 530.54756 233.4371 530.54756 238.40767 L 530.54756 270.40767 C 530.54756 275.37824 526.5181 279.40767 521.54756 279.40767 L 431.6652 279.40767 C 426.69464 279.40767 422.6652 275.37824 422.6652 270.40767 L 422.6652 238.40767 C 422.6652 233.4371 426.69464 229.40767 431.6652 229.40767 Z" fill="#203dd7" fill-opacity=".8"/>
+        <path d="M 431.6652 229.40767 L 521.54756 229.40767 C 526.5181 229.40767 530.54756 233.4371 530.54756 238.40767 L 530.54756 270.40767 C 530.54756 275.37824 526.5181 279.40767 521.54756 279.40767 L 431.6652 279.40767 C 426.69464 279.40767 422.6652 275.37824 422.6652 270.40767 L 422.6652 238.40767 C 422.6652 233.4371 426.69464 229.40767 431.6652 229.40767 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(427.6652 243.40767)" fill="black">
+          <tspan font-family="Helvetica" font-size="18" fill="black" x="6.9118805" y="18" xml:space="preserve">containerd</tspan>
         </text>
       </g>
       <g id="Graphic_21" filter="url(#Shadow)">
-        <path d="M 191.125 242.53922 L 291.625 242.53922 C 296.59556 242.53922 300.625 246.56865 300.625 251.53922 L 300.625 283.5392 C 300.625 288.50978 296.59556 292.5392 291.625 292.5392 L 191.125 292.5392 C 186.15444 292.5392 182.125 288.50978 182.125 283.5392 L 182.125 251.53922 C 182.125 246.56865 186.15444 242.53922 191.125 242.53922 Z" fill="#203dd7" fill-opacity=".8"/>
-        <path d="M 191.125 242.53922 L 291.625 242.53922 C 296.59556 242.53922 300.625 246.56865 300.625 251.53922 L 300.625 283.5392 C 300.625 288.50978 296.59556 292.5392 291.625 292.5392 L 191.125 292.5392 C 186.15444 292.5392 182.125 288.50978 182.125 283.5392 L 182.125 251.53922 C 182.125 246.56865 186.15444 242.53922 191.125 242.53922 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-        <text transform="translate(187.125 256.53922)" fill="black">
-          <tspan font-family="Helvetica" font-size="18" fill="black" x="25.228516" y="18">kubelet</tspan>
+        <path d="M 191.125 229.15767 L 291.625 229.15767 C 296.59556 229.15767 300.625 233.1871 300.625 238.15767 L 300.625 270.15767 C 300.625 275.12824 296.59556 279.15767 291.625 279.15767 L 191.125 279.15767 C 186.15444 279.15767 182.125 275.12824 182.125 270.15767 L 182.125 238.15767 C 182.125 233.1871 186.15444 229.15767 191.125 229.15767 Z" fill="#203dd7" fill-opacity=".8"/>
+        <path d="M 191.125 229.15767 L 291.625 229.15767 C 296.59556 229.15767 300.625 233.1871 300.625 238.15767 L 300.625 270.15767 C 300.625 275.12824 296.59556 279.15767 291.625 279.15767 L 191.125 279.15767 C 186.15444 279.15767 182.125 275.12824 182.125 270.15767 L 182.125 238.15767 C 182.125 233.1871 186.15444 229.15767 191.125 229.15767 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(187.125 243.15767)" fill="black">
+          <tspan font-family="Helvetica" font-size="18" fill="black" x="25.228516" y="18" xml:space="preserve">kubelet</tspan>
         </text>
       </g>
       <g id="Graphic_20" filter="url(#Shadow)">
         <path d="M 132.125 19 L 163.75 19 C 168.72056 19 172.75 23.029437 172.75 28 L 172.75 221.03922 C 172.75 226.00978 168.72056 230.03922 163.75 230.03922 L 132.125 230.03922 C 127.15444 230.03922 123.125 226.00978 123.125 221.03922 L 123.125 28 C 123.125 23.029437 127.15444 19 132.125 19 Z" fill="#203dd7" fill-opacity=".8"/>
         <path d="M 132.125 19 L 163.75 19 C 168.72056 19 172.75 23.029437 172.75 28 L 172.75 221.03922 C 172.75 226.00978 168.72056 230.03922 163.75 230.03922 L 132.125 230.03922 C 127.15444 230.03922 123.125 226.00978 123.125 221.03922 L 123.125 28 C 123.125 23.029437 127.15444 19 132.125 19 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
         <text transform="translate(125.9375 187.06697) rotate(-90)" fill="black">
-          <tspan font-family="Helvetica" font-size="18" fill="black" x="27.52295" y="18">Exposed</tspan>
-          <tspan font-family="Helvetica" font-size="18" fill="black" x="0" y="40">Kubernetes API</tspan>
+          <tspan font-family="Helvetica" font-size="18" fill="black" x="27.52295" y="18" xml:space="preserve">Exposed</tspan>
+          <tspan font-family="Helvetica" font-size="18" fill="black" x="0" y="40" xml:space="preserve">Kubernetes API</tspan>
         </text>
       </g>
       <g id="Graphic_19" filter="url(#Shadow)">
         <path d="M 94 19 L 104.75 19 C 109.72056 19 113.75 23.029437 113.75 28 L 113.75 221.03922 C 113.75 226.00978 109.72056 230.03922 104.75 230.03922 L 94 230.03922 C 89.02944 230.03922 85 226.00978 85 221.03922 L 85 28 C 85 23.029437 89.02944 19 94 19 Z" fill="blue" fill-opacity=".8"/>
         <path d="M 94 19 L 104.75 19 C 109.72056 19 113.75 23.029437 113.75 28 L 113.75 221.03922 C 113.75 226.00978 109.72056 230.03922 104.75 230.03922 L 94 230.03922 C 89.02944 230.03922 85 226.00978 85 221.03922 L 85 28 C 85 23.029437 89.02944 19 94 19 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
         <text transform="translate(88.375 220.57967) rotate(-90)" fill="white">
-          <tspan font-family="Helvetica" font-size="18" fill="white" x="0" y="18">LoadBalancer / MetalLB</tspan>
+          <tspan font-family="Helvetica" font-size="18" fill="white" x="0" y="18" xml:space="preserve">LoadBalancer / MetalLB</tspan>
         </text>
       </g>
       <g id="Graphic_18" filter="url(#Shadow)">
-        <path d="M 316.11765 242.53922 L 416.61765 242.53922 C 421.5882 242.53922 425.61765 246.56865 425.61765 251.53922 L 425.61765 283.5392 C 425.61765 288.50978 421.5882 292.5392 416.61765 292.5392 L 316.11765 292.5392 C 311.1471 292.5392 307.11765 288.50978 307.11765 283.5392 L 307.11765 251.53922 C 307.11765 246.56865 311.1471 242.53922 316.11765 242.53922 Z" fill="#9a9a9a" fill-opacity=".8"/>
-        <path d="M 316.11765 242.53922 L 416.61765 242.53922 C 421.5882 242.53922 425.61765 246.56865 425.61765 251.53922 L 425.61765 283.5392 C 425.61765 288.50978 421.5882 292.5392 416.61765 292.5392 L 316.11765 292.5392 C 311.1471 292.5392 307.11765 288.50978 307.11765 283.5392 L 307.11765 251.53922 C 307.11765 246.56865 311.1471 242.53922 316.11765 242.53922 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-        <text transform="translate(312.11765 256.53922)" fill="black">
-          <tspan font-family="Helvetica" font-size="18" fill="black" x="37.23877" y="18">etcd</tspan>
+        <path d="M 316.11765 229.15767 L 406 229.15767 C 410.97056 229.15767 415 233.1871 415 238.15767 L 415 270.15767 C 415 275.12824 410.97056 279.15767 406 279.15767 L 316.11765 279.15767 C 311.1471 279.15767 307.11765 275.12824 307.11765 270.15767 L 307.11765 238.15767 C 307.11765 233.1871 311.1471 229.15767 316.11765 229.15767 Z" fill="#9a9a9a" fill-opacity=".8"/>
+        <path d="M 316.11765 229.15767 L 406 229.15767 C 410.97056 229.15767 415 233.1871 415 238.15767 L 415 270.15767 C 415 275.12824 410.97056 279.15767 406 279.15767 L 316.11765 279.15767 C 311.1471 279.15767 307.11765 275.12824 307.11765 270.15767 L 307.11765 238.15767 C 307.11765 233.1871 311.1471 229.15767 316.11765 229.15767 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(312.11765 243.15767)" fill="black">
+          <tspan font-family="Helvetica" font-size="18" fill="black" x="31.929947" y="18" xml:space="preserve">etcd</tspan>
         </text>
       </g>
       <g id="Graphic_17" filter="url(#Shadow)">
-        <path d="M 191.125 180.03922 L 917.5368 180.03922 C 922.5073 180.03922 926.5368 184.06865 926.5368 189.03922 L 926.5368 221.03922 C 926.5368 226.00978 922.5073 230.03922 917.5368 230.03922 L 191.125 230.03922 C 186.15444 230.03922 182.125 226.00978 182.125 221.03922 L 182.125 189.03922 C 182.125 184.06865 186.15444 180.03922 191.125 180.03922 Z" fill="#40ff40" fill-opacity=".8"/>
-        <path d="M 191.125 180.03922 L 917.5368 180.03922 C 922.5073 180.03922 926.5368 184.06865 926.5368 189.03922 L 926.5368 221.03922 C 926.5368 226.00978 922.5073 230.03922 917.5368 230.03922 L 191.125 230.03922 C 186.15444 230.03922 182.125 226.00978 182.125 221.03922 L 182.125 189.03922 C 182.125 184.06865 186.15444 180.03922 191.125 180.03922 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-        <text transform="translate(187.125 194.03922)" fill="black">
-          <tspan font-family="Helvetica" font-size="18" fill="black" x="233.64288" y="18">CNCF Kubernetes and Operators</tspan>
+        <path d="M 191.125 180.03922 L 917.5368 180.03922 C 922.5073 180.03922 926.5368 184.06865 926.5368 189.03922 L 926.5368 212 C 926.5368 216.97056 922.5073 221 917.5368 221 L 191.125 221 C 186.15444 221 182.125 216.97056 182.125 212 L 182.125 189.03922 C 182.125 184.06865 186.15444 180.03922 191.125 180.03922 Z" fill="#40ff40" fill-opacity=".8"/>
+        <path d="M 191.125 180.03922 L 917.5368 180.03922 C 922.5073 180.03922 926.5368 184.06865 926.5368 189.03922 L 926.5368 212 C 926.5368 216.97056 922.5073 221 917.5368 221 L 191.125 221 C 186.15444 221 182.125 216.97056 182.125 212 L 182.125 189.03922 C 182.125 184.06865 186.15444 180.03922 191.125 180.03922 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(187.125 189.5196)" fill="black">
+          <tspan font-family="Helvetica" font-size="18" fill="black" x="233.64288" y="18" xml:space="preserve">CNCF Kubernetes and Operators</tspan>
         </text>
       </g>
       <g id="Graphic_16" filter="url(#Shadow)">
-        <path d="M 690.1152 242.78922 L 790.6152 242.78922 C 795.5858 242.78922 799.6152 246.81865 799.6152 251.78922 L 799.6152 283.7892 C 799.6152 288.75978 795.5858 292.7892 790.6152 292.7892 L 690.1152 292.7892 C 685.1446 292.7892 681.1152 288.75978 681.1152 283.7892 L 681.1152 251.78922 C 681.1152 246.81865 685.1446 242.78922 690.1152 242.78922 Z" fill="#203dd7" fill-opacity=".8"/>
-        <path d="M 690.1152 242.78922 L 790.6152 242.78922 C 795.5858 242.78922 799.6152 246.81865 799.6152 251.78922 L 799.6152 283.7892 C 799.6152 288.75978 795.5858 292.7892 790.6152 292.7892 L 690.1152 292.7892 C 685.1446 292.7892 681.1152 288.75978 681.1152 283.7892 L 681.1152 251.78922 C 681.1152 246.81865 685.1446 242.78922 690.1152 242.78922 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-        <text transform="translate(686.1152 248.78922)" fill="black">
-          <tspan font-family="Helvetica" font-size="16" fill="black" x="16.445312" y="15">Local Path</tspan>
-          <tspan font-family="Helvetica" font-size="16" fill="black" x="14.234375" y="34">Provisioner</tspan>
-        </text>
-      </g>
-      <g id="Graphic_15" filter="url(#Shadow)">
-        <path d="M 191.125 364.5392 L 542.1016 364.5392 C 547.07217 364.5392 551.1016 368.56865 551.1016 373.5392 L 551.1016 405.5392 C 551.1016 410.5098 547.07217 414.5392 542.1016 414.5392 L 191.125 414.5392 C 186.15444 414.5392 182.125 410.5098 182.125 405.5392 L 182.125 373.5392 C 182.125 368.56865 186.15444 364.5392 191.125 364.5392 Z" fill="#c0c0ff"/>
-        <path d="M 191.125 364.5392 L 542.1016 364.5392 C 547.07217 364.5392 551.1016 368.56865 551.1016 373.5392 L 551.1016 405.5392 C 551.1016 410.5098 547.07217 414.5392 542.1016 414.5392 L 191.125 414.5392 C 186.15444 414.5392 182.125 410.5098 182.125 405.5392 L 182.125 373.5392 C 182.125 368.56865 186.15444 364.5392 191.125 364.5392 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-        <text transform="translate(187.125 378.5392)" fill="black">
-          <tspan font-family="Helvetica" font-size="18" fill="black" x="43.41603" y="18">Dell 4th Gen AMD (R7615/R7625)</tspan>
-        </text>
-      </g>
-      <g id="Graphic_14" filter="url(#Shadow)">
-        <path d="M 565.6116 364.5392 L 916.5882 364.5392 C 921.5588 364.5392 925.5882 368.56865 925.5882 373.5392 L 925.5882 405.5392 C 925.5882 410.5098 921.5588 414.5392 916.5882 414.5392 L 565.6116 414.5392 C 560.6411 414.5392 556.6116 410.5098 556.6116 405.5392 L 556.6116 373.5392 C 556.6116 368.56865 560.6411 364.5392 565.6116 364.5392 Z" fill="#c0c0ff"/>
-        <path d="M 565.6116 364.5392 L 916.5882 364.5392 C 921.5588 364.5392 925.5882 368.56865 925.5882 373.5392 L 925.5882 405.5392 C 925.5882 410.5098 921.5588 414.5392 916.5882 414.5392 L 565.6116 414.5392 C 560.6411 414.5392 556.6116 410.5098 556.6116 405.5392 L 556.6116 373.5392 C 556.6116 368.56865 560.6411 364.5392 565.6116 364.5392 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-        <text transform="translate(561.6116 378.5392)" fill="black">
-          <tspan font-family="Helvetica" font-size="18" fill="black" x="65.42824" y="18">Dell 16th Gen Intel (R740xd)</tspan>
+        <path d="M 705.4084 229.40767 L 799.8716 229.40767 C 804.8422 229.40767 808.8716 233.4371 808.8716 238.40767 L 808.8716 270.40767 C 808.8716 275.37824 804.8422 279.40767 799.8716 279.40767 L 705.4084 279.40767 C 700.4378 279.40767 696.4084 275.37824 696.4084 270.40767 L 696.4084 238.40767 C 696.4084 233.4371 700.4378 229.40767 705.4084 229.40767 Z" fill="#203dd7" fill-opacity=".8"/>
+        <path d="M 705.4084 229.40767 L 799.8716 229.40767 C 804.8422 229.40767 808.8716 233.4371 808.8716 238.40767 L 808.8716 270.40767 C 808.8716 275.37824 804.8422 279.40767 799.8716 279.40767 L 705.4084 279.40767 C 700.4378 279.40767 696.4084 275.37824 696.4084 270.40767 L 696.4084 238.40767 C 696.4084 233.4371 700.4378 229.40767 705.4084 229.40767 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(701.4084 235.40767)" fill="black">
+          <tspan font-family="Helvetica" font-size="16" fill="black" x="13.42693" y="15" xml:space="preserve">Local Path</tspan>
+          <tspan font-family="Helvetica" font-size="16" fill="black" x="11.215992" y="34" xml:space="preserve">Provisioner</tspan>
         </text>
       </g>
       <g id="Graphic_13" filter="url(#Shadow)">
-        <path d="M 817.0368 242.78922 L 917.5368 242.78922 C 922.5073 242.78922 926.5368 246.81865 926.5368 251.78922 L 926.5368 283.7892 C 926.5368 288.75978 922.5073 292.7892 917.5368 292.7892 L 817.0368 292.7892 C 812.0662 292.7892 808.0368 288.75978 808.0368 283.7892 L 808.0368 251.78922 C 808.0368 246.81865 812.0662 242.78922 817.0368 242.78922 Z" fill="#203dd7" fill-opacity=".8"/>
-        <path d="M 817.0368 242.78922 L 917.5368 242.78922 C 922.5073 242.78922 926.5368 246.81865 926.5368 251.78922 L 926.5368 283.7892 C 926.5368 288.75978 922.5073 292.7892 917.5368 292.7892 L 817.0368 292.7892 C 812.0662 292.7892 808.0368 288.75978 808.0368 283.7892 L 808.0368 251.78922 C 808.0368 246.81865 812.0662 242.78922 817.0368 242.78922 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-        <text transform="translate(813.0368 258.28922)" fill="black">
-          <tspan font-family="Helvetica" font-size="16" fill="black" x="17.34375" y="15">CSI: Ceph</tspan>
+        <path d="M 824.4284 229.40767 L 917.5368 229.40767 C 922.5073 229.40767 926.5368 233.4371 926.5368 238.40767 L 926.5368 270.40767 C 926.5368 275.37824 922.5073 279.40767 917.5368 279.40767 L 824.4284 279.40767 C 819.4578 279.40767 815.4284 275.37824 815.4284 270.40767 L 815.4284 238.40767 C 815.4284 233.4371 819.4578 229.40767 824.4284 229.40767 Z" fill="#203dd7" fill-opacity=".8"/>
+        <path d="M 824.4284 229.40767 L 917.5368 229.40767 C 922.5073 229.40767 926.5368 233.4371 926.5368 238.40767 L 926.5368 270.40767 C 926.5368 275.37824 922.5073 279.40767 917.5368 279.40767 L 824.4284 279.40767 C 819.4578 279.40767 815.4284 275.37824 815.4284 270.40767 L 815.4284 238.40767 C 815.4284 233.4371 819.4578 229.40767 824.4284 229.40767 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(820.4284 244.90767)" fill="black">
+          <tspan font-family="Helvetica" font-size="16" fill="black" x="13.647942" y="15" xml:space="preserve">CSI: Ceph</tspan>
         </text>
       </g>
       <g id="Group_3">
@@ -109,68 +95,69 @@
           <path d="M 186.58088 19 L 913.0809 19 C 918.0514 19 922.0809 23.029437 922.0809 28 L 922.0809 158.53922 C 922.0809 163.50978 918.0514 167.53922 913.0809 167.53922 L 195.58088 167.53922 C 190.61032 167.53922 186.58088 163.50978 186.58088 158.53922 Z" fill="white"/>
           <path d="M 186.58088 19 L 913.0809 19 C 918.0514 19 922.0809 23.029437 922.0809 28 L 922.0809 158.53922 C 922.0809 163.50978 918.0514 167.53922 913.0809 167.53922 L 195.58088 167.53922 C 190.61032 167.53922 186.58088 163.50978 186.58088 158.53922 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
           <text transform="translate(191.58088 24)" fill="black">
-            <tspan font-family="Helvetica" font-size="18" fill="black" x="248.67236" y="18">Kubernetes API components</tspan>
+            <tspan font-family="Helvetica" font-size="18" fill="black" x="248.67236" y="18" xml:space="preserve">Kubernetes API components</tspan>
           </text>
         </g>
         <g id="Graphic_11" filter="url(#Shadow)">
           <path d="M 806.0809 110.28922 L 905.2321 110.28922 C 910.2027 110.28922 914.2321 114.31865 914.2321 119.28922 L 914.2321 151.28922 C 914.2321 156.25978 910.2027 160.28922 905.2321 160.28922 L 806.0809 160.28922 C 801.1103 160.28922 797.0809 156.25978 797.0809 151.28922 L 797.0809 119.28922 C 797.0809 114.31865 801.1103 110.28922 806.0809 110.28922 Z" fill="#9a9a9a" fill-opacity=".8"/>
           <path d="M 806.0809 110.28922 L 905.2321 110.28922 C 910.2027 110.28922 914.2321 114.31865 914.2321 119.28922 L 914.2321 151.28922 C 914.2321 156.25978 910.2027 160.28922 905.2321 160.28922 L 806.0809 160.28922 C 801.1103 160.28922 797.0809 156.25978 797.0809 151.28922 L 797.0809 119.28922 C 797.0809 114.31865 801.1103 110.28922 806.0809 110.28922 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
           <text transform="translate(802.0809 113.28922)" fill="black">
-            <tspan font-family="Helvetica" font-size="18" fill="black" x="5.0512047" y="18">Prometheus </tspan>
-            <tspan font-family="Helvetica" font-size="18" fill="black" x="23.556576" y="40">Thanos</tspan>
+            <tspan font-family="Helvetica" font-size="18" fill="black" x="5.0512047" y="18" xml:space="preserve">Prometheus</tspan>
+            <tspan font-family="Helvetica" font-size="18" fill="black" x="18.5556" y="40" xml:space="preserve">[Thanos]</tspan>
           </text>
         </g>
         <g id="Graphic_10" filter="url(#Shadow)">
           <path d="M 334.49625 51.009804 L 433.6475 51.009804 C 438.61804 51.009804 442.6475 55.03924 442.6475 60.009804 L 442.6475 92.0098 C 442.6475 96.98037 438.61804 101.0098 433.6475 101.0098 L 334.49625 101.0098 C 329.5257 101.0098 325.49625 96.98037 325.49625 92.0098 L 325.49625 60.009804 C 325.49625 55.03924 329.5257 51.009804 334.49625 51.009804 Z" fill="#203dd7" fill-opacity=".8"/>
           <path d="M 334.49625 51.009804 L 433.6475 51.009804 C 438.61804 51.009804 442.6475 55.03924 442.6475 60.009804 L 442.6475 92.0098 C 442.6475 96.98037 438.61804 101.0098 433.6475 101.0098 L 334.49625 101.0098 C 329.5257 101.0098 325.49625 96.98037 325.49625 92.0098 L 325.49625 60.009804 C 325.49625 55.03924 329.5257 51.009804 334.49625 51.009804 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-          <text transform="translate(330.49625 65.009804)" fill="black">
-            <tspan font-family="Helvetica" font-size="18" fill="black" x="24.061947" y="18">Ingress</tspan>
+          <text transform="translate(330.49625 54.009804)" fill="black">
+            <tspan font-family="Helvetica" font-size="18" fill="black" x="30.565853" y="18" xml:space="preserve">Nginx </tspan>
+            <tspan font-family="Helvetica" font-size="18" fill="black" x="1.5619469" y="40" xml:space="preserve">Gateway Ctrl</tspan>
           </text>
         </g>
         <g id="Graphic_9" filter="url(#Shadow)">
           <path d="M 332.5809 109.05882 L 433.6475 109.05882 C 438.61804 109.05882 442.6475 113.08826 442.6475 118.05882 L 442.6475 150.05882 C 442.6475 155.02939 438.61804 159.05882 433.6475 159.05882 L 332.5809 159.05882 C 327.61032 159.05882 323.5809 155.02939 323.5809 150.05882 L 323.5809 118.05882 C 323.5809 113.08826 327.61032 109.05882 332.5809 109.05882 Z" fill="#203dd7" fill-opacity=".8"/>
           <path d="M 332.5809 109.05882 L 433.6475 109.05882 C 438.61804 109.05882 442.6475 113.08826 442.6475 118.05882 L 442.6475 150.05882 C 442.6475 155.02939 438.61804 159.05882 433.6475 159.05882 L 332.5809 159.05882 C 327.61032 159.05882 323.5809 155.02939 323.5809 150.05882 L 323.5809 118.05882 C 323.5809 113.08826 327.61032 109.05882 332.5809 109.05882 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
           <text transform="translate(328.5809 123.05882)" fill="black">
-            <tspan font-family="Helvetica" font-size="18" fill="black" x="22.514744" y="18">coredns</tspan>
+            <tspan font-family="Helvetica" font-size="18" fill="black" x="22.514744" y="18" xml:space="preserve">coredns</tspan>
           </text>
         </g>
         <g id="Graphic_8" filter="url(#Shadow)">
           <path d="M 205.58088 51.009804 L 306.64748 51.009804 C 311.61804 51.009804 315.64748 55.03924 315.64748 60.009804 L 315.64748 92.0098 C 315.64748 96.98037 311.61804 101.0098 306.64748 101.0098 L 205.58088 101.0098 C 200.61032 101.0098 196.58088 96.98037 196.58088 92.0098 L 196.58088 60.009804 C 196.58088 55.03924 200.61032 51.009804 205.58088 51.009804 Z" fill="#203dd7" fill-opacity=".8"/>
           <path d="M 205.58088 51.009804 L 306.64748 51.009804 C 311.61804 51.009804 315.64748 55.03924 315.64748 60.009804 L 315.64748 92.0098 C 315.64748 96.98037 311.61804 101.0098 306.64748 101.0098 L 205.58088 101.0098 C 200.61032 101.0098 196.58088 96.98037 196.58088 92.0098 L 196.58088 60.009804 C 196.58088 55.03924 200.61032 51.009804 205.58088 51.009804 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
           <text transform="translate(201.58088 54.009804)" fill="black">
-            <tspan font-family="Helvetica" font-size="18" fill="black" x="35.017185" y="18">kube</tspan>
-            <tspan font-family="Helvetica" font-size="18" fill="black" x="32.525486" y="40">proxy</tspan>
+            <tspan font-family="Helvetica" font-size="18" fill="black" x="35.017185" y="18" xml:space="preserve">kube</tspan>
+            <tspan font-family="Helvetica" font-size="18" fill="black" x="32.525486" y="40" xml:space="preserve">proxy</tspan>
           </text>
         </g>
         <g id="Graphic_7" filter="url(#Shadow)">
           <path d="M 205.58088 109.05882 L 306.64748 109.05882 C 311.61804 109.05882 315.64748 113.08826 315.64748 118.05882 L 315.64748 150.05882 C 315.64748 155.02939 311.61804 159.05882 306.64748 159.05882 L 205.58088 159.05882 C 200.61032 159.05882 196.58088 155.02939 196.58088 150.05882 L 196.58088 118.05882 C 196.58088 113.08826 200.61032 109.05882 205.58088 109.05882 Z" fill="#203dd7" fill-opacity=".8"/>
           <path d="M 205.58088 109.05882 L 306.64748 109.05882 C 311.61804 109.05882 315.64748 113.08826 315.64748 118.05882 L 315.64748 150.05882 C 315.64748 155.02939 311.61804 159.05882 306.64748 159.05882 L 205.58088 159.05882 C 200.61032 159.05882 196.58088 155.02939 196.58088 150.05882 L 196.58088 118.05882 C 196.58088 113.08826 200.61032 109.05882 205.58088 109.05882 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
           <text transform="translate(201.58088 112.05882)" fill="black">
-            <tspan font-family="Helvetica" font-size="18" fill="black" x="35.017185" y="18">kube</tspan>
-            <tspan font-family="Helvetica" font-size="18" fill="black" x="17.518162" y="40">apiserver</tspan>
+            <tspan font-family="Helvetica" font-size="18" fill="black" x="35.017185" y="18" xml:space="preserve">kube</tspan>
+            <tspan font-family="Helvetica" font-size="18" fill="black" x="17.518162" y="40" xml:space="preserve">apiserver</tspan>
           </text>
         </g>
         <g id="Graphic_6" filter="url(#Shadow)">
           <path d="M 591.9 109.05882 L 691.05124 109.05882 C 696.0218 109.05882 700.05124 113.08826 700.05124 118.05882 L 700.05124 150.05882 C 700.05124 155.02939 696.0218 159.05882 691.05124 159.05882 L 591.9 159.05882 C 586.92945 159.05882 582.9 155.02939 582.9 150.05882 L 582.9 118.05882 C 582.9 113.08826 586.92945 109.05882 591.9 109.05882 Z" fill="#203dd7" fill-opacity=".8"/>
           <path d="M 591.9 109.05882 L 691.05124 109.05882 C 696.0218 109.05882 700.05124 113.08826 700.05124 118.05882 L 700.05124 150.05882 C 700.05124 155.02939 696.0218 159.05882 691.05124 159.05882 L 591.9 159.05882 C 586.92945 159.05882 582.9 155.02939 582.9 150.05882 L 582.9 118.05882 C 582.9 113.08826 586.92945 109.05882 591.9 109.05882 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
           <text transform="translate(587.9 123.05882)" fill="black">
-            <tspan font-family="Helvetica" font-size="18" fill="black" x="32.574154" y="18">Helm</tspan>
+            <tspan font-family="Helvetica" font-size="18" fill="black" x="32.574154" y="18" xml:space="preserve">Helm</tspan>
           </text>
         </g>
         <g id="Graphic_5" filter="url(#Shadow)">
           <path d="M 806.0809 51.539216 L 905.3577 51.539216 C 910.3283 51.539216 914.3577 55.56865 914.3577 60.539216 L 914.3577 92.53922 C 914.3577 97.50978 910.3283 101.53922 905.3577 101.53922 L 806.0809 101.53922 C 801.1103 101.53922 797.0809 97.50978 797.0809 92.53922 L 797.0809 60.539216 C 797.0809 55.56865 801.1103 51.539216 806.0809 51.539216 Z" fill="#9a9a9a" fill-opacity=".8"/>
           <path d="M 806.0809 51.539216 L 905.3577 51.539216 C 910.3283 51.539216 914.3577 55.56865 914.3577 60.539216 L 914.3577 92.53922 C 914.3577 97.50978 910.3283 101.53922 905.3577 101.53922 L 806.0809 101.53922 C 801.1103 101.53922 797.0809 97.50978 797.0809 92.53922 L 797.0809 60.539216 C 797.0809 55.56865 801.1103 51.539216 806.0809 51.539216 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
           <text transform="translate(802.0809 54.539216)" fill="black">
-            <tspan font-family="Helvetica" font-size="18" fill="black" x="17.119862" y="18">Metal3.io </tspan>
-            <tspan font-family="Helvetica" font-size="18" fill="black" x="34.13988" y="40">CRD</tspan>
+            <tspan font-family="Helvetica" font-size="18" fill="black" x="17.119862" y="18" xml:space="preserve">Metal3.io </tspan>
+            <tspan font-family="Helvetica" font-size="18" fill="black" x="34.13988" y="40" xml:space="preserve">CRD</tspan>
           </text>
         </g>
         <g id="Graphic_4" filter="url(#Shadow)">
           <path d="M 461.0809 109.05882 L 562.1475 109.05882 C 567.11804 109.05882 571.1475 113.08826 571.1475 118.05882 L 571.1475 150.05882 C 571.1475 155.02939 567.11804 159.05882 562.1475 159.05882 L 461.0809 159.05882 C 456.1103 159.05882 452.0809 155.02939 452.0809 150.05882 L 452.0809 118.05882 C 452.0809 113.08826 456.1103 109.05882 461.0809 109.05882 Z" fill="#203dd7" fill-opacity=".8"/>
           <path d="M 461.0809 109.05882 L 562.1475 109.05882 C 567.11804 109.05882 571.1475 113.08826 571.1475 118.05882 L 571.1475 150.05882 C 571.1475 155.02939 567.11804 159.05882 562.1475 159.05882 L 461.0809 159.05882 C 456.1103 159.05882 452.0809 155.02939 452.0809 150.05882 L 452.0809 118.05882 C 452.0809 113.08826 456.1103 109.05882 461.0809 109.05882 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
           <text transform="translate(457.0809 112.05882)" fill="black">
-            <tspan font-family="Helvetica" font-size="18" fill="black" x="29.52402" y="18">Calico</tspan>
-            <tspan font-family="Helvetica" font-size="18" fill="black" x="15.51865" y="40">Controller</tspan>
+            <tspan font-family="Helvetica" font-size="18" fill="black" x="29.52402" y="18" xml:space="preserve">Calico</tspan>
+            <tspan font-family="Helvetica" font-size="18" fill="black" x="15.51865" y="40" xml:space="preserve">Controller</tspan>
           </text>
         </g>
       </g>
@@ -178,15 +165,22 @@
         <path d="M 462.1 51.009804 L 561.25124 51.009804 C 566.2218 51.009804 570.25124 55.03924 570.25124 60.009804 L 570.25124 92.0098 C 570.25124 96.98037 566.2218 101.0098 561.25124 101.0098 L 462.1 101.0098 C 457.12944 101.0098 453.1 96.98037 453.1 92.0098 L 453.1 60.009804 C 453.1 55.03924 457.12944 51.009804 462.1 51.009804 Z" fill="#203dd7" fill-opacity=".8"/>
         <path d="M 462.1 51.009804 L 561.25124 51.009804 C 566.2218 51.009804 570.25124 55.03924 570.25124 60.009804 L 570.25124 92.0098 C 570.25124 96.98037 566.2218 101.0098 561.25124 101.0098 L 462.1 101.0098 C 457.12944 101.0098 453.1 96.98037 453.1 92.0098 L 453.1 60.009804 C 453.1 55.03924 457.12944 51.009804 462.1 51.009804 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
         <text transform="translate(458.1 65.009804)" fill="black">
-          <tspan font-family="Helvetica" font-size="18" fill="black" x="24.070736" y="18">registry</tspan>
+          <tspan font-family="Helvetica" font-size="18" fill="black" x="24.070736" y="18" xml:space="preserve">registry</tspan>
         </text>
       </g>
       <g id="Graphic_25" filter="url(#Shadow)">
         <path d="M 589.3 51.009804 L 688.45124 51.009804 C 693.4218 51.009804 697.45124 55.03924 697.45124 60.009804 L 697.45124 92.0098 C 697.45124 96.98037 693.4218 101.0098 688.45124 101.0098 L 589.3 101.0098 C 584.32945 101.0098 580.3 96.98037 580.3 92.0098 L 580.3 60.009804 C 580.3 55.03924 584.32945 51.009804 589.3 51.009804 Z" fill="#203dd7" fill-opacity=".8"/>
         <path d="M 589.3 51.009804 L 688.45124 51.009804 C 693.4218 51.009804 697.45124 55.03924 697.45124 60.009804 L 697.45124 92.0098 C 697.45124 96.98037 693.4218 101.0098 688.45124 101.0098 L 589.3 101.0098 C 584.32945 101.0098 580.3 96.98037 580.3 92.0098 L 580.3 60.009804 C 580.3 55.03924 584.32945 51.009804 589.3 51.009804 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
         <text transform="translate(585.3 54.009804)" fill="black">
-          <tspan font-family="Helvetica" font-size="18" fill="black" x="33.576107" y="18">Cert-</tspan>
-          <tspan font-family="Helvetica" font-size="18" fill="black" x="18.054623" y="40">Manager</tspan>
+          <tspan font-family="Helvetica" font-size="18" fill="black" x="33.576107" y="18" xml:space="preserve">Cert-</tspan>
+          <tspan font-family="Helvetica" font-size="18" fill="black" x="18.054623" y="40" xml:space="preserve">Manager</tspan>
+        </text>
+      </g>
+      <g id="Graphic_26" filter="url(#Shadow)">
+        <path d="M 191.125 337.4338 L 917.5368 337.4338 C 922.5073 337.4338 926.5368 341.46324 926.5368 346.4338 L 926.5368 369.3946 C 926.5368 374.36515 922.5073 378.3946 917.5368 378.3946 L 191.125 378.3946 C 186.15444 378.3946 182.125 374.36515 182.125 369.3946 L 182.125 346.4338 C 182.125 341.46324 186.15444 337.4338 191.125 337.4338 Z" fill="#c0c0ff"/>
+        <path d="M 191.125 337.4338 L 917.5368 337.4338 C 922.5073 337.4338 926.5368 341.46324 926.5368 346.4338 L 926.5368 369.3946 C 926.5368 374.36515 922.5073 378.3946 917.5368 378.3946 L 191.125 378.3946 C 186.15444 378.3946 182.125 374.36515 182.125 369.3946 L 182.125 346.4338 C 182.125 341.46324 186.15444 337.4338 191.125 337.4338 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(187.125 346.9142)" fill="black">
+          <tspan font-family="Helvetica" font-size="18" fill="black" x="247.16046" y="18" xml:space="preserve">Intel/AMD x86 64Bit Platforms</tspan>
         </text>
       </g>
     </g>

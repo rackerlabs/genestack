@@ -191,7 +191,7 @@ bindings between ovs and ovn-sb" and provides no additional information.
 However, in _Genestack_, you find ovn metadata 'localport' types in the NB that
 don't need an SB binding, which increases this count. _Kube-OVN_'s OVN itself
 often gets used for k8s alone and would in that case often have a 0 count here,
-but _Genestack_ (Flex, not Enterprise) uses _OpenStack Neutron_ as a second CMS
-for _Kube-OVN_'s OVN installation, resulting in the existence of ports that
-increase this count but don't indicate a problem, so _Genestack_ will generally
-have a significant count for each compute node for this metric.
+but _Genestack_ uses _OpenStack Neutron_ as a second CMS for _Kube-OVN_'s OVN
+installation, resulting in the existence of ports that increase this count but
+don't indicate a problem, so _Genestack_ will generally have a significant
+count for each compute node for this metric.
