@@ -32,7 +32,6 @@ Topics include Swift CLI, S3cmd, rclone setup.
 
 # **Advanced Features**
 
-------
 
 ## **Object Versioning**:
 
@@ -122,9 +121,9 @@ Date: Thu, 23 Jan 2014 21:45:50 GMT
 009my_object/1390512682.92052
 ```
 
-> [!NOTE]
->
-> A **POST** request to a versioned object updates only the metadata for the object and does not create a new version of the object. New versions are created only when the content of the object changes.
+!!! note
+
+      A **POST** request to a versioned object updates only the metadata for the object and does not create a new version of the object. New versions are created only when the content of the object changes.
 
 5. Issue a **DELETE** request to a versioned object to remove the current version of the object and replace it with the next-most current version in the non-current container.
 
@@ -160,9 +159,9 @@ X-Openstack-Request-Id: tx044f2a05f56f4997af737-0052e18eed
 Date: Thu, 23 Jan 2014 21:51:41 GMT
 ```
 
-> [!NOTE]
->
-> This next-most current version carries with it any metadata last set on it. If want to completely remove an object and you have five versions of it, you must **DELETE** it five times.
+!!! note
+
+      This next-most current version carries with it any metadata last set on it. If want to completely remove an object and you have five versions of it, you must **DELETE** it five times.
 
 **Example Using `X-History-Location`**
 
@@ -248,9 +247,9 @@ Date: Thu, 23 Jan 2014 21:45:50 GMT
 009my_object/1390512682.92052
 ```
 
-> [!NOTE]
->
-> A **POST** request to a versioned object updates only the metadata for the object and does not create a new version of the object. New versions are created only when the content of the object changes.
+!!! note
+
+      A **POST** request to a versioned object updates only the metadata for the object and does not create a new version of the object. New versions are created only when the content of the object changes.
 
 5. Issue a **DELETE** request to a versioned object to copy the current version of the object to the archive container then delete it from the current container. Subsequent **GET** requests to the object in the current container will return `404 Not Found`.
 
@@ -290,11 +289,10 @@ Date: Thu, 23 Jan 2014 21:51:41 GMT
 009my_object/1390513885.67732
 ```
 
-> [!NOTE]
->
-> In addition to the two previous versions of the object, the archive container has a “delete marker” to record when the object was deleted.
->
-> To permanently delete a previous version, issue a **DELETE** to the version in the archive container.
+!!! note
+
+      In addition to the two previous versions of the object, the archive container has a “delete marker” to record when the object was deleted.
+      To permanently delete a previous version, issue a **DELETE** to the version in the archive container.
 
 **Disabling Object Versioning**
 
@@ -369,11 +367,10 @@ Using Swift Object you can serve static websites built in HTML to clients, this 
 # swift post -m 'web-error:error.html' web_container
 ```
 
-> [!NOTE]
->
-> More information on static websites can be found here:
->
-> [Swift Create static website](https://docs.openstack.org/ocata/user-guide/cli-swift-static-website.html)
+!!! note
+
+      More information on static websites can be found here:
+      [Swift Create static website](https://docs.openstack.org/ocata/user-guide/cli-swift-static-website.html)
 
 ------
 
@@ -436,9 +433,9 @@ S3 is a product of Amazon and AWS, Swift's S3 RESTful API is a middleware compon
 
 Swift supports the optional encryption of object data at rest on storage nodes. The encryption of object data is intended to mitigate the risk of users’ data being read if an unauthorized party were to gain physical access to a disk.
 
-> [!NOTE]
->
-> Swift’s data-at-rest encryption accepts plaintext object data from the client, encrypts it in the cluster, and stores the encrypted data. This protects object data from inadvertently being exposed if a data drive leaves the Swift cluster. If a user wishes to ensure that the plaintext data is always encrypted while in transit and in storage, it is strongly recommended that the data be encrypted before sending it to the Swift cluster. Encrypting on the client side is the only way to ensure that the data is fully encrypted for its entire lifecycle.
+!!! note
+
+      Swift’s data-at-rest encryption accepts plaintext object data from the client, encrypts it in the cluster, and stores the encrypted data. This protects object data from inadvertently being exposed if a data drive leaves the Swift cluster. If a user wishes to ensure that the plaintext data is always encrypted while in transit and in storage, it is strongly recommended that the data be encrypted before sending it to the Swift cluster. Encrypting on the client side is the only way to ensure that the data is fully encrypted for its entire lifecycle.
 
 The following data are encrypted while at rest in Swift:
 
