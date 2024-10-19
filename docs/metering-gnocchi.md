@@ -61,7 +61,7 @@ with Ceph being the recommended choice due to its better consistency. In
 larger or busier deployments, a common recommendation is to use Redis for
 incoming measure storage and Ceph for aggregate storage.
 
-## Indexing
+### Indexing
 
 The indexer driver stores the index of all resources, archive policies, and 
 metrics, along with their definitions, types, and properties. It also handles
@@ -78,11 +78,12 @@ db-sync job which executes `ceilometer-upgrade`. We create the default types
 that ship with Ceilometer, they can be modified via the Metrics API post
 creation if necessary.
 
-## Metricd
-
-stub
-
 ## REST API Usage
 
-The Metrics API is RESTful in nature, and has a community supported python
-module aptly named [python-gnocchiclient](https://github.com/gnocchixyz/python-gnocchiclient)
+The Gnocchi REST API is well documented on their website, please see the
+[REST API Usage](https://gnocchi.osci.io/rest.html) section for full detail. 
+Furthermore, there is a community supported Python client and SDK 
+installable via pip, aptly named [python-gnocchiclient](https://github.
+com/gnocchixyz/pythongnocchiclient). It's worth noting, this is a required 
+module for `openstack metric` commands to function. See [OpenStack Metrics](openstack-metrics.md)
+for example CLI usage.
