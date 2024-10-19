@@ -16,3 +16,7 @@ also known as the Metrics API. This data serves a wide range of use cases,
 including auditing, billing, monitoring, and more.
 
 ![Metering Overview](assets/images/metering-overview.svg)
+
+<figure>
+  <figcaption>Metering Architecture - © Luke Repko, Rackspace Technology</figcaption>
+</figure>

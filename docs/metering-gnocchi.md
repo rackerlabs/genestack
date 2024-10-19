@@ -23,6 +23,10 @@ metric cleanup.
 
 ![Gnocchi Architecture](assets/images/gnocchi-architecture.svg)
 
+<figure>
+   <figcaption>Image source: <a href="https://gnocchi.osci.io/intro.html" target="_blank" rel="noopener noreferrer">gnocchi.osci.io</a></figcaption>
+</figure>
+
 Gnocchi services are stateless thus can be scaled horizontally without much 
 effort. That being said, we can easily define an HPA (HorizontalPodAutoscaler)
 policy to do just that for `ReplicaSet` components such as the `gnocchi-api`.
@@ -69,10 +73,10 @@ Supported drivers include the following:
 
 ## Resource Types
 
-The resource types that reside within Gnocchi are created during the 
-Ceilometer db-sync job which executes `ceilometer-upgrade`. We 
-create the default types that ship with Ceilometer, they can be modified via 
-the Metrics API post creation if necessary.
+The resource types that reside within Gnocchi are created during the Ceilometer
+db-sync job which executes `ceilometer-upgrade`. We create the default types
+that ship with Ceilometer, they can be modified via the Metrics API post
+creation if necessary.
 
 ## Metricd
 
