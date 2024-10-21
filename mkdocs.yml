@@ -216,6 +216,12 @@ nav:
       - Supporting multi-region Genestack: multi-region-support.md
       - Running Genestack Upgrade: genestack-upgrade.md
       - Running Kubespray Upgrade: k8s-kubespray-upgrade.md
+      - Resource Metering:
+          - Metering Overview: metering-overview.md
+          - Ceilometer: metering-ceilometer.md
+          - Gnocchi: metering-gnocchi.md
+          - Billing Tenants: metering-billing.md
+          - Chargebacks: metering-chargebacks.md
       - Infrastructure:
           - Etcd Backup: etcd-backup.md
           - OVN introduction: ovn-intro.md
@@ -260,6 +266,7 @@ nav:
       - Openstack Servers: openstack-servers.md
       - Openstack Routers: openstack-router.md
       - Openstack Images: openstack-images.md
+      - Openstack Metrics: openstack-metrics.md
       - Openstack Object Store Swift CLI: storage-object-store-swift-cli.md
       - Openstack Object Store Openstack CLI: storage-object-store-openstack-cli.md
       - Openstack Object Store Skyline GUI: storage-object-store-skyline-gui.md
