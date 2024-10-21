@@ -4,6 +4,8 @@ Availability Zones are the most arbitrary domain in a cloud.  In a large-scale c
 
 Ultimately, because it has no real physical analogue, an Availability Zone is a fancy way of defining a failure domain.  What this allows you to do in your cloud design is define an Availability Zone to best suit how you want to separate resources for failure.
 
+![Availability Zones in Cloud Hierarchy](assets/images/cloud-hierarchy-az.png)
+
 ## Designing Services for Multiple Available Zones
 
 !!! info "To Do"
@@ -13,7 +15,6 @@ Ultimately, because it has no real physical analogue, an Availability Zone is a 
     - Nova
     - Neutron
     - Cinder
-
 
 ## Sharing Services Across Availability Zones
 
