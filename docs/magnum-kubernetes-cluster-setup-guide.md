@@ -27,7 +27,7 @@ openstack subnet create public-subnet --network public --subnet-range 192.168.1.
 To create a magnum cluster, you need a keypair which will be passed in all compute instances of the cluster. If you don’t have a keypair in your project, create one.
 
 ``` shell
-openstack keypair create --public-key ~/.ssh/id_rsa.pub mykey
+openstack keypair create mykey > mykey.pem
 ```
 
 ## ClusterTemplate
