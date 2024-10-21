@@ -1,8 +1,8 @@
 # OpenStack Metrics
 
 This page summarizes usage of common `openstack metric` commands, which are used
-to interact with the Telemetry service (Gnocchi) for managing metrics, measures,
-and resources in OpenStack.
+to interact with the Telemetry service (_[Gnocchi](metering-gnocchi.md)_) for
+managing metrics, measures, and resources in OpenStack.
 
 ## CLI Commands
 
@@ -78,11 +78,15 @@ openstack metric measures show <metric_id>
 
 Lists all resources that are associated with metrics.
 
-`Usage`:
+**Usage**:
 
 ```shell
 openstack metric resource list
 ```
+
+**Options**:
+
+- `--type <resource_type>`: Filter by resource type (e.g., instance, volume).
 
 ### **metric resource show**
 
@@ -94,23 +98,23 @@ Shows detailed information about a specific resource, including its metrics.
 openstack metric resource show <resource_id>
 ```
 
-**Options**:
-
-- `--type <resource_type>`: Filter by resource type (e.g., instance, volume).
-
 ### **metric resource create**
 
 Creates a new resource and associates it with metrics.
 
+**Usage**:
+
 ```shell
-openstack metric resource create <resource_type> --name <name>
+openstack metric resource create --type <type> <other_opts> <resource_id>
 ```
 
 **Options**:
 
 - `--type <resource_type>`: Type of resource (e.g., instance, volume).
-- `--name <name>`: Name of the resource.
-- `--attribute <key>=<value>`: Set resource attributes.
+- `--attribute <attribute>`: Name and value of an attribute separated with a ':'
+- `--add-metric <add_metric>`: name:id of a metric to add
+- `--create-metric <create_metric`: name:archive_policy_name of a metric to
+   create
 
 ### **metric resource update**
 
@@ -119,8 +123,17 @@ Updates attributes of an existing resource.
 **Usage**:
 
 ```shell
-openstack metric resource update <resource_id> --attribute <key>=<value>
+openstack metric resource update --type <type> <other_opts> <resource_id>
 ```
+
+**Options**:
+
+- `--type <resource_type>`: Type of resource (e.g., instance, volume).
+- `--attribute <attribute>`: Name and value of an attribute separated with a ':'
+- `--add-metric <add_metric>`: name:id of a metric to add
+- `--create-metric <create_metric`: name:archive_policy_name of a metric to
+   create
+- `--delete-metric <delete_metric>`: Name of a metric to delete
 
 ### **metric resource delete**
 
