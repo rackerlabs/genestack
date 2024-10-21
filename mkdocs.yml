@@ -216,7 +216,6 @@ nav:
               - Pushgateway: prometheus-pushgateway.md
               - Custom Node Metrics: prometheus-custom-node-metrics.md
               - Alert Manager Examples:
-                  - alertmanager-encore.md
                   - alertmanager-slack.md
   - Operational Guide:
       - Supporting multi-region Genestack: multi-region-support.md
