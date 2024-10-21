@@ -1,6 +1,6 @@
 # Regions
 
-Regions are separate physical locations served by a single cloud.  
+Regions are separate physical locations served by a single cloud. 
 
 
 ## Designing Services for Multiple Available Zones
