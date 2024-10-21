@@ -2,8 +2,9 @@
 
 In a cloud billing system using Gnocchi as the source for metered usage data,
 Gnocchi stores and processes time series data related to resource consumption.
-Items such as instance flavor type, volume size/type, network traffic, and 
-object storage are all important facets that can be persisted in Gnocchi.
+Key factors such as instance flavor, volume size and type, network traffic, and
+object storage can all be stored in Gnocchi, enabling them to be queried later
+for usage-based billing of Genestack tenants.
 
 ## Billing Workflow
 
@@ -20,9 +21,16 @@ object storage are all important facets that can be persisted in Gnocchi.
    daily, or monthly usage_). Gnocchi provides quick access to the stored data,
    enabling near real-time billing operations.
 
-4. **Converting to Atom Events**: The billing system converts the necessary 
-   resource usage data it has collated into Atom events.
+4. **Converting to Atom Events**: The billing system converts the collated 
+   resource usage data into Atom events before submitting them.
 
-5. **Submitting Events to Cloud Feeds**: Vivamus id mi enim. Integer id turpis
-   sapien. Ut condimentum lobortis    sagittis. Aliquam purus tellus, faucibus
-   eget urna at, iaculis venenatis nulla. Vivamus a pharetra leo.
+5. **Submitting Events to Cloud Feeds**: Newly created Atom events are sent 
+   via HTTPS to Cloud Feeds.
+
+6. **Usage Mediation Services**: Our UMS team receives the metered usage 
+   events from the named feed, then does further aggregation before emitting 
+   the usage to be invoiced.
+
+7. **Billing and Revenue Management**: Finally, the aggregated usage from 
+   UMS is received and processed by BRM to create the usage-based invoice 
+   for each tenant.

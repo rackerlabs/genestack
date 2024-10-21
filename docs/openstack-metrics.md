@@ -244,8 +244,6 @@ openstack metric archive-policy update <policy_name> \
 
 ## Example Use Cases
 
-A few example commands to demonstrate usage further.
-
 ### **Show Measures of a Specific Metric**
 
 ```shell
@@ -259,7 +257,7 @@ openstack metric resource create instance --name my_instance
 openstack metric create cpu_usage --resource-id <resource_id> --unit GHz
 ```
 
-### Update the `image` Resource Type
+### **Update the `image` Resource Type**
 
 In this example, we add a few additional useful image properties to the 
 image resource type that we want to store.
