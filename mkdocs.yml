@@ -95,6 +95,7 @@ markdown_extensions:
   - attr_list
   - md_in_html
   - def_list
+  - footnotes
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.superfences:
@@ -131,6 +132,11 @@ nav:
       - Architecture: genestack-architecture.md
       - Components: genestack-components.md
       - Swift Object Storage: openstack-object-storage-swift.md
+  - Cloud Design:
+      - Overview: openstack-cloud-design-overview.md
+      - Regions in OpenStack: openstack-cloud-design-regions.md
+      - Availability Zones in OpenStack: openstack-cloud-design-az.md
+      - Host Aggregates in OpenStack: openstack-cloud-design-ha.md
   - Deployment Guide:
       - What is Genestack?: deployment-guide-welcome.md
       - Getting Started:
