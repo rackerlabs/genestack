@@ -14,8 +14,7 @@ These are typically arranged as in a hierarchy, with each incresing lower layer 
 
 ![Cloud Hierarchy](assets/images/cloud-hierarchy.png)
 
-
-# Clouds
+## Clouds
 
 At the highest level, a cloud is a  unique set of services that  operates completely independedntly.  We can define a cloud as having its own set of resources and services that are not dependent on any other cloud.
 
@@ -32,7 +31,7 @@ While simplistic, this is an entirely valid design pattern.  If there is a need 
 
 The major disadvantage of this pattern is that any replication of data or services between clouds is the responsibility of your users, and any shared services that your users want to use across multiple clouds will have to be external to the clouds they want to use.
 
-# Regions
+## Regions
 
 Regions can be defined as a high-level cloud construct where there is some sort of geographical separation of services.  In most cases, there may be some supporting services are shared between them; however, the general principle is that each region should be as self-sufficient as possible.
 
@@ -40,12 +39,11 @@ Depending on the scale of the cloud being built, geographical separation could b
 
 In addition to the physical geographical separation, there also needs to be logical separation of most services.  Most storage, compute, and execution services[^2] should be separate and have the ability to operate independently from those same services deployed in other regions.  This is key to ensure that users can depend on any region-level failure to be isolated and not bleed into other regions and harm the availability of their deployments.  Any kind of fault or failure at the Region-level should be able to be mitigated by the cloud user having deployments in mulitple regions to provide high-availability.
 
-# Availability Zones
+## Availability Zones
 
 Availability Zones are another logical grouping for sets of closely related resources and servces. In a large-scale cloud, an Availability Zone may comprise of multiple datacenters.  For smaller clouds, they may be more modest in scale such as a data hall or even as small as row of racks.  Ultimately, Availability Zones are rather arbitrary -- they essentially are a way to classify a cloud "failure domain" in less severe language.
 
 Generally, no two Availability zones share the same core set of compute and storage resources.  Each availabilty zone is able to operate self-sufficiently and operation should be as self-contained and physically isolated from other Availability Zones as possible  in the same region to provide additional fault tolerance and resiliency.
-
 
 [^1]:
     The various clouds themselves should be completely independent, but they might rely on a shared backend service like LDAP for authentication.
