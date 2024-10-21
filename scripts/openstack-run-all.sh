@@ -1,4 +1,5 @@
-cd /opt/genestack/submodules/openstack-helm
+#!/bin/bash
+cd /opt/genestack/submodules/openstack-helm || exit
 
 helm upgrade --install keystone ./keystone \
     --namespace=openstack \
@@ -109,6 +110,20 @@ helm upgrade --install placement ./placement --namespace=openstack \
     --set endpoints.oslo_db.auth.nova_api.password="$(kubectl --namespace openstack get secret nova-db-password -o jsonpath='{.data.password}' | base64 -d)" \
     --post-renderer /opt/genestack/base-kustomize/kustomize.sh \
     --post-renderer-args placement/base &
+
+helm upgrade --install barbican ./barbican \
+    --namespace=openstack \
+    --wait \
+    --timeout 120m \
+    -f /etc/genestack/helm-configs/barbican/barbican-helm-overrides.yaml \
+    --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.identity.auth.barbican.password="$(kubectl --namespace openstack get secret barbican-admin -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
+    --set endpoints.oslo_db.auth.barbican.password="$(kubectl --namespace openstack get secret barbican-db-password -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
+    --set endpoints.oslo_messaging.auth.barbican.password="$(kubectl --namespace openstack get secret barbican-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
+    --post-renderer /etc/genestack/kustomize/kustomize.sh \
+    --post-renderer-args barbican/base &
 
 helm upgrade --install octavia ./octavia \
     --namespace=openstack \
