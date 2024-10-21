@@ -375,7 +375,7 @@ conf:
       processes: 1
   barbican:
     DEFAULT:
-      host_href: http://barbican.openstack.svc.cluster.local
+      host_href: http://barbican-api.openstack.svc.cluster.local:9311
       transport_url: null
       log_config_append: /etc/barbican/logging.conf
     keystone_authtoken:
@@ -574,7 +574,7 @@ endpoints:
     name: barbican
     hosts:
       default: barbican-api
-      public: barbican
+      public: barbican-api
     host_fqdn_override:
       default:
         tls:
@@ -590,7 +590,7 @@ endpoints:
     port:
       api:
         default: 9311
-        public: 80
+        public: 9311
         service: 9311
   oslo_db:
     auth:

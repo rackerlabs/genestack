@@ -1,4 +1,4 @@
-# Swift Object Store
+# Object Store Management using the Swift client
 
 ## Goal
 
@@ -129,7 +129,7 @@ When the container is public, you can access each file using a specific URL, mad
 <REGIONAL_ENDPOINT>/v1/AUTHxxx/flex-container01/example-docs/readme.md
 ```
 
-Using the swift client to download a single file:
+Download a single file from the container:
 ``` shell
 swift download flex-container01 document01.rtf
 ```
@@ -231,5 +231,5 @@ swift post flex-container01 document01.rtf -H "X-Delete-At:"
 
 ## Additional documentation
 
-Additional documentation can be found at the official swift client site, on the Openstack Documentation Site.<br>
+Additional documentation can be found at the official swift client site, on the Openstack Documentation Site.\
 https://docs.openstack.org/python-openstackclient/latest/
