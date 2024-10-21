@@ -29,7 +29,7 @@ jobs:
         with:
           python-version: 3.x
       - run: pip install -r doc-requirements.txt
-      - run: mkdocs build
+      - run: mkdocs build --strict
       - uses: actions/upload-pages-artifact@v2
         with:
           path: site/
