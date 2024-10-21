@@ -72,7 +72,7 @@ openstack metric measures show <metric_id>
 
 - `--aggregation <method>`: Aggregation method to apply (e.g., mean, sum).
 - `--start <datetime>`: Start time for retrieving measures.
-- `--end <datetime>`: End time for retrieving measures.
+- `--stop <datetime>`: End time for retrieving measures.
 
 ### **metric resource list**
 
@@ -260,7 +260,7 @@ openstack metric archive-policy update <policy_name> \
 ### **Show Measures of a Specific Metric**
 
 ```shell
-openstack metric measures show <metric_id> --aggregation mean --start 2024-01-01 --end 2024-01-31
+openstack metric measures show <metric_id> --aggregation mean --start 2024-01-01 --stop 2024-01-31
 ```
 
 ### **Create a New Resource with a Metric**
