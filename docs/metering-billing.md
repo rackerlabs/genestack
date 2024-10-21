@@ -21,16 +21,16 @@ for usage-based billing of Genestack tenants.
    daily, or monthly usage_). Gnocchi provides quick access to the stored data,
    enabling near real-time billing operations.
 
-4. **Converting to Atom Events**: The billing system converts the collated 
+4. **Converting to Atom Events**: The billing system converts the collated
    resource usage data into Atom events before submitting them.
 
-5. **Submitting Events to Cloud Feeds**: Newly created Atom events are sent 
+5. **Submitting Events to Cloud Feeds**: Newly created Atom events are sent
    via HTTPS to Cloud Feeds.
 
-6. **Usage Mediation Services**: Our UMS team receives the metered usage 
-   events from the named feed, then does further aggregation before emitting 
+6. **Usage Mediation Services**: Our UMS team receives the metered usage
+   events from the named feed, then does further aggregation before emitting
    the usage to be invoiced.
 
-7. **Billing and Revenue Management**: Finally, the aggregated usage from 
-   UMS is received and processed by BRM to create the usage-based invoice 
+7. **Billing and Revenue Management**: Finally, the aggregated usage from
+   UMS is received and processed by BRM to create the usage-based invoice
    for each tenant.

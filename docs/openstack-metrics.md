@@ -46,7 +46,7 @@ openstack metric create <metric_name> \
 - `--unit <unit>`: Specify the unit of measurement (e.g., MB, GB).
 - `--resource-id <resource_id>`: ID of the resource to associate the metric
   with.
-- `--archive-policy-name <policy_name>`: Name of the archive policy 
+- `--archive-policy-name <policy_name>`: Name of the archive policy
 
 ### **metric delete**
 
@@ -171,12 +171,12 @@ Creates a new resource-type
 
 ```shell
 openstack metric resource-type create <resource_type_name> \
-  --attribute <attributes> 
+  --attribute <attributes>
 ```
 
 **Options**:
 
-- `--attribute <display_name:string:true:max_length=255>`: attribute definition 
+- `--attribute <display_name:string:true:max_length=255>`: attribute definition
   > attribute_name:attribute_type:attribute_is_required:attribute_type_option_name=attribute_type_option_value
 
 ### **metric resource-type update**
@@ -191,9 +191,9 @@ openstack metric resource-type update <resource_type_name> \
 
 **Options**:
 
-- `--attribute <display_name:string:true:max_length=255>`: attribute definition 
+- `--attribute <display_name:string:true:max_length=255>`: attribute definition
   > attribute_name:attribute_type:attribute_is_required:attribute_type_option_name=attribute_type_option_value
-- `--remove-attribute <attribute_name>`: removes named 
+- `--remove-attribute <attribute_name>`: removes named
   attribute
 
 ### **metric archive-policy list**
@@ -272,7 +272,7 @@ openstack metric create cpu_usage --resource-id <resource_id> --unit GHz
 
 ### **Update the `image` Resource Type**
 
-In this example, we add a few additional useful image properties to the 
+In this example, we add a few additional useful image properties to the
 image resource type that we want to store.
 
 ```shell
@@ -283,10 +283,10 @@ openstack resource-type update image -a os_version:string:false:max_length=255
 
 !!! tip "Update related Ceilometer resource type attributes"
 
-    Note that changes to resource types to accomodate additional parameters 
+    Note that changes to resource types to accomodate additional parameters
     don't just magically work. One must update Ceilometer's resource_type
-    definitions. For the `image` resource_type, we do that in the ceilometer 
-    helm chart overrides here (for example), appending the keys and populate 
+    definitions. For the `image` resource_type, we do that in the ceilometer
+    helm chart overrides here (for example), appending the keys and populate
     the values using the related resource_metadata payload:
 
     ```yaml

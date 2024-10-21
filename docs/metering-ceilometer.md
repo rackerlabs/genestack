@@ -3,9 +3,9 @@
 Ceilometer is the telemetry service in OpenStack responsible for collecting
 usage data related to different resources (_e.g., instances, volumes,
 and network usage_). It compiles various types of metrics (_referred to as
-meters_), such as CPU utilization, disk I/O, and network traffic. It does 
-this by gathering data from other OpenStack components like Nova (_compute_), 
-Cinder (_block storage_), and Neutron (_networking_). It also captures event 
+meters_), such as CPU utilization, disk I/O, and network traffic. It does
+this by gathering data from other OpenStack components like Nova (_compute_),
+Cinder (_block storage_), and Neutron (_networking_). It also captures event
 data such as instance creation and volume attachment via hooks into the message
 notification system (_RabbitMQ_).
 
@@ -27,7 +27,7 @@ their specific needs.
 
 Events are discrete occurrences, such as the starting or stopping of
 instances or attaching a volume which are captured and stored. Ceilometer
-builds event data from the messages it receives from other OpenStack 
+builds event data from the messages it receives from other OpenStack
 services. Event definitions can be complex. Typically, a given message will
 match one or more event definitions that describe what the incoming payload
 should be flattened to. See the [telemetry-events][ceilometer-events]
@@ -75,13 +75,13 @@ section of Ceilometer's documentation for more information.
 
 ### Resources
 
-Gnocchi resource definitions in Ceilometer's configuration define how resources 
-like instances, volumes, and networks are represented and tracked for 
-telemetry purposes. Each definition specifies the attributes (_such as project 
+Gnocchi resource definitions in Ceilometer's configuration define how resources
+like instances, volumes, and networks are represented and tracked for
+telemetry purposes. Each definition specifies the attributes (_such as project
 ID or instance name_) and the metrics (_like CPU usage or network traffic_)
 associated with that resource. When Ceilometer collects data from various
 OpenStack services, it uses these definitions to map the data to the appropriate
-resource type in Gnocchi (_which stores it as time-series data_). This 
+resource type in Gnocchi (_which stores it as time-series data_). This
 structure allows for efficient monitoring, aggregation, and analysis of resource
 usage over time in a scalable way.
 
@@ -123,8 +123,8 @@ usage over time in a scalable way.
 
 ### Meters
 
-Meters are quantitative measures like CPU time, memory usage, or disk 
-operations. Ceilometer provides several useful metrics by default, but new 
+Meters are quantitative measures like CPU time, memory usage, or disk
+operations. Ceilometer provides several useful metrics by default, but new
 definitions can be added to suit almost every need. To read more about
 measurements and how they are captured, see the [telemetry-measurements][ceilometer-telemetry]
 section of Ceilometer documentation.

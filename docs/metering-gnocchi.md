@@ -27,12 +27,12 @@ metric cleanup.
    <figcaption>Image source: <a href="https://gnocchi.osci.io/intro.html" target="_blank" rel="noopener noreferrer">gnocchi.osci.io</a></figcaption>
 </figure>
 
-Gnocchi services are stateless thus can be scaled horizontally without much 
+Gnocchi services are stateless thus can be scaled horizontally without much
 effort. That being said, we can easily define an HPA (HorizontalPodAutoscaler)
 policy to do just that for `ReplicaSet` components such as the `gnocchi-api`.
 However, `metricd` and `statsd` components are configured to be
-`DaemonSets`, so operators need only label additional nodes with the 
-configured node-selector key/value of `openstack-control-plane=enabled` to 
+`DaemonSets`, so operators need only label additional nodes with the
+configured node-selector key/value of `openstack-control-plane=enabled` to
 scale those components up or down.
 
 ## Storage
@@ -57,13 +57,13 @@ metrics, including:
 
 For smaller architectures, using the file driver to store data on disk may be
 sufficient. However, S3, Ceph, and Swift offer more scalable storage options,
-with Ceph being the recommended choice due to its better consistency. In 
+with Ceph being the recommended choice due to its better consistency. In
 larger or busier deployments, a common recommendation is to use Redis for
 incoming measure storage and Ceph for aggregate storage.
 
 ### Indexing
 
-The indexer driver stores the index of all resources, archive policies, and 
+The indexer driver stores the index of all resources, archive policies, and
 metrics, along with their definitions, types, and properties. It also handles
 the linking of resources to metrics and manages resource relationships.
 Supported drivers include the following:
@@ -81,9 +81,9 @@ creation if necessary.
 ## REST API Usage
 
 The Gnocchi REST API is well documented on their website, please see the
-[REST API Usage](https://gnocchi.osci.io/rest.html) section for full detail. 
-Furthermore, there is a community supported Python client and SDK 
-installable via pip, aptly named [python-gnocchiclient](https://github.
-com/gnocchixyz/pythongnocchiclient). It's worth noting, this is a required 
-module for `openstack metric` commands to function. See [OpenStack Metrics](openstack-metrics.md)
-for example CLI usage.
+[REST API Usage](https://gnocchi.osci.io/rest.html) section for full detail.
+Furthermore, there is a community supported Python client and SDK
+installable via pip, aptly named [python-gnocchiclient](https://github.com/gnocchixyz/python-gnocchiclient).
+It's worth noting, this is a required module for `openstack metric` commands
+to function. See [OpenStack Metrics](openstack-metrics.md) for example CLI
+usage.
