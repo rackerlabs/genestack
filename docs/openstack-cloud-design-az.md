@@ -13,7 +13,7 @@ Ultimately, because it has no real physical analogue, an Availability Zone is a 
     - Nova
     - Neutron
     - Cinder
-  
+
 
 ## Sharing Services Across Availability Zones
 

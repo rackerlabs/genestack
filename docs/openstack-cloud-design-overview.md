@@ -1,6 +1,6 @@
 # Overview
 
-When building a cloud, the design of the cloud will not only reflect the type of services you are looking to provide but also inform the way that users of your cloud work to accomplish their goals.  
+When building a cloud, the design of the cloud will not only reflect the type of services you are looking to provide but also inform the way that users of your cloud work to accomplish their goals.
 
 Availability is one of the key aspects of deploying applications in the cloud.  Whether you are building a [twelve-factor](https://12factor.net/){:target="_blank"} cloud-native application or running a more traditional stateful application,  in order for an application to maximize availability, it needs to have resiliance against failures, and that means understanding what failure domains the cloud infrastructure has.
 
@@ -17,7 +17,7 @@ These are typically arranged as in a hierarchy, with each incresing lower layer 
 
 # Clouds
 
-At the highest level, a cloud is a  unique set of services that  operates completely independedntly.  We can define a cloud as having its own set of resources and services that are not dependent on any other cloud.  
+At the highest level, a cloud is a  unique set of services that  operates completely independedntly.  We can define a cloud as having its own set of resources and services that are not dependent on any other cloud.
 
 Having multiple clouds gives you the most coarse-grained failure domain organization possible.  There are several advantages to having multiple clouds:
 
@@ -47,7 +47,7 @@ Availability Zones are another logical grouping for sets of closely related reso
 Generally, no two Availability zones share the same core set of compute and storage resources.  Each availabilty zone is able to operate self-sufficiently and operation should be as self-contained and physically isolated from other Availability Zones as possible  in the same region to provide additional fault tolerance and resiliency.
 
 
-[^1]: 
+[^1]:
     The various clouds themselves should be completely independent, but they might rely on a shared backend service like LDAP for authentication.
 
 [^2]:

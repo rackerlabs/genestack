@@ -134,8 +134,9 @@ nav:
       - Swift Object Storage: openstack-object-storage-swift.md
   - Cloud Design:
       - Overview: openstack-cloud-design-overview.md
-      - Regions: openstack-cloud-design-regions.md
-      - Availability Zones: openstack-cloud-design-az.md
+      - Regions in OpenStack: openstack-cloud-design-regions.md
+      - Availability Zones in OpenStack: openstack-cloud-design-az.md
+      - Host Aggregates in OpenStack: openstack-cloud-design-ha.md
   - Deployment Guide:
       - What is Genestack?: deployment-guide-welcome.md
       - Getting Started:
