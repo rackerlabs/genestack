@@ -234,6 +234,7 @@ nav:
           - OVN traffic flow introduction: ovn-traffic-flow-intro.md
           - OVN Database Backup: infrastructure-ovn-db-backup.md
           - OVN Monitoring introduction: ovn-monitoring-introduction.md
+          - OVN Claim Storm alert: ovn-alert-claim-storm.md
           - MariaDB Operations: infrastructure-mariadb-ops.md
           - Adding New Node: adding-new-node.md
           - Host Aggregates: openstack-host-aggregates.md
