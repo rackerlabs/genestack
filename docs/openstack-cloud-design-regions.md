@@ -2,6 +2,7 @@
 
 Regions are separate physical locations served by a single cloud.  In OpenStack, a Region is defined as an independently deployed cloud excepting Keystone and Horizon or Skyline.
 
+![Regions in Cloud Hierarchy](assets/images/cloud-hierarchy-region.png)
 
 ## Designing Services for Multiple Available Zones
 
