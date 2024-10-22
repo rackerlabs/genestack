@@ -7,19 +7,20 @@ Lets assume we are adding one new worker node: `computegpu001.p40.example.com` a
 
 1. Add the node to your ansible inventory file
 ```shell
-   vim /etc/genestack/inventory/openstack-flex-inventory.ini
+   vim /etc/genestack/inventory/inventory.yaml
 ```
 
 2. Ensure hostname is correctly set and hosts file has 127.0.0.1 entry
 
 3. Run scale.yaml to add the node to your cluster
 ```shell
-   ansible-playbook -i /etc/genestack/inventory/openstack-flex-inventory.yaml scale.yml --limit computegpu001.p40.example.com --become
+   source /opt/genestack/scripts/genestack.rc
+   ansible-playbook scale.yml --limit compute-12481.rackerlabs.dev.local --become
 ```
 
 Once step 3 competes succesfully, validate that the node is up and running in the cluster
 ```shell
-   kubectl get nodes | grep computegpu001.p40.example.com
+   kubectl get nodes | grep compute-12481.rackerlabs.dev.local
 ```
 
 ### PreferNoSchedule Taint
@@ -35,7 +36,7 @@ pods and the Nova VMs therein.
 !!! tip "Setting this is a matter of architerural preference:"
 
     ```shell
-    kubectl taint nodes computegpu001.p40.example.com key1=value1:PreferNoSchedule
+    kubectl taint nodes compute-12481.rackerlabs.dev.local key1=value1:PreferNoSchedule
     ```
 
 ## Adding the node in openstack
@@ -45,16 +46,16 @@ labels and annotations.
 
 1. Export the nodes to add
 ```shell
-   export NODES='computegpu001.p40.example.com'
+   export NODES='compute-12481.rackerlabs.dev.local'
 ```
 
 2. For compute node add the following labels
 ```shell
    # Label the openstack compute nodes
-   kubectl label node computegpu001.p40.example.com openstack-compute-node=enabled
+   kubectl label node compute-12481.rackerlabs.dev.local openstack-compute-node=enabled
 
    # With OVN we need the compute nodes to be "network" nodes as well. While they will be configured for networking, they wont be gateways.
-   kubectl label node computegpu001.p40.example.com openstack-network-node=enabled
+   kubectl label node compute-12481.rackerlabs.dev.local openstack-network-node=enabled
 ```
 
 3. Add the right annotations to the node

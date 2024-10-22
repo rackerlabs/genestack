@@ -15,12 +15,12 @@ ansible-playbook custom_exporters.yml
 
 #### Example custom exporter playbook with overrides
 
-Confirm openstack-flex-inventory.yaml matches what is in /etc/genestack/inventory. If it does not match update the command to match the file names.
+Confirm `inventory.yaml` matches what is in /etc/genestack/inventory. If it does not match update the command to match the file names.
 
 ``` shell
 # Example overriding things on the CLI
-ansible-playbook custom_exporters.yml --inventory /etc/genestack/inventory/openstack-flex-inventory.yaml \
-                                --private-key ${HOME}/.ssh/openstack-flex-keypair.key
+source /opt/genestack/scripts/genestack.rc
+ansible-playbook custom_exporters.yml --private-key ${HOME}/.ssh/openstack-keypair.key
 ```
 
 Once the scripts run the node exporter will collect your metrics and supply them to prometheus for you to view.

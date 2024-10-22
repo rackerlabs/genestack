@@ -507,7 +507,6 @@
     os_keypair_name: "{{ os_network_name }}-keypair"
     # ansible_ssh_common_args: "-F {{ lookup('env', 'HOME') }}/.ssh/{{ os_keypair_name }}.config"
     ansible_ssh_private_key_file: "{{ lookup('env', 'HOME') }}/.ssh/{{ os_keypair_name }}.key"
-    genestack_product: openstack-flex
   tasks:
     - name: Create ssh directory on jump host
       ansible.builtin.file:
@@ -605,8 +604,6 @@
         msg: "This will install ansible, collections, etc."
     - name: Genestack bootstrap
       command: /opt/genestack/bootstrap.sh
-      environment:
-        GENESTACK_PRODUCT: "{{ genestack_product }}"
     - name: Source Genestack venv via .bashrc
       ansible.builtin.lineinfile:
         path: /root/.bashrc

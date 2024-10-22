@@ -21,10 +21,6 @@ cd "${BASEDIR}" || error "Could not change to ${BASEDIR}"
 
 source scripts/lib/functions.sh
 
-# Set GENESTACK_PRODUCT to 'genestack'
-GENESTACK_PRODUCT="genestack"
-export GENESTACK_PRODUCT
-
 set -e
 
 success "Environment variables:"
@@ -50,12 +46,11 @@ test -L "$GENESTACK_CONFIG" 2>&1 || mkdir -p "${GENESTACK_CONFIG}"
 
 # Set config
 test -f "$GENESTACK_CONFIG/provider" || echo "${K8S_PROVIDER}" > "${GENESTACK_CONFIG}/provider"
-test -f "$GENESTACK_CONFIG/product" || echo "${GENESTACK_PRODUCT}" > "${GENESTACK_CONFIG}/product"
 mkdir -p "$GENESTACK_CONFIG/inventory/group_vars" "${GENESTACK_CONFIG}/inventory/credentials"
 
 # Copy default k8s config
 PRODUCT_DIR="ansible/inventory/genestack"
-if [ "$(find ${GENESTACK_CONFIG}/inventory -name \*.yaml -o -name \*.yml 2>/dev/null | wc -l)" -eq 0 ]; then
+if [ "$(find "${GENESTACK_CONFIG}/inventory" -name \*.yaml -o -name \*.yml 2>/dev/null | wc -l)" -eq 0 ]; then
   cp -r "${PRODUCT_DIR}"/* "${GENESTACK_CONFIG}/inventory"
 fi
 
@@ -63,9 +58,9 @@ fi
 test -d "$GENESTACK_CONFIG/gateway-api" || cp -a "${BASEDIR}/etc/gateway-api" "$GENESTACK_CONFIG"/
 
 # Create venv and prepare Ansible
-python3 -m venv ~/.venvs/genestack
-~/.venvs/genestack/bin/pip install pip --upgrade
-source ~/.venvs/genestack/bin/activate && success "Switched to venv ~/.venvs/genestack"
+python3 -m venv "${HOME}/.venvs/genestack"
+"${HOME}/.venvs/genestack/bin/pip" install pip --upgrade
+source "${HOME}/.venvs/genestack/bin/activate" && success "Switched to venv ~/.venvs/genestack"
 pip install -r "${BASEDIR}/requirements.txt" && success "Installed ansible package"
 ansible-playbook "${BASEDIR}/scripts/get-ansible-collection-requirements.yml" \
   -e collections_file="${ANSIBLE_COLLECTION_FILE}" \

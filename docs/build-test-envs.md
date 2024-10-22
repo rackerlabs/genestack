@@ -123,10 +123,10 @@ The lab deployment playbook will build an environment suitable for running Genes
 
 ### SSH to lab
 
-If you have not set your .ssh config do not forget to  put in your path for your openstack-flex-keypair. Your Ip will be present after running the infra-deploy.yaml.
+If you have not set your .ssh config do not forget to  put in your path for your openstack-keypair. Your Ip will be present after running the infra-deploy.yaml.
 
 ``` shell
-ssh -i /path/to/.ssh/openstack-flex-keypair.key ubuntu@X.X.X.X
+ssh -i /path/to/.ssh/openstack-keypair.key ubuntu@X.X.X.X
 
 ```
 
