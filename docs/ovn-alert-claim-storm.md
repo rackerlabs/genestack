@@ -128,8 +128,9 @@ Some tips and recommendations:
 
     ```
     sudo su -l
+
     cd /opt/genestack/ansible && \
-    env ANSIBLE_FILTER_PLUGINS=/opt/genestack/ansible/filter_plugins \
+    source ../scripts/genestack.rc && \
     ansible-playbook playbooks/host-setup.yml \
     -i /etc/genestack/inventory/openstack-flex-inventory.ini \
     --limit openstack-flex-node-1.cluster.local
