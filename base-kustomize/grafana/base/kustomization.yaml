@@ -11,4 +11,5 @@ helmCharts:
     valuesFile: grafana-values.yaml
     additionalValuesFiles:
       - datasources.yaml
+      - plugins.yaml
       - grafana-alerts.yaml
