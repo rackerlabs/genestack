@@ -30,18 +30,18 @@ The structure may look something like:
 !!! example
     ```
     ├── my-genestack-configs
-    │  ├── sjc
+    │  ├── region1
     │  │  ├── inventory
-    │  │  │  ├── my-sjc-inventory.ini
+    │  │  │  ├── inventory.yaml
     │  │  ├── helm-configs
     │  │  │  ├── nova
-    │  │  │  │  ├── my-custom-sjc-nova-helm-overrides.yaml
-    │  ├── dfw
+    │  │  │  │  ├── region1-custom-nova-helm-overrides.yaml
+    │  ├── region2
     │  │  ├── inventory
-    │  │  │  ├── my-dfw-inventory.ini
+    │  │  │  ├── -inventory.yaml
     │  │  ├── helm-configs
     │  │  │  ├── nova
-    │  │  │  │  ├── my-custom-dfw-nova-helm-overrides.yaml
+    │  │  │  │  ├── region2-custom-nova-helm-overrides.yaml
     └── .gitignore
     ```
 
@@ -68,7 +68,7 @@ For our example we just want to override the cpu_allocation as they are differen
 
 Create the override files within the respective structure as noted above with the contents of:
 
-!!! example "my-custom-sjc-nova-helm-overrides.yaml"
+!!! example "region1-custom-nova-helm-overrides.yaml"
     ```
     conf:
       nova:
@@ -76,7 +76,7 @@ Create the override files within the respective structure as noted above with th
           cpu_allocation_ratio: 8.0
     ```
 
-!!! example "my-custom-dfw-nova-helm-overrides.yaml"
+!!! example "region2-custom-nova-helm-overrides.yaml"
     ```
     conf:
       nova:
@@ -95,7 +95,7 @@ For the rest of the workflow example we'll be working with the `sjc` environment
 
 !!! example "symlink the repo"
     ``` shell
-    ln -s /opt/my-genestack-configs/sjc /etc/genestack
+    ln -s /opt/my-genestack-configs/region1 /etc/genestack
     ```
 
 This will make our `/etc/genestack` directory look like:
@@ -103,10 +103,10 @@ This will make our `/etc/genestack` directory look like:
 !!! example "/etc/genestack/"
     ```
     ├── inventory
-    │  │  ├── my-sjc-inventory.ini
+    │  │  ├── inventory.yaml
     ├── helm-configs
     │  ├── nova
-    │  │  ├── my-custom-sjc-nova-helm-overrides.yaml
+    │  │  ├── region1-custom-nova-helm-overrides.yaml
     ```
 
 #### Running helm
@@ -127,7 +127,7 @@ helm upgrade --install nova ./nova \
   --namespace=openstack \
     --timeout 120m \
     -f /etc/genestack/helm-configs/nova/nova-helm-overrides.yaml \
-    -f /etc/genestack/helm-configs/nova/my-custom-sjc-nova-helm-overrides.yaml \
+    -f /etc/genestack/helm-configs/nova/region1-nova-helm-overrides.yaml \
     --set conf.nova.neutron.metadata_proxy_shared_secret="$(kubectl --namespace openstack get secret metadata-shared-secret -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.identity.auth.nova.password="$(kubectl --namespace openstack get secret nova-admin -o jsonpath='{.data.password}' | base64 -d)" \

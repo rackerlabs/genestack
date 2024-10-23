@@ -1,6 +1,11 @@
 # Retrieving the Kube Config
 
+!!! note
+    This step is optional once the `setup-kubernetes.yml` playbook has been used to deploy Kubernetes
+
 Once the environment is online, proceed to login to the environment and begin the deployment normally. You'll find the launch node has everything needed, in the places they belong, to get the environment online.
+
+
 
 ## Install `kubectl`
 
@@ -34,7 +39,7 @@ Retrieve the kube config from our first controller.
 
 ``` shell
 mkdir -p ~/.kube
-rsync -e "ssh -F ${HOME}/.ssh/openstack-flex-keypair.config" \
+rsync -e "ssh -F ${HOME}/.ssh/openstack-keypair.config" \
       --rsync-path="sudo rsync" \
       -avz ubuntu@X.X.X.X:/root/.kube/config "${HOME}/.kube/config"
 ```

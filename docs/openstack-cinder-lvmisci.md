@@ -89,13 +89,13 @@ ansible-playbook -i inventory-example.yaml deploy-cinder-volumes-reference.yaml
 Once the playbook has finished executing, check the cinder api to verify functionality.
 
 ``` shell
-root@openstack-flex-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume service list
-+------------------+-------------------------------------------------+------+---------+-------+----------------------------+
-| Binary           | Host                                            | Zone | Status  | State | Updated At                 |
-+------------------+-------------------------------------------------+------+---------+-------+----------------------------+
-| cinder-scheduler | cinder-volume-worker                            | nova | enabled | up    | 2023-12-26T17:43:07.000000 |
-| cinder-volume    | openstack-flex-node-4.cluster.local@lvmdriver-1 | nova | enabled | up    | 2023-12-26T17:43:04.000000 |
-+------------------+-------------------------------------------------+------+---------+-------+----------------------------+
+root@openstack-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume service list
++------------------+--------------------------------------------+------+---------+-------+----------------------------+
+| Binary           | Host                                       | Zone | Status  | State | Updated At                 |
++------------------+--------------------------------------------+------+---------+-------+----------------------------+
+| cinder-scheduler | cinder-volume-worker                       | nova | enabled | up    | 2023-12-26T17:43:07.000000 |
+| cinder-volume    | openstack-node-4.cluster.local@lvmdriver-1 | nova | enabled | up    | 2023-12-26T17:43:04.000000 |
++------------------+--------------------------------------------+------+---------+-------+----------------------------+
 ```
 
 !!! note
@@ -106,7 +106,7 @@ At this point it would be a good time to define your types within cinder. For ou
 type so that we can schedule volumes to our environment.
 
 ``` shell
-root@openstack-flex-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume type create lvmdriver-1
+root@openstack-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume type create lvmdriver-1
 +-------------+--------------------------------------+
 | Field       | Value                                |
 +-------------+--------------------------------------+
@@ -122,7 +122,7 @@ root@openstack-flex-node-0:~# kubectl --namespace openstack exec -ti openstack-a
 If wanted, create a test volume to tinker with
 
 ``` shell
-root@openstack-flex-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume create --size 1 test
+root@openstack-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume create --size 1 test
 +---------------------+--------------------------------------+
 | Field               | Value                                |
 +---------------------+--------------------------------------+
@@ -148,7 +148,7 @@ root@openstack-flex-node-0:~# kubectl --namespace openstack exec -ti openstack-a
 | user_id             | 2ddf90575e1846368253474789964074     |
 +---------------------+--------------------------------------+
 
-root@openstack-flex-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume list
+root@openstack-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume list
 +--------------------------------------+------+-----------+------+-------------+
 | ID                                   | Name | Status    | Size | Attached to |
 +--------------------------------------+------+-----------+------+-------------+
@@ -159,7 +159,7 @@ root@openstack-flex-node-0:~# kubectl --namespace openstack exec -ti openstack-a
 You can validate the environment is operational by logging into the storage nodes to validate the LVM targets are being created.
 
 ``` shell
-root@openstack-flex-node-4:~# lvs
+root@openstack-node-4:~# lvs
   LV                                   VG               Attr       LSize Pool Origin Data%  Meta%  Move Log Cpy%Sync Convert
   c744af27-fb40-4ffa-8a84-b9f44cb19b2b cinder-volumes-1 -wi-a----- 1.00g
 ```

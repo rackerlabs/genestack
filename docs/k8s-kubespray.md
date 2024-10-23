@@ -2,10 +2,6 @@
 
 Currently only the k8s provider kubespray is supported and included as submodule into the code base.
 
-!!! info
-
-    Existing OpenStack Ansible inventory can be converted using the `/opt/genestack/scripts/convert_osa_inventory.py` script which provides a `hosts.yml`
-
 ### Before you Deploy
 
 Kubespray will be using OVN for all of the network functions, as such, you will need to ensure your hosts are ready to receive the deployment at a low level.
@@ -42,13 +38,13 @@ you will need to prepare your networking infrastructure and basic storage layout
 
 A default inventory file for kubespray is provided at `/etc/genestack/inventory` and must be modified.
 
-Checkout the [openstack-flex/prod-inventory-example.yaml](https://github.com/rackerlabs/genestack/blob/main/ansible/inventory/openstack-flex/inventory.yaml.example) file for an example of a target environment.
+Checkout the [inventory.yaml.example](https://github.com/rackerlabs/genestack/blob/main/ansible/inventory/genestack/inventory.yaml.example) file for an example of a target environment.
 
 !!! note
 
     Before you deploy the kubernetes cluster you should define the `kube_override_hostname` option in your inventory. This variable will set the node name which we will want to be an FQDN. When you define the option, it should have the same suffix defined in our `cluster_name` variable.
 
-However, any Kubespray compatible inventory will work with this deployment tooling. The official [Kubespray documentation](https://kubespray.io) can be used to better understand the inventory options and requirements. Within the `ansible/playbooks/inventory` directory there is a directory named `openstack-flex` and `openstack-enterprise`. These directories provide everything we need to run a successful Kubernetes environment for genestack at scale. The difference between **enterprise** and **flex** are just target environment types.
+However, any Kubespray compatible inventory will work with this deployment tooling. The official [Kubespray documentation](https://kubespray.io) can be used to better understand the inventory options and requirements.
 
 ### Ensure systems have a proper FQDN Hostname
 
@@ -56,8 +52,8 @@ Before running the Kubernetes deployment, make sure that all hosts have a proper
 
 ``` shell
 source /opt/genestack/scripts/genestack.rc
-ansible -i /etc/genestack/inventory/openstack-flex-inventory.ini -m shell -a 'hostnamectl set-hostname {{ inventory_hostname }}' --become all
-ansible -i /etc/genestack/inventory/openstack-flex-inventory.ini -m shell -a "grep 127.0.0.1 /etc/hosts | grep -q {{ inventory_hostname }} || sed -i 's/^127.0.0.1.*/127.0.0.1 {{ inventory_hostname }} localhost.localdomain localhost/' /etc/hosts" --become all
+ansible -m shell -a 'hostnamectl set-hostname {{ inventory_hostname }}' --become all
+ansible -m shell -a "grep 127.0.0.1 /etc/hosts | grep -q {{ inventory_hostname }} || sed -i 's/^127.0.0.1.*/127.0.0.1 {{ inventory_hostname }} localhost.localdomain localhost/' /etc/hosts" --become all
 ```
 
 !!! note
@@ -65,7 +61,7 @@ ansible -i /etc/genestack/inventory/openstack-flex-inventory.ini -m shell -a "gr
     In the above command I'm assuming the use of `cluster.local` this is the default **cluster_name** as defined in the group_vars k8s_cluster file. If you change that option, make sure to reset your domain name on your hosts accordingly.
 
 
-The ansible inventory is expected at `/etc/genestack/inventory`
+The ansible inventory is expected at `/etc/genestack/inventory` and automatically loaded once `genestack.rc` is sourced.
 
 ### Prepare hosts for installation
 
@@ -76,7 +72,7 @@ cd /opt/genestack/ansible/playbooks
 
 !!! note
 
-    The RC file sets a number of environment variables that help ansible to run in a more easily to understand way.
+    The rc file sets a number of environment variables that help ansible to run in a more easily to understand way.
 
 While the `ansible-playbook` command should work as is with the sourced environment variables, sometimes it's necessary to set some overrides on the command line.
 The following example highlights a couple of overrides that are generally useful.
@@ -89,50 +85,29 @@ ansible-playbook host-setup.yml
 
 #### Example host setup playbook with overrides
 
-Confirm openstack-flex-inventory.yaml matches what is in /etc/genestack/inventory. If it does not match update the command to match the file names.
+Confirm `inventory.yaml` matches what is in `/etc/genestack/inventory`. If it does not match update the command to match the file names.
 
 ``` shell
+source /opt/genestack/scripts/genestack.rc
 # Example overriding things on the CLI
-ansible-playbook host-setup.yml --inventory /etc/genestack/inventory/openstack-flex-inventory.ini \
-                                --private-key ${HOME}/.ssh/openstack-flex-keypair.key
+ansible-playbook host-setup.yml
+```
+
+The `private-key` option can be used to instruct ansible to use a custom SSH key for the SSH connection
+
+``` shell
+    --private-key ${HOME}/.ssh/openstack-keypair.key
 ```
 
 ### Run the cluster deployment
 
 This is used to deploy kubespray against infra on an OpenStack cloud. If you're deploying on baremetal you will need to setup an inventory that meets your environmental needs.
 
-Change the directory to the kubespray submodule.
-
-``` shell
-cd /opt/genestack/submodules/kubespray
-```
-
-Source your environment variables
+The playbook `setup-kubernetes.yml` is used to invoke the selected provider installation and label and configure a kube config:
 
 ``` shell
 source /opt/genestack/scripts/genestack.rc
-```
-
-!!! note
-
-    The RC file sets a number of environment variables that help ansible to run in a more easy to understand way.
-
-Once the inventory is updated and configuration altered (networking etc), the Kubernetes cluster can be initialized with
-
-``` shell
-ansible-playbook cluster.yml
-```
-
-The cluster deployment playbook can also have overrides defined to augment how the playbook is executed.
-Confirm openstack-flex-inventory.yaml matches what is in /etc/genestack/inventory. If it does not match update the command to match the file names.
-
-
-``` shell
-ansible-playbook --inventory /etc/genestack/inventory/openstack-flex-inventory.ini \
-                 --private-key /home/ubuntu/.ssh/openstack-flex-keypair.key \
-                 --user ubuntu \
-                 --become \
-                 cluster.yml
+ansible-playbook setup-kubernetes.yml
 ```
 
 !!! tip
