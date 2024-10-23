@@ -82,7 +82,7 @@ labels and annotations.
    kubectl annotate \
         nodes \
         ${NODES} \
-        ovn.openstack.org/availability_zones='nova'
+        ovn.openstack.org/availability_zones='az1'
 ```
 
 4. Verify all the services are up and running
