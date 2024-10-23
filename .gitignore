@@ -7,6 +7,7 @@ contrib/offline/offline-files
 contrib/offline/offline-files.tar.gz
 .idea
 .vscode
+.nova
 .tox
 .cache
 *.bak
