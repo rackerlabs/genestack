@@ -1,6 +1,6 @@
 ## Genestack Infrastructure Design Notes 
 
-### Ironic for bare-metal provisioning 
+### Ironic for bare-metal provisioning  
 
 Our internal deployment team uses OpenStack bare metal provisioning, a.k.a **Ironic**, which provides bare metal machines instead of virtual machines, forked from the Nova baremetal driver. It is best thought of as a bare metal hypervisor API and a set of plugins which interact with the bare metal hypervisors. By default, it will use PXE and IPMI in order to provision and turn on/off machines, but Ironic also supports vendor-specific plugins which may implement additional functionality. 
 
