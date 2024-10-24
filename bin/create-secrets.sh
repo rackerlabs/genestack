@@ -443,6 +443,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
+  username: $(echo -n "barbican" | base64)
   password: $(echo -n $barbican_rabbitmq_password | base64 -w0)
 ---
 apiVersion: v1
@@ -470,6 +471,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
+  username: $(echo -n "magnum" | base64)
   password: $(echo -n $magnum_rabbitmq_password | base64 -w0)
 ---
 apiVersion: v1
