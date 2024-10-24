@@ -16,8 +16,6 @@ After switch and firewall configuration, deployment nodes are created with in th
 
 ![conceptual_architecture](./assets/images/conceptual_architecture.png)
 
-
-
 #### Benefits of Ironic
 
 ​	With a standard API and lightweight footprint, Ironic can serve as a driver for a variety of bare metal infrastructure. Ironic allows users to manage bare metal infrastructure like they would virtual  machines and provides ideal infrastructure to run container  orchestration frameworks like Kubernetes to optimize performance.  
@@ -39,6 +37,8 @@ After switch and firewall configuration, deployment nodes are created with in th
 - **Spine switches.** Leaf switches connect to spine switches and mesh into the spine, forming the access layer that delivers network connection points for servers.
 - **Leaf switches.** Servers and storage connect to leaf  switches and consist of access switches that aggregate traffic from  servers. They connect directly to the spine.
 
+![leaf-spline](assets/images/leaf-spline.png)
+[conceptual_architecture](./assets/images/conceptual_architecture.png)
 #### Advantages of Leaf-Spline Architecture
 
 - **Redundancy.** Each leaf switch connects to every spine  switch, which increases the amount of redundancy while also reducing  potential bottlenecks.
