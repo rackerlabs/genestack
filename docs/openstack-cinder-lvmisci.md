@@ -127,7 +127,7 @@ root@openstack-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-
 | Field               | Value                                |
 +---------------------+--------------------------------------+
 | attachments         | []                                   |
-| availability_zone   | nova                                 |
+| availability_zone   | az1                                  |
 | bootable            | false                                |
 | consistencygroup_id | None                                 |
 | created_at          | 2023-12-26T17:46:15.639697           |

@@ -1754,7 +1754,10 @@ conf:
       # NOTE(portdirect): the bind port should not be defined, and is manipulated
       # via the endpoints section.
       bind_port: null
-      default_availability_zones: nova
+      default_availability_zones: null
+      network_scheduler_driver: neutron.scheduler.dhcp_agent_scheduler.AZAwareWeightScheduler
+      router_scheduler_driver: neutron.scheduler.l3_agent_scheduler.AZLeastRoutersScheduler
+      dhcp_load_type: networks
       api_workers: 1
       rpc_workers: 4
       allow_overlapping_ips: True
@@ -1787,7 +1790,7 @@ conf:
       connection_recycle_time: 3600
       max_retries: -1
     agent:
-      availability_zone: nova
+      availability_zone: az1
       root_helper: sudo /var/lib/openstack/bin/neutron-rootwrap /etc/neutron/rootwrap.conf
       root_helper_daemon: sudo /var/lib/openstack/bin/neutron-rootwrap-daemon /etc/neutron/rootwrap.conf
     oslo_messaging_notifications:
@@ -1946,6 +1949,7 @@ conf:
         vni_ranges: 1:65536
         max_header_size: 38
       agent:
+        availability_zone: az1
         extensions: fip_qos,gateway_ip_qos
     ml2_conf_sriov: null
     taas:
@@ -1953,6 +1957,7 @@ conf:
         enabled: False
     openvswitch_agent:
       agent:
+        availability_zone: az1
         tunnel_types: vxlan
         l2_population: True
         arp_responder: True
@@ -1988,6 +1993,8 @@ conf:
       interface_driver: null
       dnsmasq_config_file: /etc/neutron/dnsmasq.conf
       force_metadata: True
+    agent:
+      availability_zone: az1
   dnsmasq: |
       #no-hosts
       #port=5353

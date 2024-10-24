@@ -58,7 +58,7 @@ $ openstack --os-cloud default loadbalancer create --name OVN-Test --vip-subnet-
 | Field               | Value                                |
 +---------------------+--------------------------------------+
 | admin_state_up      | True                                 |
-| availability_zone   | None                                 |
+| availability_zone   | az1                                  |
 | created_at          | 2024-08-30T17:48:46                  |
 | description         |                                      |
 | flavor_id           | None                                 |

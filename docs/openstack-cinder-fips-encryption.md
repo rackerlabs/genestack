@@ -48,7 +48,7 @@ kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volum
 | Field               | Value                                |
 +---------------------+--------------------------------------+
 | attachments         | []                                   |
-| availability_zone   | nova                                 |
+| availability_zone   | az1                                  |
 | bootable            | false                                |
 | consistencygroup_id | None                                 |
 | created_at          | 2024-10-17T20:01:19.233106           |
@@ -78,7 +78,7 @@ Verify encryption field after volume is created:
 | Field                          | Value                                                         |
 +--------------------------------+---------------------------------------------------------------+
 | attachments                    | []                                                            |
-| availability_zone              | nova                                                          |
+| availability_zone              | az1                                                           |
 | bootable                       | false                                                         |
 | consistencygroup_id            | None                                                          |
 | created_at                     | 2024-10-17T20:01:19.000000                                    |
