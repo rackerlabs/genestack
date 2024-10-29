@@ -2016,9 +2016,16 @@ prometheus-node-exporter:
     ##
     jobLabel: node-exporter
   releaseLabel: true
+  extraHostVolumeMounts:
+    - name: text-file-collector
+      hostPath: /opt/node_exporter/textfile_collector
+      mountPath: /var/lib/node_exporter/textfile_collector
+      readOnly: true
+      mountPropagation: HostToContainer
   extraArgs:
     - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
     - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$
+    - --collector.textfile.directory=/var/lib/node_exporter/textfile_collector
   service:
     portName: http-metrics
   prometheus:
