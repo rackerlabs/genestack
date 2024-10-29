@@ -1403,7 +1403,7 @@ conf:
     oslo_middleware:
       enable_proxy_headers_parsing: true
     glance:
-      num_retries: 3
+      num_retries: 8
     ironic:
       api_endpoint: null
       auth_url: null
