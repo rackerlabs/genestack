@@ -1,0 +1,1006 @@
+{
+  "__inputs": [],
+  "__elements": {},
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "camptocamp-prometheus-alertmanager-datasource",
+      "name": "Prometheus AlertManager Datasource",
+      "version": "2.0.1"
+    },
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "10.3.3"
+    },
+    {
+      "type": "panel",
+      "id": "stat",
+      "name": "Stat",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "table",
+      "name": "Table",
+      "version": ""
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "datasource",
+          "uid": "grafana"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "showIn": 0,
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Dashboard to visualize only Open(LIVE) Alerts of AlertManager instead of looking in Slack, Teams, and Emails.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "gnetId": 12947,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "uid": "$alertmanager"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "displayName": "",
+          "mappings": [
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "color": "red",
+                  "text": "0"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none",
+          "unitScale": true
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "id": 8,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.3.3",
+      "targets": [
+        {
+          "annotations": false,
+          "datasource": {
+            "uid": "$alertmanager"
+          },
+          "expr": "region=~\"$region\", severity=~\"$severity\",alertname=~\".*\", team=~\"$team\",env=~\"$env\"",
+          "labelSelector": "*",
+          "legendFormat": "",
+          "refId": "A",
+          "target": "Query",
+          "type": "single"
+        }
+      ],
+      "title": "Total",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "SeverityValue": true,
+              "Time": true,
+              "alertname": true,
+              "alertstatus": true,
+              "alertstatus_code": true,
+              "condition": true,
+              "container": true,
+              "controller": true,
+              "daemonset": true,
+              "deployment": true,
+              "description": true,
+              "device": true,
+              "effect": true,
+              "endpoint": true,
+              "horizontalpodautoscaler": true,
+              "instance": true,
+              "integration": true,
+              "job": true,
+              "job_name": true,
+              "key": true,
+              "master": true,
+              "metrics_path": true,
+              "namespace": true,
+              "node": true,
+              "persistentvolumeclaim": true,
+              "pod": true,
+              "prometheus": true,
+              "reason": true,
+              "runbook_url": true,
+              "service": true,
+              "status": true,
+              "summary": true,
+              "target": true,
+              "uid": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "reduce",
+          "options": {
+            "reducers": [
+              "count"
+            ]
+          }
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "camptocamp-prometheus-alertmanager-datasource",
+        "uid": "$alertmanager"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "displayName": "",
+          "mappings": [
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "0"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none",
+          "unitScale": true
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "id": 20,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.3.3",
+      "targets": [
+        {
+          "annotations": false,
+          "datasource": {
+            "uid": "$alertmanager"
+          },
+          "expr": "region=~\"$region\", severity=~\"critical\",alertname=~\".*\", team=~\"$team\",env=~\"$env\"",
+          "filters": "",
+          "labelSelector": "*",
+          "legendFormat": "",
+          "receiver": "",
+          "refId": "A",
+          "target": "Query",
+          "type": "single"
+        }
+      ],
+      "title": "Total Critical",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "SeverityValue": false,
+              "Time": true,
+              "alertname": true,
+              "alertstatus": true,
+              "alertstatus_code": true,
+              "container": true,
+              "description": true,
+              "endpoint": true,
+              "instance": true,
+              "job": true,
+              "job_name": true,
+              "namespace": true,
+              "pod": true,
+              "prometheus": true,
+              "runbook_url": true,
+              "service": true,
+              "severity": false,
+              "summary": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "SeverityValue": "",
+              "Time": ""
+            }
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "SeverityValue": {
+                "aggregations": [
+                  "count"
+                ],
+                "operation": "aggregate"
+              },
+              "severity": {
+                "aggregations": [
+                  "uniqueValues"
+                ],
+                "operation": "groupby"
+              }
+            }
+          }
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "config": {
+                  "id": "notEqual",
+                  "options": {
+                    "value": "critical"
+                  }
+                },
+                "fieldName": "severity"
+              }
+            ],
+            "match": "any",
+            "type": "exclude"
+          }
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "uid": "$alertmanager"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "displayName": "",
+          "mappings": [
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "color": "orange",
+                  "text": "0"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "orange",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none",
+          "unitScale": true
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "id": 21,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.3.3",
+      "targets": [
+        {
+          "annotations": false,
+          "datasource": {
+            "uid": "$alertmanager"
+          },
+          "expr": "region=~\"$region\", severity=~\"warning\",alertname=~\".*\", team=~\"$team\",env=~\"$env\"",
+          "labelSelector": "*",
+          "legendFormat": "",
+          "refId": "A",
+          "target": "Query",
+          "type": "single"
+        }
+      ],
+      "title": "Total Warning",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "alertname": true,
+              "alertstatus": true,
+              "alertstatus_code": true,
+              "container": true,
+              "description": true,
+              "endpoint": true,
+              "instance": true,
+              "job": true,
+              "job_name": true,
+              "namespace": true,
+              "pod": true,
+              "prometheus": true,
+              "runbook_url": true,
+              "service": true,
+              "summary": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "SeverityValue": {
+                "aggregations": [
+                  "count"
+                ],
+                "operation": "aggregate"
+              },
+              "severity": {
+                "aggregations": [],
+                "operation": "groupby"
+              }
+            }
+          }
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "config": {
+                  "id": "notEqual",
+                  "options": {
+                    "value": "warning"
+                  }
+                },
+                "fieldName": "severity"
+              }
+            ],
+            "match": "any",
+            "type": "exclude"
+          }
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "uid": "$alertmanager"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "displayName": "",
+          "mappings": [
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "color": "red",
+                  "text": "0"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none",
+          "unitScale": true
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "id": 18,
+      "links": [],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.3.3",
+      "targets": [
+        {
+          "annotations": false,
+          "datasource": {
+            "uid": "$alertmanager"
+          },
+          "expr": "region=~\"$region\", severity=~\"$severity\",alertname=~\"InstanceDown\", team=~\"$team\",env=~\"$env\"",
+          "labelSelector": "*",
+          "legendFormat": "",
+          "refId": "A",
+          "target": "Query",
+          "type": "single"
+        }
+      ],
+      "title": "Instance/Service Down",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "SeverityValue": false,
+              "Time": true,
+              "alertname": false,
+              "alertstatus": true,
+              "alertstatus_code": true,
+              "container": true,
+              "description": true,
+              "endpoint": true,
+              "instance": true,
+              "job": true,
+              "job_name": true,
+              "namespace": true,
+              "pod": true,
+              "prometheus": true,
+              "runbook_url": true,
+              "service": true,
+              "severity": true,
+              "summary": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "config": {
+                  "id": "regex",
+                  "options": {
+                    "value": ".*Down"
+                  }
+                },
+                "fieldName": "alertname"
+              }
+            ],
+            "match": "any",
+            "type": "include"
+          }
+        },
+        {
+          "id": "reduce",
+          "options": {
+            "includeTimeField": false,
+            "mode": "reduceFields",
+            "reducers": [
+              "count"
+            ]
+          }
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "camptocamp-prometheus-alertmanager-datasource",
+        "uid": "$alertmanager"
+      },
+      "description": "MAKE SURE TO SCROLL TO BOTTOM AND CHECK FOR MORE ALERTS",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "right",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "decimals": 2,
+          "displayName": "",
+          "mappings": [
+            {
+              "options": {
+                "critical": {
+                  "color": "red",
+                  "index": 1
+                },
+                "info": {
+                  "color": "super-light-yellow",
+                  "index": 2
+                },
+                "none": {
+                  "color": "super-light-blue",
+                  "index": 3
+                },
+                "warning": {
+                  "color": "orange",
+                  "index": 0
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short",
+          "unitScale": true
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Time"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "TIME"
+              },
+              {
+                "id": "unit",
+                "value": "time: YYYY-MM-DD HH:mm:ss"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "alertname"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "ALERT"
+              },
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.align"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "data"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "DESCRIPTION"
+              },
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": true,
+                    "title": "Click to view detail metrics",
+                    "url": "/d/LINK_TO_YOUR_NODE_SPECIFIC_DASHBOARD_GOES_HERE?var-host=${__cell_2}"
+                  }
+                ]
+              },
+              {
+                "id": "custom.align"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "severity"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "SEVERITY"
+              },
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "custom.align"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "rgba(50, 172, 45, 0.97)",
+                      "value": null
+                    },
+                    {
+                      "color": "rgba(237, 129, 40, 0.89)",
+                      "value": 2
+                    },
+                    {
+                      "color": "rgba(245, 54, 54, 0.9)",
+                      "value": 4
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "region"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "REGION"
+              },
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.align"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "env"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "ENV"
+              },
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.align"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "host"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "HOST"
+              },
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.align"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 98,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "id": 14,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "10.3.3",
+      "targets": [
+        {
+          "annotations": false,
+          "datasource": {
+            "uid": "$alertmanager"
+          },
+          "expr": "region=~\"$region\", severity=~\"$severity\",alertname=~\"$alertname\", team=~\"$team\",env=~\"$env\"",
+          "labelSelector": "*",
+          "legendFormat": "{{ msg }}",
+          "refId": "A",
+          "target": "Query",
+          "type": "table"
+        }
+      ],
+      "title": "OPEN ALERTS",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "SeverityValue": true,
+              "condition": true,
+              "endpoint": true,
+              "prometheus": true,
+              "service": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "Time": 0,
+              "alertname": 1,
+              "availability_zone": 3,
+              "container_name": 18,
+              "data": 17,
+              "device": 5,
+              "env": 4,
+              "fstype": 6,
+              "host": 2,
+              "image_name": 19,
+              "instance": 7,
+              "instance_type": 8,
+              "ipaddress": 9,
+              "job": 10,
+              "mountpoint": 11,
+              "name": 23,
+              "platform_version": 12,
+              "prometheus": 13,
+              "region": 14,
+              "service_name": 20,
+              "severity": 15,
+              "slack_channel": 21,
+              "state": 24,
+              "tag_name": 22,
+              "team": 16,
+              "type": 25
+            },
+            "renameByName": {
+              "SeverityValue": "",
+              "severity": ""
+            }
+          }
+        }
+      ],
+      "type": "table"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "alertmanager",
+    "open-alerts",
+    "shubhamc183"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "camptocamp-prometheus-alertmanager-datasource",
+          "value": "ad8d90c7-08d5-45b7-8075-6ee8ed5e7c9e"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Alertmanager",
+        "multi": false,
+        "name": "alertmanager",
+        "options": [],
+        "query": "camptocamp-prometheus-alertmanager-datasource",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ],
+    "time_options": [
+      "5m",
+      "15m",
+      "1h",
+      "6h",
+      "12h",
+      "24h",
+      "2d",
+      "7d",
+      "30d"
+    ]
+  },
+  "timezone": "browser",
+  "title": "OPEN ALERTS OF ALERTMANAGER",
+  "uid": "WojOgXTmk",
+  "version": 14,
+  "weekStart": ""
+}
