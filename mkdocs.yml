@@ -207,6 +207,7 @@ nav:
               - Getting Started: monitoring-getting-started.md
               - Grafana: grafana.md
               - Kube-OVN Monitoring: prometheus-kube-ovn.md
+              - NGINX Gateway Fabric Monitoring: prometheus-nginx-gateway.md
               - RabbitMQ Exporter: prometheus-rabbitmq-exporter.md
               - Memcached Exporter: prometheus-memcached-exporter.md
               - MariaDB Exporter: prometheus-mysql-exporter.md
