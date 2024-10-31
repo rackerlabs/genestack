@@ -1,4 +1,4 @@
-![Genestack Logo](assets/images/genestack-cropped-small.png){ align=left : style="filter:drop-shadow(#3c3c3c 0.5rem 0.5rem 10px);" }
+<img src="assets/images/ospc_flex_logo_red.svg" alt="Flex Logo" align="left" style="filter: drop-shadow(#3c3c3c 0.5rem 0.5rem 10px); width: 125px;">
 
 # Welcome to Cloud On Boarding
 
