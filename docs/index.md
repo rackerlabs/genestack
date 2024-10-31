@@ -9,7 +9,7 @@ hide:
 <div class="grid cards" markdown>
 -   :material-heart:{ .lg } __A Welcoming Community__
 
-    ![Rackspace R](assets/images/r-Icon-RGB-Red.svg){ align=left : style="filter:drop-shadow(#3c3c3c 0.5rem 0.5rem 10px);max-width:125px" }
+    <img src="assets/images/ospc_flex_logo_red.svg" alt="Flex Logo" align="left" style="filter: drop-shadow(#3c3c3c 0.5rem 0.5rem 10px); width: 125px;">
     Rackspace would like to once again welcome you to the cloud. If you're developing applications,
     wanting to contribute to OpenStack, or just looking for a better platform; you're in the right place.
 
