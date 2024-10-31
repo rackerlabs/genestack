@@ -608,7 +608,7 @@ conf:
     tests:
       NovaAggregates.create_and_get_aggregate_details:
         - args:
-            availability_zone: nova
+            availability_zone: az1
           runner:
             concurrency: 1
             times: 1
@@ -618,7 +618,7 @@ conf:
               max: 0
       NovaAggregates.create_and_update_aggregate:
         - args:
-            availability_zone: nova
+            availability_zone: az1
           runner:
             concurrency: 1
             times: 1
@@ -1358,6 +1358,8 @@ conf:
     - cell0_database
   nova:
     DEFAULT:
+      default_availability_zone: az1
+      default_schedule_zone: null
       # NOTE(cloudnull): the vif_plugging_* options are an implemntation detail of the nova container when running with OVN
       vif_plugging_is_fatal: true
       vif_plugging_timeout: 300
@@ -1378,6 +1380,9 @@ conf:
       instance_usage_audit: True
       instance_usage_audit_period: hour
       resume_guests_state_on_host_boot: True
+      instance_build_timeout: 600
+      block_device_allocate_retries: 120
+      block_device_allocate_retries_interval: 5
     compute:
       max_disk_devices_to_attach: 8
     vnc:
@@ -1400,7 +1405,7 @@ conf:
     oslo_middleware:
       enable_proxy_headers_parsing: true
     glance:
-      num_retries: 3
+      num_retries: 8
     ironic:
       api_endpoint: null
       auth_url: null
@@ -1410,6 +1415,7 @@ conf:
       auth_type: password
       auth_version: v3
     cinder:
+      cross_az_attach: true
       catalog_info: volumev3::internalURL
     key_manager:
       backend: barbican

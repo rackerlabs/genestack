@@ -137,6 +137,7 @@ nav:
       - Regions in OpenStack: openstack-cloud-design-regions.md
       - Availability Zones in OpenStack: openstack-cloud-design-az.md
       - Host Aggregates in OpenStack: openstack-cloud-design-ha.md
+      - Infrastructre Design: infrastructure-design.md
   - Deployment Guide:
       - What is Genestack?: deployment-guide-welcome.md
       - Getting Started:
@@ -207,6 +208,7 @@ nav:
               - Getting Started: monitoring-getting-started.md
               - Grafana: grafana.md
               - Kube-OVN Monitoring: prometheus-kube-ovn.md
+              - NGINX Gateway Fabric Monitoring: prometheus-nginx-gateway.md
               - RabbitMQ Exporter: prometheus-rabbitmq-exporter.md
               - Memcached Exporter: prometheus-memcached-exporter.md
               - MariaDB Exporter: prometheus-mysql-exporter.md

@@ -17,7 +17,7 @@ Post deployment we need to setup neutron to work with our integrated OVN environ
 | **ovn.openstack.org/bridges** | str | `br-ex` | Comma separated list of bridges that will be created and plugged into OVS for a given node. |
 | **ovn.openstack.org/ports** | str | `br-ex:bond1` | Comma separated list of bridge mappings. Maps values from the **bridges** annotation to physical devices on a given node.  |
 | **ovn.openstack.org/mappings** | str | `physnet1:br-ex` | Comma separated list of neutron mappings. Maps a value that will be used in neutron to a value found in the **ports** annotation. |
-| **ovn.openstack.org/availability_zones** | str | `nova` | Colon separated list of Availability Zones a given node will serve. |
+| **ovn.openstack.org/availability_zones** | str | `az1` | Colon separated list of Availability Zones a given node will serve. |
 | **ovn.openstack.org/gateway** | str| `enabled` | If set to `enabled`, the node will be marked as a gateway. |
 
 ### Gather the network enabled nodes
@@ -92,12 +92,14 @@ Set the OVN availability zones which inturn creates neutron availability zones. 
 kubectl annotate \
         nodes \
         ${ALL_NODES} \
-        ovn.openstack.org/availability_zones='nova'
+        ovn.openstack.org/availability_zones='az1'
 ```
 
 !!! note
 
-    Any availability zone defined here should also be defined within your **neutron.conf**. The "nova" availability zone is an assumed defined, however, because we're running in a mixed OVN environment, we should define where we're allowed to execute OpenStack workloads.
+    Any availability zone defined here should also be defined within your **neutron.conf**. The "az1" availability zone is assumed by Genestack; however, because we're running in a mixed OVN environment, we define where we're allowed to execute OpenStack workloads ensuring we're not running workloads in an environment that doesn't have the network resources to support it.
+
+    Additionally, an availability zone can be used on different nodes and used to define where gateways reside. If you have multiple availability zones, you will need to define where the gateways will reside within your environment.
 
 ### Set `ovn.openstack.org/gateway`
 

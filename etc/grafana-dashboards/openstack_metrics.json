@@ -1172,6 +1172,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
+      "description": "Overcommit metric based off regional deployment values. This must be updated to match the allocation ratio per the deployment configs",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1219,11 +1220,11 @@
               },
               {
                 "color": "red",
-                "value": 80
+                "value": 10240
               }
             ]
           },
-          "unit": "short",
+          "unit": "none",
           "unitScale": true
         },
         "overrides": []
@@ -1275,9 +1276,22 @@
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "available vcpu cores",
+          "legendFormat": "pre-overcommit vcpu core availability",
           "range": true,
           "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "sum(openstack_placement_resource_total{resourcetype=\"VCPU\"}) * 6",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "overcommit vcpu availability",
+          "range": true,
+          "refId": "C"
         }
       ],
       "title": "Overall CPU cores usage",
@@ -2587,6 +2601,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
+      "description": "This is the total vCPU limits allocated to projects/tenants",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2607,8 +2622,8 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 3,
-        "w": 2,
+        "h": 2,
+        "w": 4,
         "x": 0,
         "y": 62
       },
@@ -2647,75 +2662,7 @@
           "refId": "A"
         }
       ],
-      "title": "vCPUs Available",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "percentage",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unitScale": true
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 2,
-        "x": 2,
-        "y": 62
-      },
-      "id": 58,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "10.3.3",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "sum(openstack_nova_limits_vcpus_used)",
-          "format": "table",
-          "instant": false,
-          "interval": "",
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "vCPUs Used",
+      "title": "vCPUs Total Limits By Project",
       "type": "stat"
     },
     {
@@ -2748,7 +2695,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 3,
+        "h": 4,
         "w": 2,
         "x": 4,
         "y": 62
@@ -2824,7 +2771,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 3,
+        "h": 4,
         "w": 2,
         "x": 6,
         "y": 62
@@ -2857,7 +2804,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "openstack_nova_server_status{status=\"ACTIVE\"}",
+          "expr": "count(openstack_nova_server_status{status=\"ACTIVE\"})",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -2868,82 +2815,6 @@
         }
       ],
       "title": "VMs ACTIVE",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "noValue": "0",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "dark-red",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 1000
-              }
-            ]
-          },
-          "unitScale": true
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 2,
-        "x": 8,
-        "y": 62
-      },
-      "id": 90,
-      "links": [],
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "text": {},
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "10.3.3",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "openstack_nova_server_status{status='ERROR'}",
-          "format": "table",
-          "instant": true,
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "__auto",
-          "range": false,
-          "refId": "A"
-        }
-      ],
-      "title": "VMs ERROR",
       "type": "stat"
     },
     {
@@ -2976,9 +2847,9 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 3,
+        "h": 4,
         "w": 2,
-        "x": 10,
+        "x": 8,
         "y": 62
       },
       "id": 91,
@@ -3009,7 +2880,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "openstack_nova_server_status{status=\"BUILD\"}",
+          "expr": "count(openstack_nova_server_status{status=\"BUILD\"})",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -3020,6 +2891,81 @@
         }
       ],
       "title": "VMs BUILD",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-red",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1000
+              }
+            ]
+          },
+          "unitScale": true
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 2,
+        "x": 10,
+        "y": 62
+      },
+      "hideTimeOverride": false,
+      "id": 90,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [],
+          "fields": "/^Value$/",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {},
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.3.3",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "count(openstack_nova_server_status{status='ERROR'})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "__auto",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "VMs ERROR",
       "type": "stat"
     },
     {
@@ -3052,7 +2998,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 3,
+        "h": 4,
         "w": 2,
         "x": 12,
         "y": 62
@@ -3085,7 +3031,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "openstack_nova_server_status{status=\"SUSPENDED\"}",
+          "expr": "count(openstack_nova_server_status{status=\"SUSPENDED\"})",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -3128,7 +3074,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 3,
+        "h": 4,
         "w": 2,
         "x": 14,
         "y": 62
@@ -3161,7 +3107,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "openstack_nova_server_status{status=\"PAUSED\"}",
+          "expr": "count(openstack_nova_server_status{status=\"PAUSED\"})",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -3204,12 +3150,12 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 3,
+        "h": 4,
         "w": 2,
         "x": 16,
         "y": 62
       },
-      "id": 95,
+      "id": 96,
       "links": [],
       "options": {
         "colorMode": "value",
@@ -3237,7 +3183,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "openstack_nova_server_status{status=\"REBOOT\"} + openstack_nova_server_status{status=\"HARD_REBOOT\"}",
+          "expr": "count(openstack_nova_server_status{status=\"RESIZE\"})",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -3247,7 +3193,7 @@
           "refId": "A"
         }
       ],
-      "title": "VMs REBOOT",
+      "title": "VMs RESIZE",
       "type": "stat"
     },
     {
@@ -3280,9 +3226,85 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 3,
+        "h": 4,
         "w": 2,
         "x": 18,
+        "y": 62
+      },
+      "id": 97,
+      "links": [],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {},
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.3.3",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "count(openstack_nova_server_status{status=\"RESCUE\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "__auto",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "VMs RESCUE",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1000
+              }
+            ]
+          },
+          "unitScale": true
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 2,
+        "x": 20,
         "y": 62
       },
       "id": 98,
@@ -3356,12 +3378,12 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 3,
+        "h": 4,
         "w": 2,
-        "x": 20,
+        "x": 22,
         "y": 62
       },
-      "id": 96,
+      "id": 95,
       "links": [],
       "options": {
         "colorMode": "value",
@@ -3389,7 +3411,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "openstack_nova_server_status{status=\"RESIZE\"}",
+          "expr": "count(openstack_nova_server_status{status=\"REBOOT\"}) + count(openstack_nova_server_status{status=\"HARD_REBOOT\"})",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -3399,7 +3421,7 @@
           "refId": "A"
         }
       ],
-      "title": "VMs RESIZE",
+      "title": "VMs REBOOT",
       "type": "stat"
     },
     {
@@ -3407,23 +3429,19 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
+      "description": "This is how many vCPU's are used by individual projects/tenants",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
           "mappings": [],
-          "noValue": "0",
           "thresholds": {
-            "mode": "absolute",
+            "mode": "percentage",
             "steps": [
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 1000
               }
             ]
           },
@@ -3432,16 +3450,15 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 3,
-        "w": 2,
-        "x": 22,
-        "y": 62
+        "h": 2,
+        "w": 4,
+        "x": 0,
+        "y": 64
       },
-      "id": 97,
-      "links": [],
+      "id": 58,
       "options": {
         "colorMode": "value",
-        "graphMode": "none",
+        "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
@@ -3452,7 +3469,6 @@
           "values": false
         },
         "showPercentChange": false,
-        "text": {},
         "textMode": "auto",
         "wideLayout": true
       },
@@ -3465,17 +3481,16 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "openstack_nova_server_status{status=\"RESCUE\"}",
+          "expr": "sum(openstack_nova_limits_vcpus_used)",
           "format": "table",
-          "instant": true,
+          "instant": false,
           "interval": "",
-          "intervalFactor": 1,
           "legendFormat": "__auto",
-          "range": false,
+          "range": true,
           "refId": "A"
         }
       ],
-      "title": "VMs RESCUE",
+      "title": "vCPUs Limits Used By Project",
       "type": "stat"
     },
     {
@@ -3483,6 +3498,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
+      "description": "This takes in to account the overcommit allocation ratio",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -3543,7 +3559,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 65
+        "y": 66
       },
       "id": 40,
       "links": [],
@@ -3570,7 +3586,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "openstack_placement_resource_usage{resourcetype=\"VCPU\"}",
+          "expr": "(((openstack_placement_resource_usage{resourcetype=\"VCPU\"} * openstack_placement_resource_total{resourcetype=\"VCPU\"}) / 100) / (openstack_placement_resource_total{resourcetype=\"VCPU\"} * 6) * 100)",
           "format": "time_series",
           "hide": false,
           "interval": "",
@@ -3580,7 +3596,7 @@
           "refId": "A"
         }
       ],
-      "title": "CPU core usage",
+      "title": "vCPU core overcommit usage percentage",
       "type": "timeseries"
     },
     {
@@ -3650,7 +3666,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 65
+        "y": 66
       },
       "id": 2,
       "links": [],
@@ -3929,7 +3945,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 74
+        "y": 75
       },
       "id": 55,
       "options": {
@@ -4018,6 +4034,15 @@
                   }
                 },
                 "fieldName": "status"
+              },
+              {
+                "config": {
+                  "id": "equal",
+                  "options": {
+                    "value": "DELETED"
+                  }
+                },
+                "fieldName": "status"
               }
             ],
             "match": "any",
@@ -4092,7 +4117,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 74
+        "y": 75
       },
       "id": 6,
       "links": [],
@@ -4139,7 +4164,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 83
+        "y": 84
       },
       "id": 42,
       "panels": [],
@@ -4222,7 +4247,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 84
+        "y": 85
       },
       "id": 44,
       "options": {
@@ -4322,7 +4347,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 84
+        "y": 85
       },
       "id": 45,
       "options": {
@@ -4372,8 +4397,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -4385,7 +4409,7 @@
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 92
+        "y": 93
       },
       "id": 67,
       "options": {
@@ -4440,8 +4464,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -4454,7 +4477,7 @@
         "h": 4,
         "w": 4,
         "x": 4,
-        "y": 92
+        "y": 93
       },
       "id": 69,
       "options": {
@@ -4509,8 +4532,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -4523,7 +4545,7 @@
         "h": 4,
         "w": 4,
         "x": 8,
-        "y": 92
+        "y": 93
       },
       "id": 70,
       "options": {
@@ -4568,7 +4590,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 96
+        "y": 97
       },
       "id": 71,
       "panels": [],
@@ -4590,8 +4612,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -4607,7 +4628,7 @@
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 97
+        "y": 98
       },
       "id": 60,
       "options": {
@@ -4661,8 +4682,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -4678,7 +4698,7 @@
         "h": 4,
         "w": 4,
         "x": 4,
-        "y": 97
+        "y": 98
       },
       "id": 73,
       "options": {
@@ -4732,8 +4752,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -4749,7 +4768,7 @@
         "h": 4,
         "w": 4,
         "x": 8,
-        "y": 97
+        "y": 98
       },
       "id": 74,
       "options": {
@@ -4803,8 +4822,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -4820,7 +4838,7 @@
         "h": 4,
         "w": 4,
         "x": 12,
-        "y": 97
+        "y": 98
       },
       "id": 75,
       "options": {
@@ -4874,8 +4892,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -4891,7 +4908,7 @@
         "h": 4,
         "w": 4,
         "x": 16,
-        "y": 97
+        "y": 98
       },
       "id": 76,
       "options": {
@@ -4936,7 +4953,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 101
+        "y": 102
       },
       "id": 59,
       "panels": [],
@@ -4958,8 +4975,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -4975,7 +4991,7 @@
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 102
+        "y": 103
       },
       "id": 72,
       "options": {
@@ -5030,8 +5046,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -5047,7 +5062,7 @@
         "h": 4,
         "w": 4,
         "x": 4,
-        "y": 102
+        "y": 103
       },
       "id": 61,
       "options": {
@@ -5102,8 +5117,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -5119,7 +5133,7 @@
         "h": 4,
         "w": 4,
         "x": 8,
-        "y": 102
+        "y": 103
       },
       "id": 62,
       "options": {
@@ -5174,8 +5188,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -5191,7 +5204,7 @@
         "h": 4,
         "w": 4,
         "x": 12,
-        "y": 102
+        "y": 103
       },
       "id": 65,
       "options": {
@@ -5245,8 +5258,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -5262,7 +5274,7 @@
         "h": 4,
         "w": 4,
         "x": 16,
-        "y": 102
+        "y": 103
       },
       "id": 64,
       "options": {
@@ -5317,8 +5329,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -5334,7 +5345,7 @@
         "h": 4,
         "w": 4,
         "x": 20,
-        "y": 102
+        "y": 103
       },
       "id": 63,
       "options": {
@@ -5435,6 +5446,6 @@
   "timezone": "",
   "title": "OpenStack Exporter",
   "uid": "YZCsB1Qmy",
-  "version": 31,
+  "version": 52,
   "weekStart": ""
 }

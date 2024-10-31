@@ -758,6 +758,10 @@ conf:
         app_name: cinder-volume
   cinder:
     DEFAULT:
+      storage_availability_zone: az1
+      default_availability_zone: null
+      allow_availability_zone_fallback: true
+      scheduler_default_filters: AvailabilityZoneFilter,CapacityFilter,CapabilitiesFilter
       volume_usage_audit_period: hour
       resource_query_filters_file: /etc/cinder/resource_filters.json
       log_config_append: /etc/cinder/logging.conf
