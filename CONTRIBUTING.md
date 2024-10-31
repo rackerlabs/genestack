@@ -35,7 +35,7 @@ you see a problem, feel free to fix it.
    build.
 2. Make sure you haven't added any extraneous files to the repository (secrets, .DS_Store, etc.) and
    double-check .gitignore if you have a new type of change.
-4. Update the README.md / Wiki with details of changes to the interface, this includes new environment
+3. Update the README.md / Wiki with details of changes to the interface, this includes new environment
    variables, exposed ports, useful file locations and container parameters.
-5. You may merge the Pull Request in once you have the sign-off of two other developers, or if you
-   do not have permission to do that, you may request the second reviewer to merge it for you.
+4. You may merge the Pull Request in once you have the sign-off of one other developer, or if you
+   do not have permission to do that, you may request the reviewer to merge it for you.
