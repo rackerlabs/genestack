@@ -1,8 +1,8 @@
-## Genestack Infrastructure Design Notes 
+## Genestack Infrastructure Design Notes
 
-### Ironic for bare-metal provisioning  
+### Ironic for bare-metal provisioning
 
-Our internal deployment team uses OpenStack bare metal provisioning, a.k.a **Ironic**, which provides bare metal machines instead of virtual machines, forked from the Nova baremetal driver. It is best thought of as a bare metal hypervisor API and a set of plugins which interact with the bare metal hypervisors. By default, it will use PXE and IPMI in order to provision and turn on/off machines, but Ironic also supports vendor-specific plugins which may implement additional functionality. 
+Our internal deployment team uses OpenStack bare metal provisioning, a.k.a **Ironic**, which provides bare metal machines instead of virtual machines, forked from the Nova baremetal driver. It is best thought of as a bare metal hypervisor API and a set of plugins which interact with the bare metal hypervisors. By default, it will use PXE and IPMI in order to provision and turn on/off machines, but Ironic also supports vendor-specific plugins which may implement additional functionality.
 
 After switch and firewall configuration, deployment nodes are created with in the environment which host the required Ironic services:
 
@@ -18,7 +18,7 @@ After switch and firewall configuration, deployment nodes are created with in th
 
 #### Benefits of Ironic
 
-​	With a standard API and lightweight footprint, Ironic can serve as a driver for a variety of bare metal infrastructure. Ironic allows users to manage bare metal infrastructure like they would virtual  machines and provides ideal infrastructure to run container  orchestration frameworks like Kubernetes to optimize performance.  
+​	With a standard API and lightweight footprint, Ironic can serve as a driver for a variety of bare metal infrastructure. Ironic allows users to manage bare metal infrastructure like they would virtual  machines and provides ideal infrastructure to run container  orchestration frameworks like Kubernetes to optimize performance.
 
 
 
@@ -48,23 +48,23 @@ After switch and firewall configuration, deployment nodes are created with in th
 - **Reduces spending.** A spine-leaf architecture increases  the number of connections each switch can handle, so data centers  require fewer devices to deploy.
 
 
-#### Network Design Details 
+#### Network Design Details
 
 ​	Rackspace utilizes Spline-leaf network architecture where server to server traffic (east-west) has higher importance than external connectivity of the deployed application.  This is ideal for single or multi tenant deployments that process large workloads of internal data kept in **block** or **object** storage.
 
 ### Commodity Storage Solutions
 
-​	Commodity storage hardware, sometimes known as off-the-shelf storage, is relatively inexpensive storage systems utilizing standard hard rives that are widely available  and basically interchangeable with other drives of its type.  These drives are housed in simple JBOD (just a bunch of disks) chassis or in smarter storage solutions such as Dell EMC or NetApp enclosures.  
+​	Commodity storage hardware, sometimes known as off-the-shelf storage, is relatively inexpensive storage systems utilizing standard hard rives that are widely available  and basically interchangeable with other drives of its type.  These drives are housed in simple JBOD (just a bunch of disks) chassis or in smarter storage solutions such as Dell EMC or NetApp enclosures.
 
 #### Cost effectiveness
 
-​	A major advantage of using commodity storage is for data resilience and reduced storage costs.  Because of their ability to spread data across spans of inexpensive disks, data loss risk is greatly reduced when a drive inevitably fails.  Data is automatically rebalanced to healthy drives before a degraded drive is removed from the cluster to be replaced as time permits by support staff.  
+​	A major advantage of using commodity storage is for data resilience and reduced storage costs.  Because of their ability to spread data across spans of inexpensive disks, data loss risk is greatly reduced when a drive inevitably fails.  Data is automatically rebalanced to healthy drives before a degraded drive is removed from the cluster to be replaced as time permits by support staff.
 
 #### Genestack Storage Integrations
 
-​	Genestack easily integrates commodity storage into its cloud solutions by leveraging it for Ceph (block/object storage) and Swift (object storage) storage targets.  
+​	Genestack easily integrates commodity storage into its cloud solutions by leveraging it for Ceph (block/object storage) and Swift (object storage) storage targets.
 
-​	**Ceph** is an open source software-defined storage solution designed to address the  block, file and object storage needs of modern enterprises. Its  highly scalable architecture sees it being adopted as the new norm for  high-growth block storage, object stores, and data lakes. 
+​	**Ceph** is an open source software-defined storage solution designed to address the  block, file and object storage needs of modern enterprises. Its  highly scalable architecture sees it being adopted as the new norm for  high-growth block storage, object stores, and data lakes.
 
 - **Scalability**: Ceph can scale to support hundreds of petabytes of data and tens of billions of objects.
 - **Self-managed**: Ceph is designed to be self-healing and self-managing, so it can handle failures without interruption.
@@ -77,4 +77,3 @@ After switch and firewall configuration, deployment nodes are created with in th
 - **Cost-effectiveness:**  Swift can use inexpensive **commodity hard drives** and servers instead of more expensive equipment.
 - **Scalability:**  Swift uses a distributed architecture with no central point of control, which allows for greater scalability, redundancy, and permanence.
 - **API-accessible:**  Swift provides an API-accessible storage platform that can be integrated directly into applications.
-
