@@ -1,4 +1,4 @@
-<img src="assets/images/ospc_flex_logo_red.svg" alt="Flex Logo" align="left" style="filter: drop-shadow(#3c3c3c 0.5rem 0.5rem 10px); width: 125px;">
+![Rackspace Cloud Software](assets/images/ospc_flex_logo_red.svg){ align=left : style="max-width:175px" }
 
 # What is Genestack?
 
