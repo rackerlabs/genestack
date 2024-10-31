@@ -14,7 +14,7 @@ After switch and firewall configuration, deployment nodes are created with in th
 
 ### Ironic Diagram
 
-![conceptual_architecture](./assets/images/conceptual_architecture.png)
+![conceptual_architecture](./assets/images/ironic-design.png)
 
 #### Benefits of Ironic
 
@@ -38,7 +38,7 @@ After switch and firewall configuration, deployment nodes are created with in th
 - **Leaf switches.** Servers and storage connect to leaf  switches and consist of access switches that aggregate traffic from  servers. They connect directly to the spine.
 
 ![leaf-spline](assets/images/leaf-spline.png)
-[conceptual_architecture](./assets/images/conceptual_architecture.png)
+
 #### Advantages of Leaf-Spline Architecture
 
 - **Redundancy.** Each leaf switch connects to every spine  switch, which increases the amount of redundancy while also reducing  potential bottlenecks.
@@ -46,8 +46,6 @@ After switch and firewall configuration, deployment nodes are created with in th
 - **Performance.** Protocols such as Shortest Path Bridging  (SPB) and Transparent Interconnection of Lots of Links (TRILL) aid in  avoiding traffic congestion.
 - **Scalability.** Additional spine switches can be added to help avoid oversubscriptionand increase scalability.
 - **Reduces spending.** A spine-leaf architecture increases  the number of connections each switch can handle, so data centers  require fewer devices to deploy.
-
-![image-20241018150739704](./assets/images/spine-leaf.png.png)
 
 
 #### Network Design Details 
