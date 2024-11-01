@@ -1,0 +1,28 @@
+name: Kustomize GitHub Actions for cinder-volume-netapp
+
+on:
+  pull_request:
+    paths:
+      - base-kustomize/cinder/netapp/**
+      - .github/workflows/kustomize-cinder-volume-netapp.yaml
+jobs:
+  kustomize:
+    name: Kustomize
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Kustomize Install
+        working-directory: /usr/local/bin/
+        run: |
+          if [ ! -f /usr/local/bin/kustomize ]; then
+            curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | sudo bash
+          fi
+      - name: Run Kustomize Build
+        run: |
+          kustomize build base-kustomize/cinder/netapp/ > /tmp/rendered.yaml
+      - name: Return Kustomize Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: kustomize-cinder-volume-netapp-artifact
+          path: /tmp/rendered.yaml

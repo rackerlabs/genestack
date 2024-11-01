@@ -1,0 +1,346 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cinder-volume-netapp
+  namespace: openstack
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cinder-openstack-cinder-volume-netapp
+  namespace: openstack
+rules:
+  - apiGroups:
+      - ""
+      - extensions
+      - batch
+      - apps
+    verbs:
+      - get
+      - list
+    resources:
+      - services
+      - endpoints
+      - jobs
+      - pods
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cinder-cinder-volume-netapp
+  namespace: openstack
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cinder-openstack-cinder-volume-netapp
+subjects:
+  - kind: ServiceAccount
+    name: cinder-volume-netapp
+    namespace: openstack
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cinder-volume-netapp
+  labels:
+    release_group: cinder
+    application: cinder
+    component: volume
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      release_group: cinder
+      application: cinder
+      component: volume
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 3
+  template:
+    metadata:
+      labels:
+        release_group: cinder
+        application: cinder
+        component: volume
+    spec:
+      serviceAccountName: cinder-volume-netapp
+      securityContext:
+        runAsUser: 42424
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: release_group
+                      operator: In
+                      values:
+                        - cinder
+                    - key: application
+                      operator: In
+                      values:
+                        - cinder
+                    - key: component
+                      operator: In
+                      values:
+                        - volume
+                topologyKey: kubernetes.io/hostname
+              weight: 10
+      nodeSelector:
+        openstack-control-plane: enabled
+      initContainers:
+        - name: init
+          image: image-kubernetes-entrypoint-init
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsUser: 65534
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: INTERFACE_NAME
+              value: eth0
+            - name: PATH
+              value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/
+            - name: DEPENDENCY_SERVICE
+              value: "openstack:keystone-api,openstack:cinder-api"
+            - name: DEPENDENCY_JOBS
+              value: "cinder-db-sync,cinder-ks-user,cinder-ks-endpoints"
+            - name: DEPENDENCY_DAEMONSET
+              value: ""
+            - name: DEPENDENCY_CONTAINER
+              value: ""
+            - name: DEPENDENCY_POD_JSON
+              value: ""
+            - name: DEPENDENCY_CUSTOM_RESOURCE
+              value: ""
+          command:
+            - kubernetes-entrypoint
+          volumeMounts: []
+        - name: init-cinder-conf
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsUser: 0
+          image: image-heat-conf-init
+          imagePullPolicy: IfNotPresent
+          command:
+            - /tmp/retrieve-internal-tenant.sh
+          volumeMounts:
+            - name: pod-tmp
+              mountPath: /tmp
+            - name: cinder-bin
+              mountPath: /tmp/retrieve-internal-tenant.sh
+              subPath: retrieve-internal-tenant.sh
+              readOnly: true
+            - name: pod-shared
+              mountPath: /tmp/pod-shared
+          env:
+            - name: OS_IDENTITY_API_VERSION
+              value: "3"
+            - name: OS_AUTH_URL
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-admin
+                  key: OS_AUTH_URL
+            - name: OS_REGION_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-admin
+                  key: OS_REGION_NAME
+            - name: OS_INTERFACE
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-admin
+                  key: OS_INTERFACE
+            - name: OS_ENDPOINT_TYPE
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-admin
+                  key: OS_INTERFACE
+            - name: OS_PROJECT_DOMAIN_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-admin
+                  key: OS_PROJECT_DOMAIN_NAME
+            - name: OS_PROJECT_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-admin
+                  key: OS_PROJECT_NAME
+            - name: OS_USER_DOMAIN_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-admin
+                  key: OS_USER_DOMAIN_NAME
+            - name: OS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-admin
+                  key: OS_USERNAME
+            - name: OS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-admin
+                  key: OS_PASSWORD
+            - name: OS_DEFAULT_DOMAIN
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-admin
+                  key: OS_DEFAULT_DOMAIN
+            - name: INTERNAL_PROJECT_NAME
+              value: "internal_cinder"
+            - name: INTERNAL_USER_NAME
+              value: "internal_cinder"
+            - name: SERVICE_OS_REGION_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-user
+                  key: OS_REGION_NAME
+            - name: SERVICE_OS_PROJECT_DOMAIN_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-user
+                  key: OS_PROJECT_DOMAIN_NAME
+            - name: SERVICE_OS_PROJECT_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-user
+                  key: OS_PROJECT_NAME
+            - name: SERVICE_OS_USER_DOMAIN_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-user
+                  key: OS_USER_DOMAIN_NAME
+            - name: SERVICE_OS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-user
+                  key: OS_USERNAME
+            - name: SERVICE_OS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-keystone-user
+                  key: OS_PASSWORD
+        - name: cinder-volume-netapp-init
+          image: image-cinder-volume-netapp-init
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            readOnlyRootFilesystem: true
+          command:
+            - /var/lib/openstack/bin/python3
+            - /tmp/generate-backends.py
+          env:
+            - name: NETAPP_BACKENDS
+              valueFrom:
+                secretKeyRef:
+                  name: cinder-netapp
+                  key: BACKENDS
+          terminationMessagePath: /var/log/termination-log
+          resources:
+            limits:
+              memory: "1Gi"
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+          volumeMounts:
+            - name: cinder-netapp-data
+              mountPath: /tmp/generate-backends.py
+              subPath: generate-backends.py
+              readOnly: true
+            - name: pod-shared
+              mountPath: /tmp/pod-shared
+      containers:
+        - name: cinder-volume-netapp
+          image: image-cinder-volume-netapp
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            capabilities:
+              add:
+                - SYS_ADMIN
+            readOnlyRootFilesystem: true
+          command:
+            - /tmp/cinder-volume.sh
+          env: []
+          terminationMessagePath: /var/log/termination-log
+          resources:
+            limits:
+              memory: "1Gi"
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+          volumeMounts:
+            - name: pod-tmp
+              mountPath: /tmp
+            - name: cinder-netapp-data
+              mountPath: /tmp/cinder-volume.sh
+              subPath: cinder-volume.sh
+              readOnly: true
+            - name: pod-shared
+              mountPath: /tmp/pod-shared
+            - name: cinder-conversion
+              mountPath: /var/lib/cinder/conversion
+            - name: cinder-etc
+              mountPath: /etc/cinder/cinder.conf
+              subPath: cinder.conf
+              readOnly: true
+            - name: cinder-etc
+              mountPath: /etc/cinder/logging.conf
+              subPath: logging.conf
+              readOnly: true
+            - name: cinder-coordination
+              mountPath: /var/lib/cinder/coordination
+            - name: cinder-netapp-data
+              mountPath: /var/lib/cinder/ssh_known_hosts
+              subPath: ssh_known_hosts
+            - name: cinder-etc
+              mountPath: /etc/sudoers.d/kolla_cinder_sudoers
+              subPath: cinder_sudoers
+              readOnly: true
+            - name: cinder-etc
+              mountPath: /etc/sudoers.d/kolla_cinder_volume_sudoers
+              subPath: cinder_sudoers
+              readOnly: true
+            - name: cinder-etc
+              mountPath: /etc/cinder/rootwrap.conf
+              subPath: rootwrap.conf
+              readOnly: true
+            - name: cinder-etc
+              mountPath: /etc/cinder/rootwrap.d/volume.filters
+              subPath: volume.filters
+              readOnly: true
+      volumes:
+        - name: pod-tmp
+          emptyDir: {}
+        - name: cinder-bin
+          configMap:
+            name: cinder-bin
+            defaultMode: 0555
+        - name: cinder-etc
+          secret:
+            secretName: cinder-etc
+            defaultMode: 0444
+        - name: pod-shared
+          emptyDir: {}
+        - name: cinder-conversion
+          emptyDir: {}
+        - name: cinder-coordination
+          emptyDir: {}
+        - name: cinder-netapp-data
+          configMap:
+            name: "cinder-volume-netapp-config"
+            defaultMode: 0555
