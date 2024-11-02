@@ -1,12 +1,16 @@
 # Label all of the nodes in the environment
 
-The labeling of nodes is automated as part of the `setup-kubernetes.yml` playbook based on ansible groups.
-For understanding the use of k8s labels is defined as following, automation and documented deployment
-steps build ontop of the labels referenced here:
+To use the K8S environment for OpenStack all of the nodes MUST be labeled. The following Labels will be used within your environment.
+Make sure you label things accordingly.
 
 !!! note
 
-    The following example assumes the node names can be used to identify their purpose within our environment. That may not be the case in reality. Adapt the following commands to meet your needs.
+    The labeling of nodes is automated as part of the `setup-kubernetes.yml` playbook based on ansible groups.
+    For understanding the use of k8s labels is defined as following, automation and documented deployment
+    steps build ontop of the labels referenced here:
+
+    The following example assumes the node names can be used to identify their purpose within our environment.
+    That may not be the case in reality. Adapt the following commands to meet your needs.
 
 ## Genestack Labels
 
