@@ -93,22 +93,40 @@ source /opt/genestack/scripts/genestack.rc
 ansible-playbook host-setup.yml
 ```
 
-The `private-key` option can be used to instruct ansible to use a custom SSH key for the SSH connection
-
-``` shell
-    --private-key ${HOME}/.ssh/openstack-keypair.key
-```
+!!! note
+    The RC file sets a number of environment variables that help ansible to run in a more easy to understand way.
 
 ### Run the cluster deployment
 
-This is used to deploy kubespray against infra on an OpenStack cloud. If you're deploying on baremetal you will need to setup an inventory that meets your environmental needs.
+=== "Kubespray Direct _(Recommended)_"
 
-The playbook `setup-kubernetes.yml` is used to invoke the selected provider installation and label and configure a kube config:
+    This is used to deploy kubespray against infra on an OpenStack cloud. If you're deploying on baremetal you will need to setup an inventory that meets your environmental needs.
+    Change the directory to the kubespray submodule.
 
-``` shell
-source /opt/genestack/scripts/genestack.rc
-ansible-playbook setup-kubernetes.yml
-```
+    The cluster deployment playbook can also have overrides defined to augment how the playbook is executed.
+    Confirm openstack-flex-inventory.yaml matches what is in /etc/genestack/inventory. If it does not match update the command to match the file names.
+
+    ``` shell
+    cd /opt/genestack/submodules/kubespray
+    ansible-playbook --inventory /etc/genestack/inventory/openstack-flex-inventory.ini \
+                    --private-key /home/ubuntu/.ssh/openstack-flex-keypair.key \
+                    --user ubuntu \
+                    --become \
+                    cluster.yml
+    ```
+
+=== "Setup-Kubernetes Playbook _(Experimental)_"
+
+    The `private-key` option can be used to instruct ansible to use a custom SSH key for the SSH connection
+
+    ``` shell
+        --private-key ${HOME}/.ssh/openstack-keypair.key
+    ```
+
+    ``` shell
+    source /opt/genestack/scripts/genestack.rc
+    ansible-playbook setup-kubernetes.yml
+    ```
 
 !!! tip
 
