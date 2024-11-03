@@ -1,0 +1,53 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cinder-volume-netapp-config
+  namespace: openstack
+data:
+  cinder-volume.sh: |
+    #!/bin/bash
+    set -ex
+    exec cinder-volume --config-file /etc/cinder/cinder.conf \
+                       --config-file /tmp/pod-shared/backends.conf \
+                       --config-file /tmp/pod-shared/internal_tenant.conf \
+                       --config-file /tmp/pod-shared/cinder-netapp.conf
+  generate-backends.py: |
+    #!/usr/bin/env python3
+    import configparser
+    import os
+    netapp_backends = os.environ.get('NETAPP_BACKENDS')
+    config = configparser.ConfigParser()
+    for backend in netapp_backends.split(';'):
+        backend = backend.split(',')
+        assert len(backend) == 11
+        config.add_section(backend[0])
+        config.set(backend[0], 'netapp_login', backend[1])
+        config.set(backend[0], 'netapp_password', backend[2])
+        config.set(backend[0], 'netapp_server_hostname', backend[3])
+        config.set(backend[0], 'netapp_server_port', backend[4])
+        config.set(backend[0], 'netapp_storage_family', 'ontap_cluster')
+        config.set(backend[0], 'netapp_storage_protocol', 'iscsi')
+        config.set(backend[0], 'netapp_transport_type', 'http')
+        config.set(backend[0], 'netapp_vserver', backend[5])
+        config.set(backend[0], 'netapp:qos_policy_group', backend[6])
+        config.set(backend[0], 'netapp_dedup', backend[7])
+        config.set(backend[0], 'netapp_compression', backend[8])
+        config.set(backend[0], 'netapp_thick_provisioned', backend[9])
+        config.set(backend[0], 'netapp_lun_space_reservation', backend[10])
+        config.set(backend[0], 'volume_driver', 'cinder.volume.drivers.netapp.common.NetAppDriver')
+        config.set(backend[0], 'volume_backend_name', backend[0])
+        print(f'Added backend {backend[0]}')
+    with open('/tmp/pod-shared/backends.conf', 'w') as configfile:
+        config.write(configfile)
+    print('Generated backends.conf')
+
+    config = configparser.ConfigParser()
+    backends = ','.join([i.split(',')[0] for i in netapp_backends.split(';')])
+    config.set('DEFAULT', 'enabled_backends', backends)
+    config.set('DEFAULT', 'host', 'cinder-volume-netapp-worker')
+    with open('/tmp/pod-shared/cinder-netapp.conf', 'w') as configfile:
+        config.write(configfile)
+    print('Updated cinder.conf')
+  ssh_known_hosts: |
+    # Empty SSH host file managed by cinder-volume-netapp
