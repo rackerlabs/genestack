@@ -759,7 +759,7 @@ conf:
   cinder:
     DEFAULT:
       storage_availability_zone: az1
-      default_availability_zone: null
+      default_availability_zone: az1
       allow_availability_zone_fallback: true
       scheduler_default_filters: AvailabilityZoneFilter,CapacityFilter,CapabilitiesFilter
       volume_usage_audit_period: hour
