@@ -1,5 +1,5 @@
 #!/bin/bash
-pushd /opt/genestack/submodules/openstack-helm
+pushd /opt/genestack/submodules/openstack-helm || exit
   helm upgrade --install nova ./nova \
     --namespace=openstack \
       --timeout 120m \
@@ -27,5 +27,5 @@ pushd /opt/genestack/submodules/openstack-helm
       --set network.ssh.public_key="$(kubectl -n openstack get secret nova-ssh-keypair -o jsonpath='{.data.public_key}' | base64 -d)"$'\n' \
       --set network.ssh.private_key="$(kubectl -n openstack get secret nova-ssh-keypair -o jsonpath='{.data.private_key}' | base64 -d)"$'\n' \
       --post-renderer /etc/genestack/kustomize/kustomize.sh \
-      --post-renderer-args nova/base $@
-popd
+      --post-renderer-args nova/base "$@"
+popd || exit

@@ -1,5 +1,5 @@
 #!/bin/bash
-pushd /opt/genestack/submodules/openstack-helm
+pushd /opt/genestack/submodules/openstack-helm || exit
     helm upgrade --install ceilometer ./ceilometer \
         --namespace=openstack \
         --timeout 10m \
@@ -23,5 +23,5 @@ pushd /opt/genestack/submodules/openstack-helm
     rabbit://neutron:$(kubectl --namespace openstack get secret neutron-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)@rabbitmq.openstack.svc.cluster.local:5672/neutron,\
     rabbit://nova:$(kubectl --namespace openstack get secret nova-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)@rabbitmq.openstack.svc.cluster.local:5672/nova}" \
         --post-renderer /etc/genestack/kustomize/kustomize.sh \
-        --post-renderer-args ceilometer/base $@
-popd
+        --post-renderer-args ceilometer/base "$@"
+popd || exit

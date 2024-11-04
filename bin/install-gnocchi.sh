@@ -1,5 +1,5 @@
 #!/bin/bash
-pushd /opt/genestack/submodules/openstack-helm-infra
+pushd /opt/genestack/submodules/openstack-helm-infra || exit
     helm upgrade --install gnocchi ./gnocchi \
         --namespace=openstack \
         --timeout 10m \
@@ -14,5 +14,5 @@ pushd /opt/genestack/submodules/openstack-helm-infra
         --set endpoints.oslo_db_postgresql.auth.admin.password="$(kubectl --namespace openstack get secret postgresql-db-admin -o jsonpath='{.data.password}' | base64 -d)" \
         --set endpoints.oslo_db_postgresql.auth.gnocchi.password="$(kubectl --namespace openstack get secret gnocchi-pgsql-password -o jsonpath='{.data.password}' | base64 -d)" \
         --post-renderer /etc/genestack/kustomize/kustomize.sh \
-        --post-renderer-args gnocchi/base $@
-popd
+        --post-renderer-args gnocchi/base "$@"
+popd || exit

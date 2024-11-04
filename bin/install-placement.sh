@@ -1,5 +1,5 @@
 #!/bin/bash
-pushd /opt/genestack/submodules/openstack-helm
+pushd /opt/genestack/submodules/openstack-helm || exit
   helm upgrade --install placement ./placement --namespace=openstack \
     --namespace=openstack \
       --timeout 120m \
@@ -13,5 +13,5 @@ pushd /opt/genestack/submodules/openstack-helm
       --set conf.placement.keystone_authtoken.memcache_secret_key="$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)" \
       --set conf.placement.placement_database.slave_connection="mysql+pymysql://placement:$(kubectl --namespace openstack get secret placement-db-password -o jsonpath='{.data.password}' | base64 -d)@mariadb-cluster-secondary.openstack.svc.cluster.local:3306/placement" \
       --post-renderer /etc/genestack/kustomize/kustomize.sh \
-      --post-renderer-args placement/base $@
-popd
+      --post-renderer-args placement/base "$@"
+popd || exit

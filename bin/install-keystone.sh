@@ -1,5 +1,5 @@
 #!/bin/bash
-pushd /opt/genestack/submodules/openstack-helm
+pushd /opt/genestack/submodules/openstack-helm || exit
     helm upgrade --install keystone ./keystone \
         --namespace=openstack \
         --timeout 120m \
@@ -12,5 +12,5 @@ pushd /opt/genestack/submodules/openstack-helm
         --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
         --set endpoints.oslo_messaging.auth.keystone.password="$(kubectl --namespace openstack get secret keystone-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
         --post-renderer /etc/genestack/kustomize/kustomize.sh \
-        --post-renderer-args keystone/base $@
-popd
+        --post-renderer-args keystone/base "$@"
+popd || exit

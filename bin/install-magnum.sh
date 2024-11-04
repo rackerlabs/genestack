@@ -1,5 +1,5 @@
 #!/bin/bash
-pushd /opt/genestack/submodules/openstack-helm
+pushd /opt/genestack/submodules/openstack-helm || exit
     helm upgrade --install magnum ./magnum \
         --namespace=openstack \
         --timeout 120m \
@@ -13,5 +13,5 @@ pushd /opt/genestack/submodules/openstack-helm
         --set endpoints.oslo_cache.auth.memcache_secret_key="$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)" \
         --set conf.magnum.keystone_authtoken.memcache_secret_key="$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)" \
         --post-renderer /etc/genestack/kustomize/kustomize.sh \
-        --post-renderer-args magnum/base $@
-popd
+        --post-renderer-args magnum/base "$@"
+popd || exit

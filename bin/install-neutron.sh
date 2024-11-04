@@ -1,5 +1,5 @@
 #!/bin/bash
-pushd /opt/genestack/submodules/openstack-helm
+pushd /opt/genestack/submodules/openstack-helm || exit
   helm upgrade --install neutron ./neutron \
     --namespace=openstack \
       --timeout 120m \
@@ -24,5 +24,5 @@ pushd /opt/genestack/submodules/openstack-helm
       --set conf.plugins.ml2_conf.ovn.ovn_nb_connection="tcp:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')" \
       --set conf.plugins.ml2_conf.ovn.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')" \
       --post-renderer /etc/genestack/kustomize/kustomize.sh \
-      --post-renderer-args neutron/base $@
-popd
+      --post-renderer-args neutron/base "$@"
+popd || exit

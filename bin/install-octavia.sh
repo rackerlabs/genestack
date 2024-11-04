@@ -1,5 +1,5 @@
 #!/bin/bash
-pushd /opt/genestack/submodules/openstack-helm
+pushd /opt/genestack/submodules/openstack-helm || exit
     helm upgrade --install octavia ./octavia \
         --namespace=openstack \
         --timeout 120m \
@@ -17,5 +17,5 @@ pushd /opt/genestack/submodules/openstack-helm
         --set conf.octavia.ovn.ovn_nb_connection="tcp:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')" \
         --set conf.octavia.ovn.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')" \
         --post-renderer /etc/genestack/kustomize/kustomize.sh \
-        --post-renderer-args octavia/base $@
-popd
+        --post-renderer-args octavia/base "$@"
+popd || exit
