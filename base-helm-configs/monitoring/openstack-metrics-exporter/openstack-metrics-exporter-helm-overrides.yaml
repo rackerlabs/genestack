@@ -12,8 +12,8 @@ image:
   pullPolicy: Always
 
 serviceMonitor:
-  interval: 3m
-  scrapeTimeout: 30s
+  interval: 5m
+  scrapeTimeout: 90s
 
 nodeSelector:
   openstack-control-plane: enabled
