@@ -144,23 +144,11 @@ gnocchi-metricd).
 
 ## Run the package deployment
 
-``` shell
-cd /opt/genestack/submodules/openstack-helm-infra
-helm upgrade --install gnocchi ./gnocchi \
-    --namespace=openstack \
-    --wait \
-    --timeout 10m \
-    -f /etc/genestack/helm-configs/gnocchi/gnocchi-helm-overrides.yaml \
-    --set conf.ceph.admin_keyring="$(kubectl get secret --namespace rook-ceph rook-ceph-admin-keyring -o jsonpath='{.data.keyring}' | base64 -d)" \
-    --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.identity.auth.gnocchi.password="$(kubectl --namespace openstack get secret gnocchi-admin -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
-    --set endpoints.oslo_db.auth.gnocchi.password="$(kubectl --namespace openstack get secret gnocchi-db-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.oslo_db_postgresql.auth.admin.password="$(kubectl --namespace openstack get secret postgresql-db-admin -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.oslo_db_postgresql.auth.gnocchi.password="$(kubectl --namespace openstack get secret gnocchi-pgsql-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /etc/genestack/kustomize/kustomize.sh \
-    --post-renderer-args gnocchi/base
-```
+!!! example "Run the Gnocchi deployment Script `bin/install-gnocchi.sh`"
+
+    ``` shell
+    --8<-- "bin/install-gnocchi.sh"
+    ```
 
 !!! tip
 
