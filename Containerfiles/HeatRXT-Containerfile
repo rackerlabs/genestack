@@ -1,0 +1,15 @@
+ARG VERSION=master-ubuntu_jammy
+
+FROM openstackhelm/heat:${VERSION} as build
+
+RUN apt-get update && apt-get install -y git && apt clean
+
+RUN /var/lib/openstack/bin/pip install git+https://github.com/sowm9802/heat.git@stable/2024.1
+
+RUN /var/lib/openstack/bin/pip install --upgrade --force-reinstall pip
+
+RUN find /var/lib/openstack -regex '^.*\(__pycache__\|\.py[co]\)$' -delete
+
+FROM openstackhelm/heat:${VERSION}
+
+COPY --from=build /var/lib/openstack/. /var/lib/openstack/

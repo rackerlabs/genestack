@@ -30,10 +30,10 @@ images:
     ks_service: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
     ks_endpoints: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
     heat_db_sync: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    heat_api: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    heat_cfn: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    heat_api: "ghcr.io/rackerlabs/heat-rxt:2024.1-ubuntu_jammy"
+    heat_cfn: "ghcr.io/rackerlabs/heat-rxt:2024.1-ubuntu_jammy"
     heat_cloudwatch: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    heat_engine: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
+    heat_engine: "ghcr.io/rackerlabs/heat-rxt:2024.1-ubuntu_jammy"
     heat_engine_cleaner: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
     heat_purge_deleted: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
     test: docker.io/xrally/xrally-openstack:2.0.0
