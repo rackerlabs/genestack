@@ -10,7 +10,7 @@ INVENTORY_FILE="$1"
 label_nodes() {
     local group=$1
     local label=$2
-    
+
     if grep -q "$group:" $INVENTORY_FILE; then
         local nodes=($(grep -A 1 "children:" $INVENTORY_FILE | grep -A 1 "  $group:" | grep -Eo "^\s+\S+" | tr -d ' '))
         for node in "${nodes[@]}"; do
