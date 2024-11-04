@@ -48,7 +48,7 @@ When migrating compute resources from one region to another, it is generally ass
 
 Connecting [Neutron](https://docs.openstack.org/neutron/latest/){:target="_blank"} across regions can be very useful for users.  In fact, having this capability can be essential for users to see your cloud as being viable for high-availability.
 
-Inter-region connectivity is a key capability that can underlie various HA-enablement services such as data replication, automated disaster recovery, block device mirroring, service locality (e.g. GeoIP.)  That being said, building inter-region connectivity into Neutron proper would raise some questions that would be difficult to answer in terms of design?
+Inter-region connectivity is a key capability that can underlie various HA-enablement services such as data replication, automated disaster recovery, block device mirroring, service locality (e.g. GeoIP.)  That being said, building inter-region connectivity into Neutron proper would raise some questions that would be difficult to answer in terms of design:
 
 1. Which region would "own" the resource being created?
 2. If both regions "own" it, how is that synchronized?  Also, wouldn't that limit the autonomy of regions?
