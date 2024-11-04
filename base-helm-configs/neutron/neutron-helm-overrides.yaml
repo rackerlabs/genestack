@@ -1754,7 +1754,7 @@ conf:
       # NOTE(portdirect): the bind port should not be defined, and is manipulated
       # via the endpoints section.
       bind_port: null
-      default_availability_zones: null
+      default_availability_zones: az1
       network_scheduler_driver: neutron.scheduler.dhcp_agent_scheduler.AZAwareWeightScheduler
       router_scheduler_driver: neutron.scheduler.l3_agent_scheduler.AZLeastRoutersScheduler
       dhcp_load_type: networks
