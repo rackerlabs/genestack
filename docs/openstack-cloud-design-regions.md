@@ -28,7 +28,7 @@ This is usually trivial, as you ought to be backing Keystone with some large-sca
 
 The [Horizon](https://docs.openstack.org/horizon/latest/){:target="_blank"} and [Skyline](https://docs.openstack.org/skyline/latest/){:target="_blank"} web control panels are one of the primary ways that users interact with OpenStack.  Collectively, we usually refer to their functionality as the "Dashboard."
 
-Regions can have their own dashboard logins[^2], or a cloud provider may want to create a landing page there is the ability for the user to select the region into which they want to login.
+Regions can have their own dashboard logins[^2], or a cloud provider may want to create a landing page where there is the ability for the user to select the region into which they want to login.
 
 OpenStack currently does not have any multi-region capability with the dashboards, so if a "single pane of glass" approach is desired, third-party tooling will need to be required.
 
