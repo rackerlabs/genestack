@@ -28,23 +28,11 @@ OpenStack Barbican is the dedicated security service within the OpenStack ecosys
 
 ## Run the package deployment
 
-``` shell
-cd /opt/genestack/submodules/openstack-helm
+!!! example "Run the Barbican deployment Script `bin/install-barbican.sh`"
 
-helm upgrade --install barbican ./barbican \
-    --namespace=openstack \
-    --wait \
-    --timeout 120m \
-    -f /etc/genestack/helm-configs/barbican/barbican-helm-overrides.yaml \
-    --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.identity.auth.barbican.password="$(kubectl --namespace openstack get secret barbican-admin -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
-    --set endpoints.oslo_db.auth.barbican.password="$(kubectl --namespace openstack get secret barbican-db-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.oslo_messaging.auth.barbican.password="$(kubectl --namespace openstack get secret barbican-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /etc/genestack/kustomize/kustomize.sh \
-    --post-renderer-args barbican/base
-```
+    ``` shell
+    --8<-- "bin/install-barbican.sh"
+    ```
 
 !!! tip
 

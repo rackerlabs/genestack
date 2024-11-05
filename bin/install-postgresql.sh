@@ -1,5 +1,5 @@
 #!/bin/bash
-cd /opt/genestack/submodules/openstack-helm-infra
+pushd /opt/genestack/submodules/openstack-helm-infra || exit
 helm upgrade --install postgresql ./postgresql \
     --namespace=openstack \
     --wait \
@@ -10,3 +10,4 @@ helm upgrade --install postgresql ./postgresql \
     --set endpoints.postgresql.auth.admin.password="$(kubectl --namespace openstack get secret postgresql-db-admin -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.postgresql.auth.exporter.password="$(kubectl --namespace openstack get secret postgresql-db-exporter -o jsonpath='{.data.password}' | base64 -d)" \
     --set endpoints.postgresql.auth.audit.password="$(kubectl --namespace openstack get secret postgresql-db-audit -o jsonpath='{.data.password}' | base64 -d)"
+popd || exit

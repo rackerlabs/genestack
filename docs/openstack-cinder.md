@@ -30,24 +30,11 @@ OpenStack Cinder is a core component of the OpenStack cloud computing platform, 
 
 ## Run the package deployment
 
-``` shell
-cd /opt/genestack/submodules/openstack-helm
+!!! example "Run the Cinder deployment Script `bin/install-cinder.sh`"
 
-helm upgrade --install cinder ./cinder \
-  --namespace=openstack \
-    --wait \
-    --timeout 120m \
-    -f /etc/genestack/helm-configs/cinder/cinder-helm-overrides.yaml \
-    --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.identity.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-admin -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
-    --set endpoints.oslo_db.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-db-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --set conf.cinder.database.slave_connection="mysql+pymysql://cinder:$(kubectl --namespace openstack get secret cinder-db-password -o jsonpath='{.data.password}' | base64 -d)@mariadb-cluster-secondary.openstack.svc.cluster.local:3306/cinder" \
-    --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
-    --set endpoints.oslo_messaging.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
-    --post-renderer /etc/genestack/kustomize/kustomize.sh \
-    --post-renderer-args cinder/base
-```
+    ``` shell
+    --8<-- "bin/install-cinder.sh"
+    ```
 
 !!! tip
 

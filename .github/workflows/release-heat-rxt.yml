@@ -1,17 +1,22 @@
 #
-name: Create and publish a the Heat RXT compatible image
+name: Create and Publish a Heat RXT Image
 
-# Configures this workflow to run every time a change is pushed to the branch called `release`.
 on:
+  push:
+    paths:
+    - '.github/workflows/release-heat-rxt.yml'
+    - 'Containerfiles/HeatRXT-Containerfile'
+    branches:
+      - development
+      - main
   workflow_dispatch:
     inputs:
       imageTag:
         description: 'Set tag for the image'
         required: true
-        default: 'master-ubuntu_jammy'
+        default: '2024.1-ubuntu_jammy'
         type: choice
         options:
-          - master-ubuntu_jammy
           - 2024.1-ubuntu_jammy
 
 # Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.

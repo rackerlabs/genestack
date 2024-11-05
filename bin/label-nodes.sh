@@ -10,12 +10,13 @@ INVENTORY_FILE="$1"
 label_nodes() {
     local group=$1
     local label=$2
-    
-    if grep -q "$group:" $INVENTORY_FILE; then
-        local nodes=($(grep -A 1 "children:" $INVENTORY_FILE | grep -A 1 "  $group:" | grep -Eo "^\s+\S+" | tr -d ' '))
+
+    if grep -q "$group:" "$INVENTORY_FILE"; then
+        # shellcheck disable=SC2207
+        local nodes=($(grep -A 1 "children:" "$INVENTORY_FILE" | grep -A 1 "  $group:" | grep -Eo "^\s+\S+" | tr -d ' '))
         for node in "${nodes[@]}"; do
             if [[ $node != "|" ]]; then
-                kubectl label node $node $label --overwrite
+                kubectl label node "$node" "$label" --overwrite
                 echo "Labeled node $node with $label"
             fi
         done
@@ -40,13 +41,17 @@ label_nodes "cinder_storage_nodes" "openstack-storage-node=enabled"
 label_nodes "ovn_network_nodes" "openstack-network-node=enabled"
 
 # Label all workers - Identified by kube_node excluding kube_control_plane
-if grep -q "kube_node:" $INVENTORY_FILE; then
-    kube_control_plane_nodes=($(grep -A 1 "children:" $INVENTORY_FILE | grep -A 1 "  kube_control_plane:" | grep -Eo "^\s+\S+" | tr -d ' '))
-    all_kube_nodes=($(grep -A 1 "children:" $INVENTORY_FILE | grep -A 1 "  kube_node:" | grep -Eo "^\s+\S+" | tr -d ' '))
+if grep -q "kube_node:" "$INVENTORY_FILE"; then
+    # shellcheck disable=SC2207
+    kube_control_plane_nodes=($(grep -A 1 "children:" "$INVENTORY_FILE" | grep -A 1 "  kube_control_plane:" | grep -Eo "^\s+\S+" | tr -d ' '))
+    # shellcheck disable=SC2207
+    all_kube_nodes=($(grep -A 1 "children:" "$INVENTORY_FILE" | grep -A 1 "  kube_node:" | grep -Eo "^\s+\S+" | tr -d ' '))
 
     for node in "${all_kube_nodes[@]}"; do
+        # shellcheck disable=SC2199
+        # shellcheck disable=SC2076
         if [[ ! " ${kube_control_plane_nodes[@]} " =~ " ${node} " ]]; then
-            kubectl label node $node node-role.kubernetes.io/worker=worker --overwrite
+            kubectl label node "$node" node-role.kubernetes.io/worker=worker --overwrite
             echo "Labeled node $node with node-role.kubernetes.io/worker=worker"
         fi
     done

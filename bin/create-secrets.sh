@@ -91,6 +91,7 @@ gnocchi_pgsql_password=$(generate_password 32)
 ceilometer_keystone_admin_password=$(generate_password 32)
 ceilometer_keystone_test_password=$(generate_password 32)
 ceilometer_rabbitmq_password=$(generate_password 32)
+memcached_shared_secret=$(generate_password 32)
 
 OUTPUT_FILE="/etc/genestack/kubesecrets.yaml"
 
@@ -581,6 +582,15 @@ metadata:
 type: Opaque
 data:
   password: $(echo -n $ceilometer_rabbitmq_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: os-memcached
+  namespace: openstack
+type: Opaque
+data:
+  memcache_secret_key: $(echo -n $memcached_shared_secret | base64 -w0)
 EOF
 
 rm nova_ssh_key nova_ssh_key.pub
