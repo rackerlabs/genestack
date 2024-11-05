@@ -1,14 +1,43 @@
 #!/bin/bash
 
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+GENESTACK_DIR="${GENESTACK_DIR:-/opt/genestack}"
+GENESTACK_CONFIG_DIR="${GENESTACK_CONFIG_DIR:-/etc/genestack}"
+
+GENESTACK_PROMETHEUS_DIR=\
+"${GENESTACK_PROMETHEUS_DIR:-$GENESTACK_DIR/base-helm-configs/prometheus}"
+GENESTACK_PROMETHEUS_CONFIG_DIR=\
+"${GENESTACK_PROMETHEUS_CONFIG_DIR:-$GENESTACK_CONFIG_DIR/helm-configs/prometheus}"
+
+VALUES_BASE_FILENAMES=(
+    "prometheus-helm-overrides.yaml"
+    "alerting_rules.yaml"
+    "alertmanager_config.yaml"
+)
+
+# Though it probably wouldn't make any difference for all of the
+# $GENESTACK_CONFIG_DIR files to come last, this takes care to fully preserve
+# the order
+echo "Including overrides in order:"
+values_args=()
+for BASE_FILENAME in "${VALUES_BASE_FILENAMES[@]}"
+do
+    for DIR in "$GENESTACK_PROMETHEUS_DIR" "$GENESTACK_PROMETHEUS_CONFIG_DIR"
+    do
+        ABSOLUTE_PATH="$DIR/$BASE_FILENAME"
+        if [[ -e "$ABSOLUTE_PATH" ]]
+        then
+            echo "    $ABSOLUTE_PATH"
+            values_args+=("--values" "$ABSOLUTE_PATH")
+        fi
+    done
+done
+echo
+
+helm repo add prometheus-community \
+    https://prometheus-community.github.io/helm-charts
 helm repo update
 helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
-  --create-namespace --namespace=prometheus --timeout 10m \
-  -f /opt/genestack/base-helm-configs/prometheus/prometheus-helm-overrides.yaml \
-  -f /etc/genestack/helm-configs/prometheus/prometheus-helm-overrides.yaml \
-  -f /opt/genestack/base-helm-configs/prometheus/alerting_rules.yaml \
-  -f /etc/genestack/helm-configs/prometheus/alerting_rules.yaml \
-  -f /opt/genestack/base-helm-configs/prometheus/alertmanager_config.yaml \
-  -f /etc/genestack/helm-configs/prometheus/alertmanager_config.yaml \
-  --post-renderer /opt/genestack/base-kustomize/kustomize.sh \
-  --post-renderer-args prometheus/base "$@"
+    --create-namespace --namespace=prometheus --timeout 10m \
+    "${values_args[@]}" \
+    --post-renderer "$GENESTACK_DIR/base-kustomize/kustomize.sh" \
+    --post-renderer-args prometheus/base "$@"
