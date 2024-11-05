@@ -14,7 +14,7 @@ After switch and firewall configuration, deployment nodes are created with in th
 
 ### Ironic Diagram
 
-![conceptual_architecture](./assets/images/ironic-design.png)
+![conceptual_architecture](./assets/images/ironic-architecture.png)
 
 #### Benefits of Ironic
 

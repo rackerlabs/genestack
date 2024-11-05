@@ -137,7 +137,8 @@ nav:
       - Regions in OpenStack: openstack-cloud-design-regions.md
       - Availability Zones in OpenStack: openstack-cloud-design-az.md
       - Host Aggregates in OpenStack: openstack-cloud-design-ha.md
-      - Infrastructre Design: infrastructure-design.md
+      - Other Design Documentation: 
+          - Genestack Infrastructure Design: openstack-cloud-design-genestack-infra.md
   - Deployment Guide:
       - What is Genestack?: deployment-guide-welcome.md
       - Getting Started:
