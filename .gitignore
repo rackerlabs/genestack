@@ -112,6 +112,9 @@ roles/**/molecule/**/__pycache__/
 
 # macOS
 .DS_Store
+._.DS_Store
+**/.DS_Store
+**/._.DS_Store
 
 # Temp location used by our scripts
 scripts/tmp/
