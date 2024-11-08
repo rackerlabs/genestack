@@ -336,4 +336,57 @@ openstack --os-cloud default image create \
           --property os_version=15 \
           openSUSE-Leap-15
 ```
- 
+
+## Get SUSE
+
+!!! note
+
+    Make sure you get the most up to date image from [here](https://www.suse.com/download/sles/). We downloaded the SLES15-SP6-Minimal-VM.x86_64-kvm-and-xen-QU1.qcow2 image.
+
+``` shell
+openstack --os-cloud default image create \
+          --progress \
+          --disk-format qcow2 \
+          --container-format bare \
+          --public \
+          --file SLES15-SP6-Minimal-VM.x86_64-kvm-and-xen-QU1.qcow2 \
+          --property hw_vif_multiqueue_enabled=true \
+          --property hw_qemu_guest_agent=yes \
+          --property hypervisor_type=kvm \
+          --property img_config_drive=optional \
+          --property hw_machine_type=q35 \
+          --property hw_firmware_type=uefi \
+          --property os_require_quiesce=yes \
+          --property os_type=linux \
+          --property os_admin_user=sles \
+          --property os_distro=sles \
+          --property os_version=15-SP6 \
+          SLES15-SP6
+```
+
+## Get RHEL
+
+!!! note
+
+    Make sure you download the latest available image from [here](https://access.redhat.com/downloads/content/479/ver=/rhel---9/9.4/x86_64/product-software). We used the rhel-9.4-x86_64-kvm.qcow2 image.
+
+``` shell
+openstack --os-cloud default image create \
+          --progress \
+          --disk-format qcow2 \
+          --container-format bare \
+          --public \
+          --file rhel-9.4-x86_64-kvm.qcow2 \
+          --property hw_vif_multiqueue_enabled=true \
+          --property hw_qemu_guest_agent=yes \
+          --property hypervisor_type=kvm \
+          --property img_config_drive=optional \
+          --property hw_machine_type=q35 \
+          --property hw_firmware_type=uefi \
+          --property os_require_quiesce=yes \
+          --property os_type=linux \
+          --property os_admin_user=cloud-user \
+          --property os_distro=rhel \
+          --property os_version=9.4 \
+          RHEL-9.4
+```
