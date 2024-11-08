@@ -1,0 +1,55 @@
+diff --git a/heat/engine/clients/os/keystone/heat_keystoneclient.py b/heat/engine/clients/os/keystone/heat_keystoneclient.py
+index 2cf8ee997..cf6d88b9d 100644
+--- a/heat/engine/clients/os/keystone/heat_keystoneclient.py
++++ b/heat/engine/clients/os/keystone/heat_keystoneclient.py
+@@ -600,14 +600,14 @@ class KsClientWrapper(object):
+                     auth_ref = self.context.auth_plugin.get_access(
+                         self.session)
+                     if hasattr(auth_ref, "service_catalog"):
+-                        unversioned_sc_auth_uri = (
+-                            auth_ref.service_catalog.get_urls(
+-                                service_type='identity',
+-                                interface=ks_endpoint_type))
+-                        if len(unversioned_sc_auth_uri) > 0:
+-                            sc_auth_uri = (
+-                                unversioned_sc_auth_uri[0] + "/v3")
+-                            return sc_auth_uri
++                        keystone_urls = auth_ref.service_catalog.get_urls(
++                            service_type='identity',
++                            interface=ks_endpoint_type)
++                        if keystone_urls:
++                            keystone_url = keystone_urls[0].rstrip('/')
++                            if not keystone_url.endswith('/v3'):
++                                keystone_url += "/v3"
++                            return keystone_url
+                 except ks_exception.Unauthorized:
+                     LOG.error("Keystone client authentication failed")
+         return fallback_endpoint
+diff --git a/heat/tests/clients/test_heat_client.py b/heat/tests/clients/test_heat_client.py
+index a72e49cc3..49c985a26 100644
+--- a/heat/tests/clients/test_heat_client.py
++++ b/heat/tests/clients/test_heat_client.py
+@@ -1528,6 +1528,23 @@ class KeystoneClientTest(common.HeatTestCase):
+             'http://server.public.test:5000/v3')
+         cfg.CONF.clear_override('server_keystone_endpoint_type')
+
++    def test_server_keystone_endpoint_url_config_with_version(self):
++        """Return non fallback url path."""
++        cfg.CONF.set_override('server_keystone_endpoint_type', 'public')
++        ctx = utils.dummy_context()
++        ctx.trust_id = None
++        heat_ks_client = heat_keystoneclient.KeystoneClient(ctx)
++        fallback_url = 'http://server.fallback.test:5000/v3'
++        auth_ref = heat_ks_client.context.auth_plugin.get_access(
++            heat_ks_client.session)
++        auth_ref.service_catalog.get_urls = mock.MagicMock()
++        auth_ref.service_catalog.get_urls.return_value = [
++            'http://server.public.test:5000/v3']
++        self.assertEqual(
++            heat_ks_client.server_keystone_endpoint_url(fallback_url),
++            'http://server.public.test:5000/v3')
++        cfg.CONF.clear_override('server_keystone_endpoint_type')
++
+     def test_server_keystone_endpoint_url_no_config(self):
+         """Return fallback as no config option specified."""
+         ctx = utils.dummy_context()
