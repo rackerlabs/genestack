@@ -6,10 +6,10 @@ images:
     newName: docker.io/openstackhelm/heat
     newTag: 2024.1-ubuntu_jammy
   - name: image-cinder-volume-netapp-init
-    newName: docker.io/openstackhelm/cinder
+    newName: ghcr.io/rackerlabs/genestack/cinder-volume-rxt:2024.1-ubuntu_jammy-1731085441
     newTag: 2024.1-ubuntu_jammy
   - name: image-cinder-volume-netapp
-    newName: docker.io/openstackhelm/cinder
+    newName: ghcr.io/rackerlabs/genestack/cinder-volume-rxt:2024.1-ubuntu_jammy-1731085441
     newTag: 2024.1-ubuntu_jammy
 
 resources:
