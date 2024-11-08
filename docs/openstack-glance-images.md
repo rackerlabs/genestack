@@ -20,9 +20,63 @@ The properties of note are the following.
 | [hw_firmware_type](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html)          | STRING |
 | [os_require_quiesce](https://docs.openstack.org/glance/latest/admin/useful-image-properties.html)        | BOOL   |
 | [os_type](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html)             | STRING |
-| [os_admin_user](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html)       | STRING |
+| [os_admin_user](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html)       | STRING | [See Default Usernames for Images](#default-usernames-for-images) |
 | [os_distro](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html)           | STRING |
 | [os_version](https://docs.openstack.org/openstacksdk/latest/user/resources/image/v2/image.html)          | STRING |
+
+### Default Usernames for Images
+
+All of the images that Rackspace provides have properties that define the default username for the image. This property can be seen discovered using the `openstack image show` command and referencing the `os_admin_user` property.
+
+``` shell
+openstack --os-cloud default image show Ubuntu-22.04 -f json
+```
+
+!!! example "Output in JSON format"
+
+    ``` json
+    {
+        "checksum": "84e36c4cc4182757b34d2dc578708f7c",
+        "container_format": "bare",
+        "created_at": "2024-06-21T17:02:35Z",
+        "disk_format": "qcow2",
+        "file": "/v2/images/5cdcb4a2-0fa9-4af0-ad90-85e70bf38c0c/file",
+        "id": "5cdcb4a2-0fa9-4af0-ad90-85e70bf38c0c",
+        "min_disk": 0,
+        "min_ram": 0,
+        "name": "Ubuntu-20.04",
+        "owner": "8fb86e74be8d49f3befde1f647d9f2ef",
+        "properties": {
+            "os_hidden": false,
+            "os_hash_algo": "sha512",
+            "os_hash_value": "2e3417e9d63a40b8521a1dceb52cdffcbe6f5f738e0027193b7863f4b3de09ccf7bc78f000de4dbe4f91a867d0c4a75dc19c78960cc0d715fe575336fb297f01",
+            "hw_firmware_type": "uefi",
+            "owner_specified.openstack.md5": "",
+            "owner_specified.openstack.sha256": "",
+            "owner_specified.openstack.object": "images/Ubuntu-20.04",
+            "hypervisor_type": "kvm",
+            "img_config_drive": "optional",
+            "os_distro": "ubuntu",
+            "os_version": "20.04",
+            "hw_machine_type": "q35",
+            "hw_vif_multiqueue_enabled": true,
+            "os_type": "linux",
+            "os_admin_user": "ubuntu",
+            "hw_qemu_guest_agent": "yes",
+            "os_require_quiesce": true
+        },
+        "protected": false,
+        "schema": "/v2/schemas/image",
+        "size": 625475584,
+        "status": "active",
+        "tags": [],
+        "updated_at": "2024-09-24T22:31:37Z",
+        "virtual_size": 2361393152,
+        "visibility": "public"
+    }
+    ```
+
+Using this value operators can easily determine the default username for the image.
 
 ## Get Ubuntu
 
