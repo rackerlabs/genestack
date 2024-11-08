@@ -93,12 +93,13 @@ spec:
                 topologyKey: kubernetes.io/hostname
               weight: 10
       nodeSelector:
-        openstack-control-plane: enabled
+        openstack-storage-node: enabled
       initContainers:
         - name: init
           image: image-kubernetes-entrypoint-init
           imagePullPolicy: IfNotPresent
           securityContext:
+            privledged: true
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             runAsUser: 65534
