@@ -13,6 +13,12 @@ spec:
           averageUtilization: 50
           type: Utilization
       type: Resource
+    - resource:
+        name: memory
+        target:
+          averageValue: 100Mi
+          type: Value
+      type: Resource
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment

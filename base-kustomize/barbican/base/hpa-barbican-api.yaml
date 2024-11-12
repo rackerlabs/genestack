@@ -4,8 +4,8 @@ metadata:
   name: barbican-api
   namespace: openstack
 spec:
-  maxReplicas: 3
-  minReplicas: 1
+  maxReplicas: 9
+  minReplicas: 3
   metrics:
     - resource:
         name: cpu
