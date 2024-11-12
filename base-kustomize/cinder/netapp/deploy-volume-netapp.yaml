@@ -4,6 +4,7 @@ kind: ServiceAccount
 metadata:
   name: cinder-volume-netapp
   namespace: openstack
+
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -93,13 +94,12 @@ spec:
                 topologyKey: kubernetes.io/hostname
               weight: 10
       nodeSelector:
-        openstack-control-plane: enabled
+        openstack-storage-node: enabled
       initContainers:
         - name: init
           image: image-kubernetes-entrypoint-init
           imagePullPolicy: IfNotPresent
           securityContext:
-            allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             runAsUser: 65534
           env:
@@ -272,6 +272,8 @@ spec:
             capabilities:
               add:
                 - SYS_ADMIN
+            privileged: true
+            allowPrivilegeEscalation: true
             readOnlyRootFilesystem: true
           command:
             - /tmp/cinder-volume.sh

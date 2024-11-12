@@ -3,6 +3,10 @@
 This document provides information on configuring NetApp backends for the isolated Cinder volume worker. Each backend is defined by a set of
 11 comma-separated options, and multiple backends can be specified by separating them with semicolons.
 
+!!!  warning "The NetApp container is incompatible with iSCSI workloads"
+
+    The NetApp container is incompatible with iSCSI workloads. If the environment requires iSCSI support, review the [Cinder NetApp Worker ](openstack-cinder-netapp-worker.md) documentation instead.
+
 ## Backend Options
 
 Below is a table detailing each option, its position in the backend configuration, a description, and the expected data type.

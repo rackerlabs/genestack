@@ -6,7 +6,7 @@
       "type": "datasource",
       "id": "camptocamp-prometheus-alertmanager-datasource",
       "name": "Prometheus AlertManager Datasource",
-      "version": "2.0.1"
+      "version": "2.1.0"
     },
     {
       "type": "grafana",
@@ -162,6 +162,7 @@
               "reason": true,
               "runbook_url": true,
               "service": true,
+              "state": true,
               "status": true,
               "summary": true,
               "target": true,
@@ -1001,6 +1002,6 @@
   "timezone": "browser",
   "title": "OPEN ALERTS OF ALERTMANAGER",
   "uid": "WojOgXTmk",
-  "version": 14,
+  "version": 15,
   "weekStart": ""
 }
