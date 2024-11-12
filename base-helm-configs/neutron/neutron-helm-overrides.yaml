@@ -2,34 +2,34 @@ release_group: null
 
 images:
   tags:
-    bootstrap: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    db_init: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    db_drop: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    ks_user: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    ks_service: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    ks_endpoints: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    neutron_db_sync: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    neutron_dhcp: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    neutron_l3: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    neutron_l2gw: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    neutron_linuxbridge_agent: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    neutron_metadata: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    neutron_ovn_metadata: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    neutron_openvswitch_agent: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    neutron_server: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    neutron_rpc_server: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    neutron_bagpipe_bgp: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    neutron_netns_cleanup_cron: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    test: docker.io/xrally/xrally-openstack:2.0.0
-    purge_test: docker.io/openstackhelm/ospurge:latest
-    rabbit_init: docker.io/rabbitmq:3.7-management
-    netoffload: ghcr.io/vexxhost/netoffload:v1.0.1
+    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    neutron_db_sync: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    neutron_dhcp: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    neutron_l3: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    neutron_l2gw: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    neutron_linuxbridge_agent: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    neutron_metadata: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    neutron_ovn_metadata: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    neutron_openvswitch_agent: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    neutron_server: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    neutron_rpc_server: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    neutron_bagpipe_bgp: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    neutron_netns_cleanup_cron: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
+    purge_test: "quay.io/rackspace/rackerlabs-ospurge:latest"
+    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
+    netoffload: "quay.io/rackspace/rackerlabs-netoffload:v1.0.1"
     neutron_sriov_agent: docker.io/openstackhelm/neutron:stein-18.04-sriov
     neutron_sriov_agent_init: docker.io/openstackhelm/neutron:stein-18.04-sriov
     neutron_bgp_dragent: docker.io/openstackhelm/neutron:stein-ubuntu_bionic
     neutron_ironic_agent: docker.io/openstackhelm/neutron:stein-ubuntu_bionic
-    dep_check: quay.io/airshipit/kubernetes-entrypoint:v1.0.0
-    image_repo_sync: docker.io/docker:17.07.0
+    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0"
+    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
   pull_policy: "IfNotPresent"
   local_registry:
     active: false
