@@ -44,7 +44,7 @@ Let's break down the process of how Fluent Bit, Kubernetes, Loki, and OpenStack 
     
 4. Loki's Role in Long-Term Storage:
 
-    Loki can retain logs for a specified duration, depending on your configuration.  Loki chucks the application logs it has received into large objects which are then sent via HTTP calls to Openstack Swift to reduce long-term storage costs and maintain historical data.
+    Loki can retain logs for a specified duration, depending on your configuration.  Loki chunks the application logs it has received into large objects which are then sent via HTTP/HTTPS calls to Openstack Swift to reduce long-term storage costs and maintain historical data.
     
 5. OpenStack Swift as Object Storage:
 
@@ -64,7 +64,7 @@ Let's break down the process of how Fluent Bit, Kubernetes, Loki, and OpenStack 
 
 ​	The logs that Loki stores for us can be searched and read though Grafana.  From the left-side menu bars, select 'Explore' to enter queries in Grafana.  
 
-![Screenshot 2024-11-07 at 2.42.19 PM](assets/images/grafana_explore.png)
+![grafana explore](assets/images/grafana_explore.png)
 
 ​	Start by selecting from the '**Label Filter**' drop-down for the aplpication area of logs you want to search from.  These are keyed on labels determined in the Kubernetes deployment. For example, the 'application' choice will allow you to choose all Openstack services  by name (nova, cinder, etc ). All label filters are defined in base-helm-configs and can be referenced there. Only one selection is allowed per exporession, so you will need to select press the **+** to add more selections for refined searches.  Then you enter the text you are searching for with its search qualifier ( line contains, line does not continue, etc).  The example here shows searching for a server UUID in Nova:
 
