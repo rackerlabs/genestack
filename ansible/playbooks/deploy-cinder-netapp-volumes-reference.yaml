@@ -142,19 +142,37 @@
         value: "{{ ansible_fqdn }}"
         create: true
 
+    - name: Create the cinder-volume-netapp configuration stage file
+      ansible.builtin.copy:
+        src: "/etc/cinder/cinder.conf.stage"
+        dest: "/etc/cinder/netapp-cinder.conf.stage"
+        owner: root
+        group: root
+        mode: "0644"
+        remote_src: true
+
     - name: Ensure the backend configuration is set to our expected value
       changed_when: false
       community.general.ini_file:
-        path: "/etc/cinder/cinder.conf.stage"
+        path: "/etc/cinder/netapp-cinder.conf.stage"
         section: DEFAULT
         option: enabled_backends
         value: "{{ cinder_backend_name }}"
         create: true
 
+    - name: Override host value in netapp-cinder.conf.stage
+      community.general.ini_file:
+        path: "/etc/cinder/netapp-cinder.conf.stage"
+        section: DEFAULT
+        option: host
+        value: cinder-volume-netapp-worker
+        mode: '0644'
+        state: present
+
     - name: Create the cinder-volume-netapp configuration
       ansible.builtin.copy:
-        src: "/etc/cinder/cinder.conf.stage"
-        dest: "/etc/cinder/cinder.conf"
+        src: "/etc/cinder/netapp-cinder.conf.stage"
+        dest: "/etc/cinder/netapp-cinder.conf"
         owner: root
         group: root
         mode: "0644"
@@ -179,18 +197,12 @@
         owner: root
         group: root
         mode: "0644"
-      notify:
-        - Restart cinder-volume-netapp systemd services
 
-    - name: Create the cinder-volume-netapp overrides configuration
-      ansible.builtin.copy:
-        content: |
-          [DEFAULT]
-          host = cinder-volume-netapp-worker
-        dest: "/etc/cinder/netapp-cinder.conf"
-        owner: root
-        group: root
-        mode: "0644"
+    - name: Replace yaml safe qos policy key in netapp-backends configuration
+      ansible.builtin.replace:
+        path: /etc/cinder/netapp-backends.conf
+        regexp: 'netapp_qos_policy_group'
+        replace: 'netapp:qos_policy_group'
       notify:
         - Restart cinder-volume-netapp systemd services
 
@@ -208,3 +220,13 @@
           value: "/etc/cinder/rootwrap.d"
       notify:
         - Restart cinder-volume-netapp systemd services
+
+    - name: Remove netapp-cinder conf staging file
+      ansible.builtin.file:
+        path: /etc/cinder/netapp-cinder.conf.stage
+        state: absent
+
+    - name: Remove cinder conf staging file
+      ansible.builtin.file:
+        path: /etc/cinder/cinder.conf.stage
+        state: absent

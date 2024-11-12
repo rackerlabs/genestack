@@ -24,7 +24,7 @@ The NetApp ONTAP driver requires a backend configuration to be set in the Kubern
           netapp_storage_protocol: iscsi
           netapp_transport_type: http
           netapp_vserver: <VSERVER>
-          netapp:qos_policy_group: <QOS_POLICY>
+          netapp_qos_policy_group: <QOS_POLICY>
           netapp_dedup: True
           netapp_compression: True
           netapp_thick_provisioned: True
@@ -40,7 +40,7 @@ The NetApp ONTAP driver requires a backend configuration to be set in the Kubern
           netapp_storage_protocol: iscsi
           netapp_transport_type: http
           netapp_vserver: <VSERVER>
-          netapp:qos_policy_group: <QOS_POLICY>
+          netapp_qos_policy_group: <QOS_POLICY>
           netapp_dedup: True
           netapp_compression: True
           netapp_thick_provisioned: True
@@ -56,7 +56,10 @@ The NetApp ONTAP driver requires a backend configuration to be set in the Kubern
 - **`SERVER_NAME_OR_ADDRESS`**: The address of the NetApp storage system. This can be either an IP address or a fully qualified domain name (FQDN).
 - **`SERVER_PORT`**: The port number used for communication with the NetApp storage system. Common ports are `80` for HTTP and `443` for HTTPS.
 - **`VSERVER`**: Specifies the virtual storage server (Vserver) on the NetApp storage system that will serve the volumes.
-- **`QOS_POLICY`**: The Quality of Service (QoS) policy group name that will be applied to volumes for this backend.
+- **`QOS_POLICY_GROUP`**: The Quality of Service (QoS) policy group name that will be applied to volumes for this backend.
+
+!!! note
+    The Cinder backends configuration file utilizes a colon (:) in the variable name `netapp:qos_policy_group`, but it has been replaced in the Helm overrides file with an underscore. Helm recognizes a colon (:) as a special character and renders it as an equal (=) sign. This is undesired behavior for the final rendering of the Cinder backends configuration file, and the Ansible playbook replaces the underscore with a colon (:). The extra spec requires the colon (:) in its name because it is used by the NetAppdriver to assign the QoS policy group to the OpenStack Block Storage volume after it has been provisioned. See [NetApp unified driver](https://docs.openstack.org/cinder/latest/configuration/block-storage/drivers/netapp-volume-driver.html) for more detailed information on the NetApp driver extra specs.
 
 ## Host Setup
 
