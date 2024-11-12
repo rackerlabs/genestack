@@ -69,7 +69,7 @@ Beyond those two highly important ones installed by default are many more equall
 * ### MariaDB/MySQL Exporter:
 Genestack uses a couple different database solutions to run OpenStack or just for general storage capabilities, the most prominent of them is MySQL or more specifically within Genestack MariaDB and Galera.
 When installing [MariaDB](infrastructure-mariadb.md) as part of Genestack's workflow it is default to enable metrics which deploys its own service monitor as part of the [mariadb-operator](https://mariadb-operator.github.io/mariadb-operator/latest/) helm charts.
-This is great if you have already installed Prometheus, if not the MariaDB deploy with fail, or if are fine with potentially disrupting database services if you have a need to update metrics collection separately. It is encouraged to install the [Mysql Exporter](prometheus-mysql-exporter.md) as a separate exporter that can be updated without having to run MariaDB deploy/update commands.
+This is great if you have already installed Prometheus, if not the MariaDB deploy will fail and there may be other potential database disrupting issues if you have a need to update metrics settings alone. It is encouraged to install the [Mysql Exporter](prometheus-mysql-exporter.md) as a separate exporter that can be updated without having to run MariaDB deploy/update commands.
 The [mysql-exporter](https://github.com/prometheus/mysqld_exporter) is provided by the prometheus organization and is also what's used within the MariaDB Operator. When installed separately via the Genestack [Mysql Exporter](prometheus-mysql-exporter.md) installation instructions the [prometheus-mysql-exporter](https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus-mysql-exporter) helm charts are used.
 The mysql-exporter provides many important metrics related to the overall health and operation of your MariaDB/Galera cluster. You can view more details about what's exported in the [mysqld-exporter README](https://github.com/prometheus/mysqld_exporter?tab=readme-ov-file#mysql-server-exporter-).
 
@@ -104,6 +104,8 @@ Once we've ran the apply command we will have installed ServiceMonitors for Kube
     * Controller
     * OVN
     * Pinger
+
+    You can view more information about OVN monitoring in the [OVN Monitoring Introduction Docs](ovn-monitoring-introduction.md).
 
 * ### Nginx Gateway Monitoring:
 Genestack makes use of the [Nginx Gateway Fabric](https://github.com/nginxinc/nginx-gateway-fabric/tree/main/charts/nginx-gateway-fabric) for its implementation of [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/). Genestack deploys this as part of its infrastructure, view the [Nginx Gateway Deployment Doc](infrastructure-gateway-api.md) for more information.
