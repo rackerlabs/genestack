@@ -142,7 +142,7 @@ The command will utilize the `QOS_ID` and `VOLUME_TYPE_ID`.
 root@openstack-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume qos associate b35fdf9c-d5bd-40f9-ae3a-8605c246ef2e 6af6ade2-53ca-4260-8b79-1ba2f208c91d
 ```
 
-Set any additional volume provisioning specifications like the minimum and maximum volume size. These specifications are set in the volume type. The following commands contrain the `lvmdriver-1` volume type to a size between 10 GB and 2 TB.
+Set any additional volume provisioning specifications like the minimum and maximum volume size. These specifications are set in the volume type. The following commands constrain the `lvmdriver-1` volume type to a size between 10 GB and 2 TB.
 
 ``` shell
 root@openstack-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume type set --property provisioning:min_vol_size=10 6af6ade2-53ca-4260-8b79-1ba2f208c91d
