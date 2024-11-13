@@ -8,13 +8,13 @@
 
 Genestack logging is a straight forward system that collects, stores and provides an interface to search and read logs on-demand.  The storage backend is open to fit the needs of your deployment, so whether backing up to Openstack Swift, S3, Ceph, or file-share, Genestack logging can fit in your environment.
 
-Out of box Genestaazck logging is comprised of three separate technologies:
+Out of box Genestack logging is comprised of three separate technologies:
 
-- [Fluentbit](https://fluentbit.io/), a fast and lightweight telemetry agent for logs, metrics, and traces for Linux, macOS, Windows, and BSD family operating systems.  Fluentbit grabs log entries immediatley from your Kubernetes application and ships them to Loki for aggregation
+- [Fluentbit](https://fluentbit.io/), a fast and lightweight telemetry agent for logs, metrics, and traces for Linux, macOS, Windows, and BSD family operating systems.  Fluentbit grabs log entries immediately from your Kubernetes application and ships them to Loki for aggregation
 - [Loki](https://github.com/grafana/loki), a log aggregation system for Kubernetes that stores logs in a time series database and is often used with Grafana to visualize them.
 - [Grafana](https://grafana.com/), enables you to query, visualize, alert on, and explore your metrics, logs, and traces.  
 
-These components are easily replaceable so that implementaion in your existing environment is simple as possible.  For example, Grafana needs not to be your dashboard if your environment you are licensed for Splunk.  
+These components are easily replaceable so that implementation in your existing environment is simple as possible.  For example, Grafana needs not to be your dashboard if your environment you are licensed for Splunk.  
 
 ### Architecture
 
@@ -66,7 +66,7 @@ Let's break down the process of how Fluent Bit, Kubernetes, Loki, and OpenStack 
 
 ![grafana explore](assets/images/grafana_explore.png)
 
-​	Start by selecting from the '**Label Filter**' drop-down for the aplpication area of logs you want to search from.  These are keyed on labels determined in the Kubernetes deployment. For example, the 'application' choice will allow you to choose all Openstack services  by name (nova, cinder, etc ). All label filters are defined in base-helm-configs and can be referenced there. Only one selection is allowed per exporession, so you will need to select press the **+** to add more selections for refined searches.  Then you enter the text you are searching for with its search qualifier ( line contains, line does not continue, etc).  The example here shows searching for a server UUID in Nova:
+​	Start by selecting from the '**Label Filter**' drop-down for the application area of logs you want to search from.  These are keyed on labels determined in the Kubernetes deployment. For example, the 'application' choice will allow you to choose all Openstack services  by name (nova, cinder, etc ). All label filters are defined in base-helm-configs and can be referenced there. Only one selection is allowed per exporession, so you will need to select press the **+** to add more selections for refined searches.  Then you enter the text you are searching for with its search qualifier ( line contains, line does not continue, etc).  The example here shows searching for a server UUID in Nova:
 
 ![grafana search](assets/images/grafana_search.png)
 
