@@ -18,7 +18,7 @@ These components are easily replaceable so that implementation in your existing 
 
 ### Architecture
 
-![grafan architecture](assets/images/grafana_arch.png)
+![grafan architecture](assets/images/grafana_explore.png)
 
 
 
