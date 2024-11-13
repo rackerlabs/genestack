@@ -233,7 +233,7 @@ nav:
           - Gnocchi: metering-gnocchi.md
           - Billing Tenants: metering-billing.md
           - Chargebacks: metering-chargebacks.md
-          - Logging Overview: genestack_logging.md
+          - Logging Overview: genestack-logging.md
       - Infrastructure:
           - Etcd Backup: etcd-backup.md
           - OVN introduction: ovn-intro.md

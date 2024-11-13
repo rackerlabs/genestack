@@ -16,7 +16,7 @@ These components are easily replaceable so that implementation in your existing 
 
 ### Architecture
 
-![grafan architecture](assets/images/grafana_explore.png)
+![grafan architecture](assets/images/grafana-explore.png)
 
 ### Configuration
 
@@ -60,7 +60,7 @@ The logs that Loki stores for us can be searched and read though Grafana.  From 
 
 Start by selecting from the '**Label Filter**' drop-down for the application area of logs you want to search from.  These are keyed on labels determined in the Kubernetes deployment. For example, the 'application' choice will allow you to choose all Openstack services  by name (nova, cinder, etc ). All label filters are defined in base-helm-configs and can be referenced there. Only one selection is allowed per exporession, so you will need to select press the **+** to add more selections for refined searches.  Then you enter the text you are searching for with its search qualifier ( line contains, line does not continue, etc).  The example here shows searching for a server UUID in Nova:
 
-![grafana search](assets/images/grafana_search.png)
+![grafana search](assets/images/grafana-search.png)
 
   Label matching operators are as follows:
 
