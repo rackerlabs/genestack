@@ -48,7 +48,7 @@ Let's break down the process of how Fluent Bit, Kubernetes, Loki, and OpenStack 
     
 5. OpenStack Swift as Object Storage:
 
-    OpenStack Swift, or other S3-Compatible storage solutions such a Ceph,  provides object storage leveraging Swift's durability and scalability to store archived logs for extended periods.
+    OpenStack Swift, or other S3-Compatible storage solutions such Ceph,  provides object storage leveraging Swift's durability and scalability to store archived logs for extended periods.
 
 ### Key Benefits of This Architecture:
 
@@ -63,8 +63,6 @@ Let's break down the process of how Fluent Bit, Kubernetes, Loki, and OpenStack 
 ### Accessing Log Information through Grafana
 
 ​	The logs that Loki stores for us can be searched and read though Grafana.  From the left-side menu bars, select 'Explore' to enter queries in Grafana.  
-
-![grafana explore](assets/images/grafana_explore.png)
 
 ​	Start by selecting from the '**Label Filter**' drop-down for the application area of logs you want to search from.  These are keyed on labels determined in the Kubernetes deployment. For example, the 'application' choice will allow you to choose all Openstack services  by name (nova, cinder, etc ). All label filters are defined in base-helm-configs and can be referenced there. Only one selection is allowed per exporession, so you will need to select press the **+** to add more selections for refined searches.  Then you enter the text you are searching for with its search qualifier ( line contains, line does not continue, etc).  The example here shows searching for a server UUID in Nova:
 
