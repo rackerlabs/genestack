@@ -1,8 +1,8 @@
-#@ Genestack Logging
+# Genestack Logging
 
 [TOC]
 
-### Overview
+### Introduction
 
 Genestack logging is a straight forward system that collects, stores and provides an interface to search and read logs on-demand.  The storage backend is open to fit the needs of your deployment, so whether backing up to Openstack Swift, S3, Ceph, or file-share, Genestack logging can fit in your environment.
 
