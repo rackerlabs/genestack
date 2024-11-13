@@ -24,7 +24,7 @@ The NetApp ONTAP driver requires a backend configuration to be set in the Kubern
           netapp_storage_protocol: iscsi
           netapp_transport_type: http
           netapp_vserver: <VSERVER>
-          netapp_qos_policy_group: <QOS_POLICY>
+          netapp_qos_policy_group: <QOS_POLICY_GROUP>
           netapp_dedup: True
           netapp_compression: True
           netapp_thick_provisioned: True
@@ -40,7 +40,7 @@ The NetApp ONTAP driver requires a backend configuration to be set in the Kubern
           netapp_storage_protocol: iscsi
           netapp_transport_type: http
           netapp_vserver: <VSERVER>
-          netapp_qos_policy_group: <QOS_POLICY>
+          netapp_qos_policy_group: <QOS_POLICY_GROUP>
           netapp_dedup: True
           netapp_compression: True
           netapp_thick_provisioned: True
