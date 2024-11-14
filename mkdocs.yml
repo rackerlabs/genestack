@@ -245,6 +245,8 @@ nav:
           - MariaDB Operations: infrastructure-mariadb-ops.md
           - Adding New Node: adding-new-node.md
           - Host Aggregates: openstack-host-aggregates.md
+      - Monitoring and Alerting:
+          - Monitoring Information: monitoring-info.md
       - Third Party Tools:
           - OSIE: extra-osie.md
       - OpenStack:

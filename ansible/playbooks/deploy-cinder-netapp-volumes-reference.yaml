@@ -101,8 +101,8 @@
         group: root
         mode: "{{ item.mode | default('0644') }}"
       loop:
-        - src: "{{ playbook_dir }}/templates/cinder-netapp-volume.service"
-          dest: /etc/systemd/system/cinder-netapp-volume.service
+        - src: "{{ playbook_dir }}/templates/cinder-volume-netapp.service"
+          dest: /etc/systemd/system/cinder-volume-netapp.service
         - src: "{{ playbook_dir }}/templates/sudoers"
           dest: /etc/sudoers.d/cinder-volume
           mode: "0440"
@@ -142,19 +142,37 @@
         value: "{{ ansible_fqdn }}"
         create: true
 
+    - name: Create the cinder-volume-netapp configuration stage file
+      ansible.builtin.copy:
+        src: "/etc/cinder/cinder.conf.stage"
+        dest: "/etc/cinder/netapp-cinder.conf.stage"
+        owner: root
+        group: root
+        mode: "0644"
+        remote_src: true
+
     - name: Ensure the backend configuration is set to our expected value
       changed_when: false
       community.general.ini_file:
-        path: "/etc/cinder/cinder.conf.stage"
+        path: "/etc/cinder/netapp-cinder.conf.stage"
         section: DEFAULT
         option: enabled_backends
         value: "{{ cinder_backend_name }}"
         create: true
 
+    - name: Override host value in netapp-cinder.conf.stage
+      community.general.ini_file:
+        path: "/etc/cinder/netapp-cinder.conf.stage"
+        section: DEFAULT
+        option: host
+        value: cinder-volume-netapp-worker
+        mode: '0644'
+        state: present
+
     - name: Create the cinder-volume-netapp configuration
       ansible.builtin.copy:
-        src: "/etc/cinder/cinder.conf.stage"
-        dest: "/etc/cinder/cinder.conf"
+        src: "/etc/cinder/netapp-cinder.conf.stage"
+        dest: "/etc/cinder/netapp-cinder.conf"
         owner: root
         group: root
         mode: "0644"
@@ -168,12 +186,6 @@
           {% set rendered_backend = {} %}
           {% for backend in cinder_backend_name.split(',') %}
           {%   set default_backend = (_kubernetes_cinder_etc_secret.resources[0].data['backends.conf'] | b64decode | community.general.from_ini)[backend] %}
-          {%   set network_interface = hostvars[inventory_hostname][cinder_storage_network_interface]['ipv4']['address'] | default(ansible_default_ipv4.address) %}
-          {%   set network_interface_secondary = hostvars[inventory_hostname][cinder_storage_network_interface_secondary]['ipv4']['address'] %}
-          {%   set _ = default_backend.__setitem__("target_ip_address", network_interface) %}
-          {%   if (custom_multipath | bool) %}
-          {%     set _ = default_backend.__setitem__("iscsi_secondary_ip_addresses", network_interface_secondary) %}
-          {%   endif %}
           {%   set _ = rendered_backend.__setitem__(backend, default_backend) %}
           {% endfor %}
           {{ rendered_backend }}
@@ -185,18 +197,12 @@
         owner: root
         group: root
         mode: "0644"
-      notify:
-        - Restart cinder-volume-netapp systemd services
 
-    - name: Create the cinder-volume-netapp overrides configuration
-      ansible.builtin.copy:
-        content: |
-          [DEFAULT]
-          host = cinder-volume-netapp-worker
-        dest: "/etc/cinder/netapp-cinder.conf"
-        owner: root
-        group: root
-        mode: "0644"
+    - name: Replace yaml safe qos policy key in netapp-backends configuration
+      ansible.builtin.replace:
+        path: /etc/cinder/netapp-backends.conf
+        regexp: 'netapp_qos_policy_group'
+        replace: 'netapp:qos_policy_group'
       notify:
         - Restart cinder-volume-netapp systemd services
 
@@ -214,3 +220,13 @@
           value: "/etc/cinder/rootwrap.d"
       notify:
         - Restart cinder-volume-netapp systemd services
+
+    - name: Remove netapp-cinder conf staging file
+      ansible.builtin.file:
+        path: /etc/cinder/netapp-cinder.conf.stage
+        state: absent
+
+    - name: Remove cinder conf staging file
+      ansible.builtin.file:
+        path: /etc/cinder/cinder.conf.stage
+        state: absent
