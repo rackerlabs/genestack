@@ -223,6 +223,8 @@ nav:
               - Custom Node Metrics: prometheus-custom-node-metrics.md
               - Alert Manager Examples:
                   - alertmanager-slack.md
+                  - alertmanager-msteams.md
+                  - alertmanager-pagerduty.md
   - Operational Guide:
       - Supporting multi-region Genestack: multi-region-support.md
       - Running Genestack Upgrade: genestack-upgrade.md
@@ -246,6 +248,7 @@ nav:
           - Host Aggregates: openstack-host-aggregates.md
       - Monitoring and Alerting:
           - Monitoring Information: monitoring-info.md
+          - Alerting Information: alerting-info.md
       - Third Party Tools:
           - OSIE: extra-osie.md
       - OpenStack:
