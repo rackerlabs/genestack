@@ -16,8 +16,8 @@ spec:
     - resource:
         name: memory
         target:
-          averageValue: 200Mi
-          type: Value
+          type: AverageValue
+          averageValue: 500Mi
       type: Resource
   scaleTargetRef:
     apiVersion: apps/v1
