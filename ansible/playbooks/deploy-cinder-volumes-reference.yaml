@@ -219,3 +219,8 @@
         owner: root
         group: root
         mode: "0644"
+
+    - name: Remove cinder conf staging file
+      ansible.builtin.file:
+        path: /etc/cinder/cinder.conf.stage
+        state: absent

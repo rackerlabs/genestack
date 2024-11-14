@@ -233,6 +233,7 @@ nav:
           - Gnocchi: metering-gnocchi.md
           - Billing Tenants: metering-billing.md
           - Chargebacks: metering-chargebacks.md
+          - Logging Overview: genestack-logging.md
       - Infrastructure:
           - Etcd Backup: etcd-backup.md
           - OVN introduction: ovn-intro.md
@@ -244,6 +245,8 @@ nav:
           - MariaDB Operations: infrastructure-mariadb-ops.md
           - Adding New Node: adding-new-node.md
           - Host Aggregates: openstack-host-aggregates.md
+      - Monitoring and Alerting:
+          - Monitoring Information: monitoring-info.md
       - Third Party Tools:
           - OSIE: extra-osie.md
       - OpenStack:
