@@ -2018,7 +2018,7 @@ pod:
           min_ready_seconds: 0
           max_unavailable: 20%
   resources:
-    enabled: false
+    enabled: true
     compute:
       requests:
         memory: "128Mi"

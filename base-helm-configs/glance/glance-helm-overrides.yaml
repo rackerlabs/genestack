@@ -883,7 +883,7 @@ pod:
             periodSeconds: 15
             timeoutSeconds: 10
   resources:
-    enabled: false
+    enabled: true
     api:
       requests:
         memory: "64Mi"

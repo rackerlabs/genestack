@@ -741,7 +741,7 @@ pod:
       ironic_agent:
         timeout: 30
   resources:
-    enabled: false
+    enabled: true
     agent:
       dhcp:
         requests:

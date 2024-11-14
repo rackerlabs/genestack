@@ -84,7 +84,7 @@ pod:
             timeoutSeconds: 5
             failureThreshold: 10
   resources:
-    enabled: false
+    enabled: true
     server:
       requests:
         memory: "2048Mi"
