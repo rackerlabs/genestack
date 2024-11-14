@@ -1,12 +1,12 @@
-#@ Genestack Logging
+# Genestack Logging
 
 [TOC]
 
-### Overview
+### Introduction
 
 Genestack logging is a straight forward system that collects, stores and provides an interface to search and read logs on-demand.  The storage backend is open to fit the needs of your deployment, so whether backing up to Openstack Swift, S3, Ceph, or file-share, Genestack logging can fit in your environment.
 
-Out of box Genestack logging is comprised of three separate technologies:
+Out-of-box Genestack logging is comprised of three separate technologies:
 
 - [Fluentbit](https://fluentbit.io/), a fast and lightweight telemetry agent for logs, metrics, and traces for Linux, macOS, Windows, and BSD family operating systems.  Fluentbit grabs log entries immediately from your Kubernetes application and ships them to Loki for aggregation
 - [Loki](https://github.com/grafana/loki), a log aggregation system for Kubernetes that stores logs in a time series database and is often used with Grafana to visualize them.
