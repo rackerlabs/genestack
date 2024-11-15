@@ -75,15 +75,15 @@ There are various implementations of the Gateway API. In this document, we will 
                     --namespace=nginx-gateway \
                     --wait \
                     --timeout 10m \
-                    -f /opt/genestack/base-helm-configs/nginx-gateway-fabric/helm-overrides.yaml \
-                    --post-renderer /opt/genestack/base-kustomize/kustomize.sh \
+                    -f /etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml \
+                    --post-renderer /etc/genestack/kustomize/kustomize.sh \
                     --post-renderer-args gateway/base
         ```
 
     === "Experimental"
 
         ``` shell
-        cd /opt/genestack/submodules/nginx-gateway-fabric/charts/nginx-gateway-fabric
+        cd /opt/genestack/submodules/nginx-gateway-fabric/charts
 
         helm upgrade --install nginx-gateway-fabric . \
                     --namespace=nginx-gateway \

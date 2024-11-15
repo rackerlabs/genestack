@@ -2028,7 +2028,7 @@ pod:
         cpu: "2000m"
     notification:
       requests:
-        memory: "128Mi"
+        memory: "256Mi"
         cpu: "100m"
       limits:
         memory: "6144Mi"

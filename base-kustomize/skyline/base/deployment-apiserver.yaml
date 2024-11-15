@@ -10,7 +10,7 @@ metadata:
     component: api
 spec:
   progressDeadlineSeconds: 600
-  replicas: 1
+  replicas: 3
   revisionHistoryLimit: 3
   selector:
     matchLabels:
@@ -108,7 +108,7 @@ spec:
               memory: "4096Mi"
             requests:
               cpu: "0.25"
-              memory: "64Mi"
+              memory: "128Mi"
           command:
             - bash
             - -c

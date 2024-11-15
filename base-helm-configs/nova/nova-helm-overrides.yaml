@@ -2353,8 +2353,8 @@ pod:
     enabled: true
     compute:
       requests:
-        memory: "128Mi"
-        cpu: "100m"
+        memory: "512Mi"
+        cpu: "200m"
       limits:
         memory: "4096Mi"
         cpu: "2000m"
@@ -2381,15 +2381,15 @@ pod:
         cpu: "2000m"
     conductor:
       requests:
-        memory: "128Mi"
-        cpu: "100m"
+        memory: "256Mi"
+        cpu: "200m"
       limits:
         memory: "4096Mi"
         cpu: "2000m"
     scheduler:
       requests:
-        memory: "128Mi"
-        cpu: "100m"
+        memory: "1024Mi"
+        cpu: "200m"
       limits:
         memory: "6144Mi"
         cpu: "2000m"
