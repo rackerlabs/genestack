@@ -5,24 +5,20 @@ tenant_id: 122333 # TODO: update this value to use your Azure Tenant ID
 
 ingress:
   enabled: false
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-  path: /
-  pathType: ImplementationSpecific
 
-  hosts:
-    - "{{ .Values.custom_host }}"  # Ref: custom_host variable above
-  tls:
-  - hosts:
-    - "{{ .Values.custom_host }}"  # Ref: custom_host variable above
-    secretName: grafana-tls-public
-
+image:
+  tag: "10.3.3"
 
 extraSecretMounts:
   - name: azure-client-secret-mount
     secretName: azure-client
     defaultMode: 0440
     mountPath: /etc/secrets/azure-client
+    readOnly: true
+  - name: grafana-db-secret-mount
+    secretName: grafana-db
+    defaultMode: 0440
+    mountPath: /etc/secrets/grafana-db
     readOnly: true
 nodeSelector:
   openstack-control-plane: enabled
@@ -56,3 +52,9 @@ grafana.ini:
     allow_assign_grafana_admin: false
     skip_org_role_sync: false
     use_pkce: true
+  database:
+    type: mysql
+    host: mariadb-cluster-primary.openstack.svc:3306
+    user: $__file{/etc/secrets/grafana-db/username}
+    password:  $__file{/etc/secrets/grafana-db/password}
+    name: grafana
