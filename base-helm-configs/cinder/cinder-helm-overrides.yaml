@@ -237,18 +237,21 @@ pod:
         cpu: "100m"
       limits:
         memory: "4096Mi"
+        cpu: "2000m"
     scheduler:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
+        cpu: "2000m"
     volume:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
+        cpu: "2000m"
     jobs:
       volume_usage_audit:
         requests:

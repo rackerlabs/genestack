@@ -7085,6 +7085,7 @@ pod:
         cpu: "100m"
       limits:
         memory: "4096Mi"
+        cpu: "2000m"
     jobs:
       db_init:
         requests:

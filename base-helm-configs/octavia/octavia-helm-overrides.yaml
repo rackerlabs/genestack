@@ -630,24 +630,28 @@ pod:
         cpu: "100m"
       limits:
         memory: "4096Mi"
+        cpu: "2000m"
     worker:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
+        cpu: "2000m"
     housekeeping:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
+        cpu: "2000m"
     health_manager:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
+        cpu: "2000m"
     jobs:
       bootstrap:
         requests:

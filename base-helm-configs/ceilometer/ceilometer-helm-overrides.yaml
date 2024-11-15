@@ -2024,28 +2024,28 @@ pod:
         memory: "128Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
+        memory: "6144Mi"
         cpu: "2000m"
     notification:
       requests:
         memory: "128Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
+        memory: "6144Mi"
         cpu: "2000m"
     central:
       requests:
         memory: "128Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
+        memory: "6144Mi"
         cpu: "2000m"
     ipmi:
       requests:
         memory: "124Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
+        memory: "6144Mi"
         cpu: "2000m"
     jobs:
       db_sync:
