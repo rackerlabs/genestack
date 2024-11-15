@@ -87,6 +87,17 @@ dump to your MariaDB database.
 Refer to the mariadb-operator [restore documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/BACKUP.md#restore)
 for more information.
 
+!!! tip "Operator Restore Tips"
+
+    1. If you have multiple backups available, the operator is able to infer
+    which backup to restore based on the `spec.targetRecoveryTime` field
+    discussed in the operator documentation [here](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/BACKUP.md#target-recovery-time).
+    2. The referred database (db1 in the example below) must previously exist
+    for the Restore to succeed.
+    3. The mariadb CLI invoked by the operator under the hood only supports
+    selecting a single database to restore via the `--one-database` option,
+    restoration of multiple specific databases is not supported.
+
 ### Restore All Databases
 
 !!! danger "The following command may lead to data loss"
@@ -136,14 +147,3 @@ for more information.
     NAME            COMPLETE   STATUS    MARIADB           AGE
     maria-restore   True       Success   mariadb-cluster   26s
     ```
-
-!!! tip "Operator Restore Tips"
-
-    1. If you have multiple backups available, the operator is able to infer
-    which backup to restore based on the `spec.targetRecoveryTime` field
-    discussed in the operator documentation [here](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/BACKUP.md#target-recovery-time).
-    2. The referred database (db1 in the example above) must previously exist
-    for the Restore to succeed.
-    3. The mariadb CLI invoked by the operator under the hood only supports
-    selecting a single database to restore via the `--one-database` option,
-    restoration of multiple specific databases is not supported.
