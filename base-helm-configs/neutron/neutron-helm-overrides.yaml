@@ -741,7 +741,7 @@ pod:
       ironic_agent:
         timeout: 30
   resources:
-    enabled: false
+    enabled: true
     agent:
       dhcp:
         requests:
@@ -749,78 +749,91 @@ pod:
           cpu: "100m"
         limits:
           memory: "4096Mi"
+          cpu: "2000m"
       l3:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
+          cpu: "2000m"
       lb:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
+          cpu: "2000m"
       metadata:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
+          cpu: "2000m"
       ovn_metadata:
         requests:
           memory: "512Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
+          cpu: "2000m"
       ovs:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
+          cpu: "2000m"
       sriov:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
+          cpu: "2000m"
       l2gw:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
+          cpu: "2000m"
       bagpipe_bgp:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
+          cpu: "2000m"
       bgp_dragent:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
+          cpu: "2000m"
     server:
       requests:
         memory: "1024Mi"
         cpu: "100m"
       limits:
-        memory: "4096Mi"
+        memory: "6144Mi"
+        cpu: "2000m"
     ironic_agent:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
+        cpu: "2000m"
     netns_cleanup_cron:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
+        cpu: "2000m"
     jobs:
       bootstrap:
         requests:

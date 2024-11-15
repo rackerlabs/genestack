@@ -2350,69 +2350,69 @@ pod:
       osapi:
         timeout: 30
   resources:
-    enabled: false
+    enabled: true
     compute:
       requests:
         memory: "512Mi"
         cpu: "200m"
       limits:
-        memory: "1024Mi"
+        memory: "4096Mi"
         cpu: "2000m"
     compute_ironic:
       requests:
         memory: "128Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
+        memory: "4096Mi"
         cpu: "2000m"
     api_metadata:
       requests:
         memory: "128Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
+        memory: "4096Mi"
         cpu: "2000m"
     api:
       requests:
         memory: "128Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
+        memory: "4096Mi"
         cpu: "2000m"
     conductor:
       requests:
         memory: "256Mi"
         cpu: "200m"
       limits:
-        memory: "1024Mi"
+        memory: "4096Mi"
         cpu: "2000m"
     scheduler:
       requests:
         memory: "1024Mi"
         cpu: "200m"
       limits:
-        memory: "1024Mi"
+        memory: "6144Mi"
         cpu: "2000m"
     ssh:
       requests:
         memory: "128Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
+        memory: "4096Mi"
         cpu: "2000m"
     novncproxy:
       requests:
         memory: "128Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
+        memory: "4096Mi"
         cpu: "2000m"
     spiceproxy:
       requests:
         memory: "128Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
+        memory: "4096Mi"
         cpu: "2000m"
     jobs:
       bootstrap:

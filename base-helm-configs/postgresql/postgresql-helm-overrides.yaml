@@ -84,24 +84,24 @@ pod:
             timeoutSeconds: 5
             failureThreshold: 10
   resources:
-    enabled: false
+    enabled: true
     server:
       requests:
         memory: "1024Mi"
         cpu: "100m"
       limits:
-        memory: "2048Mi"
+        memory: "4096Mi"
         cpu: "2000m"
     test:
       requests:
         memory: "128Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
+        memory: "4096Mi"
         cpu: "2000m"
     prometheus_postgresql_exporter:
       limits:
-        memory: "1024Mi"
+        memory: "4096Mi"
         cpu: "2000m"
       requests:
         memory: "128Mi"

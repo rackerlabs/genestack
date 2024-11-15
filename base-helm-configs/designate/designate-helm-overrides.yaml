@@ -143,13 +143,13 @@ pod:
         timeout: 30
 
   resources:
-    enabled: false
+    enabled: true
     api:
       requests:
         memory: "128Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
+        memory: "4096Mi"
         cpu: "2000m"
     jobs:
       bootstrap:
