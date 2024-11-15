@@ -87,10 +87,10 @@ pod:
     enabled: false
     server:
       requests:
-        memory: "2048Mi"
+        memory: "1024Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
+        memory: "2048Mi"
         cpu: "2000m"
     test:
       requests:

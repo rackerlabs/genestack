@@ -886,7 +886,7 @@ pod:
     enabled: false
     api:
       requests:
-        memory: "64Mi"
+        memory: "128Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
