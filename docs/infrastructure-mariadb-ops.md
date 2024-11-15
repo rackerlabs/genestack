@@ -91,7 +91,7 @@ for more information.
 
 !!! danger "The following command may lead to data loss"
 
-    ```shell
+    ``` shell
     cat <<EOF | kubectl -n openstack apply -f -
     apiVersion: k8s.mariadb.com/v1alpha1
     kind: Restore
@@ -109,7 +109,7 @@ for more information.
 
 !!! danger "The following command may lead to data loss"
 
-    ```shell
+    ``` shell
     cat <<EOF | kubectl -n openstack apply -f -
     apiVersion: k8s.mariadb.com/v1alpha1
     kind: Restore
@@ -122,6 +122,19 @@ for more information.
         name: mariadb-backup
       databases: db1
     EOF
+    ```
+
+### Check Restore Progress
+
+!!! success "Simply _get_ the restore object previously created"
+
+    ``` shell
+    kubectl -n openstack get restore maria-restore
+    ```
+
+    ``` { .no-copy }
+    NAME            COMPLETE   STATUS    MARIADB           AGE
+    maria-restore   True       Success   mariadb-cluster   26s
     ```
 
 !!! tip "Operator Restore Tips"
