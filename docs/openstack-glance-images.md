@@ -395,7 +395,8 @@ openstack --os-cloud default image create \
 
 !!! note
 
-    You will need to create a virtual disk image from your own licensed media and convert to .qcow2 format.  For this example, we used a Windows 2022 Standard Edition installation generalized with cloud-init and sysprep, then converted the image to .qcow2 format using qemu-img.
+    You will need to create a virtual disk image from your own licensed media and convert to .qcow2 format.  For this example, we used a Windows 2022 Standard Edition installation generalized with cloud-init and sysprep, then converted the image to .qcow2 format using qemu-img.  For additional information on creating a Windows image, please see the upstream documentation https://docs.openstack.org/image-guide/create-images-manually-example-windows-image.html.
+    
 
 ``` shell
 openstack --os-cloud default image create \
