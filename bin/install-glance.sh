@@ -14,5 +14,5 @@ pushd /opt/genestack/submodules/openstack-helm || exit
         --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
         --set endpoints.oslo_messaging.auth.glance.password="$(kubectl --namespace openstack get secret glance-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
         --post-renderer /etc/genestack/kustomize/kustomize.sh \
-        --post-renderer-args glance/base "$@"
+        --post-renderer-args glance/overlay "$@"
 popd || exit

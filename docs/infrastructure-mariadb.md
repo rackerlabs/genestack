@@ -45,7 +45,7 @@ kubectl --namespace mariadb-system get pods -w
     Replication in MariaDB involves synchronizing data between a primary database and one or more replicas, enabling continuous data availability even in the event of hardware failures or outages. By using MariaDB replication, OpenStack deployments can achieve improved fault tolerance and load balancing, ensuring that critical cloud services remain operational and performant at all times.
 
     ``` shell
-    kubectl --namespace openstack apply -k /etc/genestack/kustomize/mariadb-cluster/base
+    kubectl --namespace openstack apply -k /etc/genestack/kustomize/mariadb-cluster/overlay
     ```
 
 === "AIO"

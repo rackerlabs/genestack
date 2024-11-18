@@ -13,5 +13,5 @@ pushd /opt/genestack/submodules/openstack-helm || exit
         --set endpoints.oslo_cache.auth.memcache_secret_key="$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)" \
         --set conf.barbican.keystone_authtoken.memcache_secret_key="$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)" \
         --post-renderer /etc/genestack/kustomize/kustomize.sh \
-        --post-renderer-args barbican/base "$@"
+        --post-renderer-args barbican/overlay "$@"
 popd || exit

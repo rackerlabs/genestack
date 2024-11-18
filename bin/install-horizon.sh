@@ -10,5 +10,5 @@ pushd /opt/genestack/submodules/openstack-helm || exit
         --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \
         --set endpoints.oslo_db.auth.horizon.password="$(kubectl --namespace openstack get secret horizon-db-password -o jsonpath='{.data.password}' | base64 -d)" \
         --post-renderer /etc/genestack/kustomize/kustomize.sh \
-        --post-renderer-args horizon/base "$@"
+        --post-renderer-args horizon/overlay "$@"
 popd || exit
