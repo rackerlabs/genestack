@@ -16,8 +16,8 @@ spec:
     - resource:
         name: memory
         target:
-          averageUtilization: 60
-          type: Utilization
+          type: AverageValue
+          averageValue: 1Gi
       type: Resource
   scaleTargetRef:
     apiVersion: apps/v1

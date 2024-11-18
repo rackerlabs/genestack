@@ -27,7 +27,7 @@ kubectl --namespace openstack \
         --from-literal=ACCESS_KEY="sadbq4bcva2392dasflkdsp" \
         --from-literal=SECRET_KEY="aldskflkjpoq32ibdsfko23bnalkfdao2" \
         --from-literal=S3_HOST="127.0.0.1" \
-        --from-literal=S3_PORT="8081" \
+        --from-literal=S3_REGION="SJC3" \
         --from-literal=ETCDCTL_API="3" \
         --from-literal=ETCDCTL_ENDPOINTS="https://127.0.0.1:2379" \
         --from-literal=ETCDCTL_CACERT="/etc/ssl/etcd/ssl/ca.pem" \

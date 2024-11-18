@@ -7078,13 +7078,14 @@ pod:
       horizon:
         timeout: 30
   resources:
-    enabled: false
+    enabled: true
     server:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
+        cpu: "2000m"
     jobs:
       db_init:
         requests:
