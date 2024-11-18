@@ -7,7 +7,7 @@ After = syslog.target
 Type = simple
 User = cinder
 Group = cinder
-ExecStart = /opt/cinder/bin/cinder-volume --config-file /etc/cinder/cinder.conf --config-file /etc/cinder/netapp-cinder.conf --config-file /etc/cinder/netapp-backends.conf
+ExecStart = /opt/cinder/bin/cinder-volume --config-file /etc/cinder/netapp-cinder.conf --config-file /etc/cinder/netapp-backends.conf
 ExecReload = /bin/kill -HUP $MAINPID
 # Give a reasonable amount of time for the server to start up/shut down
 TimeoutSec = 120

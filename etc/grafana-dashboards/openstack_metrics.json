@@ -168,8 +168,9 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
+          "editorMode": "code",
           "exemplar": true,
-          "expr": "count(last_over_time(openstack_nova_agent_state{adminState=\"enabled\"}[1h]))-sum(last_over_time(openstack_nova_agent_state{adminState=\"enabled\"}[1h]))",
+          "expr": "count(last_over_time(openstack_nova_agent_state{adminState=\"enabled\", hostname!~\".*.a30.*|.*.h100.*|.*.p40.*|.*gpu.*\"}[1h]))-sum(last_over_time(openstack_nova_agent_state{adminState=\"enabled\", hostname!~\".*.a30.*|.*.h100.*|.*.p40.*|.*gpu.*\"}[1h]))",
           "format": "time_series",
           "hide": false,
           "instant": true,
@@ -294,8 +295,9 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
+          "editorMode": "code",
           "exemplar": true,
-          "expr": "last_over_time(openstack_nova_agent_state{adminState=\"enabled\"}[1h])",
+          "expr": "last_over_time(openstack_nova_agent_state{adminState=\"enabled\", hostname!~\".*.a30.*|.*.h100.*|.*.p40.*|.*gpu.*\"}[1h])",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -431,7 +433,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum(last_over_time(openstack_nova_agent_state{adminState=\"enabled\"}[1h]))",
+          "expr": "sum(last_over_time(openstack_nova_agent_state{adminState=\"enabled\", hostname!~\".*.a30.*|.*.h100.*|.*.p40.*|.*gpu.*\"}[1h]))",
           "format": "time_series",
           "hide": false,
           "instant": true,
@@ -867,7 +869,8 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "count(last_over_time(openstack_neutron_agent_state{adminState=\"up\"}[1h]))-sum(last_over_time(openstack_neutron_agent_state{adminState=\"up\"}[1h]))",
+          "editorMode": "code",
+          "expr": "count(last_over_time(openstack_neutron_agent_state{adminState=\"up\", hostname!~\".*.a30.*|.*.h100.*|.*.p40.*|.*gpu.*\"}[1h]))-sum(last_over_time(openstack_neutron_agent_state{adminState=\"up\", hostname!~\".*.a30.*|.*.h100.*|.*.p40.*|.*gpu.*\"}[1h]))",
           "format": "time_series",
           "hide": false,
           "instant": true,
@@ -994,8 +997,9 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
+          "editorMode": "code",
           "exemplar": true,
-          "expr": "last_over_time(openstack_neutron_agent_state[1h])",
+          "expr": "last_over_time(openstack_neutron_agent_state{hostname!~\".*.a30.*|.*.h100.*|.*.p40.*|.*gpu.*\"}[1h])",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -1130,7 +1134,8 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(last_over_time(openstack_neutron_agent_state{adminState=\"up\"}[1h]))",
+          "editorMode": "code",
+          "expr": "sum(last_over_time(openstack_neutron_agent_state{adminState=\"up\", hostname!~\".*.a30.*|.*.h100.*|.*.p40.*|.*gpu.*\"}[1h]))",
           "format": "time_series",
           "hide": false,
           "instant": true,
@@ -1257,7 +1262,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(openstack_placement_resource_usage{resourcetype=\"VCPU\"})",
+          "expr": "sum(openstack_placement_resource_usage{resourcetype=\"VCPU\", hostname!~\".*.a30.*|.*.h100.*|.*.p40.*|.*gpu.*\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1272,7 +1277,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum(openstack_placement_resource_total{resourcetype=\"VCPU\"})",
+          "expr": "sum(openstack_placement_resource_total{resourcetype=\"VCPU\", hostname!~\".*.a30.*|.*.h100.*|.*.p40.*|.*gpu.*\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1286,7 +1291,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(openstack_placement_resource_total{resourcetype=\"VCPU\"}) * 6",
+          "expr": "sum(openstack_placement_resource_total{resourcetype=\"VCPU\", hostname!~\".*.a30.*|.*.h100.*|.*.p40.*|.*gpu.*\"}) * 6",
           "hide": false,
           "instant": false,
           "legendFormat": "overcommit vcpu availability",
@@ -1387,7 +1392,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum(openstack_placement_resource_usage{resourcetype=\"MEMORY_MB\"}) / 1024 / 1024",
+          "expr": "sum(openstack_placement_resource_usage{resourcetype=\"MEMORY_MB\", hostname!~\".*.a30.*|.*.h100.*|.*.p40.*|.*gpu.*\"}) / 1024 / 1024",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1402,7 +1407,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum(openstack_placement_resource_total{resourcetype=\"MEMORY_MB\"}) / 1024 / 1024",
+          "expr": "sum(openstack_placement_resource_total{resourcetype=\"MEMORY_MB\", hostname!~\".*.a30.*|.*.h100.*|.*.p40.*|.*gpu.*\"}) / 1024 / 1024",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1503,7 +1508,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "count(openstack_nova_server_status{status=\"ACTIVE\"})",
+          "expr": "count(openstack_nova_server_status{status=\"ACTIVE\", hypervisor_hostname!~\".*.a30.*|.*.h100.*|.*.p40.*|.*gpu.*\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1518,7 +1523,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "count(openstack_nova_server_status)",
+          "expr": "count(openstack_nova_server_status{hypervisor_hostname!~\".*.a30.*|.*.h100.*|.*.p40.*|.*gpu.*\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1769,7 +1774,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum(openstack_placement_resource_usage{resourcetype=\"DISK_GB\"}) / 1024",
+          "expr": "sum(openstack_placement_resource_usage{resourcetype=\"DISK_GB\", hostname!~\".*.a30.*|.*.h100.*|.*.p40.*|.*gpu.*\"}) / 1024",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1783,7 +1788,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(openstack_placement_resource_total{resourcetype=\"DISK_GB\"}) / 1024",
+          "expr": "sum(openstack_placement_resource_total{resourcetype=\"DISK_GB\", hostname!~\".*.a30.*|.*.h100.*|.*.p40.*|.*gpu.*\"}) / 1024",
           "hide": false,
           "instant": false,
           "legendFormat": "local storage total",
@@ -2362,9 +2367,9 @@
           "exemplar": false,
           "expr": "openstack_neutron_ports",
           "format": "table",
-          "instant": false,
+          "instant": true,
           "legendFormat": "__auto",
-          "range": true,
+          "range": false,
           "refId": "A"
         }
       ],
@@ -2401,7 +2406,7 @@
         "x": 12,
         "y": 57
       },
-      "id": 82,
+      "id": 83,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2427,7 +2432,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "openstack_neutron_routers",
+          "expr": "openstack_neutron_security_groups",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
@@ -2435,7 +2440,7 @@
           "refId": "A"
         }
       ],
-      "title": "Routers",
+      "title": "Security Groups",
       "type": "stat"
     },
     {
@@ -2522,77 +2527,6 @@
               {
                 "color": "green",
                 "value": null
-              }
-            ]
-          },
-          "unitScale": true
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 20,
-        "y": 57
-      },
-      "id": 83,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "10.3.3",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "openstack_neutron_security_groups",
-          "format": "table",
-          "instant": true,
-          "legendFormat": "__auto",
-          "range": false,
-          "refId": "A"
-        }
-      ],
-      "title": "Security Groups",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           },
@@ -2708,6 +2642,73 @@
         }
       ],
       "title": "Subnets",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unitScale": true
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 61
+      },
+      "id": 82,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.3.3",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "openstack_neutron_routers",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "__auto",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Routers",
       "type": "stat"
     },
     {
@@ -3623,10 +3624,10 @@
           "exemplar": false,
           "expr": "sum(openstack_nova_limits_vcpus_used)",
           "format": "table",
-          "instant": false,
+          "instant": true,
           "interval": "",
           "legendFormat": "__auto",
-          "range": true,
+          "range": false,
           "refId": "A"
         }
       ],
@@ -3726,7 +3727,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "(((openstack_placement_resource_usage{resourcetype=\"VCPU\"} * openstack_placement_resource_total{resourcetype=\"VCPU\"}) / 100) / (openstack_placement_resource_total{resourcetype=\"VCPU\"} * 6) * 100)",
+          "expr": "(((openstack_placement_resource_usage{resourcetype=\"VCPU\", hostname!~\".*.a30.*|.*.h100.*|.*.p40.*|.*gpu.*\"} * openstack_placement_resource_total{resourcetype=\"VCPU\", hostname!~\".*.a30.*|.*.h100.*|.*.p40.*|.*gpu.*\"}) / 100) / (openstack_placement_resource_total{resourcetype=\"VCPU\", hostname!~\".*.a30.*|.*.h100.*|.*.p40.*|.*gpu.*\"} * 6) * 100)",
           "format": "time_series",
           "hide": false,
           "interval": "",
@@ -3833,7 +3834,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "openstack_placement_resource_usage{resourcetype=\"MEMORY_MB\"} / 1024 / 1024",
+          "expr": "openstack_placement_resource_usage{resourcetype=\"MEMORY_MB\", hostname!~\".*.a30.*|.*.h100.*|.*.p40.*|.*gpu.*\"} / 1024 / 1024",
           "format": "time_series",
           "hide": false,
           "interval": "",
@@ -3851,6 +3852,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
+      "description": "Details of instances that are stuck in a state other than ACTIVE",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -3868,7 +3870,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -4030,7 +4033,8 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "yellow"
+                      "color": "yellow",
+                      "value": null
                     },
                     {
                       "color": "red",
@@ -4108,15 +4112,15 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "openstack_nova_server_status",
+          "expr": " openstack_nova_server_status",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
-          "range": true,
+          "range": false,
           "refId": "A"
         }
       ],
-      "title": "Instance Details",
+      "title": "Non-Active Instance Details",
       "transformations": [
         {
           "id": "filterFieldsByName",
@@ -4237,7 +4241,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -4279,7 +4284,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "openstack_placement_resource_usage{resourcetype=\"DISK_GB\"} / 1024",
+          "expr": "openstack_placement_resource_usage{resourcetype=\"DISK_GB\", hostname!~\".*.a30.*|.*.h100.*|.*.p40.*|.*gpu.*\"} / 1024",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -4366,7 +4371,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -4465,7 +4471,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -4532,7 +4539,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -4576,7 +4584,7 @@
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
-          "range": true,
+          "range": false,
           "refId": "A"
         }
       ],
@@ -4599,7 +4607,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -4640,11 +4649,11 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(openstack_cinder_limits_volume_used_gb)",
+          "expr": "sum(openstack_cinder_limits_volume_used_gb) ",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
-          "range": true,
+          "range": false,
           "refId": "A"
         }
       ],
@@ -4667,7 +4676,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -4708,11 +4718,11 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(openstack_glance_image_bytes)",
+          "expr": "sum(openstack_glance_image_bytes) ",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
-          "range": true,
+          "range": false,
           "refId": "A"
         }
       ],
@@ -4747,7 +4757,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -4793,9 +4804,9 @@
           "exemplar": false,
           "expr": "openstack_identity_domains ",
           "format": "table",
-          "instant": false,
+          "instant": true,
           "legendFormat": "__auto",
-          "range": true,
+          "range": false,
           "refId": "A"
         }
       ],
@@ -4817,7 +4828,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -4863,9 +4875,9 @@
           "exemplar": false,
           "expr": "openstack_identity_users",
           "format": "table",
-          "instant": false,
+          "instant": true,
           "legendFormat": "__auto",
-          "range": true,
+          "range": false,
           "refId": "A"
         }
       ],
@@ -4887,7 +4899,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -4935,7 +4948,7 @@
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
-          "range": true,
+          "range": false,
           "refId": "A"
         }
       ],
@@ -4957,7 +4970,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -5005,7 +5019,7 @@
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
-          "range": true,
+          "range": false,
           "refId": "A"
         }
       ],
@@ -5027,7 +5041,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -5075,7 +5090,7 @@
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
-          "range": true,
+          "range": false,
           "refId": "A"
         }
       ],
@@ -5110,7 +5125,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -5154,7 +5170,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "openstack_loadbalancer_total_loadbalancers[1h]",
+          "expr": "openstack_loadbalancer_total_loadbalancers",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
@@ -5181,7 +5197,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -5252,7 +5269,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -5296,7 +5314,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "openstack_loadbalancer_total_amphorae[1h]",
+          "expr": "openstack_loadbalancer_total_amphorae",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
@@ -5323,7 +5341,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -5393,7 +5412,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -5437,7 +5457,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "openstack_loadbalancer_total_pools[1h]",
+          "expr": "openstack_loadbalancer_total_pools",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
@@ -5464,7 +5484,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -5550,7 +5571,7 @@
     ]
   },
   "time": {
-    "from": "now-2d",
+    "from": "now-24h",
     "to": "now"
   },
   "timepicker": {
@@ -5581,6 +5602,6 @@
   "timezone": "",
   "title": "OpenStack Exporter",
   "uid": "YZCsB1Qmy",
-  "version": 68,
+  "version": 85,
   "weekStart": ""
 }

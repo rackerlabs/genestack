@@ -52,33 +52,33 @@ labels:
 images:
   pull_policy: IfNotPresent
   tags:
-    bootstrap: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    db_drop: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    db_init: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    ks_user: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    ks_service: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    ks_endpoints: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    nova_api: "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy"
-    nova_cell_setup: "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy"
-    nova_cell_setup_init: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    nova_compute: "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy"
-    nova_compute_ssh: "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy"
-    nova_conductor: "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy"
-    nova_db_sync: "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy"
-    nova_novncproxy: "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy"
-    nova_novncproxy_assets: "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy"
-    nova_scheduler: "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy"
-    nova_spiceproxy: "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy"
-    nova_spiceproxy_assets: "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy"
-    nova_service_cleaner: "docker.io/openstackhelm/ceph-config-helper:latest-ubuntu_focal"
-    dep_check: 'quay.io/airshipit/kubernetes-entrypoint:v1.0.0'
-    rabbit_init: docker.io/rabbitmq:3.7-management
-    nova_archive_deleted_rows: "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy"
+    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    nova_api: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
+    nova_cell_setup: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
+    nova_cell_setup_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    nova_compute: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
+    nova_compute_ssh: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
+    nova_conductor: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
+    nova_db_sync: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
+    nova_novncproxy: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
+    nova_novncproxy_assets: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
+    nova_scheduler: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
+    nova_spiceproxy: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
+    nova_spiceproxy_assets: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
+    nova_service_cleaner: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
+    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0"
+    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
+    nova_archive_deleted_rows: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
     nova_compute_ironic: 'docker.io/kolla/ubuntu-source-nova-compute-ironic:wallaby'
-    nova_storage_init: 'docker.io/openstackhelm/ceph-config-helper:latest-ubuntu_focal'
-    test: docker.io/xrally/xrally-openstack:2.0.0
-    image_repo_sync: docker.io/docker:17.07.0
-    nova_wait_for_computes_init: gcr.io/google_containers/hyperkube-amd64:v1.11.6
+    nova_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
+    test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
+    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
+    nova_wait_for_computes_init: "quay.io/rackspace/rackerlabs-hyperkube-amd64:v1.11.6"
   local_registry:
     active: false
     exclude:
@@ -2350,69 +2350,69 @@ pod:
       osapi:
         timeout: 30
   resources:
-    enabled: false
+    enabled: true
     compute:
       requests:
-        memory: "128Mi"
-        cpu: "100m"
+        memory: "512Mi"
+        cpu: "200m"
       limits:
-        memory: "1024Mi"
+        memory: "4096Mi"
         cpu: "2000m"
     compute_ironic:
       requests:
         memory: "128Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
+        memory: "4096Mi"
         cpu: "2000m"
     api_metadata:
       requests:
         memory: "128Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
+        memory: "4096Mi"
         cpu: "2000m"
     api:
       requests:
         memory: "128Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
+        memory: "4096Mi"
         cpu: "2000m"
     conductor:
       requests:
-        memory: "128Mi"
-        cpu: "100m"
+        memory: "256Mi"
+        cpu: "200m"
       limits:
-        memory: "1024Mi"
+        memory: "4096Mi"
         cpu: "2000m"
     scheduler:
       requests:
-        memory: "128Mi"
-        cpu: "100m"
-      limits:
         memory: "1024Mi"
+        cpu: "200m"
+      limits:
+        memory: "6144Mi"
         cpu: "2000m"
     ssh:
       requests:
         memory: "128Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
+        memory: "4096Mi"
         cpu: "2000m"
     novncproxy:
       requests:
         memory: "128Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
+        memory: "4096Mi"
         cpu: "2000m"
     spiceproxy:
       requests:
         memory: "128Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
+        memory: "4096Mi"
         cpu: "2000m"
     jobs:
       bootstrap:

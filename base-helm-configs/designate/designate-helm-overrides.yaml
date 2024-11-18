@@ -43,22 +43,22 @@ labels:
 
 images:
   tags:
-    bootstrap: docker.io/openstackhelm/heat:2023.1-ubuntu_jammy
-    db_init: docker.io/openstackhelm/heat:2023.1-ubuntu_jammy
-    db_drop: docker.io/openstackhelm/heat:2023.1-ubuntu_jammy
-    rabbit_init: docker.io/rabbitmq:3.7-management
-    ks_user: docker.io/openstackhelm/heat:2023.1-ubuntu_jammy
-    ks_service: docker.io/openstackhelm/heat:2023.1-ubuntu_jammy
-    ks_endpoints: docker.io/openstackhelm/heat:2023.1-ubuntu_jammy
-    dep_check: quay.io/airshipit/kubernetes-entrypoint:v1.0.0
-    designate_db_sync: docker.io/openstackhelm/designate:2024.1-ubuntu_jammy
-    designate_api: docker.io/openstackhelm/designate:2024.1-ubuntu_jammy
-    designate_central: docker.io/openstackhelm/designate:2024.1-ubuntu_jammy
-    designate_mdns: docker.io/openstackhelm/designate:2024.1-ubuntu_jammy
-    designate_worker: docker.io/openstackhelm/designate:2024.1-ubuntu_jammy
-    designate_producer: docker.io/openstackhelm/designate:2024.1-ubuntu_jammy
-    designate_sink: docker.io/openstackhelm/designate:2024.1-ubuntu_jammy
-    image_repo_sync: docker.io/docker:17.07.0
+    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
+    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0"
+    designate_db_sync: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
+    designate_api: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
+    designate_central: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
+    designate_mdns: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
+    designate_worker: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
+    designate_producer: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
+    designate_sink: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
+    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
   pull_policy: "IfNotPresent"
   local_registry:
     active: false
@@ -143,13 +143,13 @@ pod:
         timeout: 30
 
   resources:
-    enabled: false
+    enabled: true
     api:
       requests:
         memory: "128Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
+        memory: "4096Mi"
         cpu: "2000m"
     jobs:
       bootstrap:
