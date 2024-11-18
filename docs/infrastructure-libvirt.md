@@ -2,9 +2,13 @@
 
 The first part of the compute kit is Libvirt.
 
-``` shell
-kubectl kustomize --enable-helm /etc/genestack/kustomize/libvirt | kubectl apply --namespace openstack -f -
-```
+## Run the package deployment
+
+!!! example "Run the libvirt deployment Script `bin/install-libvirt.sh`"
+
+    ``` shell
+    --8<-- "bin/install-libvirt.sh"
+    ```
 
 Once deployed you can validate functionality on your compute hosts with `virsh`
 
