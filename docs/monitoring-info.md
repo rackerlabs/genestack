@@ -46,6 +46,9 @@ Some of the components that we do take advantage of are the [Prometheus Operator
 and various custom resource definitions(CRD). These CRD's include the AlertManagerConfig, PrometheusRule and things like the ServiceMonitors, which allows for dynamic service monitoring configured outside the traditional Prometheus configuration methods.
 For a more complete list and their definitions view: [Prometheus Operator Design](https://prometheus-operator.dev/docs/getting-started/design/).
 
+The below diagram gives a good view of how these components are all connected.
+![Prometheus Architecture](assets/images/prometheus-architecture.png)
+
 To install the kube-prometheus-stack as part of Genestack's workflow view the [Installing Prometheus Doc](prometheus.md).
 
 As for the metrics themselves they are largely provided by 'exporters' which simply export the data exposed by various services we wish to monitor in order for Prometheus to injest them.
