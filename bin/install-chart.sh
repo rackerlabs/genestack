@@ -77,5 +77,5 @@ $ECHOTEST helm upgrade --install "$HELM_RELEASE_NAME" "$REPO/$CHART_NAME" \
     --create-namespace --namespace="$NAMESPACE" \
     --timeout 10m \
     "${values_args[@]}" \
-    --post-renderer "$GENESTACK_DIR/base-kustomize/kustomize.sh" \
-    --post-renderer-args "$CHART/base" "$@"
+    --post-renderer "$GENESTACK_CONFIG_DIR/kustomize/kustomize.sh" \
+    --post-renderer-args "$CHART/overlay" "$@"
