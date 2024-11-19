@@ -21,10 +21,6 @@ if compgen -G "${CONFIG_DIR}/*.yaml" > /dev/null; then
     done
 fi
 
-# Append the post-renderer and its arguments
-HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
-HELM_CMD+=" --post-renderer-args barbican/base $@"
-
 # Run the helm command
 eval "${HELM_CMD}"
 
