@@ -35,11 +35,11 @@ jobs:
             git submodule update --init submodules/openstack-helm-infra
       - name: Make OSH submodule
         run: |
-            cd submodules/openstack-helm
+            cd submodules/openstack-helm-infra
             make libvirt
       - name: Run Helm Template
         run: |
-          cd submodules/openstack-helm
+          cd submodules/openstack-helm-infra
           ${{ steps.helm.outputs.helm-path }} template libvirt ./libvirt \
             --namespace=openstack \
             --wait \
