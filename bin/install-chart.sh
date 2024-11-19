@@ -38,7 +38,7 @@ get_chart_info() {
     fi
 }
 
-for var in repo helm_release_name chart_name url namespace
+for var in repoName releaseName name url namespace
 do
     var_name="$(echo "$var" | tr '[:lower:]' '[:upper:]')"
     declare "$var_name=$(get_chart_info "$CHART" "$var")"
@@ -57,7 +57,7 @@ GENESTACK_CHART_CONFIG_DIR=\
 # the order
 echo "Including overrides in order:"
 values_args=()
-for BASE_FILENAME in $(get_chart_info -l "$CHART" values_files)
+for BASE_FILENAME in $(get_chart_info -l "$CHART" valuesFiles)
 do
     for DIR in "$GENESTACK_CHART_DIR" "$GENESTACK_CHART_CONFIG_DIR"
     do
@@ -71,9 +71,9 @@ do
 done
 echo
 
-$ECHOTEST helm repo add "$REPO" "$URL"
+$ECHOTEST helm repo add "$REPONAME" "$URL"
 $ECHOTEST helm repo update
-$ECHOTEST helm upgrade --install "$HELM_RELEASE_NAME" "$REPO/$CHART_NAME" \
+$ECHOTEST helm upgrade --install "$RELEASENAME" "$REPONAME/$NAME" \
     --create-namespace --namespace="$NAMESPACE" \
     --timeout 10m \
     "${values_args[@]}" \

@@ -1,10 +1,18 @@
+# This files generally tries to match the naming conventions for a
+# kustomization.yaml with `helmCharts`. helmCharts sometimes has 'includeCRDs'
+# in it, but `helm install` includes CRDs unless you specify `--skip-crds`, so
+# that doesn't appear here.
+#
+# Using 'helm' commands to add a repo, like `helm repo add`, gives the repo a
+# name. No analog exists in a kustomization.yaml under `helmCharts`, but here,
+# you also specify a repoName which appears as the name in `helm repo list`.
 prometheus:
-  repo: prometheus-community
-  helm_release_name: kube-prometheus-stack
-  chart_name: kube-prometheus-stack
+  repoName: prometheus-community
+  releaseName: kube-prometheus-stack
+  name: kube-prometheus-stack
   url: https://prometheus-community.github.io/helm-charts
   namespace: prometheus
-  values_files:
+  valuesFiles:
     - prometheus-helm-overrides.yaml
     - alerting_rules.yaml
     - alertmanager_config.yaml
