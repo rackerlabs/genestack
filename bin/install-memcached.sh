@@ -1,30 +1,17 @@
 #!/bin/bash
 
+# Default parameter value
+TARGET=${1:-base}
+
 # Directory to check for YAML files
 CONFIG_DIR="/etc/genestack/helm-configs/memcached"
 
-# Helm repository URL and name
-REPO_URL="https://marketplace.azurecr.io/helm/v1/repo"
-REPO_NAME="bitnami"
-
-# Check if the Helm repository is already added
-if ! helm repo list | grep -q "${REPO_NAME}"; then
-    echo "Adding Helm repository: ${REPO_NAME} (${REPO_URL})"
-    helm repo add "${REPO_NAME}" "${REPO_URL}" || { echo "Failed to add Helm repository"; exit 1; }
-else
-    echo "Helm repository ${REPO_NAME} is already added."
-fi
-
-# Update Helm repositories
-echo "Updating Helm repositories..."
-helm repo update || { echo "Failed to update Helm repositories"; exit 1; }
-
-# Base helm upgrade command using the memcached chart from the bitnami repository
-HELM_CMD="helm upgrade --install memcached ${REPO_NAME}/memcached \
+# Helm command setup
+HELM_CMD="helm upgrade --install memcached oci://registry-1.docker.io/bitnamicharts/memcached \
     --namespace=openstack \
     --timeout 120m \
     --post-renderer /etc/genestack/kustomize/kustomize.sh \
-    --post-renderer-args 'memcached/base $@' \
+    --post-renderer-args memcached/${TARGET} \
     -f /opt/genestack/base-helm-configs/memcached/memcached-helm-overrides.yaml"
 
 # Check if YAML files exist in the specified directory
@@ -39,4 +26,3 @@ fi
 echo "Executing Helm command:"
 echo "${HELM_CMD}"
 eval "${HELM_CMD}"
-

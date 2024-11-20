@@ -1,5 +1,17 @@
-resources:
-  - ../base/
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
 
-patchesStrategicMerge:
-  - aio-patch.yaml
+resources:
+  - ../base
+
+patches:
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: memcached
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 1
