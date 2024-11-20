@@ -1,3 +1,6 @@
+sortOptions:
+  order: fifo
+
 resources:
   - mariadb-configmap.yaml
   - mariadb-replication.yaml

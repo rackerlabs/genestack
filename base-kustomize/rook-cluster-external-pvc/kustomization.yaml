@@ -1,3 +1,6 @@
+sortOptions:
+  order: fifo
+
 resources:
   - cluster-on-pvc.yaml
   - toolbox.yaml

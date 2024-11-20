@@ -1,3 +1,6 @@
+sortOptions:
+  order: fifo
+
 resources:
   - all.yaml
   - hpa-ceilometer-notification.yaml

@@ -20,23 +20,23 @@ labels:
 
 images:
   tags:
-    test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
-    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
-    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0"
-    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
-    octavia_db_sync: "quay.io/rackspace/rackerlabs-octavia-ovn:master-ubuntu_jammy"
-    octavia_api: "quay.io/rackspace/rackerlabs-octavia-ovn:master-ubuntu_jammy"
-    octavia_worker: "quay.io/rackspace/rackerlabs-octavia-ovn:master-ubuntu_jammy"
-    octavia_housekeeping: "quay.io/rackspace/rackerlabs-octavia-ovn:master-ubuntu_jammy"
-    octavia_health_manager: "quay.io/rackspace/rackerlabs-octavia-ovn:master-ubuntu_jammy"
-    octavia_health_manager_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    openvswitch_vswitchd: docker.io/kolla/centos-source-openvswitch-vswitchd:rocky
+    test: "image-test"
+    bootstrap: "image-heat"
+    db_init: "image-heat"
+    db_drop: "image-heat"
+    rabbit_init: "image-rabbitmq-init"
+    ks_user: "image-heat"
+    ks_service: "image-heat"
+    ks_endpoints: "image-heat"
+    dep_check: "image-kubernetes-entrypoint"
+    image_repo_sync: "image-repo-sync"
+    octavia_db_sync: "image-octavia"
+    octavia_api: "image-octavia"
+    octavia_worker: "image-octavia"
+    octavia_housekeeping: "image-octavia"
+    octavia_health_manager: "image-octavia"
+    octavia_health_manager_init: "image-heat"
+    openvswitch_vswitchd: image-openvswitch
   pull_policy: "IfNotPresent"
   local_registry:
     active: false

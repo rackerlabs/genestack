@@ -139,13 +139,13 @@ pod:
 # using dockerhub postgresql: https://hub.docker.com/r/library/postgres/tags/
 images:
   tags:
-    postgresql: "docker.io/library/postgres:14.5"
-    dep_check: quay.io/airshipit/kubernetes-entrypoint:v1.0.0
-    image_repo_sync: docker.io/library/docker:17.07.0
-    ks_user: docker.io/openstackhelm/heat:stein-ubuntu_bionic
-    prometheus_postgresql_exporter: docker.io/wrouesnel/postgres_exporter:v0.4.6
-    prometheus_postgresql_exporter_create_user: "docker.io/library/postgres:14.5"
-    postgresql_backup: "quay.io/airshipit/porthole-postgresql-utility:latest-ubuntu_bionic"
+    postgresql: "image-postgres"
+    dep_check: image-kubernetes-entrypoint
+    image_repo_sync: image-repo-sync
+    ks_user: image-heat
+    prometheus_postgresql_exporter: image-postgres-exporter
+    prometheus_postgresql_exporter_create_user: "image-postgres"
+    postgresql_backup: "image-postgres-utility"
   pull_policy: "IfNotPresent"
   local_registry:
     active: false

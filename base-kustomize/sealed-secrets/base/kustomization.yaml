@@ -1,5 +1,9 @@
+sortOptions:
+  order: fifo
+
 resources:
-  - './namespace.yaml'
+  - namespace.yaml
+
 namespace: sealed-secrets
 helmGlobals:
   chartHome: ../charts/

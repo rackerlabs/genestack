@@ -31,18 +31,18 @@ labels:
 
 images:
   tags:
-    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_init: "qyay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    magnum_db_sync: "quay.io/rackspace/rackerlabs-magnum:2024.1-ubuntu_jammy"
-    db_drop: "qyay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
-    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    magnum_api: "quay.io/rackspace/rackerlabs-magnum:2024.1-ubuntu_jammy"
-    magnum_conductor: "quay.io/rackspace/rackerlabs-magnum:2024.1-ubuntu_jammy"
-    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0"
-    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
+    bootstrap: "image-heat"
+    db_init: "image-heat"
+    magnum_db_sync: "image-magnum"
+    db_drop: "image-heat"
+    rabbit_init: "image-rabbitmq-init"
+    ks_user: "image-heat"
+    ks_service: "image-heat"
+    ks_endpoints: "image-heat"
+    magnum_api: "image-magnum"
+    magnum_conductor: "image-magnum"
+    dep_check: "image-kubernetes-entrypoint"
+    image_repo_sync: "image-repo-sync"
   pull_policy: "IfNotPresent"
   local_registry:
     active: false

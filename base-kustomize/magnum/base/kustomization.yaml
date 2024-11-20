@@ -1,3 +1,6 @@
+sortOptions:
+  order: fifo
+
 resources:
   - magnum-mariadb-database.yaml
   - magnum-rabbitmq-queue.yaml

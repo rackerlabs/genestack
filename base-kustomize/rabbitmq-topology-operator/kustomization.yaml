@@ -1,2 +1,5 @@
+sortOptions:
+  order: fifo
+
 resources:
   - messaging-topology-operator-with-certmanager.yaml

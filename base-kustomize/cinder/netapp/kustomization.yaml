@@ -1,16 +1,5 @@
-images:
-  - name: image-kubernetes-entrypoint-init
-    newName: quay.io/airshipit/kubernetes-entrypoint
-    newTag: v1.0.0
-  - name: image-heat-conf-init
-    newName: docker.io/openstackhelm/heat
-    newTag: 2024.1-ubuntu_jammy
-  - name: image-cinder-volume-netapp-init
-    newName: ghcr.io/rackerlabs/genestack/cinder-volume-rxt
-    newTag: 2024.1-ubuntu_jammy
-  - name: image-cinder-volume-netapp
-    newName: ghcr.io/rackerlabs/genestack/cinder-volume-rxt
-    newTag: 2024.1-ubuntu_jammy
+sortOptions:
+  order: fifo
 
 resources:
   - configmap-etc.yaml

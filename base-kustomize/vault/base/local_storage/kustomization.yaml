@@ -1,3 +1,6 @@
+sortOptions:
+  order: fifo
+
 resources:
   - './local_sc.yaml'
   - './vault-dwpp.yaml'

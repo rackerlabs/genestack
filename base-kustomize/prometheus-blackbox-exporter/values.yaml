@@ -194,6 +194,9 @@ extraSecretMounts: []
   #   readOnly: true
 #   defaultMode: 420
 
+sortOptions:
+  order: fifo
+
 resources: {}
   # limits:
   #   memory: 300Mi

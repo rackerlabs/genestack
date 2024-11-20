@@ -131,7 +131,7 @@ spec:
           emptyDir: {}
       initContainers:
         - name: init
-          image: "quay.io/airshipit/kubernetes-entrypoint:v1.0.0"
+          image: "image-kubernetes-entrypoint"
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: true
@@ -169,7 +169,7 @@ spec:
           volumeMounts: []
         - name: get-node-annotations
           imagePullPolicy: IfNotPresent
-          image: alpine/k8s:1.26.11
+          image: image-alpine-k8s
           securityContext:
             readOnlyRootFilesystem: false
             runAsUser: 0
@@ -204,7 +204,7 @@ spec:
             - 'echo "$$SCRIPT" > /tmp/script && ash /tmp/script'
       containers:
         - name: ovn-setup-exec
-          image: "docker.io/openstackhelm/ovn:ubuntu_jammy"
+          image: image-ovn
           imagePullPolicy: IfNotPresent
           command:
             - bash
@@ -222,7 +222,7 @@ spec:
             - mountPath: /node
               name: node-info
         - name: ovn-setup-tag-completed
-          image: alpine/k8s:1.26.11
+          image: image-alpine-k8s
           imagePullPolicy: IfNotPresent
           env:
           - name: MY_NODE_NAME

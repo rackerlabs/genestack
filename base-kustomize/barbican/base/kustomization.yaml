@@ -1,3 +1,6 @@
+sortOptions:
+  order: fifo
+
 resources:
   - barbican-mariadb-database.yaml
   - barbican-rabbitmq-queue.yaml

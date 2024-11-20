@@ -18,13 +18,13 @@
 ---
 images:
   tags:
-    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    horizon_db_sync: "quay.io/rackspace/rackerlabs-horizon:2024.1-ubuntu_jammy"
-    horizon: "quay.io/rackspace/rackerlabs-horizon:2024.1-ubuntu_jammy"
-    test: "quay.io/rackspace/rackerlabs-osh-selenium:latest-ubuntu_jammy"
-    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0"
-    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
+    db_init: "image-heat"
+    db_drop: "image-heat"
+    horizon_db_sync: "image-horizon"
+    horizon: "image-horizon"
+    test: "image-selenium"
+    dep_check: "image-kubernetes-entrypoint"
+    image_repo_sync: "image-repo-sync"
   pull_policy: "IfNotPresent"
   local_registry:
     active: false

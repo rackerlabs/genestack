@@ -97,7 +97,7 @@ spec:
         openstack-storage-node: enabled
       initContainers:
         - name: init
-          image: image-kubernetes-entrypoint-init
+          image: image-kubernetes-entrypoint
           imagePullPolicy: IfNotPresent
           securityContext:
             readOnlyRootFilesystem: true
@@ -136,7 +136,7 @@ spec:
           securityContext:
             readOnlyRootFilesystem: true
             runAsUser: 0
-          image: image-heat-conf-init
+          image: image-heat
           imagePullPolicy: IfNotPresent
           command:
             - /tmp/retrieve-internal-tenant.sh
@@ -237,7 +237,7 @@ spec:
                   name: cinder-keystone-user
                   key: OS_PASSWORD
         - name: cinder-volume-netapp-init
-          image: image-cinder-volume-netapp-init
+          image: image-cinder-volume-netapp
           imagePullPolicy: IfNotPresent
           securityContext:
             readOnlyRootFilesystem: true

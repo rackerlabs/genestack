@@ -1,3 +1,6 @@
+sortOptions:
+  order: fifo
+
 helmCharts:
   - name: prometheus-rabbitmq-exporter
     repo: https://prometheus-community.github.io/helm-charts

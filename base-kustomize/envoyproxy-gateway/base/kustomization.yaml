@@ -1,6 +1,10 @@
+sortOptions:
+  order: fifo
+
 resources:
   - './namespace.yaml'
   - './gatewayclass.yaml'
+
 namespace: envoy-gateway-system
 helmGlobals:
   chartHome: ../../../submodules/envoyproxy-gateway/charts/

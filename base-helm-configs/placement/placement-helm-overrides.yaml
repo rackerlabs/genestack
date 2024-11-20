@@ -11,15 +11,15 @@ labels:
 images:
   pull_policy: IfNotPresent
   tags:
-    placement: "quay.io/rackspace/rackerlabs-placement:2024.1-ubuntu_jammy"
-    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    placement_db_sync: "quay.io/rackspace/rackerlabs-placement:2024.1-ubuntu_jammy"
-    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0"
-    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
+    placement: "image-placement"
+    ks_user: "image-heat"
+    ks_service: "image-heat"
+    ks_endpoints: "image-heat"
+    db_init: "image-heat"
+    db_drop: "image-heat"
+    placement_db_sync: "image-placement"
+    dep_check: "image-kubernetes-entrypoint"
+    image_repo_sync: "image-repo-sync"
   local_registry:
     active: false
     exclude:

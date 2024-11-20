@@ -1,3 +1,6 @@
+sortOptions:
+  order: fifo
+
 resources:
   - skyline-mariadb-database.yaml
   - services.yaml

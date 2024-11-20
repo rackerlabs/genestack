@@ -1,3 +1,6 @@
+sortOptions:
+  order: fifo
+
 resources:
   - octavia-mariadb-database.yaml
   - octavia-rabbitmq-queue.yaml
@@ -16,7 +19,7 @@ patches:
         path: /spec/template/spec/containers
         value:
         - name: octavia-agent
-          image: "ghcr.io/rackerlabs/genestack/octavia-ovn:master-ubuntu_jammy"
+          image: image-octavia
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsUser: 0
@@ -56,7 +59,7 @@ patches:
             - mountPath: /var/run/octavia
               name: pod-run-octavia
         - name: octavia-api
-          image: "ghcr.io/rackerlabs/genestack/octavia-ovn:master-ubuntu_jammy"
+          image: image-octavia
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsUser: 0

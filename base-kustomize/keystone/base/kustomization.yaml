@@ -1,3 +1,6 @@
+sortOptions:
+  order: fifo
+
 resources:
   - keystone-mariadb-database.yaml
   - keystone-rabbitmq-queue.yaml

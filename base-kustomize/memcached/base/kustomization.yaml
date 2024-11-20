@@ -1,3 +1,6 @@
+sortOptions:
+  order: fifo
+
 helmCharts:
   - name: memcached
     repo: https://marketplace.azurecr.io/helm/v1/repo

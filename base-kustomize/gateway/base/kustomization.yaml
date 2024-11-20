@@ -1,5 +1,9 @@
+sortOptions:
+  order: fifo
+
 resources:
   - all.yaml
+
 patches:
   - path: nginx-conf-override.yaml
     target:

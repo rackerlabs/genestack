@@ -1,3 +1,6 @@
+sortOptions:
+  order: fifo
+
 resources:
   - designate-mariadb-database.yaml
   - designate-rabbitmq-queue.yaml

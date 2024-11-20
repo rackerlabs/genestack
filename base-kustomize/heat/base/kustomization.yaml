@@ -1,3 +1,6 @@
+sortOptions:
+  order: fifo
+
 resources:
   - heat-mariadb-database.yaml
   - heat-rabbitmq-queue.yaml

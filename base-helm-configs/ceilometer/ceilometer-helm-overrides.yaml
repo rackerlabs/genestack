@@ -23,17 +23,17 @@ labels:
 
 images:
   tags:
-    test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
-    ceilometer_db_sync: "quay.io/rackspace/rackerlabs-ceilometer:2024.1-ubuntu_jammy"
-    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
-    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ceilometer_central: "quay.io/rackspace/rackerlabs-ceilometer:2024.1-ubuntu_jammy"
-    ceilometer_compute: "quay.io/rackspace/rackerlabs-ceilometer:2024.1-ubuntu_jammy"
-    ceilometer_ipmi: "quay.io/rackspace/rackerlabs-ceilometer:2024.1-ubuntu_jammy"
-    ceilometer_notification: "quay.io/rackspace/rackerlabs-ceilometer:2024.1-ubuntu_jammy"
-    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0"
-    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
+    test: "image-test"
+    ceilometer_db_sync: "image-ceilometer"
+    rabbit_init: "image-rabbitmq-init"
+    ks_user: "image-heat"
+    ks_service: "image-heat"
+    ceilometer_central: "image-ceilometer"
+    ceilometer_compute: "image-ceilometer"
+    ceilometer_ipmi: "image-ceilometer"
+    ceilometer_notification: "image-ceilometer"
+    dep_check: "image-kubernetes-entrypoint"
+    image_repo_sync: "image-repo-sync"
   pull_policy: "Always"
   local_registry:
     active: false

@@ -13,7 +13,7 @@ spec:
         spec:
           initContainers:
           - name: etcd-backup
-            image: csengteam/etcd-backup:v0.0.5
+            image: image-etcd-backup
             env:
             - name: ETCDCTL_API
               valueFrom:
@@ -51,7 +51,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: backup-to-s3
-            image: csengteam/etcd-backup:v0.0.5
+            image: image-etcd-backup
             env:
             - name: ACCESS_KEY
               valueFrom:

@@ -1,2 +1,5 @@
+sortOptions:
+  order: fifo
+
 resources:
   - dashboard-rbac-default.yaml

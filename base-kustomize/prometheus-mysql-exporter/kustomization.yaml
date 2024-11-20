@@ -1,3 +1,6 @@
+sortOptions:
+  order: fifo
+
 resources:
   - monitoring_user_create.yaml
   - monitoring_user_grant.yaml

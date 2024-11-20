@@ -96,6 +96,9 @@ extraContainers: []
   #     - mountPath: /etc/prometheus/secrets/pushgateway-tls
   #       name: secret-pushgateway-tls
 
+sortOptions:
+  order: fifo
+
 resources:
   limits:
     cpu: 200m

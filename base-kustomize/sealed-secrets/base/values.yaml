@@ -158,6 +158,9 @@ customStartupProbe: {}
 ## @param resources.limits [object] The resources limits for the Sealed Secret containers
 ## @param resources.requests [object] The requested resources for the Sealed Secret containers
 ##
+sortOptions:
+  order: fifo
+
 resources:
   limits: {}
   requests: {}

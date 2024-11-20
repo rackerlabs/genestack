@@ -1,3 +1,6 @@
+sortOptions:
+  order: fifo
+
 resources:
   - gnocchi-temp-keyring.yaml
   - all.yaml

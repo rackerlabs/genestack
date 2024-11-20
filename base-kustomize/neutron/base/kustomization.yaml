@@ -1,3 +1,6 @@
+sortOptions:
+  order: fifo
+
 resources:
   - neutron-mariadb-database.yaml
   - neutron-rabbitmq-queue.yaml

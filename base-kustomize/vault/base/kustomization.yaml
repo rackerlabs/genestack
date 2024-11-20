@@ -1,7 +1,11 @@
+sortOptions:
+  order: fifo
+
 resources:
   - './namespace.yaml'
   - './ssl/'
   - './local_storage'
+
 namespace: vault
 helmGlobals:
   chartHome: ../charts/

@@ -1,0 +1,139 @@
+sortOptions:
+  order: fifo
+
+images:
+  - name: image-alpine-k8s
+    newName: docker.io/alpine/k8s
+    newTag: "1.26.11"
+  - name: image-barbican
+    newName: quay.io/rackspace/rackerlabs-barbican
+    newTag: 2024.1-ubuntu_jammy
+  - name: image-ceilometer
+    newName: quay.io/rackspace/rackerlabs-ceilometer
+    newTag: 2024.1-ubuntu_jammy
+  - name: image-ceph
+    newName: quay.io/ceph/ceph
+    newTag: v18.2.2
+  - name: image-ceph-config-helper
+    newName: quay.io/rackspace/rackerlabs-ceph-config-helper
+    newTag: latest-ubuntu_jammy
+  - name: image-cinder
+    newName: quay.io/rackspace/rackerlabs-cinder
+    newTag: 2024.1-ubuntu_jammy
+  - name: image-cinder-volume-netapp
+    newName: ghcr.io/rackerlabs/genestack/cinder-volume-rxt
+    newTag: 2024.1-ubuntu_jammy
+  - name: image-designate
+    newName: quay.io/rackspace/rackerlabs-designate
+    newTag: 2024.1-ubuntu_jammy
+  - name: image-etcd-backup
+    newName: docker.io/csengteam/etcd-backup
+    newTag: v0.0.5
+  - name: image-glance
+    newName: quay.io/rackspace/rackerlabs-glance
+    newTag: 2024.1-ubuntu_jammy
+  - name: image-gnocchi
+    newName: quay.io/rackspace/rackerlabs-gnocchi
+    newTag: 2024.1-ubuntu_jammy
+  - name: image-heat
+    newName: qyay.io/rackspace/rackerlabs-heat
+    newTag: 2024.1-ubuntu_jammy
+  - name: image-horizon
+    newName: quay.io/rackspace/rackerlabs-horizon
+    newTag: 2024.1-ubuntu_jammy
+  - name: image-hyperkube
+    newName: quay.io/rackspace/rackerlabs-hyperkube-amd64
+    newTag: v1.11.6
+  - name: image-keystone
+    newName: quay.io/rackspace/rackerlabs-keystone-rxt
+    newTag: 2024.1-ubuntu_jammy-1720466623
+  - name: image-kube-ovn
+    newName: docker.io/kubeovn/kube-ovn
+    newTag: v1.11.5
+  - name: image-kubectl
+    newName: docker.io/bitnami/kubectl
+    newTag: latest
+  - name: image-kubernetes-entrypoint
+    newName: quay.io/rackspace/rackerlabs-kubernetes-entrypoint
+    newTag: v1.0.0
+  - name: image-libvirt
+    newName: docker.io/openstackhelm/libvirt
+    newTag: 2024.1-ubuntu_jammy
+  - name: image-libvirtd-exporter
+    newName: docker.io/vexxhost/libvirtd-exporter
+    newTag: latest
+  - name: image-magnum
+    newName: quay.io/rackspace/rackerlabs-magnum
+    newTag: 2024.1-ubuntu_jammy
+  - name: image-mariadb
+    newName: docker.io/mariadb/mariadb
+    newTag: "10.11.7"
+  - name: image-netoffload
+    newName: quay.io/rackspace/rackerlabs-netoffload
+    newTag: v1.0.1
+  - name: image-neutron
+    newName: quay.io/rackspace/rackerlabs-neutron
+    newTag: 2024.1-ubuntu_jammy
+  - name: image-neutron-bgp-agent
+    newName: docker.io/openstackhelm/neutron
+    newTag: stein-ubuntu_bionic
+  - name: image-neutron-sriov-agent
+    newName: docker.io/openstackhelm/neutron
+    newTag: stein-18.04-sriov
+  - name: image-nova
+    newName: quay.io/rackspace/rackerlabs-nova-efi
+    newTag: 2024.1-ubuntu_jammy
+  - name: image-nova-ironic
+    newName: docker.io/kolla/ubuntu-source-nova-compute-ironic
+    newTag: wallaby
+  - name: image-octavia
+    newName: quay.io/rackspace/rackerlabs-octavia-ovn
+    newTag: master-ubuntu_jammy
+  - name: image-openvswitch
+    newName: docker.io/kolla/centos-source-openvswitch-vswitchd
+    newTag: rocky
+  - name: image-ospurge
+    newName: quay.io/rackspace/rackerlabs-ospurge
+    newTag: latest
+  - name: image-ovn
+    newName: docker.io/openstackhelm/ovn
+    newTag: ubuntu_jammy
+  - name: image-placement
+    newName: quay.io/rackspace/rackerlabs-placement
+    newTag: 2024.1-ubuntu_jammy
+  - name: image-postgres
+    newName: quay.io/rackspace/rackerlabs-postgres
+    newTag: '14.5'
+  - name: image-postgres-exporter
+    newName: docker.io/wrouesnel/postgres_exporter
+    newTag: v0.4.6
+  - name: image-postgres-utility
+    newName: quay.io/airshipit/porthole-postgresql-utility
+    newTag: latest-ubuntu_bionic
+  - name: image-rabbitmq-init
+    newName: quay.io/rackspace/rackerlabs-rabbitmq
+    newTag: 3.13-management
+  - name: image-rabbitmq-operator
+    newName: rabbitmqoperator/cluster-operator
+    newTag: "2.6.0"
+  - name: image-rabbitmq-topology-operator
+    newName: rabbitmqoperator/messaging-topology-operator
+    newTag: "1.12.2"
+  - name: image-repo-sync
+    newName: quay.io/rackspace/rackerlabs-docker
+    newTag: "17.07.0"
+  - name: image-selenium
+    newName: quay.io/rackspace/rackerlabs-osh-selenium
+    newTag: latest-ubuntu_jammy
+  - name: image-skyline
+    newName: ghcr.io/rackerlabs/skyline-rxt
+    newTag: master-ubuntu_jammy-1730100728
+  - name: image-test
+    newName: quay.io/rackspace/rackerlabs-xrally-openstack
+    newTag: "2.0.0"
+  - name: image-yq
+    newName: ghcr.io/linuxserver/yq
+    newTag: latest
+
+resources:
+  - compiled.yaml

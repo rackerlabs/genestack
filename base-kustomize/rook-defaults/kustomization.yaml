@@ -1,3 +1,6 @@
+sortOptions:
+  order: fifo
+
 resources:
   - filesystem.yaml
   - storageclass-cephfs.yaml

@@ -1,3 +1,6 @@
+sortOptions:
+  order: fifo
+
 commonLabels:
   app: ovn-backup
 namespace: kube-system
@@ -12,5 +15,6 @@ configMapGenerator:
   - name: ovn-backup-config
     envs:
     - ovn-backup.config
+
 resources:
   - ovn-backup.yaml

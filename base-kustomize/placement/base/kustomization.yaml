@@ -1,3 +1,6 @@
+sortOptions:
+  order: fifo
+
 resources:
   - placement-mariadb-database.yaml
   - all.yaml

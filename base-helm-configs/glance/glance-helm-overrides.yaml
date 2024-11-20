@@ -16,21 +16,21 @@ release_group: null
 
 images:
   tags:
-    test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
-    glance_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
-    glance_metadefs_load: "quay.io/rackspace/rackerlabs-glance:2024.1-ubuntu_jammy"
-    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    glance_db_sync: "quay.io/rackspace/rackerlabs-glance:2024.1-ubuntu_jammy"
-    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
-    glance_api: "quay.io/rackspace/rackerlabs-glance:2024.1-ubuntu_jammy"
+    test: "image-test"
+    glance_storage_init: "image-ceph-config-helper"
+    glance_metadefs_load: "image-glance"
+    db_init: "image-heat"
+    glance_db_sync: "image-glance"
+    db_drop: "image-heat"
+    ks_user: "image-heat"
+    ks_service: "image-heat"
+    ks_endpoints: "image-heat"
+    rabbit_init: "image-rabbitmq-init"
+    glance_api: "image-glance"
     # Bootstrap image requires curl
-    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0"
-    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
+    bootstrap: "image-heat"
+    dep_check: "image-kubernetes-entrypoint"
+    image_repo_sync: "image-repo-sync"
   pull_policy: "IfNotPresent"
   local_registry:
     active: false
