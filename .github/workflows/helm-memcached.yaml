@@ -31,13 +31,9 @@ jobs:
               curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
               chmod +x ./kubectl
             fi
-      - name: Install helm repo
-        run: |
-            helm repo add "bitnami" "https://marketplace.azurecr.io/helm/v1/repo"
-            helm repo update
       - name: Run Helm Template
         run: |
-          ${{ steps.helm.outputs.helm-path }} template memcached bitnami/memcached \
+          ${{ steps.helm.outputs.helm-path }} template memcached oci://registry-1.docker.io/bitnamicharts/memcached \
             --namespace=openstack \
             --wait \
             --timeout 120m \
