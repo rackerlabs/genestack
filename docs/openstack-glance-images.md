@@ -390,3 +390,26 @@ openstack --os-cloud default image create \
           --property os_version=9.4 \
           RHEL-9.4
 ```
+
+## Get Windows
+
+!!! note
+
+    You will need to create a virtual disk image from your own licensed media and convert to .qcow2 format.  This example uses a Windows 2022 Standard Edition installation generalized with cloud-init and sysprep, then converted the image to .qcow2 format using qemu-img.  For additional information on creating a Windows image, please see the [upstream documentation](https://docs.openstack.org/image-guide/create-images-manually-example-windows-image.html).
+
+``` shell
+openstack --os-cloud default image create \
+          --progress \
+          --disk-format qcow2 \
+          --min-disk 50 \
+          --min-ram 2048 \
+          --container-format bare \
+          --file Windows2022StdEd.qcow2 \
+          --public \
+          --property hypervisor_type=kvm \
+          --property os_type=windows \
+          --property os_admin_user=administrator \
+          --property os_distro=windows \
+          --property os_version=2022 \
+          Windows-2022-Standard
+```
