@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: memcached
+spec:
+  template:
+    spec:
+      containers:
+        - name: memcached
+          env:
+            - name: ARCHITECTURE
+              value: standalone
+            - name: AUTOSCALING_ENABLED
+              value: "false"
+          resources:
+            requests:
+              memory: "1Gi"
+

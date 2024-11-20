@@ -1,0 +1,51 @@
+name: Helm GitHub Actions for Memcached
+
+on:
+  pull_request:
+    paths:
+      - base-helm-configs/memcached/**
+      - base-kustomize/memcached/**
+      - .github/workflows/helm-memcached.yaml
+jobs:
+  helm:
+    strategy:
+      matrix:
+        overlays:
+          - base
+          - base-monitoring
+          - aio
+    name: Helm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: azure/setup-helm@v3
+        with:
+          version: latest
+          token: "${{ secrets.GITHUB_TOKEN }}"
+        id: helm
+      - name: Kubectl Install
+        working-directory: /usr/local/bin/
+        run: |
+            if [ ! -f /usr/local/bin/kubectl ]; then
+              curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+              chmod +x ./kubectl
+            fi
+      - name: Install helm repo
+        run: |
+            helm repo add "bitnami" "https://marketplace.azurecr.io/helm/v1/repo"
+            helm repo update
+      - name: Run Helm Template
+        run: |
+          ${{ steps.helm.outputs.helm-path }} template memcached bitnami/memcached \
+            --namespace=openstack \
+            --wait \
+            --timeout 120m \
+            -f ${{ github.workspace }}/base-helm-configs/memcached/memcached-helm-overrides.yaml \
+            --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
+            --post-renderer-args memcached/${{ matrix.overlays }} > /tmp/rendered.yaml
+      - name: Return helm Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-memcached-artifact-${{ matrix.overlays }}
+          path: /tmp/rendered.yaml

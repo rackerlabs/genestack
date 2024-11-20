@@ -1,29 +1,6 @@
-helmCharts:
-  - name: memcached
-    repo: https://marketplace.azurecr.io/helm/v1/repo
-    releaseName: memcached
-    valuesInline:
-      architecture: high-availability
-      autoscaling:
-        enabled: true
-      resources:
-        requests:
-          memory: 1Gi
-      persistence:
-        enabled: true
-        size: 10Gi
-      metrics:
-        enabled: true
-        serviceMonitor:
-          enabled: true
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: node-role.kubernetes.io/worker
-                    operator: In
-                    values:
-                      - worker
-    includeCRDs: true
-    namespace: openstack
+resources:
+  - ../base/
+
+patchesStrategicMerge:
+  - monitoring-patch.yaml
+
