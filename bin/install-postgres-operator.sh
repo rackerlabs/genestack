@@ -3,7 +3,7 @@
 # Directory to check for YAML files
 CONFIG_DIR="/etc/genestack/helm-configs/postgres-operator"
 
-pushd /opt/genestack/submodules/postgres-operator/charts/postgres-operator || exit
+pushd /opt/genestack/submodules/postgres-operator/charts || exit
 
 # Base helm command setup
 HELM_CMD="helm upgrade --install postgres-operator ./postgres-operator \
