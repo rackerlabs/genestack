@@ -26,6 +26,9 @@
 #     - A separate `valuesFile` field seems unnecessary, so this should
 #       frequently have `values.yaml` as the first, and often the only, list
 #       entry.
+#     - Notably, subsumes the functionality of `additionalValuesFiles` from
+#       a `helmConfig`, as it simply applies all specified values files in
+#       order.
 #
 # - first line as _Genestack_ component name
 #    - `helmCharts` takes a list and has a `name` field that refers to the
@@ -54,6 +57,9 @@
 #     - This often gets used in `helmCharts` in kustomization.yaml, but
 #       invoking `helm` directly installs CRDs by default unless you
 #       specify `--skip-crds`, so doesn't appear here.
+# - additionalValuesFiles: not used
+#     - As mentioned above, this list just goes under `valuesFiles` here, where
+#       all items of the list get applied in order.
 
 prometheus:
   repoName: prometheus-community
@@ -65,3 +71,23 @@ prometheus:
     - prometheus-helm-overrides.yaml
     - alerting_rules.yaml
     - alertmanager_config.yaml
+
+prometheus-pushgateway:
+  repoName: prometheus-community
+  repo: https://prometheus-community.github.io/helm-charts
+  name: prometheus-pushgateway
+  releaseName: prometheus-pushgateway
+  namespace: prometheus
+  valuesFiles:
+    - values.yaml
+
+prometheus-blackbox-exporter:
+  name: prometheus-blackbox-exporter
+  repoName: prometheus-community
+  repo: https://prometheus-community.github.io/helm-charts
+  releaseName: prometheus-blackbox-exporter
+  namespace: prometheus
+  includeCRDs: true
+  valuesFiles:
+    - values.yaml
+    - probe_targets.yaml
