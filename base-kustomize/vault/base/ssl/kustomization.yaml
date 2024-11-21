@@ -1,4 +1,6 @@
 namespace: vault
+sortOptions:
+  order: fifo
 resources:
   - './vault-selfsigned-issuer.yaml'
   - './vault-selfsigned-ca.yaml'

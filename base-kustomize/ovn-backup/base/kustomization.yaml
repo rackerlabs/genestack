@@ -12,5 +12,7 @@ configMapGenerator:
   - name: ovn-backup-config
     envs:
     - ovn-backup.config
+sortOptions:
+  order: fifo
 resources:
   - ovn-backup.yaml
