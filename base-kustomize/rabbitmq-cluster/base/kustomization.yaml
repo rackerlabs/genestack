@@ -1,2 +1,4 @@
+sortOptions:
+  order: fifo
 resources:
   - rabbitmq-cluster.yaml

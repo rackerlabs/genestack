@@ -1,4 +1,6 @@
-bases:
+sortOptions:
+  order: fifo
+resources:
   - ../base
 
 patches:
