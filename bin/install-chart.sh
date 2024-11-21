@@ -28,7 +28,7 @@ do
     declare "$var_name=${chart_values[i+1]}"
 done
 
-required_vars=("NAMESPACE" "NAME" "REPONAME" "RELEASENAME" "URL")
+required_vars=("NAMESPACE" "NAME" "REPONAME" "RELEASENAME" "REPO")
 for var in "${required_vars[@]}"; do
     if [[ -z "${!var}" ]]; then
         echo "ERROR: Required variable $var is missing in the YAML file."
@@ -72,7 +72,7 @@ run_or_test_print () {
     fi
 }
 
-run_or_test_print helm repo add "$REPONAME" "$URL"
+run_or_test_print helm repo add "$REPONAME" "$REPO"
 run_or_test_print helm repo update
 run_or_test_print helm upgrade --install "$RELEASENAME" "$REPONAME/$NAME" \
     --create-namespace --namespace="$NAMESPACE" \

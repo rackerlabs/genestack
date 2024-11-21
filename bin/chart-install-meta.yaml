@@ -1,16 +1,65 @@
 # This files generally tries to match the naming conventions for a
-# kustomization.yaml with `helmCharts`. helmCharts sometimes has 'includeCRDs'
-# in it, but `helm install` includes CRDs unless you specify `--skip-crds`, so
-# that doesn't appear here.
+# kustomization.yaml with `helmCharts`, but has some mostly necessary
+# deviations.
 #
-# Using 'helm' commands to add a repo, like `helm repo add`, gives the repo a
-# name. No analog exists in a kustomization.yaml under `helmCharts`, but here,
-# you also specify a repoName which appears as the name in `helm repo list`.
+# Field names matching `helmCharts` from a kustomization.yaml:
+# ------------------------------------------------------------------------------
+#
+# These values have the same name and function as in a `helmCharts` stanza.
+#
+# - repo: URL for the repo for the chart
+# - name: name of the chart to install from the repo
+# - namespace: The namespace to install in.
+#     - This will often, but only incidentally, match the `releaseName`.
+# - releaseName: identical to a `helmCharts` entry
+#      - However, since we install with a script, actually shows up as a release
+#        with `helm list`.
+#      - This will often, but only incidentally, match the `name`.
+#
+# Slightly different from `helmCharts` in a `kustomization.yaml`:
+# ------------------------------------------------------------------------------
+#
+# This shows slight differences between a `helmCharts` stanza and what you put
+# here.
+#
+# - valuesFiles: This includes all values files listed in order to apply them.
+#     - A separate `valuesFile` field seems unnecessary, so this should
+#       frequently have `values.yaml` as the first, and often the only, list
+#       entry.
+#
+# - first line as _Genestack_ component name
+#    - `helmCharts` takes a list and has a `name` field that refers to the
+#       name of the chart from the repo. For the purpose of identifying the
+#       _Genestack_ component, the identification for each entry will
+#       frequently duplicate the `name` as used to identify a chart in the
+#       repo, but may or may not differ, e.g., `prometheus:` refers to
+#       Prometheus proper as a _Genestack_ component, but has `name`
+#       `kube-prometheus-stack` as the chart name from the repo, while
+#       `prometheus-pushgateway:` ALSO has `name: prometheus-pushgateway` as
+#       overall top-level identifier matching the `name.
+#
+# Required here but not in a stanza of `helmCharts`
+# ------------------------------------------------------------------------------
+#
+# This doesn't appear in a `helmCharts` stanza of a `kustomization.yaml`, but
+# you have to supply it here.
+#
+# - repoName: name for the repo as shown by `helm list`.
+#    - Using `kustomization.yaml` doesn't create a repo shown by `helm list`,
+#       so this needed adding.
+#
+# Notable differences
+# ------------------------------------------------------------------------------
+# - includeCRDs: not used
+#     - This often gets used in `helmCharts` in kustomization.yaml, but
+#       invoking `helm` directly installs CRDs by default unless you
+#       specify `--skip-crds`, so doesn't appear here.
+
 prometheus:
   repoName: prometheus-community
   releaseName: kube-prometheus-stack
   name: kube-prometheus-stack
-  url: https://prometheus-community.github.io/helm-charts
+  repo: https://prometheus-community.github.io/helm-charts
   namespace: prometheus
   valuesFiles:
     - prometheus-helm-overrides.yaml
