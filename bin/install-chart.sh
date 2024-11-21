@@ -6,7 +6,6 @@ shift # preserve "$@" for --post-renderer-args
 GENESTACK_DIR="${GENESTACK_DIR:-/opt/genestack}"
 CHART_META_FILE=\
 "${CHART_META_FILE:-$GENESTACK_DIR/bin/chart-install-meta.yaml}"
-GENESTACK_DIR="${GENESTACK_DIR:-/opt/genestack}"
 GENESTACK_CONFIG_DIR="${GENESTACK_CONFIG_DIR:-/etc/genestack}"
 GENESTACK_CHART_DIR=\
 "${GENESTACK_CHART_DIR:-$GENESTACK_DIR/base-helm-configs/$CHART}"
