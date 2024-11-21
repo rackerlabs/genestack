@@ -28,10 +28,22 @@ do
     declare "$var_name=${chart_values[i+1]}"
 done
 
+required_vars=("NAMESPACE" "NAME" "REPONAME" "RELEASENAME" "URL")
+for var in "${required_vars[@]}"; do
+    if [[ -z "${!var}" ]]; then
+        echo "ERROR: Required variable $var is missing in the YAML file."
+        exit 1
+    fi
+done
+
 # Though it probably wouldn't make any difference for all of the
 # $GENESTACK_CONFIG_DIR files to come last, this takes care to fully preserve
 # the order
 echo "Including overrides in order:"
+if [[ "$VALUESFILES" == "" ]]
+then
+    echo "WARNING: no values files specified. Check valuesFiles in the YAML file for $CHART"
+fi
 values_args=()
 set -o noglob # Prevent glob expansions in $VALUESFILES
 for BASE_FILENAME in $VALUESFILES
