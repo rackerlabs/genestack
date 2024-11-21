@@ -3,6 +3,7 @@ pushd /opt/genestack/submodules/openstack-helm || exit
     helm upgrade --install heat ./heat \
     --namespace=openstack \
         --timeout 120m \
+        -f /opt/genestack/base-helm-configs/heat/heat-helm-overrides.yaml \
         -f /etc/genestack/helm-configs/heat/heat-helm-overrides.yaml \
         --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
         --set endpoints.identity.auth.heat.password="$(kubectl --namespace openstack get secret heat-admin -o jsonpath='{.data.password}' | base64 -d)" \

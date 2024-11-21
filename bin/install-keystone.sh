@@ -3,6 +3,7 @@ pushd /opt/genestack/submodules/openstack-helm || exit
     helm upgrade --install keystone ./keystone \
         --namespace=openstack \
         --timeout 120m \
+        -f /opt/genestack/base-helm-configs/keystone/keystone-helm-overrides.yaml \
         -f /etc/genestack/helm-configs/keystone/keystone-helm-overrides.yaml \
         --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
         --set endpoints.oslo_db.auth.admin.password="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)" \

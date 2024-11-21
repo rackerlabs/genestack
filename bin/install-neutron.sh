@@ -3,6 +3,7 @@ pushd /opt/genestack/submodules/openstack-helm || exit
   helm upgrade --install neutron ./neutron \
     --namespace=openstack \
       --timeout 120m \
+      -f /opt/genestack/base-helm-configs/neutron/neutron-helm-overrides.yaml \
       -f /etc/genestack/helm-configs/neutron/neutron-helm-overrides.yaml \
       --set conf.metadata_agent.DEFAULT.metadata_proxy_shared_secret="$(kubectl --namespace openstack get secret metadata-shared-secret -o jsonpath='{.data.password}' | base64 -d)" \
       --set conf.ovn_metadata_agent.DEFAULT.metadata_proxy_shared_secret="$(kubectl --namespace openstack get secret metadata-shared-secret -o jsonpath='{.data.password}' | base64 -d)" \

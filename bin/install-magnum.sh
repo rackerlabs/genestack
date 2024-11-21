@@ -3,6 +3,7 @@ pushd /opt/genestack/submodules/openstack-helm || exit
     helm upgrade --install magnum ./magnum \
         --namespace=openstack \
         --timeout 120m \
+        -f /opt/genestack/base-helm-configs/magnum/magnum-helm-overrides.yaml \
         -f /etc/genestack/helm-configs/magnum/magnum-helm-overrides.yaml \
         --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
         --set endpoints.identity.auth.magnum.password="$(kubectl --namespace openstack get secret magnum-admin -o jsonpath='{.data.password}' | base64 -d)" \

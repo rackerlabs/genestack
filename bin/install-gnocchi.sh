@@ -3,6 +3,7 @@ pushd /opt/genestack/submodules/openstack-helm-infra || exit
     helm upgrade --install gnocchi ./gnocchi \
         --namespace=openstack \
         --timeout 10m \
+        -f /opt/genestack/base-helm-configs/gnocchi/gnocchi-helm-overrides.yaml \
         -f /etc/genestack/helm-configs/gnocchi/gnocchi-helm-overrides.yaml \
         --set conf.ceph.admin_keyring="$(kubectl get secret --namespace rook-ceph rook-ceph-admin-keyring -o jsonpath='{.data.keyring}' | base64 -d)" \
         --set conf.gnocchi.keystone_authtoken.memcache_secret_key="$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)" \
