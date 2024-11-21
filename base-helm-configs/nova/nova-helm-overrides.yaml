@@ -1359,7 +1359,7 @@ conf:
   nova:
     DEFAULT:
       default_availability_zone: az1
-      default_schedule_zone: null
+      default_schedule_zone: az1
       # NOTE(cloudnull): the vif_plugging_* options are an implemntation detail of the nova container when running with OVN
       vif_plugging_is_fatal: true
       vif_plugging_timeout: 300

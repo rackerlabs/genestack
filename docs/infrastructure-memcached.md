@@ -2,9 +2,11 @@
 
 ## Deploy the Memcached Cluster
 
-``` shell
-kubectl kustomize --enable-helm /etc/genestack/kustomize/memcached/overlay | kubectl apply --namespace openstack -f -
-```
+!!! example "Run the memcached deployment Script `bin/install-memcached.sh` You can include paramaters to deploy aio or base-monitoring. No paramaters deploys base"
+
+    ``` shell
+    --8<-- "bin/install-memcached.sh"
+    ```
 
 !!! note
 

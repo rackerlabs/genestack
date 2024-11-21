@@ -1,16 +1,17 @@
-helmCharts:
-  - name: memcached
-    repo: https://marketplace.azurecr.io/helm/v1/repo
-    releaseName: memcached
-    valuesInline:
-      architecture: standalone
-      autoscaling:
-        enabled: false
-      resources:
-        requests:
-          memory: 1Gi
-      persistence:
-        enabled: true
-        size: 1Gi
-    includeCRDs: true
-    namespace: openstack
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../base
+
+patches:
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: memcached
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 1
