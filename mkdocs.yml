@@ -226,9 +226,9 @@ nav:
                   - alertmanager-msteams.md
                   - alertmanager-pagerduty.md
   - Operational Guide:
-      - Supporting multi-region Genestack: multi-region-support.md
-      - Running Genestack Upgrade: genestack-upgrade.md
-      - Running Kubespray Upgrade: k8s-kubespray-upgrade.md
+      - Genestack:
+          - Supporting multi-region: multi-region-support.md
+          - Running Upgrades: genestack-upgrade.md
       - Resource Metering:
           - Metering Overview: metering-overview.md
           - Ceilometer: metering-ceilometer.md
@@ -237,16 +237,19 @@ nav:
           - Chargebacks: metering-chargebacks.md
           - Logging Overview: genestack-logging.md
       - Infrastructure:
-          - Etcd Backup: etcd-backup.md
-          - OVN introduction: ovn-intro.md
-          - OVN troubleshooting: ovn-troubleshooting.md
-          - OVN traffic flow introduction: ovn-traffic-flow-intro.md
-          - OVN Database Backup: infrastructure-ovn-db-backup.md
-          - OVN Monitoring introduction: ovn-monitoring-introduction.md
-          - OVN Claim Storm alert: ovn-alert-claim-storm.md
-          - MariaDB Operations: infrastructure-mariadb-ops.md
-          - Adding New Node: adding-new-node.md
-          - Host Aggregates: openstack-host-aggregates.md
+          - Kubernetes:
+              - Etcd Backup: etcd-backup.md
+              - Adding New Nodes: adding-new-node.md
+              - Running Kubespray Upgrades: k8s-kubespray-upgrade.md
+          - OVN:
+              - Introduction: ovn-intro.md
+              - Troubleshooting: ovn-troubleshooting.md
+              - Traffic flow introduction: ovn-traffic-flow-intro.md
+              - Database Backup: infrastructure-ovn-db-backup.md
+              - Monitoring introduction: ovn-monitoring-introduction.md
+              - Claim Storm alert: ovn-alert-claim-storm.md
+          - MariaDB:
+              - Operations: infrastructure-mariadb-ops.md
       - Monitoring and Alerting:
           - Monitoring Information: monitoring-info.md
           - Alerting Information: alerting-info.md
@@ -259,6 +262,7 @@ nav:
               - Nova Flavor Creation: openstack-flavors.md
               - Nova CPU Allocation Ratio: openstack-cpu-allocation-ratio.md
               - Nova PCI Passthrough: openstack-pci-passthrough.md
+              - Host Aggregates: openstack-host-aggregates.md
           - Images:
               - Glance Images Creation: openstack-glance-images.md
           - Identity:
