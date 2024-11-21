@@ -256,7 +256,6 @@ nav:
       - Third Party Tools:
           - OSIE: extra-osie.md
       - OpenStack:
-          - Resource and Project Lookups: openstack-resource-lookups.md
           - CLI Access:
               - Generating Clouds YAML: openstack-clouds.md
           - Compute:
@@ -278,6 +277,7 @@ nav:
           - Object Storage:
               - Operating Swift Object Storage: openstack-swift-operators-guide.md
           - Service Overrides: openstack-service-overrides.md
+          - Resource and Project Lookups: openstack-resource-lookups.md
       - Working locally With Docs: mkdocs-howto.md
   - Cloud Onboarding:
       - Cloud Onboarding Welcome: cloud-onboarding-welcome.md
