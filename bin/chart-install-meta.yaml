@@ -16,6 +16,11 @@
 #        with `helm list`.
 #      - This will often, but only incidentally, match the `name`.
 #
+# Field names matching `helmCharts` from a kustomization.yaml, optional:
+# ------------------------------------------------------------------------------
+#
+# - version: Specify a chart version.
+#
 # Slightly different from `helmCharts` in a `kustomization.yaml`:
 # ------------------------------------------------------------------------------
 #
@@ -47,9 +52,9 @@
 # This doesn't appear in a `helmCharts` stanza of a `kustomization.yaml`, but
 # you have to supply it here.
 #
-# - repoName: name for the repo as shown by `helm list`.
-#    - Using `kustomization.yaml` doesn't create a repo shown by `helm list`,
-#       so this needed adding.
+# - repoName: name for the repo as shown by `helm repo list`.
+#    - Using `kustomization.yaml` doesn't create a repo shown by
+#      `helm repo list` so this needed adding.
 #
 # Notable differences
 # ------------------------------------------------------------------------------
@@ -91,3 +96,32 @@ prometheus-blackbox-exporter:
   valuesFiles:
     - values.yaml
     - probe_targets.yaml
+
+prometheus-rabbitmq-exporter:
+  name: prometheus-rabbitmq-exporter
+  namespace: openstack
+  repoName: prometheus-community
+  repo: https://prometheus-community.github.io/helm-charts
+  releaseName: prometheus-rabbitmq-exporter
+  version: 1.11.0
+  valuesFiles:
+    - values.yaml
+
+prometheus-mysql-exporter:
+  name: prometheus-mysql-exporter
+  repoName: prometheus-community
+  repo: https://prometheus-community.github.io/helm-charts
+  releaseName: prometheus-mysql-exporter
+  namespace: openstack
+  valuesFiles:
+    - values.yaml
+
+prometheus-postgres-exporter:
+  name: prometheus-postgres-exporter
+  repoName: prometheus-community
+  repo: https://prometheus-community.github.io/helm-charts
+  releaseName: prometheus-postgres-exporter
+  namespace: openstack
+  version: 6.0.0
+  valuesFiles:
+    - values.yaml

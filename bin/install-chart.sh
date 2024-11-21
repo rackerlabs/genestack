@@ -72,11 +72,18 @@ run_or_test_print () {
     fi
 }
 
+version_args=()
+if [[ "$VERSION" != "" ]]
+then
+    version_args+=("--version" "$VERSION")
+fi
+
 run_or_test_print helm repo add "$REPONAME" "$REPO"
 run_or_test_print helm repo update
 run_or_test_print helm upgrade --install "$RELEASENAME" "$REPONAME/$NAME" \
     --create-namespace --namespace="$NAMESPACE" \
     --timeout 10m \
+    "${version_args[@]}" \
     "${values_args[@]}" \
     --post-renderer "$GENESTACK_CONFIG_DIR/kustomize/kustomize.sh" \
     --post-renderer-args "$CHART/overlay" "$@"
