@@ -5,10 +5,12 @@ on:
     branches:
       - main
     paths:
+      - mkdocs.yml
       - "docs/**"
       - ".github/workflows/mkdocs.yml"
   pull_request:
     paths:
+      - mkdocs.yml
       - "docs/**"
       - ".github/workflows/mkdocs.yml"
   workflow_dispatch:
