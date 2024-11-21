@@ -11,8 +11,12 @@ if len(sys.argv) < 3:
 filename = sys.argv[1]
 chart = sys.argv[2]
 
-with open(filename, "r") as conf_file:
-    conf_yaml = yaml.safe_load(conf_file)
+try:
+    with open(filename, "r") as conf_file:
+        conf_yaml = yaml.safe_load(conf_file)
+except Exception as e:
+    print(f"Error parsing YAML file {filename}: {e}")
+    sys.exit(1)
 
 if chart not in conf_yaml:
     print(f"No chart '{chart}' in file {filename}")
