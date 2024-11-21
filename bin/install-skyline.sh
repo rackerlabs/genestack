@@ -1,2 +1,2 @@
 #!/bin/bash
-kubectl --namespace openstack apply -k /opt/genestack/base-kustomize/skyline/base
+kubectl --namespace openstack apply -k /etc/genestack/kustomize/skyline/overlay
