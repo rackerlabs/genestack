@@ -54,7 +54,7 @@ echo
 run_or_test_print () {
     if [[ "$ECHO_TEST" == "true" ]]
     then
-        python -c 'import sys; print(sys.argv[1:])' "$@"
+        $YAML_PARSER_PYTHON -c 'import sys; print(sys.argv[1:])' "$@"
     else
         "$@"
     fi
