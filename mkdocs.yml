@@ -253,6 +253,7 @@ nav:
       - Third Party Tools:
           - OSIE: extra-osie.md
       - OpenStack:
+          - Resource and Project Lookups: openstack-resource-lookups.md
           - CLI Access:
               - Generating Clouds YAML: openstack-clouds.md
           - Compute:
