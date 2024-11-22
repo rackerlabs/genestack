@@ -60,6 +60,10 @@ do
 done
 echo
 
+if [[ "$TIMEOUT" != "" ]]
+then
+    timeout_args+=("--timeout" "$TIMEOUT")
+fi
 # Run script as ECHO_TEST=true install-chart.sh to see the commands that would
 # run formatted as a Python list to clearly distinguish whitespace from separate
 # arguments
@@ -91,8 +95,8 @@ run_or_test_print helm repo update
 run_or_test_print helm \
     "${render_or_install[@]}" "$RELEASENAME" "$REPONAME/$NAME" \
     --create-namespace --namespace="$NAMESPACE" \
-    --timeout 10m \
-    "${version_args[@]}" \
+    --timeout "${TIMEOUT:-10m}" \
+    "${version_args[@]}" "${timeout_args[@]}"\
     "${values_args[@]}" \
     --post-renderer "$GENESTACK_CONFIG_DIR/kustomize/kustomize.sh" \
     --post-renderer-args "$CHART/overlay" "$@"
