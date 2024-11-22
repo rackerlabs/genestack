@@ -3,6 +3,7 @@ pushd /opt/genestack/submodules/openstack-helm || exit
     helm upgrade --install octavia ./octavia \
         --namespace=openstack \
         --timeout 120m \
+        -f /opt/genestack/base-helm-configs/octavia/octavia-helm-overrides.yaml \
         -f /etc/genestack/helm-configs/octavia/octavia-helm-overrides.yaml \
         --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
         --set endpoints.identity.auth.octavia.password="$(kubectl --namespace openstack get secret octavia-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -17,5 +18,5 @@ pushd /opt/genestack/submodules/openstack-helm || exit
         --set conf.octavia.ovn.ovn_nb_connection="tcp:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')" \
         --set conf.octavia.ovn.ovn_sb_connection="tcp:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')" \
         --post-renderer /etc/genestack/kustomize/kustomize.sh \
-        --post-renderer-args octavia/base "$@"
+        --post-renderer-args octavia/overlay "$@"
 popd || exit

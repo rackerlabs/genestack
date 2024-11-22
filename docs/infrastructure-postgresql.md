@@ -65,5 +65,5 @@ kubectl kustomize --enable-helm /etc/genestack/kustomize/postgres-operator | kub
     which has a single replica and less default resource utilization.
 
     ```shell
-    kubectl kustomize /etc/genestack/kustomize/postgres-cluster/base | kubectl apply -f -
+    kubectl kustomize /etc/genestack/kustomize/postgres-cluster/overlay | kubectl apply -f -
     ```

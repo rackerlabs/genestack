@@ -77,7 +77,7 @@ There are various implementations of the Gateway API. In this document, we will 
                     --timeout 10m \
                     -f /etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml \
                     --post-renderer /etc/genestack/kustomize/kustomize.sh \
-                    --post-renderer-args gateway/base
+                    --post-renderer-args gateway/overlay
         ```
 
     === "Experimental"
@@ -124,7 +124,7 @@ There are various implementations of the Gateway API. In this document, we will 
     Apply the configuration using the following command:
 
     ``` shell
-    kubectl kustomize --enable-helm /etc/genestack/kustomize/envoyproxy-gateway/base | kubectl apply -f -
+    kubectl kustomize --enable-helm /etc/genestack/kustomize/envoyproxy-gateway/overlay | kubectl apply -f -
     ```
 
     ### After installation
