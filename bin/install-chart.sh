@@ -72,6 +72,14 @@ run_or_test_print () {
     fi
 }
 
+render_or_install=()
+if [[ "$RENDER_ONLY" == "true" ]]
+then
+    render_or_install+=("template")
+else
+    render_or_install+=("upgrade" "--install")
+fi
+
 version_args=()
 if [[ "$VERSION" != "" ]]
 then
@@ -80,7 +88,8 @@ fi
 
 run_or_test_print helm repo add "$REPONAME" "$REPO"
 run_or_test_print helm repo update
-run_or_test_print helm upgrade --install "$RELEASENAME" "$REPONAME/$NAME" \
+run_or_test_print helm \
+    "${render_or_install[@]}" "$RELEASENAME" "$REPONAME/$NAME" \
     --create-namespace --namespace="$NAMESPACE" \
     --timeout 10m \
     "${version_args[@]}" \
