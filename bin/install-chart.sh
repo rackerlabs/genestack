@@ -96,7 +96,7 @@ run_or_test_print helm \
     "${render_or_install[@]}" "$RELEASENAME" "$REPONAME/$NAME" \
     --create-namespace --namespace="$NAMESPACE" \
     --timeout "${TIMEOUT:-10m}" \
-    "${version_args[@]}" "${timeout_args[@]}"\
+    "${version_args[@]}" "${timeout_args[@]}" \
     "${values_args[@]}" \
     --post-renderer "$GENESTACK_OVERLAY_DIR/kustomize/kustomize.sh" \
-    --post-renderer-args "$CHART/overlay" "$@"
+    --post-renderer-args "$CHART/${OVERLAYDIR:-overlay}" "$@"

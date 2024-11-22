@@ -56,6 +56,16 @@
 #    - Using `kustomization.yaml` doesn't create a repo shown by
 #      `helm repo list` so this needed adding.
 #
+# Not required here and not in a stanza of `helmCharts`
+# ------------------------------------------------------------------------------
+#
+# - timeout: amount of time allowed for `helm install` to complete
+#    - optional because it defaults to 10m
+#    - no equivalent exists in a `helmCharts` stanza
+# - overlayDir: name of directory under
+#   /etc/genestack/helm-configs/<GENESTACK_NAME> for overlays.
+#    - optional, defaults to 'overlay'
+#
 # Notable differences
 # ------------------------------------------------------------------------------
 # - includeCRDs: not used
