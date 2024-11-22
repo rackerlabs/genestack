@@ -6,11 +6,11 @@ shift # preserve "$@" for --post-renderer-args
 GENESTACK_DIR="${GENESTACK_DIR:-/opt/genestack}"
 CHART_META_FILE=\
 "${CHART_META_FILE:-$GENESTACK_DIR/bin/chart-install-meta.yaml}"
-GENESTACK_CONFIG_DIR="${GENESTACK_CONFIG_DIR:-/etc/genestack}"
+GENESTACK_OVERLAY_DIR="${GENESTACK_OVERLAY_DIR:-/etc/genestack}"
 GENESTACK_CHART_DIR=\
 "${GENESTACK_CHART_DIR:-$GENESTACK_DIR/base-helm-configs/$CHART}"
-GENESTACK_CHART_CONFIG_DIR=\
-"${GENESTACK_CHART_CONFIG_DIR:-$GENESTACK_CONFIG_DIR/helm-configs/$CHART}"
+GENESTACK_CHART_OVERLAY_DIR=\
+"${GENESTACK_CHART_OVERLAY_DIR:-$GENESTACK_OVERLAY_DIR/helm-configs/$CHART}"
 # This Python needs PyYAML, which the normal Genestack venv will have.
 YAML_PARSER_PYTHON="${YAML_PARSER_PYTHON:-$(which python)}"
 YAML_PARSER_PY="${YAML_PARSER_PY:-$GENESTACK_DIR/bin/yamlparse.py}"
@@ -37,7 +37,7 @@ for var in "${required_vars[@]}"; do
 done
 
 # Though it probably wouldn't make any difference for all of the
-# $GENESTACK_CONFIG_DIR files to come last, this takes care to fully preserve
+# $GENESTACK_OVERLAY_DIR files to come last, this takes care to fully preserve
 # the order
 echo "Including overrides in order:"
 if [[ "$VALUESFILES" == "" ]]
@@ -48,7 +48,7 @@ values_args=()
 set -o noglob # Prevent glob expansions in $VALUESFILES
 for BASE_FILENAME in $VALUESFILES
 do
-    for DIR in "$GENESTACK_CHART_DIR" "$GENESTACK_CHART_CONFIG_DIR"
+    for DIR in "$GENESTACK_CHART_DIR" "$GENESTACK_CHART_OVERLAY_DIR"
     do
         ABSOLUTE_PATH="$DIR/$BASE_FILENAME"
         if [[ -e "$ABSOLUTE_PATH" ]]
@@ -98,5 +98,5 @@ run_or_test_print helm \
     --timeout "${TIMEOUT:-10m}" \
     "${version_args[@]}" "${timeout_args[@]}"\
     "${values_args[@]}" \
-    --post-renderer "$GENESTACK_CONFIG_DIR/kustomize/kustomize.sh" \
+    --post-renderer "$GENESTACK_OVERLAY_DIR/kustomize/kustomize.sh" \
     --post-renderer-args "$CHART/overlay" "$@"
