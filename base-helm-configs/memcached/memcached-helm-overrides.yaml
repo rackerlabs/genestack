@@ -643,7 +643,7 @@ volumePermissions:
 metrics:
   ## @param metrics.enabled Start a side-car prometheus exporter
   ##
-  enabled: true
+  enabled: false
   ## Bitnami Memcached Prometheus Exporter image
   ## ref: https://hub.docker.com/r/bitnami/memcached-exporter/tags/
   ## @param metrics.image.registry [default: REGISTRY_NAME] Memcached exporter image registry
