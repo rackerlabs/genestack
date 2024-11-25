@@ -1,8 +1,0 @@
-helmCharts:
-  - name: prometheus-postgres-exporter
-    repo: https://prometheus-community.github.io/helm-charts
-    releaseName: prometheus-postgres-exporter
-    namespace: openstack
-    version: 6.0.0
-    includeCRDs: true
-    valuesFile: values.yaml
