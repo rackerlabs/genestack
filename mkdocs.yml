@@ -235,7 +235,6 @@ nav:
           - Gnocchi: metering-gnocchi.md
           - Billing Tenants: metering-billing.md
           - Chargebacks: metering-chargebacks.md
-          - Logging Overview: genestack-logging.md
       - Infrastructure:
           - Kubernetes:
               - Etcd Backup: etcd-backup.md
@@ -250,9 +249,11 @@ nav:
               - Claim Storm alert: ovn-alert-claim-storm.md
           - MariaDB:
               - Operations: infrastructure-mariadb-ops.md
-      - Monitoring and Alerting:
-          - Monitoring Information: monitoring-info.md
-          - Alerting Information: alerting-info.md
+      - Observability:
+          - Observability Overview: observability-info.md
+          - Monitoring Overview: monitoring-info.md
+          - Alerting Overview: alerting-info.md
+          - Logging Overview: genestack-logging.md
       - Third Party Tools:
           - OSIE: extra-osie.md
       - OpenStack:
