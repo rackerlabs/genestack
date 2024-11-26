@@ -63,7 +63,7 @@
 #    - optional because it defaults to 10m
 #    - no equivalent exists in a `helmCharts` stanza
 # - overlayDir: name of directory under
-#   /etc/genestack/helm-configs/<GENESTACK_NAME> for overlays.
+#   /etc/genestack/kustomize/<SERVICE_NAME>/ for base or overlays.
 #    - optional, defaults to 'overlay'
 #
 # Notable differences
