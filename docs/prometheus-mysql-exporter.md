@@ -22,8 +22,7 @@ kubectl --namespace openstack \
 Next, install the exporter
 
 ``` shell
-kubectl kustomize --enable-helm /etc/genestack/kustomize/prometheus-mysql-exporter | \
-    kubectl --namespace openstack apply --server-side -f -
+bin/install-chart.sh prometheus-mysql-exporter
 ```
 
 !!! success
