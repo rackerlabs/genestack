@@ -292,5 +292,6 @@ nav:
       - Openstack Volumes: openstack-volumes.md
       - Openstack Load Balancers: openstack-load-balancer.md
       - Openstack Networks: openstack-networks.md
+      - Openstack Quota: openstack-quota.md
   - Blog: https://blog.rackspacecloud.com/
   - Status: api-status.md
