@@ -250,6 +250,9 @@ nav:
               - Claim Storm alert: ovn-alert-claim-storm.md
           - MariaDB:
               - Operations: infrastructure-mariadb-ops.md
+      - Accelerated Computing:
+          - Overview: accelerated-computing-overview.md
+          - Infrastructure: accelerated-computing-infrastructure.md
       - Monitoring and Alerting:
           - Monitoring Information: monitoring-info.md
           - Alerting Information: alerting-info.md
