@@ -1,4 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+# Keeping resources empty only as a placeholder for now
+# We can change this in the future when there was a need for post-renderer kustomize changes
 resources: []
