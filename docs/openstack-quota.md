@@ -7,7 +7,7 @@ To read more about Openstack quotas please visit the [upstream docs](https://doc
 You can view your quotas via Skyline or using the OpenStack CLI client.  The Skyline home page is the easiest way to view your quota limits and utilization in one place.
 ![SkylineHome](./assets/images/SkylineHomeQuota.png)
 
-You can also view quota information using the OpenStack CLI, however, you'll need to use a couple of commands.  
+You can also view quota information using the OpenStack CLI, however, you'll need to use a couple of commands.<BR>
 Use the quota option to list all of your quota limits.
 
 ```shell
