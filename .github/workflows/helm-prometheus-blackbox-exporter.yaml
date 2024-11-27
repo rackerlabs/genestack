@@ -5,7 +5,7 @@ on:
     paths:
       - base-helm-configs/prometheus-blackbox-exporter/**
       - base-kustomize/prometheus-blackbox-exporter/**
-      - .github/workflows/prometheus-blackbox-exporter.yaml
+      - .github/workflows/helm-prometheus-blackbox-exporter.yaml
 jobs:
   helm:
     strategy:
