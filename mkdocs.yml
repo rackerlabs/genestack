@@ -137,6 +137,9 @@ nav:
       - Regions in OpenStack: openstack-cloud-design-regions.md
       - Availability Zones in OpenStack: openstack-cloud-design-az.md
       - Host Aggregates in OpenStack: openstack-cloud-design-ha.md
+      - Accelerated Computing:
+          - Overview: accelerated-computing-overview.md
+          - Infrastructure: accelerated-computing-infrastructure.md
       - Other Design Documentation:
           - Genestack Infrastructure Design: openstack-cloud-design-genestack-infra.md
   - Deployment Guide:
