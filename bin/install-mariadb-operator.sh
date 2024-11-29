@@ -27,7 +27,7 @@ if [ "${CLUSTER_NAME}" != "cluster.local" ]; then
 fi
 
 # Helm command setup
-HELM_CMD="helm upgrade --install mariadb-operator https://mariadb-operator.github.io/mariadb-operator \
+HELM_CMD="helm upgrade --install mariadb-operator mariadb-operator --repo https://mariadb-operator.github.io/mariadb-operator \
     --namespace=mariadb-system \
     --create-namespace \
     --timeout 120m \
