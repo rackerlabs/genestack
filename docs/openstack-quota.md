@@ -24,14 +24,6 @@ openstack limits show --absolute
 
 ![limits show](./assets/images/limits_show.png)
 
-The limits option doesn't include storage volumes, so you would also need to run the volume option.
-
-```shell
-openstack volume list
-```
-
-![volume list](./assets/images/volume_list.png)
-
 #### Increasing Your Quota
 
 If you need to request a quota increase, please contact your Account Manager or navigate to the [MyCloud](https://mycloud.rackspace.com) portal, create a ticket, and select Account as the category.
