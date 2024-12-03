@@ -15,10 +15,12 @@ on:
       pluginTag:
         description: 'Set plugin version'
         required: true
-        default: '5.0.0'
+        default: '7.0.0'
         type: choice
         options:
           - '5.0.0'
+          - '6.0.0'
+          - '7.0.0'
 
 # Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
 env:
