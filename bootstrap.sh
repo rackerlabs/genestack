@@ -85,23 +85,34 @@ base_target_dir="/etc/genestack/kustomize"
 for service in "$base_source_dir"/*; do
   service_name=$(basename "$service")
   if [ -d "$service" ]; then
-    if [ -d "$base_target_dir/$service_name" ]; then
-      message "$base_target_dir/$service_name already exists"
-    else
-      message "Creating $base_target_dir/$service_name"
-      mkdir -p "$base_target_dir/$service_name"
-    fi
-    for subdir in "$service"/*; do
-      subdir_name=$(basename "$subdir")
-      if [ -d "$subdir" ]; then
-        if [ ! -L "$base_target_dir/$service_name/$subdir_name" ]; then
-          ln -s "$subdir" "$base_target_dir/$service_name/$subdir_name"
-          success "Created symlink for $service_name/$subdir_name"
-        else
-          message "Symlink for $service_name/$subdir_name already exists"
-        fi
+    # Check if the service has subdirectories
+    if [ "$(find "$service" -mindepth 1 -type d | wc -l)" -eq 0 ]; then
+      # If no subdirectories, symlink the service directly under the target dir
+      if [ ! -L "$base_target_dir/$service_name" ]; then
+        ln -s "$service" "$base_target_dir/$service_name"
+        success "Created symlink for $service_name directly under $base_target_dir"
+      else
+        message "Symlink for $service_name already exists directly under $base_target_dir"
       fi
-    done
+    else
+      if [ -d "$base_target_dir/$service_name" ]; then
+        message "$base_target_dir/$service_name already exists"
+      else
+        message "Creating $base_target_dir/$service_name"
+        mkdir -p "$base_target_dir/$service_name"
+      fi
+      for subdir in "$service"/*; do
+        subdir_name=$(basename "$subdir")
+        if [ -d "$subdir" ]; then
+          if [ ! -L "$base_target_dir/$service_name/$subdir_name" ]; then
+            ln -s "$subdir" "$base_target_dir/$service_name/$subdir_name"
+            success "Created symlink for $service_name/$subdir_name"
+          else
+            message "Symlink for $service_name/$subdir_name already exists"
+          fi
+        fi
+      done
+    fi
   else
     message "$service_name is not a directory, skipping..."
   fi
