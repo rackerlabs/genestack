@@ -57,5 +57,3 @@ More information on boto3 can be found here: [S3 Boto3 Reference](https://boto3.
 Rclone is a powerful sync tool, much like rsync, rclone can sync local and remote containers and buckets.
 
 Setup is simple, download rclone from [Rclone Download](https://rclone.org/downloads/)  Once downloaded configuration for Flex Object / Swift can be found here: [Rclone setup for Swift](https://rclone.org/swift/)
-
-
