@@ -304,5 +304,10 @@ nav:
       - Openstack Load Balancers: openstack-load-balancer.md
       - Openstack Networks: openstack-networks.md
       - Openstack Quotas: openstack-quota.md
+  - Security Primer:
+      - Introduction: security-introduction.md
+      - Security In Phases: security-lifecycle.md
+      - Cloud Security: security-stages.md
+      - Summary: security-summary.md
   - Blog: https://blog.rackspacecloud.com/
   - Status: api-status.md
