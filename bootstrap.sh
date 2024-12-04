@@ -123,7 +123,7 @@ resources:
 "
 
 for service in "$overlay_target_dir"/*; do
-  if [ -d "$service" ]; then
+  if [ -d "$service" ] && [ -d "$service/base" ]; then
     overlay_path="${service}/overlay"
 
     if [ ! -d "$overlay_path" ]; then
@@ -137,6 +137,8 @@ for service in "$overlay_target_dir"/*; do
     else
       message "kustomization.yaml already exists for $(basename "$service"), skipping..."
     fi
+  else
+    message "No base directory for $(basename "$service"), skipping..."
   fi
 done
 
