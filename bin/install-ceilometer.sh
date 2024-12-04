@@ -3,6 +3,7 @@ pushd /opt/genestack/submodules/openstack-helm || exit
     helm upgrade --install ceilometer ./ceilometer \
         --namespace=openstack \
         --timeout 10m \
+        -f /opt/genestack/base-helm-configs/ceilometer/ceilometer-helm-overrides.yaml \
         -f /etc/genestack/helm-configs/ceilometer/ceilometer-helm-overrides.yaml \
         --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
         --set endpoints.identity.auth.ceilometer.password="$(kubectl --namespace openstack get secret ceilometer-keystone-admin-password -o jsonpath='{.data.password}' | base64 -d)" \
@@ -23,5 +24,5 @@ pushd /opt/genestack/submodules/openstack-helm || exit
     rabbit://neutron:$(kubectl --namespace openstack get secret neutron-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)@rabbitmq.openstack.svc.cluster.local:5672/neutron,\
     rabbit://nova:$(kubectl --namespace openstack get secret nova-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)@rabbitmq.openstack.svc.cluster.local:5672/nova}" \
         --post-renderer /etc/genestack/kustomize/kustomize.sh \
-        --post-renderer-args ceilometer/base "$@"
+        --post-renderer-args ceilometer/overlay "$@"
 popd || exit

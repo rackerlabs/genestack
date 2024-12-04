@@ -38,31 +38,31 @@ The Memory slot is an integrate representing the gigabytes of RAM a flavor will 
 
 The flavors used within our Genestack environment have been built to provide the best possible default user experience. Our flavors create an environment with the following specifications.
 
-| Name | GB | vCPU | Local Disk (GB) | Ephemeral Disk (GB) | Swap Space (MB) |
-| ---- | -- | ---- | --------------- | ------------------- | --------------- |
-| gp.0.1.2 | 2 | 1 | 10 | 0 | 0 |
-| gp.0.1.4 | 4 | 1 | 10 | 0 | 0 |
-| gp.0.2.2 | 2 | 2 | 40 | 0 | 1024 |
-| gp.0.2.4 | 4 | 2 | 40 | 0 | 1024 |
-| gp.0.2.6 | 6 | 2 | 40 | 0 | 1024 |
-| gp.0.2.8 | 8 | 2 | 40 | 0 | 1024 |
-| gp.0.4.4 | 4 | 4 | 80 | 64 | 4096 |
-| gp.0.4.8 | 8 | 4 | 80 | 64 | 4096 |
-| gp.0.4.12 | 12 | 4 | 80 | 64 | 4096 |
-| gp.0.4.16 | 16 | 4 | 80 | 64 | 4096 |
-| gp.0.8.16 | 16 | 8 | 160 | 128 | 8192 |
-| gp.0.8.24 | 24 | 8 | 160 | 128 | 8192 |
-| gp.0.8.32 | 32 | 8 | 160 | 128 | 8192 |
-| gp.0.16.64 | 64 | 16 | 240 | 128 | 8192 |
-| gp.0.24.96 | 96 | 24 | 240 | 128 | 8192 |
-| gp.0.32.128 | 128 | 32 | 240 | 128 | 8192 |
-| gp.0.48.192 | 192 | 48 | 240 | 128 | 8192 |
-| mo.1.2.12 | 12 | 2 | 80 | 0 | 0 |
-| mo.1.2.16 | 16 | 2 | 80 | 0 | 0 |
-| mo.1.4.20 | 20 | 4 | 80 | 0 | 0 |
-| mo.1.4.24 | 24 | 4 | 80 | 0 | 0 |
-| mo.1.4.32 | 32 | 4 | 80 | 0 | 0 |
-| mo.1.8.64 | 64 | 8 | 80 | 0 | 0 |
+| Name | GB | vCPU | Local Disk (GB) | Ephemeral Disk (GB) | Swap Space (MB) | Max Network Bandwidth (Gbps) |
+| ---- | -- | ---- | --------------- | ------------------- | --------------- | ---------------------------- |
+| gp.0.1.2 | 2 | 1 | 10 | 0 | 0 | 2 |
+| gp.0.1.4 | 4 | 1 | 10 | 0 | 0 | 4 |
+| gp.0.2.2 | 2 | 2 | 40 | 0 | 1024 | 2 |
+| gp.0.2.4 | 4 | 2 | 40 | 0 | 1024 | 4 |
+| gp.0.2.6 | 6 | 2 | 40 | 0 | 1024 | 4 |
+| gp.0.2.8 | 8 | 2 | 40 | 0 | 1024 | 6 |
+| gp.0.4.4 | 4 | 4 | 80 | 64 | 4096 | 4 |
+| gp.0.4.8 | 8 | 4 | 80 | 64 | 4096 | 6 |
+| gp.0.4.12 | 12 | 4 | 80 | 64 | 4096 | 6 |
+| gp.0.4.16 | 16 | 4 | 80 | 64 | 4096 | 8 |
+| gp.0.8.16 | 16 | 8 | 160 | 128 | 8192 | 8 |
+| gp.0.8.24 | 24 | 8 | 160 | 128 | 8192 | 10 |
+| gp.0.8.32 | 32 | 8 | 160 | 128 | 8192 | 10 |
+| gp.0.16.64 | 64 | 16 | 240 | 128 | 8192 | 10 |
+| gp.0.24.96 | 96 | 24 | 240 | 128 | 8192 | 10 |
+| gp.0.32.128 | 128 | 32 | 240 | 128 | 8192 | 10 |
+| gp.0.48.192 | 192 | 48 | 240 | 128 | 8192 | 10 |
+| mo.1.2.12 | 12 | 2 | 80 | 0 | 0 | 6 |
+| mo.1.2.16 | 16 | 2 | 80 | 0 | 0 | 8 |
+| mo.1.4.20 | 20 | 4 | 80 | 0 | 0 | 10 |
+| mo.1.4.24 | 24 | 4 | 80 | 0 | 0 | 10 |
+| mo.1.4.32 | 32 | 4 | 80 | 0 | 0 | 10 |
+| mo.1.8.64 | 64 | 8 | 80 | 0 | 0 | 10 |
 
 ## Flavor Properties
 
@@ -75,35 +75,42 @@ Flavor properties provide some additional configuration to highlight placement a
 | hw:cpu_max_sockets | 2 | Sets the max number of sockets used within the instances. While any integer is acceptible, the highest recommended maximum is 4. |
 | :category | String | Display property used within skyline to group flavor classes. Our options are `general_purpose`, `memory_optimized`, and `compute_optimized`. |
 | :architecture | x86_architecture | Display property used within skyline to group flavor classes. Our option is currently limited to `x86_architecture` |
+| quota:vif_inbound_peak | int | Defines the maximum allowed inbound (ingress) bandwidth on the network interface, representing the peak throughput for incoming data to the instance. The speed limit values are specified in kilobytes/second |
+| quota:vif_inbound_burst | int | Specifies the maximum burst rate for inbound traffic. The burst is the allowance for temporary spikes in traffic, higher than the average rate but still within the maximum peak limit. The burst value is in kilobytes |
+| quota:vif_inbound_average | int | Sets the average allowable bandwidth for inbound traffic over a sustained period. This is typically the sustained rate at which the instance can receive data, usually lower than the peak and burst rates. The speed limit values are specified in kilobytes/second |
+| quota:vif_outbound_peak | int | Defines the maximum bandwidth allowed for outbound (egress) traffic on the network interface. Similar to inbound, it sets the peak limit for data leaving the instance. The speed limit values are specified in kilobytes/second |
+| quota:vif_outbound_burst | int | Specifies the maximum burst rate for outbound traffic, allowing short-term spikes in the outgoing traffic, similar to the inbound burst rate. The burst value is in kilobytes |
+| quota:vif_outbound_average | int | Sets the average bandwidth for outbound traffic over time, ensuring that the sustained outgoing traffic rate does not exceed this value over a longer period. The speed limit values are specified in kilobytes/second |
+
 
 ----
 
 ??? example "Example Creation of Flavors Built for Production"
 
     ``` shell
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 2048 --vcpu 1 --disk 10 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.1.2
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 4096 --vcpu 1 --disk 10 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.1.4
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 2048 --vcpu 2 --disk 40 --ephemeral 0 --swap 1024 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.2.2
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 4096 --vcpu 2 --disk 40 --ephemeral 0 --swap 1024 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.2.4
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 6144 --vcpu 2 --disk 40 --ephemeral 0 --swap 1024 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.2.6
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 8192 --vcpu 2 --disk 40 --ephemeral 0 --swap 1024 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.2.8
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 4096 --vcpu 4 --disk 80 --ephemeral 64 --swap 4096 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.4.4
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 8192 --vcpu 4 --disk 80 --ephemeral 64 --swap 4096 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.4.8
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 12288 --vcpu 4 --disk 80 --ephemeral 64 --swap 4096 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.4.12
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 16384 --vcpu 4 --disk 80 --ephemeral 64 --swap 4096 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.4.16
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 16384 --vcpu 8 --disk 160 --ephemeral 128 --swap 8192 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.8.16
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 24576 --vcpu 8 --disk 160 --ephemeral 128 --swap 8192 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.8.24
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 32768 --vcpu 8 --disk 160 --ephemeral 128 --swap 8192 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.8.32
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 65536 --vcpu 16 --disk 240 --ephemeral 128 --swap 8192 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.16.64
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 98304 --vcpu 24 --disk 240 --ephemeral 128 --swap 8192 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.24.96
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 131072 --vcpu 32 --disk 240 --ephemeral 128 --swap 8192 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.32.128
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 196608 --vcpu 48 --disk 240 --ephemeral 128 --swap 8192 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" gp.0.48.192
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 12288 --vcpu 2 --disk 80 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=memory_optimized" --property ":architecture=x86_architecture" mo.0.2.12
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 16384 --vcpu 2 --disk 80 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=memory_optimized" --property ":architecture=x86_architecture" mo.0.2.16
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 20480 --vcpu 4 --disk 80 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=memory_optimized" --property ":architecture=x86_architecture" mo.0.4.20
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 24576 --vcpu 4 --disk 80 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=memory_optimized" --property ":architecture=x86_architecture" mo.0.4.24
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 32768 --vcpu 4 --disk 80 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=memory_optimized" --property ":architecture=x86_architecture" mo.0.4.32
-    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 65536 --vcpu 8 --disk 80 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=memory_optimized" --property ":architecture=x86_architecture" mo.0.8.64
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 2048 --vcpu 1 --disk 10 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="250000" --property "quota:vif_inbound_burst"="250000" --property "quota:vif_inbound_average"="125000" --property "quota:vif_outbound_peak"="250000" --property "quota:vif_outbound_burst"="250000" --property "quota:vif_outbound_average"="125000" gp.0.1.2
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 4096 --vcpu 1 --disk 10 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="500000" --property "quota:vif_inbound_burst"="500000" --property "quota:vif_inbound_average"="250000" --property "quota:vif_outbound_peak"="500000" --property "quota:vif_outbound_burst"="500000" --property "quota:vif_outbound_average"="250000" gp.0.1.4
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 2048 --vcpu 2 --disk 40 --ephemeral 0 --swap 1024 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="250000" --property "quota:vif_inbound_burst"="250000" --property "quota:vif_inbound_average"="125000" --property "quota:vif_outbound_peak"="250000" --property "quota:vif_outbound_burst"="250000" --property "quota:vif_outbound_average"="125000" gp.0.2.2
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 4096 --vcpu 2 --disk 40 --ephemeral 0 --swap 1024 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="500000" --property "quota:vif_inbound_burst"="500000" --property "quota:vif_inbound_average"="250000" --property "quota:vif_outbound_peak"="500000" --property "quota:vif_outbound_burst"="500000" --property "quota:vif_outbound_average"="250000" gp.0.2.4
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 6144 --vcpu 2 --disk 40 --ephemeral 0 --swap 1024 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="500000" --property "quota:vif_inbound_burst"="500000" --property "quota:vif_inbound_average"="312500" --property "quota:vif_outbound_peak"="500000" --property "quota:vif_outbound_burst"="500000" --property "quota:vif_outbound_average"="312500" gp.0.2.6
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 8192 --vcpu 2 --disk 40 --ephemeral 0 --swap 1024 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="750000" --property "quota:vif_inbound_burst"="750000" --property "quota:vif_inbound_average"="375000" --property "quota:vif_outbound_peak"="750000" --property "quota:vif_outbound_burst"="750000" --property "quota:vif_outbound_average"="375000" gp.0.2.8
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 4096 --vcpu 4 --disk 80 --ephemeral 64 --swap 4096 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="500000" --property "quota:vif_inbound_burst"="500000" --property "quota:vif_inbound_average"="250000" --property "quota:vif_outbound_peak"="500000" --property "quota:vif_outbound_burst"="500000" --property "quota:vif_outbound_average"="250000" gp.0.4.4
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 8192 --vcpu 4 --disk 80 --ephemeral 64 --swap 4096 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="750000" --property "quota:vif_inbound_burst"="750000" --property "quota:vif_inbound_average"="375000" --property "quota:vif_outbound_peak"="750000" --property "quota:vif_outbound_burst"="750000" --property "quota:vif_outbound_average"="375000" gp.0.4.8
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 12288 --vcpu 4 --disk 80 --ephemeral 64 --swap 4096 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="750000" --property "quota:vif_inbound_burst"="750000" --property "quota:vif_inbound_average"="437500" --property "quota:vif_outbound_peak"="750000" --property "quota:vif_outbound_burst"="750000" --property "quota:vif_outbound_average"="437500" gp.0.4.12
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 16384 --vcpu 4 --disk 80 --ephemeral 64 --swap 4096 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="1000000" --property "quota:vif_inbound_burst"="1000000" --property "quota:vif_inbound_average"="500000" --property "quota:vif_outbound_peak"="1000000" --property "quota:vif_outbound_burst"="1000000" --property "quota:vif_outbound_average"="500000" gp.0.4.16
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 16384 --vcpu 8 --disk 160 --ephemeral 128 --swap 8192 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="1000000" --property "quota:vif_inbound_burst"="1000000" --property "quota:vif_inbound_average"="500000" --property "quota:vif_outbound_peak"="1000000" --property "quota:vif_outbound_burst"="1000000" --property "quota:vif_outbound_average"="500000" gp.0.8.16
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 24576 --vcpu 8 --disk 160 --ephemeral 128 --swap 8192 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="1250000" --property "quota:vif_inbound_burst"="1250000" --property "quota:vif_inbound_average"="687500" --property "quota:vif_outbound_peak"="1250000" --property "quota:vif_outbound_burst"="1250000" --property "quota:vif_outbound_average"="687500" gp.0.8.24
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 32768 --vcpu 8 --disk 160 --ephemeral 128 --swap 8192 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="1250000" --property "quota:vif_inbound_burst"="1250000" --property "quota:vif_inbound_average"="750000" --property "quota:vif_outbound_peak"="1250000" --property "quota:vif_outbound_burst"="1250000" --property "quota:vif_outbound_average"="750000" gp.0.8.32
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 65536 --vcpu 16 --disk 240 --ephemeral 128 --swap 8192 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="1250000" --property "quota:vif_inbound_burst"="1250000" --property "quota:vif_inbound_average"="875000" --property "quota:vif_outbound_peak"="1250000" --property "quota:vif_outbound_burst"="1250000" --property "quota:vif_outbound_average"="875000" gp.0.16.64
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 98304 --vcpu 24 --disk 240 --ephemeral 128 --swap 8192 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="1250000" --property "quota:vif_inbound_burst"="1250000" --property "quota:vif_inbound_average"="937500" --property "quota:vif_outbound_peak"="1250000" --property "quota:vif_outbound_burst"="1250000" --property "quota:vif_outbound_average"="937500" gp.0.24.96
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 131072 --vcpu 32 --disk 240 --ephemeral 128 --swap 8192 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="1250000" --property "quota:vif_inbound_burst"="1250000" --property "quota:vif_inbound_average"="1000000" --property "quota:vif_outbound_peak"="1250000" --property "quota:vif_outbound_burst"="1250000" --property "quota:vif_outbound_average"="1000000" gp.0.32.128
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 196608 --vcpu 48 --disk 240 --ephemeral 128 --swap 8192 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=general_purpose" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="1250000" --property "quota:vif_inbound_burst"="1250000" --property "quota:vif_inbound_average"="1062500" --property "quota:vif_outbound_peak"="1250000" --property "quota:vif_outbound_burst"="1250000" --property "quota:vif_outbound_average"="1062500" gp.0.48.192
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 12288 --vcpu 2 --disk 80 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=memory_optimized" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="750000" --property "quota:vif_inbound_burst"="750000" --property "quota:vif_inbound_average"="437500" --property "quota:vif_outbound_peak"="750000" --property "quota:vif_outbound_burst"="750000" --property "quota:vif_outbound_average"="437500" mo.0.2.12
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 16384 --vcpu 2 --disk 80 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=memory_optimized" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="1000000" --property "quota:vif_inbound_burst"="1000000" --property "quota:vif_inbound_average"="500000" --property "quota:vif_outbound_peak"="1000000" --property "quota:vif_outbound_burst"="1000000" --property "quota:vif_outbound_average"="500000" mo.0.2.16
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 20480 --vcpu 4 --disk 80 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=memory_optimized" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="1250000" --property "quota:vif_inbound_burst"="1250000" --property "quota:vif_inbound_average"="625000" --property "quota:vif_outbound_peak"="1250000" --property "quota:vif_outbound_burst"="1250000" --property "quota:vif_outbound_average"="625000" mo.0.4.20
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 24576 --vcpu 4 --disk 80 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=memory_optimized" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="1250000" --property "quota:vif_inbound_burst"="1250000" --property "quota:vif_inbound_average"="687500" --property "quota:vif_outbound_peak"="1250000" --property "quota:vif_outbound_burst"="1250000" --property "quota:vif_outbound_average"="687500" mo.0.4.24
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 32768 --vcpu 4 --disk 80 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=memory_optimized" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="1250000" --property "quota:vif_inbound_burst"="1250000" --property "quota:vif_inbound_average"="750000" --property "quota:vif_outbound_peak"="1250000" --property "quota:vif_outbound_burst"="1250000" --property "quota:vif_outbound_average"="750000" mo.0.4.32
+    openstack --os-cloud default flavor create --description "Useful Information for users" --ram 65536 --vcpu 8 --disk 80 --ephemeral 0 --swap 0 --property "hw:mem_page_size=any" --property "hw:cpu_max_threads=1" --property "hw:cpu_max_sockets=2" --property ":category=memory_optimized" --property ":architecture=x86_architecture" --property "quota:vif_inbound_peak"="1250000" --property "quota:vif_inbound_burst"="1250000" --property "quota:vif_inbound_average"="875000" --property "quota:vif_outbound_peak"="1250000" --property "quota:vif_outbound_burst"="1250000" --property "quota:vif_outbound_average"="875000" mo.0.8.64
     ```
 
 ## Use Case Specific Flavors
@@ -129,6 +136,32 @@ Now, set the capabilities property to ensure that the `cpu_info:vendor` is **Int
 ``` shell
 openstack --os-cloud default flavor set intel.medium \
           --property capabilities:cpu_info:vendor='Intel'
+```
+
+### Example: Network Bandwidth Limits
+
+This example configures a flavor to use network traffic bandwidth limits for outbound and inbound traffic
+
+``` shell
+openstack --os-cloud default flavor create gp.0.8.24 \
+          --public \
+          --ram 24576 \
+          --disk 160 \
+          --vcpus 8 \
+          --ephemeral 128 \
+          --swap 8192
+```
+
+Now, set the following properties: `vif_inbound_average`, `vif_inbound_burst`, `vif_inbound_peak`, `vif_outbound_average`, `vif_outbound_burst`, and `vif_outbound_peak`. These values define the respective limits for network traffic. The speed limits are specified in kilobytes per second (kB/s), while the burst values are also specified in kilobytes.
+
+```shell
+openstack --os-cloud default flavor set gp.0.8.24 \
+    --property "quota:vif_inbound_peak"="1250000" \
+    --property "quota:vif_inbound_burst"="1250000" \
+    --property "quota:vif_inbound_average"="687500" \
+    --property "quota:vif_outbound_peak"="1250000" \
+    --property "quota:vif_outbound_burst"="1250000" \
+    --property "quota:vif_outbound_average"="687500"
 ```
 
 ### Example: NUMA Preferred Affinity Policy

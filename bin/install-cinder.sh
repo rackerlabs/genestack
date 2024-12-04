@@ -3,6 +3,7 @@ pushd /opt/genestack/submodules/openstack-helm || exit
   helm upgrade --install cinder ./cinder \
     --namespace=openstack \
       --timeout 120m \
+      -f /opt/genestack/base-helm-configs/cinder/cinder-helm-overrides.yaml \
       -f /etc/genestack/helm-configs/cinder/cinder-helm-overrides.yaml \
       --set endpoints.identity.auth.admin.password="$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)" \
       --set endpoints.identity.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-admin -o jsonpath='{.data.password}' | base64 -d)" \
@@ -14,5 +15,5 @@ pushd /opt/genestack/submodules/openstack-helm || exit
       --set endpoints.oslo_messaging.auth.admin.password="$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)" \
       --set endpoints.oslo_messaging.auth.cinder.password="$(kubectl --namespace openstack get secret cinder-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)" \
       --post-renderer /etc/genestack/kustomize/kustomize.sh \
-      --post-renderer-args cinder/base "$@"
+      --post-renderer-args cinder/overlay "$@"
 popd || exit

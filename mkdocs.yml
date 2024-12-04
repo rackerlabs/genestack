@@ -137,6 +137,9 @@ nav:
       - Regions in OpenStack: openstack-cloud-design-regions.md
       - Availability Zones in OpenStack: openstack-cloud-design-az.md
       - Host Aggregates in OpenStack: openstack-cloud-design-ha.md
+      - Accelerated Computing:
+          - Overview: accelerated-computing-overview.md
+          - Infrastructure: accelerated-computing-infrastructure.md
       - Other Design Documentation:
           - Genestack Infrastructure Design: openstack-cloud-design-genestack-infra.md
   - Deployment Guide:
@@ -226,30 +229,34 @@ nav:
                   - alertmanager-msteams.md
                   - alertmanager-pagerduty.md
   - Operational Guide:
-      - Supporting multi-region Genestack: multi-region-support.md
-      - Running Genestack Upgrade: genestack-upgrade.md
-      - Running Kubespray Upgrade: k8s-kubespray-upgrade.md
+      - Genestack:
+          - Supporting multi-region: multi-region-support.md
+          - Running Upgrades: genestack-upgrade.md
       - Resource Metering:
           - Metering Overview: metering-overview.md
           - Ceilometer: metering-ceilometer.md
           - Gnocchi: metering-gnocchi.md
           - Billing Tenants: metering-billing.md
           - Chargebacks: metering-chargebacks.md
-          - Logging Overview: genestack-logging.md
       - Infrastructure:
-          - Etcd Backup: etcd-backup.md
-          - OVN introduction: ovn-intro.md
-          - OVN troubleshooting: ovn-troubleshooting.md
-          - OVN traffic flow introduction: ovn-traffic-flow-intro.md
-          - OVN Database Backup: infrastructure-ovn-db-backup.md
-          - OVN Monitoring introduction: ovn-monitoring-introduction.md
-          - OVN Claim Storm alert: ovn-alert-claim-storm.md
-          - MariaDB Operations: infrastructure-mariadb-ops.md
-          - Adding New Node: adding-new-node.md
-          - Host Aggregates: openstack-host-aggregates.md
-      - Monitoring and Alerting:
-          - Monitoring Information: monitoring-info.md
-          - Alerting Information: alerting-info.md
+          - Kubernetes:
+              - Etcd Backup: etcd-backup.md
+              - Adding New Nodes: adding-new-node.md
+              - Running Kubespray Upgrades: k8s-kubespray-upgrade.md
+          - OVN:
+              - Introduction: ovn-intro.md
+              - Troubleshooting: ovn-troubleshooting.md
+              - Traffic flow introduction: ovn-traffic-flow-intro.md
+              - Database Backup: infrastructure-ovn-db-backup.md
+              - Monitoring introduction: ovn-monitoring-introduction.md
+              - Claim Storm alert: ovn-alert-claim-storm.md
+          - MariaDB:
+              - Operations: infrastructure-mariadb-ops.md
+      - Observability:
+          - Observability Overview: observability-info.md
+          - Monitoring Overview: monitoring-info.md
+          - Alerting Overview: alerting-info.md
+          - Logging Overview: genestack-logging.md
       - Third Party Tools:
           - OSIE: extra-osie.md
       - OpenStack:
@@ -259,6 +266,9 @@ nav:
               - Nova Flavor Creation: openstack-flavors.md
               - Nova CPU Allocation Ratio: openstack-cpu-allocation-ratio.md
               - Nova PCI Passthrough: openstack-pci-passthrough.md
+              - Host Aggregates: openstack-host-aggregates.md
+          - Quota Management:
+              - Quota Management: openstack-quota-managment.md
           - Images:
               - Glance Images Creation: openstack-glance-images.md
           - Identity:
@@ -273,6 +283,7 @@ nav:
           - Object Storage:
               - Operating Swift Object Storage: openstack-swift-operators-guide.md
           - Service Overrides: openstack-service-overrides.md
+          - Resource and Project Lookups: openstack-resource-lookups.md
       - Working locally With Docs: mkdocs-howto.md
   - Cloud Onboarding:
       - Cloud Onboarding Welcome: cloud-onboarding-welcome.md
@@ -292,6 +303,7 @@ nav:
       - Openstack Volumes: openstack-volumes.md
       - Openstack Load Balancers: openstack-load-balancer.md
       - Openstack Networks: openstack-networks.md
+      - Openstack Quotas: openstack-quota.md
   - Security Primer:
       - Introduction: security-introduction.md
       - Security In Phases: security-lifecycle.md
