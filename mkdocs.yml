@@ -299,6 +299,7 @@ nav:
       - Openstack Object Store Swift CLI: storage-object-store-swift-cli.md
       - Openstack Object Store Openstack CLI: storage-object-store-openstack-cli.md
       - Openstack Object Store Skyline GUI: storage-object-store-skyline-gui.md
+      - Openstack Object Store 3rd Party SDK, Tools: storage-object-store-swift-3rd-party.md
       - Openstack Snapshot: openstack-snapshot.md
       - Openstack Volumes: openstack-volumes.md
       - Openstack Load Balancers: openstack-load-balancer.md
