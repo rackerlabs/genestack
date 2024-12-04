@@ -2,7 +2,7 @@
 
 ## Openstack Swift SDK and Projects
 
-A complete list of SDKs, intergrations and libraries can be found here [Swift Associated Projects](https://docs.openstack.org/swift/latest/associated_projects.html)
+A complete list of SDKs, integrations and libraries can be found here [Swift Associated Projects](https://docs.openstack.org/swift/latest/associated_projects.html)
 
 ## Getting started with S3
 
