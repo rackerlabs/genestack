@@ -101,15 +101,13 @@ for service in "$base_source_dir"/*; do
         message "Creating $base_target_dir/$service_name"
         mkdir -p "$base_target_dir/$service_name"
       fi
-      for subdir in "$service"/*; do
-        subdir_name=$(basename "$subdir")
-        if [ -d "$subdir" ]; then
-          if [ ! -L "$base_target_dir/$service_name/$subdir_name" ]; then
-            ln -s "$subdir" "$base_target_dir/$service_name/$subdir_name"
-            success "Created symlink for $service_name/$subdir_name"
-          else
-            message "Symlink for $service_name/$subdir_name already exists"
-          fi
+      for item in "$service"/*; do
+        item_name=$(basename "$item")
+        if [ ! -L "$base_target_dir/$service_name/$item_name" ]; then
+          ln -s "$item" "$base_target_dir/$service_name/$item_name"
+          success "Created symlink for $service_name/$item_name"
+        else
+          message "Symlink for $service_name/$item_name already exists"
         fi
       done
     fi
