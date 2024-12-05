@@ -78,33 +78,41 @@ mkdir -p /etc/genestack
 
 # Ensure each service from /opt/genestack/base-kustomize
 # exists in /etc/genestack/kustomize and symlink
-# base and aio.
+# all the sub-directories
 base_source_dir="/opt/genestack/base-kustomize"
 base_target_dir="/etc/genestack/kustomize"
 
 for service in "$base_source_dir"/*; do
   service_name=$(basename "$service")
-  if [ -d "$service" ] && [ -d "$service/base" ]; then
-    if [ -d "$base_target_dir/$service_name" ]; then
-      message "$base_target_dir/$service_name already exists"
+  if [ -d "$service" ]; then
+    # Check if the service has subdirectories
+    if [ "$(find "$service" -mindepth 1 -type d | wc -l)" -eq 0 ]; then
+      # If no subdirectories, symlink the service directly under the target dir
+      if [ ! -L "$base_target_dir/$service_name" ]; then
+        ln -s "$service" "$base_target_dir/$service_name"
+        success "Created symlink for $service_name directly under $base_target_dir"
+      else
+        message "Symlink for $service_name already exists directly under $base_target_dir"
+      fi
     else
-      message "Creating $base_target_dir/$service_name"
-      mkdir -p "$base_target_dir/$service_name"
-    fi
-    if [ ! -L "$base_target_dir/$service_name/base" ]; then
-      ln -s "$service/base" "$base_target_dir/$service_name/base"
-      success "Created symlink for $service_name/base"
+      if [ -d "$base_target_dir/$service_name" ]; then
+        message "$base_target_dir/$service_name already exists"
+      else
+        message "Creating $base_target_dir/$service_name"
+        mkdir -p "$base_target_dir/$service_name"
+      fi
+      for item in "$service"/*; do
+        item_name=$(basename "$item")
+        if [ ! -L "$base_target_dir/$service_name/$item_name" ]; then
+          ln -s "$item" "$base_target_dir/$service_name/$item_name"
+          success "Created symlink for $service_name/$item_name"
+        else
+          message "Symlink for $service_name/$item_name already exists"
+        fi
+      done
     fi
   else
-    message "No base folder for $service_name, skipping..."
-  fi
-  if [ -d "$service" ] && [ -d "$service/aio" ]; then
-    if [ ! -L "$base_target_dir/$service_name/aio" ]; then
-      ln -s "$service/aio" "$base_target_dir/$service_name/aio"
-      success "Created symlink for $service_name/aio"
-    fi
-  else
-    message "No aio folder for $service_name, skipping..."
+    message "$service_name is not a directory, skipping..."
   fi
 done
 
@@ -124,7 +132,7 @@ resources:
 "
 
 for service in "$overlay_target_dir"/*; do
-  if [ -d "$service" ]; then
+  if [ -d "$service" ] && [ -d "$service/base" ]; then
     overlay_path="${service}/overlay"
 
     if [ ! -d "$overlay_path" ]; then
@@ -138,6 +146,8 @@ for service in "$overlay_target_dir"/*; do
     else
       message "kustomization.yaml already exists for $(basename "$service"), skipping..."
     fi
+  else
+    message "No base directory for $(basename "$service"), skipping..."
   fi
 done
 
