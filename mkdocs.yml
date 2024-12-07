@@ -141,6 +141,7 @@ nav:
           - Overview: accelerated-computing-overview.md
           - Infrastructure: accelerated-computing-infrastructure.md
       - Other Design Documentation:
+          - Disaster Recovery for OpenStack Clouds: openstack-cloud-design-dr.md
           - Genestack Infrastructure Design: openstack-cloud-design-genestack-infra.md
   - Deployment Guide:
       - What is Genestack?: deployment-guide-welcome.md
@@ -192,8 +193,8 @@ nav:
                       - Cinder: openstack-cinder.md
                       - LVM iSCSI: openstack-cinder-lvmisci.md
                       - NETAPP:
-                        - Worker: openstack-cinder-netapp-worker.md
-                        - Containerized: openstack-cinder-netapp-container.md
+                          - Worker: openstack-cinder-netapp-worker.md
+                          - Containerized: openstack-cinder-netapp-container.md
                       - FIPS Cinder Encryption: openstack-cinder-fips-encryption.md
                   - Compute Kit:
                       - Compute Overview: openstack-compute-kit.md
