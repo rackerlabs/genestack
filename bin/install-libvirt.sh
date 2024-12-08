@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2124,SC2145,SC2294
 
 # Directory to check for YAML files
 CONFIG_DIR="/etc/genestack/helm-configs/libvirt"
@@ -21,7 +22,11 @@ if compgen -G "${CONFIG_DIR}/*.yaml" > /dev/null; then
     done
 fi
 
+HELM_CMD+="${@}"
+
 # Run the helm command
-eval "${HELM_CMD} $@"
+echo "Executing Helm command:"
+echo "${HELM_CMD}"
+eval "${HELM_CMD}"
 
 popd || exit
