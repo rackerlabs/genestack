@@ -250,6 +250,7 @@ nav:
               - Database Backup: infrastructure-ovn-db-backup.md
               - Monitoring introduction: ovn-monitoring-introduction.md
               - Claim Storm alert: ovn-alert-claim-storm.md
+              - Updating Kube OVN to OpenStack Configuration: ovn-kube-ovn-openstack.md
           - MariaDB:
               - Operations: infrastructure-mariadb-ops.md
       - Observability:
