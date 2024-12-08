@@ -24,5 +24,5 @@ fi
 
 # Run the helm command
 echo "Executing Helm command:"
-echo "${HELM_CMD}"
-eval "${HELM_CMD}"
+echo "${HELM_CMD} $@"
+eval "${HELM_CMD} $@"

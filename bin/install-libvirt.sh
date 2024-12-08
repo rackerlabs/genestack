@@ -22,6 +22,6 @@ if compgen -G "${CONFIG_DIR}/*.yaml" > /dev/null; then
 fi
 
 # Run the helm command
-eval "${HELM_CMD}"
+eval "${HELM_CMD} $@"
 
 popd || exit
