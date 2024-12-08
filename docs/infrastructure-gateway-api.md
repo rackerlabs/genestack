@@ -73,11 +73,7 @@ There are various implementations of the Gateway API. In this document, we will 
 
         helm upgrade --install nginx-gateway-fabric ./nginx-gateway-fabric \
                     --namespace=nginx-gateway \
-                    --wait \
-                    --timeout 10m \
-                    -f /etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml \
-                    --post-renderer /etc/genestack/kustomize/kustomize.sh \
-                    --post-renderer-args gateway/overlay
+                    -f /etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml
         ```
 
     === "Experimental"
@@ -85,7 +81,7 @@ There are various implementations of the Gateway API. In this document, we will 
         ``` shell
         cd /opt/genestack/submodules/nginx-gateway-fabric/charts
 
-        helm upgrade --install nginx-gateway-fabric . \
+        helm upgrade --install nginx-gateway-fabric ./nginx-gateway-fabric \
                     --namespace=nginx-gateway \
                     -f /etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml \
                     --set nginxGateway.gwAPIExperimentalFeatures.enable=true
