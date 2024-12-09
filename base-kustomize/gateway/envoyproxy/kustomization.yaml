@@ -1,2 +1,4 @@
+sortOptions:
+  order: fifo
 resources:
   - './gateway.yaml'         # namespace: envoy-gateway-system (common gateway)

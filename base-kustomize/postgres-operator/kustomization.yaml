@@ -1,3 +1,5 @@
+sortOptions:
+  order: fifo
 resources:
   - ns-postgres.yaml
 

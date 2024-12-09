@@ -41,7 +41,7 @@ spec:
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: Grant
 metadata:
-  name: grant
+  name: grafana-grant
   namespace: openstack
   annotations:
     helm.sh/resource-policy: keep
