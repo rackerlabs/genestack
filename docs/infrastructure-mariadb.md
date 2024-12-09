@@ -17,14 +17,17 @@
         ```
 
 ## Deploy the mariadb operator
-
-``` shell
-cluster_name=`kubectl config view --minify -o jsonpath='{.clusters[0].name}'`
-sed -i -e "s/cluster\.local/$cluster_name/" /etc/genestack/kustomize/mariadb-operator/kustomization.yaml
-
-test -n "$cluster_name" && kubectl kustomize --enable-helm /etc/genestack/kustomize/mariadb-operator | \
-  kubectl --namespace mariadb-system apply --server-side --force-conflicts -f -
 ```
+cluster_name=`kubectl config view --minify -o jsonpath='{.clusters[0].name}'`
+echo $cluster_name
+```
+If `cluster_name` was anything other than `cluster.local` you should pass that as a parameter to the installer
+
+!!! example "Run the mariadb-operator deployment Script `bin/install-mariadb-operator.sh` You can include cluster_name paramater. No paramaters deploys with `cluster.local` cluster name."
+
+    ``` shell
+    --8<-- "bin/install-mariadb-operator.sh"
+    ```
 
 !!! info
 
