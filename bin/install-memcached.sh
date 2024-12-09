@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2124,SC2145,SC2294
 
 # Default parameter value
 TARGET=${1:-base}
@@ -21,6 +22,8 @@ if compgen -G "${CONFIG_DIR}/*.yaml" > /dev/null; then
         HELM_CMD+=" -f ${yaml_file}"
     done
 fi
+
+HELM_CMD+="${@}"
 
 # Run the helm command
 echo "Executing Helm command:"
