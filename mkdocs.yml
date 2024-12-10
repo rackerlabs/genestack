@@ -83,6 +83,7 @@ extra:
 
 extra_css:
   - overrides/stylesheets/adr.css
+  - overrides/stylesheets/admonition.css
 
 plugins:
   - search
