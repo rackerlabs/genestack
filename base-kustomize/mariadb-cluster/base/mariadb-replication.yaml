@@ -12,6 +12,25 @@ spec:
   database: mariadb
   image: mariadb:10.11.7
 
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: node-role.kubernetes.io/worker
+                operator: In
+                values:
+                  - worker
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - mariadb
+          topologyKey: kubernetes.io/hostname
+
   storage:
     size: 10Gi
     storageClassName: general
@@ -19,7 +38,7 @@ spec:
     waitForVolumeResize: true
     volumeClaimTemplate:
       accessModes:
-      - ReadWriteOnce
+        - ReadWriteOnce
       resources:
         requests:
           storage: 10Gi
