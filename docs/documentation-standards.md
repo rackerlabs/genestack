@@ -72,7 +72,7 @@ Instead, use that style for external links.  Also, for external links, please ad
 Inline code blocks are indicated with single backticks: \`
 
 ```markdown
-`inline` 
+`inline`
 ```
 
 This will render as: `inline`
