@@ -24,11 +24,11 @@ spec:
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         - labelSelector:
-            matchExpressions:
-              - key: app.kubernetes.io/name
-                operator: In
-                values:
-                  - mariadb
+          matchExpressions:
+            - key: app.kubernetes.io/instance
+              operator: In
+              values:
+                - mariadb-cluster
           topologyKey: kubernetes.io/hostname
 
   storage:
