@@ -83,6 +83,7 @@ extra:
 
 extra_css:
   - overrides/stylesheets/adr.css
+  - overrides/stylesheets/admonition.css
 
 plugins:
   - search
@@ -141,6 +142,7 @@ nav:
           - Overview: accelerated-computing-overview.md
           - Infrastructure: accelerated-computing-infrastructure.md
       - Other Design Documentation:
+          - Disaster Recovery for OpenStack Clouds: openstack-cloud-design-dr.md
           - Genestack Infrastructure Design: openstack-cloud-design-genestack-infra.md
   - Deployment Guide:
       - What is Genestack?: deployment-guide-welcome.md
@@ -192,8 +194,8 @@ nav:
                       - Cinder: openstack-cinder.md
                       - LVM iSCSI: openstack-cinder-lvmisci.md
                       - NETAPP:
-                        - Worker: openstack-cinder-netapp-worker.md
-                        - Containerized: openstack-cinder-netapp-container.md
+                          - Worker: openstack-cinder-netapp-worker.md
+                          - Containerized: openstack-cinder-netapp-container.md
                       - FIPS Cinder Encryption: openstack-cinder-fips-encryption.md
                   - Compute Kit:
                       - Compute Overview: openstack-compute-kit.md
@@ -250,6 +252,7 @@ nav:
               - Database Backup: infrastructure-ovn-db-backup.md
               - Monitoring introduction: ovn-monitoring-introduction.md
               - Claim Storm alert: ovn-alert-claim-storm.md
+              - Updating Kube OVN to OpenStack Configuration: ovn-kube-ovn-openstack.md
           - MariaDB:
               - Operations: infrastructure-mariadb-ops.md
       - Observability:
@@ -299,9 +302,17 @@ nav:
       - Openstack Object Store Swift CLI: storage-object-store-swift-cli.md
       - Openstack Object Store Openstack CLI: storage-object-store-openstack-cli.md
       - Openstack Object Store Skyline GUI: storage-object-store-skyline-gui.md
+      - Openstack Object Store 3rd Party SDK, Tools: storage-object-store-swift-3rd-party.md
       - Openstack Snapshot: openstack-snapshot.md
       - Openstack Volumes: openstack-volumes.md
       - Openstack Load Balancers: openstack-load-balancer.md
       - Openstack Networks: openstack-networks.md
+      - Openstack Quotas: openstack-quota.md
+  - Security Primer:
+      - Introduction: security-introduction.md
+      - Security In Phases: security-lifecycle.md
+      - Cloud Security: security-stages.md
+      - Summary: security-summary.md
   - Blog: https://blog.rackspacecloud.com/
   - Status: api-status.md
+  - Style Guide: documentation-standards.md

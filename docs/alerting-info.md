@@ -80,3 +80,14 @@ The following list contains a few examples of these receivers as part of the [al
 * [Microsoft Teams Receiver](alertmanager-msteams.md)
 
 We can now take all this information and build out an alerting workflow that suits our needs!
+
+## Genestack alerts
+
+This section contains some information on individual Genestack alert.
+
+### MariaDB backup alert
+
+Based on a schedule of 6 hours by default, it allows 1 hour to upload and
+alerts when MySQL doesn't successfully complete a backup.
+
+It alerts at warning level the first time this happens, and at critical level the second time this happens.
