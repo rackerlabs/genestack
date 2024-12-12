@@ -1,63 +1,80 @@
-name: Retag Images to GHCR
+name: Migrate Images to GHCR
 
 on:
   push:
     branches:
       - image-cicd
     paths:
-      - '.original-images.yaml'
+      - '.original-images.json'
   workflow_dispatch:
 
+env:
+  REGISTRY: "quay.io"
+  IMAGE_ORG: "rackspace"
+
 jobs:
-  retag-images:
-    runs-on: ubuntu-latest
+  setup-matrix:
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.parse-json.outputs.matrix }}
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Docker
-      uses: docker/setup-buildx-action@v2
+      - name: Ensure jq is installed
+        run: |
+          if ! command -v jq &> /dev/null; then
+            echo "jq is not installed. Installing now..."
+            sudo apt-get update && sudo apt-get install -y jq
+          else
+            echo "jq is already installed."
+          fi
 
-    - name: Log in to the Container registry
-      uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Read images from .original-images.json
+        id: parse-json
+        run: |
+          IMAGES=$(jq -c '.' < .original-images.json)
+          echo "Images: $IMAGES"
+          echo "matrix=$IMAGES" >> $GITHUB_OUTPUT
 
-    - name: Read and retag images
-      run: |
-        if [ ! -f .original-images.yaml ]; then
-          echo "File .original-images.yaml not found!"
-          exit 1
-        fi
+  migrate-images:
+    needs: setup-matrix
+    runs-on: ubuntu-22.04
 
-        # Read images from the YAML file
-        images=$(cat .original-images.yaml | yq '.[]')
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        image: ${{ fromJson(needs.setup-matrix.outputs.matrix) }}
 
-        for image in $images; do
-          echo "Processing $image"
+    steps:
+      - name: Pull image from Source Registry
+        run: |
+          echo "Pulling image: ${{ matrix.image }}"
+          docker pull ${{ matrix.image }}
 
-          # Extract image name and tag
-          base_image=$(echo $image | cut -d ':' -f 1)
-          tag=$(echo $image | cut -d ':' -f 2)
-          
-          # Pull the original image
-          docker pull $image
+      - name: Login to Quay Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.QUAY_USER }}
+          password: ${{ secrets.QUAY_TOKEN }}
 
-          # Retag to GHCR
-          new_image="ghcr.io/rackerlabs/$base_image:$tag"
-          docker tag $image $new_image
+      - name: Retag Image for quay
+        id: retag
+        run: |
+          IMAGE_FULL="${{ matrix.image }}"
+          IMAGE_NAME_WITH_TAG=$(basename $IMAGE_FULL)  # Remove registry prefix
+          IMAGE_NAME_ONLY="$(echo $IMAGE_NAME_WITH_TAG | cut -d: -f1)"  # Extract image name
+          IMAGE_TAG="$(echo $IMAGE_NAME_WITH_TAG | cut -d: -f2)"  # Extract tag
+          QUAY_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_ORG }}/rackerlabs-$IMAGE_NAME_ONLY:$IMAGE_TAG"
+          echo $QUAY_IMAGE
 
-          # Push to GHCR
-          docker push $new_image
-        done
+          echo "Retagging ${{ matrix.image }} to $QUAY_IMAGE"
+          docker tag ${{ matrix.image }} $QUAY_IMAGE
+          echo "QUAY_IMAGE=$QUAY_IMAGE" >> $GITHUB_OUTPUT
 
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Logout from Docker
-      run: |
-        docker logout ghcr.io
-
+      - name: Push to Quay
+        run: |
+          docker push ${{ steps.retag.outputs.QUAY_IMAGE }}
