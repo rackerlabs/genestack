@@ -1,0 +1,63 @@
+name: Retag Images to GHCR
+
+on:
+  push:
+    branches:
+      - image-cicd
+    paths:
+      - '.original-images.yaml'
+  workflow_dispatch:
+
+jobs:
+  retag-images:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Docker
+      uses: docker/setup-buildx-action@v2
+
+    - name: Log in to the Container registry
+      uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Read and retag images
+      run: |
+        if [ ! -f .original-images.yaml ]; then
+          echo "File .original-images.yaml not found!"
+          exit 1
+        fi
+
+        # Read images from the YAML file
+        images=$(cat .original-images.yaml | yq '.[]')
+
+        for image in $images; do
+          echo "Processing $image"
+
+          # Extract image name and tag
+          base_image=$(echo $image | cut -d ':' -f 1)
+          tag=$(echo $image | cut -d ':' -f 2)
+          
+          # Pull the original image
+          docker pull $image
+
+          # Retag to GHCR
+          new_image="ghcr.io/rackerlabs/$base_image:$tag"
+          docker tag $image $new_image
+
+          # Push to GHCR
+          docker push $new_image
+        done
+
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Logout from Docker
+      run: |
+        docker logout ghcr.io
+
