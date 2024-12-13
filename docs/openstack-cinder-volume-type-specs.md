@@ -14,4 +14,3 @@ root@openstack-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-
 
 root@openstack-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume type unset --property netapp_compression <VOLUME_TYPE_ID>
 ```
-
