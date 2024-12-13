@@ -116,7 +116,7 @@ for service in "$base_source_dir"/*; do
   fi
 done
 
-# Symlink /opt/genestack/kustomize.sh to
+# Symlink /opt/genestack/base-kustomize/kustomize.sh to
 # /etc/genestack/kustomize/kustomize.sh
 ln -s $base_source_dir/kustomize.sh $base_target_dir/kustomize.sh
 
