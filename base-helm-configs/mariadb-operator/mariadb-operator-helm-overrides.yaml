@@ -85,7 +85,7 @@ nodeSelector: {}
 tolerations: []
 
 # -- Affinity to add to controller Pod
-affinity: 
+affinity:
   nodeAffinity:
     requiredDuringSchedulingIgnoredDuringExecution:
       nodeSelectorTerms:
