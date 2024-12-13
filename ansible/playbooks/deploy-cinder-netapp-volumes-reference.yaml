@@ -7,7 +7,7 @@
     cinder_release: "2024.1"
     cinder_storage_network_interface: ansible_br_storage
     cinder_storage_network_interface_secondary: ansible_br_storage_secondary
-    cinder_backend_name: "block-ha-performance-at-rest-encrypted,block-ha-standard-at-rest-encrypted"
+    cinder_backend_name: "block-ha-performance-at-rest-encrypted,block-ha-standard-at-rest-encrypted,block-ha-performance-end-to-end-encrypted,block-ha-standard-end-to-end-encrypted"
     custom_multipath: false
   handlers:
     - name: Restart cinder-volume-netapp systemd services
@@ -197,14 +197,6 @@
         owner: root
         group: root
         mode: "0644"
-
-    - name: Replace yaml safe qos policy key in netapp-backends configuration
-      ansible.builtin.replace:
-        path: /etc/cinder/netapp-backends.conf
-        regexp: 'netapp_qos_policy_group'
-        replace: 'netapp:qos_policy_group'
-      notify:
-        - Restart cinder-volume-netapp systemd services
 
     - name: Replace exec path in rootwrap
       community.general.ini_file:
