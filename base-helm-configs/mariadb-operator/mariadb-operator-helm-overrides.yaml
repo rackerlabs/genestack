@@ -252,4 +252,3 @@ certController:
   tolerations: []
   # -- Affinity to add to controller Pod
   affinity: {}
-  
