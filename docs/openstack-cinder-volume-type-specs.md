@@ -2,7 +2,7 @@
 
 ## Example: NetApp ONTAP driver volume specifications (deduplication and compression)
 
-To set additional properties on a NetApp volume type, use the following syntax to set and unset properties
+To set and unset additional properties on a NetApp volume type, use the syntax examples.
 
 ``` shell
 
