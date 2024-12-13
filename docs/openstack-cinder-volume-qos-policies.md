@@ -1,6 +1,9 @@
 # Volume QoS Policies
 
-## Example QoS policy for LVM driver volume type
+## LVM
+
+
+### Example QoS policy for LVM driver volume type
 
 In order to apply a QoS policy to the `lvmdriver-1` volume type, you must first create the QoS policy.
 
@@ -23,7 +26,11 @@ The command will utilize the `QOS_ID` and `VOLUME_TYPE_ID`.
 root@openstack-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume qos associate b35fdf9c-d5bd-40f9-ae3a-8605c246ef2e 6af6ade2-53ca-4260-8b79-1ba2f208c91d
 ```
 
-## Example QoS policy for NetApp ONTAP volume type
+## NetAPP ONTAP
+
+The most recent releases of the ONTAP driver (OpenStack Train and higher) allow QoS policies to be set per volume at the Cinder volume type rather than trying to utilize a QoS policy created on a target NetApp device. For a more detailed explanation, consult [NetApp Cinder QoS Concepts](https://netapp-openstack-dev.github.io/openstack-docs/train/cinder/key_concepts/section_cinder-key-concepts.html#qos-spec)
+
+### Example QoS policy for NetApp ONTAP volume type
 
 In order to apply a QoS policy to the `netapp-1` volume type, you must first create the QoS policy.
 
