@@ -8,7 +8,7 @@ The following commands are examples of creating several different network types.
 
 ``` shell
 openstack --os-cloud default network create --share \
-                                            --availability-zone-hint nova \
+                                            --availability-zone-hint az1 \
                                             --external \
                                             --provider-network-type flat \
                                             --provider-physical-network physnet1 \
@@ -31,7 +31,7 @@ openstack --os-cloud default subnet create --subnet-range 172.16.24.0/22 \
 
 ``` shell
 openstack --os-cloud default network create --share \
-                                            --availability-zone-hint nova \
+                                            --availability-zone-hint az1 \
                                             --external \
                                             --provider-segment 404 \
                                             --provider-network-type vlan \
