@@ -31,6 +31,7 @@ HELM_CMD="helm upgrade --install mariadb-operator mariadb-operator --repo https:
     --namespace=mariadb-system \
     --create-namespace \
     --timeout 120m \
+    --version 0.28.1 \
     --post-renderer /etc/genestack/kustomize/kustomize.sh \
     --post-renderer-args mariadb-operator/overlay \
     -f /opt/genestack/base-helm-configs/mariadb-operator/mariadb-operator-helm-overrides.yaml"
