@@ -6,6 +6,10 @@ The NetApp Volume Worker is a cinder-volume service that is configured to use th
 
 The `deploy-cinder-volumes-netapp-reference.yaml` playbook is used to deploy the NetApp Volume Worker. The playbook will deploy the cinder-volume service on the specified nodes and configure the service to use the NetApp ONTAP driver. This playbook will read from the Kubernetes environment to determine the necessary configuration parameters for the NetApp ONTAP driver. As an operator, you will need to ensure that the necessary configuration parameters are set in the Kubernetes environment before running the playbook.
 
+!!! warning
+
+    **Before** deploying a new backend, ensure that your volume type has been set up correctly and that you have applied QoS policies, provisioning specifications (min and max volume size), and any extra specs. See [Cinder Volume QoS Policies](openstack-cinder-volume-qos-policies.md), [Cinder Volume Provisioning Specs](openstack-cinder-volume-provisioning-specs.md), and [Cinder Volume Type Specs](openstack-cinder-volume-type-specs.md).
+
 ### Backends Configuration
 
 The NetApp ONTAP driver requires a backend configuration to be set in the Kubernetes environment. The backend configuration specifies the storage system that the NetApp Volume Worker will use to create and manage volumes. The backend configuration is a Kubernetes secret that contains the necessary configuration parameters for the NetApp ONTAP driver. To define the backends, update the helm overrides file with the necessary configuration parameters.
@@ -24,7 +28,6 @@ The NetApp ONTAP driver requires a backend configuration to be set in the Kubern
           netapp_storage_protocol: iscsi
           netapp_transport_type: http
           netapp_vserver: <VSERVER>
-          netapp_qos_policy_group: <QOS_POLICY_GROUP>
           netapp_dedup: True
           netapp_compression: True
           netapp_thick_provisioned: True
@@ -40,7 +43,6 @@ The NetApp ONTAP driver requires a backend configuration to be set in the Kubern
           netapp_storage_protocol: iscsi
           netapp_transport_type: http
           netapp_vserver: <VSERVER>
-          netapp_qos_policy_group: <QOS_POLICY_GROUP>
           netapp_dedup: True
           netapp_compression: True
           netapp_thick_provisioned: True
@@ -56,10 +58,6 @@ The NetApp ONTAP driver requires a backend configuration to be set in the Kubern
 - **`SERVER_NAME_OR_ADDRESS`**: The address of the NetApp storage system. This can be either an IP address or a fully qualified domain name (FQDN).
 - **`SERVER_PORT`**: The port number used for communication with the NetApp storage system. Common ports are `80` for HTTP and `443` for HTTPS.
 - **`VSERVER`**: Specifies the virtual storage server (Vserver) on the NetApp storage system that will serve the volumes.
-- **`QOS_POLICY_GROUP`**: The Quality of Service (QoS) policy group name that will be applied to volumes for this backend.
-
-!!! note
-    The Cinder backends configuration file utilizes a colon (:) in the variable name `netapp:qos_policy_group`, but it has been replaced in the Helm overrides file with an underscore. Helm recognizes a colon (:) as a special character and renders it as an equal (=) sign. This is undesired behavior for the final rendering of the Cinder backends configuration file, and the Ansible playbook replaces the underscore with a colon (:). The extra spec requires the colon (:) in its name because it is used by the NetAppdriver to assign the QoS policy group to the OpenStack Block Storage volume after it has been provisioned. See [NetApp unified driver](https://docs.openstack.org/cinder/latest/configuration/block-storage/drivers/netapp-volume-driver.html) for more detailed information on the NetApp driver extra specs.
 
 ## Host Setup
 

@@ -119,35 +119,8 @@ root@openstack-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-
 
 !!! warning
 
-    You must define and apply the volume type QoS policies **before** creating a volume within your new volume type (`lvmdriver-1`). Also, any additional volume provisioning specifications like the minimum and maximum size for the volume type must be set **before** creating a volume within your new volume type (`lvmdriver-1`).
+    **Before** creating a volume, ensure that your volume type has been set up correctly and that you have applied QoS policies, provisioning specifications (min and max volume size), and any extra specs. See [Cinder Volume QoS Policies](openstack-cinder-volume-qos-policies.md), [Cinder Volume Provisioning Specs](openstack-cinder-volume-provisioning-specs.md), and [Cinder Volume Type Specs](openstack-cinder-volume-type-specs.md).
 
-In order to apply a QoS policy to the `lvmdriver-1` volume type, you must first create the QoS policy.
-
-``` shell
-root@openstack-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume qos create --consumer "both" --property "read_iops_sec_per_gb=1" --property "write_iops_sec_per_gb=1" lvmdriver-1-iops
-+------------+-----------------------------------------------------+
-| Field      | Value                                               |
-+------------+-----------------------------------------------------+
-| consumer   | both                                                |
-| id         | b35fdf9c-d5bd-40f9-ae3a-8605c246ef2e                |
-| name       | lvmdriver-1-iops                                    |
-| properties | read_iops_sec_per_gb='1', write_iops_sec_per_gb='1' |
-+------------+-----------------------------------------------------+
-```
-
-Once you have created the QoS policy, apply it to the `lvmdriver-1` volume type.
-The command will utilize the `QOS_ID` and `VOLUME_TYPE_ID`.
-
-``` shell
-root@openstack-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume qos associate b35fdf9c-d5bd-40f9-ae3a-8605c246ef2e 6af6ade2-53ca-4260-8b79-1ba2f208c91d
-```
-
-Set any additional volume provisioning specifications like the minimum and maximum volume size. These specifications are set in the volume type. The following commands constrain the `lvmdriver-1` volume type to a size between 10 GB and 2 TB.
-
-``` shell
-root@openstack-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume type set --property provisioning:min_vol_size=10 6af6ade2-53ca-4260-8b79-1ba2f208c91d
-root@openstack-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-client -- openstack volume type set --property provisioning:max_vol_size=2048 6af6ade2-53ca-4260-8b79-1ba2f208c91d
-```
 
 ## Validate functionality
 

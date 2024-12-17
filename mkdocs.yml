@@ -268,6 +268,10 @@ nav:
       - OpenStack:
           - CLI Access:
               - Generating Clouds YAML: openstack-clouds.md
+          - Block Storage:
+              - Cinder Volume Provisioning Specs: openstack-cinder-volume-provisioning-specs.md
+              - Cinder Volume QoS Policies: openstack-cinder-volume-qos-policies.md
+              - Cinder Volume Type Specs: openstack-cinder-volume-type-specs.md
           - Compute:
               - Nova Flavor Creation: openstack-flavors.md
               - Nova CPU Allocation Ratio: openstack-cpu-allocation-ratio.md

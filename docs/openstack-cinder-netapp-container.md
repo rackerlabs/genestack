@@ -3,7 +3,8 @@
 This document provides information on configuring NetApp backends for the isolated Cinder volume worker. Each backend is defined by a set of
 11 comma-separated options, and multiple backends can be specified by separating them with semicolons.
 
-!!!  warning "The NetApp container is incompatible with iSCSI workloads"
+
+!!! warning "The NetApp container is incompatible with iSCSI workloads"
 
     The NetApp container is incompatible with iSCSI workloads. If the environment requires iSCSI support, review the [Cinder NetApp Worker ](openstack-cinder-netapp-worker.md) documentation instead.
 
@@ -19,11 +20,10 @@ Below is a table detailing each option, its position in the backend configuratio
 | 3            | `netapp_server_hostname`      | Hostname or IP address of the NetApp storage system.                         | String  |
 | 4            | `netapp_server_port`          | Port number to communicate with the NetApp storage system.                   | Integer |
 | 5            | `netapp_vserver`              | The name of the Vserver on the NetApp storage system.                        | String  |
-| 6            | `netapp:qos_policy_group`     | The name of the QoS policy group.                                            | String  |
-| 7            | `netapp_dedup`                | Enable (`True`) or disable (`False`) deduplication.                          | Boolean |
-| 8            | `netapp_compression`          | Enable (`True`) or disable (`False`) compression.                            | Boolean |
-| 9            | `netapp_thick_provisioned`    | Use thick (`True`) or thin (`False`) provisioning.                           | Boolean |
-| 10           | `netapp_lun_space_reservation`| Enable (`enabled`) or disable (`disabled`) LUN space reservation.            | String  |
+| 6            | `netapp_dedup`                | Enable (`True`) or disable (`False`) deduplication.                          | Boolean |
+| 7            | `netapp_compression`          | Enable (`True`) or disable (`False`) compression.                            | Boolean |
+| 8            | `netapp_thick_provisioned`    | Use thick (`True`) or thin (`False`) provisioning.                           | Boolean |
+| 9            | `netapp_lun_space_reservation`| Enable (`enabled`) or disable (`disabled`) LUN space reservation.            | String  |
 
 ### Detailed Option Descriptions
 
@@ -33,7 +33,6 @@ Below is a table detailing each option, its position in the backend configuratio
 - **`netapp_server_hostname`**: The address of the NetApp storage system. This can be either an IP address or a fully qualified domain name (FQDN).
 - **`netapp_server_port`**: The port number used for communication with the NetApp storage system. Common ports are `80` for HTTP and `443` for HTTPS.
 - **`netapp_vserver`**: Specifies the virtual storage server (Vserver) on the NetApp storage system that will serve the volumes.
-- **`netapp:qos_policy_group`**: The Quality of Service (QoS) policy group name that will be applied to volumes for this backend.
 - **`netapp_dedup`**: A boolean value to enable or disable deduplication on the storage volumes. Acceptable values are `True` or `False`.
 - **`netapp_compression`**: A boolean value to enable or disable compression on the storage volumes. Acceptable values are `True` or `False`.
 - **`netapp_thick_provisioned`**: Determines whether volumes are thick (`True`) or thin (`False`) provisioned.
@@ -61,6 +60,10 @@ in a specific order.
     ```
 
 ## Run the deployment
+
+!!! warning
+
+    **Before** deploying a new backend, ensure that your volume type has been set up correctly and that you have applied QoS policies, provisioning specifications (min and max volume size), and any extra specs. See [Cinder Volume QoS Policies](openstack-cinder-volume-qos-policies.md), [Cinder Volume Provisioning Specs](openstack-cinder-volume-provisioning-specs.md), and [Cinder Volume Type Specs](openstack-cinder-volume-type-specs.md).
 
 With your configuration defined, run the deployment with a standard `kubectl apply` command.
 
