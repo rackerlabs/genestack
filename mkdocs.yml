@@ -133,11 +133,13 @@ nav:
       - Architecture: genestack-architecture.md
       - Components: genestack-components.md
       - Swift Object Storage: openstack-object-storage-swift.md
-  - Cloud Design:
-      - Overview: openstack-cloud-design-overview.md
-      - Regions in OpenStack: openstack-cloud-design-regions.md
-      - Availability Zones in OpenStack: openstack-cloud-design-az.md
-      - Host Aggregates in OpenStack: openstack-cloud-design-ha.md
+  - Design Guide:
+      - Introduction: openstack-cloud-design-intro.md
+      - Cloud Design:
+          - Cloud Topology: openstack-cloud-design-topology.md
+          - Regions: openstack-cloud-design-regions.md
+          - Availability Zones: openstack-cloud-design-az.md
+          - Host Aggregates: openstack-cloud-design-ha.md
       - Accelerated Computing:
           - Overview: accelerated-computing-overview.md
           - Infrastructure: accelerated-computing-infrastructure.md
