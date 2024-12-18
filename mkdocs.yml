@@ -184,6 +184,7 @@ nav:
               - Memcached: infrastructure-memcached.md
               - Libvirt: infrastructure-libvirt.md
               - OVN: infrastructure-ovn-setup.md
+              - FluentBit: infrastructure-fluentbit.md
               - Loki: infrastructure-loki.md
           - OpenStack:
               - openstack-overview.md
