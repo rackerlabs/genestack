@@ -30,7 +30,7 @@ ceph orch apply mds myfs label:mds
 
 !!! note
 
-    We will now download create-external-cluster-resources.py and create exports to run on your controller node. Using cephadm in this example:
+    From your ceph deploymenty node, We will now download create-external-cluster-resources.py and create exports to run on your controller node. Using cephadm in this example:
 
 ``` shell
 ./cephadm shell
@@ -40,7 +40,7 @@ python3 create-external-cluster-resources.py --rbd-data-pool-name general --ceph
 
 !!! example "Example create-external-cluster-resources.py output"
 
-    The script generates a lot of output, you will need to capture all of the exports. These exports will be used in the next command.
+    The script generates a lot of output, you will need to capture all of the exports. These exports will be used in the next command.  Copy these exports to your genestack deployment node.
 
     ``` shell
     root@genestack-ceph1:/# python3 create-external-cluster-resources.py --rbd-data-pool-name general --cephfs-filesystem-name general-multi-attach --namespace rook-ceph-external --format bash
