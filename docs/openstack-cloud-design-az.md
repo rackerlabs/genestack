@@ -12,8 +12,8 @@ Availability Zones are a logical abstraction for partitioning a cloud without kn
 
 Typically, a [region](openstack-cloud-design-regions.md) encompasses at least two, ideally more, availability zones (AZs). All AZs are fully independent, featuring redundant power, cooling, and networking resources, and are interconnected within a region via dedicated high-bandwidth, low-latency links. Connectivity between AZs in-Region are typically extremely fast[^1].
 
-!!! Info
-    See [this page](https://www.rackspace.com/about/data-centers){:target="_blank"} on the Rackspace website for information on how Rackspace deploys data centers to deliver these capabilities.
+!!! Genestack
+    See the [data center](https://www.rackspace.com/about/data-centers){:target="_blank"} pages on the Rackspace website for information on how Rackspace deploys and manages data centers to deliver these capabilities.
 
 There is no standard for quantifying distance between AZs.  What constitutes "in-Region" is defined by a the cloud provider, so when designing a cloud there is a lot of latitude.Distance between AZs depends on the region and the specific cloud provider[^2].
 
@@ -50,11 +50,14 @@ The addition of this specific metadata to an aggregate makes the aggregate visib
 
 - By default a host is part of a default Availability Zone even if it doesn’t belong to a host aggregate. The name of this default availability zone can be configured using the `default_availability_zone` config option.
 
-(See [Host Aggregates](openstack-cloud-design-ha.md) for more information.)
+!!! Note
+    See [Host Aggregates](openstack-cloud-design-ha.md) for more information.
 
 ### Availability Zones and Placement
 
 In order for [Placement](https://docs.openstack.org/placement/latest/){:target="_blank"} to use to honor Availability Zone requests, there must be placement aggregates that match the membership and UUID of Nova Host Aggregates that you assign as availability zones. An aggregate metadata key is used to controls this function. As of OpenStack 28.0.0 (Bobcat), this is the only way to schedule instances to availability-zones.
+
+Administrators can configure a default availability zone where instances will be placed when the user fails to specify one. For more information on how to do this, refer to [Availability Zones](https://docs.openstack.org/nova/latest/reference/glossary.html#term-Availability-Zone){:target="_blank"}.
 
 ## Availability Zones in Cinder
 
@@ -107,7 +110,10 @@ By deploying HA nodes across different availability zones, it is guaranteed that
 
 ### Neutron Availability Zones and OVN
 
-When using [Open Virtual Networking (OVN)](https://www.ovn.org/en/){:target="_blank"}[^6] aditional [special configuration](https://docs.openstack.org/neutron/latest/admin/ovn/availability_zones.html){:target="_blank"} is necessary to enable Availability Zones.
+!!! Genestack
+    [Open Virtual Networking (OVN)](https://www.ovn.org/en/){:target="_blank"} is the networking fabric being used in [Genestack](infrastructure-ovn-setup.md).
+
+Additional [special configuration](https://docs.openstack.org/neutron/latest/admin/ovn/availability_zones.html){:target="_blank"} is necessary to enable Availability Zones when using OVN.
 
 ## Sharing Keystone Across Availability Zones
 
@@ -122,4 +128,3 @@ As with Keystone, Glance can also be shared across Availability Zones. The [Regi
 [^3]: This is typical for hybrid cloud deployments where there is a need to have customer data centers separate from cloud provider data centers, but still a need for high-speed connectivity, such as for fail-over, disaster recovery, or data access.
 [^4]: The OpenStack [Placement](https://docs.openstack.org/placement/latest/){:target="_blank"} service and the scheduler work to prevent this from happening, but some actions can still attempt to do this, yielding unpredictable results.
 [^5]: For example: [NetApp](https://www.netapp.com/hybrid-cloud/openstack-private-cloud/){:target="_blank"} or [Pure Storage](https://www.purestorage.com/content/dam/pdf/en/solution-briefs/sb-enhancing-openstack-deployments-with-pure.pdf){:target="_blank"}.
-[^6]: [Genestack](infrastructure-ovn-setup.md) is built using OVN.

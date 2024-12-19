@@ -69,8 +69,8 @@ In most cases, [Cinder](https://docs.openstack.org/cinder/latest/){:target="_bla
 
 As with Neutron, the key is designing services that can be put together with other building blocks to create the useful combinations that cloud users are looking to take advantage of.  For Cinder, this usually means some kind of cross-region replication.
 
-Currently, Cinder [replication](https://docs.openstack.org/cinder/latest/contributor/replication.html){:target="_blank"} is limited to in-region backend failure scenarios where volumes can be
-saved to multiple backends.
+!!! Note
+    Currently, Cinder [replication](https://docs.openstack.org/cinder/latest/contributor/replication.html){:target="_blank"} is limited to in-region backend failure scenarios where volumes can be saved to multiple backends.
 
 Replicating Cinder volumes from one Region to another is more complicated in the sense that not only does the actual volume storage need to be replicated, but both regions would need to have the metadata in sync for those volumes.  Ultimately, there would need to be a way to synchronize the _state_ of those volumes so that both Regions understand the local and the remote to be the _same volume_.  This is much more complex.
 

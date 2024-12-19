@@ -1,4 +1,4 @@
-# Overview
+# Cloud Topology
 
 When building a cloud, the design of the cloud will not only reflect the type of services you are looking to provide but also inform the way that users of your cloud work to accomplish their goals.
 
@@ -35,7 +35,7 @@ The major disadvantage of this pattern is that any replication of data or servic
 
 Regions can be defined as a high-level cloud construct where there is some sort of geographical separation of services. In most cases, there may be some supporting services are shared between them; however, the general principle is that each region should be as self-sufficient as possible.
 
-Depending on the scale of the cloud being built, geographical separation could be completely separate datacenters for very large clouds, or it could just mean separate data halls for smaller clouds. Regardless of the scale of separation, the operational resources should be kept as independent as possible with respect to power, networking, cooling, etc.
+Depending on the scale of the cloud being built, geographical separation could be completely separate data centers for very large clouds, or it could just mean separate data halls for smaller clouds. Regardless of the scale of separation, the operational resources should be kept as independent as possible with respect to power, networking, cooling, etc.
 
 In addition to the physical geographical separation, there also needs to be logical separation of most services. Most storage, compute, and execution services[^2] should be separate and have the ability to operate independently from those same services deployed in other regions. This is key to ensure that users can depend on any region-level failure to be isolated and not bleed into other regions and harm the availability of their deployments. Any kind of fault or failure at the Region-level should be able to be mitigated by the cloud user having deployments in multiple regions to provide high-availability.
 

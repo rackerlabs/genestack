@@ -1,5 +1,7 @@
 # Setting up Loki
 
+Loki is a horizontally-scalable, highly-available, multi-tenant log aggregation system inspired by Prometheus. It is designed to be very cost-effective and easy to operate. It does not index the contents of the logs, but rather a set of labels for each log stream.
+
 ## Add the grafana helm repo
 
 ``` shell
@@ -9,11 +11,11 @@ helm repo update
 
 ### Install the helm chart
 
-You will need to make changes depending on how you want to configure loki. Example files are included in this directory choose one relevant to your deploy
+ou will need to make changes depending on how you want to configure loki. Example files are included in `genetack/base-helm-configs`.  Choose one relevant to your deploy, edit for revelant data, and ensure you copy the file to `/etc/genestack/base-helm/loki-helm-overrides.yaml`
 
 ``` shell
 helm upgrade --install \
-             --values my-loki-helm-overrides.yaml \
+             --values /etc/genestack/helm-configs/loki/loki-helm-overrides.yaml \
              loki grafana/loki \
              --create-namespace \
              --namespace grafana \

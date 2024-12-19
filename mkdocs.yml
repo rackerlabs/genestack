@@ -133,11 +133,13 @@ nav:
       - Architecture: genestack-architecture.md
       - Components: genestack-components.md
       - Swift Object Storage: openstack-object-storage-swift.md
-  - Cloud Design:
-      - Overview: openstack-cloud-design-overview.md
-      - Regions in OpenStack: openstack-cloud-design-regions.md
-      - Availability Zones in OpenStack: openstack-cloud-design-az.md
-      - Host Aggregates in OpenStack: openstack-cloud-design-ha.md
+  - Design Guide:
+      - Introduction: openstack-cloud-design-intro.md
+      - Cloud Design:
+          - Cloud Topology: openstack-cloud-design-topology.md
+          - Regions: openstack-cloud-design-regions.md
+          - Availability Zones: openstack-cloud-design-az.md
+          - Host Aggregates: openstack-cloud-design-ha.md
       - Accelerated Computing:
           - Overview: accelerated-computing-overview.md
           - Infrastructure: accelerated-computing-infrastructure.md
@@ -182,6 +184,7 @@ nav:
               - Memcached: infrastructure-memcached.md
               - Libvirt: infrastructure-libvirt.md
               - OVN: infrastructure-ovn-setup.md
+              - FluentBit: infrastructure-fluentbit.md
               - Loki: infrastructure-loki.md
           - OpenStack:
               - openstack-overview.md
@@ -255,6 +258,9 @@ nav:
               - Updating Kube OVN to OpenStack Configuration: ovn-kube-ovn-openstack.md
           - MariaDB:
               - Operations: infrastructure-mariadb-ops.md
+          - Gateway API:
+              - Custom Routes: infrastructure-gateway-api-custom.md
+              - Rackspace Example Gateway Overview: rackspace-infrastructure-gateway-api.md
       - Observability:
           - Observability Overview: observability-info.md
           - Monitoring Overview: monitoring-info.md
@@ -265,6 +271,10 @@ nav:
       - OpenStack:
           - CLI Access:
               - Generating Clouds YAML: openstack-clouds.md
+          - Block Storage:
+              - Cinder Volume Provisioning Specs: openstack-cinder-volume-provisioning-specs.md
+              - Cinder Volume QoS Policies: openstack-cinder-volume-qos-policies.md
+              - Cinder Volume Type Specs: openstack-cinder-volume-type-specs.md
           - Compute:
               - Nova Flavor Creation: openstack-flavors.md
               - Nova CPU Allocation Ratio: openstack-cpu-allocation-ratio.md
