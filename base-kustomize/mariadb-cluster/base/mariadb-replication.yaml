@@ -11,7 +11,6 @@ spec:
   username: mariadb
   database: mariadb
   image: mariadb:10.11.7
-
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -21,15 +20,16 @@ spec:
                 operator: In
                 values:
                   - worker
-    podAntiAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - labelSelector:
-          matchExpressions:
-            - key: app.kubernetes.io/instance
-              operator: In
-              values:
-                - mariadb-cluster
-          topologyKey: kubernetes.io/hostname
+    # NOTE: (brew) uncomment below when we update to a newer mariadb crd
+#    podAntiAffinity:
+#      requiredDuringSchedulingIgnoredDuringExecution:
+#        - labelSelector:
+#          matchExpressions:
+#            - key: app.kubernetes.io/instance
+#              operator: In
+#              values:
+#                - mariadb-cluster
+#          topologyKey: kubernetes.io/hostname
 
   storage:
     size: 10Gi
