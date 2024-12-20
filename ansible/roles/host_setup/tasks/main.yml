@@ -94,6 +94,10 @@
     cache_valid_time: 600
   when: ansible_facts['os_family'] | lower == 'debian'
 
+- name: Set CPU frequency governor to performance
+  include_tasks: CPU_frequency.yml
+  when: ansible_facts['os_family'] | lower == 'debian'
+
 - name: Install distro packages
   package:
     name: "{{ host_distro_packages }}"
@@ -115,4 +119,3 @@
   until: install_packages is success
   retries: 5
   delay: 2
-
