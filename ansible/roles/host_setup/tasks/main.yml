@@ -82,6 +82,12 @@
   tags:
     - always
 
+- name: Pin kernel version and disable unattended-upgrades
+  include_tasks: pin_kernel.yml
+  when: ansible_facts['os_family'] | lower == 'debian'
+  tags:
+    - always
+
 - name: Update package cache
   apt:
     update_cache: true

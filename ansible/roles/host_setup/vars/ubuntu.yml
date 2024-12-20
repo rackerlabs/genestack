@@ -6,6 +6,8 @@ host_sysstat_file: /etc/default/sysstat
 host_sysstat_cron_file: /etc/cron.d/sysstat
 host_cron_template: sysstat.cron.debian.j2
 host_module_file: /etc/modules
+apt_preferences: /etc/apt/preferences.d
+apt_config_dir: /etc/apt/apt.conf.d
 
 ## Kernel modules loaded on hosts
 host_kernel_modules:
