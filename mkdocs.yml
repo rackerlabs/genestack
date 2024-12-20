@@ -292,6 +292,7 @@ nav:
           - Magnum:
               - Creating kubernetes clusters: magnum-kubernetes-cluster-setup-guide.md
           - Octavia:
+              - Creating Flavor Profiles and Flavors: octavia-flavor-and-flavorprofile-guide.md
               - Creating Cloud Load Balancers: octavia-loadbalancer-setup-guide.md
           - Object Storage:
               - Operating Swift Object Storage: openstack-swift-operators-guide.md
