@@ -19,5 +19,8 @@ export CONTAINER_DISTRO_VERSION=jammy
 export OSH_DEPLOY_MULTINODE=True
 
 export OPENSTACK_RELEASE=2024.1
+export ANSIBLE_KEEP_REMOTE_FILES=False
+export ANSIBLE_PIPELINING=True
+export ANSIBLE_HOST_KEY_CHECKING=False
 
 test -f ~/.venvs/genestack/bin/activate 2>/dev/null && source ~/.venvs/genestack/bin/activate
