@@ -85,7 +85,7 @@ service:
   ## The type of service to create for the NGINX Gateway Fabric.
   type: LoadBalancer
   ## The externalTrafficPolicy of the service. The value Local preserves the client source IP.
-  externalTrafficPolicy: Cluster
+  externalTrafficPolicy: Local
   ## The annotations of the NGINX Gateway Fabric service.
   annotations:
     "metallb.universe.tf/address-pool": "openstack-external"
