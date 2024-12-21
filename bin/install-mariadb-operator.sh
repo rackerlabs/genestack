@@ -1,8 +1,10 @@
 #!/bin/bash
 # shellcheck disable=SC2124,SC2145,SC2294
 
+export VERSION="${VERSION:-0.36.0}"
+
 # Default parameter value
-CLUSTER_NAME=${1:-cluster.local}
+export CLUSTER_NAME=${CLUSTER_NAME:-cluster.local}
 
 # Directory to check for YAML files
 CONFIG_DIR="/etc/genestack/helm-configs/mariadb-operator"
@@ -27,12 +29,19 @@ if [ "${CLUSTER_NAME}" != "cluster.local" ]; then
     fi
 fi
 
+# Add the mariadb-operator helm repository
+helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
+helm repo update
+
+# Install the CRDs that match the version defined
+helm upgrade --install mariadb-operator-crds mariadb-operator/mariadb-operator-crds --version "${VERSION}"
+
 # Helm command setup
-HELM_CMD="helm upgrade --install mariadb-operator mariadb-operator --repo https://mariadb-operator.github.io/mariadb-operator \
+HELM_CMD="helm upgrade --install mariadb-operator mariadb-operator \
     --namespace=mariadb-system \
     --create-namespace \
     --timeout 120m \
-    --version 0.28.1 \
+    --version ${VERSION} \
     --post-renderer /etc/genestack/kustomize/kustomize.sh \
     --post-renderer-args mariadb-operator/overlay \
     -f /opt/genestack/base-helm-configs/mariadb-operator/mariadb-operator-helm-overrides.yaml"

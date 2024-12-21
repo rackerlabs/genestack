@@ -10,7 +10,8 @@ spec:
     generate: false
   username: mariadb
   database: mariadb
-  image: mariadb:10.11.7
+  image: docker-registry1.mariadb.com/library/mariadb:11.4.3
+
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
