@@ -1,4 +1,4 @@
 sortOptions:
   order: fifo
 resources:
-  - cluster-operator.yaml
+  - https://github.com/rabbitmq/cluster-operator/releases/download/v2.12.0/cluster-operator.yml
