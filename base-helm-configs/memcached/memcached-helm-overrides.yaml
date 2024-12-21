@@ -68,7 +68,7 @@ diagnosticMode:
 image:
   registry: docker.io
   repository: bitnami/memcached
-  tag: 1.6.32-debian-12-r0
+  tag: 1.6.33-debian-12-r0
   digest: ""
   ## Specify a imagePullPolicy
   ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -610,7 +610,7 @@ volumePermissions:
   image:
     registry: docker.io
     repository: bitnami/os-shell
-    tag: 12-debian-12-r31
+    tag: 12-debian-12-r34
     digest: ""
     pullPolicy: IfNotPresent
     ## Optionally specify an array of imagePullSecrets.
@@ -656,7 +656,7 @@ metrics:
   image:
     registry: docker.io
     repository: bitnami/memcached-exporter
-    tag: 0.14.4-debian-12-r9
+    tag: 0.15.0-debian-12-r3
     digest: ""
     pullPolicy: IfNotPresent
     ## Optionally specify an array of imagePullSecrets.

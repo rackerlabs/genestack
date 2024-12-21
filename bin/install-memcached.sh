@@ -1,9 +1,6 @@
 #!/bin/bash
 # shellcheck disable=SC2124,SC2145,SC2294
 
-# Default parameter value
-TARGET=${1:-base}
-
 # Directory to check for YAML files
 CONFIG_DIR="/etc/genestack/helm-configs/memcached"
 
@@ -12,7 +9,7 @@ HELM_CMD="helm upgrade --install memcached oci://registry-1.docker.io/bitnamicha
     --namespace=openstack \
     --timeout 120m \
     --post-renderer /etc/genestack/kustomize/kustomize.sh \
-    --post-renderer-args memcached/${TARGET} \
+    --post-renderer-args memcached/overlay \
     -f /opt/genestack/base-helm-configs/memcached/memcached-helm-overrides.yaml"
 
 # Check if YAML files exist in the specified directory
