@@ -9,6 +9,8 @@ spec:
     namespace: openstack
   schedule:
     cron: "0 0 * * *"
+  serviceAccountName: backup
+  compression: gzip
   storage:
     persistentVolumeClaim:
       resources:
@@ -16,5 +18,16 @@ spec:
           storage: 1Gi
       accessModes:
         - ReadWriteOnce
-  securityContext:
-    runAsUser: 0
+  args:
+    - --single-transaction
+    - --all-databases
+    - --verbose
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi
+  affinity:
+    antiAffinityEnabled: true
