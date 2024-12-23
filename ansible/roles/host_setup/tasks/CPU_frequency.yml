@@ -1,0 +1,33 @@
+---
+# Copyright 2024, Rackspace Technology, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+- name: Ensure cpupower is installed
+  ansible.builtin.apt:
+    name: "linux-tools-{{ ansible_facts['kernel'] }}"
+    state: present
+
+- name: Set CPU frequency governor to performance
+  ansible.builtin.command:
+    cmd: "/usr/bin/cpupower frequency-set -g performance"
+  changed_when: true
+  when:
+    - ansible_facts['kernel'] is version(host_required_kernel, '>=')
+
+- name: Disable CPU idle state 2
+  ansible.builtin.command:
+    cmd: "/usr/bin/cpupower idle-set -d 2"
+  changed_when: true
+  when:
+    - ansible_facts['kernel'] is version(host_required_kernel, '>=')
