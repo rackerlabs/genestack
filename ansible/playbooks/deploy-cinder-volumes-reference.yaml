@@ -20,6 +20,13 @@
         - cinder-volume
         - cinder-volume-usage-audit
         - iscsid.service
+    - name: Reload cinder-volume-tgt systemd service
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: reloaded
+        daemon_reload: true
+        enabled: true
+      loop:
         - tgt.service
   tasks:
     - name: K8S Facts block
@@ -219,6 +226,9 @@
         owner: root
         group: root
         mode: "0644"
+      notify:
+        - Reload cinder-volume-tgt systemd service
+
 
     - name: Remove cinder conf staging file
       ansible.builtin.file:
