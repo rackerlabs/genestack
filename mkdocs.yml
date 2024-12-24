@@ -311,10 +311,12 @@ nav:
       - Openstack Routers: openstack-router.md
       - Openstack Images: openstack-images.md
       - Openstack Metrics: openstack-metrics.md
-      - Openstack Object Store Swift CLI: storage-object-store-swift-cli.md
-      - Openstack Object Store Openstack CLI: storage-object-store-openstack-cli.md
-      - Openstack Object Store Skyline GUI: storage-object-store-skyline-gui.md
-      - Openstack Object Store 3rd Party SDK, Tools: storage-object-store-swift-3rd-party.md
+      - Openstack Object Store:
+          - Openstack CLI: storage-object-store-openstack-cli.md
+          - Swift CLI: storage-object-store-swift-cli.md
+          - S3 CLI: storage-object-store-s3-cli.md
+          - Skyline GUI: storage-object-store-skyline-gui.md
+          - 3rd Party SDK, Tools: storage-object-store-swift-3rd-party.md
       - Openstack Snapshot: openstack-snapshot.md
       - Openstack Volumes: openstack-volumes.md
       - Openstack Load Balancers: openstack-load-balancer.md
