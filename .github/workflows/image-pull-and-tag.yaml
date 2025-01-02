@@ -63,13 +63,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull, retag, and push Docker image
+      - name: Pull and retag
         run: |
           ORIGINAL_IMAGE=${{ matrix.image.path }}
           TAGGED_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/$(basename ${ORIGINAL_IMAGE})"
           docker pull $ORIGINAL_IMAGE
           docker tag $ORIGINAL_IMAGE $TAGGED_IMAGE
-          docker push $TAGGED_IMAGE
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        with:
+          context: .
+          push: true
+          tags: |
+            $TAGGED_IMAGE
+#          build-args: |
+#            BASE_IMAGE=${{ matrix.image.path }}
+#            BASE_TAG=${{ matrix.image.tag }}
 
       - name: Logout from Docker
         run: docker logout ${{ env.REGISTRY }}
