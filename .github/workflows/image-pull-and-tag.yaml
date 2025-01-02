@@ -69,6 +69,8 @@ jobs:
           TAGGED_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/$(basename ${ORIGINAL_IMAGE})"
           docker pull $ORIGINAL_IMAGE
           docker tag $ORIGINAL_IMAGE $TAGGED_IMAGE
+          echo "TAGGED_IMAGE=$TAGGED_IMAGE" >> $GITHUB_ENV
+          echo "::set-output name=tagged_image::$TAGGED_IMAGE"
 
       - name: Build and push Docker image
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
@@ -76,10 +78,7 @@ jobs:
           context: .
           push: true
           tags: |
-            $TAGGED_IMAGE
-#          build-args: |
-#            BASE_IMAGE=${{ matrix.image.path }}
-#            BASE_TAG=${{ matrix.image.tag }}
+            ${{ steps.pull-and-retag.outputs.tagged_image }}
 
       - name: Logout from Docker
         run: docker logout ${{ env.REGISTRY }}
