@@ -38,7 +38,7 @@ jobs:
 
           images=$(yq '.[]' .original-images.yaml)
           matrix=$(echo "$images" | jq -R -s -c 'split("\n") | map(select(length > 0) | {path: ., tag: "latest"})')
-          echo "::set-output name=matrix::$matrix"
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
 
   retag-images:
     runs-on: ubuntu-latest
@@ -69,7 +69,7 @@ jobs:
           TAGGED_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/$(basename ${ORIGINAL_IMAGE})"
           docker pull $ORIGINAL_IMAGE
           docker tag $ORIGINAL_IMAGE $TAGGED_IMAGE
-          echo "TAGGED_IMAGE=$TAGGED_IMAGE" >> $GITHUB_ENV
+          echo "TAGGED_IMAGE=$TAGGED_IMAGE" >> $GITHUB_OUTPUT
           echo "::set-output name=tagged_image::$TAGGED_IMAGE"
 
       - name: Build and push Docker image
