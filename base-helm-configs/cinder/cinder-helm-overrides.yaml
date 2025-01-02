@@ -803,6 +803,8 @@ conf:
       use_multipath_for_image_xfer: False #Add Cinder Multipath support for image xfer
     database:
       max_retries: -1
+    barbican:
+      barbican_endpoint_type: internal
     key_manager:
       backend: barbican
     keystone_authtoken:
