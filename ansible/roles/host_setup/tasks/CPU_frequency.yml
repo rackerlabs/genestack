@@ -13,21 +13,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-- name: Ensure cpupower is installed
+- name: Ensure TuneD is installed
   ansible.builtin.apt:
-    name: "linux-tools-{{ ansible_facts['kernel'] }}"
+    name: tuned
     state: present
 
-- name: Set CPU frequency governor to performance
-  ansible.builtin.command:
-    cmd: "/usr/bin/cpupower frequency-set -g performance"
-  changed_when: true
-  when:
-    - ansible_facts['kernel'] is version(host_required_kernel, '>=')
+- name: Ensure TuneD service is enabled and started
+  ansible.builtin.systemd:
+    name: tuned
+    enabled: true
+    state: started
 
-- name: Disable CPU idle state 2
+- name: Apply throughput-performance profile using tuned-adm
   ansible.builtin.command:
-    cmd: "/usr/bin/cpupower idle-set -d 2"
+    cmd: "/usr/sbin/tuned-adm profile throughput-performance"
   changed_when: true
-  when:
-    - ansible_facts['kernel'] is version(host_required_kernel, '>=')
+
+- name: Verify active TuneD profile
+  ansible.builtin.command:
+    cmd: "/usr/sbin/tuned-adm active"
+  register: tuned_active
+
+- name: Show active TuneD profile
+  ansible.builtin.debug:
+    msg: "{{ tuned_active.stdout }}"
