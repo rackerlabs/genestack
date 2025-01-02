@@ -82,10 +82,20 @@
   tags:
     - always
 
+- name: Pin kernel version and disable unattended-upgrades
+  include_tasks: pin_kernel.yml
+  when: ansible_facts['os_family'] | lower == 'debian'
+  tags:
+    - always
+
 - name: Update package cache
   apt:
     update_cache: true
     cache_valid_time: 600
+  when: ansible_facts['os_family'] | lower == 'debian'
+
+- name: Set CPU frequency governor to performance
+  include_tasks: CPU_frequency.yml
   when: ansible_facts['os_family'] | lower == 'debian'
 
 - name: Install distro packages
@@ -109,4 +119,3 @@
   until: install_packages is success
   retries: 5
   delay: 2
-
