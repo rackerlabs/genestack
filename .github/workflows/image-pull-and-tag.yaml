@@ -70,15 +70,12 @@ jobs:
           docker pull $ORIGINAL_IMAGE
           docker tag $ORIGINAL_IMAGE $TAGGED_IMAGE
           echo "TAGGED_IMAGE=$TAGGED_IMAGE" >> $GITHUB_OUTPUT
-          echo "::set-output name=tagged_image::$TAGGED_IMAGE"
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+      - name: Push Docker Image
+        uses: macbre/push-to-ghcr@master
         with:
-          context: .
-          push: true
-          tags: |
-            ${{ steps.pull-and-retag.outputs.tagged_image }}
+          image_name: ${{ steps.pull-and-retag.outputs.tagged_image }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Logout from Docker
         run: docker logout ${{ env.REGISTRY }}
