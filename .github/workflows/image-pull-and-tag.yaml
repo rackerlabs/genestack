@@ -24,13 +24,13 @@ jobs:
       - name: Read images from .original-images.yaml
         id: parse_images
         run: |
-          IMAGES=$(yq '.images | join(",")' .original-images.yaml)
-          echo "matrix=$(echo $IMAGES | jq -R -s -c 'split(",")')" >> $GITHUB_ENV
+          IMAGES=$(yq '.images' .original-images.yaml | jq -R -s -c 'split("\n") | map(select(. != ""))')
+          echo "matrix=$IMAGES" >> $GITHUB_ENV
+          echo "::set-output name=matrix::$IMAGES"
 
       - name: Create matrix
         id: create_matrix
-        run: |
-          echo "::set-output name=matrix::$(echo $IMAGES | jq -R -s -c 'split(",")')"
+        run: echo "::set-output name=matrix::$(echo $IMAGES)"
 
   migrate-images:
     needs: setup-matrix

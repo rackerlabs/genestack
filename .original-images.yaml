@@ -1,5 +1,4 @@
----
 images:
   - docker.io/openstackhelm/heat:2024.1-ubuntu_jammy
   - docker.io/openstackhelm/glance:2024.1-ubuntu_jammy
-#  - docker.io/openstackhelm/ceph-config-helper:latest-ubuntu_jammy
+  - docker.io/openstackhelm/ceph-config-helper:latest-ubuntu_jammy
