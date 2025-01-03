@@ -10,6 +10,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   setup-matrix:
@@ -66,7 +67,7 @@ jobs:
           IMAGE_NAME_WITH_TAG="${IMAGE_FULL#*/}"  # Remove registry prefix
           IMAGE_NAME_ONLY="$(echo $IMAGE_NAME_WITH_TAG | cut -d/ -f2 | cut -d: -f1)"  # Extract image name
           IMAGE_TAG="$(echo $IMAGE_NAME_WITH_TAG | cut -d: -f2)"  # Extract tag
-          GHCR_IMAGE="${{ env.REGISTRY }}/${{ github.repository_owner }}/$IMAGE_NAME_ONLY:$IMAGE_TAG"
+          GHCR_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/$IMAGE_NAME_ONLY:$IMAGE_TAG"
 
           echo "Retagging ${{ matrix.image }} to $GHCR_IMAGE"
           docker tag ${{ matrix.image }} $GHCR_IMAGE
