@@ -81,6 +81,8 @@ jobs:
       - name: Push to GHCR
         uses: docker/build-push-action@v6
         with:
+          context: ./
+          file: ./Dockerfile
           push: true
           tags: ${{ env.GHCR_IMAGE }}
           load: true
