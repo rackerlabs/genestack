@@ -15,18 +15,18 @@ jobs:
   setup-matrix:
     runs-on: ubuntu-22.04
     outputs:
-      matrix: ${{ steps.create_matrix.outputs.matrix }}
+      matrix: ${{ steps.parse-json.outputs.matrix }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Read images from .original-images.json
         id: parse-json
         run: |
           IMAGES=$(cat .original-images.json)
           echo "Parsed images: $IMAGES"
-          echo "matrix=$IMAGES" >> $GITHUB_ENV
+          echo "matrix=$IMAGES" >> $GITHUB_OUTPUT
 
   migrate-images:
     needs: setup-matrix
@@ -41,10 +41,11 @@ jobs:
     steps:
       - name: Pull image from Source Registry
         run: |
+          echo "Pulling image: ${{ matrix.image }}"
           docker pull ${{ matrix.image }}
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -63,7 +64,7 @@ jobs:
           echo "GHCR_IMAGE=$GHCR_IMAGE" >> $GITHUB_ENV
 
       - name: Push to GHCR
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           push: true
           tags: ${{ env.GHCR_IMAGE }}
