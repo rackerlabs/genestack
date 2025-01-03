@@ -72,11 +72,11 @@ jobs:
           docker tag ${{ matrix.image }} $GHCR_IMAGE
           echo "GHCR_IMAGE=$GHCR_IMAGE" >> $GITHUB_ENV
 
-      - name: List Local Docker Images
-        run: docker images
 
-      - name: Print out variable used to push to GHCR
-        run : echo ${{ env.GHCR_IMAGE }}
+      - name: Create Dummy Dockerfile
+        run: |
+          echo "FROM scratch" > Dockerfile
+          echo "Dummy Dockerfile created successfully!"
 
       - name: Push to GHCR
         uses: docker/build-push-action@v6
