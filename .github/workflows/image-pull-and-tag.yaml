@@ -71,7 +71,7 @@ jobs:
 
           echo "Retagging ${{ matrix.image }} to $GHCR_IMAGE"
           docker tag ${{ matrix.image }} $GHCR_IMAGE
-          echo "GHCR_IMAGE=$GHCR_IMAGE" >> $GITHUB_ENV
+          echo "GHCR_IMAGE=$GHCR_IMAGE" >> $GITHUB_OUTPUT
 
 
       - name: Create Dummy Dockerfile
