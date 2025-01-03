@@ -5,7 +5,7 @@ on:
     branches:
       - image-cicd
     paths:
-      - '.original-images.yaml'
+      - '.original-images.json'
   workflow_dispatch:
 
 env:
@@ -21,16 +21,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Read images from .original-images.yaml
-        id: parse_images
+      - name: Read images from .original-images.json
+        id: parse-json
         run: |
-          IMAGES=$(yq '.images' .original-images.yaml | jq -R -s -c 'split("\n") | map(select(. != ""))')
+          IMAGES=$(cat .original-images.json)
+          echo "Parsed images: $IMAGES"
           echo "matrix=$IMAGES" >> $GITHUB_ENV
-          echo "::set-output name=matrix::$IMAGES"
-
-      - name: Create matrix
-        id: create_matrix
-        run: echo "::set-output name=matrix::$(echo $IMAGES)"
 
   migrate-images:
     needs: setup-matrix
