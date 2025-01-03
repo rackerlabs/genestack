@@ -33,8 +33,7 @@ jobs:
       - name: Read images from .original-images.json
         id: parse-json
         run: |
-#          IMAGES=$(jq -c '.[]' < .original-images.json | jq -Rs 'split("\n")[:-1]')
-          IMAGES=$(cat .original-images.json)
+          IMAGES=$(jq -c '.' < .original-images.json)
           echo "Images: $IMAGES"
           echo "matrix=$IMAGES" >> $GITHUB_OUTPUT
 
