@@ -12,42 +12,41 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  migrate-images:
+  setup-matrix:
     runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.create_matrix.outputs.matrix }}
 
     steps:
-      # Step 1: Checkout the repository to access the .original-images.yaml file
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Parse the .original-images.yaml file and set up the matrix
       - name: Read images from .original-images.yaml
         id: parse_images
         run: |
           IMAGES=$(yq '.images | join(",")' .original-images.yaml)
-          echo "images=$IMAGES" >> $GITHUB_ENV
+          echo "matrix=$(echo $IMAGES | jq -R -s -c 'split(",")')" >> $GITHUB_ENV
 
-      # Step 3: Set up a dynamic matrix for the images
-      - name: Set up matrix
-        uses: actions/github-script@v6
+      - name: Create matrix
         id: create_matrix
-        with:
-          script: |
-            const images = process.env.images.split(",");
-            return { matrix: { image: images } };
-          result-encoding: string
+        run: |
+          echo "::set-output name=matrix::$(echo $IMAGES | jq -R -s -c 'split(",")')"
 
-    # Define the matrix strategy dynamically
+  migrate-images:
+    needs: setup-matrix
+    runs-on: ubuntu-22.04
+
     strategy:
-      matrix: ${{ fromJson(steps.create_matrix.outputs.result).matrix }}
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        image: ${{ fromJson(needs.setup-matrix.outputs.matrix) }}
 
     steps:
-      # Step 4: Pull the image from the Source Registry
       - name: Pull image from Source Registry
         run: |
           docker pull ${{ matrix.image }}
 
-      # Step 5: Log in to GitHub Container Registry
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
@@ -55,20 +54,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Step 6: Retag the Image for GHCR
       - name: Retag Image for GHCR
         run: |
           IMAGE_FULL="${{ matrix.image }}"
           IMAGE_NAME_WITH_TAG="${IMAGE_FULL#*/}"  # Remove registry prefix
           IMAGE_NAME_ONLY="$(echo $IMAGE_NAME_WITH_TAG | cut -d/ -f2 | cut -d: -f1)"  # Extract image name
           IMAGE_TAG="$(echo $IMAGE_NAME_WITH_TAG | cut -d: -f2)"  # Extract tag
-          GHCR_IMAGE="ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME_ONLY:$IMAGE_TAG"
+          GHCR_IMAGE="${{ env.REGISTRY }}/${{ github.repository_owner }}/$IMAGE_NAME_ONLY:$IMAGE_TAG"
 
           echo "Retagging ${{ matrix.image }} to $GHCR_IMAGE"
           docker tag ${{ matrix.image }} $GHCR_IMAGE
           echo "GHCR_IMAGE=$GHCR_IMAGE" >> $GITHUB_ENV
 
-      # Step 7: Push the Retagged Image to GHCR
       - name: Push to GHCR
         uses: docker/build-push-action@v4
         with:
