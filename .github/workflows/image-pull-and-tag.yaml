@@ -25,8 +25,8 @@ jobs:
         id: parse-json
         run: |
           IMAGES=$(jq -c '.[]' < .original-images.json | jq -Rs 'split("\n")[:-1]')
-          echo "Parsed images: $IMAGES"
-          echo "matrix=$IMAGES" >> $GITHUB_OUTPUT
+#          echo "matrix=$IMAGES" >> $GITHUB_OUTPUT
+          echo "matrix=$IMAGES"
 
   migrate-images:
     needs: setup-matrix
