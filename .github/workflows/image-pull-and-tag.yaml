@@ -62,6 +62,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Retag Image for GHCR
+        id: retag
         run: |
           IMAGE_FULL="${{ matrix.image }}"
           IMAGE_NAME_WITH_TAG="${IMAGE_FULL#*/}"  # Remove registry prefix
@@ -78,6 +79,7 @@ jobs:
         run: |
           echo "FROM scratch" > Dockerfile
           echo "Dummy Dockerfile created successfully!"
+          echo "${{ steps.retag.outputs.GHCR_IMAGE }}"
 
       - name: Push to GHCR
         uses: docker/build-push-action@v6
@@ -85,5 +87,5 @@ jobs:
           context: ./
           file: ./Dockerfile
           push: true
-          tags: ${{ env.GHCR_IMAGE }}
+          tags: ${{ steps.retag.outputs.GHCR_IMAGE }}
           load: true
