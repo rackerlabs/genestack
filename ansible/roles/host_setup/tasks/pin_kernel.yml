@@ -13,6 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+- name: Refresh specific kernel facts
+  ansible.builtin.setup:
+    filter: "ansible_kernel"
+
 - name: Check Kernel Version
   fail:
     msg: >
