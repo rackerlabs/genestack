@@ -34,12 +34,11 @@ helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
 helm repo update
 
 # Install the CRDs that match the version defined
-helm upgrade --install mariadb-operator-crds mariadb-operator/mariadb-operator-crds --version "${VERSION}"
+helm upgrade --install --namespace=mariadb-system --create-namespace mariadb-operator-crds mariadb-operator/mariadb-operator-crds --version "${VERSION}"
 
 # Helm command setup
-HELM_CMD="helm upgrade --install mariadb-operator mariadb-operator \
+HELM_CMD="helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator \
     --namespace=mariadb-system \
-    --create-namespace \
     --timeout 120m \
     --version ${VERSION} \
     --post-renderer /etc/genestack/kustomize/kustomize.sh \
