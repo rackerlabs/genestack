@@ -3,7 +3,7 @@ name: Migrate Images to GHCR
 on:
   push:
     branches:
-      - image-cicd
+      - main
     paths:
       - '.original-images.json'
   workflow_dispatch:
