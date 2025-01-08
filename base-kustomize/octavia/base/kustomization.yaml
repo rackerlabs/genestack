@@ -49,6 +49,11 @@ patches:
               scheme: HTTP
               path: /
               port: 9876
+          livenessProbe:
+            httpGet:
+              scheme: HTTP
+              path: /
+              port: 9876
           volumeMounts:
             - name: pod-etc-octavia
               mountPath: /etc/octavia
@@ -84,6 +89,11 @@ patches:
             - name: o-api
               containerPort: 9876
           readinessProbe:
+            httpGet:
+              scheme: HTTP
+              path: /
+              port: 9876
+          livenessProbe:
             httpGet:
               scheme: HTTP
               path: /
