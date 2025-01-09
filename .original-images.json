@@ -1,0 +1,9 @@
+[
+  "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy",
+  "ghcr.io/rackerlabs/genestack/octavia-ovn:master-ubuntu_jammy-1733266356",
+  "docker.io/openstackhelm/glance:2024.1-ubuntu_jammy",
+  "ghcr.io/rackerlabs/genestack/keystone-rxt:2024.1-ubuntu_jammy-1735886895",
+  "docker.io/openstackhelm/barbican:2023.1-ubuntu_jammy",
+  "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy-1723129048",
+  "docker.io/openstackhelm/ceph-config-helper:latest-ubuntu_jammy"
+]
