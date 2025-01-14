@@ -1381,7 +1381,7 @@ conf:
       instance_usage_audit_period: hour
       resume_guests_state_on_host_boot: True
       instance_build_timeout: 600
-      block_device_allocate_retries: 120
+      block_device_allocate_retries: 180
       block_device_allocate_retries_interval: 5
     compute:
       max_disk_devices_to_attach: 8
