@@ -1380,7 +1380,7 @@ conf:
       instance_usage_audit: True
       instance_usage_audit_period: hour
       resume_guests_state_on_host_boot: True
-      instance_build_timeout: 600
+      instance_build_timeout: 900
       block_device_allocate_retries: 180
       block_device_allocate_retries_interval: 5
     compute:
