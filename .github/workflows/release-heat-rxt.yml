@@ -1,5 +1,5 @@
 #
-name: Create and Publish a Heat RXT Image
+name: Create and Publish a Heat Image
 
 on:
   push:
@@ -65,8 +65,8 @@ jobs:
           file: Containerfiles/HeatRXT-Containerfile
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/heat-rxt:${{ github.event.inputs.imageTag || env.DEF_TAG_NAME }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/heat-rxt:${{ github.event.inputs.imageTag || env.DEF_TAG_NAME }}-${{ env.MY_DATE }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/heat:${{ github.event.inputs.imageTag || env.DEF_TAG_NAME }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/heat:${{ github.event.inputs.imageTag || env.DEF_TAG_NAME }}-${{ env.MY_DATE }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             VERSION=${{ github.event.inputs.imageTag || env.DEF_TAG_NAME }}
