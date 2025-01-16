@@ -1,6 +1,9 @@
 name: testing-openstack-deploy
 
 on:
+  workflow_run:
+    workflows:
+      - Migrate Images to GHCR
   workflow_dispatch:
 
 jobs:
