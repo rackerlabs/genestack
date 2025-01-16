@@ -77,5 +77,5 @@ echo -e "$yaml_content" > inventory.yaml
 sleep 5m
 
 # Prep all nodes
-ansible-playbook -i ./inventory.yaml --private-key ./key testing/fix-root.yaml
-ansible-playbook -i ./inventory.yaml --private-key ./key testing/deploy.yaml
+ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i ./inventory.yaml --private-key ./key testing/fix-root.yaml
+ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i ./inventory.yaml --private-key ./key testing/deploy.yaml
