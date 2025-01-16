@@ -1,0 +1,76 @@
+---
+# defaults file for octavia_preconf
+
+# these are the defaults for quotas
+num_amphora_instances: 100
+num_amphora_cores: "{{ (num_amphora_instances|int)*2 }}" # 2 cores for each amphora
+amphora_ram_mb: "{{ (num_amphora_instances|int)*1024 }}" # 1G of ram for each amphora
+num_amphora_ports: "{{ (num_amphora_instances|int)*5 }}" # considering 5 ports for amphora instance
+octavia_num_secgroup: "{{ (num_amphora_instances|int)*1.5|int|abs }}" # average 3 listeners per lb
+octavia_num_secgroup_rule: "{{ (octavia_num_secgroup|int)*5 }}" # considering 5 secgroup rules per sec group
+num_amphora_server_groups: "{{ ((num_amphora_instances|int)*0.5)|int|abs }}" # 2 amphora per group for active/passive
+num_amphora_server_group_member: 20
+
+# these are the defaults for lb-mgmt-net
+#lb_mgmt_net_physical_net
+lb_mgmt_net_type: geneve
+#lb_mgmt_net_segmentation_id
+
+# these are the defaults for lb-mgmt-subnet
+lb_mgmt_subnet_cidr: '172.16.29.0/24'
+lb_mgmt_subnet_pool_start: '172.16.29.2'
+lb_mgmt_subnet_pool_end: '172.16.29.254'
+lb_mgmt_subnet_gateway: '172.16.29.1'
+
+# these are the defaults for security groups
+amphora_icmp_enabled: true
+amphora_ssh_enabled: true
+lb_health_mgr_secgrp_name: "lb-health-mgr-secgroup"
+lb_mgmt_secgrp_name: "lb-mgmt-secgroup"
+
+# these are the defaults for the flavor, image and ssh keypair
+amphora_ssh_key_name: amphora-ssh-key
+amphora_flavor_name: m1.amphora
+amphora_image_version: focal
+amphora_image_name: amphora-ubuntu-{{ amphora_image_version }}
+
+# these are the defaults for certs
+octavia_create_certs: true
+octavia_certs_dir: "{{ lookup('env', 'HOME') }}/octavia_certs"
+octavia_cert_key_bits: 4096
+octavia_key_type: "RSA"
+octavia_key_passwd: 'not-secure-passphrase'
+
+octavia_server_ca_subj: '/C=US/ST=Texas/L=Local/O=RPC/OU=Racklab/CN=ServerRootCA'
+octavia_client_ca_subj: '/C=US/ST=Texas/L=Local/O=RPC/OU=Racklab/CN=ClientRootCA'
+
+# CA and client cert and key files
+octavia_serverca_privkey: "{{ octavia_certs_dir }}/private/serverca.key.pem"
+octavia_server_ca_cert: "{{ octavia_certs_dir }}/certs/serverca.cert.pem"
+
+octavia_clientca_privkey: "{{ octavia_certs_dir }}/private/clientca.key.pem"
+octavia_client_ca_cert: "{{ octavia_certs_dir }}/certs/clientca.cert.pem"
+
+octavia_client_csr: "{{ octavia_certs_dir }}/csr/client.csr.pem"
+octavia_client_key: "{{ octavia_certs_dir }}/private/client.key.pem"
+octavia_client_cert: "{{ octavia_certs_dir }}/certs/client.cert.pem"
+octavia_client_key_cert: "{{ octavia_certs_dir }}/private/client-key-and-cert.pem"
+
+octavia_ca_valid_period: 1096 # about 3 years
+
+
+octavia_client_key_bits: 2048
+
+# Client CSR
+client_cert_CN: "OctaviaController"
+client_cert_CT: "US"
+client_cert_ST: "Texas"
+client_cert_LN: "Local"
+client_cert_ORG: "RPC"
+client_cert_OU: "Rackerlab"
+
+# Client cert validity (in days)
+octavia_client_cert_valid_period: 1096
+
+# octavia helm values for amphora provider
+octavia_helm_values_file: "{{ lookup('env', 'HOME') }}/octavia_amphora_provider.yaml"

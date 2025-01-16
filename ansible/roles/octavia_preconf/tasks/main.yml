@@ -1,0 +1,44 @@
+---
+# tasks file for octavia_preconf
+
+- name: import tasks for modifying the admin tenant quotas
+  import_tasks: admin_tenant_quota_setup.yml
+  tags:
+    - always
+
+- name: import tasks to create lb-mgmt-net for amphora
+  import_tasks: octavia_lb_net_setup.yml
+  tags:
+    - always
+
+- name: import tasks to create sec groups for amphora and health manager ports
+  import_tasks: octavia_sec_group.yml
+  tags:
+    - always
+
+- name: import tasks to create health mgr ports
+  import_tasks: octavia_health_mgr_ports.yml
+  tags:
+    - always
+
+- name: import tasks to create amphora image, flavor and ssh keypair
+  import_tasks: octavia_amphora_keypair_image_flavor.yml
+  tags:
+    - always
+
+- name: import tasks to create cert directories
+  import_tasks: octavia_cert_dir_setup.yml
+  tags:
+    - octavia_certs
+  when: octavia_create_certs
+
+- name: import tasks to create octavia certs
+  import_tasks: octavia_cert.yml
+  tags:
+    - octavia_certs
+  when: octavia_create_certs
+
+- name: import tasks to create helm values file for amphora provider
+  import_tasks: octavia_helm_amphorae_values.yml
+  tags:
+    - always
