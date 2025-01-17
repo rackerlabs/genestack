@@ -4,8 +4,8 @@ yes y | ssh-keygen -q -f ./key -N ""
 openstack --os-cloud default stack create --wait -t build.yaml --environment ~/env.yaml testing
 nodes=$(openstack --os-cloud default stack output show testing all_out -f value -c output_value)
 
-clean_list="${nodes//[\[\]\'\,]/}" # 'Remove brackets, single quotes, and commas
-ips=($clean_list)                  # Convert the cleaned string into a Bash array
+cleanlist="${nodes//[\[\]\'\,]/}" # 'Remove brackets, single quotes, and commas
+ips=($cleanlist)                  # Convert the cleaned string into a Bash array
 
 # Define the machine names
 machine_names=("controller1" "controller2" "controller3")
