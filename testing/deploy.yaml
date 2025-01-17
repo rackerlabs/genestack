@@ -338,3 +338,15 @@
     - name: Wait 10 minutes for things to deploy
       ansible.builtin.pause:
         seconds: 600
+
+    - name: Get status of all pods in openstack namespace
+      command: kubectl get pods --namespace openstack
+
+    - name: Get status of compute services
+      command: kubectl exec -itn openstack openstack-admin-client -- openstack compute service list
+
+    - name: Get status of network agents
+      command: kubectl exec -itn openstack openstack-admin-client -- openstack network agent list
+
+    - name: Get status of volume services
+      command: kubectl exec -itn openstack openstack-admin-client -- openstack volume service list
