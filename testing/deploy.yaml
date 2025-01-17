@@ -11,10 +11,10 @@
         clone: yes
         update: yes
         recursive: yes
-        version: HEAD
+        version: main
 
     - name: botstrap cluster
-      shell: /opt/genestack/bootstrap.sh
+      command: /opt/genestack/bootstrap.sh
 
     - name: Copy over inventory file
       ansible.builtin.copy:
@@ -61,11 +61,6 @@
         ovn.openstack.org/mappings='physnet1:br-ex' \
         ovn.openstack.org/availability_zones='az1' \
         ovn.openstack.org/gateway='enabled'
-
-    - name: Remove taint
-      command: >
-        kubectl taint nodes --all node-role.kubernetes.io/control-plane:NoSchedule-
-      ignore_errors: yes
 
     - name: Install Prometheus
       command: >
@@ -242,6 +237,7 @@
 
     - name: Install gateway CRDs
       shell: |
+        set -o pipefail
         kubectl kustomize "https://github.com/nginxinc/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v1.4.0" | kubectl apply -f -
       args:
         executable: /bin/bash
@@ -259,7 +255,9 @@
       command: kubectl rollout restart deployment cert-manager --namespace cert-manager
 
     - name: Create gateway shared resource
-      shell: kubectl kustomize /etc/genestack/kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
+      shell: |
+        set -o pipefail
+        kubectl kustomize /etc/genestack/kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
       args:
         executable: /bin/bash
 
