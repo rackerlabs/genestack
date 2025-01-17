@@ -1,5 +1,5 @@
 #
-name: Run build check for the Heat RXT image
+name: Run build check for the Heat image
 
 on:
   pull_request:
@@ -36,6 +36,6 @@ jobs:
           file: Containerfiles/HeatRXT-Containerfile
           push: false
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/heat-rxt:2024.1-ubuntu_jammy
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/heat:2024.1-ubuntu_jammy
           build-args: |
             VERSION=2024.1-ubuntu_jammy
