@@ -39,7 +39,7 @@
         ansible-playbook cluster.yml
       args:
         executable: /bin/bash
-           
+
     - name: Label all nodes with specified labels
       command: >
         kubectl label nodes --all
@@ -61,21 +61,21 @@
         ovn.openstack.org/mappings='physnet1:br-ex' \
         ovn.openstack.org/availability_zones='az1' \
         ovn.openstack.org/gateway='enabled'
-           
+
     - name: Remove taint
       command: >
         kubectl taint nodes --all node-role.kubernetes.io/control-plane:NoSchedule-
       ignore_errors: yes
-           
+
     - name: Install Prometheus
       command: >
         /opt/genestack/bin/install-prometheus.sh
-           
+
     - name: Build openstack-helm
       ansible.builtin.shell: |
         cd /opt/genestack/submodules/openstack-helm
         make all
-    
+
     - name: Build openstack-helm-infra
       ansible.builtin.shell: |
         cd /opt/genestack/submodules/openstack-helm-infra
@@ -101,7 +101,7 @@
       ansible.builtin.command:
         cmd: modprobe dummy
       become: yes
-    
+
     - name: Create a virtual interface fake1
       ansible.builtin.command:
         cmd: ip link add fake1 type dummy
