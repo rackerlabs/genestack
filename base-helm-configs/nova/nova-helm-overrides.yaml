@@ -1510,7 +1510,7 @@ conf:
         - context
         - default
     logger_root:
-      level: INFO
+      level: WARNING
       handlers:
         - stdout
     logger_nova:
