@@ -119,9 +119,6 @@
     cmd: create_k8s_secret.sh {{ octavia_server_ca_cert }} {{ octavia_serverca_privkey }} {{ octavia_client_ca_cert }} {{ octavia_client_key_cert }}
     creates: /tmp/k8s_secret.yml
 
-#- name: Create the "octavia-certs" secret in the openstack namespace
-#  command:
-#    cmd: kubectl apply -f /tmp/k8s_secret.yml
 - name: Create the "octavia-certs" secret in the openstack namespace
   k8s:
     state: present

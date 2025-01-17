@@ -14,7 +14,7 @@ CLIENT_KEY_CERT=$4
 function encod_base64()
 {
   local file_path=$1
-  cat $file_path | base64 -w0 | tr -d '\n'
+  cat "$file_path" | base64 -w0 | tr -d '\n'
 }
 
 cat <<EOF> /tmp/k8s_secret.yml
@@ -26,8 +26,8 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  server_ca.cert.pem: $(encod_base64 $SERVER_CA)
-  server_ca.key.pem: $(encod_base64 $SERVER_CA_KEY)
-  client_ca.cert.pem: $(encod_base64 $CLIENT_CA)
-  client.key-and-cert.pem: $(encod_base64 $CLIENT_KEY_CERT)
+  server_ca.cert.pem: $(encod_base64 "$SERVER_CA")
+  server_ca.key.pem: $(encod_base64 "$SERVER_CA_KEY")
+  client_ca.cert.pem: $(encod_base64 "$CLIENT_CA")
+  client.key-and-cert.pem: $(encod_base64 "$CLIENT_KEY_CERT")
 EOF
