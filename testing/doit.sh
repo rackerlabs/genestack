@@ -1,6 +1,7 @@
 #!/bin/bash
+cd testing
 yes y | ssh-keygen -q -f ./key -N ""
-openstack --os-cloud default stack create --wait -t testing/build.yaml --environment ~/env.yaml testing
+openstack --os-cloud default stack create --wait -t build.yaml --environment ~/env.yaml testing
 nodes=$(openstack --os-cloud default stack output show testing all_out -f value -c output_value)
 
 clean_list="${nodes//[\[\]\'\,]/}" # 'Remove brackets, single quotes, and commas
@@ -72,10 +73,10 @@ for name in "${machine_names[@]}"; do
   yaml_content+="\n                ${name}.openstacklocal: null"
 done
 
-echo -e "$yaml_content" > inventory.yaml
+echo -e "$yaml_content" > ./inventory.yaml
 
 sleep 5m
 
 # Prep all nodes
-ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i ./inventory.yaml --private-key ./key testing/fix-root.yaml
-ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i ./inventory.yaml --private-key ./key testing/deploy.yaml
+ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i ./inventory.yaml --private-key ./key fix-root.yaml
+ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i ./inventory.yaml --private-key ./key deploy.yaml

@@ -20,7 +20,7 @@
 
     - name: Copy ssh key to nodes
       ansible.builtin.copy:
-        src: ~/key
+        src: ./key
         dest: /root/.ssh/id_rsa
         owner: root
         group: root

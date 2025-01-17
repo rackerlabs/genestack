@@ -3,7 +3,9 @@ name: testing-openstack-deploy
 on:
   workflow_run:
     workflows:
-      - Migrate Images to GHCR
+      - Migrate Images to QUAY
+    types:
+      - completed
   workflow_dispatch:
 
 jobs:
@@ -13,9 +15,6 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
-
-    - name: Change directory to testing
-      run: cd testing
 
     - name: Set up Python environment
       run: sudo apt-get update && sudo apt-get install -y python3-pip
@@ -42,4 +41,5 @@ jobs:
       run: bash testing/doit.sh
 
     - name: Cleanup
+      if: always()
       run: bash testing/cleanup.sh

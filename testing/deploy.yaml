@@ -18,7 +18,7 @@
 
     - name: Copy over inventory file
       ansible.builtin.copy:
-        src: ~/inventory.yaml
+        src: ./inventory.yaml
         dest: /etc/genestack/inventory/inventory.yaml
         owner: root
         group: root

@@ -1,4 +1,4 @@
-name: Migrate Images to GHCR
+name: Migrate Images to QUAY
 
 on:
   push:

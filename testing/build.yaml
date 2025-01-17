@@ -48,12 +48,12 @@ resources:
     type: OS::Nova::KeyPair
     properties:
       name: "genestack-keypair"
-      public_key: { get_file: key.pub }
+      public_key: { get_file: ./key.pub }
 
   genestack_machine1:
     type: OS::Heat::Stack
     properties:
-      template: { get_file: testing/single.yaml }
+      template: { get_file: single.yaml }
       parameters:
         internal: {get_param: in_net }
         external: {get_param: ext_net }
@@ -66,7 +66,7 @@ resources:
   genestack_machine2:
     type: OS::Heat::Stack
     properties:
-      template: { get_file: testing/single.yaml }
+      template: { get_file: single.yaml }
       parameters:
         internal: {get_param: in_net }
         external: {get_param: ext_net }
@@ -79,7 +79,7 @@ resources:
   genestack_machine3:
     type: OS::Heat::Stack
     properties:
-      template: { get_file: testing/single.yaml }
+      template: { get_file: single.yaml }
       parameters:
         internal: {get_param: in_net }
         external: {get_param: ext_net }
