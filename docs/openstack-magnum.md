@@ -8,7 +8,7 @@ OpenStack Magnum is the container orchestration service within the OpenStack eco
 
 ## Create secrets
 
-!!! note "Information about the secretes used"
+!!! note "Information about the secrets used"
 
     Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
 
@@ -42,3 +42,13 @@ OpenStack Magnum is the container orchestration service within the OpenStack eco
 
     You may need to provide custom values to configure your openstack services, for a simple single region or lab deployment you can supply an additional overrides flag using the example found at `base-helm-configs/aio-example-openstack-overrides.yaml`.
     In other cases such as a multi-region deployment you may want to view the [Multi-Region Support](multi-region-support.md) guide to for a workflow solution.
+
+## Validate functionality
+
+``` shell
+kubectl --namespace openstack exec -ti openstack-admin-client -- openstack coe cluster list
+```
+
+## Create a Default Public ClusterTemplate
+
+User must have the admin role to create the public ClusterTemplate. For instructions on creating the default public ClusterTemplate and using it to deploy a new Kubernetes cluster, please refer to the ClusterTemplate section in the [Magnum Kubernetes Cluster Setup Guide](https://docs.rackspacecloud.com/magnum-kubernetes-cluster-setup-guide/#clustertemplate).
