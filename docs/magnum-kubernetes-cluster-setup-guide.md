@@ -34,6 +34,26 @@ openstack keypair create mykey > mykey.pem
 
 A ClusterTemplate is a collection of parameters to describe how a cluster can be constructed. Some parameters are relevant to the infrastructure of the cluster, while others are for the particular COE. In a typical workflow, a user would create a ClusterTemplate, then create one or more clusters using the ClusterTemplate. A ClusterTemplate cannot be updated or deleted if a cluster using this ClusterTemplate still exists.
 
+!!! note "Information about the Default Public ClusterTemplate"
+
+    A default ClusterTemplate, named default-cluster-template, can be created in the environment and used by anyone to deploy new Kubernetes clusters. To use this template, pass the --cluster-template default-cluster-template parameter during cluster creation.
+
+    ??? example "Default Public ClusterTemplate Creation"
+
+        ``` shell
+        openstack coe cluster template create default-cluster-template \
+                  --image magnum-fedora-coreos-40 \
+                  --external-network  PUBLICNET \
+                  --dns-nameserver 8.8.8.8 \
+                  --master-flavor gp.0.4.8 \
+                  --flavor gp.0.4.8 \
+                  --network-driver calico \
+                  --volume-driver cinder \
+                  --docker-volume-size 10 \
+                  --coe kubernetes \
+                  --public
+        ```
+
 ### Create a ClusterTemplate
 
 Create a Kubernetes cluster template using the `magnum-fedora-coreos-40` image with the following configuration: `m1.large` flavor for both master and nodes, `public` as the external network, `8.8.8.8` for the DNS nameserver, `calico` for the network driver, and `cinder` for the volume driver. Below is the example command to create the clustertemplate. For more detailed information about the parameters and labels used in the ClusterTemplate, please refer to the [ClusterTemplate](https://docs.openstack.org/magnum/latest/user/index.html#clustertemplate).
@@ -47,7 +67,7 @@ openstack coe cluster template create new-cluster-template \
           --flavor m1.large  \
           --network-driver calico \
           --volume-driver cinder \
-          --docker-volume-size 3 \
+          --docker-volume-size 10 \
           --coe kubernetes
 ```
 
