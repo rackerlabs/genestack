@@ -1,8 +1,0 @@
-ARG VERSION=master-ubuntu_jammy
-FROM openstackhelm/keystone:${VERSION} as build
-RUN /var/lib/openstack/bin/pip install --upgrade --force-reinstall pip
-RUN /var/lib/openstack/bin/pip install keystone-rxt
-RUN find /var/lib/openstack -regex '^.*\(__pycache__\|\.py[co]\)$' -delete
-
-FROM openstackhelm/keystone:${VERSION}
-COPY --from=build /var/lib/openstack/. /var/lib/openstack/
