@@ -276,7 +276,8 @@ conf:
         - default
     logger_root:
       level: WARNING
-      handlers: 'null'
+      handlers:
+        - stdout
     logger_octavia:
       level: WARNING
       handlers:
