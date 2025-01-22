@@ -187,10 +187,10 @@
           {% for backend in cinder_backend_name.split(',') %}
           {%   set default_backend = (_kubernetes_cinder_etc_secret.resources[0].data['backends.conf'] | b64decode | community.general.from_ini)[backend] %}
           {%   set network_interface = hostvars[inventory_hostname][cinder_storage_network_interface]['ipv4']['address'] | default(ansible_default_ipv4.address) %}
-          {%   set network_interface_secondary = hostvars[inventory_hostname][cinder_storage_network_interface_secondary]['ipv4']['address'] %}
           {%   set _ = default_backend.__setitem__("target_ip_address", network_interface) %}
-          {%   if (custom_multipath | bool) %}
-          {%     set _ = default_backend.__setitem__("iscsi_secondary_ip_addresses", network_interface_secondary) %}
+          {%   if ("lvm" in backend) and (custom_multipath | bool) %}
+          {%       set network_interface_secondary = hostvars[inventory_hostname][cinder_storage_network_interface_secondary]['ipv4']['address'] %}
+          {%       set _ = default_backend.__setitem__("iscsi_secondary_ip_addresses", network_interface_secondary) %}
           {%   endif %}
           {%   set _ = rendered_backend.__setitem__(backend, default_backend) %}
           {% endfor %}
