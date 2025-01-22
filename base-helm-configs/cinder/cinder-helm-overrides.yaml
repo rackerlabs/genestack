@@ -789,6 +789,9 @@ conf:
       # - cinder.backup.drivers.ceph.CephBackupDriver
       # - cinder.backup.drivers.posix.PosixBackupDriver
       backup_driver: "cinder.backup.drivers.swift.SwiftBackupDriver"
+      backup_swift_auth: per_user
+      backup_swift_auth_version: 3
+      backup_compression_algorithm: zstd
       # # Backup: Ceph RBD options
       # backup_ceph_conf: "/etc/ceph/ceph.conf"
       # backup_ceph_user: cinderbackup
