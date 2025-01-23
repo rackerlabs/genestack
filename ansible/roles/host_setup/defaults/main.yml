@@ -29,10 +29,6 @@ host_environment_path:
   - /sbin
   - /bin
 
-# Allows the ability to override or add extra parameters to the systemd global config
-# that will be applied by default to all units
-systemd_global_overrides: {}
-
 # The following garbage collection values are set to better support lots of neutron networks/routers.
 #  Used for setting the net.ipv4/6.neigh.default.gc_thresh* values. This assumes that facts were
 #  gathered to obtain the total amount of memory available on a given host. If no facts are gathered
