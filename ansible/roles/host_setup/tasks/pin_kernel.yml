@@ -18,7 +18,7 @@
     filter: "ansible_kernel"
 
 - name: Check Kernel Version
-  fail:
+  ansible.builtin.fail:
     msg: >
       Wrong kernel Version found
       [ {{ ansible_facts['kernel'] }} < {{ host_required_kernel }} ]
@@ -27,7 +27,7 @@
     - ansible_facts['kernel'] is version(host_required_kernel, '<')
 
 - name: Pin kernel packages version
-  copy:
+  ansible.builtin.copy:
     dest: "{{ apt_preferences }}/pin-kernel"
     content: |
       Package: linux-image-{{ ansible_facts['kernel'] }}
@@ -65,11 +65,14 @@
     create: true
     mode: '0644'
   loop:
-    - { key: "Update-Package-Lists", value: "0" }
-    - { key: "Download-Upgradeable-Packages", value: "0" }
-    - { key: "AutocleanInterval", value: "0" }
-    - { key: "Unattended-Upgrade", value: "0" }
-
+    - key: "Update-Package-Lists"
+      value: "0"
+    - key: "Download-Upgradeable-Packages"
+      value: "0"
+    - key: "AutocleanInterval"
+      value: "0"
+    - key: "Unattended-Upgrade"
+      value: "0"
 
 - name: Ensure unattended-upgrades package is removed
   ansible.builtin.apt:

@@ -48,7 +48,7 @@
   tasks:
     - name: Copy over multipath Round Robin configuration file
       when:
-       - custom_multipath | default(false) | bool
+        - custom_multipath | default(false) | bool
       block:
         - name: Copy config file and restart multipathd
           ansible.builtin.copy:

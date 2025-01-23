@@ -14,17 +14,21 @@
 # limitations under the License.
 
 - name: Restart sysstat
-  service:
+  ansible.builtin.systemd:
     name: "sysstat"
     state: "restarted"
-    enabled: "yes"
+    enabled: true
 
 - name: Restart systemd-journald
-  service:
+  ansible.builtin.systemd:
     name: systemd-journald
     state: restarted
-    enabled: yes
+    enabled: true
   register: _restart
   until: _restart  is success
   retries: 5
   delay: 2
+
+- name: Systemd daemon reload
+  ansible.builtin.systemd:
+    daemon_reload: true

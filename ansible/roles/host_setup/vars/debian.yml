@@ -1,7 +1,7 @@
 ---
 
 ## Defined required kernel
-host_required_kernel: 6.2.0-0
+host_required_kernel: 6.8.0-0
 host_sysstat_file: /etc/default/sysstat
 host_sysstat_cron_file: /etc/cron.d/sysstat
 host_cron_template: sysstat.cron.debian.j2

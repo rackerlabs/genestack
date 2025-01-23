@@ -28,12 +28,12 @@
          galaxy_collections_list : "{{ galaxy_collections_list + [ item ] }}"
       when:
         - item.name not in user_collection_names
-      with_items: "{{ required_collections.collections }}"
+      loop: "{{ required_collections.collections }}"
 
     - name: Append user collections to filtered required collections
       set_fact:
         galaxy_collections_list: "{{ galaxy_collections_list + [ item ] }}"
-      with_items: "{{ user_collections.collections }}"
+      loop: "{{ user_collections.collections }}"
       when:
         - user_collections.collections is defined
 

@@ -18,7 +18,7 @@
 ###
 
 - name: Gather variables for each operating system
-  include_vars: "{{ lookup('first_found', params) }}"
+  ansible.builtin.include_vars: "{{ lookup('first_found', params) }}"
   vars:
     params:
       files:
@@ -135,7 +135,8 @@
     - always
 
 ### (Kubespray) Upgrade
-- debug:
+- name: "Check kube version"
+  ansible.builtin.debug:
     msg: "Upgrade skipped as kubernetes version {{ kube_desired_version }} <= {{ kube_current_version }}"
   when:
     - "kube_desired_version <= kube_current_version"
