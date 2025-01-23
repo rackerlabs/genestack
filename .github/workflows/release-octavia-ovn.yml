@@ -1,5 +1,4 @@
-#
-name: Create and publish a the Octavia OVN compatible image
+name: Create and publish a the Octavia compatible image
 
 # Configures this workflow to run every time a change is pushed to the branch called `release`.
 on:
@@ -12,12 +11,22 @@ on:
         type: choice
         options:
           - master-ubuntu_jammy
+          - 2024.1-ubuntu_jammy
       pluginTag:
-        description: 'Set plugin version'
+        description: 'Set release used for the build environment'
         required: true
-        default: '7.0.0'
+        default: 'master'
         type: choice
         options:
+          - "master"
+          - "2024.1"
+      ovnPluginTag:
+        description: 'Set OVN plugin version'
+        required: true
+        default: 'master'
+        type: choice
+        options:
+          - 'master'
           - '5.0.0'
           - '6.0.0'
           - '7.0.0'
@@ -69,3 +78,4 @@ jobs:
           build-args: |
             VERSION=${{ github.event.inputs.imageTag }}
             PLUGIN_VERSION=${{ github.event.inputs.pluginTag }}
+            OVN_PLUGIN_VERSION=${{ github.event.inputs.ovnPluginTag }}

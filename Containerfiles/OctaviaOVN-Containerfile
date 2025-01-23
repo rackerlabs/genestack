@@ -1,9 +1,18 @@
 ARG VERSION=master-ubuntu_jammy
-FROM docker.io/loci/octavia:${VERSION} as build
-ARG PLUGIN_VERSION=7.0.0
+FROM openstackhelm/octavia:$VERSION as build
+ARG PLUGIN_VERSION=master
+ARG OVN_PLUGIN_VERSION=master
+RUN apt update && apt install -y git
 RUN /var/lib/openstack/bin/pip install --index-url https://pypi.python.org/simple --upgrade pip
-RUN /var/lib/openstack/bin/pip install --index-url https://pypi.python.org/simple ovn-octavia-provider==${PLUGIN_VERSION}
-RUN find /var/lib/openstack -regex '^.*\(__pycache__\|\.py[co]\)$' -delete
+RUN if [ "${PLUGIN_VERSION}" != 'master' ]; then export PLUGIN_VERSION=stable/${PLUGIN_VERSION}; fi; \
+. /var/lib/openstack/bin/activate; \
+/var/lib/openstack/bin/pip install git+https://github.com/openstack/oslo.db@${PLUGIN_VERSION}#egg=oslo_db
+RUN . /var/lib/openstack/bin/activate; \
+if [ "${OVN_PLUGIN_VERSION}" = 'master' ]; then \
+/var/lib/openstack/bin/pip install git+https://github.com/openstack/ovn-octavia-provider@${OVN_PLUGIN_VERSION}#egg=ovn_octavia_provider; \
+else \
+/var/lib/openstack/bin/pip install --index-url https://pypi.python.org/simple ovn-octavia-provider==${OVN_PLUGIN_VERSION}; \
+fi
 
-FROM docker.io/loci/octavia:${VERSION}
+FROM openstackhelm/octavia:${VERSION}
 COPY --from=build /var/lib/openstack/. /var/lib/openstack/
