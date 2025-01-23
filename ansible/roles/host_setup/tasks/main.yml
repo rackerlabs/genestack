@@ -55,18 +55,6 @@
     group: "root"
     mode: "0755"
 
-- name: Add DefaultEnvironment to systemd
-  openstack.config_template.config_template:
-    src: systemd-environment.j2
-    dest: /etc/systemd/system.conf.d/genestack-default-environment.conf
-    owner: "root"
-    group: "root"
-    mode: "0644"
-    config_overrides: "{{ systemd_global_overrides }}"
-    config_type: ini
-  notify: Systemd daemon reload
-  when: systemd_global_overrides is defined
-
 - name: Remove the blacklisted packages
   package:
     name: "{{ host_package_list | selectattr('state', 'equalto', 'absent') | map(attribute='name') | list }}"

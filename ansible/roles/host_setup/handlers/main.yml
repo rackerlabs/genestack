@@ -28,7 +28,3 @@
   until: _restart  is success
   retries: 5
   delay: 2
-
-- name: Systemd daemon reload
-  systemd:
-    daemon_reload: yes
