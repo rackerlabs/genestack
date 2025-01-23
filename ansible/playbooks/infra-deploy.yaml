@@ -513,7 +513,7 @@
         path: "{{ item }}"
         state: directory
         mode: "0700"
-      with_items:
+      loop:
         - "/home/{{ os_bastion_user }}/.ssh"
         - /root/.ssh
     - name: Copy ssh-key to jump host
@@ -521,9 +521,9 @@
         src: "{{ ansible_ssh_private_key_file }}"
         dest: "{{ item }}"
         mode: "0600"
-      with_items:
+      loop:
         - "/home/{{ os_bastion_user }}/.ssh/{{ ansible_ssh_private_key_file | basename }}"
-        - /root/.ssh/{{ ansible_ssh_private_key_file | basename }}
+        - "/root/.ssh/{{ ansible_ssh_private_key_file | basename }}"
     - name: Copy ssh-config to jump host
       ansible.builtin.copy:
         content: |
@@ -535,9 +535,9 @@
             UserKnownHostsFile /dev/null
         dest: "{{ item }}"
         mode: "0640"
-      with_items:
+      loop:
         - "/home/{{ os_bastion_user }}/.ssh/config"
-        - /root/.ssh/config
+        - "/root/.ssh/config"
     - name: Fix bastion user ssh perms
       ansible.builtin.file:
         path: "/home/{{ os_bastion_user }}/.ssh"
@@ -584,7 +584,8 @@
       failed_when: hosts_updated.rc not in [0, 1]
     - name: Add inventory to hosts file iff no 172.31. IPs exist
       shell: cat /etc/genestack/inventory/{{ os_network_name }}-inventory.ini | awk '/ansible/ { print $2, $1 }' | cut -f2 -d"=" >> /etc/hosts
-      when: hosts_updated.rc == 1
+      when:
+        - hosts_updated.rc == 1
       tags:
         - skip_ansible_lint
     - name: Check if kubectl exists
@@ -593,12 +594,14 @@
       failed_when: kubectl_exists.rc not in [0, 1]
     - name: Download kubectl
       shell: curl -L "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" -o /usr/local/bin/kubectl
-      when: kubectl_exists.rc == 1
+      when:
+        - kubectl_exists.rc == 1
       tags:
         - skip_ansible_lint
     - name: Make kubectl executable
       command: chmod +x /usr/local/bin/kubectl
-      when: kubectl_exists.rc == 1
+      when:
+        - kubectl_exists.rc == 1
     - name: Execute bootstrap script
       ansible.builtin.debug:
         msg: "This will install ansible, collections, etc."
