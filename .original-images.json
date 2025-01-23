@@ -4,7 +4,7 @@
   "ghcr.io/rackerlabs/genestack/octavia-ovn:2024.1-ubuntu_jammy-1737651745",
   "docker.io/openstackhelm/glance:2024.1-ubuntu_jammy",
   "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1737483453",
-  "docker.io/openstackhelm/barbican:2023.1-ubuntu_jammy",
+  "docker.io/openstackhelm/barbican:2024.1-ubuntu_jammy",
   "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy-1723129048",
   "docker.io/openstackhelm/ceph-config-helper:latest-ubuntu_jammy",
   "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
