@@ -1,13 +1,13 @@
 [
-  "ghcr.io/rackerlabs/genestack/heat:2024.1-ubuntu_jammy",
-  "docker.io/openstackhelm/magnum:2024.1-ubuntu_jammy",
-  "ghcr.io/rackerlabs/genestack/octavia-ovn:2024.1-ubuntu_jammy-1737651745",
-  "docker.io/openstackhelm/glance:2024.1-ubuntu_jammy",
-  "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1737483453",
-  "ghcr.io/rackerlabs/skyline-rxt:master-ubuntu_jammy-1730100728",
-  "ghcr.io/rackerlabs/genestack/cinder-volume-rxt:2024.1-ubuntu_jammy-1731085441",
   "docker.io/openstackhelm/barbican:2024.1-ubuntu_jammy",
-  "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy-1723129048",
   "docker.io/openstackhelm/ceph-config-helper:latest-ubuntu_jammy",
-  "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
+  "docker.io/openstackhelm/glance:2024.1-ubuntu_jammy",
+  "docker.io/openstackhelm/magnum:2024.1-ubuntu_jammy",
+  "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy",
+  "ghcr.io/rackerlabs/genestack/cinder-volume-rxt:2024.1-ubuntu_jammy-1731085441",
+  "ghcr.io/rackerlabs/genestack/heat:2024.1-ubuntu_jammy",
+  "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy-1723129048",
+  "ghcr.io/rackerlabs/genestack/octavia-ovn:2024.1-ubuntu_jammy-1737651745",
+  "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1737483453",
+  "ghcr.io/rackerlabs/skyline-rxt:master-ubuntu_jammy-1730100728"
 ]
