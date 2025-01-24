@@ -1,0 +1,43 @@
+---
+# This tasks modifies the quotas for the admin tenant to
+# more suitable defaults as the resources for amphora
+# provider are created in the "admin" tenant by default
+- name: Fetch the current quotas for the admin tenant
+  openstack.cloud.quota:
+    name: "{{ admin_project_name | default('admin') }}"
+    interface: public
+  register: _current_admin_quota
+
+- name: Display the current quota values for the admin tenant
+  debug:
+    msg:
+     - "Current quota value for instances: {{ _current_admin_quota.quotas.compute.instances }}; New quota value for instances: {{ num_amphora_instances }}"
+     - "Current quota value for cores: {{ _current_admin_quota.quotas.compute.cores }}; New quota value for cores: {{ num_amphora_cores }}"
+     - "Current quota value for server_groups: {{ _current_admin_quota.quotas.compute.server_groups }}; New quota value for server_groups: {{ num_amphora_server_groups }}"
+     - "Current quota value for ram(MB): {{ _current_admin_quota.quotas.compute.ram }}; New quota value for ram(MB): {{ amphora_ram_mb }}"
+     - "Current quota value for ports: {{ _current_admin_quota.quotas.network.ports }}; New quota value for ports: {{ num_amphora_ports }}"
+     - "Current quota value for security_groups: {{ _current_admin_quota.quotas.network.security_groups }}; New quota value for security_groups: {{ octavia_num_secgroup }}"
+     - "Current quota value for security_group_rules: {{ _current_admin_quota.quotas.network.security_group_rules }}; New quota value for security_group_rules: {{ octavia_num_secgroup_rule }}"
+     - "Current quota value for server_group_members: {{ _current_admin_quota.quotas.compute.server_group_members }}; New quota value for server_group_members: {{ num_amphora_server_group_member }}"
+
+- name: modify the quotas for the admin tenant to suit to production environments
+  block:
+    - openstack.cloud.quota:
+        name: "{{ admin_project_name | default('admin') }}"
+        instances: "{{ num_amphora_instances }}"
+        cores: "{{ num_amphora_cores }}"
+        server_groups: "{{ num_amphora_server_groups }}"
+        ram: "{{ amphora_ram_mb }}"
+        port: "{{ num_amphora_ports }}"
+        security_group: "{{ octavia_num_secgroup }}"
+        security_group_rule: "{{ octavia_num_secgroup_rule }}"
+        server_group_members: "{{ num_amphora_server_group_member }}"
+        interface: public
+  rescue:
+    - debug:
+        msg: "WARNING: Failed to modify admin tenant quotas! trying to reset to defaults; please review the ansible error logs"
+    - name: set the quota to defaults for the admin tenant
+      openstack.cloud.quota:
+        state: absent
+        name: "{{ admin_project_name | default('admin') }}"
+        interface: public

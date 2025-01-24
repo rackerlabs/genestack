@@ -1,0 +1,60 @@
+---
+# These are the tasks to create ssh keypair, flavor
+# and image for the amphorae; creating keypair is
+# optional; amphora image uploaded is suitable for
+# test environments; the flavor specs are currently set
+# to 2 vcpus, 1024 MB ram and 5 GB of disk
+- name: Create ssh keypair for amphorae
+  community.crypto.openssh_keypair:
+    path: /tmp/amphora_ssh_key
+    size: 2048
+    comment: "amphora ssh key"
+  when: amphora_ssh_enabled
+
+- name: Create ssh keypair in nova for amphora
+  openstack.cloud.keypair:
+    name: "{{ amphora_ssh_key_name }}"
+    public_key: "{{ lookup('file', '/tmp/amphora_ssh_key.pub') }}"
+    state: present
+    interface: public
+  when: amphora_ssh_enabled
+
+- name: Create flavor for amphorae
+  openstack.cloud.compute_flavor:
+    name: "{{ amphora_flavor_name }}"
+    state: present
+    disk: 5
+    vcpus: 2
+    ram: 1024
+    is_public: false
+    interface: public
+  register: create_amphora_flavor
+  until: create_amphora_flavor is success
+  retries: 5
+  delay: 5
+
+- name: Get the image for amphora
+  get_url:
+    url: https://tarballs.opendev.org/openstack/octavia/test-images/test-only-amphora-x64-haproxy-ubuntu-{{ amphora_image_version }}.qcow2
+    dest: /tmp/test-only-amphora-x64-haproxy-ubuntu-{{ amphora_image_version }}.qcow2
+  register: download_amphora_image
+  until: download_amphora_image is success
+  retries: 5
+  delay: 5
+
+- name: push the amphora image
+  openstack.cloud.image:
+    name: "{{ amphora_image_name }}"
+    state: present
+    filename: /tmp/test-only-amphora-x64-haproxy-ubuntu-{{ amphora_image_version }}.qcow2
+    container_format: bare
+    disk_format: qcow2
+    visibility: public
+    protected: true
+    tags:
+    - amphora
+    interface: public
+  register: push_amphora_image
+  until: push_amphora_image is success
+  retries: 5
+  delay: 5
