@@ -14,6 +14,7 @@ CLIENT_KEY_CERT=$4
 function encod_base64()
 {
   local file_path=$1
+  # shellcheck disable=SC2002
   cat "$file_path" | base64 -w0 | tr -d '\n'
 }
 
