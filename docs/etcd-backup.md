@@ -2,7 +2,7 @@
 
 In order to backup etcd we create a backup CronJob resource. This constitues of 3 things:
 
-1. etcd-bakcup container image with the etcdctl binary and the python script that uploads
+1. etcd-backup container image with the etcdctl binary and the python script that uploads
 the backup to Ceph S3 endpoint or any S3 compatible endpoint.
 
 2. The CronJob deployment resource. This job will only be done on the box with label set
