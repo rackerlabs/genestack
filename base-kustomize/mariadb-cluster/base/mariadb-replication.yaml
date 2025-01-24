@@ -46,8 +46,6 @@ spec:
       storageClassName: general
 
   replicas: 3
-  podSecurityContext:
-    runAsUser: 0
 
   replication:
     enabled: true
