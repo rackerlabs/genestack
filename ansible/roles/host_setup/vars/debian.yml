@@ -42,6 +42,7 @@ _host_distro_packages:
   - bridge-utils
   - cgroup-tools
   - curl
+  - cryptsetup
   - dmeventd
   - dstat
   - ebtables
@@ -51,6 +52,7 @@ _host_distro_packages:
   - libkmod2
   - lvm2
   - nfs-client
+  - open-iscsi
   - rsync
   - software-properties-common
   - sysstat
