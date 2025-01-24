@@ -1,0 +1,98 @@
+heat_template_version: wallaby
+
+description: Build genestack for testing
+
+parameters:
+  in_net:
+    type: string
+    description: Internal network name
+
+  ext_net:
+    type: string
+    description: External network for floating IP
+
+  image_name:
+    type: string
+    description: Image name for the VMs
+
+  key_pair:
+    type: string
+    description: Key pair name for the VMs
+    default: "genestack-keypair"
+
+  flavor_name:
+    type: string
+    description: Flavor name for the VMs
+
+  security_group:
+    type: string
+    description: Security group for the VMs
+
+  name1:
+    type: string
+    description: Name of first machine
+    default: "controller1"
+
+  name2:
+    type: string
+    description: Name of second machine
+    default: "controller2"
+
+  name3:
+    type: string
+    description: Name of third machine
+    default: "controller3"
+
+resources:
+  genestack_keypair:
+    type: OS::Nova::KeyPair
+    properties:
+      name: "genestack-keypair"
+      public_key: { get_file: ./key.pub }
+
+  genestack_machine1:
+    type: OS::Heat::Stack
+    properties:
+      template: { get_file: single.yaml }
+      parameters:
+        internal: {get_param: in_net }
+        external: {get_param: ext_net }
+        image: {get_param: image_name }
+        flavor: {get_param: flavor_name }
+        keys: { get_resource: genestack_keypair }
+        sec_group: {get_param: security_group }
+        name: {get_param: name1 }
+
+  genestack_machine2:
+    type: OS::Heat::Stack
+    properties:
+      template: { get_file: single.yaml }
+      parameters:
+        internal: {get_param: in_net }
+        external: {get_param: ext_net }
+        image: {get_param: image_name }
+        flavor: {get_param: flavor_name }
+        keys: { get_resource: genestack_keypair }
+        sec_group: {get_param: security_group }
+        name: {get_param: name2 }
+
+  genestack_machine3:
+    type: OS::Heat::Stack
+    properties:
+      template: { get_file: single.yaml }
+      parameters:
+        internal: {get_param: in_net }
+        external: {get_param: ext_net }
+        image: {get_param: image_name }
+        flavor: {get_param: flavor_name }
+        keys: { get_resource: genestack_keypair }
+        sec_group: {get_param: security_group }
+        name: {get_param: name3 }
+
+outputs:
+  all_out:
+    description: ip addresses of the 3 machines
+    value:
+      - { get_attr: [genestack_machine1, outputs, vm_ip] }
+      - { get_attr: [genestack_machine2, outputs, vm_ip] }
+      - { get_attr: [genestack_machine3, outputs, vm_ip] }
