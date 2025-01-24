@@ -471,6 +471,7 @@ conf:
       auth_version: v3
       memcache_security_strategy: ENCRYPT
       service_type: dns
+
   logging:
     loggers:
       keys:
