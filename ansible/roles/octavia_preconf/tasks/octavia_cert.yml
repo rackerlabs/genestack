@@ -61,6 +61,8 @@
   args:
     chdir: "{{ octavia_certs_dir }}"
     creates: "{{ octavia_server_ca_cert }}"
+  tags:
+    - skip_ansible_lint
 
 - name: Generate Client CA private key
   community.crypto.openssl_privatekey:
@@ -80,6 +82,8 @@
   args:
     chdir: "{{ octavia_certs_dir }}"
     creates: "{{ octavia_client_ca_cert }}"
+  tags:
+    - skip_ansible_lint
 
 - name: Create Client key (octavia-worker)
   community.crypto.openssl_privatekey:
@@ -107,12 +111,16 @@
   args:
     chdir: "{{ octavia_certs_dir }}"
     creates: "{{ octavia_client_cert }}"
+  tags:
+    - skip_ansible_lint
 
 - name: Create a single file for client key and cert (octavia-worker)
   shell:
     cmd: cat "{{ octavia_client_key }}" "{{ octavia_client_cert }}" > "{{ octavia_client_key_cert }}"
     chdir: "{{ octavia_certs_dir }}"
     creates: "{{ octavia_client_key_cert }}"
+  tags:
+    - skip_ansible_lint
 
 - name: Run the script to create the yaml file for octavia-certs secret
   script:

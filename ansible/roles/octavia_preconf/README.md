@@ -1,18 +1,16 @@
-octavia_preconf
-=========
+## octavia_preconf
 
 This is a role for performing the pre-requisite tasks to enable amphora provider for octavia for example creating a network and a subnet for amphorae, uploading the image to glance, creating ssh keys etc. This is mainly intended for running octavia in a k8s environment
 
-Requirements
-------------
+## Requirements
 
 These are the requirements to run this role:
 1. This role needs to be run on any of the nodes which has access to the openstack public endpoints
 2. This role also needs access to the k8s cluster as it tries to create "octavia-certs" secret in the openstack namespace to it needs access to kubectl utility
 3. It is recommended to create a virtual environment to run this role; steps will be shared below
 
-Creating a virtual environment
-------------
+## Creating a virtual environment
+
 1. Install the required packages for creating the virutal environment with python:
 ```
 root@saturn-c1:~# apt-get install python3-venv python3-pip
@@ -38,8 +36,7 @@ root@saturn-c1:~# source .venvs/octavia_preconf/bin/activate
 ```
 note that the kubeconfig in this step has been copied from the master node and it should be modified accordingly
 
-Role Variables
---------------
+## Role Variables
 
 + The available variables can be found in the defaults/main.yml file
 + The role variables can be used to modify
@@ -49,13 +46,11 @@ Role Variables
     + Validity and other certificate parameters \
 Refer to the role defaults for more detail  
 
-Dependencies
-------------
+## Dependencies
 
 The role has no external dependencies; only the steps shared above for creating the virutal environment are required
 
-Example Playbook
-----------------
+## Example Playbook
 
 The role needs keystone admin credentials; they can be provided as environment variables \
 This is an example playbook for running the role:
