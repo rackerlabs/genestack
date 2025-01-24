@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# obtain the values for cert and keys 
-# from the ansible tasks; these will 
+# obtain the values for cert and keys
+# from the ansible tasks; these will
 # then be used to create the secret
 
 set -xe

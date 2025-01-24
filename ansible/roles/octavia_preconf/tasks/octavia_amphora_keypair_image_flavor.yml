@@ -1,10 +1,10 @@
 ---
-# These are the tasks to create ssh keypair, flavor 
+# These are the tasks to create ssh keypair, flavor
 # and image for the amphorae; creating keypair is
 # optional; amphora image uploaded is suitable for
 # test environments; the flavor specs are currently set
 # to 2 vcpus, 1024 MB ram and 5 GB of disk
-- name: Create ssh keypair for amphorae 
+- name: Create ssh keypair for amphorae
   community.crypto.openssh_keypair:
     path: /tmp/amphora_ssh_key
     size: 2048
@@ -19,7 +19,7 @@
     interface: public
   when: amphora_ssh_enabled
 
-- name: Create flavor for amphorae 
+- name: Create flavor for amphorae
   openstack.cloud.compute_flavor:
     name: "{{ amphora_flavor_name }}"
     state: present

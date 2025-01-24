@@ -1,5 +1,5 @@
 ---
-# These are the tasks for creating health_mgr 
+# These are the tasks for creating health_mgr
 # ports for octavia; the ports are created with
 # a shell script as the ansible modules currently
 # don't support all the required params for creating
@@ -17,6 +17,6 @@
   register: lb_health_mgr_secgrp_info
 
 - name: run the shell script to create health_mgr ports if required
-  script: 
+  script:
     cmd: create_health_mgr_ports.sh {{ lb_mgmt_info.networks[0].id }} {{ lb_health_mgr_secgrp_info.security_groups[0].id }} {{ lookup('env', 'OS_CLOUD') | default('openstack_helm') }}
     creates: /tmp/octavia_hm_controller_ip_port_list

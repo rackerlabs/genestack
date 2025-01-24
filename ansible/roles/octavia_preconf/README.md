@@ -44,7 +44,7 @@ note that the kubeconfig in this step has been copied from the master node and i
     + lb-mgmt-subet cidr, pool and gateway
     + whether ssh should be enabled for amphora
     + Validity and other certificate parameters \
-Refer to the role defaults for more detail  
+Refer to the role defaults for more detail
 
 ## Dependencies
 
@@ -56,7 +56,7 @@ The role needs keystone admin credentials; they can be provided as environment v
 This is an example playbook for running the role:
 
 ```
-(octavia_preconf) root@saturn-c1:~# cat octavia-preconf-main.yaml 
+(octavia_preconf) root@saturn-c1:~# cat octavia-preconf-main.yaml
 
 - name: Pre-requisites for enabling amphora provider in octavia
   hosts: localhost
@@ -75,7 +75,7 @@ This is an example playbook for running the role:
     OS_IDENTITY_API_VERSION: 3
     OS_AUTH_VERSION: 3
     NOVA_ENDPOINT_TYPE: publicURL
-  roles:  
+  roles:
     - /root/octavia_preconf
 ```
 

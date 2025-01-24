@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # We need to create the ports with shell scripts
-# the ansible module currently doesn't provide 
+# the ansible module currently doesn't provide
 # --host argument
 
 set -xe
@@ -14,7 +14,7 @@ CLOUD_NAME=$3
 
 export OS_CLOUD=$CLOUD_NAME
 
-# Obtain the list of kubernetes nodes with 
+# Obtain the list of kubernetes nodes with
 # "openstack-control-plane=enabled" label
 CONTROLLER_IP_PORT_LIST=''
 CTRLS=$(kubectl get nodes -l openstack-control-plane=enabled -o name | awk -F"/" '{print $2}')

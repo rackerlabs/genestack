@@ -1,11 +1,11 @@
 ---
 # These are the tasks to create the certificate
-# directories for client and server certificates 
+# directories for client and server certificates
 # as well other required files for openssl certs
 - name: Create the base directory for octavia certs
   file:
     path: "{{ octavia_certs_dir }}"
-    state: directory 
+    state: directory
     mode: '0700'
 
 - name: Create the sub directories for certificates
