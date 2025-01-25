@@ -36,16 +36,11 @@
 
 - hosts: all
   become: true
-  gather_facts: "{{ gather_facts | default(true) }}"
+  gather_facts: true
   environment: "{{ deployment_environment_variables | default({}) }}"
   roles:
     - host_setup
-
-- hosts: openstack_compute_nodes
-  become: true
-  gather_facts: true
-  environment: "{{ deployment_environment_variables | default({}) }}"
-  tasks:
+  post_tasks:
     - name: Copy over multipath Round Robin configuration file
       when:
         - custom_multipath | default(false) | bool
@@ -59,21 +54,6 @@
             mode: '0644'
           notify:
             - Restart multipathd systemd service
-  handlers:
-    - name: Restart multipathd systemd service
-      ansible.builtin.systemd:
-        name: multipathd
-        state: restarted
-        daemon_reload: true
-        enabled: true
-
-
-
-- hosts: openstack_compute_nodes
-  become: true
-  gather_facts: true
-  environment: "{{ deployment_environment_variables | default({}) }}"
-  tasks:
     - name: Install open-iscsi and multipath on nova compute nodes
       when:
         - enable_iscsi | default(false) | bool
@@ -96,3 +76,10 @@
             name: multipathd.service
             state: "{{ (_multipath_packages is changed) | ternary('restarted', 'started') }}"
             enabled: true
+  handlers:
+    - name: Restart multipathd systemd service
+      ansible.builtin.systemd:
+        name: multipathd
+        state: restarted
+        daemon_reload: true
+        enabled: true
