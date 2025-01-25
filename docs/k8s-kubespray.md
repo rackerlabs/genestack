@@ -108,24 +108,7 @@ ansible-playbook host-setup.yml
 
     ``` shell
     cd /opt/genestack/submodules/kubespray
-    ansible-playbook --inventory /etc/genestack/inventory/openstack-flex-inventory.ini \
-                    --private-key /home/ubuntu/.ssh/openstack-flex-keypair.key \
-                    --user ubuntu \
-                    --become \
-                    cluster.yml
-    ```
-
-=== "Setup-Kubernetes Playbook _(Experimental)_"
-
-    The `private-key` option can be used to instruct ansible to use a custom SSH key for the SSH connection
-
-    ``` shell
-        --private-key ${HOME}/.ssh/openstack-keypair.key
-    ```
-
-    ``` shell
-    source /opt/genestack/scripts/genestack.rc
-    ansible-playbook setup-kubernetes.yml
+    ansible-playbook cluster.yml
     ```
 
 !!! tip
