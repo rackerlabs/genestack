@@ -499,7 +499,7 @@ conf:
   keystone:
     DEFAULT:
       log_config_append: /etc/keystone/logging.conf
-      max_token_size: 255
+      max_token_size: 300
       # NOTE(rk760n): if you need auth notifications to be sent, uncomment it
       # notification_opt_out: ""
     token:
