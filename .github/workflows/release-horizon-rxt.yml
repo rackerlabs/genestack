@@ -34,6 +34,9 @@ env:
 # There is a single job in this workflow. It's configured to run on the latest available version of Ubuntu.
 jobs:
   build-and-push-image:
+    outputs:
+      MY_DATE: ${{ steps.mydate.outputs.MY_DATE }}
+      MY_CONTAINER: ${{ steps.mycontainer.outputs.MY_CONTAINER }}
     runs-on: ubuntu-latest
     # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
     permissions:
@@ -73,3 +76,43 @@ jobs:
           build-args: |
             VERSION=${{ github.event.inputs.imageTag }}
             PLUGIN_VERSION=${{ github.event.inputs.pluginTag }}
+      - name: Dynamically set MY_CONTAINER output option
+        id: mycontainer
+        run: echo "MY_CONTAINER=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/nova-efi:${{ github.event.inputs.imageTag }}-${{ env.MY_DATE }}" >> $GITHUB_OUTPUT
+      - name: Dynamically set MY_DATE output option
+        id: mydate
+        run: echo "MY_DATE=${{ env.MY_DATE }}" >> $GITHUB_OUTPUT
+
+  change-original-images:
+    runs-on: ubuntu-latest
+    needs: [build-and-push-image]
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Dynamically update the original images file
+        run: jq '. + ["${{ needs.build-and-push-image.outputs.MY_CONTAINER }}"] | sort' .original-images.json | tee .original-images.json.new
+      - name: Rewrite original images file
+        run: mv .original-images.json.new .original-images.json
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: Update original images with new container
+          committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
+          signoff: false
+          branch: ${{ needs.build-and-push-image.outputs.MY_DATE }}
+          sign-commits: true
+          delete-branch: true
+          title: 'chore: Update original images'
+          body: |
+            Update container image
+            - Updated original image file with container ${{needs.build-and-push-image.outputs.MY_CONTAINER}}
+            change request Auto-generated
+          labels: |
+            container images
+            automated pr
+          draft: false
