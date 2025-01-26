@@ -511,6 +511,7 @@ conf:
       domain_config_dir: /etc/keystone/domains
     fernet_tokens:
       key_repository: /etc/keystone/fernet-keys/
+      max_active_keys: 7
     credential:
       key_repository: /etc/keystone/credential-keys/
     database:
