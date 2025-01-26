@@ -16,7 +16,7 @@ COPY --from=build /var/lib/openstack/. /var/lib/openstack/
 # Py Packages for the following features:
 # - Nova: Libosinfo
 RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y ovmf open-iscsi multipath-tools libgirepository-1.0-1 libgirepository1.0-dev \
-                                 libcairo2-dev python3-dev gcc libosinfo-bin gir1.2-libosinfo-1.0 nfs-common cryptsetup; \
+                                 libcairo2-dev python3-dev gcc libosinfo-bin gir1.2-libosinfo-1.0 nfs-common cryptsetup nvme-cli; \
     rm -rf /var/cache/apt/archives /var/lib/apt/lists; \
     apt clean; /var/lib/openstack/bin/pip install pygobject; \
     find /var/lib/openstack -regex '^.*\(__pycache__\|\.py[co]\)$' -delete
