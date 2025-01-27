@@ -447,13 +447,15 @@ service:
   ## Values: ClientIP or None
   ## ref: https://kubernetes.io/docs/concepts/services-networking/service/
   ##
-  sessionAffinity: ""
+  sessionAffinity: "ClientIP"
   ## @param service.sessionAffinityConfig Additional settings for the sessionAffinity
   ## sessionAffinityConfig:
   ##   clientIP:
   ##     timeoutSeconds: 300
   ##
-  sessionAffinityConfig: {}
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 600
   ## @param service.clusterIP Memcached service Cluster IP
   ## e.g.:
   ## clusterIP: None
