@@ -1,6 +1,9 @@
 # Creating Different Neutron Network Types
 
 The following commands are examples of creating several different network types.
+NOTE: When creating the subnet we are spefically limiting neutrons ability to attached
+ip's from Provider networks directly to instances with --service-type.  If you want
+to attach Provider network ip's directly to instances, remove those three lines.
 
 ## Create Shared Provider Networks
 
@@ -24,6 +27,9 @@ openstack --os-cloud default subnet create --subnet-range 172.16.24.0/22 \
                                            --allocation-pool start=172.16.25.150,end=172.16.25.200 \
                                            --dhcp \
                                            --network flat \
+                                           --service-type network:floatingip \
+                                           --service-type network:router_gateway \
+                                           --service-type network:distributed \
                                            flat_subnet
 ```
 
@@ -48,6 +54,9 @@ openstack --os-cloud default subnet create --subnet-range 10.10.10.0/23 \
                                            --allocation-pool start=10.10.11.10,end=10.10.11.254 \
                                            --dhcp \
                                            --network vlan404 \
+                                           --service-type network:floatingip \
+                                           --service-type network:router_gateway \
+                                           --service-type network:distributed \
                                            vlan404_subnet
 ```
 
