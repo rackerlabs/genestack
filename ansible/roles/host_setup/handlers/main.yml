@@ -32,3 +32,9 @@
 - name: Systemd daemon reload
   ansible.builtin.systemd:
     daemon_reload: true
+
+- name: Restart sysstat
+  ansible.builtin.systemd:
+    name: "queue_max.service"
+    state: "restarted"
+    enabled: true

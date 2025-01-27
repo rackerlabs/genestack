@@ -65,3 +65,16 @@
   ansible.builtin.include_tasks: sysstat.yml
   when:
     - host_sysstat_enabled | bool
+
+- name: Create queue max script
+  ansible.builtin.copy:
+    src: queue_max.sh
+    dest: /usr/local/bin/queue_max.sh
+    mode: "0755"
+
+- name: Create queue max service
+  ansible.builtin.copy:
+    src: queue_max.service
+    dest: /etc/systemd/system/queue_max.service
+    mode: "0644"
+  notify: Load and start queue_max service

@@ -1,0 +1,10 @@
+[Unit]
+Description = Oneshot service for queue max
+After = network-online.target
+
+[Service]
+Type = oneshot
+ExecStart = /usr/local/bin/queue_max.sh
+
+[Install]
+WantedBy = multi-user.target
