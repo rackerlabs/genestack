@@ -1,9 +1,10 @@
 # Creating Different Neutron Network Types
 
 The following commands are examples of creating several different network types.
-NOTE: When creating the subnet we are spefically limiting neutrons ability to attached
-ip's from Provider networks directly to instances with --service-type.  If you want
-to attach Provider network ip's directly to instances, remove those three lines.
+NOTE: When creating the subnet we are specifically limiting neutrons ability to attach
+ip's from Shared Provider networks directly to instances with --service-type.  If you want
+to attach Shared Provider Network's ip's directly to instances, remove lines beginning with
+--service-type
 
 ## Create Shared Provider Networks
 
