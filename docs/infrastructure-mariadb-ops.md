@@ -30,6 +30,7 @@ mysqldump --host=$(kubectl -n openstack get service mariadb-cluster -o jsonpath=
           --routines \
           --triggers \
           --events \
+          --column-statistics=0 \
           ${DATABASE_NAME} \
           --result-file=/tmp/${DATABASE_NAME}-$(date +%s).sql
 ```
@@ -42,6 +43,7 @@ mysqldump --host=$(kubectl -n openstack get service mariadb-cluster -o jsonpath=
           -p$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d) \
           -e 'show databases;' \
           --column-names=false \
+          --column-statistics=0 \
           --vertical | \
               awk '/[:alnum:]/' | \
                   xargs -i mysqldump --host=$(kubectl -n openstack get service mariadb-cluster -o jsonpath='{.spec.clusterIP}') \
