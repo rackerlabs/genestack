@@ -19,7 +19,7 @@
   gather_facts: "{{ gather_facts | default(true) }}"
   environment: "{{ deployment_environment_variables | default({}) }}"
   vars:
-    helm_version: ""  # Assume the default or set an explicit version.
+    helm_version: "" # Assume the default or set an explicit version.
   tasks:
     - name: Download Helm command line tool
       ansible.builtin.uri:
@@ -51,9 +51,10 @@
             dest: /etc/multipath.conf
             owner: root
             group: root
-            mode: '0644'
+            mode: "0644"
           notify:
-            - Restart multipath systemd services
+            - Restart multipathd systemd service
+            - Restart multipath-tools systemd service
     - name: Install open-iscsi and multipath on nova compute nodes
       when:
         - enable_iscsi | default(false) | bool
@@ -77,15 +78,15 @@
             state: "{{ (_multipath_packages is changed) | ternary('restarted', 'started') }}"
             enabled: true
   handlers:
-    - name: Restart multipath systemd service
+    - name: Restart multipathd systemd service
       ansible.builtin.systemd:
         name: multipathd
         state: restarted
         daemon_reload: true
         enabled: true
+    - name: Restart multipath-tools systemd service
       ansible.builtin.systemd:
         name: multipath-tools
         state: restarted
         daemon_reload: true
         enabled: true
-        
