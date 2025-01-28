@@ -527,14 +527,14 @@ conf:
     oslo_messaging_notifications:
       driver: messagingv2
     oslo_messaging_rabbit:
-      amqp_durable_queues: true
+      amqp_durable_queues: false
       # We define use of quorum queues via kustomize but this was enabling HA queues instead
       # ha_queues are deprecated, explicitly set to false and set quorum_queue true
       rabbit_ha_queues: false
       rabbit_quorum_queue: true
       # TODO: Not available until 2024.1, but once it is, we want to enable these!
       # new feature ref; https://docs.openstack.org/releasenotes/oslo.messaging/2024.1.html
-      rabbit_transient_quorum_queue: true
+      rabbit_transient_quorum_queue: false
       use_queue_manager: true
       # Reconnect after a node outage more quickly
       rabbit_interval_max: 10
@@ -758,13 +758,15 @@ conf:
               max: 0
   mpm_event: |
     <IfModule mpm_event_module>
-      ServerLimit         1024
+      ServerLimit         16
       StartServers        32
       MinSpareThreads     32
-      MaxSpareThreads     256
-      ThreadsPerChild     25
-      MaxRequestsPerChild 128
-      ThreadLimit         720
+      MaxSpareThreads     128
+      ThreadLimit         64
+      ThreadsPerChild     16
+      MaxRequestWorkers   256
+      MaxMemFree          256
+      MaxConnectionsPerChild 0
     </IfModule>
   wsgi_keystone: |
     {{- $portInt := tuple "identity" "service" "api" $ | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
@@ -779,11 +781,12 @@ conf:
     CustomLog /dev/stdout proxy env=forwarded
 
     <VirtualHost *:{{ $portInt }}>
-        WSGIDaemonProcess keystone-public processes=1 threads=1 user=keystone group=keystone display-name=%{GROUP}
+        WSGIDaemonProcess keystone-public processes=2 threads=8 user=keystone group=keystone display-name=%{GROUP}
         WSGIProcessGroup keystone-public
         WSGIScriptAlias / /var/www/cgi-bin/keystone/keystone-wsgi-public
         WSGIApplicationGroup %{GLOBAL}
         WSGIPassAuthorization On
+        LimitRequestBody 114688
         <IfVersion >= 2.4>
           ErrorLogFormat "%{cu}t %M"
         </IfVersion>
@@ -1016,7 +1019,7 @@ endpoints:
     hosts:
       default: rabbitmq-nodes
     host_fqdn_override:
-      default: null
+      default: rabbitmq.openstack.svc.cluster.local
     path: /keystone
     scheme: rabbit
     port:

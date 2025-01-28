@@ -74,14 +74,14 @@ conf:
     oslo_concurrency:
       lock_path: /tmp/octavia
     oslo_messaging_rabbit:
-      amqp_durable_queues: true
+      amqp_durable_queues: false
       # We define use of quorum queues via kustomize but this was enabling HA queues instead
       # ha_queues are deprecated, explicitly set to false and set quorum_queue true
       rabbit_ha_queues: false
       rabbit_quorum_queue: true
       # TODO: Not available until 2024.1, but once it is, we want to enable these!
       # new feature ref; https://docs.openstack.org/releasenotes/oslo.messaging/2024.1.html
-      rabbit_transient_quorum_queue: true
+      rabbit_transient_quorum_queue: false
       use_queue_manager: true
       # Reconnect after a node outage more quickly
       rabbit_interval_max: 10
