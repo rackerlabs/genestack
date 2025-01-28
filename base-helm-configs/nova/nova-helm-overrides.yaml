@@ -1358,6 +1358,7 @@ conf:
     - cell0_database
   nova:
     DEFAULT:
+      service_down_time: 120
       default_availability_zone: az1
       default_schedule_zone: az1
       # NOTE(cloudnull): the vif_plugging_* options are an implemntation detail of the nova container when running with OVN
@@ -1373,8 +1374,8 @@ conf:
       # NOTE(portdirect): the bind port should not be defined, and is manipulated
       # via the endpoints section.
       osapi_compute_listen_port: null
-      osapi_compute_workers: 1
-      metadata_workers: 1
+      osapi_compute_workers: 8
+      metadata_workers: 8
       compute_driver: libvirt.LibvirtDriver
       my_ip: 0.0.0.0
       instance_usage_audit: True
@@ -1397,7 +1398,10 @@ conf:
       # This would be set by each compute nodes's ip
       # server_proxyclient_address: 127.0.0.1
     conductor:
-      workers: 1
+      workers: 8
+    schedule:
+      workers: 8
+      max_attempts: 5
     oslo_policy:
       policy_file: /etc/nova/policy.yaml
     oslo_concurrency:
@@ -2023,14 +2027,14 @@ endpoints:
 pod:
   probes:
     rpc_timeout: 60
-    rpc_retries: 2
+    rpc_retries: 3
     compute:
       default:
         liveness:
           enabled: True
           params:
-            periodSeconds: 90
-            timeoutSeconds: 70
+            periodSeconds: 120
+            timeoutSeconds: 120
         readiness:
           enabled: True
           params:
@@ -2077,8 +2081,8 @@ pod:
           enabled: True
           params:
             initialDelaySeconds: 120
-            periodSeconds: 90
-            timeoutSeconds: 70
+            periodSeconds: 120
+            timeoutSeconds: 120
         readiness:
           enabled: True
           params:
@@ -2105,8 +2109,8 @@ pod:
           enabled: True
           params:
             initialDelaySeconds: 120
-            periodSeconds: 90
-            timeoutSeconds: 70
+            periodSeconds: 120
+            timeoutSeconds: 120
         readiness:
           enabled: True
           params:
