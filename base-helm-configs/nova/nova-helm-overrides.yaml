@@ -2023,14 +2023,14 @@ endpoints:
 pod:
   probes:
     rpc_timeout: 60
-    rpc_retries: 2
+    rpc_retries: 3
     compute:
       default:
         liveness:
           enabled: True
           params:
-            periodSeconds: 90
-            timeoutSeconds: 70
+            periodSeconds: 120
+            timeoutSeconds: 120
         readiness:
           enabled: True
           params:
@@ -2077,8 +2077,8 @@ pod:
           enabled: True
           params:
             initialDelaySeconds: 120
-            periodSeconds: 90
-            timeoutSeconds: 70
+            periodSeconds: 120
+            timeoutSeconds: 120
         readiness:
           enabled: True
           params:
@@ -2105,8 +2105,8 @@ pod:
           enabled: True
           params:
             initialDelaySeconds: 120
-            periodSeconds: 90
-            timeoutSeconds: 70
+            periodSeconds: 120
+            timeoutSeconds: 120
         readiness:
           enabled: True
           params:
