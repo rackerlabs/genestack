@@ -758,13 +758,15 @@ conf:
               max: 0
   mpm_event: |
     <IfModule mpm_event_module>
-      ServerLimit         1024
+      ServerLimit         16
       StartServers        32
       MinSpareThreads     32
-      MaxSpareThreads     256
-      ThreadsPerChild     25
-      MaxRequestsPerChild 128
-      ThreadLimit         720
+      MaxSpareThreads     128
+      ThreadLimit         64
+      ThreadsPerChild     16
+      MaxRequestWorkers   256
+      MaxMemFree          256
+      MaxConnectionsPerChild 0
     </IfModule>
   wsgi_keystone: |
     {{- $portInt := tuple "identity" "service" "api" $ | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
@@ -779,11 +781,12 @@ conf:
     CustomLog /dev/stdout proxy env=forwarded
 
     <VirtualHost *:{{ $portInt }}>
-        WSGIDaemonProcess keystone-public processes=1 threads=1 user=keystone group=keystone display-name=%{GROUP}
+        WSGIDaemonProcess keystone-public processes=2 threads=8 user=keystone group=keystone display-name=%{GROUP}
         WSGIProcessGroup keystone-public
         WSGIScriptAlias / /var/www/cgi-bin/keystone/keystone-wsgi-public
         WSGIApplicationGroup %{GLOBAL}
         WSGIPassAuthorization On
+        LimitRequestBody 114688
         <IfVersion >= 2.4>
           ErrorLogFormat "%{cu}t %M"
         </IfVersion>
