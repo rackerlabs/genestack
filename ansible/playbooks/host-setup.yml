@@ -53,8 +53,7 @@
             group: root
             mode: "0644"
           notify:
-            - Restart multipathd systemd service
-            - Restart multipath-tools systemd service
+            - Restart multipathd and multipath-tools service
     - name: Install open-iscsi and multipath on nova compute nodes
       when:
         - enable_iscsi | default(false) | bool
@@ -78,15 +77,12 @@
             state: "{{ (_multipath_packages is changed) | ternary('restarted', 'started') }}"
             enabled: true
   handlers:
-    - name: Restart multipathd systemd service
+    - name: Restart multipathd and multipath-tools service
       ansible.builtin.systemd:
-        name: multipathd
+        name: "{{ item }}"
         state: restarted
         daemon_reload: true
         enabled: true
-    - name: Restart multipath-tools systemd service
-      ansible.builtin.systemd:
-        name: multipath-tools
-        state: restarted
-        daemon_reload: true
-        enabled: true
+      loop:
+        - multipathd
+        - multipath-tools
