@@ -235,7 +235,7 @@ conf:
       network_driver: allowed_address_pairs_driver
       compute_driver: compute_nova_driver
       amphora_driver: amphora_haproxy_rest_driver
-      workers: 2
+      workers: 8
       amp_active_retries: 100
       amp_active_wait_sec: 2
       loadbalancer_topology: ACTIVE_STANDBY

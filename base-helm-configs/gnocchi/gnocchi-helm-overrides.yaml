@@ -461,7 +461,7 @@ conf:
       port: null
     # Increase worker count for production
     metricd:
-      workers: 1
+      workers: 8
     database:
       max_retries: -1
     storage:

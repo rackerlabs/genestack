@@ -1771,8 +1771,9 @@ conf:
       network_scheduler_driver: neutron.scheduler.dhcp_agent_scheduler.AZAwareWeightScheduler
       router_scheduler_driver: neutron.scheduler.l3_agent_scheduler.AZLeastRoutersScheduler
       dhcp_load_type: networks
-      api_workers: 1
-      rpc_workers: 4
+      api_workers: 8
+      rpc_workers: 16
+      rpc_state_report_workers: 4
       allow_overlapping_ips: True
       state_path: /var/lib/neutron
       # core_plugin can be: ml2, calico
@@ -2049,7 +2050,7 @@ conf:
       # as a hostPath volume from agent daemonsets
       metadata_proxy_socket: /var/lib/neutron/openstack-helm/metadata_proxy
       metadata_proxy_shared_secret: "password"
-      metadata_workers: 2
+      metadata_workers: 8
     cache:
       enabled: true
       backend: dogpile.cache.memcached
