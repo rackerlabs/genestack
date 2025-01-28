@@ -328,7 +328,7 @@ conf:
     DEFAULT:
       server_keystone_endpoint_type: public
       log_config_append: /etc/heat/logging.conf
-      num_engine_workers: 1
+      num_engine_workers: 8
       trusts_delegated_roles: ""
       host: heat-engine
     keystone_authtoken:
@@ -349,17 +349,17 @@ conf:
       # NOTE(portdirect): the bind port should not be defined, and is manipulated
       # via the endpoints section.
       bind_port: null
-      workers: 1
+      workers: 8
     heat_api_cloudwatch:
       # NOTE(portdirect): the bind port should not be defined, and is manipulated
       # via the endpoints section.
       bind_port: null
-      workers: 1
+      workers: 8
     heat_api_cfn:
       # NOTE(portdirect): the bind port should not be defined, and is manipulated
       # via the endpoints section.
       bind_port: null
-      workers: 1
+      workers: 8
     paste_deploy:
       api_paste_config: /etc/heat/api-paste.ini
     clients:
