@@ -1,3 +1,5 @@
+tenant_id: 122333 # TODO: update this value.  Can be set in CLI.
+
 extraSecretMounts:
   - name: azure-client-secret-mount
     secretName: azure-client

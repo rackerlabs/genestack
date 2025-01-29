@@ -1,5 +1,4 @@
 custom_host: grafana.example.com # TODO: update this value.  Can be set in CLI.
-tenant_id: 122333 # TODO: update this value.  Can be set in CLI.
 
 persistence:
   type: pvc
