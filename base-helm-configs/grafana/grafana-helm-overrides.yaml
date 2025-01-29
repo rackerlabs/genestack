@@ -1,3 +1,57 @@
+custom_host: grafana.example.com # TODO: update this value.  Can be set in CLI.
+tenant_id: 122333 # TODO: update this value.  Can be set in CLI.
+
+persistence:
+  type: pvc
+  enabled: true
+  storageClassName: general
+
+nodeSelector:
+  openstack-control-plane: enabled
+
+ingress:
+  enabled: false
+
+image:
+  tag: "10.3.3"
+
+grafana.ini:
+  paths:
+    data: /var/lib/grafana/
+    logs: /var/log/grafana
+    plugins: /var/lib/grafana/plugins
+    provisioning: /etc/grafana/provisioning
+  analytics:
+    check_for_updates: true
+  log:
+    mode: console
+  grafana_net:
+    url: https://grafana.net
+  server:
+    domain: "{{ .Values.custom_host }}"  # Ref: custom_host variable above
+    root_url: "https://{{ .Values.custom_host }}"  # Ref: custom_host variable above
+  database:
+    type: mysql
+    host: mariadb-cluster.grafana.svc:3306
+    user: $__file{/etc/secrets/grafana-db/username}
+    password:  $__file{/etc/secrets/grafana-db/password}
+    name: grafana
+
+datasources:
+  datasources.yaml:
+    apiversion: 1
+    datasources:
+    - name: Prometheus
+      type: prometheus
+      access: proxy
+      url: http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090
+      isdefault: true
+    - name: Loki
+      type: loki
+      access: proxy
+      url: http://loki-gateway.{{ $.Release.Namespace }}.svc.cluster.local:80
+      editable: false
+
 alerting:
   rules.yaml:
     groups:
@@ -88,3 +142,13 @@ alerting:
         group_wait: 1s
         group_interval: 1s
         repeat_interval: 1s
+
+plugins:
+  - camptocamp-prometheus-alertmanager-datasource
+
+extraSecretMounts:
+  - name: grafana-db-secret-mount
+    secretName: grafana-db
+    defaultMode: 0440
+    mountPath: /etc/secrets/grafana-db
+    readOnly: true

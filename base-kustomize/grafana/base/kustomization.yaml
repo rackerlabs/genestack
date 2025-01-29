@@ -1,7 +1,5 @@
 sortOptions:
   order: fifo
 resources:
-  - ns-grafana.yaml
-  - azure-client-secret.yaml
   - grafana-database.yaml
   - all.yaml

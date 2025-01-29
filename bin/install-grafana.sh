@@ -1,44 +1,31 @@
 #!/bin/bash
+# shellcheck disable=SC2124,SC2145,SC2294
 
-GENESTACK_DIR="${GENESTACK_DIR:-/opt/genestack}"
-GENESTACK_CONFIG_DIR="${GENESTACK_CONFIG_DIR:-/etc/genestack}"
+# Directory to check for YAML files
+CONFIG_DIR="/etc/genestack/helm-configs/grafana"
 
-GENESTACK_GRAFANA_DIR=\
-"${GENESTACK_GRAFANA_DIR:-$GENESTACK_DIR/base-helm-configs/grafana}"
-GENESTACK_GRAFANA_CONFIG_DIR=\
-"${GENESTACK_GRAFANA_CONFIG_DIR:-$GENESTACK_CONFIG_DIR/helm-configs/grafana}"
+# Base helm command setup
+HELM_CMD="helm upgrade --install grafana grafana/grafana \
+  --namespace=grafana \
+  --create-namespace \
+  --timeout 120m \
+  --post-renderer /etc/genestack/kustomize/kustomize.sh \
+  --post-renderer-args grafana/overlay"
 
-VALUES_BASE_FILENAMES=(
-    "grafana-values.yaml"
-    "datasources.yaml"
-    "plugins.yaml"
-    "grafana-alerts.yaml"
+# Add the base overrides file
+HELM_CMD+=" -f /opt/genestack/base-helm-configs/grafana/grafana-helm-overrides.yaml"
 
-)
-
-# Though it probably wouldn't make any difference for all of the
-# $GENESTACK_CONFIG_DIR files to come last, this takes care to fully preserve
-# the order
-echo "Including overrides in order:"
-values_args=()
-for BASE_FILENAME in "${VALUES_BASE_FILENAMES[@]}"
-do
-    for DIR in "$GENESTACK_GRAFANA_DIR" "$GENESTACK_GRAFANA_CONFIG_DIR"
-    do
-        ABSOLUTE_PATH="$DIR/$BASE_FILENAME"
-        if [[ -e "$ABSOLUTE_PATH" ]]
-        then
-            echo "    $ABSOLUTE_PATH"
-            values_args+=("--values" "$ABSOLUTE_PATH")
-        fi
+# Check if YAML files exist in the specified directory
+if compgen -G "${CONFIG_DIR}/*.yaml" > /dev/null; then
+    # Append all YAML files from the directory to the helm command
+    for yaml_file in "${CONFIG_DIR}"/*.yaml; do
+        HELM_CMD+=" -f ${yaml_file}"
     done
-done
-echo
+fi
 
-helm repo add grafana https://grafana.github.io/helm-charts
-helm repo update
-helm upgrade --install grafana grafana \
-    --create-namespace --namespace=grafana --timeout 10m \
-    "${values_args[@]}" \
-    --post-renderer "$GENESTACK_CONFIG_DIR/kustomize/kustomize.sh" \
-    --post-renderer-args grafana/overlay "$@"
+HELM_CMD+="${@}"
+
+# Run the helm command
+echo "Executing Helm command:"
+echo "${HELM_CMD}"
+eval "${HELM_CMD}"
