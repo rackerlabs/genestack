@@ -1,0 +1,17 @@
+[
+    {
+        "op": "add",
+        "path": "/spec/listeners/-",
+        "value": {
+            "name": "loki-http",
+            "port": 80,
+            "protocol": "HTTP",
+            "hostname": "internal.loki-gateway.your.domain.tld",
+            "allowedRoutes": {
+                "namespaces": {
+                    "from": "All"
+                }
+            }
+        }
+    }
+]

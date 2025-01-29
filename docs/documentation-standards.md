@@ -106,8 +106,8 @@ Bullets are used to denote unordered lists.  To have nested layers of bullets, y
 This will render like this:
 
 - Bullet
-    - Sub bullet
-        - Sub sub bullet
+  - Sub bullet
+    - Sub sub bullet
 
 **NOTE:** [Markdownlint](#markdownlint) will complain, saying that you should _indent by 2_ unless you change or ignore rule [MD007](https://github.com/DavidAnson/markdownlint/blob/main/doc/md007.md){:target="_blank"}.
 

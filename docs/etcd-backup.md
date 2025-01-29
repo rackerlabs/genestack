@@ -11,7 +11,6 @@ matching is-etcd-backup-enabled.
 3. Secrets required for the backup to function. These include the location of the
 S3 endpoint, access keys, and etcd certs to access etcd endpoints.
 
-
 Label one or more box in the cluster to run the job:
 
 ```
@@ -38,7 +37,6 @@ kubectl --namespace openstack \
 !!! note
 
     Make sure to use the correct values for your region.
-
 
 Next, Deploy the backup job:
 

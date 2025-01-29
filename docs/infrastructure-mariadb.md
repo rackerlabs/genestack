@@ -17,10 +17,12 @@
         ```
 
 ## Deploy the mariadb operator
+
 ```
 cluster_name=`kubectl config view --minify -o jsonpath='{.clusters[0].name}'`
 echo $cluster_name
 ```
+
 If `cluster_name` was anything other than `cluster.local` you should pass that as a parameter to the installer
 
 !!! example "Run the mariadb-operator deployment Script `bin/install-mariadb-operator.sh` You can include cluster_name paramater. No paramaters deploys with `cluster.local` cluster name."

@@ -9,7 +9,6 @@ to maintain the health of our systems.
 In this document we'll dive a bit deeper into the alerting components and how they're configured and used to maintain the health of our genestack.
 Please take a look at the [Monitoring Information Doc](monitoring-info.md) for more information regarding how the metrics and stats are collected in order to make use of our alerting mechanisms.
 
-
 ## Prometheus Alerting
 
 As noted in the [Monitoring Information Doc](monitoring-info.md) we make heavy use of [Prometheus](https://prometheus.io) and within the Genestack workflow specifically we deploy the [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) which handles deployment of the Prometheus servers, operators, alertmanager and various other components.
@@ -47,7 +46,6 @@ To deploy any new rules you would simply run the [Prometheus Deployment](prometh
     --8<-- "bin/install-prometheus.sh"
     ```
 
-
 ## Alert Manager
 
 The kube-prometheus-stack not only contains our monitoring components such as Prometheus and related CRD's, but it also contains another important features, the [Alert Manager](https://prometheus.io/docs/alerting/latest/alertmanager/).
@@ -61,11 +59,11 @@ The below diagram gives a better idea of how the Alert Manager works with Promet
 Genestack provides a basic [alertmanager_config](https://github.com/rackerlabs/genestack/blob/main/base-helm-configs/prometheus/alertmanager_config.yaml) that's separated out from the primary Prometheus configurations for similar reasons the [alerting rules](https://github.com/rackerlabs/genestack/blob/main/base-helm-configs/prometheus/alerting_rules.yaml) are.
 Here we can see the key components of the Alert Manager config that allows us to group and send our alerts to external services for further action.
 
- * [Inhibit Rules](https://prometheus.io/docs/alerting/latest/configuration/#inhibition-related-settings)
+* [Inhibit Rules](https://prometheus.io/docs/alerting/latest/configuration/#inhibition-related-settings)
     Inhibition rules allows us to establish dependencies between systems or services so that only the most relevant set of alerts are sent out during an outage
- * [Routes](https://prometheus.io/docs/alerting/latest/configuration/#route-related-settings)
+* [Routes](https://prometheus.io/docs/alerting/latest/configuration/#route-related-settings)
     Routing-related settings allow configuring how alerts are routed, aggregated, throttled, and muted based on time.
- * [Receivers](https://prometheus.io/docs/alerting/latest/configuration/#general-receiver-related-settings)
+* [Receivers](https://prometheus.io/docs/alerting/latest/configuration/#general-receiver-related-settings)
     Receiver settings allow configuring notification destinations for our alerts.
 
 These are all explained in greater detail in the [Alert Manager Docs](https://prometheus.io/docs/alerting/latest/configuration/#configuration).

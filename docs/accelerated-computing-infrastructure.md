@@ -40,6 +40,7 @@ The high-performance, fixed-port switches are designed to meet the demands of mo
       necessary for modern, next-generation networks.
 
 **Key Use Cases**:
+
   1. **High-Density Data Center Access**: For data centers needing flexible port speeds (1G to 100G) to connect virtualized
      servers, storage, and applications.
 
@@ -150,6 +151,7 @@ These high-performance computing (HPC) servers are designed to handle the most d
         SUSE, Ubuntu, VMware ESXi, and others, making them versatile for various workloads and environments.
 
 **Key Use Cases**:
+
   1. **AI/ML Model Training and Inference**: For deep learning, real-time AI inference, and AI model training.
 
   2. **High-Performance Computing (HPC)**: For scientific research, simulations, and computational-intensive tasks.
@@ -213,6 +215,7 @@ The high-performance application delivery and security controller are designed t
       for diverse infrastructures.
 
 **Key Use Cases**:
+
   1. **Large Enterprises and Data Centers**: Perfect for organizations needing efficient traffic management, enhanced application
      performance, and robust security.
 
@@ -269,6 +272,7 @@ This next-generation firewall is designed for large-scale environments, includin
       operational costs and minimizing environmental impact.
 
 **Key Use Cases**:
+
   1. **Enterprise Data Centers**: Ideal for large data centers requiring high throughput, threat protection, and efficient traffic
      management.
 

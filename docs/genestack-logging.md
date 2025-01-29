@@ -6,7 +6,6 @@
 
 Genestack logging is a straight forward system that collects, stores and provides an interface to search and read logs on-demand.  The storage backend is open to fit the needs of your deployment, so whether backing up to Openstack Swift, S3, Ceph, or file-share, Genestack logging can fit in your environment.
 
-
 Out-of-box Genestack logging is comprised of three separate technologies:
 
 - [Fluentbit](https://fluentbit.io/), a fast and lightweight telemetry agent for logs, metrics, and traces for Linux, macOS, Windows, and BSD family operating systems.  Fluentbit grabs log entries immediately from your Kubernetes application and ships them to Loki for aggregation
@@ -47,7 +46,7 @@ Let's break down the process of how Fluent Bit, Kubernetes, Loki, and OpenStack 
 
     OpenStack Swift, or other S3-Compatible storage solutions such Ceph,  provides object storage leveraging Swift's durability and scalability to store archived logs for extended periods.
 
-### Key Benefits of This Architecture:
+### Key Benefits of This Architecture
 
 - Efficient Log Collection: Fluent Bit's lightweight design and efficient data transfer mechanisms ensure timely log collection.
 - Scalable Log Aggregation: Loki's distributed architecture can handle large volumes of logs and scale horizontally to meet increasing demands.
