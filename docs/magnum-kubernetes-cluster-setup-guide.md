@@ -85,5 +85,5 @@ openstack coe cluster create new-k8s-cluster \
           --master-count 3 \
           --node-count 4 \
           --keypair mykey \
-          --labels kube_tag=v1.27.8-rancher2,container_runtime=containerd,containerd_version=1.6.28,containerd_tarball_sha256=f70736e52d61e5ad225f4fd21643b5ca1220013ab8b6c380434caeefb572da9b,cloud_provider_tag=v1.27.3,cinder_csi_plugin_tag=v1.27.3,k8s_keystone_auth_tag=v1.27.3,magnum_auto_healer_tag=v1.27.3,octavia_ingress_controller_tag=v1.27.3,calico_tag=v3.26.4
+          --labels kube_tag=v1.27.8-rancher2,container_runtime=containerd,containerd_version=1.6.28,containerd_tarball_sha256=f70736e52d61e5ad225f4fd21643b5ca1220013ab8b6c380434caeefb572da9b,cloud_provider_tag=v1.27.3,cinder_csi_plugin_tag=v1.27.3,k8s_keystone_auth_tag=v1.27.3,magnum_auto_healer_tag=v1.27.3,octavia_ingress_controller_tag=v1.27.3,calico_tag=v3.26.4,auto_healing_enabled=True,auto_healing_controller=magnum-auto-healer
 ```
