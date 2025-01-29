@@ -6,6 +6,7 @@ In order to add a new worker node, we follow the steps as outlined by the kubesp
 Lets assume we are adding one new worker node: `computegpu001.p40.example.com` and add to relevant sections.
 
 1. Add the node to your ansible inventory file
+
 ```shell
    vim /etc/genestack/inventory/inventory.yaml
 ```
@@ -13,12 +14,14 @@ Lets assume we are adding one new worker node: `computegpu001.p40.example.com` a
 2. Ensure hostname is correctly set and hosts file has 127.0.0.1 entry
 
 3. Run scale.yaml to add the node to your cluster
+
 ```shell
    source /opt/genestack/scripts/genestack.rc
    ansible-playbook scale.yml --limit compute-12481.rackerlabs.dev.local --become
 ```
 
 Once step 3 competes succesfully, validate that the node is up and running in the cluster
+
 ```shell
    kubectl get nodes | grep compute-12481.rackerlabs.dev.local
 ```
@@ -45,11 +48,13 @@ Once the node is added in k8s cluster, adding the node to openstack service is s
 labels and annotations.
 
 1. Export the nodes to add
+
 ```shell
    export NODES='compute-12481.rackerlabs.dev.local'
 ```
 
 2. For compute node add the following labels
+
 ```shell
    # Label the openstack compute nodes
    kubectl label node compute-12481.rackerlabs.dev.local openstack-compute-node=enabled
@@ -59,6 +64,7 @@ labels and annotations.
 ```
 
 3. Add the right annotations to the node
+
 ```shell
    kubectl annotate \
         nodes \
@@ -87,6 +93,7 @@ labels and annotations.
 ```
 
 4. Verify all the services are up and running
+
 ```shell
    kubectl get pods -n openstack -o wide | grep "computegpu"
 ```

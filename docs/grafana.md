@@ -53,6 +53,10 @@ Before running the deployment script, you must set the `custom_host` value `graf
         --8<-- "base-helm-configs/grafana/azure-overrides.yaml.example"
         ```
 
+## Listeners and Routes
+
+Listeners and Routes should have been configureed when you installed the Gateway API.  If so some reason they were not created, please following the install guide here: [Gateway API](infrastructure-gateway-api-custom.md)
+
 ## Installation
 
 Run the Grafana deployment Script `bin/install-grafana.sh`

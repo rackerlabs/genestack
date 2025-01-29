@@ -20,7 +20,7 @@
 
 View the [memcached exporter](prometheus-memcached-exporter.md) instructions to install a HA ready memcached cluster with monitoring and metric collection enabled.
 
-## Verify readiness with the following command.
+## Verify readiness with the following command
 
 ``` shell
 kubectl --namespace openstack get horizontalpodautoscaler.autoscaling memcached -w

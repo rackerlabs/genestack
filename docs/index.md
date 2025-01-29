@@ -15,7 +15,7 @@ hide:
 
     [:octicons-comment-24: Join the Discord](https://discord.gg/2mN5yZvV3a)
 
--   :material-alpha:{ .xl .middle } - __Genestack__  __/dʒen.ə.stæk/__
+- :material-alpha:{ .xl .middle } - __Genestack__  __/dʒen.ə.stæk/__
 
     1. The Genesis of your Open-Infrastructure
     2. Your new favorite ecosystem
@@ -23,14 +23,14 @@ hide:
     4. The cloud simplified
     5. Hybrid by design
 
--   :material-abacus:{ .xl .middle } __Rackspace Cloud Solutions__
+- :material-abacus:{ .xl .middle } __Rackspace Cloud Solutions__
 
     Where Kubernetes and OpenStack tango in the cloud. Imagine a waltz between systems that deploy what you need.
     Operators play the score, managing the complexity with a flick of their digital batons. They unify the chaos,
     making scaling and management a piece of cake. Think of it like a conductor effortlessly guiding a cacophony
     into a symphony.
 
--   :material-cloud:{ .lg } __Simple Solutions__
+- :material-cloud:{ .lg } __Simple Solutions__
 
     Learn about the components.
 
