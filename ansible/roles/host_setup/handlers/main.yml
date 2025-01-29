@@ -33,7 +33,7 @@
   ansible.builtin.systemd:
     daemon_reload: true
 
-- name: Restart sysstat
+- name: Load and start queue_max service
   ansible.builtin.systemd:
     name: "queue_max.service"
     state: "restarted"
