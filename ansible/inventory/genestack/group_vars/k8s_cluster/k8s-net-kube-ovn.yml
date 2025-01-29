@@ -1,4 +1,6 @@
 ---
+# kube-ovn version
+kube_ovn_version: v1.12.30
 
 # geneve or vlan
 kube_ovn_network_type: geneve
