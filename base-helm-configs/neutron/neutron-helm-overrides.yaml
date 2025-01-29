@@ -2430,7 +2430,7 @@ endpoints:
         internal: 9876
         service: 9876
   fluentd:
-    namespace: osh-infra
+    namespace: fluentbit
     name: fluentd
     hosts:
       default: fluentd-logging

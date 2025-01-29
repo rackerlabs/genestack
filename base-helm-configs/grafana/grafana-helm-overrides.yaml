@@ -1,10 +1,14 @@
-custom_host: grafana.example.com # TODO: update this value.  Can be set in CLI.
-tenant_id: 122333 # TODO: update this value.  Can be set in CLI.
+# Set the custom_host variable to the desired hostname for Grafana
+# This is used to set the domain and root_url in the grafana.ini file
+# and the value of the custom_host variable must be a valid domain.
+custom_host: grafana.example.com
 
 persistence:
   type: pvc
   enabled: true
   storageClassName: general
+  accessModes:
+    - ReadWriteMany
 
 nodeSelector:
   openstack-control-plane: enabled

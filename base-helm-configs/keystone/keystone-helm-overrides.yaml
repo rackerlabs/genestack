@@ -1057,7 +1057,7 @@ endpoints:
           #   tls_cacertfile: /etc/certs/tls.ca # abs path to the CA cert
           ca: null
   fluentd:
-    namespace: null
+    namespace: fluentbit
     name: fluentd
     hosts:
       default: fluentd-logging

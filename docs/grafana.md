@@ -1,6 +1,6 @@
 # Grafana
 
-Grafana is installed with the upstream Helm Chart. Running the installation is simple and can be done with our integration scrirpt.
+Grafana is installed with the upstream Helm Chart. Running the installation is simple and can be done with our integration script.
 
 Before running the script, you will need to create a secret file with your database username and passwords.
 
@@ -22,6 +22,14 @@ Before running the script, you will need to create a secret file with your datab
 ## Custom Values
 
 Before running the deployment script, you must set the `custom_host` value `grafana-helm-overrides.yaml` to the correct FQDN you wish to use within the deployment.
+
+!!! example "grafana-helm-overrides.yaml"
+
+    ``` yaml
+    custom_host: grafana.api.your.domain.tld
+    ```
+
+## Installation
 
 === "Default"
 
@@ -53,11 +61,18 @@ Before running the deployment script, you must set the `custom_host` value `graf
         --8<-- "base-helm-configs/grafana/azure-overrides.yaml.example"
         ```
 
-## Listeners and Routes
+### Listeners and Routes
 
 Listeners and Routes should have been configureed when you installed the Gateway API.  If so some reason they were not created, please following the install guide here: [Gateway API](infrastructure-gateway-api-custom.md)
 
-## Installation
+### Deployment
+
+Add your grafana helm repository and update it.
+
+``` shell
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+```
 
 Run the Grafana deployment Script `bin/install-grafana.sh`
 

@@ -744,7 +744,21 @@ endpoints:
         default: 8081
       powerdns:
         default: 53
-
+  fluentd:
+    namespace: fluentbit
+    name: fluentd
+    hosts:
+      default: fluentd-logging
+    host_fqdn_override:
+      default: null
+    path:
+      default: null
+    scheme: 'http'
+    port:
+      service:
+        default: 24224
+      metrics:
+        default: 24220
 manifests:
   configmap_bin: true
   configmap_etc: true
