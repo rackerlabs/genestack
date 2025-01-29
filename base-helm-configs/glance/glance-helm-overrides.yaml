@@ -701,7 +701,7 @@ endpoints:
         internal: 8088
         service: 8088
   fluentd:
-    namespace: null
+    namespace: fluentbit
     name: fluentd
     hosts:
       default: fluentd-logging

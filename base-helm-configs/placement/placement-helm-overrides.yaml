@@ -305,6 +305,21 @@ endpoints:
         public: 80
         internal: 8778
         service: 8778
+  fluentd:
+    namespace: fluentbit
+    name: fluentd
+    hosts:
+      default: fluentd-logging
+    host_fqdn_override:
+      default: null
+    path:
+      default: null
+    scheme: 'http'
+    port:
+      service:
+        default: 24224
+      metrics:
+        default: 24220
 
 pod:
   security_context:

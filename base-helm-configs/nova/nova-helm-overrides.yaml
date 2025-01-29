@@ -1986,7 +1986,7 @@ endpoints:
         internal: 6385
         service: 6385
   fluentd:
-    namespace: null
+    namespace: fluentbit
     name: fluentd
     hosts:
       default: fluentd-logging

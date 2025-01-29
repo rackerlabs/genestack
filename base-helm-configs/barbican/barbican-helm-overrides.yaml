@@ -680,7 +680,7 @@ endpoints:
       memcache:
         default: 11211
   fluentd:
-    namespace: null
+    namespace: fluentbit
     name: fluentd
     hosts:
       default: fluentd-logging

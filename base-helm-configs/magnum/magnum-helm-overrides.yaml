@@ -515,7 +515,7 @@ endpoints:
       http:
         default: 15672
   fluentd:
-    namespace: null
+    namespace: fluentbit
     name: fluentd
     hosts:
       default: fluentd-logging
