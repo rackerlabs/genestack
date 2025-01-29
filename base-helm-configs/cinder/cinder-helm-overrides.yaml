@@ -773,7 +773,7 @@ conf:
       enable_v1_api: false
       enable_v2_api: false
       volume_name_template: "%s"
-      osapi_volume_workers: 1
+      osapi_volume_workers: 8
       glance_api_version: 2
       os_region_name: RegionOne
       host: cinder-volume-worker
