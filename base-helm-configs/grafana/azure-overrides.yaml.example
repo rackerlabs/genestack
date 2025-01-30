@@ -6,6 +6,11 @@ extraSecretMounts:
     defaultMode: 0440
     mountPath: /etc/secrets/azure-client
     readOnly: true
+  - name: grafana-db-secret-mount
+    secretName: grafana-db
+    defaultMode: 0440
+    mountPath: /etc/secrets/grafana-db
+    readOnly: true
 
 grafana.ini:
   auth.azuread:
@@ -23,10 +28,3 @@ grafana.ini:
     allow_assign_grafana_admin: false
     skip_org_role_sync: false
     use_pkce: true
-
-extraSecretMounts:
-  - name: azure-client-secret-mount
-    secretName: azure-client
-    defaultMode: 0440
-    mountPath: /etc/secrets/azure-client
-    readOnly: true
