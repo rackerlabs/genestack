@@ -83,9 +83,6 @@ its services and components—in this case, on nodes that have the label `longho
 !!! example "longhorn.yaml"
 
     ``` yaml
-    longhornManager:
-      nodeSelector:
-        longhorn.io/storage-node: "enabled"
     longhornDriver:
       nodeSelector:
         longhorn.io/storage-node: "enabled"
