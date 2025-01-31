@@ -273,6 +273,7 @@ conf:
       swift_store_create_container_on_put: true
       swift_store_multi_tenant: true
       swift_store_container: glance
+      swift_store_admin_tenants: admin,image-services
     os_glance_tasks_store:
       filesystem_store_datadir: /var/lib/glance/tmp
     os_glance_staging_store:
