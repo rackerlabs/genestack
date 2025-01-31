@@ -105,6 +105,7 @@ prometheus-blackbox-exporter:
   includeCRDs: true
   valuesFiles:
     - values.yaml
+    - icmp.yaml
     - probe_targets.yaml
 
 prometheus-rabbitmq-exporter:
