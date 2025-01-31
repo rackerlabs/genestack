@@ -232,6 +232,12 @@ conf:
       bind_port: null
       workers: 8
       enable_v1_api: False
+      # NOTE(cloudnull): This option is required when using the new glance multi-backend feature.
+      #                  The example below is for the rxt_swift backend, but could easily be used
+      #                  for other backends.
+      # enabled_backends: rxt_swift:swift
+      cinder_use_multipath: true
+      cinder_enforce_multipath: false
     oslo_middleware:
       enable_proxy_headers_parsing: true
     keystone_authtoken:
@@ -242,6 +248,9 @@ conf:
       memcache_security_strategy: ENCRYPT
       service_type: image
     glance_store:
+      # NOTE(cloudnull): When using the glance multi-backend feature, the default_backend
+      #                  option should be set to the name of the default backend section.
+      # default_backend: rxt_swift
       cinder_catalog_info: volumev3::internalURL
       rbd_store_chunk_size: 8
       rbd_store_replication: 3
@@ -259,6 +268,15 @@ conf:
       swift_store_create_container_on_put: true
       swift_store_config_file: /etc/glance/swift-store.conf
       swift_store_endpoint_type: internalURL
+    rxt_swift:
+      swift_store_auth_address: http://keystone-api.openstack.svc.cluster.local:5000/v3
+      swift_store_create_container_on_put: true
+      swift_store_multi_tenant: true
+      swift_store_container: glance
+    os_glance_tasks_store:
+      filesystem_store_datadir: /var/lib/glance/tmp
+    os_glance_staging_store:
+      filesystem_store_datadir: /var/lib/glance/tmp
     paste_deploy:
       flavor: keystone
     database:
