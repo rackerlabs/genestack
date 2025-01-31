@@ -1772,7 +1772,7 @@ conf:
       router_scheduler_driver: neutron.scheduler.l3_agent_scheduler.AZLeastRoutersScheduler
       dhcp_load_type: networks
       api_workers: 8
-      rpc_workers: 16
+      rpc_workers: 4
       rpc_state_report_workers: 4
       allow_overlapping_ips: True
       state_path: /var/lib/neutron
