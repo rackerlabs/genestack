@@ -98,6 +98,7 @@ grafana_root_secret=$(generate_password 32)
 OUTPUT_FILE="/etc/genestack/kubesecrets.yaml"
 
 cat <<EOF > $OUTPUT_FILE
+---
 apiVersion: v1
 kind: Secret
 metadata:
@@ -602,7 +603,7 @@ metadata:
 type: Opaque
 data:
   password: $(echo -n $grafana_secret | base64 -w0)
-  root-password $(echo -n $grafana_root_secret | base64 -w0)
+  root-password: $(echo -n $grafana_root_secret | base64 -w0)
   username: grafana
 EOF
 
