@@ -569,7 +569,8 @@ conf:
   # A sample of the value override can be found in sample file:
   # tools/overrides/example/keystone_domain_config.yaml
   # ks_domains:
-  policy: {}
+  policy:
+    "identity:list_system_grants_for_user": "rule:admin_required or (role:reader and system_scope:all) or rule:owner"
   access_rules: {}
   rabbitmq:
     policies: []
