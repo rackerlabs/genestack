@@ -9,8 +9,16 @@ hide:
 
 ``` shell
 kubectl apply -k /etc/genestack/kustomize/rook-operator/
-kubectl -n rook-ceph set image deploy/rook-ceph-operator rook-ceph-operator=rook/ceph:v1.13.7
 ```
+
+!!! tip "Manually specifying the rook-operator image"
+
+    Under certain circumstances it may be required to do this, below is an
+    example of how one can pin the operator version if so desired.
+
+    ``` shell
+    kubectl -n rook-ceph set image deploy/rook-ceph-operator rook-ceph-operator=rook/ceph:v1.13.7
+    ```
 
 ## Deploy the Rook cluster
 
