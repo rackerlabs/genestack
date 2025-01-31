@@ -596,6 +596,14 @@ data:
   memcache_secret_key: $(echo -n $memcached_shared_secret | base64 -w0)
 ---
 apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    kubernetes.io/metadata.name: grafana
+    name: grafana
+  name: grafana
+---
+apiVersion: v1
 kind: Secret
 metadata:
   name: grafana-db
@@ -604,7 +612,7 @@ type: Opaque
 data:
   password: $(echo -n $grafana_secret | base64 -w0)
   root-password: $(echo -n $grafana_root_secret | base64 -w0)
-  username: grafana
+  username: $(echo -n grafana | base64 -w0)
 EOF
 
 rm nova_ssh_key nova_ssh_key.pub
