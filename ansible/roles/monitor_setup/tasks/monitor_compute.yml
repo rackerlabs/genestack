@@ -46,4 +46,3 @@
     cron_file: flex-monitor-multipath
     state: absent
   when: monitor_compute.on_off_status == 'off' or monitor_compute.multipath_check == 'off'
-

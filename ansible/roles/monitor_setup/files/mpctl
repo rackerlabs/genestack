@@ -207,8 +207,8 @@ class MultipathPath:
 
 class MultipathOutput:
     """
-    For each multipath device output from multipath command 
-    is in the following format:
+    For each multipath device output from multipath command
+    is in the following format
 
     Each device:
 

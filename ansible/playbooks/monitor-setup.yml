@@ -22,10 +22,10 @@
     monitor_auth_key: "<CHANGE_ME>"
     monitor_api_key: "<CHANGE_ME>"
     monitor_username: "<CHANGE_ME>"
-    monitor_compute: 
+    monitor_compute:
       on_off_status: "on"
       multipath_check: "on"
-    monitor_storage: 
+    monitor_storage:
       on_off_status: "off"
   roles:
     - monitor_setup
