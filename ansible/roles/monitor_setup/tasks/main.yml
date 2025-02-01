@@ -30,5 +30,3 @@
         - cinder_storage_nodes
   tags:
     - always
-
-
