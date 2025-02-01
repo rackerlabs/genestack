@@ -29,4 +29,3 @@
       on_off_status: "off"
   roles:
     - monitor_setup
-
