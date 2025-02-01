@@ -36,16 +36,16 @@ class MultipathDevice:
         self.parse_device_lines()
 
     def parse_device_lines(self):
-        re_alias_pat = re.compile("^(mpath.*?)\s+\(", re.DOTALL)
+        re_alias_pat = re.compile(r"^(mpath.*?)\s+\(", re.DOTALL)
         re_wwid_pat = re.compile(r"(^.*?)\s+dm\-", re.DOTALL)
         re_dm_device_name_pat = re.compile(r"(dm\-.*?)\s+", re.DOTALL)
         re_vendor_pat = re.compile(r"dm\-.*?\s+(.*?),.*?", re.DOTALL)
         re_product_pat = re.compile(r",(.*?)$", re.DOTALL)
         re_size_pat = re.compile(r"size\=(.*?)\s+", re.DOTALL)
-        re_features_pat = re.compile("features\=(.*?)\s+", re.DOTALL)
-        re_hwhandler_pat = re.compile("hwhandler\=(.*?)\s+", re.DOTALL)
-        re_wp_pat = re.compile("wp\=(.*?)$", re.DOTALL)
-        re_policy_pat = re.compile("policy\=.*status", re.DOTALL)
+        re_features_pat = re.compile(r"features\=(.*?)\s+", re.DOTALL)
+        re_hwhandler_pat = re.compile(r"hwhandler\=(.*?)\s+", re.DOTALL)
+        re_wp_pat = re.compile(r"wp\=(.*?)$", re.DOTALL)
+        re_policy_pat = re.compile(r"policy\=.*status", re.DOTALL)
         group = {}
         paths = []
         for idx, line in enumerate(self.device_data):
@@ -130,9 +130,9 @@ class MultipathGroup:
         self.parse_group_line()
 
     def parse_group_line(self):
-        re_policy_pat = re.compile("policy\=('.*?')\s", re.DOTALL)
-        re_prio_pat = re.compile("\s+prio\=(.*?)\s", re.DOTALL)
-        re_status_pat = re.compile("\s+status\=(.*?)$", re.DOTALL)
+        re_policy_pat = re.compile(r"policy\=('.*?')\s", re.DOTALL)
+        re_prio_pat = re.compile(r"\s+prio\=(.*?)\s", re.DOTALL)
+        re_status_pat = re.compile(r"\s+status\=(.*?)$", re.DOTALL)
         self.policy = re.findall(re_policy_pat, self.line)[0].strip("'")
         self.prio = re.findall(re_prio_pat, self.line)[0].strip("'")
         self.status = re.findall(re_status_pat, self.line)[0].strip("'")
@@ -165,22 +165,22 @@ class MultipathPath:
 
     def parse_path_line(self):
         re_host_channel_id_lun_pat = re.compile(
-            "\-\s+((.*?):(.*?):(.*?):(.*?))\s+", re.DOTALL
+            r"\-\s+((.*?):(.*?):(.*?):(.*?))\s+", re.DOTALL
         )
         re_devnode_pat = re.compile(
-            "\-\s+.*?:.*?:.*?:.*?\s+(.*?)\s+.*?:", re.DOTALL
+            r"\-\s+.*?:.*?:.*?:.*?\s+(.*?)\s+.*?:", re.DOTALL
         )
         re_major_minor_pat = re.compile(
-            "\-\s+.*?:.*?:.*?:.*?\s+.*?\s+((.*?):(.*?))\s+", re.DOTALL
+            r"\-\s+.*?:.*?:.*?:.*?\s+.*?\s+((.*?):(.*?))\s+", re.DOTALL
         )
         re_dm_status_pat = re.compile(
-            "([a-z]+)\s+[a-z]+\s+[a-z]+$", flags=re.DOTALL | re.IGNORECASE
+            r"([a-z]+)\s+[a-z]+\s+[a-z]+$", flags=re.DOTALL | re.IGNORECASE
         )
         re_path_status_pat = re.compile(
-            "[a-z]+\s+([a-z]+)\s+[a-z]+$", flags=re.DOTALL | re.IGNORECASE
+            r"[a-z]+\s+([a-z]+)\s+[a-z]+$", flags=re.DOTALL | re.IGNORECASE
         )
         re_online_status_pat = re.compile(
-            "[a-z]+\s+[a-z]+\s+([a-z]+)$", flags=re.DOTALL | re.IGNORECASE
+            r"[a-z]+\s+[a-z]+\s+([a-z]+)$", flags=re.DOTALL | re.IGNORECASE
         )
         if re.findall(re_host_channel_id_lun_pat, self.line):
             host_channel_id_lun = re.findall(
@@ -258,7 +258,7 @@ class MultipathOutput:
 
     def get_device_group_lines(self):
         if len(self.cmd_output) > 0:
-            re_mpath_pat = re.compile("^(.*?)\s+dm\-", re.DOTALL)
+            re_mpath_pat = re.compile(r"^(.*?)\s+dm\-", re.DOTALL)
             device_lines = []
             for idx, line in enumerate(self.cmd_output):
                 if re.findall(re_mpath_pat, line):
