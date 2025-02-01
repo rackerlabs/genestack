@@ -375,10 +375,12 @@ def check(multipath_output, config_parser):
                                 ):
                                     group_check_failures.append(mpth_key)
                                     vendor_check_fail_count += 1
-                                else:
-                                    if mpth_val != vndr_chks[vendor]["prio"]:
-                                        group_check_failures.append(mpth_key)
-                                        vendor_check_fail_count += 1
+                                elif (
+                                      type(vndr_chks[vendor]["prio"]) is not list
+                                      and mpth_val != vndr_chks[vendor]["prio"]
+                                ):
+                                      group_check_failures.append(mpth_key)
+                                      vendor_check_fail_count += 1
                         if vendor_check_fail_count >= 1:
                             break
                         if mpth_key == "paths":
