@@ -924,7 +924,7 @@ conf:
       volume_driver: cinder.volume.drivers.lvm.LVMVolumeDriver
       volume_backend_name: LVM_iSCSI
       volume_clear: zero
-      volume_driver: cinder_rxt.rackspace.RXTLVM      
+      volume_driver: cinder_rxt.rackspace.RXTLVM
       lvm_type: default
       image_volume_cache_enabled: True
       iscsi_iotype: fileio
