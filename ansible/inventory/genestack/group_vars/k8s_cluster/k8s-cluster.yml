@@ -73,12 +73,12 @@ kube_network_plugin: kube-ovn
 kube_network_plugin_multus: false
 
 # Kubernetes internal network for services, unused block of space.
-kube_service_addresses: 10.233.0.0/18
+kube_service_addresses: 10.233.0.0/14
 
 # internal network. When used, it will assign IP
 # addresses from this range to individual pods.
 # This network must be unused in your network infrastructure!
-kube_pods_subnet: 10.233.64.0/18
+kube_pods_subnet: 10.233.64.0/14
 
 # internal network node size allocation (optional). This is the size allocated
 # to each node for pod IP address allocation. Note that the number of pods per node is
