@@ -488,7 +488,7 @@ def main():
             alert_status = "trigger"
             mpcd = wwid_failed_data
             update_alert(mpcd, alert_status, config_parser)
-            print(json.dumps(mpcd, indent=4))
+            #print(json.dumps(mpcd, indent=4))
         else:
             alert_status = "resolve"
             mpcd = []

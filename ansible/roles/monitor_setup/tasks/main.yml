@@ -1,23 +1,18 @@
 ---
 # tasks file for monitor_setup
 
-- hosts: all
-  become: true
-  gather_facts: true
-  environment: "{{ deployment_environment_variables | default({}) }}"
-  tasks:
-    - name: Create monitor directory structure on nova compute nodes
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: directory
-        recurse: yes
-        mode: '0755'
-        owner: root
-        group: root
-      loop: "{{ monitor_dirs }}"
+- name: Create monitor directory structure on nova compute nodes
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    recurse: yes
+    mode: '0755'
+    owner: root
+    group: root
+  loop: "{{ monitor_dirs }}"
 
 
-- hosts: openstack_compute_nodes
+- name: Include monitor_compute.yml
   ansible.builtin.include_tasks:
     file: monitor_compute.yml
     apply:
@@ -27,7 +22,7 @@
     - always
 
 
-- hosts: cinder_storage_nodes
+- name: Include monitor_storage.yml
   ansible.builtin.include_tasks:
     file: monitor_storage.yml
     apply:

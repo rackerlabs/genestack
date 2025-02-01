@@ -19,7 +19,8 @@ path = ready
 online = running
 
 [check.alert]
-url = "{{ monitor_url }}"
-auth_key = "{{ monitor_auth_key }}"
-api_key = "{{ monitor_api_key }}"
-username = "{{ monitor_username }}"
+url = {{ monitor_url }}
+auth_key = {{ monitor_auth_key }}
+api_key = {{ monitor_api_key }}
+username = {{ monitor_username }}
+service_name = Multipath

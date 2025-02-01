@@ -25,7 +25,7 @@
 #    name: "multipath monitor"
 #    minute: "3"
 #    user: root
-#    job: "/opt/monitor/bin/mpctl --conf /opt/monitor/conf/mpctl.ini check"
+#    job: "/opt/monitor/bin/mpctl --conf /opt/monitor/conf/mpctl.ini check > /dev/null 2>&1"
 #    cron_file: ansible_monitor_multipath
 #    state: present
 #  when: monitor_storage == 'ON' or monitor_storage == 'on'

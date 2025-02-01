@@ -7,7 +7,7 @@
     owner: root
     group: root
     mode: "0755"
-  when: monitor_compute == 'ON' or monitor_compute == 'on'
+  when: monitor_compute.on_off_status == 'on' and monitor_compute.multipath_check == 'on'
 
 
 - name: Copy and interpolate mpctl.ini config file
@@ -17,23 +17,33 @@
     owner: root
     group: root
     mode: "0640"
-  when: monitor_compute == 'ON' or monitor_compute == 'on'
+  when: monitor_compute.on_off_status == 'on' and monitor_compute.multipath_check == 'on'
 
 
-- name: Create /etc/cron.d/ansible_monitor_multipath
+- name: Create /etc/cron.d/flex-monitor-multipath
   ansible.builtin.cron:
     name: "multipath monitor"
-    minute: "3"
+    minute: "*/3"
     user: root
-    job: "/opt/monitor/bin/mpctl --conf /opt/monitor/conf/mpctl.ini check"
-    cron_file: ansible_monitor_multipath
+    job: "/opt/monitor/bin/mpctl --conf /opt/monitor/conf/mpctl.ini check > /dev/null 2>&1"
+    cron_file: flex-monitor-multipath
     state: present
-  when: monitor_compute == 'ON' or monitor_compute == 'on'
+  when: monitor_compute.on_off_status == 'on' and monitor_compute.multipath_check == 'on'
 
 
-- name: Removes /etc/cron.d/ansible_monitor_multipath
+- name: Change file ownership, group and permissions
+  ansible.builtin.file:
+    path: /etc/cron.d/flex-monitor-multipath
+    owner: root
+    group: root
+    mode: '0755'
+  when: monitor_compute.on_off_status == 'on' and monitor_compute.multipath_check == 'on'
+
+
+- name: Removes /etc/cron.d/flex-monitor-multipath
   ansible.builtin.cron:
     name: "multipath monitor"
-    cron_file: ansible_monitor_multipath
+    cron_file: flex-monitor-multipath
     state: absent
-  when: monitor_compute == 'OFF' or monitor_compute == 'off'
+  when: monitor_compute.on_off_status == 'off' or monitor_compute.multipath_check == 'off'
+
