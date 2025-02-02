@@ -60,8 +60,11 @@ conf:
       debug: false
       use_syslog: false
       log_config_append: /etc/placement/logging.conf
+    placement:
+      randomize_allocation_candidates: true
     placement_database:
       connection: null
+      max_retries: -1
     keystone_authtoken:
       service_token_roles: service
       service_token_roles_required: true
