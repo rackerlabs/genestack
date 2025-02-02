@@ -1384,6 +1384,7 @@ conf:
       instance_build_timeout: 900
       block_device_allocate_retries: 180
       block_device_allocate_retries_interval: 5
+      preallocate_images: space
     compute:
       max_disk_devices_to_attach: 8
     vnc:
