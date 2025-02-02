@@ -33,7 +33,7 @@ HELM_CMD+=" --set endpoints.oslo_cache.auth.memcache_secret_key=\"\$(kubectl --n
 HELM_CMD+=" --set conf.magnum.keystone_authtoken.memcache_secret_key=\"\$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
 
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
-HELM_CMD+=" --post-renderer-args magnum/overlay \$@"
+HELM_CMD+=" --post-renderer-args magnum/overlay $*"
 
 echo "Executing Helm command:"
 echo "${HELM_CMD}"

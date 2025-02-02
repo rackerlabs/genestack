@@ -40,4 +40,4 @@ helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheu
     --create-namespace --namespace=prometheus --timeout 10m \
     "${values_args[@]}" \
     --post-renderer "$GENESTACK_CONFIG_DIR/kustomize/kustomize.sh" \
-    --post-renderer-args prometheus/overlay "$@"
+    --post-renderer-args prometheus/overlay "$*"

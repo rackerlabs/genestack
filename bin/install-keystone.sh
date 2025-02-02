@@ -32,7 +32,7 @@ HELM_CMD+=" --set endpoints.oslo_messaging.auth.admin.password=\"\$(kubectl --na
 HELM_CMD+=" --set endpoints.oslo_messaging.auth.keystone.password=\"\$(kubectl --namespace openstack get secret keystone-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)\""
 
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
-HELM_CMD+=" --post-renderer-args keystone/overlay \$@"
+HELM_CMD+=" --post-renderer-args keystone/overlay $*"
 
 echo "Executing Helm command:"
 echo "${HELM_CMD}"

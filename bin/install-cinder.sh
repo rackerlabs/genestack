@@ -31,7 +31,7 @@ HELM_CMD+=" --set endpoints.oslo_messaging.auth.admin.password=\"\$(kubectl --na
 HELM_CMD+=" --set endpoints.oslo_messaging.auth.cinder.password=\"\$(kubectl --namespace openstack get secret cinder-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)\""
 
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
-HELM_CMD+=" --post-renderer-args cinder/overlay \$@"
+HELM_CMD+=" --post-renderer-args cinder/overlay $*"
 
 echo "Executing Helm command:"
 echo "${HELM_CMD}"

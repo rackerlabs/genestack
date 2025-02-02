@@ -42,7 +42,7 @@ rabbit://neutron:\$(kubectl --namespace openstack get secret neutron-rabbitmq-pa
 rabbit://nova:\$(kubectl --namespace openstack get secret nova-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)@rabbitmq.openstack.svc.cluster.local:5672/nova}\""
 
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
-HELM_CMD+=" --post-renderer-args ceilometer/overlay \$@"
+HELM_CMD+=" --post-renderer-args ceilometer/overlay $*"
 
 echo "Executing Helm command:"
 echo "${HELM_CMD}"

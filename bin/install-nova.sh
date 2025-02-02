@@ -47,7 +47,7 @@ HELM_CMD+=" --set network.ssh.public_key=\"\$(kubectl -n openstack get secret no
 HELM_CMD+=" --set network.ssh.private_key=\"\$(kubectl -n openstack get secret nova-ssh-keypair -o jsonpath='{.data.private_key}' | base64 -d)\"\$'\n'"
 
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
-HELM_CMD+=" --post-renderer-args nova/overlay \$@"
+HELM_CMD+=" --post-renderer-args nova/overlay $*"
 
 echo "Executing Helm command:"
 echo "${HELM_CMD}"
