@@ -39,4 +39,3 @@ echo "${HELM_CMD}"
 eval "${HELM_CMD}"
 
 popd || exit 1
-
