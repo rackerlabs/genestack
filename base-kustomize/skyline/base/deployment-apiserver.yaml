@@ -317,7 +317,7 @@ spec:
                 key: prometheus_endpoint
                 optional: true
         - name: skyline-apiserver-db-migrate
-          image: "ghcr.io/rackerlabs/skyline-rxt:master-ubuntu_jammy-1730100728"
+          image: "ghcr.io/rackerlabs/skyline-rxt:master-ubuntu_jammy-1738594297"
           imagePullPolicy: IfNotPresent
           resources:
             requests:
@@ -340,7 +340,7 @@ spec:
               readOnly: true
       containers:
         - name: skyline-apiserver
-          image: "ghcr.io/rackerlabs/skyline-rxt:master-ubuntu_jammy-1730100728"
+          image: "ghcr.io/rackerlabs/skyline-rxt:master-ubuntu_jammy-1738594297"
           imagePullPolicy: IfNotPresent
           resources:
             limits:
