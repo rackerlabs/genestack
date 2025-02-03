@@ -5,6 +5,7 @@
   "docker.io/openstackhelm/magnum:2024.1-ubuntu_jammy",
   "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy",
   "ghcr.io/rackerlabs/genestack/cinder-volume-rxt:2024.1-ubuntu_jammy-1731085441",
+  "ghcr.io/rackerlabs/genestack/cinder:2024.1-ubuntu_jammy-1738626871",
   "ghcr.io/rackerlabs/genestack/heat:2024.1-ubuntu_jammy",
   "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy-1723129048",
   "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy-1737928811",
