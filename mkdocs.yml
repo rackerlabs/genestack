@@ -267,8 +267,6 @@ nav:
           - Monitoring Overview: monitoring-info.md
           - Alerting Overview: alerting-info.md
           - Logging Overview: genestack-logging.md
-      - Third Party Tools:
-          - OSIE: extra-osie.md
       - OpenStack:
           - CLI Access:
               - Generating Clouds YAML: openstack-clouds.md
