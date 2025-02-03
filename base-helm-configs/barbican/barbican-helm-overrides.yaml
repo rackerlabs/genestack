@@ -372,7 +372,7 @@ conf:
       thunder-lock: true
       worker-reload-mercy: 80
       wsgi-file: /var/lib/openstack/bin/barbican-wsgi-api
-      processes: 1
+      processes: 4
   barbican:
     DEFAULT:
       host_href: http://barbican-api.openstack.svc.cluster.local:9311
