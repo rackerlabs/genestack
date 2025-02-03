@@ -1,0 +1,112 @@
+#!/usr/bin/env python3
+import os
+import sys
+import subprocess
+import tempfile
+import yaml
+import copy
+
+
+def load_yaml_file(filename):
+    try:
+        with open(filename, "r") as f:
+            data = yaml.safe_load(f)
+            return data if data is not None else {}
+    except FileNotFoundError:
+        return {}
+
+
+def save_yaml_file(data, filename):
+    with open(filename, "w") as f:
+        yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
+
+
+def merge_dicts(base, overrides):
+    result = copy.deepcopy(base)
+    for key, override_value in overrides.items():
+        if (
+            key in result
+            and isinstance(result[key], dict)
+            and isinstance(override_value, dict)
+        ):
+            result[key] = merge_dicts(result[key], override_value)
+        else:
+            result[key] = override_value
+    return result
+
+
+def launch_editor(initial_content):
+    editor = os.environ.get("EDITOR", "vim")
+    with tempfile.NamedTemporaryFile(suffix=".yaml", mode="w+", delete=False) as tf:
+        temp_filename = tf.name
+        tf.write(initial_content)
+        tf.flush()
+
+    subprocess.call([editor, temp_filename])
+
+    with open(temp_filename, "r") as tf:
+        edited_content = tf.read()
+
+    os.unlink(temp_filename)
+    return edited_content
+
+
+def compute_patch(base, edited):
+    patch = {}
+    for key, edited_value in edited.items():
+        if key not in base:
+            patch[key] = edited_value
+        else:
+            base_value = base[key]
+            if isinstance(base_value, dict) and isinstance(edited_value, dict):
+                sub_patch = compute_patch(base_value, edited_value)
+                if sub_patch:  # Only include non-empty patches.
+                    patch[key] = sub_patch
+            else:
+                if edited_value != base_value:
+                    patch[key] = edited_value
+    return patch
+
+
+def main():
+    if len(sys.argv) != 3:
+        print("Usage: {} <base_yaml_file> <override_yaml_file>".format(sys.argv[0]))
+        print(
+            "ye - (YamlEditor) will launch an editor to edit the values in base_yaml_file. If the override_yaml_file exists, "
+            "it will read its values in and will overlay the valies on top of base."
+            "After editing, the edited values will be saved to override_yaml_file and base will remain the same."
+        )
+        sys.exit(1)
+
+    base_filename = sys.argv[1]
+    override_filename = sys.argv[2]
+    base_data = load_yaml_file(base_filename)
+    if not base_data:
+        print(f"Error: Base file '{base_filename}' not found or is empty.")
+        sys.exit(1)
+
+    previous_overrides = load_yaml_file(override_filename)
+    if not isinstance(previous_overrides, dict):
+        previous_overrides = {}
+    effective_data = merge_dicts(base_data, previous_overrides)
+    initial_yaml_str = yaml.safe_dump(
+        effective_data, default_flow_style=False, sort_keys=False
+    )
+    print("Launching editor. Modify values as needed, then save and exit.")
+    edited_yaml_str = launch_editor(initial_yaml_str)
+    try:
+        edited_data = yaml.safe_load(edited_yaml_str)
+        if edited_data is None:
+            edited_data = {}
+    except yaml.YAMLError as e:
+        print("Error parsing YAML from editor:", e)
+        sys.exit(1)
+    patch = compute_patch(base_data, edited_data)
+    print("Computed patch (overrides):")
+    print(yaml.safe_dump(patch, default_flow_style=False, sort_keys=False))
+    save_yaml_file(patch, override_filename)
+    print(f"Overrides saved to '{override_filename}'.")
+
+
+if __name__ == "__main__":
+    main()
