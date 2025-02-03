@@ -1,0 +1,39 @@
+---
+
+#- name: Copy BLANK file to storage nodes
+#  ansible.builtin.copy:
+#    src: "{{ playbook_dir }}/roles/monitor_setup/files/mpctl"
+#    dest: /opt/monitor/bin/mpctl
+#    owner: root
+#    group: root
+#    mode: "0755"
+#  when: monitor_storage == 'ON' or monitor_storage == 'on'
+#
+#
+#- name: Copy and interpolate mpctl.ini config file
+#  ansible.builtin.template:
+#    src: "{{ playbook_dir }}/roles/monitor_setup/templates/mpctl.ini.j2"
+#    dest: /opt/monitor/conf/mpctl.ini
+#    owner: root
+#    group: root
+#    mode: "0640"
+#  when: monitor_storage == 'ON' or monitor_storage == 'on'
+#
+#
+#- name: Create /etc/cron.d/ansible_monitor_multipath
+#  ansible.builtin.cron:
+#    name: "multipath monitor"
+#    minute: "3"
+#    user: root
+#    job: "/opt/monitor/bin/mpctl --conf /opt/monitor/conf/mpctl.ini check > /dev/null 2>&1"
+#    cron_file: ansible_monitor_multipath
+#    state: present
+#  when: monitor_storage == 'ON' or monitor_storage == 'on'
+#
+#
+#- name: Removes /etc/cron.d/ansible_monitor_multipath
+#  ansible.builtin.cron:
+#    name: "multipath monitor"
+#    cron_file: ansible_monitor_multipath
+#    state: absent
+#  when: monitor_storage == 'OFF' or monitor_storage == 'off'

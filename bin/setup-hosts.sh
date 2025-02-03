@@ -1,8 +1,6 @@
 #!/bin/bash
 source /opt/genestack/scripts/genestack.rc
-cd /opt/genestack/ansible/playbooks
-ansible-playbook /root/genestack-scripts/prep-nodes.yaml
-# Start kube install
+cd /opt/genestack/ansible/playbooks || exit 1
 ansible-playbook host-setup.yml
-cd /opt/genestack/submodules/kubespray
+cd /opt/genestack/submodules/kubespray || exit 1
 ansible-playbook cluster.yml

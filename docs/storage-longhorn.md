@@ -83,9 +83,6 @@ its services and components—in this case, on nodes that have the label `longho
 !!! example "longhorn.yaml"
 
     ``` yaml
-    longhornManager:
-      nodeSelector:
-        longhorn.io/storage-node: "enabled"
     longhornDriver:
       nodeSelector:
         longhorn.io/storage-node: "enabled"
@@ -140,16 +137,15 @@ installed yet, or upgrade it if an older version is already present. The `--crea
 helm upgrade --install longhorn longhorn/longhorn \
              --namespace longhorn-system \
              --create-namespace \
-             --version 1.7.2 \
              -f /etc/genestack/manifests/longhorn.yaml
 ```
 
-!!! note "Breaking this down"
+!!! note "Common helm upgrade arguments"
 
     - **`upgrade --install`**: Installs or upgrades your release.
     - **`--namespace longhorn-system`**: Puts all the Longhorn resources into the `longhorn-system` namespace.
     - **`--create-namespace`**: Creates the namespace if it does not exist already.
-    - **`--version 1.7.2`**: Installs a specific version (1.7.2).
+    - **`--version 1.8.0`**: Installs a specific version (1.8.0).
     - **`-f /etc/genestack/manifests/longhorn.yaml`**: Applies your custom values file.
 
 ## Validate the Deployment

@@ -151,12 +151,33 @@ for service in "$overlay_target_dir"/*; do
   fi
 done
 
-# Copy base-helm-configs if it does not already exist
+#!/bin/bash
+
 if [ ! -d "/etc/genestack/helm-configs" ]; then
-  cp -r /opt/genestack/base-helm-configs /etc/genestack/helm-configs
-  success "Copied helm-configs to /etc/genestack/"
+  mkdir -p /etc/genestack/helm-configs
+  success "Created /etc/genestack/helm-configs"
 else
-  message "helm-configs already exists in /etc/genestack, skipping copy."
+  message "/etc/genestack/helm-configs already exists, skipping creation."
+fi
+
+for src_dir in /opt/genestack/base-helm-configs/*; do
+  if [ -d "$src_dir" ]; then
+    dir_name=$(basename "$src_dir")
+    dest_dir="/etc/genestack/helm-configs/$dir_name"
+    if [ ! -d "$dest_dir" ]; then
+      mkdir -p "$dest_dir"
+      success "Created $dest_dir"
+    else
+      message "$dest_dir already exists, skipping creation."
+    fi
+  fi
+done
+
+if [ ! -d "/etc/genestack/helm-configs/global_overrides" ]; then
+  mkdir -p /etc/genestack/helm-configs/global_overrides
+  echo "Created /etc/genestack/helm-configs/global_overrides"
+else
+  echo "/etc/genestack/helm-configs/global_overrides already exists, skipping creation."
 fi
 
 # Copy manifests if it does not already exist
