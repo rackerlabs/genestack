@@ -6,6 +6,7 @@ import tempfile
 import yaml
 import copy
 
+
 def load_yaml_file(filename):
     try:
         with open(filename, "r") as f:
@@ -14,9 +15,11 @@ def load_yaml_file(filename):
     except FileNotFoundError:
         return {}
 
+
 def save_yaml_file(data, filename):
     with open(filename, "w") as f:
         yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
+
 
 def merge_dicts(base, overrides):
     result = copy.deepcopy(base)
@@ -30,6 +33,7 @@ def merge_dicts(base, overrides):
         else:
             result[key] = override_value
     return result
+
 
 def launch_editor(initial_content):
     editor = os.environ.get("EDITOR", "vim")
@@ -46,6 +50,7 @@ def launch_editor(initial_content):
     os.unlink(temp_filename)
     return edited_content
 
+
 def compute_patch(base, edited):
     patch = {}
     for key, edited_value in edited.items():
@@ -61,6 +66,7 @@ def compute_patch(base, edited):
                 if edited_value != base_value:
                     patch[key] = edited_value
     return patch
+
 
 def main():
     if len(sys.argv) != 3:
@@ -100,6 +106,7 @@ def main():
     print(yaml.safe_dump(patch, default_flow_style=False, sort_keys=False))
     save_yaml_file(patch, override_filename)
     print(f"Overrides saved to '{override_filename}'.")
+
 
 if __name__ == "__main__":
     main()
