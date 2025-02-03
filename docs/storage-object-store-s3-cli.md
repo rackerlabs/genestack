@@ -64,9 +64,9 @@ Create an aws-credentials file. Be sure to replace `ACCESS` and `SECRET` with th
 !!! example "`~/aws-credentials` file"
 
     ``` conf
-[default]
-aws_access_key_id = $ACCESS_ID
-aws_secret_access_key = $SECRET_VALUE
+    [default]
+    aws_access_key_id = $ACCESS_ID
+    aws_secret_access_key = $SECRET_VALUE
     ```
 
 ## Using the `aws` CLI and Validating the Configuration
