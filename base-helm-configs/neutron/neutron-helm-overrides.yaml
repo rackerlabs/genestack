@@ -1761,7 +1761,7 @@ conf:
     ptcp_port: 6640
   neutron:
     DEFAULT:
-      debug: true
+      debug: false
       metadata_proxy_socket: /var/lib/neutron/openstack-helm/metadata_proxy
       log_config_append: /etc/neutron/logging.conf
       # NOTE(portdirect): the bind port should not be defined, and is manipulated
@@ -1797,7 +1797,7 @@ conf:
       lock_path: /tmp/neutron
     database:
       mysql_sql_mode: ""
-      connection_debug: 100
+      connection_debug: 0
       connection_trace: true
       use_db_reconnect: True
       idle_timeout: 3600
