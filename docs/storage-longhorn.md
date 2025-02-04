@@ -132,11 +132,13 @@ kubectl label --overwrite namespace longhorn-system \
 
 With your values file in place, you can now deploy Longhorn using the `helm upgrade --install` command. This command will install Longhorn if it is not
 installed yet, or upgrade it if an older version is already present. The `--create-namespace` flag ensures the namespace is created if it does not exist.
+The --set persistence.defaultClass=false ensures that the lognhorn storage class is not set as the default.
 
 ``` shell
 helm upgrade --install longhorn longhorn/longhorn \
              --namespace longhorn-system \
              --create-namespace \
+             --set persistence.defaultClass=false \
              -f /etc/genestack/helm-configs/longhorn.yaml
 ```
 
