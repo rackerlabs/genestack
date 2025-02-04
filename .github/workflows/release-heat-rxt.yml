@@ -75,7 +75,7 @@ jobs:
             VERSION=${{ github.event.inputs.imageTag || env.DEF_TAG_NAME }}
       - name: Dynamically set MY_CONTAINER output option
         id: mycontainer
-        run: echo "MY_CONTAINER=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/nova-efi:${{ github.event.inputs.imageTag }}-${{ env.MY_DATE }}" >> $GITHUB_OUTPUT
+        run: echo "MY_CONTAINER=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/heat:${{ github.event.inputs.imageTag }}-${{ env.MY_DATE }}" >> $GITHUB_OUTPUT
       - name: Dynamically set MY_DATE output option
         id: mydate
         run: echo "MY_DATE=${{ env.MY_DATE }}" >> $GITHUB_OUTPUT

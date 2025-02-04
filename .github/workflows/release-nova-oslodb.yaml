@@ -78,7 +78,7 @@ jobs:
             PLUGIN_VERSION=${{ github.event.inputs.pluginTag }}
       - name: Dynamically set MY_CONTAINER output option
         id: mycontainer
-        run: echo "MY_CONTAINER=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/nova-efi:${{ github.event.inputs.imageTag }}-${{ env.MY_DATE }}" >> $GITHUB_OUTPUT
+        run: echo "MY_CONTAINER=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/nova-oslodb:${{ github.event.inputs.imageTag }}-${{ env.MY_DATE }}" >> $GITHUB_OUTPUT
       - name: Dynamically set MY_DATE output option
         id: mydate
         run: echo "MY_DATE=${{ env.MY_DATE }}" >> $GITHUB_OUTPUT

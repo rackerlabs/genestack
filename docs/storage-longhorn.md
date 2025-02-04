@@ -77,7 +77,7 @@ Replace `${NODE_NAME}` with the name of your node. If you have multiple storage 
 Before deploying Longhorn, it’s best practice to customize the chart’s values to suit your environment. One of the most common customizations is telling Longhorn where to run
 its services and components—in this case, on nodes that have the label `longhorn.io/storage-node=enabled`.
 
-1. Create the override file at `/etc/genestack/manifests/longhorn.yaml`.
+1. Create the override file at `/etc/genestack/helm-configs/longhorn.yaml`.
 2. Copy the following YAML content into that file. (Adapt as needed.)
 
 !!! example "longhorn.yaml"
@@ -149,7 +149,7 @@ helm upgrade --install longhorn longhorn/longhorn \
     - **`--namespace longhorn-system`**: Puts all the Longhorn resources into the `longhorn-system` namespace.
     - **`--create-namespace`**: Creates the namespace if it does not exist already.
     - **`--version 1.8.0`**: Installs a specific version (1.8.0).
-    - **`-f /etc/genestack/manifests/longhorn.yaml`**: Applies your custom values file.
+    - **`-f /etc/genestack/helm-configs/longhorn.yaml`**: Applies your custom values file.
 
 ## Validate the Deployment
 
