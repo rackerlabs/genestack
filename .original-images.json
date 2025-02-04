@@ -8,6 +8,7 @@
   "ghcr.io/rackerlabs/genestack/cinder-volume-rxt:2024.1-ubuntu_jammy-1731085441",
   "ghcr.io/rackerlabs/genestack/heat:-1738626724",
   "ghcr.io/rackerlabs/genestack/heat:2024.1-ubuntu_jammy",
+  "ghcr.io/rackerlabs/genestack/horizon:2024.1-ubuntu_jammy-1738626972",
   "ghcr.io/rackerlabs/genestack/neutron-oslodb:2024.1-ubuntu_jammy-1738626982",
   "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy-1723129048",
   "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy-1737928811",
