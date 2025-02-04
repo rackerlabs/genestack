@@ -139,8 +139,7 @@ helm upgrade --install longhorn longhorn/longhorn \
              --namespace longhorn-system \
              --create-namespace \
              --set persistence.defaultClass=false \
-             -f /etc/genestack/manifests/longhorn.yaml
-             --set persistence.defaultClass=false
+             -f /etc/genestack/helm-configs/longhorn.yaml
 ```
 
 !!! note "Common helm upgrade arguments"
