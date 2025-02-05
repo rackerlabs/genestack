@@ -38,3 +38,9 @@
     name: "queue_max.service"
     state: "restarted"
     enabled: true
+
+- name: Reload systemd-timesyncd
+  ansible.builtin.systemd:
+    name: systemd-timesyncd
+    state: reloaded
+    enabled: true

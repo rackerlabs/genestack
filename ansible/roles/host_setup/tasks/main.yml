@@ -121,12 +121,3 @@
   until: install_packages is success
   retries: 5
   delay: 2
-
-# this is added to remove conflicts with systemd-timesyncd and ntpsec with kubespray installation
-- name: Ensure conflicting time synchronization packages are removed
-  package:
-    name:
-      - ntpsec
-      - systemd-timesyncd
-    state: absent
-    purge: yes

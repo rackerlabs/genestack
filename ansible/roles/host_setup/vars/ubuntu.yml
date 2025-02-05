@@ -55,6 +55,7 @@ _host_distro_packages:
   - rsync
   - software-properties-common
   - sysstat
+  - systemd-timesyncd
   - time
   - vlan
   - wget
