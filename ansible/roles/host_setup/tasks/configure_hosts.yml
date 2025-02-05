@@ -78,17 +78,3 @@
     dest: /etc/systemd/system/queue_max.service
     mode: "0644"
   notify: Load and start queue_max service
-
-- name: Ensure timesyncd is running
-  ansible.builtin.service:
-    name: systemd-timesyncd
-    state: started
-    enabled: true
-  notify: Reload systemd-timesyncd
-
-- name: Create systemd-timesyncd configuration file
-  ansible.builtin.copy:
-    src: timesyncd.conf
-    dest: /etc/systemd/timesyncd.conf
-    mode: "0644"
-  notify: Reload systemd-timesyncd

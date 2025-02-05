@@ -41,6 +41,6 @@
 
 - name: Reload systemd-timesyncd
   ansible.builtin.systemd:
-    name: systemd-timesyncd
-    state: reloaded
+    name: systemd-timesyncd.service
+    state: restarted
     enabled: true
