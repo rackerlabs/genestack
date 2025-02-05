@@ -584,6 +584,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
+  username: $(echo -n "ceilometer" | base64)
   password: $(echo -n $ceilometer_rabbitmq_password | base64 -w0)
 ---
 apiVersion: v1
