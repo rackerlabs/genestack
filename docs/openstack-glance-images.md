@@ -259,10 +259,17 @@ openstack --os-cloud default image create \
 
     Make sure you get the most up to date image URL from the [upstream documentation](https://fedoraproject.org/coreos/download).
 
+Download the image.
+
 ``` shell
 # NOTE: CoreOS provides a compressed image.
 wget https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/40.20240616.3.0/x86_64/fedora-coreos-40.20240616.3.0-openstack.x86_64.qcow2.xz
 xz -d fedora-coreos-40.20240616.3.0-openstack.x86_64.qcow2.xz
+```
+
+Upload the image to glance.
+
+``` shell
 openstack --os-cloud default image create \
           --progress \
           --disk-format qcow2 \
@@ -283,21 +290,19 @@ openstack --os-cloud default image create \
           fedora-coreos-40
 ```
 
-### Fedora CoreOS Image Required by Magnum
+#### Fedora CoreOS Image Required by Magnum
 
 !!! note
 
     When configuring the ClusterTemplate, you must specify the image used to boot the servers. To do this, register the image with OpenStack Glance and ensure that the os_distro property is set to fedora-coreos. The os_distro attribute must be defined and accurately reflect the distribution used by the cluster driver. This parameter is mandatory and does not have a default value, so it must be specified explicitly. Note that the os_distro attribute is case-sensitive. Currently, only Fedora CoreOS is supported. For more detailed information, refer to the [upstream magnum documentation](https://docs.openstack.org/magnum/latest/user/index.html).
 
 ``` shell
-wget https://builds.coreos.fedoraproject.org/prod/streams/stable/builds/40.20240728.3.0/x86_64/fedora-coreos-40.20240728.3.0-openstack.x86_64.qcow2.xz
-xz -d fedora-coreos-40.20240728.3.0-openstack.x86_64.qcow2.xz
 openstack --os-cloud default image create \
           --progress \
           --disk-format qcow2 \
           --container-format bare \
           --public \
-          --file fedora-coreos-40.20240728.3.0-openstack.x86_64.qcow2 \
+          --file fedora-coreos-40.20240616.3.0-openstack.x86_64.qcow2 \
           --property hw_vif_multiqueue_enabled=true \
           --property hw_qemu_guest_agent=yes \
           --property hypervisor_type=kvm \
@@ -323,7 +328,7 @@ openstack --os-cloud default image create \
           --disk-format qcow2 \
           --container-format bare \
           --public \
-          --file openSUSE-Leap-15.5-Minimal-VM.x86_64-kvm-and-xen.qcow2 \
+          --file openSUSE-Leap-15.2-OpenStack.x86_64-0.0.4-Build8.25.qcow2 \
           --property hw_vif_multiqueue_enabled=true \
           --property hw_qemu_guest_agent=yes \
           --property hypervisor_type=kvm \

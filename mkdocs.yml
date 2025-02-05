@@ -267,8 +267,6 @@ nav:
           - Monitoring Overview: monitoring-info.md
           - Alerting Overview: alerting-info.md
           - Logging Overview: genestack-logging.md
-      - Third Party Tools:
-          - OSIE: extra-osie.md
       - OpenStack:
           - CLI Access:
               - Generating Clouds YAML: openstack-clouds.md
@@ -281,6 +279,7 @@ nav:
               - Nova CPU Allocation Ratio: openstack-cpu-allocation-ratio.md
               - Nova PCI Passthrough: openstack-pci-passthrough.md
               - Host Aggregates: openstack-host-aggregates.md
+              - Instance Data Recovery: openstack-data-disk-recovery.md
           - Quota Management:
               - Quota Management: openstack-quota-managment.md
           - Images:

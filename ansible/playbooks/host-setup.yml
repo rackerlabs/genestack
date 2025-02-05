@@ -41,10 +41,28 @@
   roles:
     - host_setup
   post_tasks:
+    - name: Stop multipathd and multipath-tools service
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: stopped
+        daemon_reload: true
+        enabled: false
+      loop:
+        - multipathd.socket
+        - multipathd.service
+        - multipath-tools.service
+      when:
+        - not (custom_multipath | default(false) | bool)
     - name: Copy over multipath Round Robin configuration file
       when:
         - custom_multipath | default(false) | bool
       block:
+        - name: Install Packages
+          ansible.builtin.package:
+            name:
+              - multipath-tools
+          notify:
+            - Restart multipathd and multipath-tools service
         - name: Copy config file and restart multipathd
           ansible.builtin.copy:
             src: "{{ playbook_dir }}/templates/genestack-multipath.conf"
@@ -62,20 +80,10 @@
           ansible.builtin.package:
             name:
               - open-iscsi
-              - multipath-tools
             state: "{{ iscsi_package_state | default('present') }}"
             update_cache: true
-          register: _multipath_packages
-        - name: Make sure open-iscsi is started and enabled
-          ansible.builtin.systemd:
-            name: iscsid.service
-            state: "{{ (_multipath_packages is changed) | ternary('restarted', 'started') }}"
-            enabled: true
-        - name: Make sure multipathd is started and enabled
-          ansible.builtin.systemd:
-            name: multipathd.service
-            state: "{{ (_multipath_packages is changed) | ternary('restarted', 'started') }}"
-            enabled: true
+          notify:
+            - Restart multipathd and multipath-tools service
   handlers:
     - name: Restart multipathd and multipath-tools service
       ansible.builtin.systemd:
@@ -84,5 +92,5 @@
         daemon_reload: true
         enabled: true
       loop:
-        - multipathd
-        - multipath-tools
+        - multipathd.service
+        - multipath-tools.service
