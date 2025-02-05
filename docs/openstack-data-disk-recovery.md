@@ -38,7 +38,7 @@ modprobe nbd max_part=8
 ### Connect qemu-nbd to the Disk File
 
 ``` shell
-qemu-nbd --connect=/dev/nbd0 /var/lib/nova/instances/00000000-0000-0000-0000-000000000000
+qemu-nbd --connect=/dev/nbd0 /var/lib/nova/instances/00000000-0000-0000-0000-000000000000/disk
 ```
 
 - This command associates the instance disk file with the `/dev/nbd0` block device.
