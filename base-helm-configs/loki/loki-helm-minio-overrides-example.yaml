@@ -7,3 +7,6 @@ loki:
   configStorageType: Secret
   ingester:
     autoforget_unhealthy: true
+monitoring:
+  serviceMonitor:
+    enabled: true
