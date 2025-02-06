@@ -92,10 +92,13 @@ ceilometer_keystone_admin_password=$(generate_password 32)
 ceilometer_keystone_test_password=$(generate_password 32)
 ceilometer_rabbitmq_password=$(generate_password 32)
 memcached_shared_secret=$(generate_password 32)
+grafana_secret=$(generate_password 32)
+grafana_root_secret=$(generate_password 32)
 
 OUTPUT_FILE="/etc/genestack/kubesecrets.yaml"
 
 cat <<EOF > $OUTPUT_FILE
+---
 apiVersion: v1
 kind: Secret
 metadata:
@@ -581,6 +584,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
+  username: $(echo -n "ceilometer" | base64)
   password: $(echo -n $ceilometer_rabbitmq_password | base64 -w0)
 ---
 apiVersion: v1
@@ -591,6 +595,25 @@ metadata:
 type: Opaque
 data:
   memcache_secret_key: $(echo -n $memcached_shared_secret | base64 -w0)
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    kubernetes.io/metadata.name: grafana
+    name: grafana
+  name: grafana
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-db
+  namespace: grafana
+type: Opaque
+data:
+  password: $(echo -n $grafana_secret | base64 -w0)
+  root-password: $(echo -n $grafana_root_secret | base64 -w0)
+  username: $(echo -n grafana | base64 -w0)
 EOF
 
 rm nova_ssh_key nova_ssh_key.pub

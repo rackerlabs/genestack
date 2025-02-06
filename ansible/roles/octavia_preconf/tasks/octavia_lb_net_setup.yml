@@ -1,0 +1,32 @@
+---
+# These are the tasks to setup the lb-mgmt-net and
+# subnet for amphora; this can either be a vlan, flat
+# or a geneve or vxlan network
+- name: Create lb-mgmt-net for the amphora
+  openstack.cloud.network:
+    name: lb-mgmt-net
+    state: present
+    provider_network_type: "{{ lb_mgmt_net_type }}"
+    provider_physical_network: "{{ lb_mgmt_net_physical_net | default(omit) }}"
+    provider_segmentation_id: "{{ lb_mgmt_net_segmentation_id | default(omit) }}"
+    interface: public
+  register: create_lb_mgmt_net
+  until: create_lb_mgmt_net is success
+  retries: 5
+  delay: 5
+
+- name: Create subnet for lb-mgmt-net
+  openstack.cloud.subnet:
+    name: lb-mgmt-subnet
+    state: present
+    enable_dhcp: true
+    cidr: "{{ lb_mgmt_subnet_cidr }}"
+    allocation_pool_start: "{{ lb_mgmt_subnet_pool_start }}"
+    allocation_pool_end: "{{ lb_mgmt_subnet_pool_end }}"
+    disable_gateway_ip: true
+    network_name: lb-mgmt-net
+    interface: public
+  register: create_lb_mgmt_subnet
+  until: create_lb_mgmt_subnet is success
+  retries: 5
+  delay: 5

@@ -1,0 +1,508 @@
+#!/usr/bin/python3
+import configparser
+import subprocess
+import argparse
+import requests
+import platform
+import json
+import sys
+import re
+
+__AUTHOR__ = "Dan With"
+
+
+class MultipathDevice:
+    """
+    Each device:
+
+            action_if_any: alias (wwid_if_different_from_alias) \
+                dm_device_name_if_known vendor,product
+            size=size features='features' hwhandler='hardware_handler' \
+                wp=write_permission_if_known
+    """
+
+    def __init__(self, device):
+        self.device_data = device
+        self.alias = ""
+        self.wwid = ""
+        self.dm_device_name = ""
+        self.vendor = ""
+        self.product = ""
+        self.size = ""
+        self.features = ""
+        self.hwhandler = ""
+        self.wp = ""
+        self.device_groups = []
+        self.parse_device_lines()
+
+    def parse_device_lines(self):
+        re_alias_pat = re.compile(r"^(mpath.*?)\s+\(", re.DOTALL)
+        re_wwid_pat = re.compile(r"(^.*?)\s+dm\-", re.DOTALL)
+        re_dm_device_name_pat = re.compile(r"(dm\-.*?)\s+", re.DOTALL)
+        re_vendor_pat = re.compile(r"dm\-.*?\s+(.*?),.*?", re.DOTALL)
+        re_product_pat = re.compile(r",(.*?)$", re.DOTALL)
+        re_size_pat = re.compile(r"size\=(.*?)\s+", re.DOTALL)
+        re_features_pat = re.compile(r"features\=(.*?)\s+", re.DOTALL)
+        re_hwhandler_pat = re.compile(r"hwhandler\=(.*?)\s+", re.DOTALL)
+        re_wp_pat = re.compile(r"wp\=(.*?)$", re.DOTALL)
+        re_policy_pat = re.compile(r"policy\=.*status", re.DOTALL)
+        group = {}
+        paths = []
+        for idx, line in enumerate(self.device_data):
+            if idx == 0:
+                if re.findall(re_alias_pat, line):
+                    self.alias = re.findall(re_alias_pat, line)[0]
+                if re.findall(re_wwid_pat, line):
+                    self.wwid = re.findall(re_wwid_pat, line)[0]
+                if re.findall(re_dm_device_name_pat, line):
+                    self.dm_device_name = re.findall(
+                        re_dm_device_name_pat, line)[0]
+                if re.findall(re_vendor_pat, line):
+                    self.vendor = re.findall(re_vendor_pat, line)[0]
+                if re.findall(re_product_pat, line):
+                    self.product = re.findall(re_product_pat, line)[0]
+            elif idx == 1:
+                if re.findall(re_size_pat, line):
+                    self.size = re.findall(re_size_pat, line)[0]
+                if re.findall(re_features_pat, line):
+                    self.features = re.findall(
+                        re_features_pat, line)[0].strip("'")
+                if re.findall(re_hwhandler_pat, line):
+                    self.hwhandler = re.findall(
+                        re_hwhandler_pat, line)[0].strip("'")
+                if re.findall(re_wp_pat, line):
+                    self.wp = re.findall(re_wp_pat, line)[0]
+            elif re.findall(re_policy_pat, line):
+                if len(group) > 0:
+                    if len(paths) > 0:
+                        group.update({"paths": paths})
+                    else:
+                        group.update({"paths": []})
+                    self.device_groups.append(group)
+                group = {}
+                paths = []
+                multipath_group = MultipathGroup(line)
+                group = {
+                    "policy": multipath_group.policy,
+                    "prio": multipath_group.prio,
+                    "status": multipath_group.status,
+                    "paths": [],
+                }
+            elif idx <= (len(self.device_data) - 1):
+                multipath_path = MultipathPath(line)
+                multipath_path_dict = {
+                    "host_channel_id_lun": multipath_path.host_channel_id_lun,
+                    "host": multipath_path.host,
+                    "channel": multipath_path.channel,
+                    "id": multipath_path.id,
+                    "lun": multipath_path.lun,
+                    "devnode": multipath_path.devnode,
+                    "major_minor": multipath_path.major_minor,
+                    "major": multipath_path.major,
+                    "minor": multipath_path.minor,
+                    "dm_status": multipath_path.dm_status,
+                    "path_status": multipath_path.path_status,
+                    "online_status": multipath_path.online_status,
+                }
+                paths.append(multipath_path_dict)
+                if idx == (len(self.device_data) - 1):
+                    if len(group) > 0:
+                        if len(paths) > 0:
+                            group.update({"paths": paths})
+                        else:
+                            group.update({"paths": []})
+                        self.device_groups.append(group)
+
+
+class MultipathGroup:
+    """
+    Each path group:
+
+        -+- policy='scheduling_policy' prio=prio_if_known
+        status=path_group_status_if_known
+    """
+
+    def __init__(self, line):
+        self.line = line
+        self.policy = ""
+        self.prio = ""
+        self.status = ""
+        self.parse_group_line()
+
+    def parse_group_line(self):
+        re_policy_pat = re.compile(r"policy\=('.*?')\s", re.DOTALL)
+        re_prio_pat = re.compile(r"\s+prio\=(.*?)\s", re.DOTALL)
+        re_status_pat = re.compile(r"\s+status\=(.*?)$", re.DOTALL)
+        self.policy = re.findall(re_policy_pat, self.line)[0].strip("'")
+        self.prio = re.findall(re_prio_pat, self.line)[0].strip("'")
+        self.status = re.findall(re_status_pat, self.line)[0].strip("'")
+
+
+class MultipathPath:
+    """
+    Each path:
+
+        `- host:channel:id:lun devnode major:minor \
+            dm_status_if_known path_status
+        online_status
+    """
+
+    def __init__(self, line):
+        self.line = line
+        self.host_channel_id_lun = ""
+        self.host = ""
+        self.channel = ""
+        self.id = ""
+        self.lun = ""
+        self.devnode = ""
+        self.major_minor = ""
+        self.major = ""
+        self.minor = ""
+        self.dm_status = ""
+        self.path_status = ""
+        self.online_status = ""
+        self.parse_path_line()
+
+    def parse_path_line(self):
+        re_host_channel_id_lun_pat = re.compile(
+            r"\-\s+((.*?):(.*?):(.*?):(.*?))\s+", re.DOTALL
+        )
+        re_devnode_pat = re.compile(
+            r"\-\s+.*?:.*?:.*?:.*?\s+(.*?)\s+.*?:", re.DOTALL
+        )
+        re_major_minor_pat = re.compile(
+            r"\-\s+.*?:.*?:.*?:.*?\s+.*?\s+((.*?):(.*?))\s+", re.DOTALL
+        )
+        re_dm_status_pat = re.compile(
+            r"([a-z]+)\s+[a-z]+\s+[a-z]+$", flags=re.DOTALL | re.IGNORECASE
+        )
+        re_path_status_pat = re.compile(
+            r"[a-z]+\s+([a-z]+)\s+[a-z]+$", flags=re.DOTALL | re.IGNORECASE
+        )
+        re_online_status_pat = re.compile(
+            r"[a-z]+\s+[a-z]+\s+([a-z]+)$", flags=re.DOTALL | re.IGNORECASE
+        )
+        if re.findall(re_host_channel_id_lun_pat, self.line):
+            host_channel_id_lun = re.findall(
+                re_host_channel_id_lun_pat, self.line)[0]
+            self.host_channel_id_lun = host_channel_id_lun[0]
+            self.host = host_channel_id_lun[1]
+            self.channel = host_channel_id_lun[2]
+            self.id = host_channel_id_lun[3]
+            self.lun = host_channel_id_lun[4]
+        if re.findall(re_devnode_pat, self.line):
+            self.devnode = re.findall(re_devnode_pat, self.line)[0]
+        if re.findall(re_major_minor_pat, self.line):
+            major_minor = re.findall(re_major_minor_pat, self.line)[0]
+            self.major_minor = major_minor[0]
+            self.major = major_minor[1]
+            self.minor = major_minor[2]
+        if re.findall(re_dm_status_pat, self.line):
+            self.dm_status = re.findall(re_dm_status_pat, self.line)[0]
+        if re.findall(re_path_status_pat, self.line):
+            self.path_status = re.findall(re_path_status_pat, self.line)[0]
+        if re.findall(re_online_status_pat, self.line):
+            self.online_status = re.findall(re_online_status_pat, self.line)[0]
+
+
+class MultipathOutput:
+    """
+    For each multipath device output from multipath command
+    is in the following format
+
+    Each device:
+
+        action_if_any: alias (wwid_if_different_from_alias) \
+            dm_device_name_if_known vendor,product
+        size=size features='features' hwhandler='hardware_handler'
+        wp=write_permission_if_known
+
+    Each path group:
+
+        -+- policy='scheduling_policy' prio=prio_if_known
+        status=path_group_status_if_known
+
+    Each path:
+
+        `- host:channel:id:lun devnode major:minor dm_status_if_known \
+            path_status
+        online_status
+
+    Example output:
+
+        360000000000000000e00000000350001 dm-16 IET,VIRTUAL-DISK
+        size=60G features='0' hwhandler='0' wp=rw
+        `-+- policy='queue-length 0' prio=1 status=active
+            |- 31:0:0:1 sdq 65:0  active ready running
+            `- 29:0:0:1 sdp 8:240 active ready running
+    """
+
+    def __init__(self, cmd_args):
+        self.cmd_args = cmd_args
+        self.cmd = [
+            "/usr/sbin/multipath",
+            "-v",
+            str(self.cmd_args.verbosity),
+            "-ll"
+        ]
+        self.cmd_run = subprocess.run(self.cmd, capture_output=True)
+        self.cmd_returncode = self.cmd_run.returncode
+        self.cmd_output = self.cmd_run.stdout.decode("utf-8").splitlines()
+        self.device_data = []
+        self.data = {}
+        self.get_device_group_lines()
+        self.parse_device_lines()
+
+    def check_returncode(self):
+        self.cmd_run.check_returncode()
+
+    def get_device_group_lines(self):
+        if len(self.cmd_output) > 0:
+            re_mpath_pat = re.compile(r"^(.*?)\s+dm\-", re.DOTALL)
+            device_lines = []
+            for idx, line in enumerate(self.cmd_output):
+                if re.findall(re_mpath_pat, line):
+                    if len(device_lines) > 0:
+                        self.device_data.append(device_lines)
+                    device_lines = []
+                    device_lines.append(line)
+                else:
+                    device_lines.append(line)
+                if idx == (len(self.cmd_output) - 1):
+                    self.device_data.append(device_lines)
+                    device_lines = []
+
+    def parse_device_lines(self):
+        if len(self.device_data) > 0:
+            for idx, device in enumerate(self.device_data):
+                parsed_device = MultipathDevice(device)
+                self.data.update(
+                    {
+                        parsed_device.wwid: {
+                            "alias": parsed_device.alias,
+                            "wwid": parsed_device.wwid,
+                            "dm_device_name": parsed_device.dm_device_name,
+                            "vendor": parsed_device.vendor,
+                            "product": parsed_device.product,
+                            "size": parsed_device.size,
+                            "features": parsed_device.features,
+                            "hwhandler": parsed_device.hwhandler,
+                            "wp": parsed_device.wp,
+                            "groups": parsed_device.device_groups,
+                        }
+                    }
+                )
+
+
+def check(multipath_output, config_parser):
+    vndr_chks = {}
+    vendors = []
+    wp_check = str(config_parser["check"]["wp"])
+    mpath_status_check = []
+    if re.findall(",", str(config_parser["check"]["mpath_status"])):
+        mpath_status_check = [
+            str(item).strip()
+            for item in config_parser["check"]["mpath_status"].split(",")
+        ]
+    else:
+        mpath_status_check = [str(config_parser["check"]["mpath_status"])]
+    # Load policy and prio check definitions by vendor
+    if re.findall(",", str(config_parser["DEFAULT"]["vendors"])):
+        vendors = [
+            str(item).strip()
+            for item in config_parser["DEFAULT"]["vendors"].split(",")
+        ]
+    else:
+        vendors = [str(config_parser["DEFAULT"]["vendors"])]
+    for vendor in vendors:
+        vendor_check_dict = {}
+        section = "check." + vendor
+        policy = str(config_parser[section]["policy"])
+        prio = str(config_parser[section]["prio"])
+        if re.findall(",", prio):
+            prio = [
+                str(item).strip()
+                for item in config_parser[section]["prio"].split(",")
+            ]
+        else:
+            prio = [str(config_parser[section]["prio"])]
+        vendor_check_dict = {vendor: {"policy": policy, "prio": prio}}
+        vndr_chks.update(vendor_check_dict)
+    dm_status_check = str(config_parser["check.status"]["dm"])
+    path_status_check = str(config_parser["check.status"]["path"])
+    online_status_check = str(config_parser["check.status"]["online"])
+    wwid_failed_data = []
+    for wwid, wwid_data in multipath_output.data.items():
+        path_check_failures = []
+        wwid_check_failures = []
+        group_check_failures = []
+        for wwid_data_key, value in wwid_data.items():
+            if wwid_data_key == "wp":
+                if not value == wp_check:
+                    wwid_check_failures.append(wwid_data_key)
+                    break
+            if wwid_data_key == "groups" and len(wwid_data["groups"]) >= 1:
+                for group in value:
+                    if (
+                        len(path_check_failures) > 0
+                        or len(group_check_failures) > 0
+                    ):
+                        break
+                    for mpth_key, mpth_val in group.items():
+                        vendor_check_fail_count = 0
+                        if len(path_check_failures) > 0:
+                            break
+                        if mpth_key == "status":
+                            if mpth_val not in mpath_status_check:
+                                group_check_failures.append(mpth_key)
+                                break
+                        for vendor in vendors:
+                            if (
+                                mpth_key == "policy"
+                                and wwid_data["vendor"] == vendor.upper()
+                                and not mpth_val == vndr_chks[vendor]["policy"]
+                            ):
+                                group_check_failures.append(mpth_key)
+                                vendor_check_fail_count += 1
+                            if (
+                                mpth_key == "prio"
+                                and wwid_data["vendor"] == vendor.upper()
+                            ):
+                                if (
+                                    type(vndr_chks[vendor]["prio"]) is list
+                                    and mpth_val
+                                    not in vndr_chks[vendor]["prio"]
+                                ):
+                                    group_check_failures.append(mpth_key)
+                                    vendor_check_fail_count += 1
+                                elif (
+                                      type(vndr_chks[vendor]["prio"]) is not list
+                                      and mpth_val != vndr_chks[vendor]["prio"]
+                                ):
+                                      group_check_failures.append(mpth_key)
+                                      vendor_check_fail_count += 1
+                        if vendor_check_fail_count >= 1:
+                            break
+                        if mpth_key == "paths":
+                            for path in mpth_val:
+                                if len(path_check_failures) > 0:
+                                    break
+                                for path_key, path_value in path.items():
+                                    if (
+                                        path_key == "dm_status"
+                                        and not path_value == dm_status_check
+                                    ):
+                                        path_check_failures.append(path_key)
+                                        break
+                                    if (
+                                        path_key == "path_status"
+                                        and not path_value == path_status_check
+                                    ):
+                                        path_check_failures.append(path_key)
+                                        break
+                                    if (
+                                        path_key == "online_status"
+                                        and not
+                                        path_value == online_status_check
+                                    ):
+                                        path_check_failures.append(path_key)
+                                        break
+        if (
+            len(wwid_check_failures) > 0
+            or len(group_check_failures) > 0
+            or len(path_check_failures) > 0
+        ):
+            wwid_failed_data.append(wwid_data)
+    return wwid_failed_data
+
+
+def update_alert(mpcd, alert_status, config_parser):
+    hostname = platform.node()
+    details = "Multipath device(s) have failed or have faulty paths"
+    description = "Multipath device(s) have failed or have faulty paths"
+    payload_raw = {
+        "alert_data": {"alert": mpcd},
+        "generated_by": "CBS-Monitoring",
+        "hostname": hostname,
+        "service_name": str(config_parser["check.alert"]["service_name"]),
+        "details": details,
+        "Description": description,
+        "tags": "host,compute-cbs,multipath",
+        "Title": "Multipath device status alert",
+        "status": alert_status,
+        "severity": "CRITICAL",
+    }
+    payload = json.dumps(payload_raw)
+    headers = {
+        "X-Username": config_parser["check.alert"]["username"],
+        "X-Auth-Key": config_parser["check.alert"]["auth_key"],
+        "X-API-Key": config_parser["check.alert"]["api_key"],
+    }
+    url = str(config_parser["check.alert"]["url"]) + "/api/new_event"
+    resp = requests.post(url, data=payload, headers=headers, verify=False)
+    resp.close()
+    return
+
+
+def parse_cmd_args(argv):
+    p = argparse.ArgumentParser(
+        prog="mpctl",
+        description="multipath device and path " + "output and checker",
+        epilog="=====================================",
+    )
+    p.add_argument(
+        "--verbosity",
+        "-v",
+        type=int,
+        dest="verbosity",
+        choices=range(2, 5),
+        default="2",
+        help="Specify the verbosity level",
+    )
+    p.add_argument(
+        "command_choice",
+        choices=["list", "check"],
+        default="list",
+        help="Command choice",
+    )
+    p.add_argument(
+        "--conf",
+        "-c",
+        dest="conf",
+        default="/root/mpctl.ini",
+        help="Specify .ini configuration file path",
+    )
+    cmd_args = p.parse_args()
+    return cmd_args
+
+
+def main():
+    argv = sys.argv[1:]
+    cmd_args = parse_cmd_args(argv)
+    conf_ini_path = cmd_args.conf
+    config_parser = configparser.ConfigParser()
+    with open(conf_ini_path, "r") as ini_file:
+        config_parser.read_file(ini_file)
+    multipath_output = MultipathOutput(cmd_args)
+    if cmd_args.command_choice == "check":
+        wwid_failed_data = check(multipath_output, config_parser)
+        if len(wwid_failed_data) > 0:
+            alert_status = "trigger"
+            mpcd = wwid_failed_data
+            update_alert(mpcd, alert_status, config_parser)
+            #print(json.dumps(mpcd, indent=4))
+        else:
+            alert_status = "resolve"
+            mpcd = []
+            update_alert(mpcd, alert_status, config_parser)
+    elif cmd_args.command_choice == "list":
+        mpod = json.dumps(multipath_output.data, indent=4)
+        print(mpod)
+    else:
+        mpod = json.dumps(multipath_output.data, indent=4)
+        print(mpod)
+    return
+
+
+if __name__ == "__main__":
+    sys.exit(main())

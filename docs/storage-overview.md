@@ -28,6 +28,7 @@ persistent storage options, not all of them are needed.
 | [External Block - Bring Your Own Storage](storage-external-block.md) |
 | [NFS - External](storage-nfs-external.md) |
 | [TopoLVM - In Cluster](storage-topolvm.md) |
+| [Longhorn - In Cluster](storage-longhorn.md) |
 
 ## Storage Deployment Demo
 

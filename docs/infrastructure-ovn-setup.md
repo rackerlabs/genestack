@@ -8,7 +8,6 @@
 
 Post deployment we need to setup neutron to work with our integrated OVN environment. To make that work we have to annotate or nodes. Within the following commands we'll use a lookup to label all of our nodes the same way, however, the power of this system is the ability to customize how our machines are labeled and therefore what type of hardware layout our machines will have. This gives us the ability to use different hardware in different machines, in different availability zones. While this example is simple your cloud deployment doesn't have to be.
 
-
 ## OVN Annotations
 
 | <div style="width:220px">key</div> | type | <div style="width:128px">value</div>  | notes |
@@ -31,6 +30,10 @@ You should set the annotations you need within your environment to meet the need
     ``` shell
     export ALL_NODES=$(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}')
     ```
+
+!!! tip "Post Deployment"
+
+    Review the OVN Operations Guide for more information on how to manage your OVN environment post deployment. The guide can be found [here](ovn-kube-ovn-openstack.md). The guide will help you understand how to manage your OVN environment and how to troubleshoot issues that may arise.
 
 ### Set `ovn.openstack.org/int_bridge`
 
@@ -126,14 +129,14 @@ If there's ever a need to reconfigure a node, simply remove the label and the Da
 !!! tip "Setup your OVN backup"
 
     To upload backups to Swift with tempauth, edit
-    /etc/genestack/kustomize/ovn/ovn-backup/ovn-backup.config to set
+    /etc/genestack/kustomize/ovn-backup/base/ovn-backup.config to set
     `SWIFT_TEMPAUTH_UPLOAD' "true"`, edit the other related options
     appropriately (i.e., set the CONTAINER) and fill the ST_AUTH, ST_USER, and
     ST_KEY as appropriate for the Swift CLI client in the `swift-tempauth.env`
     file and then run:
 
     ``` shell
-    kubectl apply -k /etc/genestack/kustomize/ovn/ovn-backup \
+    kubectl apply -k /etc/genestack/kustomize/ovn-backup/base \
     --prune -l app=ovn-backup \
     --prune-allowlist=core/v1/Secret \
     --prune-allowlist=core/v1/ConfigMap

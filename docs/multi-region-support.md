@@ -149,7 +149,7 @@ helm upgrade --install nova ./nova \
     --set network.ssh.public_key="$(kubectl -n openstack get secret nova-ssh-keypair -o jsonpath='{.data.public_key}' | base64 -d)"$'\n' \
     --set network.ssh.private_key="$(kubectl -n openstack get secret nova-ssh-keypair -o jsonpath='{.data.private_key}' | base64 -d)"$'\n' \
     --post-renderer /etc/genestack/kustomize/kustomize.sh \
-    --post-renderer-args nova/base
+    --post-renderer-args nova/overlay
 ```
 
 Like mentioned above the only difference here is the additional flag to include our custom override and that's it, we can now version custom changes while maintaining upstream parity across many regions and/or staging envorinments!

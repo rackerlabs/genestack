@@ -1,0 +1,32 @@
+[Unit]
+Description = cinder-backup service
+After = network-online.target
+After = syslog.target
+
+[Service]
+Type = simple
+User = cinder
+Group = cinder
+ExecStart = /opt/cinder/bin/cinder-backup --config-file /etc/cinder/cinder.conf
+ExecReload = /bin/kill -HUP $MAINPID
+# Give a reasonable amount of time for the server to start up/shut down
+TimeoutSec = 120
+Restart = on-failure
+RestartSec = 2
+# This creates a specific slice which all services will operate from
+#  The accounting options give us the ability to see resource usage through
+#  the `systemd-cgtop` command.
+Slice = cinder.slice
+# Set Accounting
+CPUAccounting = True
+BlockIOAccounting = True
+MemoryAccounting = True
+TasksAccounting = True
+# Set Sandboxing
+PrivateTmp = False
+PrivateDevices = False
+PrivateNetwork = False
+Environment = PATH=/opt/cinder/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+[Install]
+WantedBy = multi-user.target

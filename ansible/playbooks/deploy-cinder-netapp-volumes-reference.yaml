@@ -1,0 +1,224 @@
+---
+- name: Run the cinder volume reference driver deployment
+  hosts: cinder_storage_nodes
+  gather_facts: true
+  become: true
+  vars:
+    cinder_release: "2024.1"
+    cinder_storage_network_interface: ansible_br_storage
+    cinder_storage_network_interface_secondary: ansible_br_storage_secondary
+    cinder_backend_name: "block-ha-performance-at-rest-encrypted,block-ha-standard-at-rest-encrypted,block-ha-performance-end-to-end-encrypted,block-ha-standard-end-to-end-encrypted"
+    custom_multipath: false
+  handlers:
+    - name: Restart cinder-volume-netapp systemd services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: restarted
+        daemon_reload: true
+        enabled: true
+      loop:
+        - cinder-volume-netapp
+  tasks:
+    - name: K8S Facts block
+      delegate_to: "{{ groups['kube_control_plane'][0] }}"
+      block:
+        - name: Ensure python3-kubernetes is available
+          ansible.builtin.package:
+            name: python3-kubernetes
+            state: present
+            update_cache: true
+
+        - name: Read cinder-etc secrets
+          kubernetes.core.k8s_info:
+            kind: Secret
+            name: cinder-etc
+            namespace: openstack
+          register: _kubernetes_cinder_etc_secret
+
+    - name: Install required packages
+      ansible.builtin.package:
+        name:
+          - build-essential
+          - git
+          - open-iscsi
+          - python3-venv
+          - python3-dev
+          - qemu-block-extra
+          - qemu-utils
+        state: present
+        update_cache: true
+
+    - name: Upgrade pip and install required packages
+      ansible.builtin.pip:
+        name:
+          - pip
+          - pymysql
+          - "git+https://github.com/openstack/cinder@stable/{{ cinder_release }}"
+          - "git+https://github.com/rackerlabs/cinder-rxt.git"
+        state: present
+        virtualenv: /opt/cinder
+        virtualenv_command: python3 -m venv
+
+    - name: Create the cinder system user
+      ansible.builtin.user:
+        name: cinder
+        comment: Cinder system user
+        shell: /bin/false
+        system: true
+        createhome: true
+        home: /var/lib/cinder
+
+    - name: Create the cinder system group
+      ansible.builtin.group:
+        name: cinder
+        system: true
+
+    - name: Create the cinder service directory
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: cinder
+        group: cinder
+        mode: "0755"
+      loop:
+        - /var/lib/cinder/backup
+        - /var/lib/cinder/tmp
+        - /var/lib/cinder/volumes
+
+    - name: Create symlink for the etc directory
+      ansible.builtin.file:
+        src: /opt/cinder/etc/cinder
+        dest: /etc/cinder
+        state: link
+        owner: cinder
+        group: cinder
+
+    - name: Create the cinder-volume-netapp systemd service units
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: "{{ item.mode | default('0644') }}"
+      loop:
+        - src: "{{ playbook_dir }}/templates/cinder-volume-netapp.service"
+          dest: /etc/systemd/system/cinder-volume-netapp.service
+        - src: "{{ playbook_dir }}/templates/sudoers"
+          dest: /etc/sudoers.d/cinder-volume
+          mode: "0440"
+      notify:
+        - Restart cinder-volume-netapp systemd services
+
+    - name: Create the cinder-volume-netapp service configuration
+      ansible.builtin.copy:
+        content: "{{ _kubernetes_cinder_etc_secret.resources[0].data[item.src] | b64decode }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: "0644"
+      loop:
+        - src: "logging.conf"
+          dest: /etc/cinder/logging.conf
+        - src: "volume.filters"
+          dest: /etc/cinder/volume.filters
+      notify:
+        - Restart cinder-volume-netapp systemd services
+
+    - name: Create the cinder-volume-netapp configuration stage file
+      changed_when: false
+      ansible.builtin.copy:
+        content: "{{ _kubernetes_cinder_etc_secret.resources[0].data['cinder.conf'] | b64decode }}"
+        dest: "/etc/cinder/cinder.conf.stage"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Replace the host in the cinder.conf.stage with the current Ansible FQDN in the stage file
+      changed_when: false
+      community.general.ini_file:
+        path: "/etc/cinder/cinder.conf.stage"
+        section: DEFAULT
+        option: host
+        value: "{{ ansible_fqdn }}"
+        create: true
+
+    - name: Create the cinder-volume-netapp configuration stage file
+      ansible.builtin.copy:
+        src: "/etc/cinder/cinder.conf.stage"
+        dest: "/etc/cinder/netapp-cinder.conf.stage"
+        owner: root
+        group: root
+        mode: "0644"
+        remote_src: true
+
+    - name: Ensure the backend configuration is set to our expected value
+      changed_when: false
+      community.general.ini_file:
+        path: "/etc/cinder/netapp-cinder.conf.stage"
+        section: DEFAULT
+        option: enabled_backends
+        value: "{{ cinder_backend_name }}"
+        create: true
+
+    - name: Override host value in netapp-cinder.conf.stage
+      community.general.ini_file:
+        path: "/etc/cinder/netapp-cinder.conf.stage"
+        section: DEFAULT
+        option: host
+        value: cinder-volume-netapp-worker
+        mode: '0644'
+        state: present
+
+    - name: Create the cinder-volume-netapp configuration
+      ansible.builtin.copy:
+        src: "/etc/cinder/netapp-cinder.conf.stage"
+        dest: "/etc/cinder/netapp-cinder.conf"
+        owner: root
+        group: root
+        mode: "0644"
+        remote_src: true
+      notify:
+        - Restart cinder-volume-netapp systemd services
+
+    - name: Set enabled backend fact
+      set_fact:
+        cinder_backend: |
+          {% set rendered_backend = {} %}
+          {% for backend in cinder_backend_name.split(',') %}
+          {%   set default_backend = (_kubernetes_cinder_etc_secret.resources[0].data['backends.conf'] | b64decode | community.general.from_ini)[backend] %}
+          {%   set _ = rendered_backend.__setitem__(backend, default_backend) %}
+          {% endfor %}
+          {{ rendered_backend }}
+
+    - name: Create the cinder-volume-netapp backend configuration
+      ansible.builtin.copy:
+        content: "{{ cinder_backend | community.general.to_ini }}"
+        dest: "/etc/cinder/netapp-backends.conf"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Replace exec path in rootwrap
+      community.general.ini_file:
+        path: /etc/cinder/rootwrap.conf
+        section: DEFAULT
+        option: "{{ item.key }}"
+        value: "{{ item.value }}"
+        create: true
+      loop:
+        - key: "exec_dirs"
+          value: "/opt/cinder/bin,/sbin,/usr/sbin,/bin,/usr/bin,/usr/local/bin,/usr/local/sbin,/usr/lpp/mmfs/bin"
+        - key: "filters_path"
+          value: "/etc/cinder/rootwrap.d"
+      notify:
+        - Restart cinder-volume-netapp systemd services
+
+    - name: Remove netapp-cinder conf staging file
+      ansible.builtin.file:
+        path: /etc/cinder/netapp-cinder.conf.stage
+        state: absent
+
+    - name: Remove cinder conf staging file
+      ansible.builtin.file:
+        path: /etc/cinder/cinder.conf.stage
+        state: absent

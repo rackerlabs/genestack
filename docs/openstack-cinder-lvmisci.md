@@ -117,6 +117,11 @@ root@openstack-node-0:~# kubectl --namespace openstack exec -ti openstack-admin-
 +-------------+--------------------------------------+
 ```
 
+!!! warning
+
+    **Before** creating a volume, ensure that your volume type has been set up correctly and that you have applied QoS policies, provisioning specifications (min and max volume size), and any extra specs. See [Cinder Volume QoS Policies](openstack-cinder-volume-qos-policies.md), [Cinder Volume Provisioning Specs](openstack-cinder-volume-provisioning-specs.md), and [Cinder Volume Type Specs](openstack-cinder-volume-type-specs.md).
+
+
 ## Validate functionality
 
 If wanted, create a test volume to tinker with

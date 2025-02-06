@@ -1,0 +1,80 @@
+---
+# Copyright 2024, Rackspace Technology, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+- name: Refresh specific kernel facts
+  ansible.builtin.setup:
+    filter: "ansible_kernel"
+
+- name: Check Kernel Version
+  ansible.builtin.fail:
+    msg: >
+      Wrong kernel Version found
+      [ {{ ansible_facts['kernel'] }} < {{ host_required_kernel }} ]
+      Resolve this issue before continuing.
+  when:
+    - ansible_facts['kernel'] is version(host_required_kernel, '<')
+
+- name: Pin kernel packages version
+  ansible.builtin.copy:
+    dest: "{{ apt_preferences }}/pin-kernel"
+    content: |
+      Package: linux-image-{{ ansible_facts['kernel'] }}
+      Pin: release *
+      Pin-Priority: 1001
+
+      Package: linux-headers-{{ ansible_facts['kernel'] }}
+      Pin: release *
+      Pin-Priority: 1001
+
+      Package: linux-modules-{{ ansible_facts['kernel'] }}
+      Pin: release *
+      Pin-Priority: 1001
+
+      Package: linux-image-*
+      Pin: release *
+      Pin-Priority: -1
+
+      Package: linux-headers-*
+      Pin: release *
+      Pin-Priority: -1
+
+      Package: linux-modules-*
+      Pin: release *
+      Pin-Priority: -1
+    mode: '0644'
+  when:
+    - ansible_facts['kernel'] is version(host_required_kernel, '<')
+
+- name: Disable unattended-upgrades
+  ansible.builtin.lineinfile:
+    path: "{{ apt_config_dir }}/20auto-upgrades"
+    regexp: "^APT::Periodic::{{ item.key }}"
+    line: "APT::Periodic::{{ item.key }} \"{{ item.value }}\";"
+    create: true
+    mode: '0644'
+  loop:
+    - key: "Update-Package-Lists"
+      value: "0"
+    - key: "Download-Upgradeable-Packages"
+      value: "0"
+    - key: "AutocleanInterval"
+      value: "0"
+    - key: "Unattended-Upgrade"
+      value: "0"
+
+- name: Ensure unattended-upgrades package is removed
+  ansible.builtin.apt:
+    name: unattended-upgrades
+    state: absent

@@ -1,0 +1,26 @@
+[DEFAULT]
+vendors = iet, netapp
+
+[check]
+wp = rw
+mpath_status = enabled, active
+
+[check.iet]
+policy = queue-length 0
+prio = 1
+
+[check.netapp]
+policy = service-time 0
+prio = 10, 50
+
+[check.status]
+dm = active
+path = ready
+online = running
+
+[check.alert]
+url = {{ monitor_url }}
+auth_key = {{ monitor_auth_key }}
+api_key = {{ monitor_api_key }}
+username = {{ monitor_username }}
+service_name = Multipath

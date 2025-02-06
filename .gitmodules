@@ -16,3 +16,6 @@
 [submodule "submodules/nginx-gateway-fabric"]
 	path = submodules/nginx-gateway-fabric
 	url = https://github.com/nginxinc/nginx-gateway-fabric.git
+[submodule "submodules/postgres-operator"]
+	path = submodules/postgres-operator
+	url = https://github.com/zalando/postgres-operator.git

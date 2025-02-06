@@ -1,0 +1,80 @@
+name: Migrate Images to QUAY
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.original-images.json'
+  workflow_dispatch:
+
+env:
+  REGISTRY: "quay.io"
+  IMAGE_ORG: "rackspace"
+
+jobs:
+  setup-matrix:
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.parse-json.outputs.matrix }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Ensure jq is installed
+        run: |
+          if ! command -v jq &> /dev/null; then
+            echo "jq is not installed. Installing now..."
+            sudo apt-get update && sudo apt-get install -y jq
+          else
+            echo "jq is already installed."
+          fi
+
+      - name: Read images from .original-images.json
+        id: parse-json
+        run: |
+          IMAGES=$(jq -c '.' < .original-images.json)
+          echo "Images: $IMAGES"
+          echo "matrix=$IMAGES" >> $GITHUB_OUTPUT
+
+  migrate-images:
+    needs: setup-matrix
+    runs-on: ubuntu-22.04
+
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        image: ${{ fromJson(needs.setup-matrix.outputs.matrix) }}
+
+    steps:
+      - name: Pull image from Source Registry
+        run: |
+          echo "Pulling image: ${{ matrix.image }}"
+          docker pull ${{ matrix.image }}
+
+      - name: Login to Quay Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.QUAY_USER }}
+          password: ${{ secrets.QUAY_TOKEN }}
+
+      - name: Retag Image for quay
+        id: retag
+        run: |
+          IMAGE_FULL="${{ matrix.image }}"
+          IMAGE_NAME_WITH_TAG=$(basename $IMAGE_FULL)  # Remove registry prefix
+          IMAGE_NAME_ONLY="$(echo $IMAGE_NAME_WITH_TAG | cut -d: -f1)"  # Extract image name
+          IMAGE_TAG="$(echo $IMAGE_NAME_WITH_TAG | cut -d: -f2)"  # Extract tag
+          QUAY_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_ORG }}/rackerlabs-$IMAGE_NAME_ONLY:$IMAGE_TAG"
+          echo $QUAY_IMAGE
+
+          echo "Retagging ${{ matrix.image }} to $QUAY_IMAGE"
+          docker tag ${{ matrix.image }} $QUAY_IMAGE
+          echo "QUAY_IMAGE=$QUAY_IMAGE" >> $GITHUB_OUTPUT
+
+      - name: Push to Quay
+        run: |
+          docker push ${{ steps.retag.outputs.QUAY_IMAGE }}

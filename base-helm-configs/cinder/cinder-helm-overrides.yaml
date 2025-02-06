@@ -25,24 +25,24 @@ release_group: null
 
 images:
   tags:
-    db_init: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    cinder_db_sync: "docker.io/openstackhelm/cinder:2024.1-ubuntu_jammy"
-    db_drop: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    ks_user: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    ks_service: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    ks_endpoints: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    cinder_api: "docker.io/openstackhelm/cinder:2024.1-ubuntu_jammy"
-    bootstrap: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    cinder_scheduler: "docker.io/openstackhelm/cinder:2024.1-ubuntu_jammy"
-    cinder_volume: "docker.io/openstackhelm/cinder:2024.1-ubuntu_jammy"
-    cinder_volume_usage_audit: "docker.io/openstackhelm/cinder:2024.1-ubuntu_jammy"
-    cinder_storage_init: "docker.io/openstackhelm/ceph-config-helper:latest-ubuntu_focal"
-    cinder_backup: "docker.io/openstackhelm/cinder:2024.1-ubuntu_jammy"
-    cinder_backup_storage_init: "docker.io/openstackhelm/ceph-config-helper:latest-ubuntu_focal"
-    test: docker.io/xrally/xrally-openstack:2.0.0
-    rabbit_init: docker.io/rabbitmq:3.7-management
-    dep_check: quay.io/airshipit/kubernetes-entrypoint:v1.0.0
-    image_repo_sync: docker.io/docker:17.07.0
+    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    cinder_db_sync: "quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy"
+    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    cinder_api: "quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy"
+    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    cinder_scheduler: "quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy"
+    cinder_volume: "quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy"
+    cinder_volume_usage_audit: "quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy"
+    cinder_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
+    cinder_backup: "quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy"
+    cinder_backup_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
+    test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
+    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
+    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0"
+    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
   pull_policy: "IfNotPresent"
   local_registry:
     active: false
@@ -230,25 +230,28 @@ pod:
       api:
         timeout: 30
   resources:
-    enabled: false
+    enabled: true
     api:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
+        cpu: "2000m"
     scheduler:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
+        cpu: "2000m"
     volume:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
+        cpu: "2000m"
     jobs:
       volume_usage_audit:
         requests:
@@ -770,7 +773,7 @@ conf:
       enable_v1_api: false
       enable_v2_api: false
       volume_name_template: "%s"
-      osapi_volume_workers: 1
+      osapi_volume_workers: 8
       glance_api_version: 2
       os_region_name: RegionOne
       host: cinder-volume-worker
@@ -786,6 +789,9 @@ conf:
       # - cinder.backup.drivers.ceph.CephBackupDriver
       # - cinder.backup.drivers.posix.PosixBackupDriver
       backup_driver: "cinder.backup.drivers.swift.SwiftBackupDriver"
+      backup_swift_auth: per_user
+      backup_swift_auth_version: 3
+      backup_compression_algorithm: zstd
       # # Backup: Ceph RBD options
       # backup_ceph_conf: "/etc/ceph/ceph.conf"
       # backup_ceph_user: cinderbackup
@@ -800,6 +806,8 @@ conf:
       use_multipath_for_image_xfer: False #Add Cinder Multipath support for image xfer
     database:
       max_retries: -1
+    barbican:
+      barbican_endpoint_type: internal
     key_manager:
       backend: barbican
     keystone_authtoken:
@@ -816,13 +824,12 @@ conf:
     oslo_policy:
       policy_file: /etc/cinder/policy.yaml
     oslo_concurrency:
-      lock_path: "/var/lib/cinder/tmp"
+      lock_path: /tmp/cinder
     oslo_messaging_notifications:
       driver: messagingv2
     oslo_middleware:
       enable_proxy_headers_parsing: true
     oslo_messaging_rabbit:
-      # explicitly disable amqp durable queues because quorum is enabled
       amqp_durable_queues: false
       # We define use of quorum queues via kustomize but this was enabling HA queues instead
       # ha_queues are deprecated, explicitly set to false and set quorum_queue true
@@ -830,8 +837,8 @@ conf:
       rabbit_quorum_queue: true
       # TODO: Not available until 2024.1, but once it is, we want to enable these!
       # new feature ref; https://docs.openstack.org/releasenotes/oslo.messaging/2024.1.html
-      # rabbit_transient_quorum_queue: true
-      # use_queue_manager: true
+      rabbit_transient_quorum_queue: false
+      use_queue_manager: true
       # Reconnect after a node outage more quickly
       rabbit_interval_max: 10
       # Send more frequent heartbeats and fail unhealthy nodes faster
@@ -863,8 +870,9 @@ conf:
         - context
         - default
     logger_root:
-      level: WARNING
-      handlers: 'null'
+      level: INFO
+      handlers:
+        - stdout
     logger_cinder:
       level: INFO
       handlers:
@@ -917,6 +925,7 @@ conf:
       volume_driver: cinder.volume.drivers.lvm.LVMVolumeDriver
       volume_backend_name: LVM_iSCSI
       volume_clear: zero
+      volume_driver: cinder_rxt.rackspace.RXTLVM
       lvm_type: default
       image_volume_cache_enabled: True
       iscsi_iotype: fileio
@@ -1362,7 +1371,7 @@ endpoints:
     hosts:
       default: rabbitmq-nodes
     host_fqdn_override:
-      default: null
+      default: rabbitmq.openstack.svc.cluster.local
     path: /cinder
     scheme: rabbit
     port:
@@ -1386,7 +1395,7 @@ endpoints:
       memcache:
         default: 11211
   fluentd:
-    namespace: null
+    namespace: fluentbit
     name: fluentd
     hosts:
       default: fluentd-logging

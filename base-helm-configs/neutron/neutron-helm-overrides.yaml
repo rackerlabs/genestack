@@ -2,34 +2,34 @@ release_group: null
 
 images:
   tags:
-    bootstrap: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    db_init: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    db_drop: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    ks_user: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    ks_service: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    ks_endpoints: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    neutron_db_sync: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    neutron_dhcp: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    neutron_l3: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    neutron_l2gw: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    neutron_linuxbridge_agent: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    neutron_metadata: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    neutron_ovn_metadata: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    neutron_openvswitch_agent: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    neutron_server: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    neutron_rpc_server: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    neutron_bagpipe_bgp: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    neutron_netns_cleanup_cron: "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy"
-    test: docker.io/xrally/xrally-openstack:2.0.0
-    purge_test: docker.io/openstackhelm/ospurge:latest
-    rabbit_init: docker.io/rabbitmq:3.7-management
-    netoffload: ghcr.io/vexxhost/netoffload:v1.0.1
+    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    neutron_db_sync: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    neutron_dhcp: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    neutron_l3: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    neutron_l2gw: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    neutron_linuxbridge_agent: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    neutron_metadata: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    neutron_ovn_metadata: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    neutron_openvswitch_agent: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    neutron_server: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    neutron_rpc_server: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    neutron_bagpipe_bgp: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    neutron_netns_cleanup_cron: "quay.io/rackspace/rackerlabs-neutron:2024.1-ubuntu_jammy"
+    test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
+    purge_test: "quay.io/rackspace/rackerlabs-ospurge:latest"
+    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
+    netoffload: "quay.io/rackspace/rackerlabs-netoffload:v1.0.1"
     neutron_sriov_agent: docker.io/openstackhelm/neutron:stein-18.04-sriov
     neutron_sriov_agent_init: docker.io/openstackhelm/neutron:stein-18.04-sriov
     neutron_bgp_dragent: docker.io/openstackhelm/neutron:stein-ubuntu_bionic
     neutron_ironic_agent: docker.io/openstackhelm/neutron:stein-ubuntu_bionic
-    dep_check: quay.io/airshipit/kubernetes-entrypoint:v1.0.0
-    image_repo_sync: docker.io/docker:17.07.0
+    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0"
+    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
   pull_policy: "IfNotPresent"
   local_registry:
     active: false
@@ -741,7 +741,7 @@ pod:
       ironic_agent:
         timeout: 30
   resources:
-    enabled: false
+    enabled: true
     agent:
       dhcp:
         requests:
@@ -749,78 +749,91 @@ pod:
           cpu: "100m"
         limits:
           memory: "4096Mi"
+          cpu: "2000m"
       l3:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
+          cpu: "2000m"
       lb:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
+          cpu: "2000m"
       metadata:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
+          cpu: "2000m"
       ovn_metadata:
         requests:
-          memory: "64Mi"
+          memory: "512Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
+          cpu: "2000m"
       ovs:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
+          cpu: "2000m"
       sriov:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
+          cpu: "2000m"
       l2gw:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
+          cpu: "2000m"
       bagpipe_bgp:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
+          cpu: "2000m"
       bgp_dragent:
         requests:
           memory: "64Mi"
           cpu: "100m"
         limits:
           memory: "4096Mi"
+          cpu: "2000m"
     server:
       requests:
-        memory: "64Mi"
+        memory: "1024Mi"
         cpu: "100m"
       limits:
-        memory: "4096Mi"
+        memory: "6144Mi"
+        cpu: "2000m"
     ironic_agent:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
+        cpu: "2000m"
     netns_cleanup_cron:
       requests:
         memory: "64Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
+        cpu: "2000m"
     jobs:
       bootstrap:
         requests:
@@ -1748,7 +1761,7 @@ conf:
     ptcp_port: 6640
   neutron:
     DEFAULT:
-      debug: true
+      debug: false
       metadata_proxy_socket: /var/lib/neutron/openstack-helm/metadata_proxy
       log_config_append: /etc/neutron/logging.conf
       # NOTE(portdirect): the bind port should not be defined, and is manipulated
@@ -1758,8 +1771,9 @@ conf:
       network_scheduler_driver: neutron.scheduler.dhcp_agent_scheduler.AZAwareWeightScheduler
       router_scheduler_driver: neutron.scheduler.l3_agent_scheduler.AZLeastRoutersScheduler
       dhcp_load_type: networks
-      api_workers: 1
+      api_workers: 8
       rpc_workers: 4
+      rpc_state_report_workers: 4
       allow_overlapping_ips: True
       state_path: /var/lib/neutron
       # core_plugin can be: ml2, calico
@@ -1780,10 +1794,10 @@ conf:
       # 'network.backend' to sane defaults.
       interface_driver: null
     oslo_concurrency:
-      lock_path: /var/lib/neutron/tmp
+      lock_path: /tmp/neutron
     database:
       mysql_sql_mode: ""
-      connection_debug: 100
+      connection_debug: 0
       connection_trace: true
       use_db_reconnect: True
       idle_timeout: 3600
@@ -1796,14 +1810,15 @@ conf:
     oslo_messaging_notifications:
       driver: messagingv2
     oslo_messaging_rabbit:
+      amqp_durable_queues: false
       # We define use of quorum queues via kustomize but this was enabling HA queues instead
       # ha_queues are deprecated, explicitly set to false and set quorum_queue true
       rabbit_ha_queues: false
       rabbit_quorum_queue: true
       # TODO: Not available until 2024.1, but once it is, we want to enable these!
       # new feature ref; https://docs.openstack.org/releasenotes/oslo.messaging/2024.1.html
-      # rabbit_transient_quorum_queue: true
-      # use_queue_manager: true
+      rabbit_transient_quorum_queue: false
+      use_queue_manager: true
       # Reconnect after a node outage more quickly
       rabbit_interval_max: 10
       # Send more frequent heartbeats and fail unhealthy nodes faster
@@ -1868,8 +1883,9 @@ conf:
         - context
         - default
     logger_root:
-      level: WARNING
-      handlers: 'null'
+      level: INFO
+      handlers:
+        - stdout
     logger_neutron:
       level: INFO
       handlers:
@@ -2035,7 +2051,7 @@ conf:
       # as a hostPath volume from agent daemonsets
       metadata_proxy_socket: /var/lib/neutron/openstack-helm/metadata_proxy
       metadata_proxy_shared_secret: "password"
-      metadata_workers: 2
+      metadata_workers: 8
     cache:
       enabled: true
       backend: dogpile.cache.memcached
@@ -2243,7 +2259,7 @@ endpoints:
     hosts:
       default: rabbitmq-nodes
     host_fqdn_override:
-      default: null
+      default: rabbitmq.openstack.svc.cluster.local
     path: /neutron
     scheme: rabbit
     port:
@@ -2415,7 +2431,7 @@ endpoints:
         internal: 9876
         service: 9876
   fluentd:
-    namespace: osh-infra
+    namespace: fluentbit
     name: fluentd
     hosts:
       default: fluentd-logging

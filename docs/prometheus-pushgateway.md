@@ -11,7 +11,7 @@ the OVN backup _CronJob_.
 
 
 ``` shell
-kubectl kustomize --enable-helm /etc/genestack/kustomize/prometheus-pushgateway | kubectl apply -f -
+bin/install-chart.sh prometheus-pushgateway
 ```
 
 !!! success

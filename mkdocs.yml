@@ -83,6 +83,7 @@ extra:
 
 extra_css:
   - overrides/stylesheets/adr.css
+  - overrides/stylesheets/admonition.css
 
 plugins:
   - search
@@ -132,12 +133,19 @@ nav:
       - Architecture: genestack-architecture.md
       - Components: genestack-components.md
       - Swift Object Storage: openstack-object-storage-swift.md
-  - Cloud Design:
-      - Overview: openstack-cloud-design-overview.md
-      - Regions in OpenStack: openstack-cloud-design-regions.md
-      - Availability Zones in OpenStack: openstack-cloud-design-az.md
-      - Host Aggregates in OpenStack: openstack-cloud-design-ha.md
-      - Infrastructre Design: infrastructure-design.md
+  - Design Guide:
+      - Introduction: openstack-cloud-design-intro.md
+      - Cloud Design:
+          - Cloud Topology: openstack-cloud-design-topology.md
+          - Regions: openstack-cloud-design-regions.md
+          - Availability Zones: openstack-cloud-design-az.md
+          - Host Aggregates: openstack-cloud-design-ha.md
+      - Accelerated Computing:
+          - Overview: accelerated-computing-overview.md
+          - Infrastructure: accelerated-computing-infrastructure.md
+      - Other Design Documentation:
+          - Disaster Recovery for OpenStack Clouds: openstack-cloud-design-dr.md
+          - Genestack Infrastructure Design: openstack-cloud-design-genestack-infra.md
   - Deployment Guide:
       - What is Genestack?: deployment-guide-welcome.md
       - Getting Started:
@@ -162,6 +170,7 @@ nav:
               - NFS External: storage-nfs-external.md
               - TopoLVM: storage-topolvm.md
               - External Storage CSI: storage-external-block.md
+              - Longhorn: storage-longhorn.md
           - Secrets:
               - Sealed Secrets: sealed-secrets.md
           - Infrastructure:
@@ -176,6 +185,7 @@ nav:
               - Memcached: infrastructure-memcached.md
               - Libvirt: infrastructure-libvirt.md
               - OVN: infrastructure-ovn-setup.md
+              - FluentBit: infrastructure-fluentbit.md
               - Loki: infrastructure-loki.md
           - OpenStack:
               - openstack-overview.md
@@ -187,7 +197,9 @@ nav:
                   - Block Storage:
                       - Cinder: openstack-cinder.md
                       - LVM iSCSI: openstack-cinder-lvmisci.md
-                      - NETAPP: openstack-cinder-netapp.md
+                      - NETAPP:
+                          - Worker: openstack-cinder-netapp-worker.md
+                          - Containerized: openstack-cinder-netapp-container.md
                       - FIPS Cinder Encryption: openstack-cinder-fips-encryption.md
                   - Compute Kit:
                       - Compute Overview: openstack-compute-kit.md
@@ -220,10 +232,12 @@ nav:
               - Custom Node Metrics: prometheus-custom-node-metrics.md
               - Alert Manager Examples:
                   - alertmanager-slack.md
+                  - alertmanager-msteams.md
+                  - alertmanager-pagerduty.md
   - Operational Guide:
-      - Supporting multi-region Genestack: multi-region-support.md
-      - Running Genestack Upgrade: genestack-upgrade.md
-      - Running Kubespray Upgrade: k8s-kubespray-upgrade.md
+      - Genestack:
+          - Supporting multi-region: multi-region-support.md
+          - Running Upgrades: genestack-upgrade.md
       - Resource Metering:
           - Metering Overview: metering-overview.md
           - Ceilometer: metering-ceilometer.md
@@ -231,25 +245,43 @@ nav:
           - Billing Tenants: metering-billing.md
           - Chargebacks: metering-chargebacks.md
       - Infrastructure:
-          - Etcd Backup: etcd-backup.md
-          - OVN introduction: ovn-intro.md
-          - OVN troubleshooting: ovn-troubleshooting.md
-          - OVN traffic flow introduction: ovn-traffic-flow-intro.md
-          - OVN Database Backup: infrastructure-ovn-db-backup.md
-          - OVN Monitoring introduction: ovn-monitoring-introduction.md
-          - OVN Claim Storm alert: ovn-alert-claim-storm.md
-          - MariaDB Operations: infrastructure-mariadb-ops.md
-          - Adding New Node: adding-new-node.md
-          - Host Aggregates: openstack-host-aggregates.md
-      - Third Party Tools:
-          - OSIE: extra-osie.md
+          - Kubernetes:
+              - Etcd Backup: etcd-backup.md
+              - Adding New Nodes: adding-new-node.md
+              - Running Kubespray Upgrades: k8s-kubespray-upgrade.md
+          - OVN:
+              - Introduction: ovn-intro.md
+              - Troubleshooting: ovn-troubleshooting.md
+              - Traffic flow introduction: ovn-traffic-flow-intro.md
+              - Database Backup: infrastructure-ovn-db-backup.md
+              - Monitoring introduction: ovn-monitoring-introduction.md
+              - Claim Storm alert: ovn-alert-claim-storm.md
+              - Updating Kube OVN to OpenStack Configuration: ovn-kube-ovn-openstack.md
+          - MariaDB:
+              - Operations: infrastructure-mariadb-ops.md
+          - Gateway API:
+              - Custom Routes: infrastructure-gateway-api-custom.md
+              - Rackspace Example Gateway Overview: rackspace-infrastructure-gateway-api.md
+      - Observability:
+          - Observability Overview: observability-info.md
+          - Monitoring Overview: monitoring-info.md
+          - Alerting Overview: alerting-info.md
+          - Logging Overview: genestack-logging.md
       - OpenStack:
           - CLI Access:
               - Generating Clouds YAML: openstack-clouds.md
+          - Block Storage:
+              - Cinder Volume Provisioning Specs: openstack-cinder-volume-provisioning-specs.md
+              - Cinder Volume QoS Policies: openstack-cinder-volume-qos-policies.md
+              - Cinder Volume Type Specs: openstack-cinder-volume-type-specs.md
           - Compute:
               - Nova Flavor Creation: openstack-flavors.md
               - Nova CPU Allocation Ratio: openstack-cpu-allocation-ratio.md
               - Nova PCI Passthrough: openstack-pci-passthrough.md
+              - Host Aggregates: openstack-host-aggregates.md
+              - Instance Data Recovery: openstack-data-disk-recovery.md
+          - Quota Management:
+              - Quota Management: openstack-quota-managment.md
           - Images:
               - Glance Images Creation: openstack-glance-images.md
           - Identity:
@@ -260,10 +292,12 @@ nav:
           - Magnum:
               - Creating kubernetes clusters: magnum-kubernetes-cluster-setup-guide.md
           - Octavia:
+              - Creating Flavor Profiles and Flavors: octavia-flavor-and-flavorprofile-guide.md
               - Creating Cloud Load Balancers: octavia-loadbalancer-setup-guide.md
           - Object Storage:
               - Operating Swift Object Storage: openstack-swift-operators-guide.md
           - Service Overrides: openstack-service-overrides.md
+          - Resource and Project Lookups: openstack-resource-lookups.md
       - Working locally With Docs: mkdocs-howto.md
   - Cloud Onboarding:
       - Cloud Onboarding Welcome: cloud-onboarding-welcome.md
@@ -276,12 +310,22 @@ nav:
       - Openstack Routers: openstack-router.md
       - Openstack Images: openstack-images.md
       - Openstack Metrics: openstack-metrics.md
-      - Openstack Object Store Swift CLI: storage-object-store-swift-cli.md
-      - Openstack Object Store Openstack CLI: storage-object-store-openstack-cli.md
-      - Openstack Object Store Skyline GUI: storage-object-store-skyline-gui.md
+      - Openstack Object Store:
+          - Openstack CLI: storage-object-store-openstack-cli.md
+          - Swift CLI: storage-object-store-swift-cli.md
+          - S3 CLI: storage-object-store-s3-cli.md
+          - Skyline GUI: storage-object-store-skyline-gui.md
+          - 3rd Party SDK, Tools: storage-object-store-swift-3rd-party.md
       - Openstack Snapshot: openstack-snapshot.md
       - Openstack Volumes: openstack-volumes.md
       - Openstack Load Balancers: openstack-load-balancer.md
       - Openstack Networks: openstack-networks.md
+      - Openstack Quotas: openstack-quota.md
+  - Security Primer:
+      - Introduction: security-introduction.md
+      - Security In Phases: security-lifecycle.md
+      - Cloud Security: security-stages.md
+      - Summary: security-summary.md
   - Blog: https://blog.rackspacecloud.com/
   - Status: api-status.md
+  - Style Guide: documentation-standards.md

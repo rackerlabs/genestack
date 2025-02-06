@@ -1,0 +1,6 @@
+ARG VERSION=master-ubuntu_jammy
+FROM openstackhelm/cinder:$VERSION as build
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y systemctl open-iscsi qemu-block-extra qemu-utils multipath-tools; \
+    rm -rf /var/cache/apt/archives /var/lib/apt/lists; \
+    apt clean; /var/lib/openstack/bin/pip install pygobject; \
+    find /var/lib/openstack -regex '^.*\(__pycache__\|\.py[co]\)$' -delete

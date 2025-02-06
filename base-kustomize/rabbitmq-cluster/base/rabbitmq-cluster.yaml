@@ -6,18 +6,16 @@ metadata:
   annotations:
     metallb.universe.tf/address-pool: pool1
 spec:
-
   replicas: 3
   resources:
     requests:
       cpu: 500m
       memory: 2Gi
     limits:
-      memory: 32Gi
+      memory: 2Gi
   rabbitmq:
     additionalConfig: |
       cluster_partition_handling = pause_minority
-      vm_memory_high_watermark_paging_ratio = 0.99
       disk_free_limit.relative = 1.0
       collect_statistics_interval = 10000
     additionalPlugins:

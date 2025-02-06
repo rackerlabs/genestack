@@ -8,9 +8,6 @@ collections:
   - name: https://github.com/ansible-collections/community.general
     version: 8.2.0
     type: git
-  - name: https://opendev.org/openstack/ansible-config_template
-    version: 2.1.0
-    type: git
   - name: https://github.com/ansible-collections/kubernetes.core
     version: 3.2.0
     type: git

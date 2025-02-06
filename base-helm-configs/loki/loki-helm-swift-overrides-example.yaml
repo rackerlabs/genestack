@@ -19,3 +19,6 @@ loki:
       password: < PASSWORD > # TODO: Update with valid password
       container_name: < CONTAINER > # TODO: Update with valid container
       region_name: < REGION > # TODO: Update with valid region
+monitoring:
+  serviceMonitor:
+    enabled: true

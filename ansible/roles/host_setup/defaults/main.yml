@@ -29,10 +29,6 @@ host_environment_path:
   - /sbin
   - /bin
 
-# Allows the ability to override or add extra parameters to the systemd global config
-# that will be applied by default to all units
-systemd_global_overrides: {}
-
 # The following garbage collection values are set to better support lots of neutron networks/routers.
 #  Used for setting the net.ipv4/6.neigh.default.gc_thresh* values. This assumes that facts were
 #  gathered to obtain the total amount of memory available on a given host. If no facts are gathered
@@ -50,40 +46,72 @@ host_nf_conntrack_max: 262144
 
 # System control kernel tuning
 kernel_options:
-  - { key: 'fs.inotify.max_user_instances', value: 8192 }
-  - { key: 'fs.inotify.max_user_watches', value: 1048576 }
-  - { key: 'net.ipv4.conf.all.rp_filter', value: "{{ host_rp_filter_all }}" }
-  - { key: 'net.ipv4.conf.default.rp_filter', value: "{{ host_rp_filter_default }}" }
-  - { key: 'net.ipv4.ip_forward', value: 1 }
-  - { key: 'net.netfilter.nf_conntrack_max', value: "{{ host_nf_conntrack_max }}" }
-  - { key: 'net.core.netdev_max_backlog', value: 4096 }
-  - { key: 'net.core.somaxconn', value: 8192 }
-  - { key: 'net.ipv4.tcp_rmem', value: "16384 349520 25165824" }
-  - { key: 'net.ipv4.tcp_wmem', value: "16384 349520 25165824" }
-  - { key: 'net.core.rmem_max', value: 25165824 }
-  - { key: 'net.core.wmem_max', value: 25165824 }
-  - { key: 'vm.dirty_background_ratio', value: 5 }
-  - { key: 'vm.dirty_ratio', value: 10 }
-  - { key: 'vm.swappiness', value: 5 }
-  - { key: 'net.bridge.bridge-nf-call-ip6tables', value: 1 }
-  - { key: 'net.bridge.bridge-nf-call-iptables', value: 1 }
-  - { key: 'net.bridge.bridge-nf-call-arptables', value: 1 }
-  - { key: 'net.ipv4.igmp_max_memberships', value: 1024 }
-  - { key: 'net.ipv4.neigh.default.gc_thresh1', value: "{{ set_gc_val | int // 2 }}" }
-  - { key: 'net.ipv4.neigh.default.gc_thresh2', value: "{{ set_gc_val | int }}" }
-  - { key: 'net.ipv4.neigh.default.gc_thresh3', value: "{{ set_gc_val | int * 2 }}" }
-  - { key: 'net.ipv4.route.gc_thresh', value: "{{ set_gc_val | int * 2 }}" }
-  - { key: 'net.ipv4.neigh.default.gc_interval', value: 60 }
-  - { key: 'net.ipv4.neigh.default.gc_stale_time', value: 120 }
-  - { key: 'net.ipv6.neigh.default.gc_thresh1', value: "{{ set_gc_val | int // 2 }}" }
-  - { key: 'net.ipv6.neigh.default.gc_thresh2', value: "{{ set_gc_val | int }}" }
-  - { key: 'net.ipv6.neigh.default.gc_thresh3', value: "{{ set_gc_val | int * 2 }}" }
-  - { key: 'net.ipv6.route.gc_thresh', value: "{{ set_gc_val | int * 2 }}" }
-  - { key: 'net.ipv6.neigh.default.gc_interval', value: 60 }
-  - { key: 'net.ipv6.neigh.default.gc_stale_time', value: 120 }
-  - { key: 'net.ipv6.conf.lo.disable_ipv6', value: 0 }
-  - { key: 'fs.aio-max-nr', value: 131072 }
-
+  - key: 'fs.aio-max-nr'
+    value: 131072
+  - key: 'fs.inotify.max_user_instances'
+    value: 8192
+  - key: 'fs.inotify.max_user_watches'
+    value: 1048576
+  - key: 'net.bridge.bridge-nf-call-arptables'
+    value: 1
+  - key: 'net.bridge.bridge-nf-call-ip6tables'
+    value: 1
+  - key: 'net.bridge.bridge-nf-call-iptables'
+    value: 1
+  - key: 'net.core.netdev_max_backlog'
+    value: 4096
+  - key: 'net.core.rmem_max'
+    value: 25165824
+  - key: 'net.core.somaxconn'
+    value: 8192
+  - key: 'net.core.wmem_max'
+    value: 25165824
+  - key: 'net.ipv4.conf.all.rp_filter'
+    value: "{{ host_rp_filter_all }}"
+  - key: 'net.ipv4.conf.default.rp_filter'
+    value: "{{ host_rp_filter_default }}"
+  - key: 'net.ipv4.igmp_max_memberships'
+    value: 1024
+  - key: 'net.ipv4.ip_forward'
+    value: 1
+  - key: 'net.ipv4.neigh.default.gc_interval'
+    value: 60
+  - key: 'net.ipv4.neigh.default.gc_stale_time'
+    value: 120
+  - key: 'net.ipv4.neigh.default.gc_thresh1'
+    value: "{{ set_gc_val | int // 2 }}"
+  - key: 'net.ipv4.neigh.default.gc_thresh2'
+    value: "{{ set_gc_val | int }}"
+  - key: 'net.ipv4.neigh.default.gc_thresh3'
+    value: "{{ set_gc_val | int * 2 }}"
+  - key: 'net.ipv4.route.gc_thresh'
+    value: "{{ set_gc_val | int * 2 }}"
+  - key: 'net.ipv4.tcp_rmem'
+    value: "16384 349520 25165824"
+  - key: 'net.ipv4.tcp_wmem'
+    value: "16384 349520 25165824"
+  - key: 'net.ipv6.conf.lo.disable_ipv6'
+    value: 0
+  - key: 'net.ipv6.neigh.default.gc_interval'
+    value: 60
+  - key: 'net.ipv6.neigh.default.gc_stale_time'
+    value: 120
+  - key: 'net.ipv6.neigh.default.gc_thresh1'
+    value: "{{ set_gc_val | int // 2 }}"
+  - key: 'net.ipv6.neigh.default.gc_thresh2'
+    value: "{{ set_gc_val | int }}"
+  - key: 'net.ipv6.neigh.default.gc_thresh3'
+    value: "{{ set_gc_val | int * 2 }}"
+  - key: 'net.ipv6.route.gc_thresh'
+    value: "{{ set_gc_val | int * 2 }}"
+  - key: 'net.netfilter.nf_conntrack_max'
+    value: "{{ host_nf_conntrack_max }}"
+  - key: 'vm.dirty_background_ratio'
+    value: 5
+  - key: 'vm.dirty_ratio'
+    value: 10
+  - key: 'vm.swappiness'
+    value: 5
 
 ## kernel modules for specific group hosts
 host_specific_kernel_modules: []
@@ -100,3 +128,8 @@ host_specific_kernel_modules: []
 # Optional user defined list of sysctl options in the same dict item format as
 # above.
 user_kernel_options: []
+
+# Limited to two servers, the first one is the primary and the second one is the backup.
+host_ntp_server:
+  - 0.pool.ntp.org
+  - 1.pool.ntp.org

@@ -3,6 +3,18 @@
 Gateway API is L4 and L7 layer routing project in Kubernetes. It represents next generation of k8s Ingress, LB and Service Mesh APIs.
 For more information on the project see: [Gateway API SIG.](https://gateway-api.sigs.k8s.io/)
 
+!!! genestack
+
+    For each externally exposed service, example: keystone endpoint, we have a GatewayAPI resource setup to use listeners on services with matching rules based on
+    hostname, for example `keystone.your.domain.tld`. When a request comes in to the f5 vip for this the vip is setup to pass the traffic to the Metallb
+    external vip address. Metallb then forwards the traffic to the appropriate service endpoint for the gateway controller which matches the hostname and passes the
+    traffic onto the right service. The same applies to internal services. Anything that matches `your.domain.tld` hostname can be considered internal and handled accordingly.
+
+    ``` mermaid
+    flowchart LR
+        External --> External_VIP_Address --> MetalLB_VIP_Address --> Gateway_Service
+    ```
+
 ## Move from Ingress to Gateway APIs
 
 Since Gateway APIs are successor to Ingress Controllers there needs to be a one time migration from Ingress to GW API resources.
@@ -73,19 +85,15 @@ There are various implementations of the Gateway API. In this document, we will 
 
         helm upgrade --install nginx-gateway-fabric ./nginx-gateway-fabric \
                     --namespace=nginx-gateway \
-                    --wait \
-                    --timeout 10m \
-                    -f /opt/genestack/base-helm-configs/nginx-gateway-fabric/helm-overrides.yaml \
-                    --post-renderer /opt/genestack/base-kustomize/kustomize.sh \
-                    --post-renderer-args gateway/base
+                    -f /etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml
         ```
 
     === "Experimental"
 
         ``` shell
-        cd /opt/genestack/submodules/nginx-gateway-fabric/charts/nginx-gateway-fabric
+        cd /opt/genestack/submodules/nginx-gateway-fabric/charts
 
-        helm upgrade --install nginx-gateway-fabric . \
+        helm upgrade --install nginx-gateway-fabric ./nginx-gateway-fabric \
                     --namespace=nginx-gateway \
                     -f /etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml \
                     --set nginxGateway.gwAPIExperimentalFeatures.enable=true
@@ -124,7 +132,7 @@ There are various implementations of the Gateway API. In this document, we will 
     Apply the configuration using the following command:
 
     ``` shell
-    kubectl kustomize --enable-helm /etc/genestack/kustomize/envoyproxy-gateway/base | kubectl apply -f -
+    kubectl kustomize --enable-helm /etc/genestack/kustomize/envoyproxy-gateway/overlay | kubectl apply -f -
     ```
 
     ### After installation
@@ -287,42 +295,6 @@ kubectl apply -f /etc/genestack/gateway-api/gateway-prometheus.yaml
 
 At this point, flex-gateway has a listener pointed to the port 80 matching *.your.domain.tld hostname. The HTTPRoute resource configures routes
 for this gateway. Here, we match all path and simply pass any request from the matching hostname to kube-prometheus-stack-prometheus backend service.
-
-## Example Implementation from Rackspace
-
-This example is not required and is only intended to show how Rackspace deploys specific gateway kustomization files.
-
-``` shell
-kubectl kustomize /etc/genestack/kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
-```
-
-## Exposing Flex Services
-
-We have a requirement to expose a service
-
- 1. Internally for private consumption (Management and Administrative Services)
- 2. Externally to customers (mostly Openstack services)
-
-![Flex Service Expose External with F5 Loadbalancer](assets/images/flexingress.png)
-
-For each externally exposed service, example: keystone endpoint, we have a GatewayAPI resource setup to use listeners on services with matching rules based on
-hostname, for example `keystone.your.domain.tld`. When a request comes in to the f5 vip for this the vip is setup to pass the traffic to the Metallb
-external vip address. Metallb then forwards the traffic to the appropriate service endpoint for the gateway controller which matches the hostname and passes the
-traffic onto the right service. The same applies to internal services. Anything that matches `your.domain.tld` hostname can be considered internal and handled accordingly.
-
-``` mermaid
-flowchart LR
-    External --> External_VIP_Address --> MetalLB_VIP_Address --> Gateway_Service
-```
-
-This setup can be expended to have multiple MetalLB VIPs with multiple Gateway Services listening on different IP addresses as required by your setup.
-
-!!! tip
-
-    The metalLB speaker wont advertise the service if :
-    1. There is no active endpoint backing the service
-    2. There are no matching L2 or BGP speaker nodes
-    3. If the service has external Traffic Policy set to local you need to have the running endpoint on the speaker node.
 
 ## Cross Namespace Routing
 

@@ -1,0 +1,32 @@
+---
+# tasks file for monitor_setup
+
+- name: Create monitor directory structure on nova compute nodes
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    recurse: yes
+    mode: '0755'
+    owner: root
+    group: root
+  loop: "{{ monitor_dirs }}"
+
+
+- name: Include monitor_compute.yml
+  ansible.builtin.include_tasks:
+    file: monitor_compute.yml
+    apply:
+      tags:
+        - compute
+  tags:
+    - always
+
+
+- name: Include monitor_storage.yml
+  ansible.builtin.include_tasks:
+    file: monitor_storage.yml
+    apply:
+      tags:
+        - cinder_storage_nodes
+  tags:
+    - always

@@ -30,6 +30,7 @@ mysqldump --host=$(kubectl -n openstack get service mariadb-cluster -o jsonpath=
           --routines \
           --triggers \
           --events \
+          --column-statistics=0 \
           ${DATABASE_NAME} \
           --result-file=/tmp/${DATABASE_NAME}-$(date +%s).sql
 ```
@@ -42,6 +43,7 @@ mysqldump --host=$(kubectl -n openstack get service mariadb-cluster -o jsonpath=
           -p$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d) \
           -e 'show databases;' \
           --column-names=false \
+          --column-statistics=0 \
           --vertical | \
               awk '/[:alnum:]/' | \
                   xargs -i mysqldump --host=$(kubectl -n openstack get service mariadb-cluster -o jsonpath='{.spec.clusterIP}') \
@@ -87,9 +89,22 @@ dump to your MariaDB database.
 Refer to the mariadb-operator [restore documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/BACKUP.md#restore)
 for more information.
 
+!!! tip "Operator Restore Tips"
+
+    1. If you have multiple backups available, the operator is able to infer
+    which backup to restore based on the `spec.targetRecoveryTime` field
+    discussed in the operator documentation [here](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/BACKUP.md#target-recovery-time).
+    2. The referred database (db1 in the example below) must previously exist
+    for the Restore to succeed.
+    3. The mariadb CLI invoked by the operator under the hood only supports
+    selecting a single database to restore via the `--one-database` option,
+    restoration of multiple specific databases is not supported.
+
+### Restore All Databases
+
 !!! danger "The following command may lead to data loss"
 
-    ```shell
+    ``` shell
     cat <<EOF | kubectl -n openstack apply -f -
     apiVersion: k8s.mariadb.com/v1alpha1
     kind: Restore
@@ -103,8 +118,34 @@ for more information.
     EOF
     ```
 
-!!! tip
+### Restore Single Database
 
-    If you have multiple backups available, the operator is able to infer which
-    backup to restore based on the `spec.targetRecoveryTime` field discussed
-    in the operator documentation [here](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/BACKUP.md#target-recovery-time).
+!!! danger "The following command may lead to data loss"
+
+    ``` shell
+    cat <<EOF | kubectl -n openstack apply -f -
+    apiVersion: k8s.mariadb.com/v1alpha1
+    kind: Restore
+    metadata:
+      name: maria-restore
+    spec:
+      mariaDbRef:
+        name: mariadb-cluster
+      backupRef:
+        name: mariadb-backup
+      databases: db1
+    EOF
+    ```
+
+### Check Restore Progress
+
+!!! success "Simply _get_ the restore object previously created"
+
+    ``` shell
+    kubectl -n openstack get restore maria-restore
+    ```
+
+    ``` { .no-copy }
+    NAME            COMPLETE   STATUS    MARIADB           AGE
+    maria-restore   True       Success   mariadb-cluster   26s
+    ```

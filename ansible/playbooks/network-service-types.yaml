@@ -69,7 +69,8 @@
     - name: Gather timestamp for subnet backup info
       ansible.builtin.setup:
         filter: "ansible_date_time"
-      when: save_copy | bool
+      when:
+        - save_copy | bool
 
     # If we operated on the wrong subnet or it has some complicated set of
     # service types, we have a full copy of what everything looked like before
@@ -86,7 +87,8 @@
         content: >
           {{ item.subnets[0] }}
         dest: "{{ item.subnets[0].id }}_{{ ansible_date_time.year }}-{{ ansible_date_time.month }}-{{ ansible_date_time.day }}-{{ ansible_date_time.hour }}-{{ ansible_date_time.minute }}-{{ ansible_date_time.second }}.json"
-      when: save_copy | bool
+      when:
+        - save_copy | bool
       loop: "{{ subnets_result.results }}"
 
     # Unfortunately, openstack.cloud.subnet cannot modify subnets. It can only

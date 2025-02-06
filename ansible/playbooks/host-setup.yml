@@ -19,7 +19,7 @@
   gather_facts: "{{ gather_facts | default(true) }}"
   environment: "{{ deployment_environment_variables | default({}) }}"
   vars:
-    helm_version: ""  # Assume the default or set an explicit version.
+    helm_version: "" # Assume the default or set an explicit version.
   tasks:
     - name: Download Helm command line tool
       ansible.builtin.uri:
@@ -36,44 +36,42 @@
 
 - hosts: all
   become: true
-  gather_facts: "{{ gather_facts | default(true) }}"
+  gather_facts: true
   environment: "{{ deployment_environment_variables | default({}) }}"
   roles:
     - host_setup
-
-- hosts: openstack_compute_nodes
-  become: true
-  gather_facts: true
-  environment: "{{ deployment_environment_variables | default({}) }}"
-  tasks:
+  post_tasks:
+    - name: Stop multipathd and multipath-tools service
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: stopped
+        daemon_reload: true
+        enabled: false
+      loop:
+        - multipathd.socket
+        - multipathd.service
+        - multipath-tools.service
+      when:
+        - not (custom_multipath | default(false) | bool)
     - name: Copy over multipath Round Robin configuration file
       when:
-       - custom_multipath | default(false) | bool
+        - custom_multipath | default(false) | bool
       block:
+        - name: Install Packages
+          ansible.builtin.package:
+            name:
+              - multipath-tools
+          notify:
+            - Restart multipathd and multipath-tools service
         - name: Copy config file and restart multipathd
           ansible.builtin.copy:
             src: "{{ playbook_dir }}/templates/genestack-multipath.conf"
             dest: /etc/multipath.conf
             owner: root
             group: root
-            mode: '0644'
+            mode: "0644"
           notify:
-            - Restart multipathd systemd service
-  handlers:
-    - name: Restart multipathd systemd service
-      ansible.builtin.systemd:
-        name: multipathd
-        state: restarted
-        daemon_reload: true
-        enabled: true
-
-
-
-- hosts: openstack_compute_nodes
-  become: true
-  gather_facts: true
-  environment: "{{ deployment_environment_variables | default({}) }}"
-  tasks:
+            - Restart multipathd and multipath-tools service
     - name: Install open-iscsi and multipath on nova compute nodes
       when:
         - enable_iscsi | default(false) | bool
@@ -82,17 +80,17 @@
           ansible.builtin.package:
             name:
               - open-iscsi
-              - multipath-tools
             state: "{{ iscsi_package_state | default('present') }}"
             update_cache: true
-          register: _multipath_packages
-        - name: Make sure open-iscsi is started and enabled
-          ansible.builtin.systemd:
-            name: iscsid.service
-            state: "{{ (_multipath_packages is changed) | ternary('restarted', 'started') }}"
-            enabled: true
-        - name: Make sure multipathd is started and enabled
-          ansible.builtin.systemd:
-            name: multipathd.service
-            state: "{{ (_multipath_packages is changed) | ternary('restarted', 'started') }}"
-            enabled: true
+          notify:
+            - Restart multipathd and multipath-tools service
+  handlers:
+    - name: Restart multipathd and multipath-tools service
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: restarted
+        daemon_reload: true
+        enabled: true
+      loop:
+        - multipathd.service
+        - multipath-tools.service
