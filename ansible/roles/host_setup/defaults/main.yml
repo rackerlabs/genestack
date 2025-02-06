@@ -128,3 +128,8 @@ host_specific_kernel_modules: []
 # Optional user defined list of sysctl options in the same dict item format as
 # above.
 user_kernel_options: []
+
+# Limited to two servers, the first one is the primary and the second one is the backup.
+host_ntp_server:
+  - 0.pool.ntp.org
+  - 1.pool.ntp.org
