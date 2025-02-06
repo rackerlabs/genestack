@@ -12,7 +12,6 @@ jobs:
       matrix:
         overlays:
           - base
-          - base-monitoring
           - aio
     name: Helm
     runs-on: ubuntu-latest
