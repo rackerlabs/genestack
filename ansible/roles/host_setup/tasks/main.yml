@@ -122,11 +122,16 @@
   retries: 5
   delay: 2
 
-# this is added to remove conflicts with systemd-timesyncd and ntpsec with kubespray installation
-- name: Ensure conflicting time synchronization packages are removed
-  package:
-    name:
-      - ntpsec
-      - systemd-timesyncd
-    state: absent
-    purge: yes
+- name: Ensure timesyncd is running
+  ansible.builtin.service:
+    name: systemd-timesyncd
+    state: started
+    enabled: true
+  notify: Reload systemd-timesyncd
+
+- name: Create systemd-timesyncd configuration file
+  ansible.builtin.template:
+    src: timesyncd.conf.j2
+    dest: /etc/systemd/timesyncd.conf
+    mode: "0644"
+  notify: Reload systemd-timesyncd
