@@ -838,7 +838,7 @@ conf:
       # TODO: Not available until 2024.1, but once it is, we want to enable these!
       # new feature ref; https://docs.openstack.org/releasenotes/oslo.messaging/2024.1.html
       rabbit_transient_quorum_queue: false
-      use_queue_manager: true
+      use_queue_manager: false
       # Reconnect after a node outage more quickly
       rabbit_interval_max: 10
       # Send more frequent heartbeats and fail unhealthy nodes faster
