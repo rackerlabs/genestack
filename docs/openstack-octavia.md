@@ -42,7 +42,7 @@ Before you can deploy octavia, it requires a few things to be setup ahead of tim
 * Amphora image creation
 * and more
 
-In order to automate these tasks, we have provided an ansible role, but you will need to create the playbook. 
+In order to automate these tasks, we have provided an ansible role, but you will need to create the playbook.
 
 ``` shell
 cat <<'EOF' >> octavia-preconf-main.yaml
@@ -63,7 +63,7 @@ cat <<'EOF' >> octavia-preconf-main.yaml
     OS_IDENTITY_API_VERSION: 3
     OS_AUTH_VERSION: 3
     NOVA_ENDPOINT_TYPE: publicURL
-  roles:  
+  roles:
     - /opt/genestack/ansible/playbooks/roles/octavia_preconf
 EOF
 ```
