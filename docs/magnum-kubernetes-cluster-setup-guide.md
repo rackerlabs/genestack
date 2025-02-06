@@ -34,14 +34,14 @@ openstack keypair create mykey > mykey.pem
 
 A ClusterTemplate is a collection of parameters to describe how a cluster can be constructed. Some parameters are relevant to the infrastructure of the cluster, while others are for the particular COE. In a typical workflow, a user would create a ClusterTemplate, then create one or more clusters using the ClusterTemplate. A ClusterTemplate cannot be updated or deleted if a cluster using this ClusterTemplate still exists.
 
-!!! note "Information about the Default Public ClusterTemplate"
+!!! note "Information about the Default Public Cluster Templates"
 
-    A default ClusterTemplate, named default-cluster-template, can be created in the environment and used by anyone to deploy new Kubernetes clusters. To use this template, pass the --cluster-template default-cluster-template parameter during cluster creation.
+    Below cluster templates can be created in the environment and used by anyone to deploy new Kubernetes clusters. To use this template, pass the --cluster-template <template-name> parameter during cluster creation.
 
-    ??? example "Default Public ClusterTemplate Creation"
+    ??? example "Cluster Templates Creation"
 
         ``` shell
-        openstack coe cluster template create default-cluster-template \
+        openstack coe cluster template create k8s-cluster-template-no-lb \
                   --image magnum-fedora-coreos-40 \
                   --external-network  PUBLICNET \
                   --dns-nameserver 8.8.8.8 \
@@ -51,6 +51,19 @@ A ClusterTemplate is a collection of parameters to describe how a cluster can be
                   --volume-driver cinder \
                   --docker-volume-size 10 \
                   --coe kubernetes \
+                  --public
+
+        openstack coe cluster template create k8s-cluster-template-with-lb \
+                  --image magnum-fedora-coreos-40 \
+                  --external-network  PUBLICNET \
+                  --dns-nameserver 8.8.8.8 \
+                  --master-flavor gp.0.4.8 \
+                  --flavor gp.0.4.8 \
+                  --network-driver calico \
+                  --volume-driver cinder \
+                  --docker-volume-size 10 \
+                  --coe kubernetes \
+                  --master-lb-enabled \
                   --public
         ```
 
