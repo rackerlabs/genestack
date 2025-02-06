@@ -4,7 +4,7 @@ metadata:
   name: flex-gateway
   namespace: nginx-gateway
   annotations: # This is the name of the ClusterIssuer created in the previous step
-    cert-manager.io/cluster-issuer: flex-gateway-issuer
+    cert-manager.io/cluster-issuer: public-endpoint-issuer
     acme.cert-manager.io/http01-edit-in-place: "true"
 spec:
   gatewayClassName: nginx
