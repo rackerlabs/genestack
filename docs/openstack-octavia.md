@@ -30,12 +30,107 @@ OpenStack Octavia is the load balancing service within the OpenStack ecosystem, 
                 --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
         ```
 
+## Prerequisite
+
+Before you can deploy octavia, it requires a few things to be setup ahead of time:
+
+* Quota check/update
+* Certificate creation
+* Security group configuration
+* Amphora management network
+* Port creation for health manager pods
+* Amphora image creation
+* and more
+
+In order to automate these tasks, we have provided an ansible role, but you will need to create the playbook. 
+
+``` shell
+cat <<'EOF' >> octavia-preconf-main.yaml
+- name: Pre-requisites for enabling amphora provider in octavia
+  hosts: localhost
+  environment:
+    OS_ENDPOINT_TYPE: publicURL
+    OS_INTERFACE: publicURL
+    OS_USERNAME: 'admin'
+    OS_PASSWORD: '<PASSWORD>'
+    OS_PROJECT_NAME: 'admin'
+    OS_TENANT_NAME: 'admin'
+    OS_AUTH_TYPE: password
+    OS_AUTH_URL: '<KEYSTONE_PUBLIC_ENDPOINT>'
+    OS_USER_DOMAIN_NAME: 'default'
+    OS_PROJECT_DOMAIN_NAME: 'default'
+    OS_REGION_NAME: '<REGION>'
+    OS_IDENTITY_API_VERSION: 3
+    OS_AUTH_VERSION: 3
+    NOVA_ENDPOINT_TYPE: publicURL
+  roles:  
+    - /opt/genestack/ansible/playbooks/roles/octavia_preconf
+EOF
+```
+
+You can get the Keystone url and region with the following command:
+
+``` shell
+openstack --os-cloud=default endpoint list --service keystone --interface public -c Region -c URL -f value
+```
+
+You can get the admin password by using kubectl:
+
+``` shell
+kubectl get secrets keystone-admin -n openstack -o jsonpath='{.data.password}' | base64 -d
+```
+
+Make sure to udpate the octavia-preconf-main.yaml with the correct region, auth url, and password.
+
+!!! note
+    The playbook requires a few pip packages to run properly.  You can create a virutal environment if you like.
+
+    !!! example
+
+        ``` shell
+            apt-get install python3-venv python3-pip
+            mkdir -p ~/.venvs
+            python3 -m venv --system-site-packages ~/.venvs/octavia_preconf
+            source .venvs/octavia_preconf/bin/activate
+        ```
+
+### Install the required pip packages:
+
+``` shell
+pip install --upgrade pip
+pip install "ansible>=2.9" "openstacksdk>=1.0.0" "python-openstackclient==6.2.0" kubernetes
+```
+
+### Adjust values if needed
+
+The default values are in `/opt/genestack/ansible/playbooks/roles/octavia_preconf/defaults/main.yml`
+
+Review the settings and adjust as necessary.  Depending on the size of your cluster, you may want to adjust the lb_mgmt_subnet settings or block icmp and ssh access to the amphora vms.
+
+### Run the playbook:
+
+``` shell
+ansible-playbook octavia-preconf-main.yaml
+```
+
+Once everything is complete, a new file will be created in your home directory called `octavia_amphora_provider.yaml`
+
+**You will need this file when running the deployment!**
+
 ## Run the package deployment
 
 !!! example "Run the Octavia deployment Script `bin/install-octavia.sh`"
 
     ``` shell
     --8<-- "bin/install-octavia.sh"
+    ```
+
+**Make sure to include the file when you run the script by adding a `-f /<HOME_DIRECTORY>/octavia_amphora_provider.yaml`**
+
+!!! example
+
+    ``` shell
+    /opt/genestack/bin/install-octavia.sh -f /home/ubuntu/octavia_amphora_provider.yaml
     ```
 
 !!! tip
