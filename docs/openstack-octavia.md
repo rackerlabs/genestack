@@ -42,31 +42,7 @@ Before you can deploy octavia, it requires a few things to be setup ahead of tim
 * Amphora image creation
 * and more
 
-In order to automate these tasks, we have provided an ansible role, but you will need to create the playbook.
-
-``` shell
-cat <<'EOF' >> octavia-preconf-main.yaml
-- name: Pre-requisites for enabling amphora provider in octavia
-  hosts: localhost
-  environment:
-    OS_ENDPOINT_TYPE: publicURL
-    OS_INTERFACE: publicURL
-    OS_USERNAME: 'admin'
-    OS_PASSWORD: '<PASSWORD>'
-    OS_PROJECT_NAME: 'admin'
-    OS_TENANT_NAME: 'admin'
-    OS_AUTH_TYPE: password
-    OS_AUTH_URL: '<KEYSTONE_PUBLIC_ENDPOINT>'
-    OS_USER_DOMAIN_NAME: 'default'
-    OS_PROJECT_DOMAIN_NAME: 'default'
-    OS_REGION_NAME: '<REGION>'
-    OS_IDENTITY_API_VERSION: 3
-    OS_AUTH_VERSION: 3
-    NOVA_ENDPOINT_TYPE: publicURL
-  roles:
-    - /opt/genestack/ansible/playbooks/roles/octavia_preconf
-EOF
-```
+In order to automate these tasks, we have provided an ansible role and a playbook.  The playbook, `octavia-preconf-main.yaml`, is located in the ansible/playbook directory.  You will need to update the variables in the playbook to match your deployment.
 
 You can get the Keystone url and region with the following command:
 
@@ -82,7 +58,7 @@ kubectl get secrets keystone-admin -n openstack -o jsonpath='{.data.password}' |
 
 Make sure to udpate the octavia-preconf-main.yaml with the correct region, auth url, and password.
 
-!!! note
+!!! tip
     The playbook requires a few pip packages to run properly.  You can create a virutal environment if you like.
 
     !!! example
@@ -92,14 +68,9 @@ Make sure to udpate the octavia-preconf-main.yaml with the correct region, auth 
             mkdir -p ~/.venvs
             python3 -m venv --system-site-packages ~/.venvs/octavia_preconf
             source .venvs/octavia_preconf/bin/activate
+            pip install --upgrade pip
+            pip install "ansible>=2.9" "openstacksdk>=1.0.0" "python-openstackclient==6.2.0" kubernetes            
         ```
-
-### Install the required pip packages:
-
-``` shell
-pip install --upgrade pip
-pip install "ansible>=2.9" "openstacksdk>=1.0.0" "python-openstackclient==6.2.0" kubernetes
-```
 
 ### Adjust values if needed
 
@@ -110,6 +81,7 @@ Review the settings and adjust as necessary.  Depending on the size of your clus
 ### Run the playbook:
 
 ``` shell
+cd /opt/genestack/ansible/playbooks
 ansible-playbook octavia-preconf-main.yaml
 ```
 

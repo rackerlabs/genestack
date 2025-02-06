@@ -1,0 +1,39 @@
+- name: Pre-requisites for enabling amphora provider in octavia
+  hosts: localhost
+  vars:
+    octavia_os_endpoint_type: publicURL
+    octavia_os_interface: "{{ octavia_os_endpoint_type }}"
+    octavia_os_username: admin
+    octavia_os_project_name: admin
+    octavia_os_tenant_name: '{{ octavia_os_project_name }}'
+    octavia_os_auth_type: password
+    octavia_os_auth_url: http://keystone-api.openstack.svc.cluster.local:5000/v3
+    octavia_os_user_domain_name: default
+    octavia_os_project_domain_name: "{{ octavia_os_user_domain_name }}"
+    octavia_os_region_name: RegionOne
+    octavia_os_identity_api_version: 3
+    octavia_os_auth_version: 3
+    octavia_nova_endpoint_type: "{{ octavia_os_endpoint_type }}"
+  environment:
+    OS_ENDPOINT_TYPE: "{{ octavia_os_endpoint_type }}"
+    OS_INTERFACE: "{{ octavia_os_interface}}"
+    OS_USERNAME: "{{ octavia_os_username }}"
+    OS_PASSWORD: "{{ octavia_os_password }}"
+    OS_PROJECT_NAME: "{{ octavia_os_project_name}}"
+    OS_TENANT_NAME: 'admin'
+    OS_AUTH_TYPE: password
+    OS_AUTH_URL: "{{ octavia_os_auth_url }}"
+    OS_USER_DOMAIN_NAME: "{{ octavia_os_user_domain_name }}"
+    OS_PROJECT_DOMAIN_NAME: "{{ octavia_os_project_domain_name }}"
+    OS_REGION_NAME: "{{ octavia_os_region_name }}"
+    OS_IDENTITY_API_VERSION: "{{ octavia_os_identity_api_version }}"
+    OS_AUTH_VERSION: "{{ octavia_os_auth_version }}"
+    NOVA_ENDPOINT_TYPE: "{{ octavia_nova_endpoint_type }}"
+  pre_tasks:
+    - name: Check for credentials
+      ansible.builtin.fail:
+        msg: "You must provide the octavia_os_password variable to use this role"
+      when:
+        - octavia_os_password is undefined
+  roles:
+    - octavia_preconf
