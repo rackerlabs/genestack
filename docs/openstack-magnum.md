@@ -49,6 +49,6 @@ OpenStack Magnum is the container orchestration service within the OpenStack eco
 kubectl --namespace openstack exec -ti openstack-admin-client -- openstack coe cluster list
 ```
 
-## Create a Default Public ClusterTemplate
+## Create a Public ClusterTemplate
 
-User must have the admin role to create the public ClusterTemplate. For instructions on creating the default public ClusterTemplate and using it to deploy a new Kubernetes cluster, please refer to the ClusterTemplate section in the [Magnum Kubernetes Cluster Setup Guide](https://docs.rackspacecloud.com/magnum-kubernetes-cluster-setup-guide/#clustertemplate).
+User must have the admin role to create the public ClusterTemplate. For instructions on creating and using it to deploy a new Kubernetes cluster, please refer to the ClusterTemplate section in the [Magnum Kubernetes Cluster Setup Guide](https://docs.rackspacecloud.com/magnum-kubernetes-cluster-setup-guide/#clustertemplate).
