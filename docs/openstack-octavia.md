@@ -69,7 +69,7 @@ Make sure to udpate the octavia-preconf-main.yaml with the correct region, auth 
             python3 -m venv --system-site-packages ~/.venvs/octavia_preconf
             source .venvs/octavia_preconf/bin/activate
             pip install --upgrade pip
-            pip install "ansible>=2.9" "openstacksdk>=1.0.0" "python-openstackclient==6.2.0" kubernetes            
+            pip install "ansible>=2.9" "openstacksdk>=1.0.0" "python-openstackclient==6.2.0" kubernetes
         ```
 
 ### Adjust values if needed
