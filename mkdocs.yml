@@ -327,7 +327,7 @@ nav:
       - Security In Phases: security-lifecycle.md
       - Cloud Security: security-stages.md
       - Summary: security-summary.md
-  - Blog: https://blog.rackspacecloud.com
+  - Blog: https://blog.rackspacecloud.com/blog
   - Regions:
       - Availability: api-status.md
       - SJC3:

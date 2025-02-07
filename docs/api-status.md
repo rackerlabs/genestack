@@ -1,6 +1,6 @@
 # Rackspace OpenStack Flex
 
-Rackspace OpenStack Private Cloud has gone __Public__.
+Clouds Without Borders. Rackspace OpenStack Private Goes __Public__.
 
 ## Power Innovation Worldwide with One OpenStack Platform
 
