@@ -1,6 +1,6 @@
 # What is Accelerated Computing?
 
-![Rackspace Cloud Software](assets/images/ospc_flex_logo_red.svg){ align=left : style="max-width:175px" }
+![Rackspace OpenStack Software](assets/images/ospc_flex_logo_red.svg){ align=left : style="max-width:175px" }
 
 ## Overview
 
