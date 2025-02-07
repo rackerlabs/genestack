@@ -1,7 +1,7 @@
 ---
-site_name: Open Infrastructure
+site_name: Rackspace OpenStack Flex
 site_description: >-
-  Open Infrastructure, a Rackspace solution, is a collection of open-source tools and technologies that provide a
+  Rackspace OpenStack Flex, a Rackspace solution, is open-source technologies that provide a
   flexible, scalable, and cost-effective infrastructure solution for your business. This documentation provides
   information on how to deploy and manage Open-Infrastructure in your environment. It also provides information on how
   to onboard and manage your workloads on OpenStack, Kubernetes, and other open-source technologies.
@@ -146,6 +146,7 @@ nav:
       - Other Design Documentation:
           - Disaster Recovery for OpenStack Clouds: openstack-cloud-design-dr.md
           - Genestack Infrastructure Design: openstack-cloud-design-genestack-infra.md
+      - Style Guide: documentation-standards.md
   - Deployment Guide:
       - What is Genestack?: deployment-guide-welcome.md
       - Getting Started:
@@ -326,6 +327,12 @@ nav:
       - Security In Phases: security-lifecycle.md
       - Cloud Security: security-stages.md
       - Summary: security-summary.md
-  - Blog: https://blog.rackspacecloud.com/
-  - Status: api-status.md
-  - Style Guide: documentation-standards.md
+  - Blog: https://blog.rackspacecloud.com
+  - Regions:
+      - Availability: api-status.md
+      - SJC3:
+          - "<img src='https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Frackerlabs%2Frs-flex-uptime%2Frefs%2Fheads%2Fmaster%2Fstatus.json'/>": https://status.api.sjc3.rackspacecloud.com
+          - "<strong>Control Panel</strong>": https://skyline.api.sjc3.rackspacecloud.com
+      - DFW3:
+          - "<img src='https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fthe2hill%2Frs-flex-uptime-dfw%2Frefs%2Fheads%2Fmaster%2Fstatus.json'/>": https://status.api.dfw3.rackspacecloud.com
+          - "<strong>Control Panel</strong>": https://skyline.api.dfw3.rackspacecloud.com

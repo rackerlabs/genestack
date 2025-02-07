@@ -24,7 +24,7 @@ Swift Object Storage is a component of the greater Openstack ecosystem.  It was 
 
 Onboarding with Openstack Swift Object store is covered in the following trove of documents located here:
 
-[Rackspace Flex Cloud Onboarding](https://docs.rackspacecloud.com/cloud-onboarding-welcome/)
+[Rackspace OpenStack Flex Onboarding](https://docs.rackspacecloud.com/cloud-onboarding-welcome/)
 
 Topics include Swift CLI, S3cmd, rclone setup.
 

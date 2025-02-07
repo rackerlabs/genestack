@@ -20,13 +20,11 @@ After switch and firewall configuration, deployment nodes are created with in th
 
 ​	With a standard API and lightweight footprint, Ironic can serve as a driver for a variety of bare metal infrastructure. Ironic allows users to manage bare metal infrastructure like they would virtual  machines and provides ideal infrastructure to run container  orchestration frameworks like Kubernetes to optimize performance.
 
-
-
 #### Integration Methods and Use-Case
 
 ​	Ironic is being used today to deploy the infrastructure for Rackspace's Openstack public cloud in an internal product known as Undercloud. Undercloud is agnostic to tooling making it flexible to use in local or remote datacenters.
 
-​	For example, a customer in their own datacenter can stand up the reference architecture hardware for Rackspace Clouds and, granting ingress access to DRAC or iLO, allow our engineers to create the Ironic environment and flavors required for the compute hardware.  The servers are identified their first PXE boot and the proper server flavor and image are applied.  When a server goes offline to due hardware or drive failures, it can be re-provisioned after repair back to its original operating system and added back to the Openstack environment through Flex automation.
+​	For example, a customer in their own datacenter can stand up the reference architecture hardware for Rackspace OpenStack and, granting ingress access to DRAC or iLO, allow our engineers to create the Ironic environment and flavors required for the compute hardware.  The servers are identified their first PXE boot and the proper server flavor and image are applied.  When a server goes offline to due hardware or drive failures, it can be re-provisioned after repair back to its original operating system and added back to the Openstack environment through Flex automation.
 
 ### Leaf-Spline Network Architecture
 
@@ -46,7 +44,6 @@ After switch and firewall configuration, deployment nodes are created with in th
 - **Performance.** Protocols such as Shortest Path Bridging  (SPB) and Transparent Interconnection of Lots of Links (TRILL) aid in  avoiding traffic congestion.
 - **Scalability.** Additional spine switches can be added to help avoid oversubscriptionand increase scalability.
 - **Reduces spending.** A spine-leaf architecture increases  the number of connections each switch can handle, so data centers  require fewer devices to deploy.
-
 
 #### Network Design Details
 

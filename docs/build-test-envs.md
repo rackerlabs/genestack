@@ -89,7 +89,7 @@ Run the test infrastructure deployment.
 ansible-playbook -i localhost, infra-deploy.yaml
 ```
 
-Here's an example where all of the cloud defaults have been overridden to use known options within my OpenStack Cloud environment.
+Here's an example where all of the cloud defaults have been overridden to use known options within an OpenStack Cloud environment.
 
 ``` shell
 ansible-playbook -i localhost, infra-deploy.yaml -e os_image_id=Ubuntu-22.04 \
