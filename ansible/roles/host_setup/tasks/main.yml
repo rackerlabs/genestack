@@ -95,7 +95,7 @@
   when:
     - ansible_facts['os_family'] | lower == 'debian'
 
-- name: Set CPU frequency governor to performance
+- name: Set CPU frequency governor
   ansible.builtin.include_tasks: CPU_frequency.yml
   when:
     - ansible_facts['os_family'] | lower == 'debian'
