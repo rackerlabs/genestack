@@ -2,16 +2,19 @@
 
 Rackspace OpenStack Private Cloud has gone __Public__.
 
-## Deploy Anywhere
+## Power Innovation Worldwide with One OpenStack Platform
 
 ![Rackspace OpenStack Software](assets/images/cloud-anywhere.png){ align=left : style="width:100%;max-width:500px" }
 
-Meet demand across multiple geographies and meet local data sovereignty and security protocols.
-All of the available regions are available for deployment, run on our one OpenStack platform,
-and delver Fanatical experiences managed by an incredible team of experts.
+The ability to scale across geographies, meet strict data sovereignty requirements, and maintain rigorous security
+is paramount. With Rackspace, you can tap into any of our available regions, all running on a unified OpenStack
+platform—so you stay agile, compliant, and equipped to evolve in a fast-paced world.
+
+And it doesn’t stop there. Our incredible team of experts is committed to delivering Fanatical support every step
+of the way, ensuring you have the guidance and confidence to take your technology stack further than ever before.
 
 [Create a new account](https://cart.rackspace.com/cloud) or [reach out](https://www.rackspace.com/cloud/openstack/private).
-When you're ready to begin building your future with Rackspace, we'll be ready to assist you to build an incredible
+When you’re ready to shape the future of your organization, we’ll be here, ready to help you build an extraordinary
 platform on our open ecosystem.
 
 <br clear="left">
