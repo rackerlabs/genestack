@@ -81,11 +81,14 @@ There are various implementations of the Gateway API. In this document, we will 
     === "Stable _(Recommended)_"
 
         ``` shell
-        cd /opt/genestack/submodules/nginx-gateway-fabric/charts
-
+        pushd /opt/genestack/submodules/nginx-gateway-fabric/charts || exit 1
         helm upgrade --install nginx-gateway-fabric ./nginx-gateway-fabric \
-                    --namespace=nginx-gateway \
-                    -f /etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml
+            --namespace=nginx-gateway \
+            -f /opt/genestack/base-helm-configs/nginx-gateway-fabric/helm-overrides.yaml \
+            -f /etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml \
+            --post-renderer /etc/genestack/kustomize/kustomize.sh \
+            --post-renderer-args gateway/overlay
+        popd || exit 1
         ```
 
     === "Experimental"
