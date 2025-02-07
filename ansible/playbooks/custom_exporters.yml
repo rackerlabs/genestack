@@ -23,9 +23,56 @@
         dest: /opt/custom_exporters/
         mode: a+x
 
+    - name: Install moreutils sponge
+      ansible.builtin.package:
+        name:
+          - moreutils
+          - nvme-cli
+        state: present
+        update_cache: true
+
+
 # Individual exporter cron tasks...
     - name: Create a job that runs every minute to check kernel taint and store for metrics collection
       ansible.builtin.cron:
         name: "Kernel taint inspector"
         minute: "*/1"
         job: "/opt/custom_exporters/kernel_taint.sh"
+
+    - name: Dell custom exporter cron tasks
+      when:
+        - ansible_facts.ansible_system_vendor == "Dell Inc."
+      block:
+        - name: Create a job that runs every 3 minutes to check mdadm status and store for metrics collection
+          ansible.builtin.cron:
+            name: "mdadm inspector"
+            minute: "*/3"
+            job: "/opt/custom_exporters/md_info_detail.sh | sponge /opt/node_exporter/textfile_collector/md_info_detail.prom"
+        - name: Create a job that runs every 3 minutes to check nvme status and store for metrics collection
+          ansible.builtin.cron:
+            name: "nvme inspector"
+            minute: "*/3"
+            job: "/opt/custom_exporters/nvme_metrics.py | sponge /opt/node_exporter/textfile_collector/nvme_metrics.prom"
+        - name: Create a job that runs every 5 minutes to check DELL RAID and store for metrics collection
+          ansible.builtin.cron:
+            name: "perccli64 raid disk inspector"
+            minute: "*/5"
+            job: "/opt/custom_exporters/perccli.py | sponge /opt/node_exporter/textfile_collector/perccli.prom"
+
+# Task block for HP nodes. Only one check being added now. Append new tasks as needed
+    - name: HP custom exporter cron tasks
+      when:
+        - ansible_facts.ansible_system_vendor == "HP"
+      block:
+        - name: Create a job that runs every 5 minutes to check HP ssacli RAID and store for metrics collection
+          ansible.builtin.cron:
+            name: "ssacli raid disk inspector"
+            minute: "*/5"
+            job: "/opt/custom_exporters/ssacli_exporter.py | sponge /opt/node_exporter/textfile_collector/ssacli_exporter.prom"
+
+    - name: Create a job that runs every 5 minutes to check multipathd status and store for metrics collection
+      ansible.builtin.cron:
+        name: "multipathd inspector"
+        minute: "*/5"
+        job: "/opt/custom_exporters/multipathd_info | sponge /opt/node_exporter/textfile_collector/multipathd_info.prom"
+      when: inventory_hostname in groups['openstack_compute_nodes']
