@@ -47,6 +47,7 @@
         state: stopped
         daemon_reload: true
         enabled: false
+      ignore_errors: true
       loop:
         - multipathd.socket
         - multipathd.service
