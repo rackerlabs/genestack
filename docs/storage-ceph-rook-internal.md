@@ -27,7 +27,7 @@ kubectl apply -k /etc/genestack/kustomize/rook-operator/
     Rook will deploy against nodes labeled `role=storage-node`. Make sure to have a look at the `/etc/genestack/kustomize/rook-cluster/rook-cluster.yaml` file to ensure it's setup to your liking, pay special attention to your `deviceFilter` settings, especially if different devices have different device layouts.
 
 ``` shell
-kubectl apply -k /etc/genestack/kustomize/rook-cluster/
+kubectl apply -k /etc/genestack/kustomize/rook-cluster/overlay
 ```
 
 ## Validate the cluster is operational
