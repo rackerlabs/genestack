@@ -263,7 +263,7 @@
           - _result_keypair.keypair.private_key is not none
           - _result_keypair.keypair.private_key | length > 0
         msg: Keypair already exists, nothing created.
-      ignore_errors: true
+      failed_when: false
       register: _result_keypair_check
     - name: Create keypair
       ansible.builtin.copy:
@@ -580,7 +580,6 @@
     - name: Check if hosts file has anything for 172.31.
       command: grep -q 172.31. /etc/hosts
       register: hosts_updated
-      ignore_errors: true
       failed_when: hosts_updated.rc not in [0, 1]
     - name: Add inventory to hosts file iff no 172.31. IPs exist
       shell: cat /etc/genestack/inventory/{{ os_network_name }}-inventory.ini | awk '/ansible/ { print $2, $1 }' | cut -f2 -d"=" >> /etc/hosts

@@ -258,6 +258,7 @@ nav:
               - Monitoring introduction: ovn-monitoring-introduction.md
               - Claim Storm alert: ovn-alert-claim-storm.md
               - Updating Kube OVN to OpenStack Configuration: ovn-kube-ovn-openstack.md
+              - Updating Kube OVN IP Space: infrastructure-kube-ovn-re-ip.md
           - MariaDB:
               - Operations: infrastructure-mariadb-ops.md
           - Gateway API:
