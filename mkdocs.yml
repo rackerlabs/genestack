@@ -172,8 +172,6 @@ nav:
               - TopoLVM: storage-topolvm.md
               - External Storage CSI: storage-external-block.md
               - Longhorn: storage-longhorn.md
-          - Secrets:
-              - Sealed Secrets: sealed-secrets.md
           - Infrastructure:
               - infrastructure-overview.md
               - Namespace: infrastructure-namespace.md
