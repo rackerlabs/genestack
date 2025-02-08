@@ -498,7 +498,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--percli_path",
+        "--perccli_path",
         default="/opt/MegaRAID/perccli/perccli64",
         help="path to PercCLI binary",
     )
