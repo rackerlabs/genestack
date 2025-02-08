@@ -16,7 +16,6 @@ Make sure you label things accordingly.
 
 | <div style="width:220px">key</div> | type | <div style="width:128px">value</div>  | notes |
 |:-----|--|:----------------:|:------|
-| **role** | str | `storage-node` | The "role" is general purpose, and currently only used when deploying the ceph cluster with rook |
 | **openstack-control-plane** | str| `enabled` | Defines which nodes will run the OpenStack Control Plane |
 | **openstack-compute-node** | str|`enabled` | Defines which nodes will run OpenStack Compute |
 | **openstack-network-node** | str|`enabled` | Defines which nodes will run OpenStack Networking |

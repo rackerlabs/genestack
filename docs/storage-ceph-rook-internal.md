@@ -20,6 +20,21 @@ kubectl apply -k /etc/genestack/kustomize/rook-operator/
     kubectl -n rook-ceph set image deploy/rook-ceph-operator rook-ceph-operator=rook/ceph:v1.13.7
     ```
 
+### Label the Storage Nodes
+
+
+| <div style="width:220px">key</div> | type | <div style="width:128px">value</div>  | notes |
+|:-----|--|:----------------:|:------|
+| **role** | str | `storage-node` | When set to "storage-node" the node will be used for Ceph OSDs |
+
+Use the following command to label a node to be part of the Longhorn storage cluster:
+
+``` shell
+kubectl label node ${NODE_NAME} role=storage-node
+```
+
+Replace `${NODE_NAME}` with the name of your node. If you have multiple storage nodes, run this command against each one.
+
 ## Deploy the Rook cluster
 
 !!! note
