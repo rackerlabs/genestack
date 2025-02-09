@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2124,SC2145,SC2294
 
 # Set default directories
 GENESTACK_DIR="${GENESTACK_DIR:-/opt/genestack}"
@@ -40,8 +41,12 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 helm repo update
 
 # Run the Helm upgrade/install command using the collected --values arguments
-helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
-    --create-namespace --namespace=prometheus --timeout 10m \
-    "${values_args[@]}" \
-    --post-renderer "$GENESTACK_CONFIG_DIR/kustomize/kustomize.sh" \
-    --post-renderer-args prometheus/overlay "$*"
+HELM_CMD="helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack --create-namespace --namespace=prometheus --timeout 10m"
+HELM_CMD+=" ${values_args[@]}"
+HELM_CMD+=" --post-renderer $GENESTACK_CONFIG_DIR/kustomize/kustomize.sh"
+HELM_CMD+=" --post-renderer-args prometheus/overlay"
+HELM_CMD+=" $@"
+
+echo "Executing Helm command:"
+echo "${HELM_CMD}"
+eval "${HELM_CMD}"
