@@ -65,8 +65,10 @@ There are various implementations of the Gateway API. In this document, we will 
 
     === "Experimental"
 
+        The experimental version of the Gateway API is available in the `v1.6.1` checkout. Use with caution.
+
         ``` shell
-        kubectl kustomize "https://github.com/nginxinc/nginx-gateway-fabric/config/crd/gateway-api/experimental?ref=v1.4.0" | kubectl apply -f -
+        kubectl kustomize "https://github.com/nginx/nginx-gateway-fabric/config/crd/gateway-api/experimental?ref=v1.6.1" | kubectl apply -f -
         ```
 
     ### Install the NGINX Gateway Fabric controller
@@ -84,6 +86,7 @@ There are various implementations of the Gateway API. In this document, we will 
         pushd /opt/genestack/submodules/nginx-gateway-fabric/charts || exit 1
         helm upgrade --install nginx-gateway-fabric ./nginx-gateway-fabric \
             --namespace=nginx-gateway \
+            --create-namespace \
             -f /opt/genestack/base-helm-configs/nginx-gateway-fabric/helm-overrides.yaml \
             -f /etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml \
             --post-renderer /etc/genestack/kustomize/kustomize.sh \
@@ -93,13 +96,36 @@ There are various implementations of the Gateway API. In this document, we will 
 
     === "Experimental"
 
-        ``` shell
-        cd /opt/genestack/submodules/nginx-gateway-fabric/charts
+        The experimental version of the Gateway API is available in the `v1.6.1` checkout. Use with caution.
 
-        helm upgrade --install nginx-gateway-fabric ./nginx-gateway-fabric \
-                    --namespace=nginx-gateway \
-                    -f /etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml \
-                    --set nginxGateway.gwAPIExperimentalFeatures.enable=true
+        Update the submodule with the experimental version of the Gateway API.
+
+        Edit the file `/etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml`.
+
+        ``` yaml
+        nginxGateway:
+          replicaCount: 3
+          gwAPIExperimentalFeatures:
+            enable: true
+        service:
+          ## The externalTrafficPolicy of the service. The value Local preserves the client source IP.
+          externalTrafficPolicy: Cluster
+          ## The annotations of the NGINX Gateway Fabric service.
+          annotations:
+            "metallb.universe.tf/address-pool": "gateway-api-external"
+            "metallb.universe.tf/allow-shared-ip": "openstack-external-svc"
+        ```
+
+        Run the helm command to install the experimental version of the Gateway API.
+
+        ``` shell
+        helm upgrade --install nginx-gateway-fabric oci://ghcr.io/nginx/charts/nginx-gateway-fabric \
+            --create-namespace \
+            --namespace=nginx-gateway \
+            -f /etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml \
+            --post-renderer /etc/genestack/kustomize/kustomize.sh \
+            --post-renderer-args gateway/overlay \
+            --version 1.6.1
         ```
 
     Once deployed ensure a system rollout has been completed for Cert Manager.
@@ -110,19 +136,9 @@ There are various implementations of the Gateway API. In this document, we will 
 
     ### Create the shared gateway resource
 
-    === "Stable _(Recommended)_"
-
-        ``` shell
-        kubectl kustomize /etc/genestack/kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
-        ```
-
-    === "Experimental"
-
-        Edit the file `/etc/genestack/kustomize/gateway/nginx-gateway-fabric/internal-gateway-api.yaml` to set the `apiVersion` according to the experimental version of your choice. Review the Gateway [API Compatibility Matrix](https://docs.nginx.com/nginx-gateway-fabric/overview/gateway-api-compatibility).
-
-        ``` shell
-        kubectl kustomize /etc/genestack/kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
-        ```
+    ``` shell
+    kubectl kustomize /etc/genestack/kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
+    ```
 
 === "Envoyproxy"
 
