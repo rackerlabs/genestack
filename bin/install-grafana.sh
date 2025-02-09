@@ -24,6 +24,9 @@ done
 
 HELM_CMD+=" $@"
 
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+
 echo "Executing Helm command:"
 echo "${HELM_CMD}"
 eval "${HELM_CMD}"
