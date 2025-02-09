@@ -161,6 +161,7 @@ nav:
                   - Kubernetes Labels: k8s-labels.md
                   - Kubernetes Dashboard: k8s-dashboard.md
                   - Kubernetes Taint: k8s-taint.md
+              - Plugins and Tools: k8s-tools.md
               - Retrieve kube config: k8s-config.md
               - Prometheus: prometheus.md
               - OpenStack Preparations: openstack-helm-make.md
