@@ -6,6 +6,9 @@ metadata:
   namespace: openstack
   annotations:
     helm.sh/resource-policy: keep
+    app.kubernetes.io/managed-by: "Helm"
+    meta.helm.sh/release-name: "heat"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   # If you want the database to be created with a different name than the resource name
   # name: data-custom
@@ -22,6 +25,9 @@ metadata:
   namespace: openstack
   annotations:
     helm.sh/resource-policy: keep
+    app.kubernetes.io/managed-by: "Helm"
+    meta.helm.sh/release-name: "heat"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   # If you want the user to be created with a different name than the resource name
   # name: user-custom
@@ -42,6 +48,9 @@ metadata:
   namespace: openstack
   annotations:
     helm.sh/resource-policy: keep
+    app.kubernetes.io/managed-by: "Helm"
+    meta.helm.sh/release-name: "heat"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   mariaDbRef:
     name: mariadb-cluster
