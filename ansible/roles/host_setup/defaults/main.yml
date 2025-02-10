@@ -133,3 +133,6 @@ user_kernel_options: []
 host_ntp_server:
   - 0.pool.ntp.org
   - 1.pool.ntp.org
+
+# Default tuned profile
+tuned_profile: throughput-performance
