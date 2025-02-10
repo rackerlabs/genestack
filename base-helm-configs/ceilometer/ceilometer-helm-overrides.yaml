@@ -2133,7 +2133,7 @@ manifests:
   job_db_sync: true
   job_image_repo_sync: true
   job_ks_endpoints: false
-  job_ks_service: true
+  job_ks_service: false
   job_ks_user: true
   job_rabbit_init: true
   pdb_api: true
