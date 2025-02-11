@@ -384,6 +384,9 @@ conf:
       memcache_security_strategy: ENCRYPT
       memcache_secret_key: null
       service_type: key-manager
+    queue:
+      enable: true
+      asynchronous_workers: 4
     database:
       max_retries: -1
     barbican_api:
