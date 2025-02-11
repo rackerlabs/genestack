@@ -9,7 +9,7 @@ Below we'll discuss on how to create a self-signed CA certicate and create a CA 
 Firstly, we'll note that Gateway API in Genestack is currently utilizing selfSigned issuer:
 
 ``` shell
-cat internal-gateway-issuer.yaml 
+cat internal-gateway-issuer.yaml
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
@@ -18,7 +18,7 @@ metadata:
 spec:
   selfSigned: {}
 
-cat internal-gateway-api.yaml 
+cat internal-gateway-api.yaml
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -42,7 +42,7 @@ The structure may look something like:
 
 !!! example
     ```
-cat internal-gateway-issuer.yaml 
+cat internal-gateway-issuer.yaml
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
