@@ -128,7 +128,7 @@ config:
   ## ref: https://helm.sh/docs/developing_charts/#using-the-tpl-function
   datasource:
     # Specify one of both datasource or datasourceSecret
-    host: postgresql
+    host: postgres-cluster
     user: postgres
     userSecret: {}
     # Secret name
@@ -142,7 +142,7 @@ config:
     passwordFile: ''
     # Specify passwordSecret if DB password is stored in secret.
     passwordSecret:
-      name: postgresql-db-admin
+      name: postgres.postgres-cluster.credentials.postgresql.acid.zalan.do
       key: password
     # Secret name
     #  name:
@@ -153,7 +153,7 @@ config:
     # See https://www.postgresql.org/docs/14/libpq-pgpass.html for more info.
     port: "5432"
     database: ''
-    sslmode: disable
+    sslmode: require
     extraParams: ''
   datasourceSecret: {}
     # Specifies if datasource should be sourced from secret value in format: postgresql://login:password@hostname:port/dbname?sslmode=disable
