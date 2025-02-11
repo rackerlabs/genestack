@@ -379,10 +379,11 @@ conf:
       transport_url: null
       log_config_append: /etc/barbican/logging.conf
     keystone_authtoken:
-      auth_type: password
+      service_token_roles: service
+      service_token_roles_required: true
       auth_version: v3
+      auth_type: password
       memcache_security_strategy: ENCRYPT
-      memcache_secret_key: null
       service_type: key-manager
     database:
       max_retries: -1

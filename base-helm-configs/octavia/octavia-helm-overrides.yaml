@@ -201,6 +201,8 @@ conf:
       controller_ip_port_list: 0.0.0.0:5555
       heartbeat_key: insecure
     keystone_authtoken:
+      service_token_roles: service
+      service_token_roles_required: true
       auth_type: password
       auth_version: v3
       memcache_security_strategy: ENCRYPT
