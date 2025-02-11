@@ -356,7 +356,7 @@ conf:
     service_endpoints:
       # map endpoint type defined in service catalog to CADF typeURI
       key-manager: service/security/keymanager
-  barbican_api_uwsgi:
+  barbican_api:
     uwsgi:
       add-header: "Connection: close"
       buffer-size: 65535
