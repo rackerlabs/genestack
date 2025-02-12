@@ -1,6 +1,6 @@
 # Creating a CA issuer for Gateway API
 
-By default in Genestack the selfSigned issuer is used to issue certificates to Gateway API listeners. This is a fairly simple issuer to create and requires a very simple yaml manifest. Although the main purpose of the selfSigned issuer to create a local PKI i.e bootstrap a local self-signed CA which can then be used to issue certificates as required. The selfSigned issuer itself doesn't represent a certificate authority by rather indicates that the certificates will sign themselves.
+By default in Genestack the selfSigned issuer is used to issue certificates to Gateway API listeners. This is a fairly simple issuer to create and requires a very simple yaml manifest. Although the main purpose of the selfSigned issuer to create a local PKI i.e bootstrap a local self-signed CA which can then be used to issue certificates as required. This is helpful for test environments. The selfSigned issuer itself doesn't represent a certificate authority by rather indicates that the certificates will sign themselves.
 
 Below we'll discuss on how to create a self-signed CA certicate and create a CA clusterissuer to issue certificates to Gateway API listeners
 
@@ -41,7 +41,7 @@ For this example workflow we'll edit `internal-gateway-issuer.yaml` file to crea
 The structure may look something like:
 
 !!! example
-    ```
+```
 cat internal-gateway-issuer.yaml
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
@@ -76,7 +76,7 @@ metadata:
 spec:
   ca:
     secretName: public-endpoint-ca-secret
-    ```
+```
 
 !!! note
     The namespace for the certificate resoruce must be cert-manager
