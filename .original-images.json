@@ -14,6 +14,6 @@
   "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy-1723129048",
   "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy-1737928811",
   "ghcr.io/rackerlabs/genestack/octavia-ovn:2024.1-ubuntu_jammy-1737651745",
-  "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1738429591",
+  "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1739377879",
   "ghcr.io/rackerlabs/skyline-rxt:master-ubuntu_jammy-1738594297"
 ]
