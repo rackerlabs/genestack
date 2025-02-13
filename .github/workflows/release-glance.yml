@@ -1,0 +1,118 @@
+#
+name: Create and publish a the Glance compatible image
+
+# Configures this workflow to run every time a change is pushed to the branch called `release`.
+on:
+  workflow_dispatch:
+    inputs:
+      imageTag:
+        description: 'Set tag for the image'
+        required: true
+        default: 'master-ubuntu_jammy'
+        type: choice
+        options:
+          - master-ubuntu_jammy
+          - 2023.1-ubuntu_jammy
+          - 2023.2-ubuntu_jammy
+          - 2024.1-ubuntu_jammy
+      pluginTag:
+        description: 'Set release used for the build environment'
+        required: true
+        default: 'master'
+        type: choice
+        options:
+          - "master"
+          - "2023.1"
+          - "2023.2"
+          - "2024.1"
+
+# Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+# There is a single job in this workflow. It's configured to run on the latest available version of Ubuntu.
+jobs:
+  build-and-push-image:
+    outputs:
+      MY_DATE: ${{ steps.mydate.outputs.MY_DATE }}
+      MY_CONTAINER: ${{ steps.mycontainer.outputs.MY_CONTAINER }}
+    runs-on: ubuntu-latest
+    # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      # Uses the `docker/login-action` action to log in to the Container registry registry using the account and password that will publish the packages. Once published, the packages are scoped to the account defined here.
+      - name: Log in to the Container registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # This step uses [docker/metadata-action](https://github.com/docker/metadata-action#about) to extract tags and labels that will be applied to the specified image. The `id` "meta" allows the output of this step to be referenced in a subsequent step. The `images` value provides the base name for the tags and labels.
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      # This step uses the `docker/build-push-action` action to build the image, based on your repository's `Dockerfile`. If the build succeeds, it pushes the image to GitHub Packages.
+      # It uses the `context` parameter to define the build's context as the set of files located in the specified path. For more information, see "[Usage](https://github.com/docker/build-push-action#usage)" in the README of the `docker/build-push-action` repository.
+      # It uses the `tags` and `labels` parameters to tag and label the image with the output from the "meta" step.
+      - name: Dynamically set MY_DATE environment variable
+        run: echo "MY_DATE=$(date +%s)" >> $GITHUB_ENV
+      - name: Build and push Docker image
+        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        with:
+          context: .
+          file: Containerfiles/Glance-Containerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/glance:${{ github.event.inputs.imageTag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/glance:${{ github.event.inputs.imageTag }}-${{ env.MY_DATE }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ github.event.inputs.imageTag }}
+            PLUGIN_VERSION=${{ github.event.inputs.pluginTag }}
+      - name: Dynamically set MY_CONTAINER output option
+        id: mycontainer
+        run: echo "MY_CONTAINER=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/glance:${{ github.event.inputs.imageTag }}-${{ env.MY_DATE }}" >> $GITHUB_OUTPUT
+      - name: Dynamically set MY_DATE output option
+        id: mydate
+        run: echo "MY_DATE=${{ env.MY_DATE }}" >> $GITHUB_OUTPUT
+
+  change-original-images:
+    runs-on: ubuntu-latest
+    needs: [build-and-push-image]
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Dynamically update the original images file
+        run: jq '. + ["${{ needs.build-and-push-image.outputs.MY_CONTAINER }}"] | sort' .original-images.json | tee .original-images.json.new
+      - name: Rewrite original images file
+        run: mv .original-images.json.new .original-images.json
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: Update original images with new container
+          committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
+          signoff: false
+          branch: ${{ needs.build-and-push-image.outputs.MY_DATE }}
+          sign-commits: true
+          delete-branch: true
+          title: 'chore: Update original images'
+          body: |
+            Update container image
+            - Updated original image file with container ${{needs.build-and-push-image.outputs.MY_CONTAINER}}
+            change request Auto-generated
+          labels: |
+            container images
+            automated pr
+          draft: false
