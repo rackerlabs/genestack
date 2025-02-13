@@ -311,7 +311,7 @@ metadata:
 type: Opaque
 data:
   public_key: $(echo -n $nova_ssh_public_key | base64 -w0)
-  private_key: $(echo -n $nova_ssh_private_key | base64 -w0)
+  private_key: $(echo -n "$nova_ssh_private_key" | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret
