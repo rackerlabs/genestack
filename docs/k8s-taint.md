@@ -7,5 +7,5 @@ openstack controllers with the k8s controllers.
 
 ``` shell
 # Remote taint from control-plane nodes
-kubectl taint nodes $(kubectl get nodes -o 'jsonpath={.items[*].metadata.name}') node-role.kubernetes.io/control-plane:NoSchedule-
+kubectl taint nodes -l node-role.kubernetes.io/control-plane node-role.kubernetes.io/control-plane:NoSchedule-
 ```

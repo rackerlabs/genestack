@@ -21,15 +21,7 @@ Post deployment we need to setup neutron to work with our integrated OVN environ
 
 ### Gather the network enabled nodes
 
-You should set the annotations you need within your environment to meet the needs of your workloads on the hardware you have.
-
-!!! example "Store all of the network nodes"
-
-    The following example gathers all of the network enabled nodes. In production you may have different hardware layouts resulting in a more heterogenous device layout.
-
-    ``` shell
-    export ALL_NODES=$(kubectl get nodes -l 'openstack-network-node=enabled' -o 'jsonpath={.items[*].metadata.name}')
-    ```
+Set the annotations needed within the environment to meet the needs of your workloads on the hardware you have.
 
 !!! tip "Post Deployment"
 
@@ -42,7 +34,7 @@ Set the name of the OVS integration bridge we'll use. In general, this should be
 ``` shell
 kubectl annotate \
         nodes \
-        ${ALL_NODES} \
+        -l openstack-compute-node=enabled -l openstack-network-node=enabled \
         ovn.openstack.org/int_bridge='br-int'
 ```
 
@@ -57,7 +49,7 @@ Set the name of the OVS bridges we'll use. These are the bridges you will use on
 ``` shell
 kubectl annotate \
         nodes \
-        ${ALL_NODES} \
+        -l openstack-compute-node=enabled -l openstack-network-node=enabled \
         ovn.openstack.org/bridges='br-ex'
 ```
 
@@ -68,7 +60,7 @@ Set the port mapping for OVS interfaces to a local physical interface on a given
 ``` shell
 kubectl annotate \
         nodes \
-        ${ALL_NODES} \
+        -l openstack-compute-node=enabled -l openstack-network-node=enabled \
         ovn.openstack.org/ports='br-ex:bond1'
 ```
 
@@ -83,7 +75,7 @@ Set the Neutron bridge mapping. This maps the Neutron interfaces to the ovs brid
 ``` shell
 kubectl annotate \
         nodes \
-        ${ALL_NODES} \
+        -l openstack-compute-node=enabled -l openstack-network-node=enabled \
         ovn.openstack.org/mappings='physnet1:br-ex'
 ```
 
@@ -94,7 +86,7 @@ Set the OVN availability zones which inturn creates neutron availability zones. 
 ``` shell
 kubectl annotate \
         nodes \
-        ${ALL_NODES} \
+        -l openstack-compute-node=enabled -l openstack-network-node=enabled \
         ovn.openstack.org/availability_zones='az1'
 ```
 
@@ -111,7 +103,7 @@ Define where the gateways nodes will reside. There are many ways to run this, so
 ``` shell
 kubectl annotate \
         nodes \
-        ${ALL_NODES} \
+        -l openstack-network-node=enabled \
         ovn.openstack.org/gateway='enabled'
 ```
 

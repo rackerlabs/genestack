@@ -31,10 +31,12 @@ are scheduled. By labeling only certain nodes, you ensure that these nodes handl
 Use the following command to label a node to be part of the Longhorn storage cluster:
 
 ``` shell
-kubectl label node ${NODE_NAME} longhorn.io/storage-node=enabled
+kubectl label node -l node-role.kubernetes.io/control-plane longhorn.io/storage-node=enabled
 ```
 
-Replace `${NODE_NAME}` with the name of your node. If you have multiple storage nodes, run this command against each one.
+!!! note
+
+    It is possible to replace `-l node-role.kubernetes.io/control-plane` with the name of your node. If you have multiple storage nodes, that are not also controllers.
 
 ### Create the Helm Values File
 

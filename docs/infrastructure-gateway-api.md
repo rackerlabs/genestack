@@ -52,7 +52,7 @@ There are various implementations of the Gateway API. In this document, we will 
     ### Create the Namespace
 
     ``` shell
-    kubectl create ns nginx-gateway
+    kubectl apply -f /opt/genestack/manifests/nginx-gateway/nginx-gateway-namespace.yaml
     ```
 
     ### Install the Gateway API Resource from Kubernetes
