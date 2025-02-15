@@ -24,10 +24,10 @@ on:
       NeutronTag:
         description: 'Set Neutron version'
         required: true
-        default: 'sync-add-mode-2024.1'
+        default: 'sync-add-mode'
         type: choice
         options:
-          - 'master'
+          - 'sync-add-mode'
           - 'sync-add-mode-2024.1'
 
 # Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
