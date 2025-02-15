@@ -4,9 +4,10 @@ kind: User
 metadata:
   name: neutron
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "neutron"
     meta.helm.sh/release-namespace: "openstack"
 spec:
@@ -24,9 +25,10 @@ kind: Vhost
 metadata:
   name: neutron-vhost
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "neutron"
     meta.helm.sh/release-namespace: "openstack"
 spec:
@@ -48,9 +50,10 @@ kind: Queue
 metadata:
   name: neutron-queue
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "neutron"
     meta.helm.sh/release-namespace: "openstack"
 spec:
@@ -68,9 +71,10 @@ kind: Permission
 metadata:
   name: neutron-permission
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "neutron"
     meta.helm.sh/release-namespace: "openstack"
 spec:
