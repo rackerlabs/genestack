@@ -12,8 +12,6 @@ on:
         type: choice
         options:
           - master-ubuntu_jammy
-          - 2023.1-ubuntu_jammy
-          - 2023.2-ubuntu_jammy
           - 2024.1-ubuntu_jammy
       pluginTag:
         description: 'Set release used for the build environment'
@@ -22,9 +20,15 @@ on:
         type: choice
         options:
           - "master"
-          - "2023.1"
-          - "2023.2"
           - "2024.1"
+      NeutronTag:
+        description: 'Set Neutron version'
+        required: true
+        default: 'sync-add-mode-2024.1'
+        type: choice
+        options:
+          - 'master'
+          - 'sync-add-mode-2024.1'
 
 # Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
 env:
@@ -76,6 +80,7 @@ jobs:
           build-args: |
             VERSION=${{ github.event.inputs.imageTag }}
             PLUGIN_VERSION=${{ github.event.inputs.pluginTag }}
+            NEUTRON_VERSION=${{ github.event.inputs.NeutronTag }}
       - name: Dynamically set MY_CONTAINER output option
         id: mycontainer
         run: echo "MY_CONTAINER=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/neutron-oslodb:${{ github.event.inputs.imageTag }}-${{ env.MY_DATE }}" >> $GITHUB_OUTPUT
