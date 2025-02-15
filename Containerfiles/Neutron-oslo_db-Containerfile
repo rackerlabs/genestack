@@ -2,11 +2,14 @@
 ARG VERSION=master-ubuntu_jammy
 FROM openstackhelm/neutron:$VERSION as build
 ARG PLUGIN_VERSION=master
+ARG NEUTRON_VERSION=master
 RUN apt update && apt install -y git
 RUN export ORIG_PLUGIN_VERSION="${PLUGIN_VERSION}"; \
 if [ "${PLUGIN_VERSION}" != 'master' ]; then export PLUGIN_VERSION=stable/${PLUGIN_VERSION}; fi; \
 . /var/lib/openstack/bin/activate; \
-/var/lib/openstack/bin/pip install git+https://github.com/openstack/oslo.db@${PLUGIN_VERSION}#egg=oslo_db
+/var/lib/openstack/bin/pip install --upgrade \
+git+https://github.com/openstack/oslo.db@${PLUGIN_VERSION}#egg=oslo_db \
+git+https://github.com/rackerlabs/neutron@${NEUTRON_VERSION}#egg=neutron
 
 FROM openstackhelm/neutron:${VERSION}
 COPY --from=build /var/lib/openstack/. /var/lib/openstack/
