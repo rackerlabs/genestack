@@ -4,3 +4,4 @@ mkdocs-material-adr
 mkdocs-swagger-ui-tag
 mkdocs-glightbox
 markdown-exec
+reno
