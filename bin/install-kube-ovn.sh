@@ -8,10 +8,15 @@ KUBE_OVN_VERSION="v1.12.30"
 MASTER_NODES=$(kubectl get nodes -l kube-ovn/role=master -o json | jq -r '[.items[].status.addresses[] | select(.type == "InternalIP") | .address] | join(",")' | sed 's/,/\\,/g')
 MASTER_NODE_COUNT=$(kubectl get nodes -l kube-ovn/role=master -o json | jq -r '.items[].status.addresses[] | select(.type=="InternalIP") | .address' | wc -l)
 
+if [ "${MASTER_NODE_COUNT}" -eq 0 ]; then
+    echo "No master nodes found"
+    echo "Be sure to label your master nodes with kube-ovn/role=master before running this script"
+    echo "Exiting"
+    exit 1
+fi
+
 helm repo add kubeovn https://kubeovn.github.io/kube-ovn
 helm repo update
-
-pushd /opt/genestack/submodules/openstack-helm-infra || exit 1
 
 HELM_CMD="helm upgrade --install kube-ovn kubeovn/kube-ovn \
                        --version ${KUBE_OVN_VERSION} \
@@ -37,5 +42,3 @@ HELM_CMD+=" $@"
 echo "Executing Helm command:"
 echo "${HELM_CMD}"
 eval "${HELM_CMD}"
-
-popd || exit 1

@@ -11,6 +11,21 @@ To ensure that the conversion is successful and does not cause any network confl
 ensure that the CIDR ranges for the `ovn-default` and `join` networks are defined in the
 `/etc/genestack/helm-configs/kube-ovn/kube-ovn-helm-overrides.yaml` file.
 
+### Label Kube-OVN nodes
+
+| <div style="width:220px">key</div> | type | <div style="width:128px">value</div>  | notes |
+|:-----|--|:----------------:|:------|
+| **kube-ovn/role** | str | `master` | Defines where the Kube-OVN Masters will reside |
+| **ovn.kubernetes.io/ovs_dp_type** | str | `kernel` | (Optional) Defines OVS DPDK mode |
+
+!!! example "Label all controllers as Kube-OVN control plane nodes"
+
+    ``` shell
+    kubectl label node -l beta.kubernetes.io/os=linux kubernetes.io/os=linux
+    kubectl label node -l node-role.kubernetes.io/control-plane kube-ovn/role=master
+    kubectl label node -l ovn.kubernetes.io/ovs_dp_type!=userspace ovn.kubernetes.io/ovs_dp_type=kernel
+    ```
+
 ### Fact Gathering
 
 Before getting started you will need to know a few pieces of information: the network interface used

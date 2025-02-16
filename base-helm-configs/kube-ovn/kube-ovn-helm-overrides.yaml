@@ -3,13 +3,15 @@
 # Declare variables to be passed into your templates.
 global:
   registry:
-    address: docker.io/kubeovn
+    address: ghcr.io/rackerlabs
     imagePullSecrets: []
   images:
     kubeovn:
       repository: kube-ovn
       dpdkRepository: kube-ovn-dpdk
       vpcRepository: vpc-nat-gateway
+      # Change "tag" when PR https://github.com/kubeovn/kube-ovn/pull/5005 is merged
+      tag: v1.12.32-gc-disable
       support_arm: true
       thirdparty: true
 
@@ -106,7 +108,7 @@ dual_stack:
   PINGER_EXTERNAL_DOMAIN: "opendns.com."
 
 performance:
-  GC_INTERVAL: 360
+  GC_INTERVAL: 0
   INSPECT_INTERVAL: 20
   OVS_VSCTL_CONCURRENCY: 100
 

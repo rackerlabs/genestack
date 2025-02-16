@@ -9,8 +9,6 @@ METALLB_VERSION="v0.13.12"
 helm repo add metallb https://metallb.github.io/metallb
 helm repo update
 
-pushd /opt/genestack/submodules/openstack-helm-infra || exit 1
-
 HELM_CMD="helm upgrade --install --namespace metallb-system metallb metallb/metallb --version ${METALLB_VERSION}"
 
 HELM_CMD+=" -f ${BASE_OVERRIDES}"
@@ -31,5 +29,3 @@ HELM_CMD+=" $@"
 echo "Executing Helm command:"
 echo "${HELM_CMD}"
 eval "${HELM_CMD}"
-
-popd || exit 1
