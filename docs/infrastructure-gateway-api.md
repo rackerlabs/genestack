@@ -220,6 +220,9 @@ spec:
               namespace: nginx-gateway
 EOF
 ```
+!!! note
+
+    It is also possible to use cert-manager to create [self-signed CA for Gateway API](https://docs.rackspacecloud.com/gateway-api-ca-issuer/)
 
 ## Patch Gateway with valid listeners
 
