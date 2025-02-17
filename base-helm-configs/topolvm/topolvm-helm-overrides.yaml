@@ -1,0 +1,739 @@
+# useLegacy -- If true, the legacy plugin name and legacy custom resource group is used(topolvm.cybozu.com).
+useLegacy: false
+
+image:
+  # image.repository -- TopoLVM image repository to use.
+  repository: ghcr.io/topolvm/topolvm-with-sidecar
+
+  # image.tag -- TopoLVM image tag to use.
+  # @default -- `{{ .Chart.AppVersion }}`
+  tag:  # 0.18.1
+
+  # image.pullPolicy -- TopoLVM image pullPolicy.
+  pullPolicy:  # Always
+
+  # image.pullSecrets -- List of imagePullSecrets.
+  pullSecrets: []
+
+  csi:
+    # image.csi.nodeDriverRegistrar -- Specify csi-node-driver-registrar: image.
+    # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used.
+    nodeDriverRegistrar:  # registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.2.0
+
+    # image.csi.csiProvisioner -- Specify csi-provisioner image.
+    # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used.
+    csiProvisioner:  # registry.k8s.io/sig-storage/csi-provisioner:v2.2.1
+
+    # image.csi.csiResizer -- Specify csi-resizer image.
+    # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used.
+    csiResizer:  # registry.k8s.io/sig-storage/csi-resizer:v1.2.0
+
+    # image.csi.csiSnapshotter -- Specify csi-snapshot image.
+    # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used.
+    csiSnapshotter:  # registry.k8s.io/sig-storage/csi-snapshotter:v5.0.1
+
+    # image.csi.livenessProbe -- Specify livenessprobe image.
+    # If not specified, `ghcr.io/topolvm/topolvm-with-sidecar:{{ .Values.image.tag }}` will be used.
+    livenessProbe:  # registry.k8s.io/sig-storage/livenessprobe:v2.3.0
+
+# A scheduler extender for TopoLVM
+scheduler:
+  # scheduler.enabled --  If true, enable scheduler extender for TopoLVM
+  enabled: false
+
+  # scheduler.args -- Arguments to be passed to the command.
+  args: []
+
+  # scheduler.type -- If you run with a managed control plane (such as GKE, AKS, etc), topolvm-scheduler should be deployed as Deployment and Service.
+  # topolvm-scheduler should otherwise be deployed as DaemonSet in unmanaged (i.e. bare metal) deployments.
+  # possible values:  daemonset/deployment
+  type: daemonset
+
+  # Use only if you choose `scheduler.type` deployment
+  deployment:
+    # scheduler.deployment.replicaCount -- Number of replicas for Deployment.
+    replicaCount: 2
+
+  # Use only if you choose `scheduler.type` deployment
+  service:
+    # scheduler.service.type -- Specify Service type.
+    type: LoadBalancer
+    # scheduler.service.clusterIP -- Specify Service clusterIP.
+    clusterIP:  # None
+    # scheduler.service.nodePort -- (int) Specify nodePort.
+    nodePort:  # 30251
+
+  # scheduler.updateStrategy -- Specify updateStrategy on the Deployment or DaemonSet.
+  updateStrategy: {}
+  #  rollingUpdate:
+  #    maxUnavailable: 1
+  #  type: RollingUpdate
+
+  # scheduler.terminationGracePeriodSeconds -- (int) Specify terminationGracePeriodSeconds on the Deployment or DaemonSet.
+  terminationGracePeriodSeconds:  # 30
+
+  # scheduler.minReadySeconds -- (int) Specify minReadySeconds on the Deployment or DaemonSet.
+  minReadySeconds:  # 0
+
+  # scheduler.affinity -- Specify affinity on the Deployment or DaemonSet.
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
+
+  podDisruptionBudget:
+    # scheduler.podDisruptionBudget.enabled -- Specify podDisruptionBudget enabled.
+    enabled: true
+
+  # scheduler.tolerations -- Specify tolerations on the Deployment or DaemonSet.
+  ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      effect: NoSchedule
+
+  # scheduler.nodeSelector -- Specify nodeSelector on the Deployment or DaemonSet.
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+  nodeSelector:
+    node-role.kubernetes.io/control-plane: ""
+
+  # scheduler.priorityClassName -- Specify priorityClassName on the Deployment or DaemonSet.
+  priorityClassName: system-cluster-critical
+
+  # scheduler.schedulerOptions -- Tune the Node scoring.
+  # ref: https://github.com/topolvm/topolvm/blob/master/deploy/README.md
+  schedulerOptions: {}
+  #  default-divisor: 1
+  #  divisors:
+  #    ssd: 1
+  #    hdd: 10
+
+  profiling:
+    # scheduler.profiling.bindAddress -- Enables pprof profiling server. If empty, profiling is disabled.
+    bindAddress: ""
+
+  options:
+    listen:
+      # scheduler.options.listen.host -- Host used by Probe.
+      host: localhost
+      # scheduler.options.listen.port -- Listen port.
+      port: 9251
+
+  # scheduler.podLabels -- Additional labels to be set on the scheduler pods.
+  podLabels: {}
+  # scheduler.labels -- Additional labels to be added to the Deployment or Daemonset.
+  labels: {}
+
+# lvmd service
+lvmd:
+  # lvmd.managed -- If true, set up lvmd service with DaemonSet.
+  managed: true
+
+  # lvmd.socketName -- Specify socketName.
+  socketName: /run/topolvm/lvmd.sock
+
+  # lvmd.deviceClasses -- Specify the device-class settings.
+  deviceClasses:
+    - name: general
+      volume-group: vg-general
+      default: true
+      spare-gb: 10
+
+  # lvmd.lvcreateOptionClasses -- Specify the lvcreate-option-class settings.
+  lvcreateOptionClasses: []
+  # - name: ssd
+  #   options:
+  #     - --type=raid1
+
+  # lvmd.args -- Arguments to be passed to the command.
+  args: []
+
+  # lvmd.priorityClassName -- Specify priorityClassName.
+  priorityClassName:
+
+  # lvmd.tolerations -- Specify tolerations.
+  ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
+
+  # lvmd.nodeSelector -- Specify nodeSelector.
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+  nodeSelector: {}
+
+  # lvmd.affinity -- Specify affinity.
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+
+  # lvmd.volumes -- Specify volumes.
+  volumes: []
+  #  - name: lvmd-socket-dir
+  #    hostPath:
+  #      path: /run/topolvm
+  #      type: DirectoryOrCreate
+
+  # lvmd.volumeMounts -- Specify volumeMounts.
+  volumeMounts: []
+  #  - name: lvmd-socket-dir
+  #    mountPath: /run/topolvm
+
+  # lvmd.additionalVolumes -- Specify additional volumes without conflicting with default volumes
+  # most useful for initContainers but available to all containers in the pod.
+  additionalVolumes: []
+  #  - name: custom-config-map
+  #    configMap:
+  # # Provide the name of the ConfigMap containing the files you want
+  # # to add to the container
+  # name: special-config
+
+  # lvmd.env -- extra environment variables
+  env: []
+  #  - name: LVM_SYSTEM_DIR
+  #    value: /tmp
+
+  # lvmd.additionalConfigs -- Define additional LVM Daemon configs if you have additional types of nodes.
+  # Please ensure nodeSelectors are non overlapping.
+  additionalConfigs: []
+  #  - tolerations: []
+  #      nodeSelector: {}
+  #      deviceClasses:
+  #        - name: ssd
+  #          volume-group: myvg2
+  #          default: true
+  #          spare-gb: 10
+
+  # lvmd.updateStrategy -- Specify updateStrategy.
+  updateStrategy: {}
+  #  type: RollingUpdate
+  #  rollingUpdate:
+  #    maxSurge: 50%
+  #    maxUnavailable: 50%
+
+  # lvmd.podLabels -- Additional labels to be set on the lvmd service pods.
+  podLabels: {}
+  # lvmd.labels -- Additional labels to be added to the Daemonset.
+  labels: {}
+
+  # lvmd.initContainers -- Additional initContainers for the lvmd service.
+  initContainers: []
+
+  profiling:
+    # lvmd.profiling.bindAddress -- Enables pprof profiling server. If empty, profiling is disabled.
+    bindAddress: ""
+
+  metrics:
+    # lvmd.metrics.enabled -- If true, enable scraping of metrics by Prometheus.
+    enabled: true
+    # lvmd.metrics.annotations -- Annotations for Scrape used by Prometheus.
+    annotations:
+      prometheus.io/port: metrics
+
+  prometheus:
+    podMonitor:
+      # lvmd.prometheus.podMonitor.enabled -- Set this to `true` to create PodMonitor for Prometheus operator.
+      enabled: false
+
+      # lvmd.prometheus.podMonitor.additionalLabels -- Additional labels that can be used so PodMonitor will be discovered by Prometheus.
+      additionalLabels: {}
+
+      # lvmd.prometheus.podMonitor.namespace -- Optional namespace in which to create PodMonitor.
+      namespace: ""
+
+      # lvmd.prometheus.podMonitor.interval -- Scrape interval. If not set, the Prometheus default scrape interval is used.
+      interval: ""
+
+      # lvmd.prometheus.podMonitor.scrapeTimeout -- Scrape timeout. If not set, the Prometheus default scrape timeout is used.
+      scrapeTimeout: ""
+
+      # lvmd.prometheus.podMonitor.relabelings -- RelabelConfigs to apply to samples before scraping.
+      relabelings: []
+      # - sourceLabels: [__meta_kubernetes_service_label_cluster]
+      #   targetLabel: cluster
+      #   regex: (.*)
+      #   replacement: ${1}
+      #   action: replace
+
+      # lvmd.prometheus.podMonitor.metricRelabelings -- MetricRelabelConfigs to apply to samples before ingestion.
+      metricRelabelings: []
+      # - sourceLabels: [__meta_kubernetes_service_label_cluster]
+      #   targetLabel: cluster
+      #   regex: (.*)
+      #   replacement: ${1}
+      #   action: replace
+
+# CSI node service
+node:
+  # node.lvmdEmbedded -- Specify whether to embed lvmd in the node container.
+  # Should not be used in conjunction with lvmd.managed otherwise lvmd will be started twice.
+  lvmdEmbedded: false
+  # node.lvmdSocket -- Specify the socket to be used for communication with lvmd.
+  lvmdSocket: /run/topolvm/lvmd.sock
+  # node.kubeletWorkDirectory -- Specify the work directory of Kubelet on the host.
+  # For example, on microk8s it needs to be set to `/var/snap/microk8s/common/var/lib/kubelet`
+  kubeletWorkDirectory: /var/lib/kubelet
+
+  # node.args -- Arguments to be passed to the command.
+  args: []
+
+  # node.securityContext. -- Container securityContext.
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  securityContext:
+    privileged: true
+
+  metrics:
+    # node.metrics.enabled -- If true, enable scraping of metrics by Prometheus.
+    enabled: true
+    # node.metrics.annotations -- Annotations for Scrape used by Prometheus.
+    annotations:
+      prometheus.io/port: metrics
+
+  prometheus:
+    podMonitor:
+      # node.prometheus.podMonitor.enabled -- Set this to `true` to create PodMonitor for Prometheus operator.
+      enabled: false
+
+      # node.prometheus.podMonitor.additionalLabels -- Additional labels that can be used so PodMonitor will be discovered by Prometheus.
+      additionalLabels: {}
+
+      # node.prometheus.podMonitor.namespace -- Optional namespace in which to create PodMonitor.
+      namespace: ""
+
+      # node.prometheus.podMonitor.interval -- Scrape interval. If not set, the Prometheus default scrape interval is used.
+      interval: ""
+
+      # node.prometheus.podMonitor.scrapeTimeout -- Scrape timeout. If not set, the Prometheus default scrape timeout is used.
+      scrapeTimeout: ""
+
+      # node.prometheus.podMonitor.relabelings -- RelabelConfigs to apply to samples before scraping.
+      relabelings: []
+      # - sourceLabels: [__meta_kubernetes_service_label_cluster]
+      #   targetLabel: cluster
+      #   regex: (.*)
+      #   replacement: ${1}
+      #   action: replace
+
+      # node.prometheus.podMonitor.metricRelabelings -- MetricRelabelConfigs to apply to samples before ingestion.
+      metricRelabelings: []
+      # - sourceLabels: [__meta_kubernetes_service_label_cluster]
+      #   targetLabel: cluster
+      #   regex: (.*)
+      #   replacement: ${1}
+      #   action: replace
+
+  # node.priorityClassName -- Specify priorityClassName.
+  priorityClassName:
+
+  # node.tolerations -- Specify tolerations.
+  ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
+
+  # node.nodeSelector -- Specify nodeSelector.
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+  nodeSelector: {}
+
+  # node.affinity -- Specify affinity.
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+
+  # node.volumes -- Specify volumes.
+  volumes: []
+  #  - name: registration-dir
+  #    hostPath:
+  #      path: /var/lib/kubelet/plugins_registry/
+  #      type: Directory
+  #  - name: node-plugin-dir
+  #    hostPath:
+  #      path: /var/lib/kubelet/plugins/topolvm.io/node
+  #      type: DirectoryOrCreate
+  #  - name: csi-plugin-dir
+  #    hostPath:
+  #      path: /var/lib/kubelet/plugins/kubernetes.io/csi
+  #      type: DirectoryOrCreate
+  #  - name: pod-volumes-dir
+  #    hostPath:
+  #      path: /var/lib/kubelet/pods/
+  #      type: DirectoryOrCreate
+  #  - name: lvmd-socket-dir
+  #    hostPath:
+  #      path: /run/topolvm
+  #      type: Directory
+
+  # node.additionalVolumes -- Specify additional volumes without conflicting with default volumes
+  # most useful for initContainers but available to all containers in the pod.
+  additionalVolumes: []
+  #  - name: custom-config-map
+  #    configMap:
+  # # Provide the name of the ConfigMap containing the files you want
+  # # to add to the container
+  # name: special-config
+
+  volumeMounts:
+    # node.volumeMounts.topolvmNode -- Specify volumes.
+    topolvmNode: []
+    # - name: node-plugin-dir
+    #   mountPath: /var/lib/kubelet/plugins/topolvm.io/node
+    # - name: csi-plugin-dir
+    #   mountPath: /var/lib/kubelet/plugins/kubernetes.io/csi
+    #   mountPropagation: "Bidirectional"
+    # - name: pod-volumes-dir
+    #   mountPath: /var/lib/kubelet/pods
+    #   mountPropagation: "Bidirectional"
+    # - name: lvmd-socket-dir
+    #   mountPath: /run/topolvm
+
+  # node.updateStrategy -- Specify updateStrategy.
+  updateStrategy: {}
+  #  type: RollingUpdate
+  #  rollingUpdate:
+  #    maxSurge: 50%
+  #    maxUnavailable: 50%
+
+  # node.podLabels -- Additional labels to be set on the node pods.
+  podLabels: {}
+  # node.labels -- Additional labels to be added to the Daemonset.
+  labels: {}
+
+  profiling:
+    # node.profiling.bindAddress -- Enables pprof profiling server. if empty profiling is disabled.
+    bindAddress: ""
+
+  # node.initContainers -- Additional initContainers for the node service.
+  initContainers: []
+
+# CSI controller service
+controller:
+  # controller.replicaCount -- Number of replicas for CSI controller service.
+  replicaCount: 1
+
+  # controller.args -- Arguments to be passed to the command.
+  args: []
+
+  storageCapacityTracking:
+    # controller.storageCapacityTracking.enabled -- Enable Storage Capacity Tracking for csi-provisioner.
+    enabled: true
+
+  securityContext:
+    # controller.securityContext.enabled -- Enable securityContext.
+    enabled: true
+
+  nodeFinalize:
+    # controller.nodeFinalize.skipped -- Skip automatic cleanup of PhysicalVolumeClaims when a Node is deleted.
+    skipped: false
+
+  leaderElection:
+    # controller.leaderElection.enabled -- Enable leader election for controller and all sidecars.
+    enabled: true
+
+  prometheus:
+    podMonitor:
+      # controller.prometheus.podMonitor.enabled -- Set this to `true` to create PodMonitor for Prometheus operator.
+      enabled: false
+
+      # controller.prometheus.podMonitor.additionalLabels -- Additional labels that can be used so PodMonitor will be discovered by Prometheus.
+      additionalLabels: {}
+
+      # controller.prometheus.podMonitor.namespace -- Optional namespace in which to create PodMonitor.
+      namespace: ""
+
+      # controller.prometheus.podMonitor.interval -- Scrape interval. If not set, the Prometheus default scrape interval is used.
+      interval: ""
+
+      # controller.prometheus.podMonitor.scrapeTimeout -- Scrape timeout. If not set, the Prometheus default scrape timeout is used.
+      scrapeTimeout: ""
+
+      # controller.prometheus.podMonitor.relabelings -- RelabelConfigs to apply to samples before scraping.
+      relabelings: []
+      # - sourceLabels: [__meta_kubernetes_service_label_cluster]
+      #   targetLabel: cluster
+      #   regex: (.*)
+      #   replacement: ${1}
+      #   action: replace
+
+      # controller.prometheus.podMonitor.metricRelabelings -- MetricRelabelConfigs to apply to samples before ingestion.
+      metricRelabelings: []
+      # - sourceLabels: [__meta_kubernetes_service_label_cluster]
+      #   targetLabel: cluster
+      #   regex: (.*)
+      #   replacement: ${1}
+      #   action: replace
+
+  # controller.terminationGracePeriodSeconds -- (int) Specify terminationGracePeriodSeconds.
+  terminationGracePeriodSeconds:  # 10
+
+  # controller.priorityClassName -- Specify priorityClassName.
+  priorityClassName:
+
+  # controller.updateStrategy -- Specify updateStrategy.
+  updateStrategy: {}
+  #  type: RollingUpdate
+  #  rollingUpdate:
+  #    maxSurge: 50%
+  #    maxUnavailable: 50%
+  #
+  # For non-leader-election mode, you can use this non-HA non-conflicting strategy:
+  #  type: Recreate
+
+
+  # controller.minReadySeconds -- (int) Specify minReadySeconds.
+  minReadySeconds:  # 0
+
+  # controller.affinity -- Specify affinity.
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: |
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                values:
+                  - controller
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - {{ include "topolvm.name" . }}
+          topologyKey: kubernetes.io/hostname
+
+  # controller.tolerations -- Specify tolerations.
+  ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
+
+  # controller.nodeSelector -- Specify nodeSelector.
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+  nodeSelector:
+    node-role.kubernetes.io/control-plane: ""
+
+  # controller.volumes -- Specify volumes.
+  volumes:
+    - name: socket-dir
+      emptyDir: {}
+
+  podDisruptionBudget:
+    # controller.podDisruptionBudget.enabled -- Specify podDisruptionBudget enabled.
+    enabled: true
+
+  # controller.podLabels -- Additional labels to be set on the controller pod.
+  podLabels: {}
+  # controller.labels -- Additional labels to be added to the Deployment.
+  labels: {}
+
+  profiling:
+    # controller.profiling.bindAddress -- Enables pprof profiling server. If empty, profiling is disabled.
+    bindAddress: ""
+
+  # controller.initContainers -- Additional initContainers for the controller service.
+  initContainers: []
+
+resources:
+  # resources.topolvm_node -- Specify resources.
+  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  topolvm_node: {}
+  #  requests:
+  #    memory: 100Mi
+  #    cpu: 100m
+  #  limits:
+  #    memory: 500Mi
+  #    cpu: 500m
+  # resources.csi_registrar -- Specify resources.
+  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  csi_registrar: {}
+  # requests:
+  #   cpu: "25m"
+  #   memory: "10Mi"
+  # limits:
+  #   cpu: "200m"
+  #   memory: "200Mi"
+  # resources.liveness_probe -- Specify resources.
+  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  liveness_probe: {}
+  # requests:
+  #   cpu: "25m"
+  #   memory: "10Mi"
+  # limits:
+  #   cpu: "200m"
+  #   memory: "200Mi"
+  # resources.topolvm_controller -- Specify resources.
+  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  topolvm_controller: {}
+  #  requests:
+  #    memory: "50Mi"
+  #    cpu: "50m"
+  #  limits:
+  #    memory: "200Mi"
+  #    cpu: "200m"
+  # resources.csi_provisioner -- Specify resources.
+  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  csi_provisioner: {}
+  #  requests:
+  #    memory: "50Mi"
+  #    cpu: "50m"
+  #  limits:
+  #    memory: "200Mi"
+  #    cpu: "200m"
+  # resources.csi_resizer -- Specify resources.
+  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  csi_resizer: {}
+  #  requests:
+  #    memory: "50Mi"
+  #    cpu: "50m"
+  #  limits:
+  #    memory: "200Mi"
+  #    cpu: "200m"
+  # resources.csi_snapshotter -- Specify resources.
+  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  csi_snapshotter: {}
+  #  requests:
+  #    memory: "50Mi"
+  #    cpu: "50m"
+  #  limits:
+  #    memory: "200Mi"
+  #    cpu: "200m"
+  # resources.lvmd -- Specify resources.
+  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  lvmd: {}
+  #  requests:
+  #    memory: 100Mi
+  #    cpu: 100m
+  #  limits:
+  #    memory: 500Mi
+  #    cpu: 500m
+  # resources.topolvm_scheduler -- Specify resources.
+  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  topolvm_scheduler: {}
+  #  requests:
+  #    memory: "50Mi"
+  #    cpu: "50m"
+  #  limits:
+  #    memory: "200Mi"
+  #    cpu: "200m"
+
+env:
+  # env.topolvm_node -- Specify environment variables for topolvm_node container.
+  topolvm_node: []
+  # env.csi_registrar -- Specify environment variables for csi_registrar container.
+  csi_registrar: []
+  # env.liveness_probe -- Specify environment variables for liveness_probe container.
+  liveness_probe: []
+  # env.topolvm_controller -- Specify environment variables for topolvm_controller container.
+  topolvm_controller: []
+  # env.csi_provisioner -- Specify environment variables for csi_provisioner container.
+  csi_provisioner: []
+  # env.csi_resizer -- Specify environment variables for csi_resizer container.
+  csi_resizer: []
+  # env.csi_snapshotter -- Specify environment variables for csi_snapshotter container.
+  csi_snapshotter: []
+  # To specify environment variables for lvmd, use lvmd.env instead.
+  # lvmd: []
+  # env.topolvm_scheduler -- Specify environment variables for topolvm_scheduler container.
+  topolvm_scheduler: []
+
+livenessProbe:
+  # livenessProbe.topolvm_node -- Specify resources.
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+  topolvm_node:
+    failureThreshold:
+    initialDelaySeconds: 10
+    timeoutSeconds: 3
+    periodSeconds: 60
+  # livenessProbe.csi_registrar -- Specify livenessProbe.
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+  csi_registrar:
+    failureThreshold:
+    initialDelaySeconds: 10
+    timeoutSeconds: 3
+    periodSeconds: 60
+  # livenessProbe.topolvm_controller -- Specify livenessProbe.
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+  topolvm_controller:
+    failureThreshold:
+    initialDelaySeconds: 10
+    timeoutSeconds: 3
+    periodSeconds: 60
+  # livenessProbe.lvmd -- Specify livenessProbe.
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+  lvmd:
+    failureThreshold:
+    initialDelaySeconds: 10
+    timeoutSeconds: 3
+    periodSeconds: 60
+  # livenessProbe.topolvm_scheduler -- Specify livenessProbe.
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+  topolvm_scheduler:
+    failureThreshold:
+    initialDelaySeconds: 10
+    timeoutSeconds: 3
+    periodSeconds: 60
+
+# storageClasses -- Whether to create storageclass(es)
+# ref: https://kubernetes.io/docs/concepts/storage/storage-classes/
+storageClasses:
+  - name: general  # Defines name of storage class.
+    storageClass:
+      # Supported filesystems are: ext4, xfs, and btrfs.
+      fsType: xfs
+      # reclaimPolicy
+      reclaimPolicy:  # Delete
+      # Additional annotations
+      annotations: {}
+      # Default storage class for dynamic volume provisioning
+      # ref: https://kubernetes.io/docs/concepts/storage/dynamic-provisioning
+      isDefaultClass: true
+      # volumeBindingMode can be either WaitForFirstConsumer or Immediate. WaitForFirstConsumer is recommended because TopoLVM cannot schedule pods wisely if volumeBindingMode is Immediate.
+      volumeBindingMode: Immediate
+      # enables CSI drivers to expand volumes. This feature is available for Kubernetes 1.16 and later releases.
+      allowVolumeExpansion: true
+      additionalParameters:
+        topolvm.io/device-class: "general"
+      # mount options
+      mountOptions: []
+
+webhook:
+  # webhook.caBundle -- Specify the certificate to be used for AdmissionWebhook.
+  caBundle:  # Base64-encoded, PEM-encoded CA certificate that signs the server certificate.
+  # webhook.existingCertManagerIssuer -- Specify the cert-manager issuer to be used for AdmissionWebhook.
+  existingCertManagerIssuer: {}
+    # group: cert-manager.io
+    # kind: Issuer
+    # name: webhook-issuer
+  podMutatingWebhook:
+    # webhook.podMutatingWebhook.enabled -- Enable Pod MutatingWebhook.
+    enabled: false
+    # webhook.podMutatingWebhook.objectSelector -- Labels required on Pods for webhook action.
+    # **WARNING**: Modifying objectSelector can affect TopoLVM Pod scheduling. Proceed with caution.
+    ## ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#matching-requests-objectselector
+    objectSelector: {}
+      # webhook: topolvm
+  pvcMutatingWebhook:
+    # webhook.pvcMutatingWebhook.enabled -- Enable PVC MutatingWebhook.
+    enabled: true
+    # webhook.pvcMutatingWebhook.objectSelector -- Labels required on PVCs for webhook action.
+    # **WARNING**: Modifying objectSelector can affect TopoLVM PVC management. Proceed with caution.
+    ## ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#matching-requests-objectselector
+    objectSelector: {}
+      # webhook: topolvm
+
+# Container Security Context
+# ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+securityContext:
+  # securityContext.runAsUser -- Specify runAsUser.
+  runAsUser: 10000
+  # securityContext.runAsGroup -- Specify runAsGroup.
+  runAsGroup: 10000
+
+cert-manager:
+  # cert-manager.enabled -- Install cert-manager together.
+  ## ref: https://cert-manager.io/docs/installation/kubernetes/#installing-with-helm
+  enabled: false
+
+priorityClass:
+  # priorityClass.enabled -- Install priorityClass.
+  enabled: true
+  # priorityClass.name -- Specify priorityClass resource name.
+  name: topolvm
+  # priorityClass.value  -- Specify priorityClass value.
+  value: 1000000
+
+snapshot:
+  # snapshot.enabled -- Turn on the snapshot feature.
+  enabled: true
