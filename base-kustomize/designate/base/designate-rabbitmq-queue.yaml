@@ -4,9 +4,10 @@ kind: User
 metadata:
   name: designate
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "designate"
     meta.helm.sh/release-namespace: "openstack"
 spec:
@@ -24,9 +25,10 @@ kind: Vhost
 metadata:
   name: designate-vhost
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "designate"
     meta.helm.sh/release-namespace: "openstack"
 spec:
@@ -48,9 +50,10 @@ kind: Queue
 metadata:
   name: designate-queue
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "designate"
     meta.helm.sh/release-namespace: "openstack"
 spec:
@@ -68,9 +71,10 @@ kind: Permission
 metadata:
   name: designate-permission
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "designate"
     meta.helm.sh/release-namespace: "openstack"
 spec:

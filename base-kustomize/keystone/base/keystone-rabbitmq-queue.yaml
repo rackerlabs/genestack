@@ -24,9 +24,10 @@ kind: Vhost
 metadata:
   name: keystone-vhost
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "keystone"
     meta.helm.sh/release-namespace: "openstack"
 spec:
@@ -48,9 +49,10 @@ kind: Queue
 metadata:
   name: keystone-queue
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "keystone"
     meta.helm.sh/release-namespace: "openstack"
 spec:
@@ -68,9 +70,10 @@ kind: Permission
 metadata:
   name: keystone-permission
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "keystone"
     meta.helm.sh/release-namespace: "openstack"
 spec:

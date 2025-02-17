@@ -4,9 +4,10 @@ kind: Database
 metadata:
   name: nova
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "nova"
     meta.helm.sh/release-namespace: "openstack"
 spec:
@@ -23,9 +24,10 @@ kind: Database
 metadata:
   name: nova-api
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "nova"
     meta.helm.sh/release-namespace: "openstack"
 spec:
@@ -43,9 +45,10 @@ kind: Database
 metadata:
   name: nova-cell0
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "nova"
     meta.helm.sh/release-namespace: "openstack"
 spec:
@@ -63,9 +66,10 @@ kind: User
 metadata:
   name: nova
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "nova"
     meta.helm.sh/release-namespace: "openstack"
 spec:
@@ -86,9 +90,10 @@ kind: Grant
 metadata:
   name: nova-grant
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "nova"
     meta.helm.sh/release-namespace: "openstack"
 spec:
@@ -108,9 +113,10 @@ kind: Grant
 metadata:
   name: nova-api-grant
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "nova"
     meta.helm.sh/release-namespace: "openstack"
 spec:
@@ -130,9 +136,10 @@ kind: Grant
 metadata:
   name: nova-cell0-grant
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "nova"
     meta.helm.sh/release-namespace: "openstack"
 spec:
