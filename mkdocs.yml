@@ -237,6 +237,7 @@ nav:
   - Operational Guide:
       - Genestack:
           - Supporting multi-region: multi-region-support.md
+          - Sync Keystone Fernet Keys: sync-fernet-keys.md
           - Running Upgrades: genestack-upgrade.md
       - Resource Metering:
           - Metering Overview: metering-overview.md
