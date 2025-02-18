@@ -1,25 +1,28 @@
 # Memcached Exporter
 
-Memcached Exporter is used to expose metrics from a running Memcached deployment.
+Memcached Exporter is used to expose metrics from a running Memcached deployment. The memcached exporter is an integrated part
+of the memcached deployment in Genestack but will need to be enabled.
 
 !!! note
 
     To deploy metric exporters you will first need to deploy the Prometheus Operator, see: ([Deploy Prometheus](prometheus.md)).
 
-## Installation
+## Deploy the Memcached Cluster With Monitoring Enabled
 
-Install the Memcached Exporter
+Edit the Helm overrides file for memcached at `/etc/genestack/helm-configs/memcached/memcached-helm-overrides.yaml` and add the following values
+to enable the memcached exporter:
 
-!!! note
-
-    Following this installation step will also deploy [memcached](infrastructure-memcached.md) in a HA production ready cluster that includes monitoring via the metric exporters. If memcached is already installed running this will simply enable the exporters which allows Prometheus to begin scraping the memcached service.
-
-### Deploy the Memcached Cluster With Monitoring Enabled
-
-``` shell
-kubectl kustomize --enable-helm /etc/genestack/kustomize/memcached/base-monitoring | \
-    kubectl apply --namespace openstack --server-side -f -
+``` yaml
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
 ```
 
-!!! success
-    If the installation is successful, you should see the exporter pod in the openstack namespace.
+Once the changes have been made, apply the changes to the memcached deployment with the `bin/install-memcached.sh` script:
+
+!!! example "`bin/install-memcached.sh`"
+
+    ``` shell
+    --8<-- "bin/install-memcached.sh"
+    ```

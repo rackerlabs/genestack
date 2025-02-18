@@ -1,0 +1,350 @@
+---
+- name: Deploy genestack
+  hosts: "{{ groups['all'][0] }}"
+  vars:
+    ansible_user: root
+  tasks:
+    - name: Clone the Genestack repository
+      ansible.builtin.git:
+        repo: "https://github.com/rackerlabs/genestack"
+        dest: /opt/genestack
+        clone: yes
+        update: yes
+        recursive: yes
+        version: main
+
+    - name: botstrap cluster
+      command: /opt/genestack/bootstrap.sh
+
+    - name: Copy over inventory file
+      ansible.builtin.copy:
+        src: ./inventory.yaml
+        dest: /etc/genestack/inventory/inventory.yaml
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: run setup-hosts.yaml
+      ansible.builtin.shell: |
+        source /opt/genestack/scripts/genestack.rc
+        cd /opt/genestack/ansible/playbooks
+        ansible-playbook host-setup.yml
+      args:
+        executable: /bin/bash
+
+    - name: run cluster.yaml
+      ansible.builtin.shell: |
+        source /opt/genestack/scripts/genestack.rc
+        cd /opt/genestack/submodules/kubespray
+        ansible-playbook cluster.yml
+      args:
+        executable: /bin/bash
+
+    - name: Label all nodes with specified labels
+      command: >
+        kubectl label nodes --all
+        role=storage-node
+        openstack-control-plane=enabled
+        openstack-compute-node=enabled
+        openstack-network-node=enabled
+        openstack-storage-node=enabled
+        longhorn.io/storage-node=enabled
+        node-role.kubernetes.io/worker=worker
+        --overwrite
+
+    - name: Annotate nodes for OVN
+      command: >
+        kubectl annotate nodes --all \
+        ovn.openstack.org/int_bridge='br-int' \
+        ovn.openstack.org/bridges='br-ex' \
+        ovn.openstack.org/ports='br-ex:fake1' \
+        ovn.openstack.org/mappings='physnet1:br-ex' \
+        ovn.openstack.org/availability_zones='az1' \
+        ovn.openstack.org/gateway='enabled'
+
+    - name: Install Prometheus
+      command: >
+        /opt/genestack/bin/install-prometheus.sh
+
+    - name: Build openstack-helm
+      ansible.builtin.shell: |
+        cd /opt/genestack/submodules/openstack-helm
+        make all
+
+    - name: Build openstack-helm-infra
+      ansible.builtin.shell: |
+        cd /opt/genestack/submodules/openstack-helm-infra
+        make all
+
+- name: Update package lists and install open-iscsi and cryptsetup
+  hosts: all
+  become: yes
+  tasks:
+    - name: Update apt package lists
+      apt:
+        update_cache: yes
+
+    - name: Install open-iscsi and cryptsetup
+      apt:
+        name:
+          - open-iscsi
+          - cryptsetup
+        state: present
+        force_apt_get: yes
+
+    - name: Load the dummy kernel module
+      ansible.builtin.command:
+        cmd: modprobe dummy
+      become: yes
+
+    - name: Create a virtual interface fake1
+      ansible.builtin.command:
+        cmd: ip link add fake1 type dummy
+      become: yes
+
+    - name: Install pip for Python 3
+      ansible.builtin.package:
+        name: python3-pip
+        state: present
+
+    - name: Install Kubernetes Python client library
+      ansible.builtin.pip:
+        name: kubernetes
+
+- name: Continue deploying genestack
+  hosts: "{{ groups['all'][0] }}"
+  vars:
+    ansible_user: root
+  tasks:
+    - name: Add Longhorn Helm repository
+      command: helm repo add longhorn https://charts.longhorn.io
+      register: add_repo_result
+      changed_when: "'already exists' not in add_repo_result.stdout"
+
+    - name: Update Helm repositories
+      command: helm repo update
+      register: update_repo_result
+
+    - name: Display the result of repository addition
+      debug:
+        var: add_repo_result.stdout
+
+    - name: Display the result of repository update
+      debug:
+        var: update_repo_result.stdout
+
+    - name: Ensure the manifests exists
+      file:
+        path: /etc/genestack/manifests
+        state: directory
+        mode: '0755'
+
+    - name: Write Longhorn configuration file
+      copy:
+        dest: /etc/genestack/manifests/longhorn.yaml
+        content: |
+          longhornManager:
+            nodeSelector:
+              longhorn.io/storage-node: "enabled"
+          longhornDriver:
+            nodeSelector:
+              longhorn.io/storage-node: "enabled"
+          longhornUI:
+            nodeSelector:
+              longhorn.io/storage-node: "enabled"
+          longhornConversionWebhook:
+            nodeSelector:
+              longhorn.io/storage-node: "enabled"
+          longhornAdmissionWebhook:
+            nodeSelector:
+              longhorn.io/storage-node: "enabled"
+          longhornRecoveryBackend:
+            nodeSelector:
+              longhorn.io/storage-node: "enabled"
+        mode: '0644'
+
+    - name: Create namespace longhorn-system
+      command: kubectl create namespace longhorn-system
+      register: create_namespace_result
+      changed_when: "'already exists' not in create_namespace_result.stderr"
+
+    - name: Label the namespace longhorn-system
+      command: >
+        kubectl label --overwrite namespace longhorn-system
+        pod-security.kubernetes.io/enforce=privileged
+        pod-security.kubernetes.io/enforce-version=latest
+        pod-security.kubernetes.io/warn=privileged
+        pod-security.kubernetes.io/warn-version=latest
+        pod-security.kubernetes.io/audit=privileged
+        pod-security.kubernetes.io/audit-version=latest
+
+    - name: Install or upgrade Longhorn using Helm
+      command: helm upgrade --install longhorn longhorn/longhorn --namespace longhorn-system --create-namespace --version 1.7.2 -f /etc/genestack/manifests/longhorn.yaml
+
+    - name: Apply the general StorageClass
+      k8s:
+        state: present
+        definition:
+          kind: StorageClass
+          apiVersion: storage.k8s.io/v1
+          metadata:
+            name: general
+          provisioner: driver.longhorn.io
+          allowVolumeExpansion: true
+          reclaimPolicy: Delete
+          volumeBindingMode: Immediate
+          parameters:
+            numberOfReplicas: "1"
+            dataLocality: "best-effort"
+            staleReplicaTimeout: "2880"
+            fromBackup: ""
+            fsType: "ext4"
+
+    - name: Apply the general-multi-attach StorageClass
+      k8s:
+        state: present
+        definition:
+          kind: StorageClass
+          apiVersion: storage.k8s.io/v1
+          metadata:
+            name: general-multi-attach
+          provisioner: driver.longhorn.io
+          allowVolumeExpansion: true
+          reclaimPolicy: Delete
+          volumeBindingMode: Immediate
+          parameters:
+            numberOfReplicas: "1"
+            dataLocality: "best-effort"
+            staleReplicaTimeout: "2880"
+            fromBackup: ""
+            fsType: "ext4"
+            accessMode: ReadWriteMany
+
+    - name: Create Openstack namespace
+      command: kubectl apply -k /etc/genestack/kustomize/openstack
+
+    - name: Create Openstack secrets
+      command: /opt/genestack/bin/create-secrets.sh
+
+    - name: Apply secrets
+      command: kubectl create -f /etc/genestack/kubesecrets.yaml -n openstack
+
+    - name: Apply metallb manifest
+      command: kubectl apply -f /etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml
+
+    - name: Create gateway namespace
+      command: kubectl create ns nginx-gateway
+
+    - name: Install gateway CRDs
+      shell: |
+        set -o pipefail
+        kubectl kustomize "https://github.com/nginxinc/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v1.4.0" | kubectl apply -f -
+      args:
+        executable: /bin/bash
+
+    - name: Install gateway controller
+      shell: |
+        cd /opt/genestack/submodules/nginx-gateway-fabric/charts
+        helm upgrade --install nginx-gateway-fabric ./nginx-gateway-fabric \
+          --namespace=nginx-gateway \
+          -f /etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml
+      args:
+        executable: /bin/bash
+
+    - name: Restart cert manager
+      command: kubectl rollout restart deployment cert-manager --namespace cert-manager
+
+    - name: Create gateway shared resource
+      shell: |
+        set -o pipefail
+        kubectl kustomize /etc/genestack/kustomize/gateway/nginx-gateway-fabric | kubectl apply -f -
+      args:
+        executable: /bin/bash
+
+    - name: Deploy mariadb operator
+      shell: |
+        export cluster_name="cluster.local"
+        /opt/genestack/bin/install-mariadb-operator.sh
+      args:
+        executable: /bin/bash
+
+    - name: Wait mariadb operator to be ready
+      command: kubectl wait --for=condition=available -n mariadb-system deployment mariadb-operator-webhook --timeout=300s
+      register: result
+      retries: 5
+      delay: 10
+      until: result.rc == 0
+
+    - name: Deploy mariadb cluster
+      command: kubectl --namespace openstack apply -k /etc/genestack/kustomize/mariadb-cluster/overlay
+
+    - name: Deploy rabbitmq
+      shell: |
+        kubectl apply -k /etc/genestack/kustomize/rabbitmq-operator
+        kubectl apply -k /etc/genestack/kustomize/rabbitmq-topology-operator
+        kubectl apply -k /etc/genestack/kustomize/rabbitmq-cluster/overlay
+
+    - name: Deploy memcached
+      command: /opt/genestack/bin/install-memcached.sh
+
+    - name: Deploy libvirt
+      command: /opt/genestack/bin/install-libvirt.sh
+
+    - name: Deploy OVN
+      command: kubectl apply -k /etc/genestack/kustomize/ovn
+
+    - name: Wait 5 minutes for things to deploy
+      ansible.builtin.pause:
+        seconds: 300
+
+    - name: Install keystone
+      command: /opt/genestack/bin/install-keystone.sh
+
+    - name: Install admin pod
+      command: kubectl --namespace openstack apply -f /etc/genestack/manifests/utils/utils-openstack-client-admin.yaml
+
+    - name: Install glance
+      command: /opt/genestack/bin/install-glance.sh
+
+    - name: Install heat
+      command: /opt/genestack/bin/install-heat.sh
+
+    - name: Install barbican
+      command: /opt/genestack/bin/install-barbican.sh
+
+    - name: Install cinder
+      command: /opt/genestack/bin/install-cinder.sh
+
+    - name: Install placement
+      command: /opt/genestack/bin/install-placement.sh
+
+    - name: Install nova
+      command: /opt/genestack/bin/install-nova.sh
+
+    - name: Install neutron
+      command: /opt/genestack/bin/install-neutron.sh
+
+    - name: Install skyline
+      command: kubectl --namespace openstack apply -k /etc/genestack/kustomize/skyline/overlay
+
+    - name: Install octavia
+      command: /opt/genestack/bin/install-octavia.sh
+
+    - name: Install magnum
+      command: /opt/genestack/bin/install-magnum.sh
+
+    - name: Wait 10 minutes for things to deploy
+      ansible.builtin.pause:
+        seconds: 600
+
+    - name: Get status of all pods in openstack namespace
+      command: kubectl get pods --namespace openstack
+
+    - name: Get status of compute services
+      command: kubectl exec -itn openstack openstack-admin-client -- openstack compute service list
+
+    - name: Get status of network agents
+      command: kubectl exec -itn openstack openstack-admin-client -- openstack network agent list
+
+    - name: Get status of volume services
+      command: kubectl exec -itn openstack openstack-admin-client -- openstack volume service list

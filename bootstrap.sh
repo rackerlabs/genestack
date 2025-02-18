@@ -76,20 +76,108 @@ message "Deploy Mulinode: ${OSH_DEPLOY_MULTINODE}"
 # Ensure /etc/genestack exists
 mkdir -p /etc/genestack
 
-# Copy base-kustomize if it does not already exist
-if [ ! -d "/etc/genestack/kustomize" ]; then
-  cp -r /opt/genestack/base-kustomize /etc/genestack/kustomize
-  success "Copied kustomize to /etc/genestack/"
+# Ensure each service from /opt/genestack/base-kustomize
+# exists in /etc/genestack/kustomize and symlink
+# all the sub-directories
+base_source_dir="/opt/genestack/base-kustomize"
+base_target_dir="/etc/genestack/kustomize"
+
+for service in "$base_source_dir"/*; do
+  service_name=$(basename "$service")
+  if [ -d "$service" ]; then
+    # Check if the service has subdirectories
+    if [ "$(find "$service" -mindepth 1 -type d | wc -l)" -eq 0 ]; then
+      # If no subdirectories, symlink the service directly under the target dir
+      if [ ! -L "$base_target_dir/$service_name" ]; then
+        ln -s "$service" "$base_target_dir/$service_name"
+        success "Created symlink for $service_name directly under $base_target_dir"
+      else
+        message "Symlink for $service_name already exists directly under $base_target_dir"
+      fi
+    else
+      if [ -d "$base_target_dir/$service_name" ]; then
+        message "$base_target_dir/$service_name already exists"
+      else
+        message "Creating $base_target_dir/$service_name"
+        mkdir -p "$base_target_dir/$service_name"
+      fi
+      for item in "$service"/*; do
+        item_name=$(basename "$item")
+        if [ ! -L "$base_target_dir/$service_name/$item_name" ]; then
+          ln -s "$item" "$base_target_dir/$service_name/$item_name"
+          success "Created symlink for $service_name/$item_name"
+        else
+          message "Symlink for $service_name/$item_name already exists"
+        fi
+      done
+    fi
+  else
+    message "$service_name is not a directory, skipping..."
+  fi
+done
+
+# Symlink /opt/genestack/base-kustomize/kustomize.sh to
+# /etc/genestack/kustomize/kustomize.sh
+ln -s $base_source_dir/kustomize.sh $base_target_dir/kustomize.sh
+
+# Ensure kustomization.yaml exists in each
+# service base/overlay directory
+# Directory paths
+overlay_target_dir="/etc/genestack/kustomize"
+
+kustomization_content="apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../base
+"
+
+for service in "$overlay_target_dir"/*; do
+  if [ -d "$service" ] && [ -d "$service/base" ]; then
+    overlay_path="${service}/overlay"
+
+    if [ ! -d "$overlay_path" ]; then
+      mkdir -p "$overlay_path"
+      success "Creating overlay path $overlay_path"
+    fi
+
+    if [ ! -f "$overlay_path/kustomization.yaml" ]; then
+      echo "$kustomization_content" > "$overlay_path/kustomization.yaml"
+      success "Created overlay and kustomization.yaml for $(basename "$service")"
+    else
+      message "kustomization.yaml already exists for $(basename "$service"), skipping..."
+    fi
+  else
+    message "No base directory for $(basename "$service"), skipping..."
+  fi
+done
+
+#!/bin/bash
+
+if [ ! -d "/etc/genestack/helm-configs" ]; then
+  mkdir -p /etc/genestack/helm-configs
+  success "Created /etc/genestack/helm-configs"
 else
-  message "kustomize already exists in /etc/genestack, skipping copy."
+  message "/etc/genestack/helm-configs already exists, skipping creation."
 fi
 
-# Copy base-helm-configs if it does not already exist
-if [ ! -d "/etc/genestack/helm-configs" ]; then
-  cp -r /opt/genestack/base-helm-configs /etc/genestack/helm-configs
-  success "Copied helm-configs to /etc/genestack/"
+for src_dir in /opt/genestack/base-helm-configs/*; do
+  if [ -d "$src_dir" ]; then
+    dir_name=$(basename "$src_dir")
+    dest_dir="/etc/genestack/helm-configs/$dir_name"
+    if [ ! -d "$dest_dir" ]; then
+      mkdir -p "$dest_dir"
+      success "Created $dest_dir"
+    else
+      message "$dest_dir already exists, skipping creation."
+    fi
+  fi
+done
+
+if [ ! -d "/etc/genestack/helm-configs/global_overrides" ]; then
+  mkdir -p /etc/genestack/helm-configs/global_overrides
+  echo "Created /etc/genestack/helm-configs/global_overrides"
 else
-  message "helm-configs already exists in /etc/genestack, skipping copy."
+  echo "/etc/genestack/helm-configs/global_overrides already exists, skipping creation."
 fi
 
 # Copy manifests if it does not already exist

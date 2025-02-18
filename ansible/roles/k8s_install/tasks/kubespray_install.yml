@@ -16,7 +16,7 @@
 - name: "Execute kubespray installer"
   block:
     - name: "Output"
-      debug:
+      ansible.builtin.debug:
         msg:
           - "Executing kubespray installer in mode {{ kube_install_mode }}"
           - "Output will be send to /var/log/kubespray.log"

@@ -1,0 +1,133 @@
+---
+# These are the tasks to generate the required
+# certificates and keys for octavia amphora and
+# octavia worker processes; there are 2 different
+# CA(s) for which certificates and keys will be
+# created; client CA will be used to generate client
+# certificate
+
+- name: Check if Kubernetes Secret certificate passphrase exists
+  k8s_info:
+    kind: Secret
+    namespace: openstack
+    name: octavia-certificates
+  register: secret_check
+  failed_when: false  # Prevent failure if the secret doesn't exist
+
+- name: Set flag if secret exists
+  set_fact:
+    secret_exists: "{{ secret_check.resources | length > 0 }}"
+
+- name: Create secret if it does not exist
+  k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: octavia-certificates
+        namespace: openstack
+      data:
+        password: "{{ octavia_key_passwd | b64encode }}"
+  when: not secret_exists
+
+- name: Register the passphrase to be used with certs
+  k8s_info:
+    kind: Secret
+    namespace: openstack
+    name: octavia-certificates
+  register: cert_secret
+
+- name: Extract and decode the secret
+  set_fact:
+    certificate_passphrase: "{{ cert_secret.resources[0].data | dict2items | map(attribute='value') | map('b64decode') | first }}"
+  when: cert_secret.resources is defined
+
+- name: Generate Server CA private key
+  community.crypto.openssl_privatekey:
+    path: "{{ octavia_serverca_privkey }}"
+    state: present
+    passphrase: "{{ certificate_passphrase }}"
+    size: "{{ octavia_cert_key_bits }}"
+    cipher: "auto"
+    type: "{{ octavia_key_type }}"
+
+- name: Create Server CA cert
+  shell: >
+    openssl req -config {{ octavia_certs_dir }}/openssl.cnf -key {{ octavia_serverca_privkey }} \
+    -new -x509 -days {{ octavia_ca_valid_period }} -sha256 -extensions v3_ca \
+    -subj "{{ octavia_server_ca_subj }}" -out {{ octavia_server_ca_cert }} \
+    -passin pass:'{{ certificate_passphrase }}'
+  args:
+    chdir: "{{ octavia_certs_dir }}"
+    creates: "{{ octavia_server_ca_cert }}"
+  tags:
+    - skip_ansible_lint
+
+- name: Generate Client CA private key
+  community.crypto.openssl_privatekey:
+    path: "{{ octavia_clientca_privkey }}"
+    state: present
+    passphrase: "{{ certificate_passphrase }}"
+    size: "{{ octavia_cert_key_bits }}"
+    cipher: "auto"
+    type: "{{ octavia_key_type }}"
+
+- name: Create Client CA cert
+  shell: >
+    openssl req -config {{ octavia_certs_dir }}/openssl.cnf -key {{ octavia_clientca_privkey }} \
+    -new -x509 -days {{ octavia_ca_valid_period }} -sha256 -extensions v3_ca \
+    -subj "{{ octavia_client_ca_subj }}" -out {{ octavia_client_ca_cert }} \
+    -passin pass:'{{ certificate_passphrase }}'
+  args:
+    chdir: "{{ octavia_certs_dir }}"
+    creates: "{{ octavia_client_ca_cert }}"
+  tags:
+    - skip_ansible_lint
+
+- name: Create Client key (octavia-worker)
+  community.crypto.openssl_privatekey:
+    path: "{{ octavia_client_key }}"
+    state: present
+    size: "{{ octavia_client_key_bits }}"
+    type: "{{ octavia_key_type }}"
+
+- name: Create CSR for client cert
+  community.crypto.openssl_csr:
+    common_name: "{{ client_cert_CN }}"
+    country_name: "{{ client_cert_CT }}"
+    state_or_province_name: "{{ client_cert_ST }}"
+    locality_name: "{{ client_cert_LN }}"
+    organization_name: "{{ client_cert_ORG }}"
+    organizational_unit_name: "{{ client_cert_OU }}"
+    privatekey_path: "{{ octavia_client_key }}"
+    path: "{{ octavia_client_csr }}"
+
+- name: Create Client cert (octavia-worker)
+  shell: >
+    openssl ca -passin pass:'{{ certificate_passphrase }}' -config {{ octavia_certs_dir }}/openssl.cnf -extensions usr_cert \
+    -notext -md sha256 -days {{ octavia_client_cert_valid_period }} -in {{ octavia_client_csr }} \
+    -out {{ octavia_client_cert }} -batch
+  args:
+    chdir: "{{ octavia_certs_dir }}"
+    creates: "{{ octavia_client_cert }}"
+  tags:
+    - skip_ansible_lint
+
+- name: Create a single file for client key and cert (octavia-worker)
+  shell:
+    cmd: cat "{{ octavia_client_key }}" "{{ octavia_client_cert }}" > "{{ octavia_client_key_cert }}"
+    chdir: "{{ octavia_certs_dir }}"
+    creates: "{{ octavia_client_key_cert }}"
+  tags:
+    - skip_ansible_lint
+
+- name: Run the script to create the yaml file for octavia-certs secret
+  script:
+    cmd: create_k8s_secret.sh {{ octavia_server_ca_cert }} {{ octavia_serverca_privkey }} {{ octavia_client_ca_cert }} {{ octavia_client_key_cert }}
+    creates: /tmp/k8s_secret.yml
+
+- name: Create the "octavia-certs" secret in the openstack namespace
+  k8s:
+    state: present
+    src: /tmp/k8s_secret.yml

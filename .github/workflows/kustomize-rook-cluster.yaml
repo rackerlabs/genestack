@@ -20,7 +20,7 @@ jobs:
           fi
       - name: Run Kustomize Build
         run: |
-          kustomize build base-kustomize/rook-cluster > /tmp/rendered.yaml
+          kustomize build base-kustomize/rook-cluster/base > /tmp/rendered.yaml
       - name: Return Kustomize Build
         uses: actions/upload-artifact@v4
         with:

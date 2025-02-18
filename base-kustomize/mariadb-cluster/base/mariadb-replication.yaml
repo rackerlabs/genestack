@@ -10,7 +10,27 @@ spec:
     generate: false
   username: mariadb
   database: mariadb
-  image: mariadb:10.11.7
+  image: docker-registry1.mariadb.com/library/mariadb:11.4.3
+
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: node-role.kubernetes.io/worker
+                operator: In
+                values:
+                  - worker
+    # NOTE: (brew) uncomment below when we update to a newer mariadb crd
+#    podAntiAffinity:
+#      requiredDuringSchedulingIgnoredDuringExecution:
+#        - labelSelector:
+#          matchExpressions:
+#            - key: app.kubernetes.io/instance
+#              operator: In
+#              values:
+#                - mariadb-cluster
+#          topologyKey: kubernetes.io/hostname
 
   storage:
     size: 10Gi
@@ -19,15 +39,13 @@ spec:
     waitForVolumeResize: true
     volumeClaimTemplate:
       accessModes:
-      - ReadWriteOnce
+        - ReadWriteOnce
       resources:
         requests:
           storage: 10Gi
       storageClassName: general
 
   replicas: 3
-  podSecurityContext:
-    runAsUser: 0
 
   replication:
     enabled: true

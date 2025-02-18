@@ -14,7 +14,7 @@
 # limitations under the License.
 
 - name: Check Kernel Version
-  fail:
+  ansible.builtin.fail:
     msg: >
       Wrong kernel Version found
       [ {{ ansible_facts['kernel'] }} < {{ host_required_kernel }} ]
@@ -23,45 +23,58 @@
     - ansible_facts['kernel'] is version(host_required_kernel, '<')
 
 - name: Check how kernel modules are implemented (statically builtin, dynamic, not set)
-  slurp:
+  ansible.builtin.slurp:
     src: "/boot/config-{{ ansible_facts['kernel'] }}"
   register: modules
   when:
     - host_specific_kernel_modules | length > 0
 
 - name: Fail fast if we can't load a module
-  fail:
+  ansible.builtin.fail:
     msg: "{{ item.pattern }} is not set"
-  with_items: "{{ host_specific_kernel_modules }}"
+  loop: "{{ host_specific_kernel_modules }}"
   when:
     - item.pattern is defined
     - (modules.content | b64decode).find(item.pattern + ' is not set') != -1
 
 - name: "Load kernel module(s)"
-  modprobe:
+  community.general.modprobe:
     name: "{{ item.name }}"
-  with_items: "{{ host_kernel_modules + host_specific_kernel_modules }}"
+  loop: "{{ host_kernel_modules + host_specific_kernel_modules }}"
   when:
     - item.name | length > 0
     - item.pattern is undefined or (item.pattern is defined and (modules.content | b64decode).find(item.pattern + '=m') != -1)
 
 - name: Write list of modules to load at boot
-  template:
+  ansible.builtin.template:
     src: modprobe.conf.j2
     dest: "{{ host_module_file }}"
     mode: "0644"
 
 - name: Adding new system tuning
-  sysctl:
+  ansible.builtin.sysctl:
     name: "{{ item.key }}"
     value: "{{ item.value }}"
     sysctl_set: "{{ item.set | default('yes') }}"
     state: "{{ item.state | default('present') }}"
     reload: no
-  with_items: "{{ kernel_options + user_kernel_options }}"
+  loop: "{{ kernel_options + user_kernel_options }}"
   failed_when: false
 
 - name: Configure sysstat
-  include_tasks: sysstat.yml
+  ansible.builtin.include_tasks: sysstat.yml
   when:
     - host_sysstat_enabled | bool
+
+- name: Create queue max script
+  ansible.builtin.copy:
+    src: queue_max.sh
+    dest: /usr/local/bin/queue_max.sh
+    mode: "0755"
+
+- name: Create queue max service
+  ansible.builtin.copy:
+    src: queue_max.service
+    dest: /etc/systemd/system/queue_max.service
+    mode: "0644"
+  notify: Load and start queue_max service

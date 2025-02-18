@@ -1,0 +1,45 @@
+name: testing-openstack-deploy
+
+on:
+  workflow_run:
+    workflows:
+      - Migrate Images to QUAY
+    types:
+      - completed
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python environment
+      run: sudo apt-get update && sudo apt-get install -y python3-pip
+
+    - name: Install requirements
+      run: pip3 install -r testing/requirements.txt
+
+    - name: Create OpenStack config directory
+      run: mkdir -p ~/.config/openstack
+
+    - name: Retrieve clouds.yaml from GitHub secrets
+      env:
+        CLOUDS_YAML: ${{ secrets.CLOUDS_YAML }}
+      run: |
+        echo "$CLOUDS_YAML" > ~/.config/openstack/clouds.yaml
+
+    - name: Retrieve env.yaml from GitHub secrets
+      env:
+        ENV_YAML: ${{ secrets.ENV_YAML }}
+      run: |
+        echo "$ENV_YAML" > ~/env.yaml
+
+    - name: Run deployment script
+      run: bash testing/doit.sh
+
+    - name: Cleanup
+      if: always()
+      run: bash testing/cleanup.sh

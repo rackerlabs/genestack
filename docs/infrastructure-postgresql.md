@@ -9,15 +9,11 @@ We are using the [Zalando postgres-operator](https://github.
 com/zalando/postgres-operator/) which offers easy to run and
 highly-available PostgreSQL clusters on Kubernetes.
 
-_The following command to install the operator must be run twice, at least for
-now, due to a race condition with the way kubectl handles the CRD
-installation._
+!!! example "Run the postgres-operator deployment Script `bin/install-postgres-operator.sh`"
 
-``` shell
-kubectl kustomize --enable-helm /etc/genestack/kustomize/postgres-operator | kubectl apply -f -
-sleep 10
-kubectl kustomize --enable-helm /etc/genestack/kustomize/postgres-operator | kubectl apply -f -
-```
+    ``` shell
+    --8<-- "bin/install-postgres-operator.sh"
+    ```
 
 ## Create the PostgreSQL Cluster
 
@@ -65,5 +61,5 @@ kubectl kustomize --enable-helm /etc/genestack/kustomize/postgres-operator | kub
     which has a single replica and less default resource utilization.
 
     ```shell
-    kubectl kustomize /etc/genestack/kustomize/postgres-cluster/base | kubectl apply -f -
+    kubectl kustomize /etc/genestack/kustomize/postgres-cluster/overlay | kubectl apply -f -
     ```

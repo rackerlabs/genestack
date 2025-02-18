@@ -1,4 +1,4 @@
-![Rackspace Cloud Software](assets/images/ospc_flex_logo_red.svg){ align=left : style="max-width:175px" }
+![Rackspace Cloud Software](assets/images/ospc_flex_logo_red.svg){ align=left : style="max-width:350px" }
 
 # What is Genestack?
 
@@ -12,5 +12,5 @@ Genestack’s inner workings are a blend of dark magic — crafted with [Kustomi
 platform is ready to go with batteries included.
 
 Genestack is making use of some homegrown solutions, community operators, and OpenStack-Helm. Everything
-in Genestack comes together to form cloud in a new and exciting way; all built with opensource solutions
+in Genestack comes together to form cloud in a new and exciting way; all built with Open Source solutions
 to manage cloud infrastructure in the way you need it.

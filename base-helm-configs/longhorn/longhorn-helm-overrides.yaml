@@ -1,0 +1,16 @@
+---
+longhornDriver:
+  nodeSelector:
+    longhorn.io/storage-node: "enabled"
+longhornUI:
+  nodeSelector:
+    longhorn.io/storage-node: "enabled"
+longhornConversionWebhook:
+  nodeSelector:
+    longhorn.io/storage-node: "enabled"
+longhornAdmissionWebhook:
+  nodeSelector:
+    longhorn.io/storage-node: "enabled"
+longhornRecoveryBackend:
+  nodeSelector:
+    longhorn.io/storage-node: "enabled"

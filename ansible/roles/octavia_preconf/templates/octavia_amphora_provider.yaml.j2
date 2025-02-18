@@ -1,0 +1,120 @@
+---
+# this file is generated for enabling amphora provider for octavia
+# the pod mounts have been set to the recommended defaults; if you
+# generated the certs manually then the pod mounts and volumes have
+# to be modified accordingly
+
+pod:
+  mounts:
+    octavia_api:
+      octavia_api:
+        volumeMounts:
+          - name: octavia-certs
+            mountPath: /etc/octavia/certs/private/server_ca.key.pem
+            subPath: server_ca.key.pem
+          - name: octavia-certs
+            mountPath: /etc/octavia/certs/server_ca.cert.pem
+            subPath: server_ca.cert.pem
+          - name: octavia-certs
+            mountPath: /etc/octavia/certs/client_ca.cert.pem
+            subPath: client_ca.cert.pem
+          - name: octavia-certs
+            mountPath: /etc/octavia/certs/private/client.key-and-cert.pem
+            subPath: client.key-and-cert.pem
+          - name: pod-run-octavia
+            mountPath: /var/run/octavia
+        volumes:
+          - name: octavia-certs
+            secret:
+              secretName: octavia-certs
+              defaultMode: 0644
+          - name: pod-run-octavia
+            emptyDir: {}
+    octavia_worker:
+      octavia_worker:
+        volumeMounts:
+          - name: octavia-certs
+            mountPath: /etc/octavia/certs/private/server_ca.key.pem
+            subPath: server_ca.key.pem
+          - name: octavia-certs
+            mountPath: /etc/octavia/certs/server_ca.cert.pem
+            subPath: server_ca.cert.pem
+          - name: octavia-certs
+            mountPath: /etc/octavia/certs/client_ca.cert.pem
+            subPath: client_ca.cert.pem
+          - name: octavia-certs
+            mountPath: /etc/octavia/certs/private/client.key-and-cert.pem
+            subPath: client.key-and-cert.pem
+          - name: pod-run-octavia
+            mountPath: /var/run/octavia
+        volumes:
+          - name: octavia-certs
+            secret:
+              secretName: octavia-certs
+              defaultMode: 0644
+          - name: pod-run-octavia
+            emptyDir: {}
+    octavia_housekeeping:
+      octavia_housekeeping:
+        volumeMounts:
+          - name: octavia-certs
+            mountPath: /etc/octavia/certs/private/server_ca.key.pem
+            subPath: server_ca.key.pem
+          - name: octavia-certs
+            mountPath: /etc/octavia/certs/server_ca.cert.pem
+            subPath: server_ca.cert.pem
+          - name: octavia-certs
+            mountPath: /etc/octavia/certs/client_ca.cert.pem
+            subPath: client_ca.cert.pem
+          - name: octavia-certs
+            mountPath: /etc/octavia/certs/private/client.key-and-cert.pem
+            subPath: client.key-and-cert.pem
+        volumes:
+          - name: octavia-certs
+            secret:
+              secretName: octavia-certs
+              defaultMode: 0644
+    octavia_health_manager:
+      octavia_health_manager:
+        volumeMounts:
+          - name: octavia-certs
+            mountPath: /etc/octavia/certs/private/server_ca.key.pem
+            subPath: server_ca.key.pem
+          - name: octavia-certs
+            mountPath: /etc/octavia/certs/server_ca.cert.pem
+            subPath: server_ca.cert.pem
+          - name: octavia-certs
+            mountPath: /etc/octavia/certs/client_ca.cert.pem
+            subPath: client_ca.cert.pem
+          - name: octavia-certs
+            mountPath: /etc/octavia/certs/private/client.key-and-cert.pem
+            subPath: client.key-and-cert.pem
+        volumes:
+          - name: octavia-certs
+            secret:
+              secretName: octavia-certs
+              defaultMode: 0644
+
+conf:
+  octavia:
+    certificates:
+      ca_certificate: /etc/octavia/certs/server_ca.cert.pem
+      ca_private_key: /etc/octavia/certs/private/server_ca.key.pem
+      ca_private_key_passphrase: {{ cert_passwd }}
+    controller_worker:
+      client_ca: /etc/octavia/certs/client_ca.cert.pem
+      amp_image_owner_id: {{ _amphora_image_info.images[0].owner }}
+      amp_secgroup_list: {{ _amphora_sec_group_info.security_groups[0].id }}
+      amp_flavor_id: {{ _amphora_flavor_info.flavors[0].id }}
+      amp_boot_network_list: {{ _amphora_lb_net_info.networks[0].id }}
+      amp_image_tag: amphora
+{% if amphora_ssh_enabled %}
+      amp_ssh_key_name: {{ amphora_ssh_key_name }}
+{% endif %}
+    haproxy_amphora:
+      client_cert: /etc/octavia/certs/private/client.key-and-cert.pem
+      server_ca: /etc/octavia/certs/server_ca.cert.pem
+    health_manager:
+      bind_port: 5555
+      bind_ip: 0.0.0.0
+      controller_ip_port_list: {{ lookup('file', '/tmp/octavia_hm_controller_ip_port_list') }}

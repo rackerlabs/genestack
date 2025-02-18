@@ -43,22 +43,22 @@ labels:
 
 images:
   tags:
-    bootstrap: docker.io/openstackhelm/heat:2023.1-ubuntu_jammy
-    db_init: docker.io/openstackhelm/heat:2023.1-ubuntu_jammy
-    db_drop: docker.io/openstackhelm/heat:2023.1-ubuntu_jammy
-    rabbit_init: docker.io/rabbitmq:3.7-management
-    ks_user: docker.io/openstackhelm/heat:2023.1-ubuntu_jammy
-    ks_service: docker.io/openstackhelm/heat:2023.1-ubuntu_jammy
-    ks_endpoints: docker.io/openstackhelm/heat:2023.1-ubuntu_jammy
-    dep_check: quay.io/airshipit/kubernetes-entrypoint:v1.0.0
-    designate_db_sync: docker.io/openstackhelm/designate:2024.1-ubuntu_jammy
-    designate_api: docker.io/openstackhelm/designate:2024.1-ubuntu_jammy
-    designate_central: docker.io/openstackhelm/designate:2024.1-ubuntu_jammy
-    designate_mdns: docker.io/openstackhelm/designate:2024.1-ubuntu_jammy
-    designate_worker: docker.io/openstackhelm/designate:2024.1-ubuntu_jammy
-    designate_producer: docker.io/openstackhelm/designate:2024.1-ubuntu_jammy
-    designate_sink: docker.io/openstackhelm/designate:2024.1-ubuntu_jammy
-    image_repo_sync: docker.io/docker:17.07.0
+    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
+    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0"
+    designate_db_sync: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
+    designate_api: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
+    designate_central: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
+    designate_mdns: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
+    designate_worker: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
+    designate_producer: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
+    designate_sink: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
+    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
   pull_policy: "IfNotPresent"
   local_registry:
     active: false
@@ -143,13 +143,13 @@ pod:
         timeout: 30
 
   resources:
-    enabled: false
+    enabled: true
     api:
       requests:
         memory: "128Mi"
         cpu: "100m"
       limits:
-        memory: "1024Mi"
+        memory: "4096Mi"
         cpu: "2000m"
     jobs:
       bootstrap:
@@ -471,6 +471,32 @@ conf:
       auth_version: v3
       memcache_security_strategy: ENCRYPT
       service_type: dns
+    oslo_concurrency:
+      lock_path: /tmp/designate
+    oslo_messaging_notifications:
+      driver: messagingv2
+    oslo_messaging_rabbit:
+      amqp_durable_queues: false
+      # We define use of quorum queues via kustomize but this was enabling HA queues instead
+      # ha_queues are deprecated, explicitly set to false and set quorum_queue true
+      rabbit_ha_queues: false
+      rabbit_quorum_queue: true
+      # TODO: Not available until 2024.1, but once it is, we want to enable these!
+      # new feature ref; https://docs.openstack.org/releasenotes/oslo.messaging/2024.1.html
+      rabbit_transient_quorum_queue: false
+      use_queue_manager: false
+      # Reconnect after a node outage more quickly
+      rabbit_interval_max: 10
+      # Send more frequent heartbeats and fail unhealthy nodes faster
+      # heartbeat_timeout / heartbeat_rate / 2.0 = 30 / 3 / 2.0 = 5
+      # https://opendev.org/openstack/oslo.messaging/commit/36fb5bceabe08a982ebd52e4a8f005cd26fdf6b8
+      heartbeat_rate: 3
+      heartbeat_timeout_threshold: 30
+      # Setting lower kombu_reconnect_delay should resolve isssue with HA failing when one node is down
+      # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
+      # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
+      kombu_reconnect_delay: 0.5
+
   logging:
     loggers:
       keys:
@@ -486,8 +512,9 @@ conf:
         - context
         - default
     logger_root:
-      level: WARNING
-      handlers: 'null'
+      level: INFO
+      handlers:
+        - stdout
     logger_designate:
       level: INFO
       handlers:
@@ -697,7 +724,7 @@ endpoints:
     hosts:
       default: rabbitmq-nodes
     host_fqdn_override:
-      default: null
+      default: rabbitmq.openstack.svc.cluster.local
     path: /designate
     scheme: rabbit
     port:
@@ -718,7 +745,21 @@ endpoints:
         default: 8081
       powerdns:
         default: 53
-
+  fluentd:
+    namespace: fluentbit
+    name: fluentd
+    hosts:
+      default: fluentd-logging
+    host_fqdn_override:
+      default: null
+    path:
+      default: null
+    scheme: 'http'
+    port:
+      service:
+        default: 24224
+      metrics:
+        default: 24220
 manifests:
   configmap_bin: true
   configmap_etc: true

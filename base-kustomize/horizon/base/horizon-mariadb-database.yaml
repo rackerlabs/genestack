@@ -4,8 +4,12 @@ kind: Database
 metadata:
   name: horizon
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "horizon"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   # If you want the database to be created with a different name than the resource name
   # name: data-custom
@@ -20,8 +24,12 @@ kind: User
 metadata:
   name: horizon
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "horizon"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   # If you want the user to be created with a different name than the resource name
   # name: user-custom
@@ -40,8 +48,12 @@ kind: Grant
 metadata:
   name: horizon-grant
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "horizon"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   mariaDbRef:
     name: mariadb-cluster

@@ -26,7 +26,7 @@ daemonSetVolumeMounts:
     readOnly: true
 serviceMonitor:
   enabled: true
-  namespace: default
+  namespace: fluentbit
   interval: 10s
   scrapeTimeout: 10s
   selector:
@@ -50,3 +50,5 @@ config:
         Retry_Limit False
         labels job=fluentbit
         auto_kubernetes_labels on
+ingress:
+  enabled: false

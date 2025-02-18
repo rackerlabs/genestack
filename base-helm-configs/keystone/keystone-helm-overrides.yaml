@@ -18,23 +18,23 @@ helm3_hook: true
 
 images:
   tags:
-    bootstrap: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    db_init: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    db_drop: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    keystone_api: "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1720466623"
-    keystone_bootstrap: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    keystone_credential_rotate: "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1720466623"
-    keystone_credential_setup: "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1720466623"
-    keystone_db_sync: "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1720466623"
-    keystone_domain_manage: "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1720466623"
-    keystone_fernet_rotate: "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1720466623"
-    keystone_fernet_setup: "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1720466623"
-    ks_user: "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy"
-    test: docker.io/xrally/xrally-openstack:2.0.0
-    rabbit_init: docker.io/rabbitmq:3.7-management
-    keystone_credential_cleanup: "docker.io/aedan/heat:2024.1-ubuntu_jammy"
-    dep_check: quay.io/airshipit/kubernetes-entrypoint:v1.0.0
-    image_repo_sync: docker.io/docker:17.07.0
+    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    keystone_api: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879"
+    keystone_bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    keystone_credential_rotate: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879"
+    keystone_credential_setup: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879"
+    keystone_db_sync: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879"
+    keystone_domain_manage: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879"
+    keystone_fernet_rotate: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879"
+    keystone_fernet_setup: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879"
+    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
+    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
+    keystone_credential_cleanup: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0"
+    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
   pull_policy: "IfNotPresent"
   local_registry:
     active: false
@@ -283,13 +283,14 @@ pod:
       api:
         timeout: 30
   resources:
-    enabled: false
+    enabled: true
     api:
       requests:
-        memory: "64Mi"
+        memory: "256Mi"
         cpu: "100m"
       limits:
         memory: "4096Mi"
+        cpu: "2000m"
     jobs:
       bootstrap:
         requests:
@@ -498,7 +499,7 @@ conf:
   keystone:
     DEFAULT:
       log_config_append: /etc/keystone/logging.conf
-      max_token_size: 255
+      max_token_size: 300
       # NOTE(rk760n): if you need auth notifications to be sent, uncomment it
       # notification_opt_out: ""
     token:
@@ -510,6 +511,7 @@ conf:
       domain_config_dir: /etc/keystone/domains
     fernet_tokens:
       key_repository: /etc/keystone/fernet-keys/
+      max_active_keys: 7
     credential:
       key_repository: /etc/keystone/credential-keys/
     database:
@@ -520,24 +522,27 @@ conf:
     cache:
       enabled: true
       backend: dogpile.cache.memcached
+    oslo_concurrency:
+      lock_path: /tmp/keystone
     oslo_messaging_notifications:
       driver: messagingv2
     oslo_messaging_rabbit:
+      amqp_durable_queues: false
       # We define use of quorum queues via kustomize but this was enabling HA queues instead
       # ha_queues are deprecated, explicitly set to false and set quorum_queue true
       rabbit_ha_queues: false
       rabbit_quorum_queue: true
       # TODO: Not available until 2024.1, but once it is, we want to enable these!
       # new feature ref; https://docs.openstack.org/releasenotes/oslo.messaging/2024.1.html
-      # rabbit_transient_quorum_queue: true
-      # use_queue_manager: true
+      rabbit_transient_quorum_queue: false
+      use_queue_manager: false
       # Reconnect after a node outage more quickly
       rabbit_interval_max: 10
       # Send more frequent heartbeats and fail unhealthy nodes faster
       # heartbeat_timeout / heartbeat_rate / 2.0 = 30 / 3 / 2.0 = 5
       # https://opendev.org/openstack/oslo.messaging/commit/36fb5bceabe08a982ebd52e4a8f005cd26fdf6b8
       heartbeat_rate: 3
-      heartbeat_timeout_threshold:
+      heartbeat_timeout_threshold: 30
       # Setting lower kombu_reconnect_delay should resolve isssue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
@@ -564,7 +569,8 @@ conf:
   # A sample of the value override can be found in sample file:
   # tools/overrides/example/keystone_domain_config.yaml
   # ks_domains:
-  policy: {}
+  policy:
+    "identity:list_system_grants_for_user": "rule:admin_required or (role:reader and system_scope:all) or rule:owner"
   access_rules: {}
   rabbitmq:
     policies: []
@@ -753,13 +759,15 @@ conf:
               max: 0
   mpm_event: |
     <IfModule mpm_event_module>
-      ServerLimit         1024
+      ServerLimit         16
       StartServers        32
       MinSpareThreads     32
-      MaxSpareThreads     256
-      ThreadsPerChild     25
-      MaxRequestsPerChild 128
-      ThreadLimit         720
+      MaxSpareThreads     128
+      ThreadLimit         64
+      ThreadsPerChild     16
+      MaxRequestWorkers   256
+      MaxMemFree          256
+      MaxConnectionsPerChild 0
     </IfModule>
   wsgi_keystone: |
     {{- $portInt := tuple "identity" "service" "api" $ | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
@@ -774,11 +782,12 @@ conf:
     CustomLog /dev/stdout proxy env=forwarded
 
     <VirtualHost *:{{ $portInt }}>
-        WSGIDaemonProcess keystone-public processes=1 threads=1 user=keystone group=keystone display-name=%{GROUP}
+        WSGIDaemonProcess keystone-public processes=2 threads=8 user=keystone group=keystone display-name=%{GROUP}
         WSGIProcessGroup keystone-public
         WSGIScriptAlias / /var/www/cgi-bin/keystone/keystone-wsgi-public
         WSGIApplicationGroup %{GLOBAL}
         WSGIPassAuthorization On
+        LimitRequestBody 114688
         <IfVersion >= 2.4>
           ErrorLogFormat "%{cu}t %M"
         </IfVersion>
@@ -826,8 +835,9 @@ conf:
         - context
         - default
     logger_root:
-      level: WARNING
-      handlers: 'null'
+      level: INFO
+      handlers:
+        - stdout
     logger_keystone:
       level: INFO
       handlers:
@@ -1011,7 +1021,7 @@ endpoints:
     hosts:
       default: rabbitmq-nodes
     host_fqdn_override:
-      default: null
+      default: rabbitmq.openstack.svc.cluster.local
     path: /keystone
     scheme: rabbit
     port:
@@ -1049,7 +1059,7 @@ endpoints:
           #   tls_cacertfile: /etc/certs/tls.ca # abs path to the CA cert
           ca: null
   fluentd:
-    namespace: null
+    namespace: fluentbit
     name: fluentd
     hosts:
       default: fluentd-logging

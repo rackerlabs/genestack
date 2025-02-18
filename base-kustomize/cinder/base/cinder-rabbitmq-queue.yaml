@@ -4,8 +4,12 @@ kind: User
 metadata:
   name: cinder
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "cinder"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   tags:
   - management # available tags are 'management', 'policymaker', 'monitoring' and 'administrator'
@@ -21,8 +25,12 @@ kind: Vhost
 metadata:
   name: cinder-vhost
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "cinder"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   name: "cinder" # vhost name; required and cannot be updated
   defaultQueueType: quorum # default queue type for this vhost; require RabbitMQ version 3.11.12 or above
@@ -42,14 +50,18 @@ kind: Queue
 metadata:
   name: cinder-queue
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "cinder"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   name: cinder-qq # name of the queue
   vhost: "cinder" # default to '/' if not provided
   type: quorum # without providing a queue type, rabbitmq creates a classic queue
   autoDelete: false
-  durable: true # seting 'durable' to false means this queue won't survive a server restart
+  durable: true # setting 'durable' to false means this queue won't survive a server restart
   rabbitmqClusterReference:
     name: rabbitmq # rabbitmqCluster must exist in the same namespace as this resource
     namespace: openstack
@@ -59,8 +71,12 @@ kind: Permission
 metadata:
   name: cinder-permission
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "cinder"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   vhost: "cinder" # name of a vhost
   userReference:

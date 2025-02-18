@@ -1,0 +1,30 @@
+tenant_id: 122333 # TODO: update this value.  Can be set in CLI.
+
+extraSecretMounts:
+  - name: azure-client-secret-mount
+    secretName: azure-client
+    defaultMode: 0440
+    mountPath: /etc/secrets/azure-client
+    readOnly: true
+  - name: grafana-db-secret-mount
+    secretName: grafana-db
+    defaultMode: 0440
+    mountPath: /etc/secrets/grafana-db
+    readOnly: true
+
+grafana.ini:
+  auth.azuread:
+    name: Azure AD
+    enabled: true
+    allow_sign_up: true
+    auto_login: false
+    client_id: $__file{/etc/secrets/azure-client/client_id}
+    client_secret: $__file{/etc/secrets/azure-client/client_secret}
+    scopes: openid email profile
+    auth_url: "https://login.microsoftonline.com/{{ .Values.tenant_id }}/oauth2/v2.0/authorize"
+    token_url: "https://login.microsoftonline.com/{{ .Values.tenant_id }}/oauth2/v2.0/token"
+    allowed_organizations: "{{ .Values.tenant_id }}"
+    role_attribute_strict: false
+    allow_assign_grafana_admin: false
+    skip_org_role_sync: false
+    use_pkce: true

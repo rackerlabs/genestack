@@ -15,10 +15,10 @@ information, take a look at [Prometheus Kube Stack](https://github.com/prometheu
 
 ## Install the Prometheus Stack
 
-!!! example "Run the Prometheus deployment Script `bin/install-prometheus.sh`"
+!!! example "Run the Prometheus deployment"
 
     ``` shell
-    --8<-- "bin/install-prometheus.sh"
+    /opt/genestack/bin/install-prometheus.sh
     ```
 
 !!! success
@@ -26,7 +26,7 @@ information, take a look at [Prometheus Kube Stack](https://github.com/prometheu
     If the installation is successful, you should see the related exporter pods
     in the prometheus namespace.
     ``` shell
-    kubectl -n prometheus get pods -l "release=prometheus"
+    kubectl -n prometheus get pods -l "release=kube-prometheus-stack"
     ```
 
 ## Update Alertmanager Configuration

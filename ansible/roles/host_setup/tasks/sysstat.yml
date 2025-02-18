@@ -14,7 +14,7 @@
 # limitations under the License.
 
 - name: Enable sysstat config
-  template:
+  ansible.builtin.template:
     src: "sysstat.default.j2"
     dest: "{{ host_sysstat_file }}"
     mode: "0644"
@@ -23,16 +23,16 @@
   notify: Restart sysstat
 
 - name: Enable sysstat cron
-  template:
+  ansible.builtin.template:
     src: "{{ host_cron_template }}"
     dest: "{{ host_sysstat_cron_file }}"
     mode: "{{ host_sysstat_cron_mode }}"
     setype: "{{ (ansible_facts['selinux']['status'] == 'enabled') | ternary('system_cron_spool_t', omit) }}"
 
 - name: Start and enable the sysstat service
-  service:
+  ansible.builtin.service:
     name: sysstat
     state: started
-    enabled: yes
+    enabled: true
   when:
     - ansible_facts['pkg_mgr'] == 'dnf'

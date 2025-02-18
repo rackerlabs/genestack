@@ -123,3 +123,21 @@ additionalPrometheusRulesMap:
         annotations:
           summary: OVN backup volume >= 90% disk usage
           description: "OVN backup volume >= 90% disk usage"
+    - name: MariaDB backup alerts
+      rules:
+      - alert: mariadbBackupWarning
+        expr: time() - kube_cronjob_status_last_successful_time{cronjob="mariadb-backup"} > 21600
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: Last MariaDB backup not successful within 1 hour of scheduled run
+          description: "Last MariaDB backup not successful within 1 hour of scheduled run"
+      - alert: mariadbBackupCritical
+        expr: time() - kube_cronjob_status_last_successful_time{cronjob="mariadb-backup"} > 43200
+        for: 1h
+        labels:
+          severity: critical
+        annotations:
+          summary: Second successive MariaDB backup not successful within 1 hour of scheduled run
+          description: "Second successive MariaDB backup not successful within 1 hour of scheduled run"

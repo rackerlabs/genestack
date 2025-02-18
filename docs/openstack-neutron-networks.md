@@ -1,6 +1,10 @@
 # Creating Different Neutron Network Types
 
 The following commands are examples of creating several different network types.
+NOTE: When creating the subnet we are specifically limiting neutrons ability to attach
+ip's from Shared Provider networks directly to instances with --service-type.  If you want
+to attach Shared Provider Network's ip's directly to instances, remove lines beginning with
+--service-type
 
 ## Create Shared Provider Networks
 
@@ -8,7 +12,7 @@ The following commands are examples of creating several different network types.
 
 ``` shell
 openstack --os-cloud default network create --share \
-                                            --availability-zone-hint nova \
+                                            --availability-zone-hint az1 \
                                             --external \
                                             --provider-network-type flat \
                                             --provider-physical-network physnet1 \
@@ -24,6 +28,9 @@ openstack --os-cloud default subnet create --subnet-range 172.16.24.0/22 \
                                            --allocation-pool start=172.16.25.150,end=172.16.25.200 \
                                            --dhcp \
                                            --network flat \
+                                           --service-type network:floatingip \
+                                           --service-type network:router_gateway \
+                                           --service-type network:distributed \
                                            flat_subnet
 ```
 
@@ -31,7 +38,7 @@ openstack --os-cloud default subnet create --subnet-range 172.16.24.0/22 \
 
 ``` shell
 openstack --os-cloud default network create --share \
-                                            --availability-zone-hint nova \
+                                            --availability-zone-hint az1 \
                                             --external \
                                             --provider-segment 404 \
                                             --provider-network-type vlan \
@@ -48,6 +55,9 @@ openstack --os-cloud default subnet create --subnet-range 10.10.10.0/23 \
                                            --allocation-pool start=10.10.11.10,end=10.10.11.254 \
                                            --dhcp \
                                            --network vlan404 \
+                                           --service-type network:floatingip \
+                                           --service-type network:router_gateway \
+                                           --service-type network:distributed \
                                            vlan404_subnet
 ```
 

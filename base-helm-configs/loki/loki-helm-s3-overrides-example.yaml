@@ -20,3 +20,6 @@ loki:
       accessKeyId: < ACCESS KEY ID > # TODO: Update with access key id
       s3ForcePathStyle: false
       insecure: [ true | false ] # TODO: True if valid cert or false if not
+monitoring:
+  serviceMonitor:
+    enabled: true

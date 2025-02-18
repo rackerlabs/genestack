@@ -17,6 +17,18 @@
                         "domain": {
                             "name": "rackspace_cloud_domain"
                         },
+                        "description": "Project for DDI {3}",
+                        "metadata": [
+                            {
+                                "key": "ddi",
+                                "value": "{3}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "project_tag": "{3}"
+                            }
+                        ],
                         "roles": [
                             {
                                 "name": "member"
@@ -44,6 +56,9 @@
             },
             {
                 "type": "RXT_TenantName"
+            },
+            {
+                "type": "RXT_DomainID"
             },
             {
                 "type": "RXT_orgPersonType",

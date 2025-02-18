@@ -1,0 +1,12 @@
+[Manager]
+{% set envList = ["REQUESTS_CA_BUNDLE=" ~ ca_bundle_path] %}
+{% for key, value in global_environment_variables.items() %}
+{%   if value %}
+{%     set _ = envList.append(key ~ "=" ~ value) %}
+{%   endif %}
+{% endfor %}
+DefaultEnvironment = {{ envList | join(' ') }}
+DefaultLimitNOFILE = 65536:524288
+CPUAffinity = numa
+NUMAPolicy = local
+NUMAMask = all

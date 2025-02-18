@@ -19,7 +19,7 @@ kubectl apply -k /etc/genestack/kustomize/rabbitmq-topology-operator
 ## Deploy the RabbitMQ cluster.
 
 ``` shell
-kubectl apply -k /etc/genestack/kustomize/rabbitmq-cluster/base
+kubectl apply -k /etc/genestack/kustomize/rabbitmq-cluster/overlay
 ```
 
 !!! note
