@@ -240,7 +240,7 @@ serviceMonitor:
   ## If true, a ServiceMonitor CRD is created for snmp-exporter itself
   ##
   selfMonitor:
-    enabled: false
+    enabled: true
     additionalMetricsRelabels: {}
     additionalRelabeling: []
     labels: {}
