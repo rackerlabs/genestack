@@ -12,11 +12,11 @@ helm repo update
 
 # Helm command setup
 HELM_CMD="helm upgrade --install topolvm topolvm/topolvm \
-    --namespace=atopolvm-system \
+    --namespace=topolvm-system \
     --timeout 120m \
     --post-renderer /etc/genestack/kustomize/kustomize.sh \
-    --post-renderer-args argocd/${TARGET} \
-    -f /opt/genestack/base-helm-configs/topolvm/topolvm-helm-overrides.yaml"
+    --post-renderer-args topolvm/${TARGET} \
+    -f /opt/genestack/base-helm-configs/topolvm/helm-topolvm-overrides.yaml"
 
 # Check if YAML files exist in the specified directory
 if compgen -G "${CONFIG_DIR}/*.yaml" > /dev/null; then
