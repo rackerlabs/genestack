@@ -162,6 +162,8 @@ nav:
                   - Kubernetes Dashboard: k8s-dashboard.md
                   - Kubernetes Taint: k8s-taint.md
               - Plugins and Tools: k8s-tools.md
+              - Container Network Interface:
+                  - Kube-OVN: k8s-cni-kube-ovn.md
               - Retrieve kube config: k8s-config.md
               - Prometheus: prometheus.md
               - OpenStack Preparations: openstack-helm-make.md
@@ -259,6 +261,7 @@ nav:
               - Claim Storm alert: ovn-alert-claim-storm.md
               - Updating Kube OVN to OpenStack Configuration: ovn-kube-ovn-openstack.md
               - Updating Kube OVN IP Space: infrastructure-kube-ovn-re-ip.md
+              - Updating Kube OVN to Helm: k8s-cni-kube-ovn-helm-conversion.md
           - MariaDB:
               - Operations: infrastructure-mariadb-ops.md
           - Gateway API:

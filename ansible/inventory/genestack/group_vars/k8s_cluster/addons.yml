@@ -166,13 +166,12 @@ cert_manager_dns_config:
     - "8.8.8.8"
 
 cert_manager_controller_extra_args:
-  - "--feature-gates=ExperimentalGatewayAPISupport=true"
-#   - "--enable-gateway-api"  # Not available until cert manager v1.15
+  - "--enable-gateway-api"
 #   - "--dns01-recursive-nameservers-only=true"
 #   - "--dns01-recursive-nameservers=1.1.1.1:53,8.8.8.8:53"
 
 # MetalLB deployment
-metallb_enabled: true
+metallb_enabled: false
 metallb_namespace: metallb-system
 metallb_speaker_enabled: "{{ metallb_enabled }}"
 # metallb_version: v0.13.9
