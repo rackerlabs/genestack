@@ -30,4 +30,3 @@ Once the volume group is on your storage nodes, the node is ready for use.
     ``` shell
     --8<-- "bin/install-topolvm.sh"
     ```
-    
