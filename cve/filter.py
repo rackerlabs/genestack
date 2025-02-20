@@ -7,7 +7,9 @@ except (json.JSONDecodeError, FileNotFoundError):
     installed = {}
 
 with open("requirements.txt") as f:
-    requirements = [line.strip() for line in f if line.strip() and not line.startswith('#')]
+    requirements = [
+        line.strip() for line in f if line.strip() and not line.startswith('#')
+    ]
 
 filtered = []
 for req in requirements:
