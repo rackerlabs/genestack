@@ -1,0 +1,49 @@
+---
+# These are the tasks to generate the helm
+# values file for the amphorae provider; this
+# includes generating the values required for
+# volume mounts for the octavia pods; values
+# for amphorae network, security group, flavor
+# ssh keys
+- name: Obtain the owner id of the amphora image
+  openstack.cloud.image_info:
+    image: "{{ amphora_image_name }}"
+    interface: public
+  register: _amphora_image_info
+
+- name: Obtain the UUID of the amphora sec group
+  openstack.cloud.security_group_info:
+    name: "{{ lb_mgmt_secgrp_name }}"
+    interface: public
+  register: _amphora_sec_group_info
+
+- name: Obtain the UUID of the amphora flavor
+  openstack.cloud.compute_flavor_info:
+    name: "{{ amphora_flavor_name }}"
+    interface: public
+  register: _amphora_flavor_info
+
+- name: Obtain the UUID of lb-mgmt-net
+  openstack.cloud.networks_info:
+    name: lb-mgmt-net
+    interface: public
+  register: _amphora_lb_net_info
+
+- name: Obtain the password from the octavia-certificates secret
+  k8s_info:
+    kind: Secret
+    namespace: openstack
+    name: octavia-certificates
+  register: _octavia_cert_passwd
+
+- name: decode the secret for the octavia cert password
+  set_fact:
+    cert_passwd: "{{  _octavia_cert_passwd.resources[0].data.password | b64decode }}"
+
+- name: Create the helm values file for amphora provider
+  template:
+    src: templates/octavia_amphora_provider.yaml.j2
+    dest: "{{ octavia_helm_values_file }}"
+
+- debug:
+    msg: "helm values file generated: {{ octavia_helm_values_file }}"

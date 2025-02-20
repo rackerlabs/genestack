@@ -43,7 +43,7 @@ spec:
   vhost: "heat" # default to '/' if not provided
   type: quorum # without providing a queue type, rabbitmq creates a classic queue
   autoDelete: false
-  durable: true # seting 'durable' to false means this queue won't survive a server restart
+  durable: true # setting 'durable' to false means this queue won't survive a server restart
   rabbitmqClusterReference:
     name: rabbitmq # rabbitmqCluster must exist in the same namespace as this resource
     namespace: openstack

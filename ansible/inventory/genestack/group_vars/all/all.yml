@@ -124,8 +124,8 @@ kube_webhook_token_auth_url_skip_tls_verify: false
 
 ## NTP Settings
 # Start the ntpd or chrony service and enable it at system boot.
-ntp_enabled: true
-ntp_manage_config: true
+ntp_enabled: false
+ntp_manage_config: false
 ntp_servers:
   - "0.pool.ntp.org iburst"
   - "1.pool.ntp.org iburst"
@@ -137,3 +137,7 @@ unsafe_show_logs: false
 
 ## If enabled it will allow kubespray to attempt setup even if the distribution is not supported. For unsupported distributions this can lead to unexpected failures in some cases.
 allow_unsupported_distribution_setup: false
+
+## tuned settings
+# profile options include throughput-performance (default), balanced, powersave, latency-performance, network-latency, network-throughput, virtual-guest, virtual-host, desktop
+tuned_profile: throughput-performance

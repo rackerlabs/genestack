@@ -39,4 +39,4 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/octavia-ovn:master-ubuntu_jammy
           build-args: |
             VERSION=master-ubuntu_jammy
-            PLUGIN_VERSION=5.0.0
+            PLUGIN_VERSION=master

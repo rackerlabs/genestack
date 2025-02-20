@@ -32,9 +32,9 @@ labels:
 images:
   tags:
     bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_init: "qyay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
     magnum_db_sync: "quay.io/rackspace/rackerlabs-magnum:2024.1-ubuntu_jammy"
-    db_drop: "qyay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
     rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
     ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
     ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
@@ -103,7 +103,28 @@ conf:
     oslo_messaging_notifications:
       driver: messagingv2
     oslo_concurrency:
-      lock_path: /var/lib/magnum/tmp
+      lock_path: /tmp/magnum
+    oslo_messaging_rabbit:
+      amqp_durable_queues: false
+      # We define use of quorum queues via kustomize but this was enabling HA queues instead
+      # ha_queues are deprecated, explicitly set to false and set quorum_queue true
+      rabbit_ha_queues: false
+      rabbit_quorum_queue: true
+      # TODO: Not available until 2024.1, but once it is, we want to enable these!
+      # new feature ref; https://docs.openstack.org/releasenotes/oslo.messaging/2024.1.html
+      rabbit_transient_quorum_queue: false
+      use_queue_manager: false
+      # Reconnect after a node outage more quickly
+      rabbit_interval_max: 10
+      # Send more frequent heartbeats and fail unhealthy nodes faster
+      # heartbeat_timeout / heartbeat_rate / 2.0 = 30 / 3 / 2.0 = 5
+      # https://opendev.org/openstack/oslo.messaging/commit/36fb5bceabe08a982ebd52e4a8f005cd26fdf6b8
+      heartbeat_rate: 3
+      heartbeat_timeout_threshold: 30
+      # Setting lower kombu_reconnect_delay should resolve isssue with HA failing when one node is down
+      # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
+      # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
+      kombu_reconnect_delay: 0.5
     oslo_policy:
       policy_file: /etc/magnum/policy.yaml
     certificates:
@@ -144,8 +165,9 @@ conf:
         - context
         - default
     logger_root:
-      level: WARNING
-      handlers: 'null'
+      level: INFO
+      handlers:
+        - stdout
     logger_magnum:
       level: INFO
       handlers:
@@ -485,7 +507,7 @@ endpoints:
     hosts:
       default: rabbitmq-nodes
     host_fqdn_override:
-      default: null
+      default: rabbitmq.openstack.svc.cluster.local
     path: /magnum
     scheme: rabbit
     port:
@@ -494,7 +516,7 @@ endpoints:
       http:
         default: 15672
   fluentd:
-    namespace: null
+    namespace: fluentbit
     name: fluentd
     hosts:
       default: fluentd-logging

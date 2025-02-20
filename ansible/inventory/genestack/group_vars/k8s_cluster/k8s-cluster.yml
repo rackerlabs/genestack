@@ -65,9 +65,9 @@ credentials_dir: "{{ inventory_dir }}/credentials"
 # kube_webhook_authorization_url: https://...
 # kube_webhook_authorization_url_skip_tls_verify: false
 
-# Choose network plugin (cilium, calico, kube-ovn, weave or flannel. Use cni for generic cni plugin)
+# Choose network plugin (cilium, calico, kube-ovn, weave, flannel, or none. Use cni for generic cni plugin)
 # Can also be set to 'cloud', which lets the cloud provider setup appropriate routing
-kube_network_plugin: kube-ovn
+kube_network_plugin: none
 
 # Setting multi_networking to true will install Multus: https://github.com/k8snetworkplumbingwg/multus-cni
 kube_network_plugin_multus: false
@@ -78,7 +78,7 @@ kube_service_addresses: 10.233.0.0/18
 # internal network. When used, it will assign IP
 # addresses from this range to individual pods.
 # This network must be unused in your network infrastructure!
-kube_pods_subnet: 10.233.64.0/18
+kube_pods_subnet: 10.236.0.0/14
 
 # internal network node size allocation (optional). This is the size allocated
 # to each node for pod IP address allocation. Note that the number of pods per node is
@@ -384,8 +384,18 @@ auto_renew_certificates: false
 # First Monday of each month
 # auto_renew_certificates_systemd_calendar: "Mon *-*-1,2,3,4,5,6,7 03:{{ groups['kube_control_plane'].index(inventory_hostname) }}0:00"
 
-# kubeadm patches path
-kubeadm_patches:
-  enabled: false
-  source_dir: "{{ inventory_dir }}/patches"
-  dest_dir: "{{ kube_config_dir }}/patches"
+kubeadm_patches: []
+  # - target: kube-controller-manager
+  #   type: strategic(default)|json|merge
+  #   patch:
+  #     metadata:
+  #       annotations:
+  #         prometheus.io/scrape: 'true'
+  #         prometheus.io/port: '10257'
+  # - target: kube-scheduler
+  #   type: strategic(default)|json|merge
+  #   patch:
+  #     metadata:
+  #       annotations:
+  #         prometheus.io/scrape: 'true'
+  #         prometheus.io/port: '10259'

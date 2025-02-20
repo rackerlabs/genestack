@@ -10,7 +10,7 @@
     cinder_backend_name: "lvmdriver-1"
     custom_multipath: false
   handlers:
-    - name: Restart cinder-volume systemd services
+    - name: Restart cinder-volume and cinder-backup systemd services
       ansible.builtin.systemd:
         name: "{{ item }}"
         state: restarted
@@ -19,6 +19,7 @@
       loop:
         - cinder-volume
         - cinder-volume-usage-audit
+        - cinder-backup
         - iscsid.service
     - name: Reload cinder-volume-tgt systemd service
       ansible.builtin.systemd:
@@ -104,7 +105,7 @@
         owner: cinder
         group: cinder
 
-    - name: Create the cinder-volume systemd service units
+    - name: Create the cinder systemd service units
       ansible.builtin.copy:
         src: "{{ item.src }}"
         dest: "{{ item.dest }}"
@@ -118,11 +119,13 @@
           dest: /etc/systemd/system/cinder-volume-usage-audit.service
         - src: "{{ playbook_dir }}/templates/cinder-volume.service"
           dest: /etc/systemd/system/cinder-volume.service
+        - src: "{{ playbook_dir }}/templates/cinder-backup.service"
+          dest: /etc/systemd/system/cinder-backup.service
         - src: "{{ playbook_dir }}/templates/sudoers"
           dest: /etc/sudoers.d/cinder-volume
           mode: "0440"
       notify:
-        - Restart cinder-volume systemd services
+        - Restart cinder-volume and cinder-backup systemd services
 
     - name: Create the cinder-volume service configuration
       ansible.builtin.copy:
@@ -137,7 +140,7 @@
         - src: "volume.filters"
           dest: /etc/cinder/volume.filters
       notify:
-        - Restart cinder-volume systemd services
+        - Restart cinder-volume and cinder-backup systemd services
 
     - name: Create the cinder-volume configuration stage file
       changed_when: false
@@ -175,7 +178,7 @@
         mode: "0644"
         remote_src: true
       notify:
-        - Restart cinder-volume systemd services
+        - Restart cinder-volume and cinder-backup systemd services
 
     - name: Set enabled backend fact
       set_fact:
@@ -184,10 +187,10 @@
           {% for backend in cinder_backend_name.split(',') %}
           {%   set default_backend = (_kubernetes_cinder_etc_secret.resources[0].data['backends.conf'] | b64decode | community.general.from_ini)[backend] %}
           {%   set network_interface = hostvars[inventory_hostname][cinder_storage_network_interface]['ipv4']['address'] | default(ansible_default_ipv4.address) %}
-          {%   set network_interface_secondary = hostvars[inventory_hostname][cinder_storage_network_interface_secondary]['ipv4']['address'] %}
           {%   set _ = default_backend.__setitem__("target_ip_address", network_interface) %}
-          {%   if (custom_multipath | bool) %}
-          {%     set _ = default_backend.__setitem__("iscsi_secondary_ip_addresses", network_interface_secondary) %}
+          {%   if ("lvm" in backend) and (custom_multipath | bool) %}
+          {%       set network_interface_secondary = hostvars[inventory_hostname][cinder_storage_network_interface_secondary]['ipv4']['address'] %}
+          {%       set _ = default_backend.__setitem__("iscsi_secondary_ip_addresses", network_interface_secondary) %}
           {%   endif %}
           {%   set _ = rendered_backend.__setitem__(backend, default_backend) %}
           {% endfor %}
@@ -201,7 +204,7 @@
         group: root
         mode: "0644"
       notify:
-        - Restart cinder-volume systemd services
+        - Restart cinder-volume and cinder-backup systemd services
 
     - name: Replace exec path in rootwrap
       community.general.ini_file:
@@ -216,7 +219,7 @@
         - key: "filters_path"
           value: "/etc/cinder/rootwrap.d"
       notify:
-        - Restart cinder-volume systemd services
+        - Restart cinder-volume and cinder-backup systemd services
 
     - name: Create the cinder tgtd integration
       ansible.builtin.copy:
@@ -228,7 +231,6 @@
         mode: "0644"
       notify:
         - Reload cinder-volume-tgt systemd service
-
 
     - name: Remove cinder conf staging file
       ansible.builtin.file:

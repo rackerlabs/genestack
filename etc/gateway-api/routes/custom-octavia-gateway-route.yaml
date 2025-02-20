@@ -16,11 +16,6 @@ spec:
   hostnames:
   - "octavia.your.domain.tld"
   rules:
-    - filters:
-      - type: RequestRedirect
-        requestRedirect:
-          scheme: https
-          statusCode: 301
     - backendRefs:
       - name: octavia-api
         port: 9876

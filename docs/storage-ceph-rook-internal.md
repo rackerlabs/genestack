@@ -9,8 +9,30 @@ hide:
 
 ``` shell
 kubectl apply -k /etc/genestack/kustomize/rook-operator/
-kubectl -n rook-ceph set image deploy/rook-ceph-operator rook-ceph-operator=rook/ceph:v1.13.7
 ```
+
+!!! tip "Manually specifying the rook-operator image"
+
+    Under certain circumstances it may be required to do this, below is an
+    example of how one can pin the operator version if so desired.
+
+    ``` shell
+    kubectl -n rook-ceph set image deploy/rook-ceph-operator rook-ceph-operator=rook/ceph:v1.13.7
+    ```
+
+### Label the Storage Nodes
+
+| <div style="width:220px">key</div> | type | <div style="width:128px">value</div>  | notes |
+|:-----|--|:----------------:|:------|
+| **role** | str | `storage-node` | When set to "storage-node" the node will be used for Ceph OSDs |
+
+Use the following command to label a node to be part of the Ceph storage cluster:
+
+``` shell
+kubectl label node ${NODE_NAME} role=storage-node
+```
+
+Replace `${NODE_NAME}` with the name of your node. If you have multiple storage nodes, run this command against each one.
 
 ## Deploy the Rook cluster
 
@@ -19,7 +41,7 @@ kubectl -n rook-ceph set image deploy/rook-ceph-operator rook-ceph-operator=rook
     Rook will deploy against nodes labeled `role=storage-node`. Make sure to have a look at the `/etc/genestack/kustomize/rook-cluster/rook-cluster.yaml` file to ensure it's setup to your liking, pay special attention to your `deviceFilter` settings, especially if different devices have different device layouts.
 
 ``` shell
-kubectl apply -k /etc/genestack/kustomize/rook-cluster/
+kubectl apply -k /etc/genestack/kustomize/rook-cluster/overlay
 ```
 
 ## Validate the cluster is operational

@@ -1,7 +1,7 @@
 ---
-site_name: Open Infrastructure
+site_name: Rackspace OpenStack Flex
 site_description: >-
-  Open Infrastructure, a Rackspace solution, is a collection of open-source tools and technologies that provide a
+  Rackspace OpenStack Flex, a Rackspace solution, is open-source technologies that provide a
   flexible, scalable, and cost-effective infrastructure solution for your business. This documentation provides
   information on how to deploy and manage Open-Infrastructure in your environment. It also provides information on how
   to onboard and manage your workloads on OpenStack, Kubernetes, and other open-source technologies.
@@ -133,6 +133,7 @@ nav:
       - Architecture: genestack-architecture.md
       - Components: genestack-components.md
       - Swift Object Storage: openstack-object-storage-swift.md
+      - Release Notes: release-notes.md
   - Design Guide:
       - Introduction: openstack-cloud-design-intro.md
       - Cloud Design:
@@ -146,6 +147,7 @@ nav:
       - Other Design Documentation:
           - Disaster Recovery for OpenStack Clouds: openstack-cloud-design-dr.md
           - Genestack Infrastructure Design: openstack-cloud-design-genestack-infra.md
+      - Style Guide: documentation-standards.md
   - Deployment Guide:
       - What is Genestack?: deployment-guide-welcome.md
       - Getting Started:
@@ -160,6 +162,9 @@ nav:
                   - Kubernetes Labels: k8s-labels.md
                   - Kubernetes Dashboard: k8s-dashboard.md
                   - Kubernetes Taint: k8s-taint.md
+              - Plugins and Tools: k8s-tools.md
+              - Container Network Interface:
+                  - Kube-OVN: k8s-cni-kube-ovn.md
               - Retrieve kube config: k8s-config.md
               - Prometheus: prometheus.md
               - OpenStack Preparations: openstack-helm-make.md
@@ -171,8 +176,6 @@ nav:
               - TopoLVM: storage-topolvm.md
               - External Storage CSI: storage-external-block.md
               - Longhorn: storage-longhorn.md
-          - Secrets:
-              - Sealed Secrets: sealed-secrets.md
           - Infrastructure:
               - infrastructure-overview.md
               - Namespace: infrastructure-namespace.md
@@ -237,6 +240,7 @@ nav:
   - Operational Guide:
       - Genestack:
           - Supporting multi-region: multi-region-support.md
+          - Sync Keystone Fernet Keys: sync-fernet-keys.md
           - Running Upgrades: genestack-upgrade.md
       - Resource Metering:
           - Metering Overview: metering-overview.md
@@ -257,18 +261,19 @@ nav:
               - Monitoring introduction: ovn-monitoring-introduction.md
               - Claim Storm alert: ovn-alert-claim-storm.md
               - Updating Kube OVN to OpenStack Configuration: ovn-kube-ovn-openstack.md
+              - Updating Kube OVN IP Space: infrastructure-kube-ovn-re-ip.md
+              - Updating Kube OVN to Helm: k8s-cni-kube-ovn-helm-conversion.md
           - MariaDB:
               - Operations: infrastructure-mariadb-ops.md
           - Gateway API:
               - Custom Routes: infrastructure-gateway-api-custom.md
               - Rackspace Example Gateway Overview: rackspace-infrastructure-gateway-api.md
+              - Creating self-signed CA issuer for Gateway API: gateway-api-ca-issuer.md
       - Observability:
           - Observability Overview: observability-info.md
           - Monitoring Overview: monitoring-info.md
           - Alerting Overview: alerting-info.md
           - Logging Overview: genestack-logging.md
-      - Third Party Tools:
-          - OSIE: extra-osie.md
       - OpenStack:
           - CLI Access:
               - Generating Clouds YAML: openstack-clouds.md
@@ -281,6 +286,7 @@ nav:
               - Nova CPU Allocation Ratio: openstack-cpu-allocation-ratio.md
               - Nova PCI Passthrough: openstack-pci-passthrough.md
               - Host Aggregates: openstack-host-aggregates.md
+              - Instance Data Recovery: openstack-data-disk-recovery.md
           - Quota Management:
               - Quota Management: openstack-quota-managment.md
           - Images:
@@ -327,6 +333,12 @@ nav:
       - Security In Phases: security-lifecycle.md
       - Cloud Security: security-stages.md
       - Summary: security-summary.md
-  - Blog: https://blog.rackspacecloud.com/
-  - Status: api-status.md
-  - Style Guide: documentation-standards.md
+  - Blog: https://blog.rackspacecloud.com/blog
+  - Regions:
+      - Availability: api-status.md
+      - SJC3:
+          - "<img src='https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Frackerlabs%2Frs-flex-uptime%2Frefs%2Fheads%2Fmaster%2Fstatus.json'/>": https://status.api.sjc3.rackspacecloud.com
+          - "<strong>Control Panel</strong>": https://skyline.api.sjc3.rackspacecloud.com
+      - DFW3:
+          - "<img src='https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fthe2hill%2Frs-flex-uptime-dfw%2Frefs%2Fheads%2Fmaster%2Fstatus.json'/>": https://status.api.dfw3.rackspacecloud.com
+          - "<strong>Control Panel</strong>": https://skyline.api.dfw3.rackspacecloud.com

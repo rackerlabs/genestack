@@ -4,8 +4,12 @@ kind: Database
 metadata:
   name: nova
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "nova"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   # If you want the database to be created with a different name than the resource name
   # name: data-custom
@@ -20,8 +24,12 @@ kind: Database
 metadata:
   name: nova-api
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "nova"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   # If you want the database to be created with a different name than the resource name
   # name: data-custom
@@ -37,8 +45,12 @@ kind: Database
 metadata:
   name: nova-cell0
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "nova"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   # If you want the database to be created with a different name than the resource name
   # name: data-custom
@@ -54,8 +66,12 @@ kind: User
 metadata:
   name: nova
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "nova"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   # If you want the user to be created with a different name than the resource name
   # name: user-custom
@@ -74,8 +90,12 @@ kind: Grant
 metadata:
   name: nova-grant
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "nova"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   mariaDbRef:
     name: mariadb-cluster
@@ -93,8 +113,12 @@ kind: Grant
 metadata:
   name: nova-api-grant
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "nova"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   mariaDbRef:
     name: mariadb-cluster
@@ -112,8 +136,12 @@ kind: Grant
 metadata:
   name: nova-cell0-grant
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "nova"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   mariaDbRef:
     name: mariadb-cluster

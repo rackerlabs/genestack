@@ -53,7 +53,7 @@ if compgen -G "${CONFIG_DIR}/*.yaml" > /dev/null; then
     done
 fi
 
-HELM_CMD+="${@}"
+HELM_CMD+=" $@"
 
 # Run the helm command
 echo "Executing Helm command:"

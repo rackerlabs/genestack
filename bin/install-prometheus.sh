@@ -1,43 +1,52 @@
 #!/bin/bash
+# shellcheck disable=SC2124,SC2145,SC2294
 
+# Set default directories
 GENESTACK_DIR="${GENESTACK_DIR:-/opt/genestack}"
 GENESTACK_CONFIG_DIR="${GENESTACK_CONFIG_DIR:-/etc/genestack}"
 
-GENESTACK_PROMETHEUS_DIR=\
-"${GENESTACK_PROMETHEUS_DIR:-$GENESTACK_DIR/base-helm-configs/prometheus}"
-GENESTACK_PROMETHEUS_CONFIG_DIR=\
-"${GENESTACK_PROMETHEUS_CONFIG_DIR:-$GENESTACK_CONFIG_DIR/helm-configs/prometheus}"
+GENESTACK_PROMETHEUS_DIR="${GENESTACK_PROMETHEUS_DIR:-$GENESTACK_DIR/base-helm-configs/prometheus}"
+GENESTACK_PROMETHEUS_CONFIG_DIR="${GENESTACK_PROMETHEUS_CONFIG_DIR:-$GENESTACK_CONFIG_DIR/helm-configs/prometheus}"
 
-VALUES_BASE_FILENAMES=(
-    "prometheus-helm-overrides.yaml"
-    "alerting_rules.yaml"
-    "alertmanager_config.yaml"
-)
-
-# Though it probably wouldn't make any difference for all of the
-# $GENESTACK_CONFIG_DIR files to come last, this takes care to fully preserve
-# the order
-echo "Including overrides in order:"
+# Prepare an array to collect --values arguments
 values_args=()
-for BASE_FILENAME in "${VALUES_BASE_FILENAMES[@]}"
-do
-    for DIR in "$GENESTACK_PROMETHEUS_DIR" "$GENESTACK_PROMETHEUS_CONFIG_DIR"
-    do
-        ABSOLUTE_PATH="$DIR/$BASE_FILENAME"
-        if [[ -e "$ABSOLUTE_PATH" ]]
-        then
-            echo "    $ABSOLUTE_PATH"
-            values_args+=("--values" "$ABSOLUTE_PATH")
-        fi
-    done
-done
+
+# Include only the base override file from the base directory
+base_override="$GENESTACK_PROMETHEUS_DIR/prometheus-helm-overrides.yaml"
+if [[ -e "$base_override" ]]; then
+  echo "Including base override: $base_override"
+  values_args+=("--values" "$base_override")
+else
+  echo "Warning: Base override file not found: $base_override"
+fi
+
+# Include all YAML files from the configuration directory
+if [[ -d "$GENESTACK_PROMETHEUS_CONFIG_DIR" ]]; then
+  echo "Including overrides from config directory:"
+  for file in "$GENESTACK_PROMETHEUS_CONFIG_DIR"/*.yaml; do
+    # Check that there is at least one match
+    if [[ -e "$file" ]]; then
+      echo "    $file"
+      values_args+=("--values" "$file")
+    fi
+  done
+else
+  echo "Warning: Config directory not found: $GENESTACK_PROMETHEUS_CONFIG_DIR"
+fi
+
 echo
 
-helm repo add prometheus-community \
-    https://prometheus-community.github.io/helm-charts
+# Add the Helm repository and update it
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
-helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
-    --create-namespace --namespace=prometheus --timeout 10m \
-    "${values_args[@]}" \
-    --post-renderer "$GENESTACK_CONFIG_DIR/kustomize/kustomize.sh" \
-    --post-renderer-args prometheus/overlay "$@"
+
+# Run the Helm upgrade/install command using the collected --values arguments
+HELM_CMD="helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack --create-namespace --namespace=prometheus --timeout 10m"
+HELM_CMD+=" ${values_args[@]}"
+HELM_CMD+=" --post-renderer $GENESTACK_CONFIG_DIR/kustomize/kustomize.sh"
+HELM_CMD+=" --post-renderer-args prometheus/overlay"
+HELM_CMD+=" $@"
+
+echo "Executing Helm command:"
+echo "${HELM_CMD}"
+eval "${HELM_CMD}"

@@ -7,7 +7,7 @@ images:
     newTag: v1.0.0
   - name: image-octavia-ovn
     newName: quay.io/rackspace/rackerlabs-octavia-ovn
-    newTag: master-ubuntu_jammy
+    newTag: 2024.1-ubuntu_jammy-1737651745
 
 resources:
   - octavia-mariadb-database.yaml
@@ -35,25 +35,6 @@ patches:
             - octavia-driver-agent
             - --config-dir
             - /etc/octavia/octavia.conf
-          lifecycle:
-            preStop:
-              exec:
-                command:
-                  - /tmp/octavia-api.sh
-                  - stop
-          ports:
-            - name: o-api
-              containerPort: 9876
-          readinessProbe:
-            httpGet:
-              scheme: HTTP
-              path: /
-              port: 9876
-          livenessProbe:
-            httpGet:
-              scheme: HTTP
-              path: /
-              port: 9876
           volumeMounts:
             - name: pod-etc-octavia
               mountPath: /etc/octavia

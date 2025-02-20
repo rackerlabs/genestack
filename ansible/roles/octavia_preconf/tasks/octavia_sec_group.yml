@@ -1,0 +1,83 @@
+---
+# These are the tasks to create the security
+# groups for amphorae as well as the health
+# manager ports; amphora security group includes
+# rules for allowing traffic on port 9443, icmp
+# and ssh are optional; health manager secgroup
+# only allows traffic on port 5555
+- name: Create security group for amphorae
+  openstack.cloud.security_group:
+    name: "{{ lb_mgmt_secgrp_name }}"
+    state: present
+    description: "security group for octavia amphorae"
+    interface: public
+  register: create_lb_mgmt_secgroup
+  until: create_lb_mgmt_secgroup is success
+  retries: 5
+  delay: 5
+
+- name: Create Security group rule to allow traffic on port 9443 for amphorae
+  openstack.cloud.security_group_rule:
+    security_group: "{{ create_lb_mgmt_secgroup.security_group.id }}"
+    state: present
+    protocol: tcp
+    port_range_min: 9443
+    port_range_max: 9443
+    remote_ip_prefix: "{{ lb_mgmt_subnet_cidr }}"
+    interface: public
+  register: lb_mgmt_secgroup_r1
+  until: lb_mgmt_secgroup_r1 is success
+  retries: 5
+  delay: 5
+
+- name: Create Security group rule to allow icmp traffic for amphorae
+  openstack.cloud.security_group_rule:
+    security_group: "{{ create_lb_mgmt_secgroup.security_group.id }}"
+    state: present
+    protocol: icmp
+    remote_ip_prefix: "{{ lb_mgmt_subnet_cidr }}"
+    interface: public
+  register: lb_mgmt_secgroup_r2
+  until: lb_mgmt_secgroup_r2 is success
+  retries: 5
+  delay: 5
+  when: amphora_icmp_enabled
+
+- name: Create Security group rule to allow ssh traffic for amphorae
+  openstack.cloud.security_group_rule:
+    security_group: "{{ create_lb_mgmt_secgroup.security_group.id }}"
+    state: present
+    protocol: tcp
+    port_range_min: 22
+    port_range_max: 22
+    remote_ip_prefix: "{{ lb_mgmt_subnet_cidr }}"
+    interface: public
+  register: lb_mgmt_secgroup_r3
+  until: lb_mgmt_secgroup_r3 is success
+  retries: 5
+  delay: 5
+  when: amphora_ssh_enabled
+
+- name: Create security group for health manager ports
+  openstack.cloud.security_group:
+    name: "{{ lb_health_mgr_secgrp_name }}"
+    state: present
+    description: "security group for health manager ports"
+    interface: public
+  register: create_lb_health_mgr_secgroup
+  until: create_lb_health_mgr_secgroup is success
+  retries: 5
+  delay: 5
+
+- name: Create Security group rule to allow traffic on port 5555 for health manager
+  openstack.cloud.security_group_rule:
+    security_group: "{{ create_lb_health_mgr_secgroup.security_group.id }}"
+    state: present
+    protocol: udp
+    port_range_min: 5555
+    port_range_max: 5555
+    interface: public
+  register: lb_health_mgr_secgroup_r1
+  until: lb_health_mgr_secgroup_r1 is success
+  retries: 5
+  delay: 5

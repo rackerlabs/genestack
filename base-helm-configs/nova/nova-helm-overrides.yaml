@@ -58,22 +58,22 @@ images:
     ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
     ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
     ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    nova_api: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
-    nova_cell_setup: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
+    nova_api: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
+    nova_cell_setup: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
     nova_cell_setup_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    nova_compute: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
-    nova_compute_ssh: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
-    nova_conductor: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
-    nova_db_sync: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
-    nova_novncproxy: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
-    nova_novncproxy_assets: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
-    nova_scheduler: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
-    nova_spiceproxy: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
-    nova_spiceproxy_assets: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
+    nova_compute: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
+    nova_compute_ssh: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
+    nova_conductor: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
+    nova_db_sync: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
+    nova_novncproxy: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
+    nova_novncproxy_assets: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
+    nova_scheduler: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
+    nova_spiceproxy: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
+    nova_spiceproxy_assets: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
     nova_service_cleaner: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
     dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0"
     rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
-    nova_archive_deleted_rows: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy"
+    nova_archive_deleted_rows: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
     nova_compute_ironic: 'docker.io/kolla/ubuntu-source-nova-compute-ironic:wallaby'
     nova_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
     test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
@@ -1358,6 +1358,7 @@ conf:
     - cell0_database
   nova:
     DEFAULT:
+      service_down_time: 120
       default_availability_zone: az1
       default_schedule_zone: az1
       # NOTE(cloudnull): the vif_plugging_* options are an implemntation detail of the nova container when running with OVN
@@ -1373,16 +1374,17 @@ conf:
       # NOTE(portdirect): the bind port should not be defined, and is manipulated
       # via the endpoints section.
       osapi_compute_listen_port: null
-      osapi_compute_workers: 1
-      metadata_workers: 1
+      osapi_compute_workers: 8
+      metadata_workers: 8
       compute_driver: libvirt.LibvirtDriver
       my_ip: 0.0.0.0
       instance_usage_audit: True
       instance_usage_audit_period: hour
       resume_guests_state_on_host_boot: True
-      instance_build_timeout: 600
-      block_device_allocate_retries: 120
+      instance_build_timeout: 900
+      block_device_allocate_retries: 180
       block_device_allocate_retries_interval: 5
+      preallocate_images: space
     compute:
       max_disk_devices_to_attach: 8
     vnc:
@@ -1397,11 +1399,14 @@ conf:
       # This would be set by each compute nodes's ip
       # server_proxyclient_address: 127.0.0.1
     conductor:
-      workers: 1
+      workers: 8
+    schedule:
+      workers: 8
+      max_attempts: 5
     oslo_policy:
       policy_file: /etc/nova/policy.yaml
     oslo_concurrency:
-      lock_path: /var/lib/nova/tmp
+      lock_path: /tmp/nova
     oslo_middleware:
       enable_proxy_headers_parsing: true
     glance:
@@ -1460,14 +1465,15 @@ conf:
     oslo_messaging_notifications:
       driver: messagingv2
     oslo_messaging_rabbit:
+      amqp_durable_queues: false
       # We define use of quorum queues via kustomize but this was enabling HA queues instead
       # ha_queues are deprecated, explicitly set to false and set quorum_queue true
       rabbit_ha_queues: false
       rabbit_quorum_queue: true
       # TODO: Not available until 2024.1, but once it is, we want to enable these!
       # new feature ref; https://docs.openstack.org/releasenotes/oslo.messaging/2024.1.html
-      # rabbit_transient_quorum_queue: true
-      # use_queue_manager: true
+      rabbit_transient_quorum_queue: false
+      use_queue_manager: false
       # Reconnect after a node outage more quickly
       rabbit_interval_max: 10
       # Send more frequent heartbeats and fail unhealthy nodes faster
@@ -1504,8 +1510,9 @@ conf:
         - context
         - default
     logger_root:
-      level: WARNING
-      handlers: 'null'
+      level: INFO
+      handlers:
+        - stdout
     logger_nova:
       level: INFO
       handlers:
@@ -1714,7 +1721,7 @@ endpoints:
     hosts:
       default: rabbitmq-nodes
     host_fqdn_override:
-      default: null
+      default: rabbitmq.openstack.svc.cluster.local
     path: /nova
     scheme: rabbit
     port:
@@ -1981,7 +1988,7 @@ endpoints:
         internal: 6385
         service: 6385
   fluentd:
-    namespace: null
+    namespace: fluentbit
     name: fluentd
     hosts:
       default: fluentd-logging
@@ -2022,14 +2029,14 @@ endpoints:
 pod:
   probes:
     rpc_timeout: 60
-    rpc_retries: 2
+    rpc_retries: 3
     compute:
       default:
         liveness:
           enabled: True
           params:
-            periodSeconds: 90
-            timeoutSeconds: 70
+            periodSeconds: 120
+            timeoutSeconds: 120
         readiness:
           enabled: True
           params:
@@ -2076,8 +2083,8 @@ pod:
           enabled: True
           params:
             initialDelaySeconds: 120
-            periodSeconds: 90
-            timeoutSeconds: 70
+            periodSeconds: 120
+            timeoutSeconds: 120
         readiness:
           enabled: True
           params:
@@ -2104,8 +2111,8 @@ pod:
           enabled: True
           params:
             initialDelaySeconds: 120
-            periodSeconds: 90
-            timeoutSeconds: 70
+            periodSeconds: 120
+            timeoutSeconds: 120
         readiness:
           enabled: True
           params:

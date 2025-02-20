@@ -17,15 +17,111 @@
   become: true
   gather_facts: "{{ gather_facts | default(true) }}"
   environment: "{{ deployment_environment_variables | default({}) }}"
+  vars:
+    exporters_parent_dir: /opt/prometheus_custom_exporters
+    venv_dir: "{{ exporters_parent_dir }}/venv"
+    venv_python: "{{ venv_dir }}/bin/python"
+    exporters_dir: "{{ exporters_parent_dir }}/exporters"
+    prom_dir: /opt/node_exporter/textfile_collector
   tasks:
+    - name: Install moreutils sponge
+      ansible.builtin.package:
+        name:
+          - moreutils
+          - nvme-cli
+          - python3-venv
+        state: present
+        update_cache: true
+
+    - name: Manually create the initial virtualenv if not present
+      command:
+        cmd: "sudo python3 -m venv {{ venv_dir }}"
+        creates: "{{ venv_dir }}"
+
+    - name: Wait for virtualenv creation to complete
+      wait_for:
+        path: "{{ venv_dir }}/bin/pip"
+        state: present
+
+    - name: Recursively check ownership and permissions on exporters_parent_dir
+      ansible.builtin.file:
+        path: "{{ exporters_parent_dir }}"
+        state: directory
+        recurse: yes
+        owner: root
+        group: root
+
     - ansible.builtin.copy:
         src: extra/custom_exporters/
-        dest: /opt/custom_exporters/
-        mode: a+x
+        dest: "{{ exporters_dir }}"
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Install python requirements in virtualenv
+      ansible.builtin.pip:
+        requirements: "{{ exporters_dir }}/requirements.txt"
+        virtualenv: "{{ venv_dir }}"
 
 # Individual exporter cron tasks...
     - name: Create a job that runs every minute to check kernel taint and store for metrics collection
       ansible.builtin.cron:
         name: "Kernel taint inspector"
         minute: "*/1"
-        job: "/opt/custom_exporters/kernel_taint.sh"
+        user: root
+        job: "{{ exporters_dir }}/kernel_taint.sh"
+        cron_file: flex-prometheus-exporters
+        state: present
+
+    - name: Dell custom exporter cron tasks
+      when:
+        - ansible_facts.system_vendor == 'Dell Inc.'
+      block:
+        - name: Create a job that runs every 3 minutes to check mdadm status and store for metrics collection
+          ansible.builtin.cron:
+            name: "mdadm inspector"
+            minute: "*/3"
+            user: root
+            job: "{{ exporters_dir }}/md_info_detail.sh | /usr/bin/sponge {{ prom_dir }}/md_info_detail.prom"
+            cron_file: flex-prometheus-exporters
+            state: present
+        - name: Create a job that runs every 3 minutes to check nvme status and store for metrics collection
+          ansible.builtin.cron:
+            name: "nvme inspector"
+            minute: "*/3"
+            user: root
+            job: "{{ venv_python }} {{ exporters_dir }}/nvme_metrics.py | /usr/bin/sponge {{ prom_dir }}/nvme_metrics.prom"
+            cron_file: flex-prometheus-exporters
+            state: present
+        - name: Create a job that runs every 5 minutes to check DELL RAID and store for metrics collection
+          ansible.builtin.cron:
+            name: "perccli64 raid disk inspector"
+            minute: "*/5"
+            user: root
+            job: "{{ venv_python }} {{ exporters_dir }}/perccli.py | /usr/bin/sponge {{ prom_dir }}/perccli.prom"
+            cron_file: flex-prometheus-exporters
+            state: present
+
+# Task block for HP nodes. Only one check being added now. Append new tasks as needed
+    - name: HP custom exporter cron tasks
+      when:
+        - ansible_facts.system_vendor == "HP"
+      block:
+        - name: Create a job that runs every 5 minutes to check HP ssacli RAID and store for metrics collection
+          ansible.builtin.cron:
+            name: "ssacli raid disk inspector"
+            minute: "*/5"
+            user: root
+            job: "{{ venv_python }} {{ exporters_dir }}/ssacli_exporter.py --output {{ prom_dir }}/ssacli_exporter.prom"
+            cron_file: flex-prometheus-exporters
+            state: present
+
+    - name: Create a job that runs every 5 minutes to check multipathd status and store for metrics collection
+      ansible.builtin.cron:
+        name: "multipathd inspector"
+        minute: "*/5"
+        user: root
+        job: "{{ exporters_dir }}/multipathd_info | /usr/bin/sponge {{ prom_dir }}/multipathd_info.prom"
+        cron_file: flex-prometheus-exporters
+        state: present
+      when: inventory_hostname in groups['openstack_compute_nodes']

@@ -328,10 +328,12 @@ conf:
     DEFAULT:
       server_keystone_endpoint_type: public
       log_config_append: /etc/heat/logging.conf
-      num_engine_workers: 1
+      num_engine_workers: 8
       trusts_delegated_roles: ""
       host: heat-engine
     keystone_authtoken:
+      service_token_roles: service
+      service_token_roles_required: true
       auth_type: password
       auth_version: v3
       memcache_security_strategy: ENCRYPT
@@ -349,17 +351,17 @@ conf:
       # NOTE(portdirect): the bind port should not be defined, and is manipulated
       # via the endpoints section.
       bind_port: null
-      workers: 1
+      workers: 8
     heat_api_cloudwatch:
       # NOTE(portdirect): the bind port should not be defined, and is manipulated
       # via the endpoints section.
       bind_port: null
-      workers: 1
+      workers: 8
     heat_api_cfn:
       # NOTE(portdirect): the bind port should not be defined, and is manipulated
       # via the endpoints section.
       bind_port: null
-      workers: 1
+      workers: 8
     paste_deploy:
       api_paste_config: /etc/heat/api-paste.ini
     clients:
@@ -372,15 +374,18 @@ conf:
       driver: messagingv2
     oslo_middleware:
       enable_proxy_headers_parsing: true
+    oslo_concurrency:
+      lock_path: /tmp/heat
     oslo_messaging_rabbit:
+      amqp_durable_queues: false
       # We define use of quorum queues via kustomize but this was enabling HA queues instead
       # ha_queues are deprecated, explicitly set to false and set quorum_queue true
       rabbit_ha_queues: false
       rabbit_quorum_queue: true
       # TODO: Not available until 2024.1, but once it is, we want to enable these!
       # new feature ref; https://docs.openstack.org/releasenotes/oslo.messaging/2024.1.html
-      # rabbit_transient_quorum_queue: true
-      # use_queue_manager: true
+      rabbit_transient_quorum_queue: false
+      use_queue_manager: false
       # Reconnect after a node outage more quickly
       rabbit_interval_max: 10
       # Send more frequent heartbeats and fail unhealthy nodes faster
@@ -436,8 +441,9 @@ conf:
         - context
         - default
     logger_root:
-      level: WARNING
-      handlers: 'null'
+      level: INFO
+      handlers:
+        - stdout
     logger_heat:
       level: INFO
       handlers:
@@ -910,7 +916,7 @@ endpoints:
     hosts:
       default: rabbitmq-nodes
     host_fqdn_override:
-      default: null
+      default: rabbitmq.openstack.svc.cluster.local
     path: /heat
     scheme: rabbit
     port:
@@ -919,7 +925,7 @@ endpoints:
       http:
         default: 15672
   fluentd:
-    namespace: null
+    namespace: fluentbit
     name: fluentd
     hosts:
       default: fluentd-logging

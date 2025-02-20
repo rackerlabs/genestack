@@ -14,7 +14,7 @@
 # limitations under the License.
 
 - name: Gather variables for each operating system
-  include_vars: "{{ lookup('first_found', params) }}"
+  ansible.builtin.include_vars: "{{ lookup('first_found', params) }}"
   vars:
     params:
       files:
@@ -30,7 +30,7 @@
 
 # Environment configuration applies to all nodes
 - name: Add global_environment_variables to environment file
-  blockinfile:
+  ansible.builtin.blockinfile:
     dest: "/etc/environment"
     state: present
     marker: "# {mark} Managed by genestack"
@@ -40,15 +40,16 @@
     - hosts-config
 
 - name: Ensure environement is applied during sudo
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/pam.d/sudo
     line: "session    required   pam_env.so readenv=1 user_readenv=0"
     regexp: 'session\s+required\s+pam_env\.so'
     insertbefore: '^@include'
-  when: ansible_facts['distribution'] | lower == 'debian'
+  when:
+    - ansible_facts['distribution'] | lower == 'debian'
 
 - name: Create systemd global directory
-  file:
+  ansible.builtin.file:
     path: /etc/systemd/system.conf.d/
     state: directory
     owner: "root"
@@ -56,25 +57,23 @@
     mode: "0755"
 
 - name: Add DefaultEnvironment to systemd
-  openstack.config_template.config_template:
-    src: systemd-environment.j2
+  ansible.builtin.template:
+    src: genestack-default-environment.conf.j2
     dest: /etc/systemd/system.conf.d/genestack-default-environment.conf
     owner: "root"
     group: "root"
     mode: "0644"
-    config_overrides: "{{ systemd_global_overrides }}"
-    config_type: ini
-  notify: Systemd daemon reload
-  when: systemd_global_overrides is defined
+  notify:
+    - Systemd daemon reload
 
 - name: Remove the blacklisted packages
-  package:
+  ansible.builtin.package:
     name: "{{ host_package_list | selectattr('state', 'equalto', 'absent') | map(attribute='name') | list }}"
     state: absent
 
 # Configure bare metal nodes: Kernel, sysctl, sysstat, hosts files packages
 - name: Including configure_hosts tasks
-  include_tasks: configure_hosts.yml
+  ansible.builtin.include_tasks: configure_hosts.yml
   args:
     apply:
       tags:
@@ -83,23 +82,26 @@
     - always
 
 - name: Pin kernel version and disable unattended-upgrades
-  include_tasks: pin_kernel.yml
-  when: ansible_facts['os_family'] | lower == 'debian'
+  ansible.builtin.include_tasks: pin_kernel.yml
+  when:
+    - ansible_facts['os_family'] | lower == 'debian'
   tags:
     - always
 
 - name: Update package cache
-  apt:
+  ansible.builtin.apt:
     update_cache: true
     cache_valid_time: 600
-  when: ansible_facts['os_family'] | lower == 'debian'
+  when:
+    - ansible_facts['os_family'] | lower == 'debian'
 
-- name: Set CPU frequency governor to performance
-  include_tasks: CPU_frequency.yml
-  when: ansible_facts['os_family'] | lower == 'debian'
+- name: Set CPU frequency governor
+  ansible.builtin.include_tasks: CPU_frequency.yml
+  when:
+    - ansible_facts['os_family'] | lower == 'debian'
 
 - name: Install distro packages
-  package:
+  ansible.builtin.package:
     name: "{{ host_distro_packages }}"
     state: "{{ host_package_state }}"
   when:
@@ -110,7 +112,7 @@
   delay: 2
 
 - name: Install user defined extra distro packages
-  package:
+  ansible.builtin.package:
     name: "{{ host_extra_distro_packages }}"
     state: "{{ host_package_state }}"
   when:
@@ -119,3 +121,17 @@
   until: install_packages is success
   retries: 5
   delay: 2
+
+- name: Ensure timesyncd is running
+  ansible.builtin.service:
+    name: systemd-timesyncd
+    state: started
+    enabled: true
+  notify: Reload systemd-timesyncd
+
+- name: Create systemd-timesyncd configuration file
+  ansible.builtin.template:
+    src: timesyncd.conf.j2
+    dest: /etc/systemd/timesyncd.conf
+    mode: "0644"
+  notify: Reload systemd-timesyncd

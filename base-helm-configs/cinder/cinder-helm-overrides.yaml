@@ -773,7 +773,7 @@ conf:
       enable_v1_api: false
       enable_v2_api: false
       volume_name_template: "%s"
-      osapi_volume_workers: 1
+      osapi_volume_workers: 8
       glance_api_version: 2
       os_region_name: RegionOne
       host: cinder-volume-worker
@@ -789,6 +789,9 @@ conf:
       # - cinder.backup.drivers.ceph.CephBackupDriver
       # - cinder.backup.drivers.posix.PosixBackupDriver
       backup_driver: "cinder.backup.drivers.swift.SwiftBackupDriver"
+      backup_swift_auth: per_user
+      backup_swift_auth_version: 3
+      backup_compression_algorithm: zstd
       # # Backup: Ceph RBD options
       # backup_ceph_conf: "/etc/ceph/ceph.conf"
       # backup_ceph_user: cinderbackup
@@ -821,13 +824,12 @@ conf:
     oslo_policy:
       policy_file: /etc/cinder/policy.yaml
     oslo_concurrency:
-      lock_path: "/var/lib/cinder/tmp"
+      lock_path: /tmp/cinder
     oslo_messaging_notifications:
       driver: messagingv2
     oslo_middleware:
       enable_proxy_headers_parsing: true
     oslo_messaging_rabbit:
-      # explicitly disable amqp durable queues because quorum is enabled
       amqp_durable_queues: false
       # We define use of quorum queues via kustomize but this was enabling HA queues instead
       # ha_queues are deprecated, explicitly set to false and set quorum_queue true
@@ -835,8 +837,8 @@ conf:
       rabbit_quorum_queue: true
       # TODO: Not available until 2024.1, but once it is, we want to enable these!
       # new feature ref; https://docs.openstack.org/releasenotes/oslo.messaging/2024.1.html
-      # rabbit_transient_quorum_queue: true
-      # use_queue_manager: true
+      rabbit_transient_quorum_queue: false
+      use_queue_manager: false
       # Reconnect after a node outage more quickly
       rabbit_interval_max: 10
       # Send more frequent heartbeats and fail unhealthy nodes faster
@@ -868,8 +870,9 @@ conf:
         - context
         - default
     logger_root:
-      level: WARNING
-      handlers: 'null'
+      level: INFO
+      handlers:
+        - stdout
     logger_cinder:
       level: INFO
       handlers:
@@ -922,6 +925,7 @@ conf:
       volume_driver: cinder.volume.drivers.lvm.LVMVolumeDriver
       volume_backend_name: LVM_iSCSI
       volume_clear: zero
+      volume_driver: cinder_rxt.rackspace.RXTLVM
       lvm_type: default
       image_volume_cache_enabled: True
       iscsi_iotype: fileio
@@ -1367,7 +1371,7 @@ endpoints:
     hosts:
       default: rabbitmq-nodes
     host_fqdn_override:
-      default: null
+      default: rabbitmq.openstack.svc.cluster.local
     path: /cinder
     scheme: rabbit
     port:
@@ -1391,7 +1395,7 @@ endpoints:
       memcache:
         default: 11211
   fluentd:
-    namespace: null
+    namespace: fluentbit
     name: fluentd
     hosts:
       default: fluentd-logging

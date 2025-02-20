@@ -2,7 +2,7 @@
 
 Running a genestack upgrade is fairly simple and consists of mainly updating the `git` checkout and then running through the needed `helm` charts to deploy updated applications.
 
-## Change to the genestack directory.
+## Change to the genestack directory
 
 ``` shell
 cd /opt/genestack

@@ -1,32 +1,33 @@
 #!/bin/bash
 # shellcheck disable=SC2124,SC2145,SC2294
 
-# Directory to check for YAML files
-CONFIG_DIR="/etc/genestack/helm-configs/libvirt"
+GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
+SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/libvirt"
+BASE_OVERRIDES="/opt/genestack/base-helm-configs/libvirt/libvirt-helm-overrides.yaml"
 
-pushd /opt/genestack/submodules/openstack-helm-infra || exit
+pushd /opt/genestack/submodules/openstack-helm-infra || exit 1
 
-# Base helm upgrade command
 HELM_CMD="helm upgrade --install libvirt ./libvirt \
     --namespace=openstack \
     --timeout 120m"
 
-# Add the base overrides file
-HELM_CMD+=" -f /opt/genestack/base-helm-configs/libvirt/libvirt-helm-overrides.yaml"
+HELM_CMD+=" -f ${BASE_OVERRIDES}"
 
-# Check if YAML files exist in the specified directory
-if compgen -G "${CONFIG_DIR}/*.yaml" > /dev/null; then
-    # Append all YAML files from the directory to the helm command
-    for yaml_file in "${CONFIG_DIR}"/*.yaml; do
-        HELM_CMD+=" -f ${yaml_file}"
-    done
-fi
+for dir in "$GLOBAL_OVERRIDES_DIR" "$SERVICE_CONFIG_DIR"; do
+    if compgen -G "${dir}/*.yaml" > /dev/null; then
+        for yaml_file in "${dir}"/*.yaml; do
+            # Avoid re-adding the base override file if present in the service directory
+            if [ "${yaml_file}" != "${BASE_OVERRIDES}" ]; then
+                HELM_CMD+=" -f ${yaml_file}"
+            fi
+        done
+    fi
+done
 
-HELM_CMD+="${@}"
+HELM_CMD+=" $@"
 
-# Run the helm command
 echo "Executing Helm command:"
 echo "${HELM_CMD}"
 eval "${HELM_CMD}"
 
-popd || exit
+popd || exit 1

@@ -24,9 +24,9 @@
     enabled: true
     state: started
 
-- name: Apply throughput-performance profile using tuned-adm
+- name: Apply TuneD profile using tuned-adm
   ansible.builtin.command:
-    cmd: "/usr/sbin/tuned-adm profile throughput-performance"
+    cmd: "/usr/sbin/tuned-adm profile {{ tuned_profile }}"
   changed_when: true
 
 - name: Verify active TuneD profile

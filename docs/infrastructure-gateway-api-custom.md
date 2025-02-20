@@ -32,7 +32,7 @@ kubectl patch -n nginx-gateway gateway flex-gateway \
 
 !!! note "This step is not needed if all routes were applied when the Gateway API was deployed"
 
-A custom gateway route can be used when setting up the service. The custom route make it possible to for a domain like `your.domain.tld` to be used for the service.
+A custom gateway route can be used when setting up the service. The custom route make it possible for a domain like `your.domain.tld` to be used.
 
 ??? abstract "Example routes file found in `/opt/genestack/etc/gateway-api/routes`"
 

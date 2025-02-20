@@ -1,28 +1,31 @@
 #!/bin/bash
 # shellcheck disable=SC2124,SC2145,SC2294
 
-# Directory to check for YAML files
-CONFIG_DIR="/etc/genestack/helm-configs/memcached"
+GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
+SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/memcached"
+BASE_OVERRIDES="/opt/genestack/base-helm-configs/memcached/memcached-helm-overrides.yaml"
 
-# Helm command setup
 HELM_CMD="helm upgrade --install memcached oci://registry-1.docker.io/bitnamicharts/memcached \
     --namespace=openstack \
     --timeout 120m \
     --post-renderer /etc/genestack/kustomize/kustomize.sh \
-    --post-renderer-args memcached/overlay \
-    -f /opt/genestack/base-helm-configs/memcached/memcached-helm-overrides.yaml"
+    --post-renderer-args memcached/overlay"
 
-# Check if YAML files exist in the specified directory
-if compgen -G "${CONFIG_DIR}/*.yaml" > /dev/null; then
-    # Add all YAML files from the directory to the helm command
-    for yaml_file in "${CONFIG_DIR}"/*.yaml; do
-        HELM_CMD+=" -f ${yaml_file}"
-    done
-fi
+HELM_CMD+=" -f ${BASE_OVERRIDES}"
 
-HELM_CMD+="${@}"
+for dir in "$GLOBAL_OVERRIDES_DIR" "$SERVICE_CONFIG_DIR"; do
+    if compgen -G "${dir}/*.yaml" > /dev/null; then
+        for yaml_file in "${dir}"/*.yaml; do
+            # Avoid re-adding the base override file if present in the service directory
+            if [ "${yaml_file}" != "${BASE_OVERRIDES}" ]; then
+                HELM_CMD+=" -f ${yaml_file}"
+            fi
+        done
+    fi
+done
 
-# Run the helm command
+HELM_CMD+=" $@"
+
 echo "Executing Helm command:"
 echo "${HELM_CMD}"
 eval "${HELM_CMD}"

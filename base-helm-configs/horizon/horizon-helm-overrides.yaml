@@ -7275,6 +7275,21 @@ endpoints:
     port:
       ingress:
         default: 80
+  fluentd:
+    namespace: fluentbit
+    name: fluentd
+    hosts:
+      default: fluentd-logging
+    host_fqdn_override:
+      default: null
+    path:
+      default: null
+    scheme: 'http'
+    port:
+      service:
+        default: 24224
+      metrics:
+        default: 24220
 
 network_policy:
   horizon:

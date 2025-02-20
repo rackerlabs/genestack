@@ -30,29 +30,27 @@ mysqldump --host=$(kubectl -n openstack get service mariadb-cluster -o jsonpath=
           --routines \
           --triggers \
           --events \
+          --column-statistics=0 \
           ${DATABASE_NAME} \
           --result-file=/tmp/${DATABASE_NAME}-$(date +%s).sql
 ```
 
-!!! example "Dump all databases as individual files in `/tmp`"
+!!! tip "Column Statistics"
+
+    With some versions of `mysqldump` the `--column-statistics=0` flag maybe be required. If required the following error will be thrown:
+
+    ``` sql
+    Unknown table 'COLUMN_STATISTICS' in information_schema (1109)
+    ```
+
+### All Databases Backup
+
+Run the `/opt/genestack/bin/backup-mariadb.sh` script to dump all databases as individual files in `~/backup/mariadb/$(date +%s)`.
+
+??? example "Database Backup Script: `/opt/genestack/bin/backup-mariadb.sh`"
 
     ``` shell
-    mysql -h $(kubectl -n openstack get service mariadb-cluster -o jsonpath='{.spec.clusterIP}') \
-          -u root \
-          -p$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d) \
-          -e 'show databases;' \
-          --column-names=false \
-          --vertical | \
-              awk '/[:alnum:]/' | \
-                  xargs -i mysqldump --host=$(kubectl -n openstack get service mariadb-cluster -o jsonpath='{.spec.clusterIP}') \
-                  --user=root \
-                  --password=$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d) \
-                  --single-transaction \
-                  --routines \
-                  --triggers \
-                  --events \
-                  {} \
-                  --result-file=/tmp/{}-$(date +%s).sql
+    --8<-- "bin/backup-mariadb.sh"
     ```
 
 ### Individual Database Restores

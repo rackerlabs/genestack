@@ -123,7 +123,18 @@ args: []
 ##   - name: FOO
 ##     value: "bar"
 ##
-extraEnvVars: []
+# Set the cache size limit to less than the PVC size, default is 10Gi, vlaue is written in megabytes
+# Review https://hub.docker.com/r/bitnami/memcached for more information.
+extraEnvVars:
+  - name: MEMCACHED_CACHE_SIZE
+    value: "9216"
+  - name: MEMCACHED_MAX_CONNECTIONS
+    value: "4096"
+  - name: MEMCACHED_THREADS
+    value: "8"
+  - name: MEMCACHED_MAX_ITEM_SIZE
+    value: "4194304"
+
 ## @param extraEnvVarsCM Name of existing ConfigMap containing extra env vars for Memcached nodes
 ##
 extraEnvVarsCM: ""
@@ -436,13 +447,15 @@ service:
   ## Values: ClientIP or None
   ## ref: https://kubernetes.io/docs/concepts/services-networking/service/
   ##
-  sessionAffinity: ""
+  sessionAffinity: "ClientIP"
   ## @param service.sessionAffinityConfig Additional settings for the sessionAffinity
   ## sessionAffinityConfig:
   ##   clientIP:
   ##     timeoutSeconds: 300
   ##
-  sessionAffinityConfig: {}
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 600
   ## @param service.clusterIP Memcached service Cluster IP
   ## e.g.:
   ## clusterIP: None

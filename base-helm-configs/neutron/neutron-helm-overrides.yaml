@@ -1761,7 +1761,7 @@ conf:
     ptcp_port: 6640
   neutron:
     DEFAULT:
-      debug: true
+      debug: false
       metadata_proxy_socket: /var/lib/neutron/openstack-helm/metadata_proxy
       log_config_append: /etc/neutron/logging.conf
       # NOTE(portdirect): the bind port should not be defined, and is manipulated
@@ -1771,8 +1771,9 @@ conf:
       network_scheduler_driver: neutron.scheduler.dhcp_agent_scheduler.AZAwareWeightScheduler
       router_scheduler_driver: neutron.scheduler.l3_agent_scheduler.AZLeastRoutersScheduler
       dhcp_load_type: networks
-      api_workers: 1
+      api_workers: 8
       rpc_workers: 4
+      rpc_state_report_workers: 4
       allow_overlapping_ips: True
       state_path: /var/lib/neutron
       # core_plugin can be: ml2, calico
@@ -1793,10 +1794,10 @@ conf:
       # 'network.backend' to sane defaults.
       interface_driver: null
     oslo_concurrency:
-      lock_path: /var/lib/neutron/tmp
+      lock_path: /tmp/neutron
     database:
       mysql_sql_mode: ""
-      connection_debug: 100
+      connection_debug: 0
       connection_trace: true
       use_db_reconnect: True
       idle_timeout: 3600
@@ -1809,14 +1810,15 @@ conf:
     oslo_messaging_notifications:
       driver: messagingv2
     oslo_messaging_rabbit:
+      amqp_durable_queues: false
       # We define use of quorum queues via kustomize but this was enabling HA queues instead
       # ha_queues are deprecated, explicitly set to false and set quorum_queue true
       rabbit_ha_queues: false
       rabbit_quorum_queue: true
       # TODO: Not available until 2024.1, but once it is, we want to enable these!
       # new feature ref; https://docs.openstack.org/releasenotes/oslo.messaging/2024.1.html
-      # rabbit_transient_quorum_queue: true
-      # use_queue_manager: true
+      rabbit_transient_quorum_queue: false
+      use_queue_manager: false
       # Reconnect after a node outage more quickly
       rabbit_interval_max: 10
       # Send more frequent heartbeats and fail unhealthy nodes faster
@@ -1881,8 +1883,9 @@ conf:
         - context
         - default
     logger_root:
-      level: WARNING
-      handlers: 'null'
+      level: INFO
+      handlers:
+        - stdout
     logger_neutron:
       level: INFO
       handlers:
@@ -2048,7 +2051,7 @@ conf:
       # as a hostPath volume from agent daemonsets
       metadata_proxy_socket: /var/lib/neutron/openstack-helm/metadata_proxy
       metadata_proxy_shared_secret: "password"
-      metadata_workers: 2
+      metadata_workers: 8
     cache:
       enabled: true
       backend: dogpile.cache.memcached
@@ -2256,7 +2259,7 @@ endpoints:
     hosts:
       default: rabbitmq-nodes
     host_fqdn_override:
-      default: null
+      default: rabbitmq.openstack.svc.cluster.local
     path: /neutron
     scheme: rabbit
     port:
@@ -2428,7 +2431,7 @@ endpoints:
         internal: 9876
         service: 9876
   fluentd:
-    namespace: osh-infra
+    namespace: fluentbit
     name: fluentd
     hosts:
       default: fluentd-logging

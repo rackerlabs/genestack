@@ -1,13 +1,8 @@
 # Label all of the nodes in the environment
 
-To use the K8S environment for OpenStack all of the nodes MUST be labeled. The following Labels will be used within your environment.
-Make sure you label things accordingly.
+To use the K8S environment for OpenStack all of the nodes MUST be labeled. The following Labels will be used within your environment. Make sure you label things accordingly.
 
 !!! note
-
-    The labeling of nodes is automated as part of the `setup-kubernetes.yml` playbook based on ansible groups.
-    For understanding the use of k8s labels is defined as following, automation and documented deployment
-    steps build ontop of the labels referenced here:
 
     The following example assumes the node names can be used to identify their purpose within our environment.
     That may not be the case in reality. Adapt the following commands to meet your needs.
@@ -16,8 +11,6 @@ Make sure you label things accordingly.
 
 | <div style="width:220px">key</div> | type | <div style="width:128px">value</div>  | notes |
 |:-----|--|:----------------:|:------|
-| **role** | str | `storage-node` | The "role" is general purpose, and currently only used when deploying the ceph cluster with rook |
-| **vault-storage** | str | `enabled` | Defines which nodes to deploy vault on |
 | **openstack-control-plane** | str| `enabled` | Defines which nodes will run the OpenStack Control Plane |
 | **openstack-compute-node** | str|`enabled` | Defines which nodes will run OpenStack Compute |
 | **openstack-network-node** | str|`enabled` | Defines which nodes will run OpenStack Networking |
@@ -29,12 +22,6 @@ Make sure you label things accordingly.
     Here's an example labeling all of the nodes: the subshell commands are using the node name to identify how to appropriately distribute the workloads throughout the environment.
 
     ``` shell
-    # Label the storage nodes - optional and only used when deploying ceph for K8S infrastructure shared storage
-    kubectl label node $(kubectl get nodes | awk '/ceph/ {print $1}') role=storage-node
-
-    # Label the HashiCorp Vault nodes
-    kubectl label node $(kubectl get nodes | awk '/controller/ {print $1}' |head -3) vault-storage=enabled
-
     # Label the openstack controllers
     kubectl label node $(kubectl get nodes | awk '/controller/ {print $1}') openstack-control-plane=enabled
 

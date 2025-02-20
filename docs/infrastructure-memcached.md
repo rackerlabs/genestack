@@ -14,13 +14,9 @@
 
 ### Alternative - Deploy the Memcached Cluster With Monitoring Enabled
 
-!!! note
-
-    Memcached has a base-monitoring configuration which is HA and production ready that also includes a metrics exporter for prometheus metrics collection. If you'd like to have monitoring enabled for your memcached cluster ensure the prometheus operator is installed first ([Deploy Prometheus](prometheus.md)).
-
 View the [memcached exporter](prometheus-memcached-exporter.md) instructions to install a HA ready memcached cluster with monitoring and metric collection enabled.
 
-## Verify readiness with the following command.
+## Verify readiness with the following command
 
 ``` shell
 kubectl --namespace openstack get horizontalpodautoscaler.autoscaling memcached -w
@@ -38,3 +34,7 @@ kubectl --namespace openstack \
 !!! Note
 
     This is a shared secret that is distributed to all services that require it. Rotating this value means updating all services.
+
+!!! Genestack
+
+    For more information on how to enable memcached monitoring with prometheus, see the [memcached exporter](prometheus-monitoring-overview.md) documentation.

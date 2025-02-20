@@ -14,7 +14,9 @@ you will need to prepare your networking infrastructure and basic storage layout
 
 !!! note
 
-    While we would expect the environment to be running with multiple bonds in a production cloud, two network interfaces is all that's required. This can be achieved with vlan tagged devices, physical ethernet devices, macvlan, or anything else. Have a look at the netplan example file found [here](https://github.com/rackerlabs/genestack/blob/main/etc/netplan/default-DHCP.yaml) for an example of how you could setup the network.
+    While we would expect the environment to be running with multiple bonds in a production cloud, two network interfaces is all that's required. This can be achieved with vlan
+    tagged devices, physical ethernet devices, macvlan, or anything else. Have a look at the netplan example file found
+    [here](https://github.com/rackerlabs/genestack/blob/main/etc/netplan/default-DHCP.yaml) for an example of how you could setup the network.
 
 * Ensure we're running kernel 5.17+
 
@@ -65,6 +67,10 @@ The ansible inventory is expected at `/etc/genestack/inventory` and automaticall
 
 ### Prepare hosts for installation
 
+The `host-setup.yml` playbook draws some values from `group_vars`. Before running the `host-setup.yml` playbook, take a look at default values
+provided in `/etc/genestack/inventory/group_vars/all/all.yml` to ensure they are properly defined for your environment. Values can be set as
+`host_vars` if appropriate. Then, run the following:
+
 ``` shell
 source /opt/genestack/scripts/genestack.rc
 cd /opt/genestack/ansible/playbooks
@@ -74,7 +80,7 @@ cd /opt/genestack/ansible/playbooks
 
     The rc file sets a number of environment variables that help ansible to run in a more easily to understand way.
 
-While the `ansible-playbook` command should work as is with the sourced environment variables, sometimes it's necessary to set some overrides on the command line.
+While the `ansible-playbook` command should work as-is with the sourced environment variables, sometimes it's necessary to set some overrides on the command line.
 The following example highlights a couple of overrides that are generally useful.
 
 #### Example host setup playbook
@@ -108,24 +114,7 @@ ansible-playbook host-setup.yml
 
     ``` shell
     cd /opt/genestack/submodules/kubespray
-    ansible-playbook --inventory /etc/genestack/inventory/openstack-flex-inventory.ini \
-                    --private-key /home/ubuntu/.ssh/openstack-flex-keypair.key \
-                    --user ubuntu \
-                    --become \
-                    cluster.yml
-    ```
-
-=== "Setup-Kubernetes Playbook _(Experimental)_"
-
-    The `private-key` option can be used to instruct ansible to use a custom SSH key for the SSH connection
-
-    ``` shell
-        --private-key ${HOME}/.ssh/openstack-keypair.key
-    ```
-
-    ``` shell
-    source /opt/genestack/scripts/genestack.rc
-    ansible-playbook setup-kubernetes.yml
+    ansible-playbook cluster.yml
     ```
 
 !!! tip

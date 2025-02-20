@@ -88,7 +88,7 @@ service:
   externalTrafficPolicy: Cluster
   ## The annotations of the NGINX Gateway Fabric service.
   annotations:
-    "metallb.universe.tf/address-pool": "openstack-external"
+    "metallb.universe.tf/address-pool": "gateway-api-external"
     "metallb.universe.tf/allow-shared-ip": "openstack-external-svc"
 
   ## A list of ports to expose through the NGINX Gateway Fabric service. Update it to match the listener ports from
