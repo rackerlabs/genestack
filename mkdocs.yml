@@ -133,6 +133,7 @@ nav:
       - Architecture: genestack-architecture.md
       - Components: genestack-components.md
       - Swift Object Storage: openstack-object-storage-swift.md
+      - Release Notes: release-notes.md
   - Design Guide:
       - Introduction: openstack-cloud-design-intro.md
       - Cloud Design:
