@@ -37,7 +37,7 @@ jobs:
                                                        --namespace=topolvm-system --wait --timeout 120m \
                                                        -f ${{ github.workspace }}/base-helm-configs/topolvm/helm-topolvm-overrides.yaml \
                                                         --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
-                                                        --post-renderer-args topolvm/${{ matrix.overlays }} > /tmp/rendered.yaml                                                        
+                                                        --post-renderer-args topolvm/${{ matrix.overlays }} > /tmp/rendered.yaml
       - name: Return helm Build
         uses: actions/upload-artifact@v4
         with:
