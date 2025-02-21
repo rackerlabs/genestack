@@ -509,7 +509,7 @@ alertmanager:
 
     ## Denotes if this Service desires to route external traffic to node-local or cluster-wide endpoints
     ##
-    externalTrafficPolicy: Cluster
+    externalTrafficPolicy: Local
 
     ## If you want to make sure that connections from a particular client are passed to the same Pod each time
     ## Accepts 'ClientIP' or 'None'
@@ -551,7 +551,7 @@ alertmanager:
 
     ## Denotes if this Service desires to route external traffic to node-local or cluster-wide endpoints
     ##
-    externalTrafficPolicy: Cluster
+    externalTrafficPolicy: Local
 
     ## Service type
     ##
@@ -2194,7 +2194,7 @@ prometheusOperator:
 
         ## Denotes if this Service desires to route external traffic to node-local or cluster-wide endpoints
         ##
-        externalTrafficPolicy: Cluster
+        externalTrafficPolicy: Local
 
         ## Service type
         ## NodePort, ClusterIP, LoadBalancer
@@ -2479,7 +2479,7 @@ prometheusOperator:
 
     ## Denotes if this Service desires to route external traffic to node-local or cluster-wide endpoints
     ##
-    externalTrafficPolicy: Cluster
+    externalTrafficPolicy: Local
 
   ## Service type
   ## NodePort, ClusterIP, LoadBalancer
@@ -2813,7 +2813,7 @@ prometheus:
 
     ## Denotes if this Service desires to route external traffic to node-local or cluster-wide endpoints
     ##
-    externalTrafficPolicy: Cluster
+    externalTrafficPolicy: Local
 
     ## Service type
     ##
@@ -2884,7 +2884,7 @@ prometheus:
 
     ## Denotes if this Service desires to route external traffic to node-local or cluster-wide endpoints
     ##
-    externalTrafficPolicy: Cluster
+    externalTrafficPolicy: Local
 
     ## Service type
     ##
@@ -2926,7 +2926,7 @@ prometheus:
 
     ## Denotes if this Service desires to route external traffic to node-local or cluster-wide endpoints
     ##
-    externalTrafficPolicy: Cluster
+    externalTrafficPolicy: Local
 
     ## Service type
     ##
@@ -2983,7 +2983,7 @@ prometheus:
 
     ## Denotes if this Service desires to route external traffic to node-local or cluster-wide endpoints
     ##
-    externalTrafficPolicy: Cluster
+    externalTrafficPolicy: Local
 
     ## Service type
     ##
@@ -4161,7 +4161,7 @@ thanosRuler:
 
     ## Denotes if this Service desires to route external traffic to node-local or cluster-wide endpoints
     ##
-    externalTrafficPolicy: Cluster
+    externalTrafficPolicy: Local
 
     ## Service type
     ##
