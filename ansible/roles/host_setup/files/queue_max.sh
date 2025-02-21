@@ -25,7 +25,11 @@ function ethernetDevs () {
 }
 
 function functionSetMax () {
-    echo "Setting queue max $dev"
+    if grep -q "0x1af4" /sys/class/net/$1/device/vendor; then
+        echo "Skipping virtio device $1"
+        return
+    fi
+    echo "Setting queue max $1"
     # The RX value is set to 90% of the max value to avoid packet loss
     ethtool -G $1 rx $(ethtool --json -g $1 | jq '.[0] | ."rx-max" * .9 | round')
     # The TX value is set to the max value
