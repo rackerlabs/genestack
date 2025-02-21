@@ -6,6 +6,7 @@
   "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy",
   "ghcr.io/rackerlabs/genestack/ceilometer:2024.1-ubuntu_jammy-1738626813",
   "ghcr.io/rackerlabs/genestack/cinder-volume-rxt:2024.1-ubuntu_jammy-1731085441",
+  "ghcr.io/rackerlabs/genestack/glance:2024.1-ubuntu_jammy-1740121591",
   "ghcr.io/rackerlabs/genestack/gnocchi:2024.1-ubuntu_jammy-1738626728",
   "ghcr.io/rackerlabs/genestack/heat:2024.1-ubuntu_jammy-1738626724",
   "ghcr.io/rackerlabs/genestack/neutron-oslodb:2024.1-ubuntu_jammy-1738626982",
