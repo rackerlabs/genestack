@@ -153,4 +153,3 @@ additionalPrometheusRulesMap:
         annotations:
           summary: "ServiceMonitor 'fluentbit-fluent-bit' is either down or missing."
           description: "Check if the Fluentbit ServiceMonitor is properly configured and deployed."
-          
