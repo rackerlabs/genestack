@@ -141,3 +141,15 @@ additionalPrometheusRulesMap:
         annotations:
           summary: Second successive MariaDB backup not successful within 1 hour of scheduled run
           description: "Second successive MariaDB backup not successful within 1 hour of scheduled run"
+  fluentbit-serviceMonitor-alert:
+    groups:
+    - name: fluentbit serviceMonitor alert
+      rules:
+      - alert: MissingFluentbitServiceMonitor
+        expr: count(up{job="fluentbit-fluent-bit"}) == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ServiceMonitor 'fluentbit-fluent-bit' is either down or missing."
+          description: "Check if the Fluentbit ServiceMonitor is properly configured and deployed."
