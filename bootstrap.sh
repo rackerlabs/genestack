@@ -118,7 +118,7 @@ done
 
 # Symlink /opt/genestack/base-kustomize/kustomize.sh to
 # /etc/genestack/kustomize/kustomize.sh
-ln -s $base_source_dir/kustomize.sh $base_target_dir/kustomize.sh
+ln -sf $base_source_dir/kustomize.sh $base_target_dir/kustomize.sh
 
 # Ensure kustomization.yaml exists in each
 # service base/overlay directory
