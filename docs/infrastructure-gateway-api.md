@@ -82,6 +82,16 @@ There are various implementations of the Gateway API. In this document, we will 
 
     === "Stable _(Recommended)_"
 
+        Edit the file `/etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml`.
+
+        !!! example "Create an empty override file"
+
+            If no overrides are needed, create an empty file.
+
+            ``` shell
+            echo "---" | tee /etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml
+            ```
+
         ``` shell
         pushd /opt/genestack/submodules/nginx-gateway-fabric/charts || exit 1
         helm upgrade --install nginx-gateway-fabric ./nginx-gateway-fabric \
@@ -102,19 +112,22 @@ There are various implementations of the Gateway API. In this document, we will 
 
         Edit the file `/etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml`.
 
-        ``` yaml
-        nginxGateway:
-          replicaCount: 3
-          gwAPIExperimentalFeatures:
-            enable: true
-        service:
-          ## The externalTrafficPolicy of the service. The value Local preserves the client source IP.
-          externalTrafficPolicy: Cluster
-          ## The annotations of the NGINX Gateway Fabric service.
-          annotations:
-            "metallb.universe.tf/address-pool": "gateway-api-external"
-            "metallb.universe.tf/allow-shared-ip": "openstack-external-svc"
-        ```
+        !!! example "Create the experimental override file"
+
+            ``` yaml
+            ---
+            nginxGateway:
+            replicaCount: 3
+            gwAPIExperimentalFeatures:
+                enable: true
+            service:
+            ## The externalTrafficPolicy of the service. The value Local preserves the client source IP.
+            externalTrafficPolicy: Cluster
+            ## The annotations of the NGINX Gateway Fabric service.
+            annotations:
+                "metallb.universe.tf/address-pool": "gateway-api-external"
+                "metallb.universe.tf/allow-shared-ip": "openstack-external-svc"
+            ```
 
         Run the helm command to install the experimental version of the Gateway API.
 
