@@ -3,22 +3,4 @@ sortOptions:
 resources:
   - namespace.yaml
 
-namespace: argocd1
-helmGlobals:
-  chartHome: ../charts/
-helmCharts:
-- name: argo-cd
-  includeCRDs: true
-  valuesFile: values.yaml
-  releaseName: argocd
-  version: 5.51.5
-  repo: https://argoproj.github.io/argo-helm
-patches:
-- target:
-    kind: Pod
-  patch: |-
-    $patch: delete
-    apiVersion: v1
-    kind: Pod
-    metadata:
-      name: argocd-redis-ha-service-test
+namespace: argocd
