@@ -291,6 +291,7 @@ nav:
               - Quota Management: openstack-quota-managment.md
           - Images:
               - Glance Images Creation: openstack-glance-images.md
+              - Glance External Swift Image Store: openstack-glance-swift-store.md
           - Identity:
               - Keystone Federation to Rackspace: openstack-keystone-federation.md
               - Keystone Readonly Users: openstack-keystone-readonly.md
