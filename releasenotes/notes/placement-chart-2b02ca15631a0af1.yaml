@@ -1,0 +1,16 @@
+---
+deprecations:
+  - |
+    The placement chart will now use the online OSH helm repository. This change
+    will allow the placement chart to be updated more frequently and will allow
+    the placement chart to be used with the OpenStack-Helm project. Upgrading to
+    this chart may require changes to the deployment configuration. Simple
+    updates can be made by running the following command:
+
+    .. code-block:: shell
+
+      helm -n openstack uninstall placement
+      /opt/genestack/bin/install-placement.sh
+
+    This operation should have no operational impact on running VMs but should be
+    performed during a maintenance window.
