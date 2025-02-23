@@ -4,7 +4,7 @@
 GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/kube-ovn"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/kube-ovn/kube-ovn-helm-overrides.yaml"
-KUBE_OVN_VERSION="v1.12.30"
+KUBE_OVN_VERSION="v1.12.31"
 MASTER_NODES=$(kubectl get nodes -l kube-ovn/role=master -o json | jq -r '[.items[].status.addresses[] | select(.type == "InternalIP") | .address] | join(",")' | sed 's/,/\\,/g')
 MASTER_NODE_COUNT=$(kubectl get nodes -l kube-ovn/role=master -o json | jq -r '.items[].status.addresses[] | select(.type=="InternalIP") | .address' | wc -l)
 
