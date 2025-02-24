@@ -96,14 +96,14 @@ jobs:
           fi
 
           # Filter cve/requirements.txt to only update installed packages
-          docker run --rm -v "$(pwd):/output" "$intermediate_image" sh -c "pip3 list --format=json > /output/installed.json 2>/dev/null || echo '[]' > /output/installed.json"
+          docker run --rm -v "$(pwd):/output" "$intermediate_image" sh -c "/var/lib/openstack/bin/pip3 list --format=json > /output/installed.json 2>/dev/null || echo '[]' > /output/installed.json"
           python3 cve/filter.py
 
           if [ -s "filtered-requirements.txt" ]; then
             echo "Applying Python package updates from cve/requirements.txt"
             echo "FROM $intermediate_image" > Dockerfile.temp
             echo "COPY filtered-requirements.txt /tmp/filtered-requirements.txt" >> Dockerfile.temp
-            echo "RUN pip3 install -r /tmp/filtered-requirements.txt" >> Dockerfile.temp
+            echo "RUN /var/lib/openstack/bin/pip3 install -r /tmp/filtered-requirements.txt" >> Dockerfile.temp
             docker build -f Dockerfile.temp -t "$patched_image" . || { echo "Failed to build $patched_image with Python patches"; exit 1; }
             intermediate_image="$patched_image"
           else
