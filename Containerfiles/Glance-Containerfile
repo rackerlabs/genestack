@@ -6,7 +6,10 @@ RUN apt update && apt install -y git
 RUN export ORIG_PLUGIN_VERSION="${PLUGIN_VERSION}"; \
 if [ "${PLUGIN_VERSION}" != 'master' ]; then export PLUGIN_VERSION=stable/${PLUGIN_VERSION}; fi; \
 . /var/lib/openstack/bin/activate; \
-/var/lib/openstack/bin/pip install boto3 git+https://github.com/openstack/oslo.db@${PLUGIN_VERSION}#egg=oslo_db
+/var/lib/openstack/bin/pip install boto3 os-brick \
+                                         git+https://github.com/openstack/python-cinderclient@${PLUGIN_VERSION}#egg=python-cinderclient \
+                                         git+https://github.com/openstack/oslo.db@${PLUGIN_VERSION}#egg=oslo_db \
+                                         git+https://github.com/openstack/glance@${PLUGIN_VERSION}#egg=glance
 
 FROM openstackhelm/glance:${VERSION}
 COPY --from=build /var/lib/openstack/. /var/lib/openstack/
