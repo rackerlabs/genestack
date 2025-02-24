@@ -1,0 +1,25 @@
+---
+deprecations:
+  - |
+    The octavia chart will now use the online OSH helm repository. This change
+    will allow the octavia chart to be updated more frequently and will allow
+    the octavia chart to be used with the OpenStack-Helm project. Upgrading to
+    this chart may require changes to the deployment configuration. Simple
+    updates can be made by running the following command:
+
+    .. code-block:: shell
+
+      helm -n openstack uninstall octavia
+      kubectl -n openstack delete -f /etc/genestack/kustomize/octavia/base/octavia-rabbitmq-queue.yaml
+      /opt/genestack/bin/install-octavia.sh
+
+    Depending on the state of the Octavia deployment, it may be nessessary to
+    rerun the ansible-playbook for the octavia deployment. Note that this playbook
+    will drop a marker file ``/tmp/octavia_hm_controller_ip_port_list`` which may
+    need to be cleaned up before rerunning the playbook.
+
+    https://docs.rackspacecloud.com/openstack-octavia/#run-the-playbook
+
+    That said, if the deployment was healthy before, the cleanup steps should not
+    be needed. This operation should have no operational impact on running VMs but
+    should be performed during a maintenance window.
