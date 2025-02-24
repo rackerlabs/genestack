@@ -7,7 +7,7 @@ on:
     types:
       - completed
     branches:
-      - cve-WIP
+      - main
 
 jobs:
   generate-matrix:
