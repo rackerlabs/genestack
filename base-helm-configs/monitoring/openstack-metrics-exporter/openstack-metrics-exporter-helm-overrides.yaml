@@ -8,7 +8,7 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/openstack-exporter/openstack-exporter
-  tag: 1.7.0
+  tag: latest
   pullPolicy: Always
 
 serviceMonitor:
