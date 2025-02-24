@@ -1,4 +1,4 @@
-# Download Images
+# Glance Images Overview
 
 The following page highlights how to retrieve various images and upload them into Glance.
 
