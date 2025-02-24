@@ -4,9 +4,7 @@ GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/magnum"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/magnum/magnum-helm-overrides.yaml"
 
-pushd /opt/genestack/submodules/openstack-helm || exit 1
-
-HELM_CMD="helm upgrade --install magnum ./magnum \
+HELM_CMD="helm upgrade --install magnum openstack-helm/magnum --version 2024.2.157+13651f45-628a320c \
     --namespace=openstack \
     --timeout 120m"
 
@@ -35,8 +33,9 @@ HELM_CMD+=" --set conf.magnum.keystone_authtoken.memcache_secret_key=\"\$(kubect
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
 HELM_CMD+=" --post-renderer-args magnum/overlay $*"
 
+helm repo add openstack-helm https://tarballs.opendev.org/openstack/openstack-helm
+helm repo update
+
 echo "Executing Helm command:"
 echo "${HELM_CMD}"
 eval "${HELM_CMD}"
-
-popd || exit 1
