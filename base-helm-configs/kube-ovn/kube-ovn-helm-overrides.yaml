@@ -10,8 +10,7 @@ global:
       repository: kube-ovn
       dpdkRepository: kube-ovn-dpdk
       vpcRepository: vpc-nat-gateway
-      # Change "tag" when PR https://github.com/kubeovn/kube-ovn/pull/5005 is merged
-      tag: v1.12.32-gc-disable
+      tag: v1.12.32
       support_arm: true
       thirdparty: true
 
