@@ -34,7 +34,7 @@ jobs:
           ${{ steps.helm.outputs.helm-path }} repo add topolvm https://topolvm.github.io/topolvm
           ${{ steps.helm.outputs.helm-path }} repo update
           ${{ steps.helm.outputs.helm-path }} template topolvm topolvm/topolvm \
-                                                       --namespace=topolvm-system --wait --timeout 120m \
+                                                       --create-namespace namespace=topolvm-system --wait --timeout 120m \
                                                        -f ${{ github.workspace }}/base-helm-configs/topolvm/helm-topolvm-overrides.yaml \
                                                         --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
                                                         --post-renderer-args topolvm/${{ matrix.overlays }} > /tmp/rendered.yaml
