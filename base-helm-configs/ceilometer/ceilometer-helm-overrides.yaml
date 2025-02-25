@@ -93,6 +93,7 @@ conf:
           - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/keystone
           - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/neutron
           - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/heat
+          - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/swift
     oslo_messaging_notifications:
       driver: messagingv2
       topics:
@@ -1035,8 +1036,11 @@ conf:
       - resource_type: swift_account
         metrics:
           storage.objects.incoming.bytes:
+            archive_policy_name: low
           storage.objects.outgoing.bytes:
+            archive_policy_name: low
           storage.objects.size:
+            archive_policy_name: low
           storage.objects:
           storage.objects.containers:
           storage.containers.objects:
