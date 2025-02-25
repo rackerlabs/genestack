@@ -12,7 +12,7 @@ helm repo update
 
 # Helm command setup
 HELM_CMD="helm upgrade --install topolvm topolvm/topolvm \
-    --create-namespace namespace=topolvm-system \
+    --create-namespace --namespace=topolvm-system \
     --timeout 120m \
     --post-renderer /etc/genestack/kustomize/kustomize.sh \
     --post-renderer-args topolvm/${TARGET} \
