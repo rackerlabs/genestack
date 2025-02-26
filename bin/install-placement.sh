@@ -4,9 +4,7 @@ GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/placement"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/placement/placement-helm-overrides.yaml"
 
-pushd /opt/genestack/submodules/openstack-helm || exit 1
-
-HELM_CMD="helm upgrade --install placement ./placement \
+HELM_CMD="helm upgrade --install placement openstack-helm/placement --version 2024.2.62+13651f45-628a320c \
     --namespace=openstack \
     --timeout 120m"
 
@@ -38,5 +36,3 @@ HELM_CMD+=" --post-renderer-args placement/overlay $*"
 echo "Executing Helm command:"
 echo "${HELM_CMD}"
 eval "${HELM_CMD}"
-
-popd || exit 1
