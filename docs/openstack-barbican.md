@@ -26,6 +26,25 @@ OpenStack Barbican is the dedicated security service within the OpenStack ecosys
                 --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
         ```
 
+## Setup Barbican Overrides
+
+When deploying barbican, it is important to provide the necessary configuration values to ensure that the service is properly
+configured and integrated with other OpenStack services. The `/etc/genestack/helm-configs/barbican/barbican-helm-overrides.yaml`
+file contains the necessary configuration values for Barbican, including database connection details, RabbitMQ credentials, and other
+service-specific settings. By providing these values, you can customize the deployment of Barbican to meet your specific requirements
+and ensure that the service operates correctly within your OpenStack environment.
+
+!!! tip "Set the `host_href` value"
+
+    The `host_href` value should be set to the public endpoint of the Barbican service. This value is used by other OpenStack services and public consumers to communicate with Barbican and should be accessible from all OpenStack services.
+
+    ``` yaml
+    conf:
+      barbican:
+        DEFAULT:
+          host_href: "https://barbican.your.domain.tld"
+    ```
+
 ## Run the package deployment
 
 !!! example "Run the Barbican deployment Script `bin/install-barbican.sh`"
