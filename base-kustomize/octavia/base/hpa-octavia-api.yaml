@@ -10,7 +10,7 @@ spec:
     - resource:
         name: memory
         target:
-          averageValue: 500Mi
+          averageValue: 2200Mi
           type: Value
       type: Resource
   scaleTargetRef:
