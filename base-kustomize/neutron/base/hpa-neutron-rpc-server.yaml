@@ -1,0 +1,19 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: neutron-rpc-server
+  namespace: openstack
+spec:
+  maxReplicas: 9
+  minReplicas: 3
+  metrics:
+    - resource:
+        name: memory
+        target:
+          type: AverageValue
+          averageValue: 2Gi
+      type: Resource
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: neutron-rpc-server

@@ -5,6 +5,7 @@ resources:
   - neutron-rabbitmq-queue.yaml
   - all.yaml
   - hpa-neutron-server.yaml
+  - hpa-neutron-rpc-server.yaml
   - neutron-routes.yaml
 
 patches:
