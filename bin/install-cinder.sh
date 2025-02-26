@@ -4,9 +4,7 @@ GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/cinder"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/cinder/cinder-helm-overrides.yaml"
 
-pushd /opt/genestack/submodules/openstack-helm || exit 1
-
-HELM_CMD="helm upgrade --install cinder ./cinder \
+HELM_CMD="helm upgrade --install cinder openstack-helm/cinder --version 2024.2.409+13651f45-628a320c \
     --namespace=openstack \
     --timeout 120m"
 
@@ -33,8 +31,9 @@ HELM_CMD+=" --set endpoints.oslo_messaging.auth.cinder.password=\"\$(kubectl --n
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
 HELM_CMD+=" --post-renderer-args cinder/overlay $*"
 
+helm repo add openstack-helm https://tarballs.opendev.org/openstack/openstack-helm
+helm repo update
+
 echo "Executing Helm command:"
 echo "${HELM_CMD}"
 eval "${HELM_CMD}"
-
-popd || exit 1
