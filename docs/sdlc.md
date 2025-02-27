@@ -1,7 +1,7 @@
 # Genestack SDLC
 
 ![SDLC](assets/images/sdlc.png){align=left : style="max-width:200px"}
-Software Development Life Cycle (SDLC) is the process used to ensure high quality solutions are delivered in a predictable, repeatable fashion. The SDLC aims to produce outcomes that meets or exceeds customer expectations while reaching completion within time and cost estimates.
+Software Development Life Cycle (SDLC) is the process used to ensure high quality solutions are delivered in a predictable, repeatable fashion. The SDLC aims to produce outcomes that meet or exceed customer expectations while reaching completion within time and cost estimates.
 
 <br />The process is broken down into 6 distinct phases:
 <br />__Scope__, __Implement__, __Document__, __Test__, __Deployment__, and __Maintain__.
