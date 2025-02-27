@@ -1,0 +1,32 @@
+# Genestack SDLC
+
+![SDLC](assets/images/sdlc.png){align=left : style="max-width:200px"}
+Software Development Life Cycle (SDLC) is the process used to ensure high quality solutions are delivered in a predictable repeatable method. The SDLC aims to produce outcomes that meets or exceeds customer expectations and reaches completion within time and cost estimates.
+
+<br />The process is broken down into 6 distinct phases; Scope, Implement, Document, Test, Deployment, Maintain.  Each phase is outlined at a high level below.
+
+### Scope
+
+The scope phase is where new work is identified, based off the stated objective, and the level of effort determined. The plan portion of scope is where the work is assigned to various sprints to ensure timely completion. This step is vital to ensure we are meeting stated goals for the business and the community.
+
+### Implement
+
+In the implement phase, development teams use the requirements gathered in the scope phase to create code or process that meets the deliverable ask.
+
+### Document
+
+Documentation must reflect the current state of the codebase for any deployed application, service or process. If functionality has been added, removed, or changed the documentation is updated to reflect the change.
+
+Tl;dr changed something, added something, removed something document it.
+
+### Test
+
+The test phase is used to ensure that the deliverable is free from defects and meets the specified requirements. This is accomplished via a three-step or phased approach; github pre-commit checks, unit testing against development environment, and functional checks in a staging environment using rally against our Development and Staging environments.
+
+### Deployment
+
+In the deployment phase, the development team deploys deliverables using a multi-environment deployment process. This ensures deliverables are tested through a staging environment for functionality and reliability before reaching production.
+
+### Maintenance
+
+In the maintenance phase, the team focuses on monitoring the various environments, fixing bugs, and addressing any issues brought forth by customers or stakeholders.
