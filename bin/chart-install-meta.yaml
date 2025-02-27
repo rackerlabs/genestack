@@ -135,3 +135,12 @@ prometheus-postgres-exporter:
   version: 6.0.0
   valuesFiles:
     - values.yaml
+
+prometheus-snmp-exporter:
+  name: prometheus-snmp-exporter
+  repoName: prometheus-community
+  repo: https://prometheus-community.github.io/helm-charts
+  releaseName: prometheus-snmp-exporter
+  namespace: prometheus
+  valuesFiles:
+    - values.yaml
