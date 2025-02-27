@@ -114,7 +114,7 @@ ansible-playbook host-setup.yml
 
     ``` shell
     cd /opt/genestack/submodules/kubespray
-    ansible-playbook cluster.yml
+    ansible-playbook cluster.yml --become
     ```
 
 !!! tip
