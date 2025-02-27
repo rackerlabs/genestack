@@ -4,9 +4,7 @@ GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/ceilometer"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/ceilometer/ceilometer-helm-overrides.yaml"
 
-pushd /opt/genestack/submodules/openstack-helm || exit 1
-
-HELM_CMD="helm upgrade --install ceilometer ./ceilometer \
+HELM_CMD="helm upgrade --install ceilometer openstack-helm/ceilometer --version 2024.2.115+13651f45-628a320c\
     --namespace=openstack \
     --timeout 10m"
 
@@ -43,6 +41,9 @@ rabbit://nova:\$(kubectl --namespace openstack get secret nova-rabbitmq-password
 
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
 HELM_CMD+=" --post-renderer-args ceilometer/overlay $*"
+
+helm repo add openstack-helm https://tarballs.opendev.org/openstack/openstack-helm
+helm repo update
 
 echo "Executing Helm command:"
 echo "${HELM_CMD}"
