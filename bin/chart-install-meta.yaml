@@ -86,7 +86,6 @@ prometheus:
     - prometheus-helm-overrides.yaml
     - alerting_rules.yaml
     - alertmanager_config.yaml
-    - additional_scrape_configs.yaml
 
 prometheus-pushgateway:
   repoName: prometheus-community
