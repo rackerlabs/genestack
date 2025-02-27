@@ -136,6 +136,7 @@ nav:
       - Release Notes: release-notes.md
   - Design Guide:
       - Introduction: openstack-cloud-design-intro.md
+      - SDLC: sdlc.md
       - Cloud Design:
           - Cloud Topology: openstack-cloud-design-topology.md
           - Regions: openstack-cloud-design-regions.md
