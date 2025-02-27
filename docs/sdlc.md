@@ -1,9 +1,9 @@
 # Genestack SDLC
 
 ![SDLC](assets/images/sdlc.png){align=left : style="max-width:200px"}
-Software Development Life Cycle (SDLC) is the process used to ensure high quality solutions are delivered in a predictable, repeatable method. The SDLC aims to produce outcomes that meets or exceeds customer expectations while reaching completion within time and cost estimates.
+Software Development Life Cycle (SDLC) is the process used to ensure high quality solutions are delivered in a predictable, repeatable fashion. The SDLC aims to produce outcomes that meets or exceeds customer expectations while reaching completion within time and cost estimates.
 
-<br />The process is broken down into 6 distinct phases; Scope, Implement, Document, Test, Deployment, Maintain.  Each phase is outlined at a high level below.
+<br />The process is broken down into 6 distinct phases: Scope, Implement, Document, Test, Deployment, Maintain.  Each phase is outlined at a high level below.
 
 ### Scope
 
@@ -21,7 +21,11 @@ Tl;dr changed something, added something, removed something -- document it.
 
 ### Test
 
-The test phase is used to ensure that the deliverable is free from defects and meets the specified requirements. This is accomplished via a three-step or phased approach; github pre-commit checks, unit testing against development environment, and functional checks in a staging environment using rally against our Development and Staging environments.
+The test phase is used to ensure that the deliverable is free from defects and meets the specified requirements. This is accomplished via a three-step or phased approach:
+1. Github pre-commit checks
+2. Unit testing against development environment
+3. Functional checks using [Rally](https://opendev.org/openstack/rally)
+   against our Development and Staging environments
 
 ### Deployment
 
