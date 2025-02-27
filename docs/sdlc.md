@@ -17,7 +17,7 @@ In the implement phase, development teams use the requirements gathered in the s
 
 Documentation must reflect the current state of the codebase for any deployed application, service or process. If functionality has been added, removed, or changed the documentation is updated to reflect the change.
 
-Tl;dr changed something, added something, removed something document it.
+Tl;dr changed something, added something, removed something -- document it.
 
 ### Test
 
