@@ -19,6 +19,7 @@ Prometheus makes use of various metric exporters used to collect monitoring data
 * Memcached Exporter(Memcached metrics)
 * Openstack Exporter(Metrics from various Openstack products)
 * Pushgateway (metrics from short-lived jobs)
+* SNMP exporter (for monitoring with SNMP)
 
 <figure markdown="span">
   ![Prometheus Monitoring Diagram](assets/images/prometheus-monitoring.png){ style="filter:drop-shadow(#3c3c3c 0.5rem 0.5rem 10px);" }

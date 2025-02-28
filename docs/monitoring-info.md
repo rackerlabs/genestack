@@ -151,6 +151,13 @@ The [Prometheus Push Gateway](https://github.com/prometheus/pushgateway) is used
 It's not capable of turning Prometheus into a push-based monitoring system and should only be used when there is no other way to collect the desired metrics.
 Currently, in Genestack the push gateway is only being used to gather stats from the OVN-Backup CronJob as noted in the [Pushgateway Deployment Doc](prometheus-pushgateway.md).
 
+* ### SNMP Exporter:
+The [Prometheus SNMP Exporter](https://github.com/prometheus/snmp_exporter) is
+used for gathering SNMP metrics. A default Genestack installation does not make
+use of it, so you do not need to install it unless you plan to do additional
+configuration beyond Genestack defaults and specifically plan to monitor some
+SNMP-enabled devices.
+
 * ### Textfile Collector:
 It's possible to gather node/host metrics that aren't exposed by any of the above exporters by utilizing the [Node Exporter Textfile Collector](https://github.com/prometheus/node_exporter?tab=readme-ov-file#textfile-collector).
 Currently, in Genestack the textfile-collector is used to collect kernel-taint stats. To view more information about the textfile-collector and how to deploy your own custom exporter view the [Custom Metrics Deployment Doc](prometheus-custom-node-metrics.md).
