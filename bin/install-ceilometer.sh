@@ -4,7 +4,7 @@ GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/ceilometer"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/ceilometer/ceilometer-helm-overrides.yaml"
 
-HELM_CMD="helm upgrade --install ceilometer openstack-helm/ceilometer --version 2024.2.115+13651f45-628a320c\
+HELM_CMD="helm upgrade --install ceilometer openstack-helm/ceilometer --version 2024.2.115+13651f45-628a320c \
     --namespace=openstack \
     --timeout 10m"
 
