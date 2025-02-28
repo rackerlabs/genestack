@@ -43,10 +43,14 @@ Configure the alert manager to send the specified alerts to slack as an example,
 
 ### Update alerting rules
 
-Within the genestack repo we can update our alerting rules via the alerting_rules.yaml to fit our needs
+Within the genestack repo we can update our custom alerting rules via the alerting_rules.yaml to fit our needs
 
 View alerting_rules.yaml in:
 
 ``` shell
 less /etc/genestack/helm-configs/prometheus/alerting_rules.yaml
 ```
+
+However, many opreators comes with ServiceMonitor and PodMonitor services. These services expose, scrape endpoints
+out of the box. These operators will also provide alerting rules curated for the specific service. See specific
+service install for any monitoring rules. Example: [RabbitMQ Operator Monitoring](infrastructure-rabbitmq.md#rabbitmq-operator-monitoring)
