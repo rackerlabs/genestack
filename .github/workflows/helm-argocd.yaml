@@ -1,0 +1,45 @@
+name: Helm GitHub Actions for argocd
+
+on:
+  pull_request:
+    paths:
+      - base-kustomize/argocd/**
+      - base-helm-configs/argocd/**
+      - .github/workflows/helm-argocd.yaml
+jobs:
+  helm:
+    strategy:
+      matrix:
+        overlays:
+          - base
+    name: Helm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: azure/setup-helm@v3
+        with:
+          version: latest
+          token: "${{ secrets.GITHUB_TOKEN }}"
+        id: helm
+      - name: Kubectl Install
+        working-directory: /usr/local/bin/
+        run: |
+            if [ ! -f /usr/local/bin/kubectl ]; then
+              curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+              chmod +x ./kubectl
+            fi
+      - name: Run Helm Template
+        run: |
+          ${{ steps.helm.outputs.helm-path }} template argocd oci://registry-1.docker.io/bitnamicharts/argo-cd \
+            --namespace=argocd \
+            --wait \
+            --timeout 120m \
+            -f ${{ github.workspace }}/base-helm-configs/argocd/helm-argocd-overrides.yaml \
+            --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
+            --post-renderer-args argocd/${{ matrix.overlays }} > /tmp/rendered.yaml
+      - name: Return helm Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-argocd-artifact-${{ matrix.overlays }}
+          path: /tmp/rendered.yaml
