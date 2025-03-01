@@ -25,6 +25,14 @@ concept that defines a set of resources that exposes capabilities of a backend s
 functionalities like traffic management, rate limiting, authentication and more. It is geared towards commercial
 API management and monetisation.
 
+## Cross Namespace Routing
+
+Gateway API has support for multi-ns and cross namespace routing. Routes can be deployed into different Namespaces and Routes can attach to Gateways across
+Namespace boundaries. This allows user access control to be applied differently across Namespaces for Routes and Gateways, effectively segmenting access and
+control to different parts of the cluster-wide routing configuration.
+
+More information on cross namespace routing can be found [here](https://gateway-api.sigs.k8s.io/guides/multiple-ns/).
+
 ## Resource Models in Gateway API
 
 | Type | Description |

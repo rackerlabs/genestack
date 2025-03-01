@@ -1,0 +1,33 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: flex-gateway-issuer
+  namespace: envoy-gateway
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: public-endpoint-ca-cert
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: public-endpoint-ca
+  secretName: public-endpoint-ca-secret
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: flex-gateway-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: public-endpoint-issuer
+  namespace: envoy-gateway
+spec:
+  ca:
+    secretName: public-endpoint-ca-secret
