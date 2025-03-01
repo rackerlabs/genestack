@@ -6,4 +6,3 @@ resources:
   - all.yaml
   - hpa-cinder-scheduler.yaml
   - hpa-cinder-api.yaml
-  - cinder-routes.yaml

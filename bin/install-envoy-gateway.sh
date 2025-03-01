@@ -3,7 +3,7 @@
 
 GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/envoyproxy-gateway"
-BASE_OVERRIDES="/opt/genestack/base-helm-configs/envoyproxy-gateway/envoyproxy-gateway-helm-overrides.yaml"
+BASE_OVERRIDES="/opt/genestack/base-helm-configs/envoyproxy-gateway/envoy-gateway-helm-overrides.yaml"
 ENVOY_VERSION="v1.3.0"
 HELM_CMD="helm upgrade --install envoyproxy-gateway oci://docker.io/envoyproxy/gateway-helm \
                        --version ${ENVOY_VERSION} \
@@ -30,12 +30,13 @@ echo "${HELM_CMD}"
 eval "${HELM_CMD}"
 
 # Install egctl
-mkdir -p /opt/egctl-install
-
-pushd /opt/egctl-install || exit 1
-    wget "https://github.com/envoyproxy/gateway/releases/download/${ENVOY_VERSION}/egctl_${ENVOY_VERSION}_linux_amd64.tar.gz" -O egctl.tar.gz
-    tar -xvf egctl.tar.gz
-    sudo install -o root -g root -m 0755 bin/linux/amd64/egctl /usr/local/bin/egctl
-    /usr/local/bin/egctl completion bash > egctl.bash
-    sudo cp egctl.bash /etc/bash_completion.d/egctl
-popd || exit 1
+if [ ! -f "/usr/local/bin/egctl" ]; then
+    mkdir -p /opt/egctl-install
+    pushd /opt/egctl-install || exit 1
+        wget "https://github.com/envoyproxy/gateway/releases/download/${ENVOY_VERSION}/egctl_${ENVOY_VERSION}_linux_amd64.tar.gz" -O egctl.tar.gz
+        tar -xvf egctl.tar.gz
+        sudo install -o root -g root -m 0755 bin/linux/amd64/egctl /usr/local/bin/egctl
+        /usr/local/bin/egctl completion bash > egctl.bash
+        sudo cp egctl.bash /etc/bash_completion.d/egctl
+    popd || exit 1
+fi

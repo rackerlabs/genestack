@@ -7,4 +7,3 @@ resources:
   - hpa-heat-api.yaml
   - hpa-heat-cfn.yaml
   - hpa-heat-engine.yaml
-  - heat-routes.yaml

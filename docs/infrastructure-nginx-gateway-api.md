@@ -223,36 +223,5 @@ kubectl patch --namespace nginx-gateway \
               gateway flex-gateway
 ```
 
-## Example Implementation with Prometheus UI (NGINX Gateway Fabric)
-
-In this example we will look at how Prometheus UI is exposed through the gateway. For other services the gateway kustomization file for the service.
-
-First, create the shared gateway and then the httproute resource for prometheus.
-
-??? abstract "Example patch to enable Prometheus `/etc/genestack/gateway-api/gateway-prometheus.yaml`"
-
-    ``` yaml
-    --8<-- "etc/gateway-api/gateway-prometheus.yaml"
-    ```
-
-!!! example "Example modifying Prometheus' Gateway deployment"
-
-    ``` shell
-    mkdir -p /etc/genestack/gateway-api
-    sed 's/your.domain.tld/<YOUR_DOMAIN>/g' /opt/genestack/etc/gateway-api/gateway-prometheus.yaml > /etc/genestack/gateway-api/gateway-prometheus.yaml
-    ```
-
-``` shell
-kubectl apply -f /etc/genestack/gateway-api/gateway-prometheus.yaml
-```
-
 At this point, flex-gateway has a listener pointed to the port 80 matching *.your.domain.tld hostname. The HTTPRoute resource configures routes
 for this gateway. Here, we match all path and simply pass any request from the matching hostname to kube-prometheus-stack-prometheus backend service.
-
-## Cross Namespace Routing
-
-Gateway API has support for multi-ns and cross namespace routing. Routes can be deployed into different Namespaces and Routes can attach to Gateways across
-Namespace boundaries. This allows user access control to be applied differently across Namespaces for Routes and Gateways, effectively segmenting access and
-control to different parts of the cluster-wide routing configuration.
-
-More information on cross namespace routing can be found [here](https://gateway-api.sigs.k8s.io/guides/multiple-ns/).

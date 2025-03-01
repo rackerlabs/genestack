@@ -1,7 +1,5 @@
 #!/bin/bash
 # shellcheck disable=SC2045,SC2124,SC2145,SC2164,SC2236,SC2294
-set -e
-set -o pipefail
 
 if [ -z "${ACME_EMAIL}" ]; then
   read -rp "Enter a valid email address for use with ACME, press enter to skip: " ACME_EMAIL
