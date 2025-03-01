@@ -3,3 +3,4 @@ sortOptions:
 resources:
   - internal-gateway-api.yaml # namespace: nginx-gateway (common gateway)
   - internal-gateway-issuer.yaml #namespace: nginx-gateway
+  - endpoint-policies.yaml
