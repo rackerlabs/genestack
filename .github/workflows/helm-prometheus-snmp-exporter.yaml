@@ -1,0 +1,41 @@
+name: Helm GitHub Actions for Prometheus SNMP Exporter
+
+on:
+  pull_request:
+    paths:
+      - base-helm-configs/prometheus-snmp-exporter/**
+      - base-kustomize/prometheus-snmp-exporter/**
+      - .github/workflows/helm-prometheus-snmp-exporter.yaml
+jobs:
+  helm:
+    strategy:
+      matrix:
+        overlays:
+          - base
+    name: Helm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: azure/setup-helm@v3
+        with:
+          version: latest
+          token: "${{ secrets.GITHUB_TOKEN }}"
+        id: helm
+      - name: Add prometheus-community repo to helm
+        run: |
+            ${{ steps.helm.outputs.helm-path }} repo add prometheus-community https://prometheus-community.github.io/helm-charts
+            ${{ steps.helm.outputs.helm-path }} repo update
+      - name: Run Helm Template
+        run: |
+          ${{ steps.helm.outputs.helm-path }} template prometheus-snmp-exporter prometheus-community/prometheus-snmp-exporter \
+            --create-namespace \
+            --namespace=prometheus \
+            -f ${{ github.workspace }}//base-helm-configs/prometheus-snmp-exporter/values.yaml \
+            --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
+            --post-renderer-args prometheus-snmp-exporter/${{ matrix.overlays }} > /tmp/rendered.yaml
+      - name: Return helm Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-prometheus-artifact-${{ matrix.overlays }}
+          path: /tmp/rendered.yaml
