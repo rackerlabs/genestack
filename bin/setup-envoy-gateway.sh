@@ -46,17 +46,19 @@ EOF
   kubectl -n envoy-gateway annotate --overwrite gateway/flex-gateway cert-manager.io/cluster-issuer=letsencrypt-prod
 fi
 
-mkdir -p /etc/genestack/gateway-api/routes
+sudo mkdir -p /etc/genestack/gateway-api/routes
 for route in $(ls -1 /opt/genestack/etc/gateway-api/routes); do
-    sed "s/your.domain.tld/${GATEWAY_DOMAIN}/g" "/opt/genestack/etc/gateway-api/routes/${route}" > "/etc/genestack/gateway-api/routes/${route}"
-    sed -i 's/namespace: nginx-gateway/namespace: envoy-gateway/g' "/etc/genestack/gateway-api/routes/${route}"
+    sed "s/your.domain.tld/${GATEWAY_DOMAIN}/g" "/opt/genestack/etc/gateway-api/routes/${route}" > "/tmp/${route}"
+    sed -i 's/namespace: nginx-gateway/namespace: envoy-gateway/g' "/tmp/${route}"
+    sudo mv -v "/tmp/${route}" "/etc/genestack/gateway-api/routes/${route}"
 done
 
 kubectl apply -f /etc/genestack/gateway-api/routes
 
-mkdir -p /etc/genestack/gateway-api/listeners
+sudo mkdir -p /etc/genestack/gateway-api/listeners
 for listener in $(ls -1 /opt/genestack/etc/gateway-api/listeners); do
-    sed "s/your.domain.tld/${GATEWAY_DOMAIN}/g" "/opt/genestack/etc/gateway-api/listeners/${listener}" > "/etc/genestack/gateway-api/listeners/${listener}"
+    sed "s/your.domain.tld/${GATEWAY_DOMAIN}/g" "/opt/genestack/etc/gateway-api/listeners/${listener}" > "/tmp/${listener}"
+    sudo mv -v "/tmp/${listener}" "/etc/genestack/gateway-api/listeners/${listener}"
 done
 
 kubectl patch -n envoy-gateway gateway flex-gateway \

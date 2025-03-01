@@ -31,12 +31,12 @@ eval "${HELM_CMD}"
 
 # Install egctl
 if [ ! -f "/usr/local/bin/egctl" ]; then
-    mkdir -p /opt/egctl-install
+    sudo mkdir -p /opt/egctl-install
     pushd /opt/egctl-install || exit 1
-        wget "https://github.com/envoyproxy/gateway/releases/download/${ENVOY_VERSION}/egctl_${ENVOY_VERSION}_linux_amd64.tar.gz" -O egctl.tar.gz
-        tar -xvf egctl.tar.gz
+        sudo wget "https://github.com/envoyproxy/gateway/releases/download/${ENVOY_VERSION}/egctl_${ENVOY_VERSION}_linux_amd64.tar.gz" -O egctl.tar.gz
+        sudo tar -xvf egctl.tar.gz
         sudo install -o root -g root -m 0755 bin/linux/amd64/egctl /usr/local/bin/egctl
-        /usr/local/bin/egctl completion bash > egctl.bash
-        sudo cp egctl.bash /etc/bash_completion.d/egctl
+        /usr/local/bin/egctl completion bash > /tmp/egctl.bash
+        sudo mv /tmp/egctl.bash /etc/bash_completion.d/egctl
     popd || exit 1
 fi
