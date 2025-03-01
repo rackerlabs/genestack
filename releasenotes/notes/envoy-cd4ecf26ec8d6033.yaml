@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Envoy Gateway with a full featured configuration in support of OpenStack.
+    Envoy implements the Gateway API with traffic policies, loadbalancers, and
+    listeners which are configured to support the OpenStack APIs.
