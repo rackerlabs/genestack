@@ -1599,7 +1599,7 @@ conf:
         name: event_source
         sinks:
           - event_sink
-
+dependencies:
   static:
     central:
       jobs:
