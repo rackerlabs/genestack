@@ -1,0 +1,34 @@
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: flex-gateway
+  namespace: envoy-gateway
+  annotations:
+    cert-manager.io/cluster-issuer: flex-gateway-issuer
+    acme.cert-manager.io/http01-edit-in-place: "true"
+spec:
+  gatewayClassName: eg
+  infrastructure:
+    annotations:
+      metallb.universe.tf/address-pool: gateway-api-external
+  listeners:
+    - name: cluster-http
+      port: 80
+      protocol: HTTP
+      hostname: "*.cluster.local"
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: cluster-tls
+      port: 443
+      protocol: HTTPS
+      hostname: "*.cluster.local"
+      allowedRoutes:
+        namespaces:
+          from: All
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: wildcard-cluster-tls-secret

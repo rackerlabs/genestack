@@ -3,7 +3,7 @@ name: Kustomize GitHub Actions for Gateway API(envoyproxy)
 on:
   pull_request:
     paths:
-      - base-kustomize/gateway/envoyproxy/**
+      - base-kustomize/gateway/envoyproxy-gateway/**
       - .github/workflows/kustomize-gateway-api-envoyproxy.yaml
 jobs:
   kustomize:
@@ -25,7 +25,7 @@ jobs:
           fi
       - name: Run Kustomize Build
         run: |
-          kustomize build base-kustomize/gateway/envoyproxy/ --enable-helm --helm-command ${{ steps.helm.outputs.helm-path }} > /tmp/rendered.yaml
+          kustomize build base-kustomize/envoyproxy-gateway/base > /tmp/rendered.yaml
       - name: Return Kustomize Build
         uses: actions/upload-artifact@v4
         with:

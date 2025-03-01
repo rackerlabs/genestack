@@ -110,7 +110,7 @@ Once we've ran the apply command we will have installed ServiceMonitors for Kube
     You can view more information about OVN monitoring in the [OVN Monitoring Introduction Docs](ovn-monitoring-introduction.md).
 
 * ### Nginx Gateway Monitoring:
-Genestack makes use of the [Nginx Gateway Fabric](https://github.com/nginxinc/nginx-gateway-fabric/tree/main/charts/nginx-gateway-fabric) for its implementation of [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/). Genestack deploys this as part of its infrastructure, view the [Nginx Gateway Deployment Doc](infrastructure-gateway-api.md) for more information.
+Genestack makes use of the Gateway API for its implementation of [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/). Genestack deploys this as part of its infrastructure, view the [Gateway Deployment Doc](infrastructure-gateway-api.md) for more information.
 Nginx Gateway does expose important metrics for us to gather but it does not do so via a service. Instead we must make use another Prometheus CRD the [PodMonitor](https://prometheus-operator.dev/docs/getting-started/design/#podmonitor).
 The install is similar to the above OVN monitoring as you can see in the [Nginx Gateway Exporter Deployment Doc](prometheus-nginx-gateway.md). The primary difference is the need to target and match on a pod that's exposing the metrics rather than a service.
 You can view more information about the metrics exposed by the Nginx Gateway by viewing the [Nginx Gateway Fabric Docs](https://docs.nginx.com/nginx-gateway-fabric/how-to/monitoring/prometheus/).

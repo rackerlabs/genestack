@@ -181,7 +181,10 @@ nav:
               - infrastructure-overview.md
               - Namespace: infrastructure-namespace.md
               - MetalLB: infrastructure-metallb.md
-              - Gateway API: infrastructure-gateway-api.md
+              - Gateway API:
+                  - Gateway API Overview: infrastructure-gateway-api.md
+                  - Envoy Gateway: infrastructure-envoy-gateway-api.md
+                  - NGINX Gateway: infrastructure-nginx-gateway-api.md
               - MariaDB:
                   - infrastructure-mariadb.md
               - RabbitMQ:
@@ -267,9 +270,10 @@ nav:
           - MariaDB:
               - Operations: infrastructure-mariadb-ops.md
           - Gateway API:
-              - Custom Routes: infrastructure-gateway-api-custom.md
-              - Rackspace Example Gateway Overview: rackspace-infrastructure-gateway-api.md
-              - Creating self-signed CA issuer for Gateway API: gateway-api-ca-issuer.md
+              - NGINX Gateway:
+                - Custom Routes: infrastructure-nginx-gateway-api-custom.md
+                - Rackspace Example Gateway Overview: rackspace-infrastructure-nginx-gateway-api.md
+                - Creating self-signed CA issuer for Gateway API: infrastructure-nginx-gateway-api-ca-issuer.md
       - Observability:
           - Observability Overview: observability-info.md
           - Monitoring Overview: monitoring-info.md
