@@ -1,0 +1,17 @@
+---
+deprecations:
+  - |
+    The ceilometer chart will now use the online OSH helm repository. This change
+    will allow the ceilometer chart to be updated more frequently and will allow
+    the ceilometer chart to be used with the OpenStack-Helm project. Upgrading to
+    this chart may require changes to the deployment configuration. Simple
+    updates can be made by running the following command:
+
+    .. code-block:: shell
+
+      helm -n openstack uninstall ceilometer
+      kubectl -n openstack delete -f /etc/genestack/kustomize/ceilometer/base/ceilometer-rabbitmq-queue.yaml
+      /opt/genestack/bin/install-ceilometer.sh
+
+    This operation should have no operational impact but should be
+    performed during a maintenance window.
