@@ -4,8 +4,6 @@ GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/octavia"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/octavia/octavia-helm-overrides.yaml"
 
-pushd /opt/genestack/submodules/openstack-helm || exit 1
-
 HELM_CMD="helm upgrade --install octavia openstack-helm/octavia --version 2024.2.30+13651f45-628a320c \
     --namespace=openstack \
     --timeout 120m"
@@ -45,5 +43,3 @@ helm repo update
 echo "Executing Helm command:"
 echo "${HELM_CMD}"
 eval "${HELM_CMD}"
-
-popd || exit 1

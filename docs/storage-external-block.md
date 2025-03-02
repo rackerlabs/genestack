@@ -12,7 +12,7 @@ For some Topo/Ceph/NFS are not great fits, Genestack allows for external block d
 Follow Documentation on getting a storage class presented to k8s, name it "general" and mark that storage class as default, in this example storage is provided by democratic csi driver over iscsi.
 
 ``` shell
-(genestack) root@genestack-controller1:/opt/genestack/submodules/openstack-helm# kubectl get sc
+(genestack) root@genestack-controller1:# kubectl get sc
 NAME                   PROVISIONER                     RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
 general (default)      org.democratic-csi.iscsi        Delete          Immediate           true                   3h15m
 ```
@@ -37,7 +37,7 @@ kubectl apply -k /etc/genestack/kustomize/rook-cluster-external-pvc/
 Monitor cluster state, once cluster HEALTH_OK proceed to the next step
 
 ``` shell
-(genestack) root@genestack-controller1:/opt/genestack/submodules/openstack-helm# kubectl --namespace rook-ceph get cephclusters.ceph.rook.io
+(genestack) root@genestack-controller1:# kubectl --namespace rook-ceph get cephclusters.ceph.rook.io
 NAME        DATADIRHOSTPATH   MONCOUNT   AGE    PHASE   MESSAGE                        HEALTH      EXTERNAL   FSID
 rook-ceph   /var/lib/rook     3          129m   Ready   Cluster created successfully   HEALTH_OK              9a6657cd-f3ab-4d70-b276-a05e2ca03e1b
 ```
@@ -51,7 +51,7 @@ kubectl apply -k /etc/genestack/kustomize/rook-defaults-external-pvc/
 You should now have two storage class providers configured for Genestack
 
 ``` shell
-(genestack) root@genestack-controller1:/opt/genestack/submodules/openstack-helm# kubectl get sc -A
+(genestack) root@genestack-controller1:# kubectl get sc -A
 NAME                   PROVISIONER                     RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION   AGE
 general (default)      org.democratic-csi.iscsi        Delete          Immediate           true                   3h25m
 general-multi-attach   rook-ceph.cephfs.csi.ceph.com   Delete          Immediate           true                   85m

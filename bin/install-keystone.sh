@@ -4,8 +4,6 @@ GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/keystone"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/keystone/keystone-helm-overrides.yaml"
 
-pushd /opt/genestack/submodules/openstack-helm || exit 1
-
 HELM_CMD="helm upgrade --install keystone openstack-helm/keystone --version 2024.2.386+13651f45-628a320c \
     --namespace=openstack \
     --timeout 120m"
@@ -40,5 +38,3 @@ helm repo update
 echo "Executing Helm command:"
 echo "${HELM_CMD}"
 eval "${HELM_CMD}"
-
-popd || exit 1

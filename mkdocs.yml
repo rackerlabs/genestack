@@ -168,7 +168,6 @@ nav:
                   - Kube-OVN: k8s-cni-kube-ovn.md
               - Retrieve kube config: k8s-config.md
               - Prometheus: prometheus.md
-              - OpenStack Preparations: openstack-helm-make.md
           - Storage:
               - storage-overview.md
               - Ceph Internal: storage-ceph-rook-internal.md
