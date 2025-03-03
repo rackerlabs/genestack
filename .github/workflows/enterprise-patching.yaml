@@ -7,7 +7,7 @@ on:
     types:
       - completed
     branches:
-      - cve-testing
+      - main
 
 jobs:
   generate-matrix:
