@@ -49,9 +49,11 @@ Update the Helm overrides at `/etc/genestack/helm-configs/glance/glance-helm-ove
 ---
 conf:
   glance:
+    DEFAULT:
+      enabled_backends: swift:swift
     glance_store:
+      default_backend: swift
       default_store: swift
-      stores: file, http, swift
   swift_store: |
     [ref1]
     auth_address = $KEYSTONE_AUTH_URL
