@@ -9,7 +9,7 @@ except (json.JSONDecodeError, FileNotFoundError):
 
 print("Installed packages:")
 print("\n".join(sorted(installed)) if installed else "No installed packages found")
-print("\n" + "="*50 + "\n")
+print("\n" + "=" * 50 + "\n")
 
 with open("cve/requirements.txt") as f:
     requirements = [
@@ -18,7 +18,7 @@ with open("cve/requirements.txt") as f:
 
 print("Requirements from requirements.txt:")
 print("\n".join(requirements) if requirements else "No requirements found")
-print("\n" + "="*50 + "\n")
+print("\n" + "=" * 50 + "\n")
 
 filtered = []
 for req in requirements:
@@ -30,7 +30,8 @@ for req in requirements:
 
 print("Filtered requirements (matching installed packages):")
 print("\n".join(filtered) if filtered else "No matching packages found")
-print("\n" + "="*50 + "\n")
+print("\n" + "=" * 50 + "\n")
 
 with open("filtered-requirements.txt", "w") as f:
     f.write("\n".join(filtered))
+    
