@@ -8,6 +8,8 @@ spec:
   provider:
     type: Kubernetes
     kubernetes:
+      envoyService:
+        externalTrafficPolicy: Cluster
       envoyHpa:
         minReplicas: 2
         maxReplicas: 9
@@ -24,3 +26,14 @@ spec:
                 type: AverageValue
                 averageValue: 500Mi
             type: Resource
+      envoyDeployment:
+        pod:
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                    - key: node-role.kubernetes.io/worker
+                      operator: In
+                      values:
+                        - worker
