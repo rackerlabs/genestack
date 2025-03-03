@@ -7,10 +7,18 @@ try:
 except (json.JSONDecodeError, FileNotFoundError):
     installed = set()
 
+print("Installed packages:")
+print("\n".join(sorted(installed)) if installed else "No installed packages found")
+print("\n" + "="*50 + "\n")
+
 with open("requirements.txt") as f:
     requirements = [
         line.strip() for line in f if line.strip() and not line.startswith("#")
     ]
+
+print("Requirements from requirements.txt:")
+print("\n".join(requirements) if requirements else "No requirements found")
+print("\n" + "="*50 + "\n")
 
 filtered = []
 for req in requirements:
@@ -19,6 +27,10 @@ for req in requirements:
     if pkg_name in installed:
         # Add the full original requirement (including version)
         filtered.append(req)
+
+print("Filtered requirements (matching installed packages):")
+print("\n".join(filtered) if filtered else "No matching packages found")
+print("\n" + "="*50 + "\n")
 
 with open("filtered-requirements.txt", "w") as f:
     f.write("\n".join(filtered))
