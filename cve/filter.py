@@ -11,7 +11,7 @@ print("Installed packages:")
 print("\n".join(sorted(installed)) if installed else "No installed packages found")
 print("\n" + "="*50 + "\n")
 
-with open("requirements.txt") as f:
+with open("cve/requirements.txt") as f:
     requirements = [
         line.strip() for line in f if line.strip() and not line.startswith("#")
     ]
