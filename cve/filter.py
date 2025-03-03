@@ -34,4 +34,4 @@ print("\n" + "=" * 50 + "\n")
 
 with open("filtered-requirements.txt", "w") as f:
     f.write("\n".join(filtered))
-    
+
