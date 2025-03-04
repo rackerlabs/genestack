@@ -12,7 +12,7 @@ HELM_CMD="helm upgrade --install argocd oci://registry-1.docker.io/bitnamicharts
     --timeout 120m \
     --post-renderer /etc/genestack/kustomize/kustomize.sh \
     --post-renderer-args argocd/${TARGET} \
-    -f /opt/genestack/base-helm-configs/argocd/argocd-helm-overrides.yaml"
+    -f /opt/genestack/base-helm-configs/argocd/helm-argocd-overrides.yaml"
 
 # Check if YAML files exist in the specified directory
 if compgen -G "${CONFIG_DIR}/*.yaml" > /dev/null; then
