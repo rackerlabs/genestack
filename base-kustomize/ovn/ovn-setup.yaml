@@ -75,9 +75,9 @@ data:
       ovs-vsctl set Open_vSwitch . external-ids:ovn-bridge-mappings="${OVN_BRIDGE_MAPPINGS}"
     fi
     if [[ "${OVN_GW_ENABLED:-disabled}" == "enabled" ]]; then
-      ovs-vsctl set Open_vSwitch . external-ids:ovn-cms-options="enable-chassis-as-gw,availability-zones=${OVN_AVAILABILITY_ZONES:-nova}"
+      ovs-vsctl set Open_vSwitch . external-ids:ovn-cms-options="enable-chassis-as-gw,availability-zones=${OVN_AVAILABILITY_ZONES:-az1}"
     else
-      ovs-vsctl set Open_vSwitch . external-ids:ovn-cms-options="availability-zones=${OVN_AVAILABILITY_ZONES:-nova}"
+      ovs-vsctl set Open_vSwitch . external-ids:ovn-cms-options="availability-zones=${OVN_AVAILABILITY_ZONES:-az1}"
     fi
     if [[ -z $(ovs-vsctl get-manager) ]]; then
       ovs-vsctl --id @manager create Manager 'target="ptcp:6640:127.0.0.1"' -- add Open_vSwitch . manager_options @manager

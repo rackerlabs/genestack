@@ -74,6 +74,14 @@ You can extend the flavor profile with additional provider capabilities as neede
 $ openstack loadbalancer flavorprofile set --flavor-data '{"loadbalancer_topology": "ACTIVE_STANDBY", "amp_image_tag": "amphora-image-v2", "sriov_vip": false}' 5f4d2c7c-e294-4a9c-b97a-54a2b97a17a5
 ```
 
+!!! note "Loadbalancer Topologies"
+
+    The `loadbalancer_topology` field in the flavor data specifies the number of Amphora instances per
+    load balancer. The possible values are:
+
+    - `SINGLE`: One Amphora per load balancer.
+    - `ACTIVE_STANDBY`: Two Amphora per load balancer.
+
 ## Flavors
 
 To create a flavor using the previously defined flavor profile, run the following command:

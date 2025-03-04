@@ -4,9 +4,7 @@ GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/gnocchi"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/gnocchi/gnocchi-helm-overrides.yaml"
 
-pushd /opt/genestack/submodules/openstack-helm-infra || exit 1
-
-HELM_CMD="helm upgrade --install gnocchi ./gnocchi \
+HELM_CMD="helm upgrade --install gnocchi openstack-helm-infra/gnocchi  \
     --namespace=openstack \
     --timeout 10m"
 
@@ -33,8 +31,9 @@ HELM_CMD+=" --set endpoints.oslo_db_postgresql.auth.gnocchi.password=\"\$(kubect
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
 HELM_CMD+=" --post-renderer-args gnocchi/overlay $*"
 
+helm repo add openstack-helm-infra https://tarballs.opendev.org/openstack/openstack-helm-infra
+helm repo update
+
 echo "Executing Helm command:"
 echo "${HELM_CMD}"
 eval "${HELM_CMD}"
-
-popd || exit 1

@@ -1,0 +1,129 @@
+name: Patch and Retag Images
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Migrate Images to QUAY"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  generate-matrix:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    outputs:
+      images: ${{ steps.generate-matrix.outputs.images }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Generate Matrix
+        id: generate-matrix
+        run: |
+          images=$(jq -r '.[]' .original-images.json | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "images=$images" >> $GITHUB_OUTPUT
+
+  patch-and-retag:
+    needs: generate-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image: ${{ fromJson(needs.generate-matrix.outputs.images) }}
+      fail-fast: false
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+          driver-opts: |
+            image=moby/buildkit:master
+            network=host
+
+      - name: Install Copacetic
+        run: |
+          wget https://github.com/project-copacetic/copacetic/releases/download/v0.9.0/copa_0.9.0_linux_amd64.tar.gz
+          tar -xzf copa_0.9.0_linux_amd64.tar.gz
+          chmod +x copa
+          sudo mv copa /usr/local/bin/
+
+      - name: Install Trivy
+        run: |
+          TRIVY_VERSION="0.55.0"
+          wget https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz
+          tar -xzf trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz
+          chmod +x trivy
+          sudo mv trivy /usr/local/bin/
+
+      - name: Login to Quay.io
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USER }}
+          password: ${{ secrets.QUAY_TOKEN }}
+
+      - name: Process Image
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq python3-pip
+          image="${{ matrix.image }}"
+          echo "Processing $image"
+          base_name=$(echo "$image" | awk -F'/' '{print $NF}' | cut -d':' -f1)
+          tag=$(echo "$image" | awk -F':' '{print $NF}')
+          new_image="quay.io/rackspace/rackerlabs-${base_name}:${tag}"
+          patched_tag="${tag}-enterprise"
+          patched_image="quay.io/rackspace/rackerlabs-${base_name}:${patched_tag}"
+
+          # Pull the image
+          docker pull "$new_image" || { echo "Failed to pull $new_image"; exit 1; }
+
+          # Scan all vulnerabilities (OS and language-specific)
+          trivy image -f json -o "report-${base_name}-${tag}.json" "$new_image" || { echo "Failed to scan $new_image"; exit 1; }
+
+          # Scan OS vulnerabilities with fixes for Copacetic
+          trivy image --vuln-type os --ignore-unfixed -f json -o "os-report-${base_name}-${tag}.json" "$new_image" || { echo "Failed to scan OS vulnerabilities for $new_image"; exit 1; }
+
+          # Attempt to patch OS vulnerabilities; set intermediate image
+          if copa patch -i "$new_image" -r "os-report-${base_name}-${tag}.json" -t "$patched_tag"; then
+            echo "Patched OS vulnerabilities in $new_image"
+            intermediate_image="$patched_image"
+          else
+            echo "No OS vulnerabilities patched for $new_image"
+            intermediate_image="$new_image"
+          fi
+
+          # Filter cve/requirements.txt to only update installed packages
+          docker run --rm -v "$(pwd):/output" "$intermediate_image" sh -c "/var/lib/openstack/bin/pip3 list --format=json > /output/installed.json 2>/dev/null || echo '[]' > /output/installed.json"
+          python3 cve/filter.py
+
+          if [ -s "filtered-requirements.txt" ]; then
+            echo "Applying Python package updates from cve/requirements.txt"
+            echo "FROM $intermediate_image" > Dockerfile.temp
+            echo "COPY filtered-requirements.txt /tmp/filtered-requirements.txt" >> Dockerfile.temp
+            echo "RUN /var/lib/openstack/bin/pip3 install -r /tmp/filtered-requirements.txt" >> Dockerfile.temp
+            docker build -f Dockerfile.temp -t "$patched_image" . || { echo "Failed to build $patched_image with Python patches"; exit 1; }
+            intermediate_image="$patched_image"
+          else
+            echo "No Python packages updated from cve/requirements.txt"
+          fi
+
+          # Flatten the image
+          echo "Flattening $patched_image"
+          container_id=$(docker create "$intermediate_image")
+          docker export "$container_id" > "flattened-${base_name}-${patched_tag}.tar"
+          docker import "flattened-${base_name}-${patched_tag}.tar" "$patched_image"
+          docker rm "$container_id"
+          rm "flattened-${base_name}-${patched_tag}.tar"
+
+          # Push the flattened image
+          docker push "$patched_image" || { echo "Failed to push $patched_image"; exit 1; }
+          echo "Pushed $patched_image"
+
+          # Clean up
+          rm -f "report-${base_name}-${tag}.json" "os-report-${base_name}-${tag}.json" filtered-requirements.txt Dockerfile.temp installed.json requirements.txt
+
+env:
+  DOCKER_CLI_EXPERIMENTAL: enabled

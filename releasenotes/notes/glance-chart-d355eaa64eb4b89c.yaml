@@ -1,0 +1,17 @@
+---
+deprecations:
+  - |
+    The glance chart will now use the online OSH helm repository. This change
+    will allow the glance chart to be updated more frequently and will allow
+    the glance chart to be used with the OpenStack-Helm project. Upgrading to
+    this chart may require changes to the deployment configuration. Simple
+    updates can be made by running the following command:
+
+    .. code-block:: shell
+
+      helm -n openstack uninstall glance
+      kubectl -n openstack delete -f /etc/genestack/kustomize/glance/base/glance-rabbitmq-queue.yaml
+      /opt/genestack/bin/install-glance.sh
+
+    This operation should have no operational impact on running VMs but should be
+    performed during a maintenance window.

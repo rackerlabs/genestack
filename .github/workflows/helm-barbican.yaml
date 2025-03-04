@@ -30,18 +30,13 @@ jobs:
               curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
               chmod +x ./kubectl
             fi
-      - name: Pull OSH submodules
+      - name: Pull OSH repositories
         run: |
-            git submodule update --init submodules/openstack-helm
-            git submodule update --init submodules/openstack-helm-infra
-      - name: Make OSH submodule
-        run: |
-            cd submodules/openstack-helm
-            make barbican
+          helm repo add openstack-helm https://tarballs.opendev.org/openstack/openstack-helm
+          helm repo update
       - name: Run Helm Template
         run: |
-          cd submodules/openstack-helm
-          ${{ steps.helm.outputs.helm-path }} template barbican ./barbican \
+          ${{ steps.helm.outputs.helm-path }} template barbican openstack-helm/barbican \
             --namespace=openstack \
             --wait \
             --timeout 120m \

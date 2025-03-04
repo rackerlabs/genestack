@@ -1,0 +1,80 @@
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: ClientTrafficPolicy
+metadata:
+  name: flex-gateway-client-policy
+  namespace: envoy-gateway
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: flex-gateway
+  clientIPDetection:
+    xForwardedFor:
+      numTrustedHops: 2
+  connection:
+    bufferLimit: 16384
+  timeout:
+    http:
+      idleTimeout: 5s
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: least-request-policy
+  namespace: envoy-gateway
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: custom-barbican-gateway-route
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: custom-cinder-gateway-route
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: custom-cloudformation-gateway-route
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: custom-glance-gateway-route
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: custom-gnocchi-gateway-route
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: custom-heat-gateway-route
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: custom-keystone-gateway-route
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: custom-magnum-gateway-route
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: custom-metadata-gateway-route
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: custom-neutron-gateway-route
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: custom-nova-gateway-route
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: custom-novnc-gateway-route
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: custom-octavia-gateway-route
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: custom-placement-gateway-route
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: internal-loki-gateway-route
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: grafana-gateway-route
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: custom-skyline-gateway-route
+  loadBalancer:
+    type: LeastRequest

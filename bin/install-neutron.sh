@@ -4,9 +4,7 @@ GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/neutron"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/neutron/neutron-helm-overrides.yaml"
 
-pushd /opt/genestack/submodules/openstack-helm || exit 1
-
-HELM_CMD="helm upgrade --install neutron ./neutron \
+HELM_CMD="helm upgrade --install neutron openstack-helm/neutron --version 2024.2.529+13651f45-628a320c \
     --namespace=openstack \
     --timeout 120m"
 
@@ -46,8 +44,9 @@ HELM_CMD+=" --set conf.plugins.ml2_conf.ovn.ovn_sb_connection=\"tcp:\$(kubectl -
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
 HELM_CMD+=" --post-renderer-args neutron/overlay $*"
 
+helm repo add openstack-helm https://tarballs.opendev.org/openstack/openstack-helm
+helm repo update
+
 echo "Executing Helm command:"
 echo "${HELM_CMD}"
 eval "${HELM_CMD}"
-
-popd || exit 1

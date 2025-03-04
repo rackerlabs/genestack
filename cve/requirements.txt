@@ -1,0 +1,5 @@
+pymysql==1.1.1
+jinja2==3.1.5
+idna==3.7
+webob==1.8.8
+virtualenv==20.26.6

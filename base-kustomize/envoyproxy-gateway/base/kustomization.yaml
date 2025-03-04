@@ -1,13 +1,9 @@
 sortOptions:
   order: fifo
 resources:
-  - './namespace.yaml'
-  - './gatewayclass.yaml'
-namespace: envoy-gateway-system
-helmGlobals:
-  chartHome: ../../../submodules/envoyproxy-gateway/charts/
-helmCharts:
-- name: gateway-helm
-  valuesFile: values.yaml
-  includeCRDs: true
-  releaseName: envoyproxy-gateway
+  - envoy-gateway-namespace.yaml
+  - envoy-internal-gateway-issuer.yaml
+  - envoy-custom-proxy-config.yaml
+  - envoy-gatewayclass.yaml
+  - envoy-gateway.yaml
+  - envoy-endpoint-policies.yaml

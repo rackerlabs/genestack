@@ -5,7 +5,6 @@ metadata:
   name: mariadb-cluster
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "grafana"
     meta.helm.sh/release-namespace: "openstack"
   labels:
@@ -21,7 +20,6 @@ metadata:
   namespace: grafana
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "grafana"
     meta.helm.sh/release-namespace: "openstack"
   labels:
@@ -142,7 +140,6 @@ metadata:
   namespace: grafana
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "grafana"
     meta.helm.sh/release-namespace: "openstack"
   labels:
@@ -183,7 +180,6 @@ metadata:
   namespace: grafana
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "grafana"
     meta.helm.sh/release-namespace: "openstack"
   labels:
@@ -205,7 +201,6 @@ metadata:
   namespace: grafana
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "grafana"
     meta.helm.sh/release-namespace: "openstack"
   labels:
@@ -231,7 +226,6 @@ metadata:
   namespace: grafana
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "grafana"
     meta.helm.sh/release-namespace: "openstack"
   labels:

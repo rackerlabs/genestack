@@ -4,9 +4,7 @@ GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/octavia"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/octavia/octavia-helm-overrides.yaml"
 
-pushd /opt/genestack/submodules/openstack-helm || exit 1
-
-HELM_CMD="helm upgrade --install octavia ./octavia \
+HELM_CMD="helm upgrade --install octavia openstack-helm/octavia --version 2024.2.30+13651f45-628a320c \
     --namespace=openstack \
     --timeout 120m"
 
@@ -39,8 +37,9 @@ HELM_CMD+=" --set conf.octavia.ovn.ovn_sb_connection=\"tcp:\$(kubectl --namespac
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
 HELM_CMD+=" --post-renderer-args octavia/overlay $*"
 
+helm repo add openstack-helm https://tarballs.opendev.org/openstack/openstack-helm
+helm repo update
+
 echo "Executing Helm command:"
 echo "${HELM_CMD}"
 eval "${HELM_CMD}"
-
-popd || exit 1

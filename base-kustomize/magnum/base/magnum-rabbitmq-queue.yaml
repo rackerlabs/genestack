@@ -4,9 +4,10 @@ kind: User
 metadata:
   name: magnum
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "magnum"
     meta.helm.sh/release-namespace: "openstack"
 spec:
@@ -24,9 +25,10 @@ kind: Vhost
 metadata:
   name: magnum-vhost
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "magnum"
     meta.helm.sh/release-namespace: "openstack"
 spec:
@@ -41,9 +43,10 @@ kind: Queue
 metadata:
   name: magnum-queue
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "magnum"
     meta.helm.sh/release-namespace: "openstack"
 spec:
@@ -61,9 +64,10 @@ kind: Permission
 metadata:
   name: magnum-permission
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "magnum"
     meta.helm.sh/release-namespace: "openstack"
 spec:

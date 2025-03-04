@@ -4,9 +4,10 @@ kind: Database
 metadata:
   name: cinder
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "cinder"
     meta.helm.sh/release-namespace: "openstack"
 spec:
@@ -23,9 +24,10 @@ kind: User
 metadata:
   name: cinder
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "cinder"
     meta.helm.sh/release-namespace: "openstack"
 spec:
@@ -46,9 +48,10 @@ kind: Grant
 metadata:
   name: cinder-grant
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
-    app.kubernetes.io/managed-by: "Helm"
     meta.helm.sh/release-name: "cinder"
     meta.helm.sh/release-namespace: "openstack"
 spec:

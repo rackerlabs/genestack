@@ -110,7 +110,7 @@ Once we've ran the apply command we will have installed ServiceMonitors for Kube
     You can view more information about OVN monitoring in the [OVN Monitoring Introduction Docs](ovn-monitoring-introduction.md).
 
 * ### Nginx Gateway Monitoring:
-Genestack makes use of the [Nginx Gateway Fabric](https://github.com/nginxinc/nginx-gateway-fabric/tree/main/charts/nginx-gateway-fabric) for its implementation of [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/). Genestack deploys this as part of its infrastructure, view the [Nginx Gateway Deployment Doc](infrastructure-gateway-api.md) for more information.
+Genestack makes use of the Gateway API for its implementation of [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/). Genestack deploys this as part of its infrastructure, view the [Gateway Deployment Doc](infrastructure-gateway-api.md) for more information.
 Nginx Gateway does expose important metrics for us to gather but it does not do so via a service. Instead we must make use another Prometheus CRD the [PodMonitor](https://prometheus-operator.dev/docs/getting-started/design/#podmonitor).
 The install is similar to the above OVN monitoring as you can see in the [Nginx Gateway Exporter Deployment Doc](prometheus-nginx-gateway.md). The primary difference is the need to target and match on a pod that's exposing the metrics rather than a service.
 You can view more information about the metrics exposed by the Nginx Gateway by viewing the [Nginx Gateway Fabric Docs](https://docs.nginx.com/nginx-gateway-fabric/how-to/monitoring/prometheus/).
@@ -150,6 +150,13 @@ For additional information regarding the metrics collected and exposed from Ceph
 The [Prometheus Push Gateway](https://github.com/prometheus/pushgateway) is used to gather metrics from short-lived jobs, like Kubernetes CronJobs.
 It's not capable of turning Prometheus into a push-based monitoring system and should only be used when there is no other way to collect the desired metrics.
 Currently, in Genestack the push gateway is only being used to gather stats from the OVN-Backup CronJob as noted in the [Pushgateway Deployment Doc](prometheus-pushgateway.md).
+
+* ### SNMP Exporter:
+The [Prometheus SNMP Exporter](https://github.com/prometheus/snmp_exporter) is
+used for gathering SNMP metrics. A default Genestack installation does not make
+use of it, so you do not need to install it unless you plan to do additional
+configuration beyond Genestack defaults and specifically plan to monitor some
+SNMP-enabled devices.
 
 * ### Textfile Collector:
 It's possible to gather node/host metrics that aren't exposed by any of the above exporters by utilizing the [Node Exporter Textfile Collector](https://github.com/prometheus/node_exporter?tab=readme-ov-file#textfile-collector).

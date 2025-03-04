@@ -4,9 +4,7 @@ GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/glance"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/glance/glance-helm-overrides.yaml"
 
-pushd /opt/genestack/submodules/openstack-helm || exit 1
-
-HELM_CMD="helm upgrade --install glance ./glance \
+HELM_CMD="helm upgrade --install glance openstack-helm/glance --version 2024.2.396+13651f45-628a320c \
     --namespace=openstack \
     --timeout 120m"
 
@@ -33,8 +31,9 @@ HELM_CMD+=" --set endpoints.oslo_messaging.auth.glance.password=\"\$(kubectl --n
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
 HELM_CMD+=" --post-renderer-args glance/overlay $*"
 
+helm repo add openstack-helm https://tarballs.opendev.org/openstack/openstack-helm
+helm repo update
+
 echo "Executing Helm command:"
 echo "${HELM_CMD}"
 eval "${HELM_CMD}"
-
-popd || exit 1

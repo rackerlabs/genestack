@@ -1,26 +1,4 @@
 ---
-release_group: null
-
-labels:
-  compute:
-    node_selector_key: openstack-compute-node
-    node_selector_value: enabled
-  central:
-    node_selector_key: openstack-control-plane
-    node_selector_value: enabled
-  ipmi:
-    node_selector_key: openstack-node
-    node_selector_value: enabled
-  notification:
-    node_selector_key: openstack-control-plane
-    node_selector_value: enabled
-  job:
-    node_selector_key: openstack-control-plane
-    node_selector_value: enabled
-  test:
-    node_selector_key: openstack-control-plane
-    node_selector_value: enabled
-
 images:
   tags:
     test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
@@ -35,13 +13,6 @@ images:
     dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0"
     image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
   pull_policy: "Always"
-  local_registry:
-    active: false
-    exclude:
-      - dep_check
-      - image_repo_sync
-
-ipmi_device: /dev/ipmi0
 
 conf:
   ceilometer:
@@ -62,26 +33,12 @@ conf:
         values:
           - gnocchi
     api:
-      aodh_is_enabled: "False"
       aodh_url: "NotUsed"
-    dispatcher_gnocchi:
-      filter_service_activity: False
-      archive_policy: low
-      resources_definition_file: /etc/ceilometer/gnocchi_resources.yaml
     database:
       connection: "NotUsed"
       event_connection: "NotUsed"
       metering_connection: "NotUsed"
       max_retries: -1
-    dispatcher:
-      archive_policy: low
-      filter_project: service
-    keystone_authtoken:
-      auth_type: password
-      auth_version: v3
-    service_credentials:
-      auth_type: password
-      interface: internal
     notification:
       messaging_urls:
         type: multistring
@@ -93,6 +50,7 @@ conf:
           - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/keystone
           - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/neutron
           - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/heat
+          - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/swift
     oslo_messaging_notifications:
       driver: messagingv2
       topics:
@@ -121,12 +79,6 @@ conf:
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
       kombu_reconnect_delay: 0.5
-    oslo_policy:
-      policy_file: /etc/ceilometer/policy.yaml
-    cache:
-      enabled: true
-      backend: dogpile.cache.memcached
-      expiration_time: 86400
   event_definitions:
     - event_type: 'compute.instance.*'
       traits: &instance_traits
@@ -1035,8 +987,11 @@ conf:
       - resource_type: swift_account
         metrics:
           storage.objects.incoming.bytes:
+            archive_policy_name: low
           storage.objects.outgoing.bytes:
+            archive_policy_name: low
           storage.objects.size:
+            archive_policy_name: low
           storage.objects:
           storage.objects.containers:
           storage.containers.objects:
@@ -1058,6 +1013,7 @@ conf:
           display_name: resource_metadata.(display_name|name)
           volume_type: resource_metadata.volume_type
           volume_type_id: resource_metadata.volume_type_id
+          volume_id: resource_metadata.volume_id
           image_id: resource_metadata.image_id
           instance_id: resource_metadata.instance_id
         event_create:
@@ -1074,6 +1030,7 @@ conf:
           project_id: project_id
           image_id: image_id
           instance_id: instance_id
+          volume_id: volume_id
 
       - resource_type: volume_provider
         metrics:
@@ -1314,6 +1271,7 @@ conf:
         resource_id: $.payload.snapshot_id
         metadata:
           display_name: $.payload.display_name
+          volume_id: $.payload.volume_id
 
       - name: 'backup.size'
         event_type:
@@ -1641,89 +1599,7 @@ conf:
         name: event_source
         sinks:
           - event_sink
-  policy: {}
-  audit_api_map:
-    DEFAULT:
-      target_endpoint_type: None
-    path_keywords:
-      meters: meter_name
-      resources: resource_id
-      statistics: None
-      samples: sample_id
-    service_endpoints:
-      metering: service/metering
-  rally_tests:
-    CeilometerStats.create_meter_and_get_stats:
-      - args:
-          user_id: user-id
-          resource_id: resource-id
-          counter_volume: 1
-          counter_unit: ''
-          counter_type: cumulative
-        runner:
-          type: constant
-          times: 1
-          concurrency: 1
-        sla:
-          failure_rate:
-            max: 0
-    CeilometerMeters.list_meters:
-      - runner:
-          type: constant
-          times: 1
-          concurrency: 1
-        sla:
-          failure_rate:
-            max: 0
-        context:
-          ceilometer:
-            counter_name: benchmark_meter
-            counter_type: gauge
-            counter_unit: "%"
-            counter_volume: 1
-            resources_per_tenant: 1
-            samples_per_resource: 1
-            timestamp_interval: 10
-            metadata_list:
-            - status: active
-              name: rally benchmark on
-              deleted: 'false'
-            - status: terminated
-              name: rally benchmark off
-              deleted: 'true'
-        args:
-          limit: 5
-          metadata_query:
-            status: terminated
-    CeilometerQueries.create_and_query_samples:
-      - args:
-          filter:
-            "=":
-              counter_unit: instance
-          orderby:
-          limit: 10
-          counter_name: cpu_util
-          counter_type: gauge
-          counter_unit: instance
-          counter_volume: 1
-          resource_id: resource_id
-        runner:
-          type: constant
-          times: 1
-          concurrency: 1
-          sla:
-            failure_rate:
-              max: 0
-
 dependencies:
-  dynamic:
-    common:
-      local_image_registry:
-        jobs:
-          - ceilometer-image-repo-sync
-        services:
-          - endpoint: node
-            service: local_image_registry
   static:
     central:
       jobs:
@@ -1758,18 +1634,6 @@ dependencies:
     db_sync:
       jobs: []
       services: []
-    ks_service:
-      services:
-        - endpoint: internal
-          service: identity
-    ks_user:
-      services:
-        - endpoint: internal
-          service: identity
-    rabbit_init:
-      services:
-      - service: oslo_messaging
-        endpoint: internal
     notification:
       jobs:
         - ceilometer-db-sync
@@ -1780,104 +1644,12 @@ dependencies:
           service: identity
         - endpoint: internal
           service: metric
-    tests:
-      services:
-        - endpoint: internal
-          service: identity
-        - endpoint: internal
-          service: metering
-        - endpoint: internal
-          service: metric
-    image_repo_sync:
-      services:
-        - endpoint: internal
-          service: local_image_registry
-
-# Names of secrets used by bootstrap and environmental checks
-secrets:
-  identity:
-    admin: ceilometer-keystone-admin
-    ceilometer: ceilometer-keystone-user
-    test: ceilometer-keystone-test
-  oslo_messaging:
-    admin: ceilometer-rabbitmq-admin
-    ceilometer: ceilometer-rabbitmq-user
-  oci_image_registry:
-    ceilometer: ceilometer-oci-image-registry
-
-bootstrap:
-  enabled: false
-  ks_user: ceilometer
-  script: |
-    openstack token issue
 
 # typically overridden by environmental
 # values, but should include all endpoints
 # required by this chart
 endpoints:
-  cluster_domain_suffix: cluster.local
-  local_image_registry:
-    name: docker-registry
-    namespace: docker-registry
-    hosts:
-      default: localhost
-      internal: docker-registry
-      node: localhost
-    host_fqdn_override:
-      default: null
-    port:
-      registry:
-        node: 5000
-  oci_image_registry:
-    name: oci-image-registry
-    namespace: oci-image-registry
-    auth:
-      enabled: false
-      ceilometer:
-        username: ceilometer
-        password: password
-    hosts:
-      default: localhost
-    host_fqdn_override:
-      default: null
-    port:
-      registry:
-        default: null
-  identity:
-    name: keystone
-    auth:
-      admin:
-        region_name: RegionOne
-        username: admin
-        password: password
-        project_name: admin
-        user_domain_name: default
-        project_domain_name: default
-      ceilometer:
-        role: admin
-        region_name: RegionOne
-        username: ceilometer
-        password: password
-        project_name: service
-        user_domain_name: service
-        project_domain_name: service
-      test:
-        role: admin
-        region_name: RegionOne
-        username: ceilometer-test
-        password: password
-        project_name: test
-        user_domain_name: service
-        project_domain_name: service
-    hosts:
-      default: keystone
-      internal: keystone-api
-    host_fqdn_override:
-      default: null
-    path:
-      default: /v3
-    scheme:
-      default: 'http'
+  metering:
     port:
       api:
         default: 5000
@@ -1885,74 +1657,16 @@ endpoints:
         internal: 5000
         service: 5000
   metric:
-    name: gnocchi
-    hosts:
-      default: gnocchi-api
-      public: gnocchi
-    host_fqdn_override:
-      default: null
-    path:
-      default: null
-    scheme:
-      default: 'http'
     port:
       api:
         default: 8041
         public: 80
         internal: 8041
         service: 8041
-  alarming:
-    name: aodh
-    hosts:
-      default: aodh-api
-      public: aodh
-    host_fqdn_override:
-      default: null
-    path:
-      default: null
-    scheme:
-      default: 'http'
-    port:
-      api:
-        default: 8042
-        public: 80
-  oslo_cache:
-    auth:
-      # NOTE(portdirect): this is used to define the value for keystone
-      # authtoken cache encryption key, if not set it will be populated
-      # automatically with a random value, but to take advantage of
-      # this feature all services should be set to use the same key,
-      # and memcache service.
-      memcache_secret_key: null
-    hosts:
-      default: memcached
-    host_fqdn_override:
-      default: null
-    port:
-      memcache:
-        default: 11211
   oslo_messaging:
-    auth:
-      admin:
-        username: rabbitmq
-        password: password
-      ceilometer:
-        username: ceilometer
-        password: password
-    statefulset:
-      replicas: 2
-      name: rabbitmq-rabbitmq
-    hosts:
-      default: rabbitmq
     host_fqdn_override:
       default: rabbitmq.openstack.svc.cluster.local
-    path: /ceilometer
-    scheme: rabbit
-    port:
-      amqp:
-        default: 5672
-      http:
-        default: 15672
+
   fluentd:
     namespace: fluentbit
     name: fluentd
@@ -1969,54 +1683,6 @@ endpoints:
       metrics:
         default: 24220
 pod:
-  affinity:
-    anti:
-      type:
-        default: preferredDuringSchedulingIgnoredDuringExecution
-      topologyKey:
-        default: kubernetes.io/hostname
-      weight:
-        default: 10
-  tolerations:
-    ceilometer:
-      enabled: false
-      tolerations:
-        - key: node-role.kubernetes.io/master
-          operator: Exists
-          effect: NoSchedule
-        - key: node-role.kubernetes.io/control-plane
-          operator: Exists
-          effect: NoSchedule
-  mounts:
-    ceilometer_tests:
-      init_container: null
-      ceilometer_tests:
-        volumeMounts:
-        volumes:
-    ceilometer_compute:
-      init_container: null
-      ceilometer_compute:
-        volumeMounts:
-        volumes:
-    ceilometer_central:
-      init_container: null
-      ceilometer_central:
-        volumeMounts:
-        volumes:
-    ceilometer_ipmi:
-      init_container: null
-      ceilometer_ipmi:
-        volumeMounts:
-        volumes:
-    ceilometer_notification:
-      init_container: null
-      ceilometer_notification:
-        volumeMounts:
-        volumes:
-    ceilometer_db_sync:
-      ceilometer_db_sync:
-        volumeMounts:
-        volumes:
   replicas:
     central: 1
     notification: 1
@@ -2064,87 +1730,16 @@ pod:
       limits:
         memory: "6144Mi"
         cpu: "2000m"
-    jobs:
-      db_sync:
-        requests:
-          memory: "128Mi"
-          cpu: "100m"
-        limits:
-          memory: "1024Mi"
-          cpu: "2000m"
-      rabbit_init:
-        requests:
-          memory: "128Mi"
-          cpu: "100m"
-        limits:
-          memory: "1024Mi"
-          cpu: "2000m"
-      ks_service:
-        requests:
-          memory: "128Mi"
-          cpu: "100m"
-        limits:
-          memory: "1024Mi"
-          cpu: "2000m"
-      ks_user:
-        requests:
-          memory: "128Mi"
-          cpu: "100m"
-        limits:
-          memory: "1024Mi"
-          cpu: "2000m"
-      tests:
-        requests:
-          memory: "128Mi"
-          cpu: "100m"
-        limits:
-          memory: "1024Mi"
-          cpu: "2000m"
-      image_repo_sync:
-        requests:
-          memory: "128Mi"
-          cpu: "100m"
-        limits:
-          memory: "1024Mi"
-          cpu: "2000m"
-
-network_policy:
-  ceilometer:
-    ingress:
-      - {}
-    egress:
-      - {}
 
 manifests:
-  configmap_bin: true
-  configmap_etc: true
   deployment_api: false
-  deployment_central: true
   deployment_collector: false
-  daemonset_compute: true
-  daemonset_ipmi: false
-  deployment_notification: true
   ingress_api: false
-  job_bootstrap: true
-  job_db_drop: false
   # using gnocchi so no db init
   job_db_init: false
   job_db_init_mongodb: false
-  # runs ceilometer-upgrade which inits resource types in gnocchi!
-  job_db_sync: true
-  job_image_repo_sync: true
   job_ks_endpoints: false
   job_ks_service: false
-  job_ks_user: true
-  job_rabbit_init: true
-  pdb_api: true
-  pod_rally_test: true
-  network_policy: false
-  secret_db: true
-  secret_keystone: true
   secret_mongodb: false
-  secret_rabbitmq: true
-  secret_registry: true
-  service_api: true
   service_ingress_api: false
 ...

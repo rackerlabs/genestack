@@ -1,0 +1,277 @@
+---
+prelude: >
+    Creating the foundation for the stable branch.
+features:
+  - |
+    Kubernetes deployment and management with Kubespray. This release uses Kubernetes
+    1.30.x and Kubespray 2.27.0.
+
+    https://docs.rackspacecloud.com/k8s-kubespray/
+  - |
+    Kube-OVN CNI plugin is supported in this release. Kube-OVN can be deployed to
+    provide networking services to the Kubernetes cluster.
+
+    https://docs.rackspacecloud.com/k8s-cni-kube-ovn/
+  - |
+    Prometheus monitoring with the Prometheus Operator. This release uses Prometheus
+    Operator to deploy and manage Prometheus, which is used for system monitoring and
+    alerting.
+
+    https://docs.rackspacecloud.com/prometheus/
+  - |
+    Kubernetes PVC Storage with Rook Ceph is supported in this release. Rook Ceph can
+    be deployed internal to the Kubernetes cluster to provide persistent storage options.
+
+    https://docs.rackspacecloud.com/storage-ceph-rook-internal/
+  - |
+    Kubernetes PVC Storage with Rook Ceph is supported in this release. Rook Ceph can
+    be deployed external to the Kubernetes cluster to provide persistent storage options.
+
+    https://docs.rackspacecloud.com/storage-ceph-rook-external/
+  - |
+    Kubernetes PVC Storage with NFS is supported in this release. NFS can be deployed
+    external to the Kubernetes cluster to provide persistent storage options.
+
+    https://docs.rackspacecloud.com/storage-nfs-external/
+  - |
+    Kubernetes PVC Storage with TopoLVM is supported in this release. TopoLVM can be
+    deployed internal to the Kubernetes cluster to provide persistent storage options.
+
+    https://docs.rackspacecloud.com/storage-topolvm/
+  - |
+    Kubernetes PVC Storage with Longhorn (recommended) is supported in this release.
+    Longhorn can be deployed internal to the Kubernetes cluster to provide persistent
+    storage options.
+
+    https://docs.rackspacecloud.com/storage-longhorn/
+  - |
+    MetalLB LoadBalancer is supported in this release. MetalLB can be deployed to
+    provide LoadBalancer services to the Kubernetes cluster. This is used by default
+    for VIP address functionality within platform service loadbalancers.
+
+    https://docs.rackspacecloud.com/infrastructure-metallb/
+  - |
+    NGINX Gateway API is supported in this release. NGINX Gateway API can be deployed
+    to provide Gateway services to the Kubernetes cluster. This is used by default for
+    all internal services and external ingress into the platform services.
+
+    https://docs.rackspacecloud.com/infrastructure-gateway-api/
+  - |
+    MariaDB Operator is supported in this release. MariaDB Operator can be deployed
+    to provide database services to the Kubernetes cluster. This is used by default
+    for OpenStack Services
+
+    https://docs.rackspacecloud.com/databases-mariadb-operator/
+  - |
+    Postgres Operator is supported in this release. The Zalando Postgres Operator can
+    be deployed to provide database services for applications. This is used by default
+    for OpenStack metering services.
+
+    https://docs.rackspacecloud.com/infrastructure-postgresql/
+  - |
+    RabbitMQ Operator is supported in this release. RabbitMQ Operator can be deployed
+    to provide message queue services to the Kubernetes cluster. This is used by default
+    for OpenStack Services.
+
+    https://docs.rackspacecloud.com/infrastructure-rabbitmq/
+  - |
+    Memcached is supported in this release. Memcached can be deployed to provide fast
+    caching services to the Kubernetes cluster. This is used by default for OpenStack
+    Services.
+
+    https://docs.rackspacecloud.com/infrastructure-memcached/
+  - |
+    Libvirt is supported in this release for virtualization. Libvirt can be deployed
+    to provide virtualization services to the Kubernetes cluster. This is used by default
+    for OpenStack Services.
+
+    https://docs.rackspacecloud.com/infrastructure-libvirt/
+  - |
+    OVN for OpenStack is supported in this release. OVN is deployed to provide
+    networking services to OpenStack Consumers and is default for OpenStack.
+
+    https://docs.rackspacecloud.com/infrastructure-ovn-setup/
+  - |
+    Log collection is supported in this release. Fluentbit can be deployed to provide
+    log collection services to the Kubernetes cluster. This is used by default for
+    all services.
+
+    https://docs.rackspacecloud.com/infrastructure-fluentbit/
+  - |
+    Log aggregation is supported in this release. Loki can be deployed to provide
+    log aggregation services to the Kubernetes cluster. This is used by default for
+    all services.
+
+    https://docs.rackspacecloud.com/infrastructure-loki/
+  - |
+    OpenStack Keystone is supported in this release. OpenStack Keystone can be deployed
+    to provide identity services for OpenStack and is used by default.
+
+    https://docs.rackspacecloud.com/openstack-keystone/
+  - |
+    OpenStack Glance is supported in this release. OpenStack Glance can be deployed
+    to provide image services for OpenStack and is used by default.
+
+    https://docs.rackspacecloud.com/openstack-glance/
+  - |
+    OpenStack Heat is supported in this release. OpenStack Heat can be deployed to
+    provide orchestration services for OpenStack and is used by default.
+
+    https://docs.rackspacecloud.com/openstack-heat/
+  - |
+    OpenStack Barbican is supported in this release. OpenStack Barbican can be deployed
+    to provide key management services for OpenStack and is used by default.
+
+    https://docs.rackspacecloud.com/openstack-barbican/
+  - |
+    OpenStack Cinder is supported in this release. OpenStack Cinder can be deployed
+    to provide block storage services for OpenStack and is used by default.
+
+    https://docs.rackspacecloud.com/openstack-cinder/
+  - |
+    OpenStack Placement is supported in this release. OpenStack Placement can be deployed
+    to provide resource management services for OpenStack and is used by default.
+
+    https://docs.rackspacecloud.com/openstack-compute-kit-placement/
+  - |
+    OpenStack Nova is supported in this release. OpenStack Nova can be deployed to
+    provide compute services for OpenStack and is used by default.
+
+    https://docs.rackspacecloud.com/openstack-compute-kit-nova/
+  - |
+    OpenStack Neutron is supported in this release. OpenStack Neutron can be deployed
+    to provide networking services for OpenStack and is used by default.
+
+    https://docs.rackspacecloud.com/openstack-network-kit-neutron/
+  - |
+    OpenStack Skyline is supported in this release. OpenStack Skyline can be deployed
+    to provide dashboard services for OpenStack and is used by default.
+
+    https://docs.rackspacecloud.com/openstack-skyline/
+  - |
+    OpenStack Octavia is supported in this release. OpenStack Octavia can be deployed
+    to provide load balancing services for OpenStack and is used by default.
+
+    https://docs.rackspacecloud.com/openstack-octavia/
+  - |
+    OpenStack Magnum is supported in this release. OpenStack Magnum can be deployed
+    to provide container orchestration services for OpenStack and is used by default.
+
+    https://docs.rackspacecloud.com/openstack-magnum/
+  - |
+    OpenStack Ceilometer is supported in this release. OpenStack Ceilometer can be
+    deployed to provide telemetry services for OpenStack and is used by default.
+
+    https://docs.rackspacecloud.com/openstack-ceilometer/
+  - |
+    Gnocchi is supported in this release. Gnocchi can be deployed to provide metric
+    services for OpenStack and is used by default within the metering stack.
+
+    https://docs.rackspacecloud.com/openstack-gnocchi/
+  - |
+    Grafana is supported in this release. Grafana can be deployed to provide metric
+    visualization services for OpenStack and is used by default within the metering stack.
+
+    https://docs.rackspacecloud.com/grafana/
+  - |
+    Service metric collection is supported in this release and is interconnected with
+    prometheus and grafana to provide metric visualization services throughout the cluster.
+
+    Supported Exporters:
+      * Kube-OVN
+      * NGINX Gateway Fabris
+      * RabbitMQ
+      * Memcached
+      * MariaDB
+      * Postgres
+      * OpenStack
+      * Blackbox
+      * Pushgateway
+
+    Dashboards are all pre-configured for all supported exporters and visualized via
+    Grafana.
+  - |
+    Alert Manager is supported in this release. Alert Manager can be deployed to
+    provide alerting services for the cluster and is used by default.
+
+    https://docs.rackspacecloud.com/alertmanager-slack/
+issues:
+  - |
+    The OVN loadbalancers options are by default available within Genestack but is
+    currently "tech preview" and not recommended for production use.
+  - |
+    Skyline UI currently limits the loadbalancer types to Amphora. This is a known
+    issue and will be resolved in a future release.
+upgrade:
+  - |
+    When upgrading from a pre-release to stable, the following changes will need
+    to be made to the ansible inventory or group_vars to support stable cert-manager
+
+    .. code-block:: yaml
+
+        cert_manager_controller_extra_args:
+          - "--enable-gateway-api"
+
+    In previous builds the ``--enable-gateway-api`` was unset, but it is now a
+    required option.
+  - |
+    When upgrading from a pre-release to stable, the following changes will need
+    to be made to the ansible inventory or group_vars to support stable metallb
+
+    .. code-block:: yaml
+
+        metallb_enabled: false
+
+    In previous builds the ``metallb_enabled`` was set to true, but it is now
+    managed by the MetalLB helm chart.
+  - |
+    When upgrading from a pre-release to stable, the following changes will need
+    to be made to the ansible inventory or group_vars to eliminate the CNI plugin
+    from the Kubespray Management.
+
+    .. code-block:: yaml
+
+        kube_network_plugin: none
+
+    In previous builds the ``kube_network_plugin`` was set to kube-ovn, but it is
+    now managed by the Kube-OVN helm chart.
+  - |
+    When upgrading from a pre-release to stable, the following changes will need
+    to be made to the ansible inventory or group_vars to eliminate the previous
+    assumption of the kubeadm patch files.
+
+    .. code-block:: yaml
+
+        kubeadm_patches: []
+
+    In previous builds the ``kubeadm_patches`` was set to a dictionary of patches
+    that would deploy files into the environment. This interface was changed
+    upstream and now must be a list of string type patches. Review the upstream
+    documentation[0] for more information.
+
+    [0] https://github.com/kubernetes-sigs/kubespray/blob/v2.27.0/roles/kubernetes/kubeadm_common/defaults/main.yml
+  - |
+    When upgrading from a pre-release to stable, the following file no longer has
+    any effect on the environment and can be removed from the ansible group_vars.
+
+
+    /etc/genestack/inventory/group_vars/k8s_cluster/k8s-net-kube-ovn.yml
+
+    This file can be eliminated.
+  - |
+    When upgrading from a pre-release to stable, review the Kube-OVN to Helm
+    migration documentation at https://docs.rackspacecloud.com/k8s-cni-kube-ovn-helm-conversion
+    as this step will be required before running Kubespray again.
+deprecations:
+  - |
+    In early builds of Genestack Kube-OVN was deployed and managed by Kubespray;
+    however, this is no longer the case. The Kube-OVN helm chart is now used to
+    deploy and manage the Kube-OVN CNI plugin.
+  - |
+    In early builds of Genestack MetalLB was deployed and managed by Kubespray;
+    however, this is no longer the case. The MetalLB helm chart is now used to
+    deploy and manage the MetalLB LoadBalancer.
+  - |
+    In early builds of Genestack the cert-manager option ``ExperimentalGatewayAPISupport``
+    was set to true, within the ansible group_vars. This option should be removed as it
+    no longer has any effect.

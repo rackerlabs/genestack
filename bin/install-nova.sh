@@ -4,9 +4,7 @@ GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/nova"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/nova/nova-helm-overrides.yaml"
 
-pushd /opt/genestack/submodules/openstack-helm || exit 1
-
-HELM_CMD="helm upgrade --install nova ./nova \
+HELM_CMD="helm upgrade --install nova openstack-helm/nova --version 2024.2.555+13651f45-628a320c \
     --namespace=openstack \
     --timeout 120m"
 
@@ -49,8 +47,9 @@ HELM_CMD+=" --set network.ssh.private_key=\"\$(kubectl -n openstack get secret n
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
 HELM_CMD+=" --post-renderer-args nova/overlay $*"
 
+helm repo add openstack-helm https://tarballs.opendev.org/openstack/openstack-helm
+helm repo update
+
 echo "Executing Helm command:"
 echo "${HELM_CMD}"
 eval "${HELM_CMD}"
-
-popd || exit 1

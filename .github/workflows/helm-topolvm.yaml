@@ -1,0 +1,45 @@
+name: Helm GitHub Actions for topolvm
+
+on:
+  pull_request:
+    paths:
+      - base-kustomize/topolvm/**
+      - base-helm-configs/topolvm/**
+      - .github/workflows/helm-topolvm.yaml
+jobs:
+  helm:
+    strategy:
+      matrix:
+        overlays:
+          - base
+    name: Helm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: azure/setup-helm@v3
+        with:
+          version: latest
+          token: "${{ secrets.GITHUB_TOKEN }}"
+        id: helm
+      - name: Kubectl Install
+        working-directory: /usr/local/bin/
+        run: |
+            if [ ! -f /usr/local/bin/kubectl ]; then
+              curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+              chmod +x ./kubectl
+            fi
+      - name: Run Helm Template
+        run: |
+          ${{ steps.helm.outputs.helm-path }} repo add topolvm https://topolvm.github.io/topolvm
+          ${{ steps.helm.outputs.helm-path }} repo update
+          ${{ steps.helm.outputs.helm-path }} template topolvm topolvm/topolvm \
+                                                       --create-namespace --namespace=topolvm-system --wait --timeout 120m \
+                                                       -f ${{ github.workspace }}/base-helm-configs/topolvm/helm-topolvm-overrides.yaml \
+                                                        --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
+                                                        --post-renderer-args topolvm/${{ matrix.overlays }} > /tmp/rendered.yaml
+      - name: Return helm Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-topolvm-artifact-${{ matrix.overlays }}
+          path: /tmp/rendered.yaml

@@ -1,4 +1,50 @@
 additionalPrometheusRulesMap:
+  openstack-resource-alerts:
+    groups:
+    - name: Compute Resource Alerts
+      rules:
+      - alert: AbnormalInstanceFailures
+        expr: count(count(last_over_time(openstack_nova_server_status{status=~"BUILD|ERROR"}[60m])) by (id)) /count(count(last_over_time(openstack_nova_server_status{status="ACTIVE"}[60m])) by (id)) * 100 >= 20
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance build failure rate is abnormally high"
+          description: "This indicates a major problem building compute instances view logs and take action to resolve the build failures"
+      - alert: InstancesStuckInFailureState
+        expr: count(openstack_nova_server_status{status=~"BUILD|ERROR"}) > 0
+        for: 90m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Instances stuck in failure state for a prolonged period"
+          description: "There are instance stuck in a building or error state for a prolonged period that need be cleaned up"
+    - name: Image Resource Alerts
+      rules:
+      - alert: AbnormalImageFailures
+        expr: count(count(last_over_time(openstack_glance_image_created_at{status!~"active|deactivated"}[60m])) by (id)) / count(count(last_over_time(openstack_glance_image_created_at{status="active"}[60m])) by (id)) * 100 >= 20
+        labels:
+          severity: critical
+        annotations:
+          summary: "Image create failure rate is abnormally high"
+          description: "This indicates a major problem creating images view logs and take action to resolve the build failures"
+      - alert: ImagesStuckInFailureState
+        expr: count(openstack_glance_image_created_at{status="failure"}) > 0
+        for: 90m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Images stuck in failure state for a prolonged period"
+          description: "There are images stuck in a failures state for a prolonged period that need be cleaned up"
+    - name: Octavia Resource Alerts
+      rules:
+      - alert: LoadbalancersInError
+        expr: count(openstack_loadbalancer_loadbalancer_status{provisioning_status="ERROR"}) > 0
+        for: 90m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Loadbalancer stuck in error state for a prolonged period"
+          description: "This may indicate a potential problem with failover and/or healthmanager services. This could also indicate other problems building load balancers in general"
   rabbitmq-alerts:
     groups:
     - name: Prometheus Alerts
@@ -141,3 +187,15 @@ additionalPrometheusRulesMap:
         annotations:
           summary: Second successive MariaDB backup not successful within 1 hour of scheduled run
           description: "Second successive MariaDB backup not successful within 1 hour of scheduled run"
+  fluentbit-serviceMonitor-alert:
+    groups:
+    - name: fluentbit serviceMonitor alert
+      rules:
+      - alert: MissingFluentbitServiceMonitor
+        expr: count(up{job="fluentbit-fluent-bit"}) == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ServiceMonitor 'fluentbit-fluent-bit' is either down or missing."
+          description: "Check if the Fluentbit ServiceMonitor is properly configured and deployed."

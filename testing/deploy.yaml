@@ -66,15 +66,15 @@
       command: >
         /opt/genestack/bin/install-prometheus.sh
 
-    - name: Build openstack-helm
+    - name: Init openstack-helm
       ansible.builtin.shell: |
-        cd /opt/genestack/submodules/openstack-helm
-        make all
+        helm repo add openstack-helm https://tarballs.opendev.org/openstack/openstack-helm
+        helm repo update
 
-    - name: Build openstack-helm-infra
+    - name: Init openstack-helm-infra
       ansible.builtin.shell: |
-        cd /opt/genestack/submodules/openstack-helm-infra
-        make all
+        helm repo add openstack-helm-infra https://tarballs.opendev.org/openstack/openstack-helm-infra
+        helm repo update
 
 - name: Update package lists and install open-iscsi and cryptsetup
   hosts: all

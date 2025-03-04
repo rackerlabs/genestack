@@ -133,8 +133,10 @@ nav:
       - Architecture: genestack-architecture.md
       - Components: genestack-components.md
       - Swift Object Storage: openstack-object-storage-swift.md
+      - Release Notes: release-notes.md
   - Design Guide:
       - Introduction: openstack-cloud-design-intro.md
+      - SDLC: sdlc.md
       - Cloud Design:
           - Cloud Topology: openstack-cloud-design-topology.md
           - Regions: openstack-cloud-design-regions.md
@@ -162,9 +164,10 @@ nav:
                   - Kubernetes Dashboard: k8s-dashboard.md
                   - Kubernetes Taint: k8s-taint.md
               - Plugins and Tools: k8s-tools.md
+              - Container Network Interface:
+                  - Kube-OVN: k8s-cni-kube-ovn.md
               - Retrieve kube config: k8s-config.md
               - Prometheus: prometheus.md
-              - OpenStack Preparations: openstack-helm-make.md
           - Storage:
               - storage-overview.md
               - Ceph Internal: storage-ceph-rook-internal.md
@@ -177,7 +180,10 @@ nav:
               - infrastructure-overview.md
               - Namespace: infrastructure-namespace.md
               - MetalLB: infrastructure-metallb.md
-              - Gateway API: infrastructure-gateway-api.md
+              - Gateway API:
+                  - Gateway API Overview: infrastructure-gateway-api.md
+                  - Envoy Gateway: infrastructure-envoy-gateway-api.md
+                  - NGINX Gateway: infrastructure-nginx-gateway-api.md
               - MariaDB:
                   - infrastructure-mariadb.md
               - RabbitMQ:
@@ -229,6 +235,7 @@ nav:
               - Openstack Exporter: prometheus-openstack-metrics-exporter.md
               - Blackbox Exporter: prometheus-blackbox-exporter.md
               - Pushgateway: prometheus-pushgateway.md
+              - SNMP Exporter: prometheus-snmp-exporter.md
               - Custom Node Metrics: prometheus-custom-node-metrics.md
               - Alert Manager Examples:
                   - alertmanager-slack.md
@@ -237,6 +244,7 @@ nav:
   - Operational Guide:
       - Genestack:
           - Supporting multi-region: multi-region-support.md
+          - Sync Keystone Fernet Keys: sync-fernet-keys.md
           - Running Upgrades: genestack-upgrade.md
       - Resource Metering:
           - Metering Overview: metering-overview.md
@@ -258,12 +266,14 @@ nav:
               - Claim Storm alert: ovn-alert-claim-storm.md
               - Updating Kube OVN to OpenStack Configuration: ovn-kube-ovn-openstack.md
               - Updating Kube OVN IP Space: infrastructure-kube-ovn-re-ip.md
+              - Updating Kube OVN to Helm: k8s-cni-kube-ovn-helm-conversion.md
           - MariaDB:
               - Operations: infrastructure-mariadb-ops.md
           - Gateway API:
-              - Custom Routes: infrastructure-gateway-api-custom.md
-              - Rackspace Example Gateway Overview: rackspace-infrastructure-gateway-api.md
-              - Creating self-signed CA issuer for Gateway API: gateway-api-ca-issuer.md
+              - NGINX Gateway:
+                - Custom Routes: infrastructure-nginx-gateway-api-custom.md
+                - Rackspace Example Gateway Overview: rackspace-infrastructure-nginx-gateway-api.md
+                - Creating self-signed CA issuer for Gateway API: infrastructure-nginx-gateway-api-ca-issuer.md
       - Observability:
           - Observability Overview: observability-info.md
           - Monitoring Overview: monitoring-info.md
@@ -286,14 +296,15 @@ nav:
               - Quota Management: openstack-quota-managment.md
           - Images:
               - Glance Images Creation: openstack-glance-images.md
+              - Glance External Swift Image Store: openstack-glance-swift-store.md
           - Identity:
               - Keystone Federation to Rackspace: openstack-keystone-federation.md
               - Keystone Readonly Users: openstack-keystone-readonly.md
           - Networking:
               - Creating Networks: openstack-neutron-networks.md
-          - Magnum:
+          - Containers:
               - Creating kubernetes clusters: magnum-kubernetes-cluster-setup-guide.md
-          - Octavia:
+          - Loadbalancers:
               - Creating Flavor Profiles and Flavors: octavia-flavor-and-flavorprofile-guide.md
               - Creating Cloud Load Balancers: octavia-loadbalancer-setup-guide.md
           - Object Storage:

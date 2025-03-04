@@ -53,6 +53,12 @@ OpenStack Glance is the image service within the OpenStack ecosystem, responsibl
 kubectl --namespace openstack exec -ti openstack-admin-client -- openstack image list
 ```
 
+!!! genestack "External Image Store"
+
+    If glance will be deployed with an external swift storage backend, review the
+    [OpenStack Glance Swift Store](openstack-glance-swift-store.md) operator documentation
+    for additional steps and setup.
+
 ## Demo
 
 [![asciicast](https://asciinema.org/a/629806.svg)](https://asciinema.org/a/629806)
