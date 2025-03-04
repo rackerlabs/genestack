@@ -17,12 +17,8 @@ metadata:
 spec:
   ipAddressPools:
     - gateway-api-external
-  # nodeSelectors:  # Optional block to limit nodes for a given advertisement
-  #   - matchLabels:
-  #       kubernetes.io/hostname: controller01.your.domain.tld
-  #   - matchLabels:
-  #       kubernetes.io/hostname: controller02.your.domain.tld
-  #   - matchLabels:
-  #       kubernetes.io/hostname: controller03.your.domain.tld
+  nodeSelectors:  # Optional block to limit nodes for a given advertisement
+    - matchLabels:
+        node-role.kubernetes.io/worker: worker
   # interfaces:  # Optional block to limit ifaces used to advertise VIPs
   #   - br-mgmt
