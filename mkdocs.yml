@@ -193,6 +193,7 @@ nav:
               - OVN: infrastructure-ovn-setup.md
               - FluentBit: infrastructure-fluentbit.md
               - Loki: infrastructure-loki.md
+              - Sealed Secrets: infrastructure-sealed-secrets.md
           - OpenStack:
               - openstack-overview.md
               - OpenStack Services:
