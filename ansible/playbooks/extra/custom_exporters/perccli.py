@@ -213,6 +213,8 @@ metrics = {
             "state",
             "firmware",
             "serial",
+            "manufacturer",
+            "type",
         ],
         namespace=namespace,
         registry=registry,
@@ -394,7 +396,7 @@ def create_metrics_of_physical_drive(
     physical_drive, detailed_info_array, controller_index
 ):
     enclosure, slot = physical_drive.get("EID:Slt").split(":")[:2]
-
+    type_pd = physical_drive.get("Type")
     if enclosure == " ":
         drive_identifier = "Drive /c{0}/s{1}".format(controller_index, slot)
         enclosure = ""
@@ -457,6 +459,8 @@ def create_metrics_of_physical_drive(
             physical_drive["State"],
             attributes["Firmware Revision"].strip(),
             attributes["SN"].strip(),
+            attributes["Manufacturer Id"].strip(),
+            type_pd,
         ).set(1)
 
         if "Drive Temperature" in state and state["Drive Temperature"] != "N/A":
