@@ -1,19 +1,19 @@
 ---
 images:
   tags:
-    db_init: 'quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy'
-    db_init_indexer: 'quay.io/rackspace/rackerlabs-postgres:14.5'
-    db_sync: 'quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy'
-    dep_check: 'quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0'
-    gnocchi_api: 'quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy'
-    gnocchi_metricd: 'quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy'
-    gnocchi_resources_cleaner: 'quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy'
-    gnocchi_statsd: 'quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy'
-    gnocchi_storage_init: 'quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy'
-    image_repo_sync: 'quay.io/rackspace/rackerlabs-docker:17.07.0'
-    ks_endpoints: 'quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy'
-    ks_service: 'quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy'
-    ks_user: 'quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy'
+    db_init: "quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy"
+    db_init_indexer: "quay.io/rackspace/rackerlabs-postgres:14.5"
+    db_sync: "quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy"
+    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0"
+    gnocchi_api: "quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy"
+    gnocchi_metricd: "quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy"
+    gnocchi_resources_cleaner: "quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy"
+    gnocchi_statsd: "quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy"
+    gnocchi_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
+    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
+    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
 
 ceph_client:
   user_secret_name: gnocchi-temp-keyring
@@ -47,45 +47,45 @@ conf:
       processes: 2
       threads: 4
   paste:
-    'app:gnocchiv1':
-      paste.app_factory: 'gnocchi.rest.app:app_factory'
+    "app:gnocchiv1":
+      paste.app_factory: "gnocchi.rest.app:app_factory"
       root: gnocchi.rest.api.V1Controller
-    'app:gnocchiversions':
-      paste.app_factory: 'gnocchi.rest.app:app_factory'
+    "app:gnocchiversions":
+      paste.app_factory: "gnocchi.rest.app:app_factory"
       root: gnocchi.rest.api.VersionsController
-    'app:healthcheck':
+    "app:healthcheck":
       oslo_config_project: gnocchi
-      use: 'egg:oslo.middleware#healthcheck'
-    'composite:gnocchi+basic':
+      use: "egg:oslo.middleware#healthcheck"
+    "composite:gnocchi+basic":
       /: gnocchiversions_pipeline
       /healthcheck: healthcheck
       /v1: gnocchiv1+noauth
-      use: 'egg:Paste#urlmap'
-    'composite:gnocchi+keystone':
+      use: "egg:Paste#urlmap"
+    "composite:gnocchi+keystone":
       /: gnocchiversions_pipeline
       /healthcheck: healthcheck
       /v1: gnocchiv1+keystone
-      use: 'egg:Paste#urlmap'
-    'composite:gnocchi+remoteuser':
+      use: "egg:Paste#urlmap"
+    "composite:gnocchi+remoteuser":
       /: gnocchiversions_pipeline
       /healthcheck: healthcheck
       /v1: gnocchiv1+noauth
-      use: 'egg:Paste#urlmap'
-    'filter:keystone_authtoken':
+      use: "egg:Paste#urlmap"
+    "filter:keystone_authtoken":
       oslo_config_project: gnocchi
-      use: 'egg:keystonemiddleware#auth_token'
-    'pipeline:gnocchiv1+keystone':
+      use: "egg:keystonemiddleware#auth_token"
+    "pipeline:gnocchiv1+keystone":
       pipeline: keystone_authtoken gnocchiv1
-    'pipeline:gnocchiv1+noauth':
+    "pipeline:gnocchiv1+noauth":
       pipeline: gnocchiv1
-    'pipeline:gnocchiversions_pipeline':
+    "pipeline:gnocchiversions_pipeline":
       pipeline: gnocchiversions
-    'pipeline:main':
+    "pipeline:main":
       pipeline: gnocchi+keystone
   policy:
-    admin_or_creator: 'role:admin or project_id:%(created_by_project_id)s'
-    context_is_admin: 'role:admin'
-    update archive policy rule: 'role:admin'
+    admin_or_creator: "role:admin or project_id:%(created_by_project_id)s"
+    context_is_admin: "role:admin"
+    update archive policy rule: "role:admin"
 
 pod:
   lifecycle:
@@ -121,6 +121,8 @@ endpoints:
         internal: 8041
         public: 80
         service: 8041
+  # TODO: (cbreu) do we still need to define maraidb when we are
+  # using postreg?  What breaks if we remove it
   oslo_db:
     host_fqdn_override:
       default: mariadb-cluster-primary.openstack.svc.cluster.local
@@ -134,11 +136,6 @@ endpoints:
       default: memcached.openstack.svc.cluster.local
     hosts:
       default: memcached
-  oslo_messaging:
-    host_fqdn_override:
-      default: rabbitmq.openstack.svc.cluster.local
-    hosts:
-      default: rabbitmq-nodes
 
 manifests:
   ingress_api: false

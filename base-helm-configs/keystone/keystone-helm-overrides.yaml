@@ -1,22 +1,22 @@
 ---
 images:
   tags:
-    bootstrap: 'quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy'
-    db_drop: 'quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy'
-    db_init: 'quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy'
-    dep_check: 'quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0'
-    image_repo_sync: 'quay.io/rackspace/rackerlabs-docker:17.07.0'
-    keystone_api: 'quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879'
-    keystone_credential_cleanup: 'quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy'
-    keystone_credential_rotate: 'quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879'
-    keystone_credential_setup: 'quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879'
-    keystone_db_sync: 'quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879'
-    keystone_domain_manage: 'quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879'
-    keystone_fernet_rotate: 'quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879'
-    keystone_fernet_setup: 'quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879'
-    ks_user: 'quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy'
-    rabbit_init: 'quay.io/rackspace/rackerlabs-rabbitmq:3.13-management'
-    test: 'quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0'
+    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0"
+    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
+    keystone_api: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879"
+    keystone_credential_cleanup: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    keystone_credential_rotate: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879"
+    keystone_credential_setup: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879"
+    keystone_db_sync: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879"
+    keystone_domain_manage: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879"
+    keystone_fernet_rotate: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879"
+    keystone_fernet_setup: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879"
+    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
+    test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
 
 dependencies:
   static:
@@ -34,7 +34,7 @@ conf:
     DEFAULT:
       max_token_size: 300
     auth:
-      methods: 'password,token,application_credential,totp'
+      methods: "password,token,application_credential,totp"
       password: rxt
       totp: rxt
     database:
@@ -47,14 +47,22 @@ conf:
       lock_path: /tmp/keystone
     oslo_messaging_rabbit:
       amqp_durable_queues: false
-      heartbeat_rate: 3
-      heartbeat_timeout_threshold: 120
-      kombu_reconnect_delay: 0.5
       rabbit_ha_queues: false
-      rabbit_interval_max: 10
       rabbit_quorum_queue: true
       rabbit_transient_quorum_queue: false
       use_queue_manager: false
+      rabbit_interval_max: 10
+      # Send more frequent heartbeats and fail unhealthy nodes faster
+      # heartbeat_timeout / heartbeat_rate / 2.0 = 30 / 3 / 2.0 = 5
+      # https://opendev.org/openstack/oslo.messaging/commit/36fb5bceabe08a982ebd52e4a8f005cd26fdf6b8
+      heartbeat_rate: 3
+      heartbeat_timeout_threshold: 60
+      # DEPRECIATION:  (warning) heartbeat_in_pthread will be deprecated in 2024.2
+      heartbeat_in_pthread: True
+      # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
+      # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
+      # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
+      kombu_reconnect_delay: 0.5
     rackspace:
       role_attribute: os_flex
       role_attribute_enforcement: false
@@ -76,7 +84,7 @@ conf:
       MaxConnectionsPerChild 0
     </IfModule>
   policy:
-    'identity:list_system_grants_for_user': 'rule:admin_required or (role:reader and system_scope:all) or rule:owner'
+    "identity:list_system_grants_for_user": "rule:admin_required or (role:reader and system_scope:all) or rule:owner"
   rabbitmq:
     policies: []
   wsgi_keystone: |

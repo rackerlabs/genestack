@@ -93,22 +93,19 @@ conf:
       max_retries: -1
     oslo_messaging_rabbit:
       amqp_durable_queues: false
-      # We define use of quorum queues via kustomize but this was enabling HA queues instead
-      # ha_queues are deprecated, explicitly set to false and set quorum_queue true
       rabbit_ha_queues: false
       rabbit_quorum_queue: true
-      # TODO: Not available until 2024.1, but once it is, we want to enable these!
-      # new feature ref; https://docs.openstack.org/releasenotes/oslo.messaging/2024.1.html
       rabbit_transient_quorum_queue: false
       use_queue_manager: false
-      # Reconnect after a node outage more quickly
       rabbit_interval_max: 10
       # Send more frequent heartbeats and fail unhealthy nodes faster
       # heartbeat_timeout / heartbeat_rate / 2.0 = 30 / 3 / 2.0 = 5
       # https://opendev.org/openstack/oslo.messaging/commit/36fb5bceabe08a982ebd52e4a8f005cd26fdf6b8
       heartbeat_rate: 3
-      heartbeat_timeout_threshold: 120
-      # Setting lower kombu_reconnect_delay should resolve isssue with HA failing when one node is down
+      heartbeat_timeout_threshold: 60
+      # DEPRECIATION:  (warning) heartbeat_in_pthread will be deprecated in 2024.2
+      heartbeat_in_pthread: True
+      # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
       kombu_reconnect_delay: 0.5
@@ -130,7 +127,7 @@ conf:
       members: member
       tags: tag
     service_endpoints:
-      image: 'service/storage/image'
+      image: "service/storage/image"
   swift_store: |
     [{{ .Values.conf.glance.glance_store.default_swift_reference }}]
     {{- if eq .Values.storage "radosgw" }}
@@ -158,8 +155,8 @@ conf:
     policies: []
 
 volume:
-  class_name: general-multi-attach  # This can be changed as needed
-  size: 10Gi  # This should be set to 100Gi in production
+  class_name: general-multi-attach # This can be changed as needed
+  size: 10Gi # This should be set to 100Gi in production
 
 dependencies:
   static:
