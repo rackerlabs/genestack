@@ -49,7 +49,7 @@ conf:
     oslo_messaging_rabbit:
       amqp_durable_queues: false
       heartbeat_rate: 3
-      heartbeat_timeout_threshold: 30
+      heartbeat_timeout_threshold: 120
       kombu_reconnect_delay: 0.5
       rabbit_ha_queues: false
       rabbit_interval_max: 10
