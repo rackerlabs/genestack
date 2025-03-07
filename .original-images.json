@@ -1,5 +1,5 @@
 [
-  "quay.io/airshipit/kubernetes-entrypoint:v1.0.0",
+  "quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy",
   "docker.io/rabbitmq:3.13-management",
   "docker.io/docker:17.07.0",
   "docker.io/xrally/xrally-openstack:2.0.0",
