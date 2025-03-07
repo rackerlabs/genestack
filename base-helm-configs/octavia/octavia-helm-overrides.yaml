@@ -104,7 +104,7 @@ conf:
       # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
-      kombu_reconnect_delay: 0.5 
+      kombu_reconnect_delay: 0.5
     ovn:
       ovn_nb_connection: 'tcp:127.0.0.1:6641'
       ovn_sb_connection: 'tcp:127.0.0.1:6642'
