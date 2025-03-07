@@ -18,12 +18,14 @@ conf:
   ceilometer:
     DEFAULT:
       debug: "false"
-#      default_log_levels: >-
-#        amqp=WARN,amqplib=WARN,boto=WARN,qpid=WARN,sqlalchemy=WARN,suds=INFO,oslo.messaging=INFO,
-#        oslo_messaging=INFO,iso8601=WARN,requests.packages.urllib3.connectionpool=DEBUG,
-#        urllib3.connectionpool=DEBUG,websocket=WARN,requests.packages.urllib3.util.retry=DEBUG,
-#        urllib3.util.retry=DEBUG,keystonemiddleware=WARN,routes.middleware=WARN,stevedore=WARN,
-#        taskflow=WARN,keystoneauth=WARN,oslo.cache=INFO,oslo_policy=INFO,dogpile.core.dogpile=INFO
+      # NOTE: If you need to enable debug, it is highly recommended to uncomment the below lines
+      # to ensure logs are ceilometer does not spam the logs
+      #      default_log_levels: >-
+      #        amqp=WARN,amqplib=WARN,boto=WARN,qpid=WARN,sqlalchemy=WARN,suds=INFO,oslo.messaging=INFO,
+      #        oslo_messaging=INFO,iso8601=WARN,requests.packages.urllib3.connectionpool=DEBUG,
+      #        urllib3.connectionpool=DEBUG,websocket=WARN,requests.packages.urllib3.util.retry=DEBUG,
+      #        urllib3.util.retry=DEBUG,keystonemiddleware=WARN,routes.middleware=WARN,stevedore=WARN,
+      #        taskflow=WARN,keystoneauth=WARN,oslo.cache=INFO,oslo_policy=INFO,dogpile.core.dogpile=INFO
       event_dispatchers:
         type: multistring
         values:
@@ -60,27 +62,24 @@ conf:
       lock_path: /tmp/ceilometer
     oslo_messaging_rabbit:
       amqp_durable_queues: false
-      # We define use of quorum queues via kustomize but this was enabling HA queues instead
-      # ha_queues are deprecated, explicitly set to false and set quorum_queue true
       rabbit_ha_queues: false
       rabbit_quorum_queue: true
-      # TODO: Not available until 2024.1, but once it is, we want to enable these!
-      # new feature ref; https://docs.openstack.org/releasenotes/oslo.messaging/2024.1.html
       rabbit_transient_quorum_queue: false
       use_queue_manager: false
-      # Reconnect after a node outage more quickly
       rabbit_interval_max: 10
       # Send more frequent heartbeats and fail unhealthy nodes faster
       # heartbeat_timeout / heartbeat_rate / 2.0 = 30 / 3 / 2.0 = 5
       # https://opendev.org/openstack/oslo.messaging/commit/36fb5bceabe08a982ebd52e4a8f005cd26fdf6b8
       heartbeat_rate: 3
-      heartbeat_timeout_threshold: 120
-      # Setting lower kombu_reconnect_delay should resolve isssue with HA failing when one node is down
+      heartbeat_timeout_threshold: 60
+      # DEPRECIATION:  (warning) heartbeat_in_pthread will be deprecated in 2024.2
+      heartbeat_in_pthread: True
+      # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
       kombu_reconnect_delay: 0.5
   event_definitions:
-    - event_type: 'compute.instance.*'
+    - event_type: "compute.instance.*"
       traits: &instance_traits
         tenant_id:
           fields: payload.tenant_id
@@ -152,7 +151,23 @@ conf:
         audit_period_ending:
           type: datetime
           fields: payload.audit_period_ending
-    - event_type: ['volume.exists', 'volume.retype', 'volume.create.*', 'volume.delete.*', 'volume.resize.*', 'volume.attach.*', 'volume.detach.*', 'volume.update.*', 'snapshot.exists', 'snapshot.create.*', 'snapshot.delete.*', 'snapshot.update.*', 'volume.transfer.accept.end', 'snapshot.transfer.accept.end']
+    - event_type:
+        [
+          "volume.exists",
+          "volume.retype",
+          "volume.create.*",
+          "volume.delete.*",
+          "volume.resize.*",
+          "volume.attach.*",
+          "volume.detach.*",
+          "volume.update.*",
+          "snapshot.exists",
+          "snapshot.create.*",
+          "snapshot.delete.*",
+          "snapshot.update.*",
+          "volume.transfer.accept.end",
+          "snapshot.transfer.accept.end",
+        ]
       traits: &cinder_traits
         user_id:
           fields: payload.user_id
@@ -173,7 +188,19 @@ conf:
           fields: payload.glance_metadata[?key=image_id].value
         instance_id:
           fields: payload.volume_attachment[0].instance_uuid
-    - event_type: ['volume.transfer.*', 'volume.exists', 'volume.retype', 'volume.create.*', 'volume.delete.*', 'volume.resize.*', 'volume.attach.*', 'volume.detach.*', 'volume.update.*', 'snapshot.transfer.accept.end']
+    - event_type:
+        [
+          "volume.transfer.*",
+          "volume.exists",
+          "volume.retype",
+          "volume.create.*",
+          "volume.delete.*",
+          "volume.resize.*",
+          "volume.attach.*",
+          "volume.detach.*",
+          "volume.update.*",
+          "snapshot.transfer.accept.end",
+        ]
       traits:
         <<: *cinder_traits
         resource_id:
@@ -187,14 +214,15 @@ conf:
           fields: payload.volume_type
         replication_status:
           fields: payload.replication_status
-    - event_type: ['snapshot.transfer.accept.end']
+    - event_type: ["snapshot.transfer.accept.end"]
       traits:
         <<: *cinder_traits
         resource_id:
           fields: payload.snapshot_id
         project_id:
           fields: payload.tenant_id
-    - event_type: ['share.create.*', 'share.delete.*', 'share.extend.*', 'share.shrink.*']
+    - event_type:
+        ["share.create.*", "share.delete.*", "share.extend.*", "share.shrink.*"]
       traits: &share_traits
         share_id:
           fields: payload.share_id
@@ -226,20 +254,27 @@ conf:
           fields: payload.description
         host:
           fields: payload.host
-    - event_type: ['snapshot.exists', 'snapshot.create.*', 'snapshot.delete.*', 'snapshot.update.*']
+    - event_type:
+        [
+          "snapshot.exists",
+          "snapshot.create.*",
+          "snapshot.delete.*",
+          "snapshot.update.*",
+        ]
       traits:
         <<: *cinder_traits
         resource_id:
           fields: payload.snapshot_id
         volume_id:
           fields: payload.volume_id
-    - event_type: ['image_volume_cache.*']
+    - event_type: ["image_volume_cache.*"]
       traits:
         image_id:
           fields: payload.image_id
         host:
           fields: payload.host
-    - event_type: ['image.create', 'image.update', 'image.upload', 'image.delete']
+    - event_type:
+        ["image.create", "image.update", "image.upload", "image.delete"]
       traits: &glance_crud
         project_id:
           fields: payload.owner
@@ -280,7 +315,7 @@ conf:
         project_id:
           fields: payload.tenant_id
         user_id:
-          fields: ['ctxt.trustor_user_id', 'ctxt.user_id']
+          fields: ["ctxt.trustor_user_id", "ctxt.user_id"]
         resource_id:
           fields: payload.stack_identity
         name:
@@ -312,8 +347,18 @@ conf:
         updated_at:
           type: datetime
           fields: payload.updated_at
-    - event_type: ['identity.user.*', 'identity.project.*', 'identity.group.*', 'identity.role.*', 'identity.OS-TRUST:trust.*',
-                   'identity.region.*', 'identity.service.*', 'identity.endpoint.*', 'identity.policy.*']
+    - event_type:
+        [
+          "identity.user.*",
+          "identity.project.*",
+          "identity.group.*",
+          "identity.role.*",
+          "identity.OS-TRUST:trust.*",
+          "identity.region.*",
+          "identity.service.*",
+          "identity.endpoint.*",
+          "identity.policy.*",
+        ]
       traits: &identity_crud
         resource_id:
           fields: payload.resource_info
@@ -405,7 +450,21 @@ conf:
           fields: payload.target.metadata.object
         observer_id:
           fields: payload.observer.id
-    - event_type: ['network.*', 'subnet.*', 'port.*', 'router.*', 'floatingip.*', 'firewall.*', 'firewall_policy.*', 'firewall_rule.*', 'vpnservice.*', 'ipsecpolicy.*', 'ikepolicy.*', 'ipsec_site_connection.*']
+    - event_type:
+        [
+          "network.*",
+          "subnet.*",
+          "port.*",
+          "router.*",
+          "floatingip.*",
+          "firewall.*",
+          "firewall_policy.*",
+          "firewall_rule.*",
+          "vpnservice.*",
+          "ipsecpolicy.*",
+          "ikepolicy.*",
+          "ipsec_site_connection.*",
+        ]
       traits: &network_traits
         user_id:
           fields: ctxt.user_id
@@ -417,81 +476,81 @@ conf:
         name:
           fields: payload.network.name
         resource_id:
-          fields: ['payload.network.id', 'payload.id']
+          fields: ["payload.network.id", "payload.id"]
     - event_type: subnet.*
       traits:
         <<: *network_traits
         name:
           fields: payload.subnet.name
         resource_id:
-          fields: ['payload.subnet.id', 'payload.id']
+          fields: ["payload.subnet.id", "payload.id"]
     - event_type: port.*
       traits:
         <<: *network_traits
         name:
           fields: payload.port.name
         resource_id:
-          fields: ['payload.port.id', 'payload.id']
+          fields: ["payload.port.id", "payload.id"]
     - event_type: router.*
       traits:
         <<: *network_traits
         name:
           fields: payload.router.name
         resource_id:
-          fields: ['payload.router.id', 'payload.id']
+          fields: ["payload.router.id", "payload.id"]
     - event_type: floatingip.*
       traits:
         <<: *network_traits
         resource_id:
-          fields: ['payload.floatingip.id', 'payload.id']
+          fields: ["payload.floatingip.id", "payload.id"]
     - event_type: firewall.*
       traits:
         <<: *network_traits
         name:
           fields: payload.firewall.name
         resource_id:
-          fields: ['payload.firewall.id', 'payload.id']
+          fields: ["payload.firewall.id", "payload.id"]
     - event_type: firewall_policy.*
       traits:
         <<: *network_traits
         name:
           fields: payload.firewall_policy.name
         resource_id:
-          fields: ['payload.firewall_policy.id', 'payload.id']
+          fields: ["payload.firewall_policy.id", "payload.id"]
     - event_type: firewall_rule.*
       traits:
         <<: *network_traits
         name:
           fields: payload.firewall_rule.name
         resource_id:
-          fields: ['payload.firewall_rule.id', 'payload.id']
+          fields: ["payload.firewall_rule.id", "payload.id"]
     - event_type: vpnservice.*
       traits:
         <<: *network_traits
         name:
           fields: payload.vpnservice.name
         resource_id:
-          fields: ['payload.vpnservice.id', 'payload.id']
+          fields: ["payload.vpnservice.id", "payload.id"]
     - event_type: ipsecpolicy.*
       traits:
         <<: *network_traits
         name:
           fields: payload.ipsecpolicy.name
         resource_id:
-          fields: ['payload.ipsecpolicy.id', 'payload.id']
+          fields: ["payload.ipsecpolicy.id", "payload.id"]
     - event_type: ikepolicy.*
       traits:
         <<: *network_traits
         name:
           fields: payload.ikepolicy.name
         resource_id:
-          fields: ['payload.ikepolicy.id', 'payload.id']
+          fields: ["payload.ikepolicy.id", "payload.id"]
     - event_type: ipsec_site_connection.*
       traits:
         <<: *network_traits
         resource_id:
-          fields: ['payload.ipsec_site_connection.id', 'payload.id']
-    - event_type: '*http.*'
+          fields: ["payload.ipsec_site_connection.id", "payload.id"]
+    - event_type: "*http.*"
       traits: &http_audit
         project_id:
           fields: payload.initiator.project_id
@@ -528,12 +587,13 @@ conf:
           fields: payload.initiator.name
         initiator_host_address:
           fields: payload.initiator.host.address
-    - event_type: '*http.response'
+    - event_type: "*http.response"
       traits:
         <<: *http_audit
         reason_code:
           fields: payload.reason.reasonCode
-    - event_type: ['dns.domain.create', 'dns.domain.update', 'dns.domain.delete']
+    - event_type:
+        ["dns.domain.create", "dns.domain.update", "dns.domain.delete"]
       traits: &dns_domain_traits
         status:
           fields: payload.status
@@ -600,7 +660,13 @@ conf:
           fields: payload.created_at
         region:
           fields: payload.region
-    - event_type: ['trove.instance.create', 'trove.instance.modify_volume', 'trove.instance.modify_flavor', 'trove.instance.delete']
+    - event_type:
+        [
+          "trove.instance.create",
+          "trove.instance.modify_volume",
+          "trove.instance.modify_flavor",
+          "trove.instance.delete",
+        ]
       traits: &trove_common_traits
         name:
           fields: payload.name
@@ -683,7 +749,7 @@ conf:
           fields: payload.info.db.statement
         db.params:
           fields: payload.info.db.params
-    - event_type: 'magnum.cluster.*'
+    - event_type: "magnum.cluster.*"
       traits: &magnum_cluster_crud
         id:
           fields: payload.id
@@ -716,7 +782,7 @@ conf:
           fields: payload.observer.id
         observer_typeURI:
           fields: payload.observer.typeURI
-    - event_type: 'alarm.*'
+    - event_type: "alarm.*"
       traits:
         id:
           fields: payload.alarm_id
@@ -960,11 +1026,11 @@ conf:
 
       - resource_type: ipmi_sensor
         metrics:
-          - 'hardware.ipmi.power'
-          - 'hardware.ipmi.temperature'
-          - 'hardware.ipmi.current'
-          - 'hardware.ipmi.voltage'
-          - 'hardware.ipmi.fan'
+          - "hardware.ipmi.power"
+          - "hardware.ipmi.temperature"
+          - "hardware.ipmi.current"
+          - "hardware.ipmi.voltage"
+          - "hardware.ipmi.fan"
         attributes:
           node: resource_metadata.node
 
@@ -1154,99 +1220,99 @@ conf:
         resource_id: $.payload.image_id
         project_id: $.payload.owner_id
 
-      - name: 'volume.provider.capacity.total'
-        event_type: 'capacity.backend.*'
-        type: 'gauge'
-        unit: 'GB'
+      - name: "volume.provider.capacity.total"
+        event_type: "capacity.backend.*"
+        type: "gauge"
+        unit: "GB"
         volume: $.payload.total
         resource_id: $.payload.name_to_id
 
-      - name: 'volume.provider.capacity.free'
-        event_type: 'capacity.backend.*'
-        type: 'gauge'
-        unit: 'GB'
+      - name: "volume.provider.capacity.free"
+        event_type: "capacity.backend.*"
+        type: "gauge"
+        unit: "GB"
         volume: $.payload.free
         resource_id: $.payload.name_to_id
 
-      - name: 'volume.provider.capacity.allocated'
-        event_type: 'capacity.backend.*'
-        type: 'gauge'
-        unit: 'GB'
+      - name: "volume.provider.capacity.allocated"
+        event_type: "capacity.backend.*"
+        type: "gauge"
+        unit: "GB"
         volume: $.payload.allocated
         resource_id: $.payload.name_to_id
 
-      - name: 'volume.provider.capacity.provisioned'
-        event_type: 'capacity.backend.*'
-        type: 'gauge'
-        unit: 'GB'
+      - name: "volume.provider.capacity.provisioned"
+        event_type: "capacity.backend.*"
+        type: "gauge"
+        unit: "GB"
         volume: $.payload.provisioned
         resource_id: $.payload.name_to_id
 
-      - name: 'volume.provider.capacity.virtual_free'
-        event_type: 'capacity.backend.*'
-        type: 'gauge'
-        unit: 'GB'
+      - name: "volume.provider.capacity.virtual_free"
+        event_type: "capacity.backend.*"
+        type: "gauge"
+        unit: "GB"
         volume: $.payload.virtual_free
         resource_id: $.payload.name_to_id
 
-      - name: 'volume.provider.pool.capacity.total'
-        event_type: 'capacity.pool.*'
-        type: 'gauge'
-        unit: 'GB'
+      - name: "volume.provider.pool.capacity.total"
+        event_type: "capacity.pool.*"
+        type: "gauge"
+        unit: "GB"
         volume: $.payload.total
         resource_id: $.payload.name_to_id
         metadata: &provider_pool_meta
           provider: $.payload.name_to_id.`split(#, 0, 1)`
 
-      - name: 'volume.provider.pool.capacity.free'
-        event_type: 'capacity.pool.*'
-        type: 'gauge'
-        unit: 'GB'
+      - name: "volume.provider.pool.capacity.free"
+        event_type: "capacity.pool.*"
+        type: "gauge"
+        unit: "GB"
         volume: $.payload.free
         resource_id: $.payload.name_to_id
         metadata:
-           <<: *provider_pool_meta
+          <<: *provider_pool_meta
 
-      - name: 'volume.provider.pool.capacity.allocated'
-        event_type: 'capacity.pool.*'
-        type: 'gauge'
-        unit: 'GB'
+      - name: "volume.provider.pool.capacity.allocated"
+        event_type: "capacity.pool.*"
+        type: "gauge"
+        unit: "GB"
         volume: $.payload.allocated
         resource_id: $.payload.name_to_id
         metadata:
-           <<: *provider_pool_meta
+          <<: *provider_pool_meta
 
-      - name: 'volume.provider.pool.capacity.provisioned'
-        event_type: 'capacity.pool.*'
-        type: 'gauge'
-        unit: 'GB'
+      - name: "volume.provider.pool.capacity.provisioned"
+        event_type: "capacity.pool.*"
+        type: "gauge"
+        unit: "GB"
         volume: $.payload.provisioned
         resource_id: $.payload.name_to_id
         metadata:
-           <<: *provider_pool_meta
+          <<: *provider_pool_meta
 
-      - name: 'volume.provider.pool.capacity.virtual_free'
-        event_type: 'capacity.pool.*'
-        type: 'gauge'
-        unit: 'GB'
+      - name: "volume.provider.pool.capacity.virtual_free"
+        event_type: "capacity.pool.*"
+        type: "gauge"
+        unit: "GB"
         volume: $.payload.virtual_free
         resource_id: $.payload.name_to_id
         metadata:
-           <<: *provider_pool_meta
+          <<: *provider_pool_meta
 
-      - name: 'volume.size'
+      - name: "volume.size"
         event_type:
-          - 'volume.exists'
-          - 'volume.retype'
-          - 'volume.create.*'
-          - 'volume.delete.*'
-          - 'volume.resize.*'
-          - 'volume.attach.*'
-          - 'volume.detach.*'
-          - 'volume.update.*'
-          - 'volume.manage.*'
-        type: 'gauge'
-        unit: 'GB'
+          - "volume.exists"
+          - "volume.retype"
+          - "volume.create.*"
+          - "volume.delete.*"
+          - "volume.resize.*"
+          - "volume.attach.*"
+          - "volume.detach.*"
+          - "volume.update.*"
+          - "volume.manage.*"
+        type: "gauge"
+        unit: "GB"
         volume: $.payload.size
         user_id: $.payload.user_id
         project_id: $.payload.tenant_id
@@ -1257,14 +1323,14 @@ conf:
           image_id: $.payload.glance_metadata[?key=image_id].value
           instance_id: $.payload.volume_attachment[0].instance_uuid
 
-      - name: 'snapshot.size'
+      - name: "snapshot.size"
         event_type:
-          - 'snapshot.exists'
-          - 'snapshot.create.*'
-          - 'snapshot.delete.*'
-          - 'snapshot.manage.*'
-        type: 'gauge'
-        unit: 'GB'
+          - "snapshot.exists"
+          - "snapshot.create.*"
+          - "snapshot.delete.*"
+          - "snapshot.manage.*"
+        type: "gauge"
+        unit: "GB"
         volume: $.payload.volume_size
         user_id: $.payload.user_id
         project_id: $.payload.tenant_id
@@ -1273,14 +1339,14 @@ conf:
           display_name: $.payload.display_name
           volume_id: $.payload.volume_id
 
-      - name: 'backup.size'
+      - name: "backup.size"
         event_type:
-          - 'backup.exists'
-          - 'backup.create.*'
-          - 'backup.delete.*'
-          - 'backup.restore.*'
-        type: 'gauge'
-        unit: 'GB'
+          - "backup.exists"
+          - "backup.create.*"
+          - "backup.delete.*"
+          - "backup.restore.*"
+        type: "gauge"
+        unit: "GB"
         volume: $.payload.size
         user_id: $.payload.user_id
         project_id: $.payload.tenant_id
@@ -1290,30 +1356,30 @@ conf:
 
       # Magnum
       - name: $.payload.metrics.[*].name
-        event_type: 'magnum.bay.metrics.*'
-        type: 'gauge'
+        event_type: "magnum.bay.metrics.*"
+        type: "gauge"
         unit: $.payload.metrics.[*].unit
         volume: $.payload.metrics.[*].value
         user_id: $.payload.user_id
         project_id: $.payload.project_id
         resource_id: $.payload.resource_id
-        lookup: ['name', 'unit', 'volume']
+        lookup: ["name", "unit", "volume"]
 
       # Swift
       - name: $.payload.measurements.[*].metric.[*].name
-        event_type: 'objectstore.http.request'
-        type: 'delta'
+        event_type: "objectstore.http.request"
+        type: "delta"
         unit: $.payload.measurements.[*].metric.[*].unit
         volume: $.payload.measurements.[*].result
         resource_id: $.payload.target.id
         user_id: $.payload.initiator.id
         project_id: $.payload.initiator.project_id
-        lookup: ['name', 'unit', 'volume']
+        lookup: ["name", "unit", "volume"]
 
-      - name: 'memory'
+      - name: "memory"
         event_type: &instance_events compute.instance.(?!create.start|update).*
-        type: 'gauge'
-        unit: 'MB'
+        type: "gauge"
+        unit: "MB"
         volume: $.payload.memory_mb
         user_id: $.payload.user_id
         project_id: $.payload.tenant_id
@@ -1329,67 +1395,67 @@ conf:
           created_at: $.payload.created_at
           deleted_at: $.payload.deleted_at
 
-      - name: 'vcpus'
+      - name: "vcpus"
         event_type: *instance_events
-        type: 'gauge'
-        unit: 'vcpu'
+        type: "gauge"
+        unit: "vcpu"
         volume: $.payload.vcpus
         user_id: $.payload.user_id
         project_id: $.payload.tenant_id
         resource_id: $.payload.instance_id
         user_metadata: $.payload.metadata
         metadata:
-           <<: *instance_meta
+          <<: *instance_meta
 
-      - name: 'compute.instance.booting.time'
-        event_type: 'compute.instance.create.end'
-        type: 'gauge'
-        unit: 'sec'
+      - name: "compute.instance.booting.time"
+        event_type: "compute.instance.create.end"
+        type: "gauge"
+        unit: "sec"
         volume:
           fields: [$.payload.created_at, $.payload.launched_at]
-          plugin: 'timedelta'
+          plugin: "timedelta"
         project_id: $.payload.tenant_id
         resource_id: $.payload.instance_id
         user_metadata: $.payload.metadata
         metadata:
           <<: *instance_meta
 
-      - name: 'disk.root.size'
+      - name: "disk.root.size"
         event_type: *instance_events
-        type: 'gauge'
-        unit: 'GB'
+        type: "gauge"
+        unit: "GB"
         volume: $.payload.root_gb
         user_id: $.payload.user_id
         project_id: $.payload.tenant_id
         resource_id: $.payload.instance_id
         user_metadata: $.payload.metadata
         metadata:
-           <<: *instance_meta
+          <<: *instance_meta
 
-      - name: 'disk.ephemeral.size'
+      - name: "disk.ephemeral.size"
         event_type: *instance_events
-        type: 'gauge'
-        unit: 'GB'
+        type: "gauge"
+        unit: "GB"
         volume: $.payload.ephemeral_gb
         user_id: $.payload.user_id
         project_id: $.payload.tenant_id
         resource_id: $.payload.instance_id
         user_metadata: $.payload.metadata
         metadata:
-           <<: *instance_meta
+          <<: *instance_meta
 
-      - name: 'bandwidth'
-        event_type: 'l3.meter'
-        type: 'delta'
-        unit: 'B'
+      - name: "bandwidth"
+        event_type: "l3.meter"
+        type: "delta"
+        unit: "B"
         volume: $.payload.bytes
         project_id: $.payload.tenant_id
         resource_id: $.payload.label_id
 
-      - name: 'compute.node.cpu.frequency'
-        event_type: 'compute.metrics.update'
-        type: 'gauge'
-        unit: 'MHz'
+      - name: "compute.node.cpu.frequency"
+        event_type: "compute.metrics.update"
+        type: "gauge"
+        unit: "MHz"
         volume: $.payload.metrics[?(@.name='cpu.frequency')].value
         resource_id: $.payload.host + "_" + $.payload.nodename
         timestamp: $.payload.metrics[?(@.name='cpu.frequency')].timestamp
@@ -1398,10 +1464,10 @@ conf:
           host: $.publisher_id
           source: $.payload.metrics[?(@.name='cpu.frequency')].source
 
-      - name: 'compute.node.cpu.user.time'
-        event_type: 'compute.metrics.update'
-        type: 'cumulative'
-        unit: 'ns'
+      - name: "compute.node.cpu.user.time"
+        event_type: "compute.metrics.update"
+        type: "cumulative"
+        unit: "ns"
         volume: $.payload.metrics[?(@.name='cpu.user.time')].value
         resource_id: $.payload.host + "_" + $.payload.nodename
         timestamp: $.payload.metrics[?(@.name='cpu.user.time')].timestamp
@@ -1410,10 +1476,10 @@ conf:
           host: $.publisher_id
           source: $.payload.metrics[?(@.name='cpu.user.time')].source
 
-      - name: 'compute.node.cpu.kernel.time'
-        event_type: 'compute.metrics.update'
-        type: 'cumulative'
-        unit: 'ns'
+      - name: "compute.node.cpu.kernel.time"
+        event_type: "compute.metrics.update"
+        type: "cumulative"
+        unit: "ns"
         volume: $.payload.metrics[?(@.name='cpu.kernel.time')].value
         resource_id: $.payload.host + "_" + $.payload.nodename
         timestamp: $.payload.metrics[?(@.name='cpu.kernel.time')].timestamp
@@ -1422,10 +1488,10 @@ conf:
           host: $.publisher_id
           source: $.payload.metrics[?(@.name='cpu.kernel.time')].source
 
-      - name: 'compute.node.cpu.idle.time'
-        event_type: 'compute.metrics.update'
-        type: 'cumulative'
-        unit: 'ns'
+      - name: "compute.node.cpu.idle.time"
+        event_type: "compute.metrics.update"
+        type: "cumulative"
+        unit: "ns"
         volume: $.payload.metrics[?(@.name='cpu.idle.time')].value
         resource_id: $.payload.host + "_" + $.payload.nodename
         timestamp: $.payload.metrics[?(@.name='cpu.idle.time')].timestamp
@@ -1434,10 +1500,10 @@ conf:
           host: $.publisher_id
           source: $.payload.metrics[?(@.name='cpu.idle.time')].source
 
-      - name: 'compute.node.cpu.iowait.time'
-        event_type: 'compute.metrics.update'
-        type: 'cumulative'
-        unit: 'ns'
+      - name: "compute.node.cpu.iowait.time"
+        event_type: "compute.metrics.update"
+        type: "cumulative"
+        unit: "ns"
         volume: $.payload.metrics[?(@.name='cpu.iowait.time')].value
         resource_id: $.payload.host + "_" + $.payload.nodename
         timestamp: $.payload.metrics[?(@.name='cpu.iowait.time')].timestamp
@@ -1446,10 +1512,10 @@ conf:
           host: $.publisher_id
           source: $.payload.metrics[?(@.name='cpu.iowait.time')].source
 
-      - name: 'compute.node.cpu.kernel.percent'
-        event_type: 'compute.metrics.update'
-        type: 'gauge'
-        unit: 'percent'
+      - name: "compute.node.cpu.kernel.percent"
+        event_type: "compute.metrics.update"
+        type: "gauge"
+        unit: "percent"
         volume: $.payload.metrics[?(@.name='cpu.kernel.percent')].value * 100
         resource_id: $.payload.host + "_" + $.payload.nodename
         timestamp: $.payload.metrics[?(@.name='cpu.kernel.percent')].timestamp
@@ -1458,10 +1524,10 @@ conf:
           host: $.publisher_id
           source: $.payload.metrics[?(@.name='cpu.kernel.percent')].source
 
-      - name: 'compute.node.cpu.idle.percent'
-        event_type: 'compute.metrics.update'
-        type: 'gauge'
-        unit: 'percent'
+      - name: "compute.node.cpu.idle.percent"
+        event_type: "compute.metrics.update"
+        type: "gauge"
+        unit: "percent"
         volume: $.payload.metrics[?(@.name='cpu.idle.percent')].value * 100
         resource_id: $.payload.host + "_" + $.payload.nodename
         timestamp: $.payload.metrics[?(@.name='cpu.idle.percent')].timestamp
@@ -1470,10 +1536,10 @@ conf:
           host: $.publisher_id
           source: $.payload.metrics[?(@.name='cpu.idle.percent')].source
 
-      - name: 'compute.node.cpu.user.percent'
-        event_type: 'compute.metrics.update'
-        type: 'gauge'
-        unit: 'percent'
+      - name: "compute.node.cpu.user.percent"
+        event_type: "compute.metrics.update"
+        type: "gauge"
+        unit: "percent"
         volume: $.payload.metrics[?(@.name='cpu.user.percent')].value * 100
         resource_id: $.payload.host + "_" + $.payload.nodename
         timestamp: $.payload.metrics[?(@.name='cpu.user.percent')].timestamp
@@ -1482,10 +1548,10 @@ conf:
           host: $.publisher_id
           source: $.payload.metrics[?(@.name='cpu.user.percent')].source
 
-      - name: 'compute.node.cpu.iowait.percent'
-        event_type: 'compute.metrics.update'
-        type: 'gauge'
-        unit: 'percent'
+      - name: "compute.node.cpu.iowait.percent"
+        event_type: "compute.metrics.update"
+        type: "gauge"
+        unit: "percent"
         volume: $.payload.metrics[?(@.name='cpu.iowait.percent')].value * 100
         resource_id: $.payload.host + "_" + $.payload.nodename
         timestamp: $.payload.metrics[?(@.name='cpu.iowait.percent')].timestamp
@@ -1494,10 +1560,10 @@ conf:
           host: $.publisher_id
           source: $.payload.metrics[?(@.name='cpu.iowait.percent')].source
 
-      - name: 'compute.node.cpu.percent'
-        event_type: 'compute.metrics.update'
-        type: 'gauge'
-        unit: 'percent'
+      - name: "compute.node.cpu.percent"
+        event_type: "compute.metrics.update"
+        type: "gauge"
+        unit: "percent"
         volume: $.payload.metrics[?(@.name='cpu.percent')].value * 100
         resource_id: $.payload.host + "_" + $.payload.nodename
         timestamp: $.payload.metrics[?(@.name='cpu.percent')].timestamp
@@ -1509,22 +1575,23 @@ conf:
       # Identity
       # NOTE(gordc): hack because jsonpath-rw-ext can't concat starting with string.
       - name: $.payload.outcome.`sub(/.*/, )` + 'identity.authenticate.' + $.payload.outcome
-        type: 'delta'
-        unit: 'user'
+        type: "delta"
+        unit: "user"
         volume: 1
         event_type:
-          - 'identity.authenticate'
+          - "identity.authenticate"
         resource_id: $.payload.initiator.id
         user_id: $.payload.initiator.id
 
       # DNS
-      - name: 'dns.domain.exists'
-        event_type: 'dns.domain.exists'
-        type: 'cumulative'
-        unit: 's'
+      - name: "dns.domain.exists"
+        event_type: "dns.domain.exists"
+        type: "cumulative"
+        unit: "s"
         volume:
-          fields: [$.payload.audit_period_beginning, $.payload.audit_period_ending]
-          plugin: 'timedelta'
+          fields:
+            [$.payload.audit_period_beginning, $.payload.audit_period_ending]
+          plugin: "timedelta"
         project_id: $.payload.tenant_id
         resource_id: $.payload.id
         user_id: $.ctxt.user
@@ -1534,13 +1601,14 @@ conf:
           host: $.publisher_id
 
       # Trove
-      - name: 'trove.instance.exists'
-        event_type: 'trove.instance.exists'
-        type: 'cumulative'
-        unit: 's'
+      - name: "trove.instance.exists"
+        event_type: "trove.instance.exists"
+        type: "cumulative"
+        unit: "s"
         volume:
-          fields: [$.payload.audit_period_beginning, $.payload.audit_period_ending]
-          plugin: 'timedelta'
+          fields:
+            [$.payload.audit_period_beginning, $.payload.audit_period_ending]
+          plugin: "timedelta"
         project_id: $.payload.tenant_id
         resource_id: $.payload.instance_id
         user_id: $.payload.user_id
@@ -1552,14 +1620,14 @@ conf:
           instance_type_id: $.payload.instance_type_id
 
       # Manila
-      - name: 'manila.share.size'
+      - name: "manila.share.size"
         event_type:
-          - 'share.create.*'
-          - 'share.delete.*'
-          - 'share.extend.*'
-          - 'share.shrink.*'
-        type: 'gauge'
-        unit: 'GB'
+          - "share.create.*"
+          - "share.delete.*"
+          - "share.extend.*"
+          - "share.shrink.*"
+        type: "gauge"
+        unit: "GB"
         volume: $.payload.size
         user_id: $.payload.user_id
         project_id: $.payload.project_id
@@ -1595,7 +1663,7 @@ conf:
           - gnocchi://
     sources:
       - events:
-          - '*'
+          - "*"
         name: event_source
         sinks:
           - event_sink
@@ -1676,7 +1744,7 @@ endpoints:
       default: null
     path:
       default: null
-    scheme: 'http'
+    scheme: "http"
     port:
       service:
         default: 24224
@@ -1742,4 +1810,3 @@ manifests:
   job_ks_service: false
   secret_mongodb: false
   service_ingress_api: false
-...
