@@ -75,9 +75,8 @@ conf:
       # heartbeat_timeout / heartbeat_rate / 2.0 = 30 / 3 / 2.0 = 5
       # https://opendev.org/openstack/oslo.messaging/commit/36fb5bceabe08a982ebd52e4a8f005cd26fdf6b8
       heartbeat_rate: 3
-      heartbeat_timeout_threshold:
-        60
-        # NOTE (deprecation warning) heartbeat_in_pthread will be deprecated in 2024.2
+      heartbeat_timeout_threshold: 60
+      # NOTE (deprecation warning) heartbeat_in_pthread will be deprecated in 2024.2
       heartbeat_in_pthread: True
       # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
