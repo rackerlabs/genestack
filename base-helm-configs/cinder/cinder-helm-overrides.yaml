@@ -7,24 +7,24 @@ labels:
 
 images:
   tags:
-    bootstrap: 'quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy'
-    cinder_api: 'quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy'
-    cinder_backup: 'quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy'
-    cinder_backup_storage_init: 'quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy'
-    cinder_db_sync: 'quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy'
-    cinder_scheduler: 'quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy'
-    cinder_storage_init: 'quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy'
-    cinder_volume: 'quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy'
-    cinder_volume_usage_audit: 'quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy'
-    db_drop: 'quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy'
-    db_init: 'quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy'
-    dep_check: 'quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0'
-    image_repo_sync: 'quay.io/rackspace/rackerlabs-docker:17.07.0'
-    ks_endpoints: 'quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy'
-    ks_service: 'quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy'
-    ks_user: 'quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy'
-    rabbit_init: 'quay.io/rackspace/rackerlabs-rabbitmq:3.13-management'
-    test: 'quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0'
+    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    cinder_api: "quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy"
+    cinder_backup: "quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy"
+    cinder_backup_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
+    cinder_db_sync: "quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy"
+    cinder_scheduler: "quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy"
+    cinder_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
+    cinder_volume: "quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy"
+    cinder_volume_usage_audit: "quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy"
+    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0"
+    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
+    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
+    test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
 
 pod:
   security_context:
@@ -85,7 +85,7 @@ conf:
       enabled_backends: lvmdriver-1
       osapi_volume_workers: 2
       rootwrap_config: /etc/cinder/rootwrap.conf
-      scheduler_default_filters: 'AvailabilityZoneFilter,CapacityFilter,CapabilitiesFilter'
+      scheduler_default_filters: "AvailabilityZoneFilter,CapacityFilter,CapabilitiesFilter"
       storage_availability_zone: az1
       use_multipath_for_image_xfer: false
     barbican:
@@ -101,14 +101,22 @@ conf:
       service_type: volumev3
     oslo_messaging_rabbit:
       amqp_durable_queues: false
-      heartbeat_rate: 3
-      heartbeat_timeout_threshold: 120
-      kombu_reconnect_delay: 0.5
       rabbit_ha_queues: false
-      rabbit_interval_max: 10
       rabbit_quorum_queue: true
       rabbit_transient_quorum_queue: false
       use_queue_manager: false
+      rabbit_interval_max: 10
+      # Send more frequent heartbeats and fail unhealthy nodes faster
+      # heartbeat_timeout / heartbeat_rate / 2.0 = 30 / 3 / 2.0 = 5
+      # https://opendev.org/openstack/oslo.messaging/commit/36fb5bceabe08a982ebd52e4a8f005cd26fdf6b8
+      heartbeat_rate: 3
+      heartbeat_timeout_threshold: 60
+      # DEPRECIATION:  (warning) heartbeat_in_pthread will be deprecated in 2024.2
+      heartbeat_in_pthread: True
+      # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
+      # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
+      # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
+      kombu_reconnect_delay: 0.5
   cinder_api_uwsgi:
     uwsgi:
       processes: 4

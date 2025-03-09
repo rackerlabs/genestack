@@ -1,6 +1,4 @@
 ---
-
-
 images:
   tags:
     bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
@@ -94,7 +92,7 @@ conf:
       router_scheduler_driver: neutron.scheduler.l3_agent_scheduler.AZLeastRoutersScheduler
       rpc_state_report_workers: 2
       rpc_workers: 4
-      service_plugins: 'ovn-router,qos,metering,trunk,segments'
+      service_plugins: "ovn-router,qos,metering,trunk,segments"
     agent:
       availability_zone: az1
     database:
@@ -102,26 +100,34 @@ conf:
       connection_recycle_time: 3600
       connection_trace: true
       idle_timeout: 3600
-      mysql_sql_mode: ''
+      mysql_sql_mode: ""
       use_db_reconnect: true
     oslo_messaging_rabbit:
       amqp_durable_queues: false
-      heartbeat_rate: 3
-      heartbeat_timeout_threshold: 120
-      kombu_reconnect_delay: 0.5
       rabbit_ha_queues: false
-      rabbit_interval_max: 10
       rabbit_quorum_queue: true
       rabbit_transient_quorum_queue: false
       use_queue_manager: false
+      rabbit_interval_max: 10
+      # Send more frequent heartbeats and fail unhealthy nodes faster
+      # heartbeat_timeout / heartbeat_rate / 2.0 = 30 / 3 / 2.0 = 5
+      # https://opendev.org/openstack/oslo.messaging/commit/36fb5bceabe08a982ebd52e4a8f005cd26fdf6b8
+      heartbeat_rate: 3
+      heartbeat_timeout_threshold: 60
+      # NOTE (deprecation warning) heartbeat_in_pthread will be deprecated in 2024.2
+      heartbeat_in_pthread: True
+      # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
+      # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
+      # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
+      kombu_reconnect_delay: 0.5
     ovn:
-      dns_servers: '8.8.8.8,1.1.1.1'
+      dns_servers: "8.8.8.8,1.1.1.1"
       enable_distributed_floating_ip: true
       neutron_sync_mode: "off"
       ovn_l3_mode: "true"
       ovn_l3_scheduler: leastloaded
-      ovn_nb_connection: 'tcp:127.0.0.1:6641'
-      ovn_sb_connection: 'tcp:127.0.0.1:6642'
+      ovn_nb_connection: "tcp:127.0.0.1:6641"
+      ovn_sb_connection: "tcp:127.0.0.1:6642"
   neutron_api_uwsgi:
     uwsgi:
       processes: 4
@@ -132,27 +138,27 @@ conf:
     DEFAULT:
       metadata_workers: 8
     ovs:
-      ovsdb_connection: 'tcp:127.0.0.1:6640'
+      ovsdb_connection: "tcp:127.0.0.1:6640"
   plugins:
     ml2_conf:
       agent:
         availability_zone: az1
-        extensions: 'fip_qos,gateway_ip_qos'
+        extensions: "fip_qos,gateway_ip_qos"
       ml2:
-        extension_drivers: 'port_security,qos'
+        extension_drivers: "port_security,qos"
         mechanism_drivers: ovn
         tenant_network_types: geneve
-        type_drivers: 'flat,vlan,geneve'
+        type_drivers: "flat,vlan,geneve"
       ml2_type_vlan:
         network_vlan_ranges: physnet1
       ovn:
-        dns_servers: '8.8.8.8,1.1.1.1'
-        neutron_sync_mode: 'off'
-        ovn_l3_mode: 'true'
+        dns_servers: "8.8.8.8,1.1.1.1"
+        neutron_sync_mode: "off"
+        ovn_l3_mode: "true"
         ovn_l3_scheduler: leastloaded
         ovn_metadata_enabled: true
-        ovn_nb_connection: 'tcp:127.0.0.1:6641'
-        ovn_sb_connection: 'tcp:127.0.0.1:6642'
+        ovn_nb_connection: "tcp:127.0.0.1:6641"
+        ovn_sb_connection: "tcp:127.0.0.1:6642"
     openvswitch_agent:
       agent:
         availability_zone: az1

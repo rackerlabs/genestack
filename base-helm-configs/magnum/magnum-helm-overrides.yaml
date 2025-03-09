@@ -1,18 +1,18 @@
 ---
 images:
   tags:
-    bootstrap: 'quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy'
-    db_drop: 'quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy'
-    db_init: 'quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy'
-    dep_check: 'quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0'
-    image_repo_sync: 'quay.io/rackspace/rackerlabs-docker:17.07.0'
-    ks_endpoints: 'quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy'
-    ks_service: 'quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy'
-    ks_user: 'quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy'
-    magnum_api: 'quay.io/rackspace/rackerlabs-magnum:2024.1-ubuntu_jammy'
-    magnum_conductor: 'quay.io/rackspace/rackerlabs-magnum:2024.1-ubuntu_jammy'
-    magnum_db_sync: 'quay.io/rackspace/rackerlabs-magnum:2024.1-ubuntu_jammy'
-    rabbit_init: 'quay.io/rackspace/rackerlabs-rabbitmq:3.13-management'
+    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0"
+    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
+    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    magnum_api: "quay.io/rackspace/rackerlabs-magnum:2024.1-ubuntu_jammy"
+    magnum_conductor: "quay.io/rackspace/rackerlabs-magnum:2024.1-ubuntu_jammy"
+    magnum_db_sync: "quay.io/rackspace/rackerlabs-magnum:2024.1-ubuntu_jammy"
+    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
 
 conf:
   logging:
@@ -66,14 +66,22 @@ conf:
       driver: messagingv2
     oslo_messaging_rabbit:
       amqp_durable_queues: false
-      heartbeat_rate: 3
-      heartbeat_timeout_threshold: 120
-      kombu_reconnect_delay: 0.5
       rabbit_ha_queues: false
-      rabbit_interval_max: 10
       rabbit_quorum_queue: true
       rabbit_transient_quorum_queue: false
       use_queue_manager: false
+      rabbit_interval_max: 10
+      # Send more frequent heartbeats and fail unhealthy nodes faster
+      # heartbeat_timeout / heartbeat_rate / 2.0 = 30 / 3 / 2.0 = 5
+      # https://opendev.org/openstack/oslo.messaging/commit/36fb5bceabe08a982ebd52e4a8f005cd26fdf6b8
+      heartbeat_rate: 3
+      heartbeat_timeout_threshold: 60
+      # NOTE (deprecation warning) heartbeat_in_pthread will be deprecated in 2024.2
+      heartbeat_in_pthread: True
+      # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
+      # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
+      # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
+      kombu_reconnect_delay: 0.5
     trust:
       cluster_user_trust: true
       trustee_domain_name: magnum
