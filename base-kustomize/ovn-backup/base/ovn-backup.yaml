@@ -50,7 +50,7 @@ spec:
               - secretRef:
                   name: ovn-backup-swift-tempauth-account
             command: ["/backup-script/ovn-backup.sh"]
-            image: docker.io/kubeovn/kube-ovn:v1.11.5
+            image: docker.io/kubeovn/kube-ovn:v1.12.30
             imagePullPolicy: IfNotPresent
             volumeMounts:
             - name: backup
