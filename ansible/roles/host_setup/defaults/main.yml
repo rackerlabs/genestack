@@ -115,6 +115,16 @@ kernel_options:
     value: 10
   - key: 'vm.swappiness'
     value: 5
+  - key: 'net.ipv4.conf.all.secure_redirects'
+    value: 0
+  - key: 'net.ipv4.conf.all.accept_redirects'
+    value: 0
+  - key: 'net.ipv6.conf.all.accept_redirects'
+    value: 0
+  - key: 'net.ipv4.conf.default.accept_redirects'
+    value: 0
+  - key: 'net.ipv4.conf.default.secure_redirects'
+    value: 0
 
 ## kernel modules for specific group hosts
 host_specific_kernel_modules: []
