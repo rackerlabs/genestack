@@ -6,4 +6,5 @@
 
 echo '# HELP node_dmpath_info State info for dev-mapper path'
 echo '# TYPE node_dmpath_info gauge'
-/sbin/multipathd show paths format '%s %S %z %m %d %D %i %a %P %I %M %t %T %o' | /usr/bin/awk '{ if ( NR > 1) {print "node_dmpath_info{vendor=\""$1"\"," "size=\""$2"\"," "volume_id=\""$3"\"," "multipath_id=\""$4"\"," "device=\""$5"\"," "dm_dev=\""$6"\"," "hcil=\""$7"\"," "interface_ip=\""$8"\"," "protocol=\""$9"\"," "init_st=\""$10"\"," "marginal_st=\""$11"\"," "device_mapper_state=\""$12"\"," "path_checker_state=\""$13"\"," "device_state=\""$14"\"}" " 1"}}'
+VENDOR_CHECK=$(/sbin/multipathd show paths format '%s %S %z %m %d %D %i %a %P %I %M %t %T %o' | sed 's/LUN C-Mode/LUN_C-Mode/')
+echo "${VENDOR_CHECK}" | /usr/bin/awk '{ if ( NR > 1) {print "node_dmpath_info{vendor=\""$1"\"," "size=\""$2"\"," "volume_id=\""$3"\"," "multipath_id=\""$4"\"," "device=\""$5"\"," "dm_dev=\""$6"\"," "hcil=\""$7"\"," "interface_ip=\""$8"\"," "protocol=\""$9"\"," "init_st=\""$10"\"," "marginal_st=\""$11"\"," "device_mapper_state=\""$12"\"," "path_checker_state=\""$13"\"," "device_state=\""$14"\"}" " 1"}}'
