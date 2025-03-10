@@ -12,7 +12,7 @@ metadata:
   name: ovndb-backup
 spec:
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteOnce
   resources:
     requests:
       storage: 1Gi
@@ -35,25 +35,25 @@ spec:
           serviceAccountName: "ovn"
           restartPolicy: "Never"
           volumes:
-          - name: backup
-            persistentVolumeClaim:
-              claimName: ovndb-backup
-          - name: backup-script
-            configMap:
-              name: ovn-backup-script
-              defaultMode: 0744
-          containers:
-          - name: ovn-central-backup
-            envFrom:
-              - configMapRef:
-                  name: ovn-backup-config
-              - secretRef:
-                  name: ovn-backup-swift-tempauth-account
-            command: ["/backup-script/ovn-backup.sh"]
-            image: docker.io/kubeovn/kube-ovn:v1.12.30
-            imagePullPolicy: IfNotPresent
-            volumeMounts:
             - name: backup
-              mountPath: "/backup"
+              persistentVolumeClaim:
+                claimName: ovndb-backup
             - name: backup-script
-              mountPath: /backup-script
+              configMap:
+                name: ovn-backup-script
+                defaultMode: 0744
+          containers:
+            - name: ovn-central-backup
+              envFrom:
+                - configMapRef:
+                    name: ovn-backup-config
+                - secretRef:
+                    name: ovn-backup-swift-tempauth-account
+              command: ["/backup-script/ovn-backup.sh"]
+              image: docker.io/kubeovn/kube-ovn:v1.11.5
+              imagePullPolicy: IfNotPresent
+              volumeMounts:
+                - name: backup
+                  mountPath: "/backup"
+                - name: backup-script
+                  mountPath: /backup-script
