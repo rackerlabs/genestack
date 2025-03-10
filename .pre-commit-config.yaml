@@ -24,6 +24,10 @@ repos:
     rev: v1.29.0
     hooks:
       - id: yamllint
+        args:
+          - >-
+            -d {extends: default, rules: {line-length: disable},
+            ignore: [submodules/]}
   - repo: https://github.com/ansible-community/ansible-lint
     rev: v6.22.2
     hooks:
