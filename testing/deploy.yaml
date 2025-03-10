@@ -244,10 +244,7 @@
 
     - name: Install gateway controller
       shell: |
-        cd /opt/genestack/submodules/nginx-gateway-fabric/charts
-        helm upgrade --install nginx-gateway-fabric ./nginx-gateway-fabric \
-          --namespace=nginx-gateway \
-          -f /etc/genestack/helm-configs/nginx-gateway-fabric/helm-overrides.yaml
+        /opt/genestack/bin/install-envoy-gateway.sh && /opt/genestack/bin/setup-envoy-gateway.sh
       args:
         executable: /bin/bash
 

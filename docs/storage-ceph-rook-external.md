@@ -34,7 +34,7 @@ ceph orch apply mds myfs label:mds
 
 ``` shell
 ./cephadm shell
-yum install wget -y ; wget https://raw.githubusercontent.com/rook/rook/release-1.12/deploy/examples/create-external-cluster-resources.py
+yum install wget -y ; wget https://raw.githubusercontent.com/rook/rook/release-1.16/deploy/examples/create-external-cluster-resources.py
 python3 create-external-cluster-resources.py --rbd-data-pool-name general --cephfs-filesystem-name general-multi-attach --namespace rook-ceph-external --format bash
 ```
 
@@ -74,7 +74,8 @@ kubectl apply -k /etc/genestack/kustomize/rook-operator/
 /opt/genestack/scripts/import-external-cluster.sh
 helm repo add rook-release https://charts.rook.io/release
 kubectl -n rook-ceph set image deploy/rook-ceph-operator rook-ceph-operator=rook/ceph:v1.13.7
-helm install --create-namespace --namespace rook-ceph-external rook-ceph-cluster     --set operatorNamespace=rook-ceph rook-release/rook-ceph-cluster -f /opt/genestack/submodules/rook/deploy/charts/rook-ceph-cluster/values-external.yaml
+wget https://raw.githubusercontent.com/rook/rook/refs/tags/v1.16.5/deploy/charts/rook-ceph-cluster/values-external.yaml -O /etc/genestack/helm-configs/rook-values-external.yaml
+helm install --create-namespace --namespace rook-ceph-external rook-ceph-cluster --set operatorNamespace=rook-ceph rook-release/rook-ceph-cluster -f /etc/genestack/helm-configs/rook-values-external.yaml
 kubectl patch storageclass general -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
 ```
 
