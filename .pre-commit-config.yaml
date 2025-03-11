@@ -19,7 +19,7 @@ repos:
         stages:
           - commit-msg
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v5.0.0
     hooks:
       - id: end-of-file-fixer
         stages:
@@ -51,13 +51,13 @@ repos:
           - "--unsafe"
       - id: debug-statements
   - repo: https://github.com/psf/black
-    rev: 24.1.1
+    rev: 25.1.0
     hooks:
       - id: black
         stages:
           - manual
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.29.0
+    rev: v1.35.1
     hooks:
       - id: yamllint
         stages:
@@ -67,7 +67,7 @@ repos:
             -d {extends: default, rules: {line-length: disable},
             ignore: [submodules/]}
   - repo: https://github.com/ansible-community/ansible-lint
-    rev: v6.22.2
+    rev: v24.9.2
     hooks:
       - id: ansible-lint
         stages:
