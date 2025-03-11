@@ -19,12 +19,11 @@ jobs:
         id: changed-files
         uses: tj-actions/changed-files@v23.1
       - name: Run Check
-        uses: pre-commit/action@v3.0.0
+        uses: pre-commit/action@v3.0.1
         with:
           extra_args: >-
             --files ${{ steps.changed-files.outputs.all_changed_files }}
             --hook-stage manual
-
       - name: Checks failed, notification
         if: failure()
         run: |
