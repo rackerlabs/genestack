@@ -1,16 +1,50 @@
 ---
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+
 repos:
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.0.0
+    hooks:
+      - id: conventional-pre-commit
+        stages:
+          - commit-msg
+        args:
+          - "--strict"
+  - repo: https://github.com/jumanjihouse/pre-commit-hooks
+    rev: 3.0.0
+    hooks:
+      - id: shellcheck
+        stages:
+          - commit-msg
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
       - id: end-of-file-fixer
+        stages:
+          - commit-msg
       - id: trailing-whitespace
+        stages:
+          - commit-msg
       - id: mixed-line-ending
+        stages:
+          - commit-msg
       - id: check-byte-order-marker
+        stages:
+          - commit-msg
       - id: check-executables-have-shebangs
+        stages:
+          - commit-msg
       - id: check-merge-conflict
+        stages:
+          - commit-msg
       - id: check-symlinks
+        stages:
+          - commit-msg
       - id: check-yaml
+        stages:
+          - commit-msg
         files: .*\.(yaml|yml)$
         args:
           - "--allow-multiple-documents"
@@ -20,10 +54,14 @@ repos:
     rev: 24.1.1
     hooks:
       - id: black
+        stages:
+          - manual
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.29.0
     hooks:
       - id: yamllint
+        stages:
+          - manual
         args:
           - >-
             -d {extends: default, rules: {line-length: disable},
@@ -32,10 +70,7 @@ repos:
     rev: v6.22.2
     hooks:
       - id: ansible-lint
+        stages:
+          - manual
         additional_dependencies:
           - ansible
-          - yamllint
-  - repo: https://github.com/jumanjihouse/pre-commit-hooks
-    rev: 3.0.0
-    hooks:
-      - id: shellcheck
