@@ -706,56 +706,12 @@ EOC
 
 # Run Genestack OpenStack Setup
 ssh -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
-set -e
-sudo /opt/genestack/bin/install-keystone.sh
-pids=()
-sudo /opt/genestack/bin/install-glance.sh &
-pids+=(\$!)
-sudo /opt/genestack/bin/install-heat.sh &
-pids+=(\$!)
-sudo /opt/genestack/bin/install-barbican.sh &
-pids+=(\$!)
-sudo /opt/genestack/bin/install-cinder.sh &
-pids+=(\$!)
-sudo /opt/genestack/bin/install-placement.sh &
-pids+=(\$!)
-sudo /opt/genestack/bin/install-nova.sh &
-pids+=(\$!)
-sudo /opt/genestack/bin/install-neutron.sh &
-pids+=(\$!)
-sudo /opt/genestack/bin/install-magnum.sh &
-pids+=(\$!)
-sudo /opt/genestack/bin/install-octavia.sh &
-pids+=(\$!)
-for pid in \${pids[*]}; do
-    wait \${pid}
-done
-sudo /opt/genestack/bin/install-skyline.sh
+sudo /opt/genestack/bin/setup-openstack.sh
 EOC
 
 # Run Genestack post setup
 ssh -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
-set -e
-mkdir -p ~/.config/openstack
-cat >  ~/.config/openstack/clouds.yaml <<EOF
-cache:
-  auth: true
-  expiration_time: 3600
-clouds:
-  default:
-    auth:
-      auth_url: \$(sudo kubectl --namespace openstack get secret keystone-keystone-admin -o jsonpath='{.data.OS_AUTH_URL}' | base64 -d)
-      project_name: \$(sudo kubectl --namespace openstack get secret keystone-keystone-admin -o jsonpath='{.data.OS_PROJECT_NAME}' | base64 -d)
-      tenant_name: \$(sudo kubectl --namespace openstack get secret keystone-keystone-admin -o jsonpath='{.data.OS_USER_DOMAIN_NAME}' | base64 -d)
-      project_domain_name: \$(sudo kubectl --namespace openstack get secret keystone-keystone-admin -o jsonpath='{.data.OS_PROJECT_DOMAIN_NAME}' | base64 -d)
-      username: \$(sudo kubectl --namespace openstack get secret keystone-keystone-admin -o jsonpath='{.data.OS_USERNAME}' | base64 -d)
-      password: \$(sudo kubectl --namespace openstack get secret keystone-keystone-admin -o jsonpath='{.data.OS_PASSWORD}' | base64 -d)
-      user_domain_name: \$(sudo kubectl --namespace openstack get secret keystone-keystone-admin -o jsonpath='{.data.OS_USER_DOMAIN_NAME}' | base64 -d)
-    region_name: \$(sudo kubectl --namespace openstack get secret keystone-keystone-admin -o jsonpath='{.data.OS_REGION_NAME}' | base64 -d)
-    interface: \$(sudo kubectl --namespace openstack get secret keystone-keystone-admin -o jsonpath='{.data.OS_INTERFACE}' | base64 -d)
-    identity_api_version: "3"
-EOF
-source /opt/genestack/scripts/genestack.rc
+sudo /opt/genestack/bin/setup-openstack-rc.sh
 openstack --os-cloud default flavor create hyperconverged-test \
           --public \
           --ram 2048 \
