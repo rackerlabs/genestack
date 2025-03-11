@@ -4,7 +4,7 @@ GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/gnocchi"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/gnocchi/gnocchi-helm-overrides.yaml"
 
-HELM_CMD="helm upgrade --install gnocchi openstack-helm-infra/gnocchi  \
+HELM_CMD="helm upgrade --install gnocchi openstack-helm-infra/gnocchi --version 2024.2.50+628a320c \
     --namespace=openstack \
     --timeout 10m"
 
