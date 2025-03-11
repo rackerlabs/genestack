@@ -1,9 +1,12 @@
 [submodule "submodules/kubespray"]
 	path = submodules/kubespray
 	url = https://github.com/kubernetes-sigs/kubespray
+	ignore = all
 [submodule "submodules/openstack-exporter"]
 	path = submodules/openstack-exporter
 	url = https://github.com/openstack-exporter/helm-charts
+	ignore = all
 [submodule "submodules/postgres-operator"]
 	path = submodules/postgres-operator
 	url = https://github.com/zalando/postgres-operator.git
+	ignore = all
