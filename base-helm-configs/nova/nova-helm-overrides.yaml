@@ -105,6 +105,7 @@ conf:
       vif_plugging_is_fatal: true
       vif_plugging_timeout: 300
       cross_az_attach: true
+      network_allocate_retries: 3
     api_database:
       idle_timeout: 3600
       connection_recycle_time: 3600
