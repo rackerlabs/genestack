@@ -75,8 +75,6 @@ conf:
       auth_type: password
       auth_version: v3
       memcache_security_strategy: ENCRYPT
-      service_token_roles: service
-      service_token_roles_required: true
       service_type: load-balancer
       valid_interfaces: internal
     neutron:
@@ -178,20 +176,20 @@ pod:
       init_container: null
       octavia_api:
         volumeMounts:
-        - name: pod-run-octavia
-          mountPath: /var/run/octavia
+          - name: pod-run-octavia
+            mountPath: /var/run/octavia
         volumes:
-        - name: pod-run-octavia
-          emptyDir: {}
+          - name: pod-run-octavia
+            emptyDir: {}
     octavia_worker:
       init_container: null
       octavia_worker:
         volumeMounts:
-        - name: pod-run-octavia
-          mountPath: /var/run/octavia
+          - name: pod-run-octavia
+            mountPath: /var/run/octavia
         volumes:
-        - name: pod-run-octavia
-          emptyDir: {}
+          - name: pod-run-octavia
+            emptyDir: {}
     octavia_driver_agent:
       init_container: null
       octavia_bootstrap:
