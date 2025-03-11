@@ -123,7 +123,7 @@ if ! METAL_LB_IP=$(openstack port show metallb-vip-0-port -f json | jq -r '.fixe
   METAL_LB_IP=$(openstack port create --security-group hyperconverged-http-secgroup --network hyperconverged-net metallb-vip-0-port -f json | jq -r '.fixed_ips[0].ip_address')
 fi
 
-METAL_LB_PORT_ID=$(openstack port show metallb-vip-0-port -f value -c ID)
+METAL_LB_PORT_ID=$(openstack port show metallb-vip-0-port -f value -c id)
 
 if ! METAL_LB_VIP=$(openstack floating ip list --port ${METAL_LB_PORT_ID} -f json | jq -r '.[]."Floating IP Address"'); then
   METAL_LB_VIP=$(openstack floating ip create PUBLICNET --port ${METAL_LB_PORT_ID} -f json | jq -r '.floating_ip_address')
@@ -131,7 +131,7 @@ elif [ -z "${METAL_LB_VIP}" ]; then
   METAL_LB_VIP=$(openstack floating ip create PUBLICNET --port ${METAL_LB_PORT_ID} -f json | jq -r '.floating_ip_address')
 fi
 
-if ! WORKER_0_PORT=$(openstack port show hyperconverged-0-mgmt-port -f value -c ID); then
+if ! WORKER_0_PORT=$(openstack port show hyperconverged-0-mgmt-port -f value -c id); then
   export WORKER_0_PORT=$(
     openstack port create --allowed-address ip-address=${METAL_LB_IP} \
                           --security-group hyperconverged-secgroup \
@@ -144,7 +144,7 @@ if ! WORKER_0_PORT=$(openstack port show hyperconverged-0-mgmt-port -f value -c 
   )
 fi
 
-if ! WORKER_1_PORT=$(openstack port show hyperconverged-1-mgmt-port -f value -c ID); then
+if ! WORKER_1_PORT=$(openstack port show hyperconverged-1-mgmt-port -f value -c id); then
   export WORKER_1_PORT=$(
     openstack port create --allowed-address ip-address=${METAL_LB_IP} \
                           --security-group hyperconverged-secgroup \
@@ -156,7 +156,7 @@ if ! WORKER_1_PORT=$(openstack port show hyperconverged-1-mgmt-port -f value -c 
   )
 fi
 
-if ! WORKER_2_PORT=$(openstack port show hyperconverged-2-mgmt-port -f value -c ID); then
+if ! WORKER_2_PORT=$(openstack port show hyperconverged-2-mgmt-port -f value -c id); then
   export WORKER_2_PORT=$(
     openstack port create --allowed-address ip-address=${METAL_LB_IP} \
                           --security-group hyperconverged-secgroup \
@@ -174,7 +174,7 @@ elif [ -z "${JUMP_HOST_VIP}" ]; then
   JUMP_HOST_VIP=$(openstack floating ip create PUBLICNET --port ${WORKER_0_PORT} -f json | jq -r '.floating_ip_address')
 fi
 
-if ! COMPUTE_0_PORT=$(openstack port show hyperconverged-0-compute-port -f value -c ID) 2> /dev/null; then
+if ! COMPUTE_0_PORT=$(openstack port show hyperconverged-0-compute-port -f value -c id) 2> /dev/null; then
   export COMPUTE_0_PORT=$(
     openstack port create --network hyperconverged-compute-net \
                           --no-fixed-ip \
@@ -185,7 +185,7 @@ if ! COMPUTE_0_PORT=$(openstack port show hyperconverged-0-compute-port -f value
   )
 fi
 
-if ! COMPUTE_1_PORT=$(openstack port show hyperconverged-1-compute-port -f value -c ID) 2> /dev/null; then
+if ! COMPUTE_1_PORT=$(openstack port show hyperconverged-1-compute-port -f value -c id) 2> /dev/null; then
   export COMPUTE_1_PORT=$(
     openstack port create --network hyperconverged-compute-net \
                           --no-fixed-ip \
@@ -196,7 +196,7 @@ if ! COMPUTE_1_PORT=$(openstack port show hyperconverged-1-compute-port -f value
   )
 fi
 
-if ! COMPUTE_2_PORT=$(openstack port show hyperconverged-2-compute-port -f value -c ID) 2> /dev/null; then
+if ! COMPUTE_2_PORT=$(openstack port show hyperconverged-2-compute-port -f value -c id) 2> /dev/null; then
   export COMPUTE_2_PORT=$(
     openstack port create --network hyperconverged-compute-net \
                           --no-fixed-ip \
