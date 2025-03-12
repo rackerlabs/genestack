@@ -20,9 +20,17 @@ if [ -z "${OS_CLOUD}" ]; then
   export OS_CLOUD="${OS_CLOUD:-default}"
 fi
 
+# SJC3 is special...
+OS_REGION=$(openstack config show -f json | jq -r '.region_name')
+if [ "${OS_REGION}" = "SJC3" ]; then
+  DEFAULT_OS_FLAVOR="gp.0.8.16"
+else
+  DEFAULT_OS_FLAVOR="gp.5.8.16"
+fi
+
 if [ -z "${OS_FLAVOR}" ]; then
-  read -rp "Enter name of the flavor to use for the instances [gp.5.8.16]: " OS_FLAVOR
-  export OS_FLAVOR=${OS_FLAVOR:-gp.5.8.16}
+  read -rp "Enter name of the flavor to use for the instances [${DEFAULT_OS_FLAVOR}]: " OS_FLAVOR
+  export OS_FLAVOR=${OS_FLAVOR:-${DEFAULT_OS_FLAVOR}}
 fi
 
 if ! openstack router show hyperconverged-router; then
