@@ -261,7 +261,7 @@ while ! ssh -o UserKnownHostsFile=/dev/null -q ubuntu@${JUMP_HOST_VIP} exit; do
 done
 
 # Run bootstrap
-ssh -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
 set -e
 if [ -f ~/.venvs/genestack/bin/pip ]; then
   exit 0
@@ -568,7 +568,7 @@ EOF
 EOC
 
 # Run host setup
-ssh -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
 set -e
 python3 -m venv ~/.venvs/genestack
 ~/.venvs/genestack/bin/pip install -r /opt/genestack/requirements.txt
@@ -577,7 +577,7 @@ ANSIBLE_SSH_PIPELINING=0 ansible-playbook /opt/genestack/ansible/playbooks/host-
 EOC
 
 # Run K8S setup
-ssh -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
 set -e
 if [ -d "/var/lib/kubelet" ]; then
   exit 0
@@ -588,7 +588,7 @@ ANSIBLE_SSH_PIPELINING=0 ansible-playbook cluster.yml --become
 EOC
 
 # Run K8S post setup
-ssh -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
 set -e
 if [ ! -f "/usr/local/bin/kubectl" ]; then
   curl -LO "https://dl.k8s.io/release/\$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -605,7 +605,7 @@ fi
 EOC
 
 # Run K8s Label setup
-ssh -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
 set -e
 sudo kubectl label node --all openstack-control-plane=enabled \
                               openstack-compute-node=enabled \
@@ -656,7 +656,7 @@ sudo kubectl annotate \
 EOC
 
 # Run Core K8S Components setup
-ssh -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
 set -e
 sudo /opt/genestack/bin/install-kube-ovn.sh
 sudo kubectl -n kube-system wait --timeout=5m deployments.app/kube-ovn-controller --for=condition=available
@@ -667,7 +667,7 @@ sudo kubectl apply -f /etc/genestack/manifests/longhorn/longhorn-general-storage
 EOC
 
 # Run Genestack Infrastucture setup
-ssh -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
 set -e
 sudo /opt/genestack/bin/install-prometheus.sh
 sudo kubectl apply -f /etc/genestack/manifests/metallb/metallb-namespace.yaml
@@ -705,12 +705,12 @@ sudo /opt/genestack/bin/install-libvirt.sh
 EOC
 
 # Run Genestack OpenStack Setup
-ssh -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
 sudo /opt/genestack/bin/setup-openstack.sh
 EOC
 
 # Run Genestack post setup
-ssh -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
 sudo /opt/genestack/bin/setup-openstack-rc.sh
 openstack --os-cloud default flavor create hyperconverged-test \
           --public \
