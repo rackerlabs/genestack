@@ -1,9 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # shellcheck disable=SC2124,SC2145,SC2294,SC2086,SC2087,SC2155
 
 set -o pipefail
 set -e
-
+SECONDS=0
 if [ -z "${ACME_EMAIL}" ]; then
   read -rp "Enter a valid email address for use with ACME, press enter to skip: " ACME_EMAIL
   export ACME_EMAIL="${ACME_EMAIL:-}"
@@ -20,15 +20,12 @@ if [ -z "${OS_CLOUD}" ]; then
   export OS_CLOUD="${OS_CLOUD:-default}"
 fi
 
-# SJC3 is special...
-OS_REGION=$(openstack config show -f json | jq -r '.region_name')
-if [ "${OS_REGION}" = "SJC3" ]; then
-  DEFAULT_OS_FLAVOR="gp.0.8.16"
-else
-  DEFAULT_OS_FLAVOR="gp.5.8.16"
-fi
-
 if [ -z "${OS_FLAVOR}" ]; then
+  # List compatible flavors
+  FLAVORS=$(openstack flavor list --min-ram 16000 --min-disk 100 --sort-column Name -c Name -c RAM -c Disk -c VCPUs -f json)
+  DEFAULT_OS_FLAVOR=$(echo "${FLAVORS}" | jq -r '[.[] | select( all(.RAM; . < 24576) )] | .[0].Name')
+  echo "The following flavors are available for use with this build"
+  echo "${FLAVORS}" | jq -r '["Name", "RAM", "Disk", "VCPUs"], (.[] | [.Name, .RAM, .Disk, .VCPUs]) | @tsv' | column -t
   read -rp "Enter name of the flavor to use for the instances [${DEFAULT_OS_FLAVOR}]: " OS_FLAVOR
   export OS_FLAVOR=${OS_FLAVOR:-${DEFAULT_OS_FLAVOR}}
 fi
@@ -182,6 +179,17 @@ elif [ -z "${JUMP_HOST_VIP}" ]; then
   JUMP_HOST_VIP=$(openstack floating ip create PUBLICNET --port ${WORKER_0_PORT} -f json | jq -r '.floating_ip_address')
 fi
 
+for i in {100..109}; do
+  if ! openstack port show hyperconverged-0-compute-float-${i}-port -f value -c id 2> /dev/null; then
+    openstack port create --network hyperconverged-compute-net \
+                          --disable-port-security \
+                          --fixed-ip ip-address="192.168.102.${i}" \
+                          -f value \
+                          -c id \
+                          hyperconverged-0-compute-float-${i}-port
+  fi
+done
+
 if ! COMPUTE_0_PORT=$(openstack port show hyperconverged-0-compute-port -f value -c id) 2> /dev/null; then
   export COMPUTE_0_PORT=$(
     openstack port create --network hyperconverged-compute-net \
@@ -230,11 +238,12 @@ fi
 ssh-add ~/.ssh/hyperconverged-key.pem
 
 # Create the three lab instances
+export OS_IMAGE="${OS_IMAGE:-Ubuntu 24.04}"
 if ! openstack server show hyperconverged-0; then
   openstack server create hyperconverged-0 \
             --port ${WORKER_0_PORT} \
             --port ${COMPUTE_0_PORT} \
-            --image "Ubuntu 24.04" \
+            --image "${OS_IMAGE}" \
             --key-name hyperconverged-key \
             --flavor ${OS_FLAVOR}
 fi
@@ -243,7 +252,7 @@ if ! openstack server show hyperconverged-1; then
   openstack server create hyperconverged-1 \
             --port ${WORKER_1_PORT} \
             --port ${COMPUTE_1_PORT} \
-            --image "Ubuntu 24.04" \
+            --image "${OS_IMAGE}" \
             --key-name hyperconverged-key \
             --flavor ${OS_FLAVOR}
 fi
@@ -252,13 +261,14 @@ if ! openstack server show hyperconverged-2; then
   openstack server create hyperconverged-2 \
             --port ${WORKER_2_PORT} \
             --port ${COMPUTE_2_PORT} \
-            --image "Ubuntu 24.04" \
+            --image "${OS_IMAGE}" \
             --key-name hyperconverged-key \
             --flavor ${OS_FLAVOR}
 fi
 
+echo "Waiting for the jump host to be ready"
 COUNT=0
-while ! ssh -o UserKnownHostsFile=/dev/null -q ubuntu@${JUMP_HOST_VIP} exit; do
+while ! ssh -o ConnectTimeout=2 -o ConnectionAttempts=3 -o UserKnownHostsFile=/dev/null -q ubuntu@${JUMP_HOST_VIP} exit; do
    sleep 2
    echo "SSH is not ready, Trying again..."
    COUNT=$((COUNT+1))
@@ -269,16 +279,37 @@ while ! ssh -o UserKnownHostsFile=/dev/null -q ubuntu@${JUMP_HOST_VIP} exit; do
 done
 
 # Run bootstrap
+if [ "${HYPERCONVERGED_DEV:-false}" = "true" ]; then
+  export SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+  if [ ! -d "${SCRIPT_DIR}" ]; then
+    echo "HYPERCONVERGED_DEV is true, but we've failed to determine the base genestack directory"
+    exit 1
+  fi
+  ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} "sudo chown \${USER}:\${USER} /opt"
+  echo "Copying the development source code to the jump host"
+  rsync -az \
+        -e "ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null" \
+        --rsync-path="sudo rsync" \
+        $(readlink -fn ${SCRIPT_DIR}/../) ubuntu@${JUMP_HOST_VIP}:/opt/
+fi
+
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
 set -e
-if [ -f ~/.venvs/genestack/bin/pip ]; then
-  exit 0
+if [ ! -d "/opt/genestack" ]; then
+  sudo git clone --recurse-submodules -j4 https://github.com/rackerlabs/genestack /opt/genestack
+else
+  sudo git config --global --add safe.directory /opt/genestack
+  pushd /opt/genestack
+    sudo git submodule update --init --recursive
+  popd
 fi
-# SSH into the floating ip address of the hyperconverged-0 server
-sudo git clone --recurse-submodules -j4 https://github.com/rackerlabs/genestack /opt/genestack
-sudo /opt/genestack/bootstrap.sh
-sudo chown \${USER}:\${USER} -R /etc/genestack
 
+if [ ! -d "/etc/genestack" ]; then
+  sudo /opt/genestack/bootstrap.sh
+  sudo chown \${USER}:\${USER} -R /etc/genestack
+fi
+
+if [ ! -f "/etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml" ]; then
 cat > /etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml <<EOF
 ---
 apiVersion: metallb.io/v1beta1
@@ -300,7 +331,9 @@ spec:
   ipAddressPools:
     - gateway-api-external
 EOF
+fi
 
+if [ ! -f "/etc/genestack/inventory/inventory.yaml" ]; then
 cat > /etc/genestack/inventory/inventory.yaml <<EOF
 ---
 all:
@@ -378,6 +411,7 @@ all:
             hyperconverged-1.${GATEWAY_DOMAIN}: null
             hyperconverged-2.${GATEWAY_DOMAIN}: null
 EOF
+fi
 
 if [ ! -f "/etc/genestack/helm-configs/barbican/barbican-helm-overrides.yaml" ]; then
 cat > /etc/genestack/helm-configs/barbican/barbican-helm-overrides.yaml <<EOF
@@ -557,191 +591,88 @@ conf:
       threads: 1
 EOF
 fi
-
-# Create the OVN interface
-export CONTAINER_INTERFACE=\$(ip -details -json link show | jq -r '[.[] |
-        if .linkinfo.info_kind // .link_type == "loopback" or (.ifname | test("idrac+")) then
-            empty
-        else
-            .ifname
-        end
-    ] | .[0]')
-
-cat > /etc/genestack/helm-configs/kube-ovn/kube-ovn-helm-overrides.yaml <<EOF
-networking:
-  IFACE: "\${CONTAINER_INTERFACE}"
-  vlan:
-    VLAN_INTERFACE_NAME: "\${CONTAINER_INTERFACE}"
-EOF
 EOC
 
-# Run host setup
+# Run host and K8S setup
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
 set -e
-python3 -m venv ~/.venvs/genestack
-~/.venvs/genestack/bin/pip install -r /opt/genestack/requirements.txt
-source /opt/genestack/scripts/genestack.rc
-ANSIBLE_SSH_PIPELINING=0 ansible-playbook /opt/genestack/ansible/playbooks/host-setup.yml --become
+if [ ! -f "/usr/local/bin/queue_max.sh" ]; then
+  python3 -m venv ~/.venvs/genestack
+  ~/.venvs/genestack/bin/pip install -r /opt/genestack/requirements.txt
+  source /opt/genestack/scripts/genestack.rc
+  ANSIBLE_SSH_PIPELINING=0 ansible-playbook /opt/genestack/ansible/playbooks/host-setup.yml --become
+fi
+if [ ! -d "/var/lib/kubelet" ]; then
+  source /opt/genestack/scripts/genestack.rc
+  cd /opt/genestack/submodules/kubespray
+  ANSIBLE_SSH_PIPELINING=0 ansible-playbook cluster.yml --become
+fi
+mkdir -p /opt/kube-plugins
+pushd /opt/kube-plugins
+  if [ ! -f "/usr/local/bin/kubectl" ]; then
+    curl -LO "https://dl.k8s.io/release/\$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+  fi
+  if [ ! -f "/usr/local/bin/kubectl-convert" ]; then
+    curl -LO "https://dl.k8s.io/release/\$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl-convert"
+    sudo install -o root -g root -m 0755 kubectl-convert /usr/local/bin/kubectl-convert
+  fi
+  if [ ! -f "/usr/local/bin/kubectl-ko" ]; then
+    curl -LO https://raw.githubusercontent.com/kubeovn/kube-ovn/release-1.12/dist/images/kubectl-ko
+    sudo install -o root -g root -m 0755 kubectl-ko /usr/local/bin/kubectl-ko
+  fi
+popd
 EOC
 
-# Run K8S setup
+# Run Genestack Infrastucture/OpenStack Setup
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
 set -e
-if [ -d "/var/lib/kubelet" ]; then
-  exit 0
-fi
-source /opt/genestack/scripts/genestack.rc
-cd /opt/genestack/submodules/kubespray
-ANSIBLE_SSH_PIPELINING=0 ansible-playbook cluster.yml --become
-EOC
-
-# Run K8S post setup
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
-set -e
-if [ ! -f "/usr/local/bin/kubectl" ]; then
-  curl -LO "https://dl.k8s.io/release/\$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-  sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-fi
-if [ ! -f "/usr/local/bin/kubectl-convert" ]; then
-  curl -LO "https://dl.k8s.io/release/\$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl-convert"
-  sudo install -o root -g root -m 0755 kubectl-convert /usr/local/bin/kubectl-convert
-fi
-if [ ! -f "/usr/local/bin/kubectl-ko" ]; then
-  curl -LO https://raw.githubusercontent.com/kubeovn/kube-ovn/release-1.12/dist/images/kubectl-ko
-  sudo install -o root -g root -m 0755 kubectl-ko /usr/local/bin/kubectl-ko
-fi
-EOC
-
-# Run K8s Label setup
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
-set -e
-sudo kubectl label node --all openstack-control-plane=enabled \
-                              openstack-compute-node=enabled \
-                              openstack-network-node=enabled \
-                              openstack-storage-node=enabled \
-                              node-role.kubernetes.io/worker=worker
-
-sudo kubectl label node -l beta.kubernetes.io/os=linux kubernetes.io/os=linux
-sudo kubectl label node -l node-role.kubernetes.io/control-plane kube-ovn/role=master
-sudo kubectl label node -l ovn.kubernetes.io/ovs_dp_type!=userspace ovn.kubernetes.io/ovs_dp_type=kernel
-sudo kubectl label node -l node-role.kubernetes.io/control-plane longhorn.io/storage-node=enabled
-
-if ! sudo kubectl taint nodes -l node-role.kubernetes.io/control-plane node-role.kubernetes.io/control-plane:NoSchedule-; then
-  echo "Taint already removed"
-fi
-
-export COMPUTE_INTERFACE=\$(ip -details -json link show | jq -r '[.[] |
-        if .linkinfo.info_kind // .link_type == "loopback" or (.ifname | test("idrac+")) then
-            empty
-        else
-            .ifname
-        end
-    ] | .[-1]')
-sudo kubectl annotate \
-        nodes \
-        -l openstack-compute-node=enabled -l openstack-network-node=enabled \
-        ovn.openstack.org/int_bridge='br-int'
-sudo kubectl annotate \
-        nodes \
-        -l openstack-compute-node=enabled -l openstack-network-node=enabled \
-        ovn.openstack.org/bridges='br-ex'
-sudo kubectl annotate \
-        nodes \
-        -l openstack-compute-node=enabled -l openstack-network-node=enabled \
-        ovn.openstack.org/ports="br-ex:\${COMPUTE_INTERFACE}"
-sudo kubectl annotate \
-        nodes \
-        -l openstack-compute-node=enabled -l openstack-network-node=enabled \
-        ovn.openstack.org/mappings='physnet1:br-ex'
-sudo kubectl annotate \
-        nodes \
-        -l openstack-compute-node=enabled -l openstack-network-node=enabled \
-        ovn.openstack.org/availability_zones='az1'
-sudo kubectl annotate \
-        nodes \
-        -l openstack-network-node=enabled \
-        ovn.openstack.org/gateway='enabled'
-EOC
-
-# Run Core K8S Components setup
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
-set -e
-sudo /opt/genestack/bin/install-kube-ovn.sh
-sudo kubectl -n kube-system wait --timeout=5m deployments.app/kube-ovn-controller --for=condition=available
-sudo kubectl apply -f /etc/genestack/manifests/longhorn/longhorn-namespace.yaml
-sudo /opt/genestack/bin/install-longhorn.sh
-sudo sed -i 's/numberOfReplicas.*/numberOfReplicas: "1"/g' /etc/genestack/manifests/longhorn/longhorn-general-storageclass.yaml
-sudo kubectl apply -f /etc/genestack/manifests/longhorn/longhorn-general-storageclass.yaml
-EOC
-
-# Run Genestack Infrastucture setup
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
-set -e
-sudo /opt/genestack/bin/install-prometheus.sh
-sudo kubectl apply -f /etc/genestack/manifests/metallb/metallb-namespace.yaml
-sudo /opt/genestack/bin/install-metallb.sh
-echo "Waiting for the metallb-controller to be available"
-sudo kubectl -n metallb-system wait --timeout=5m deployments.apps/metallb-controller --for=condition=available
-sudo kubectl apply -f /etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml
-sudo kubectl apply -k /etc/genestack/kustomize/openstack
-sudo /opt/genestack/bin/install-envoy-gateway.sh
-echo "Waiting for the envoy-gateway to be available"
-sudo kubectl -n envoyproxy-gateway-system wait --timeout=5m deployments.apps/envoy-gateway --for=condition=available
-sudo GATEWAY_DOMAIN="${GATEWAY_DOMAIN}" ACME_EMAIL="${ACME_EMAIL}" /opt/genestack/bin/setup-envoy-gateway.sh
-echo "Waiting for the cert-manager to be available"
-sudo kubectl -n cert-manager wait --timeout=5m deployments.apps cert-manager --for=condition=available
-sudo /opt/genestack/bin/create-secrets.sh
-if ! sudo kubectl create -f /etc/genestack/kubesecrets.yaml; then
-  echo "Secrets already created"
-fi
-sudo /opt/genestack/bin/install-mariadb-operator.sh
-sudo kubectl apply -k /etc/genestack/kustomize/rabbitmq-operator
-sudo kubectl apply -k /etc/genestack/kustomize/rabbitmq-topology-operator
-echo "Waiting for the mariadb-operator-webhook to be available"
-if ! sudo kubectl -n mariadb-system wait --timeout=1m deployments.apps mariadb-operator-webhook --for=condition=available; then
-  echo "Recycling the mariadb-operator pods because sometimes they're stupid"
-  sudo kubectl -n mariadb-system get pods -o name | xargs sudo kubectl -n mariadb-system delete
-  sudo kubectl -n mariadb-system wait --timeout=5m deployments.apps mariadb-operator-webhook --for=condition=available
-fi
-sudo kubectl -n openstack apply -k /etc/genestack/kustomize/mariadb-cluster/overlay
-echo "Waiting for the rabbitmq-cluster-operator to be available"
-sudo kubectl -n rabbitmq-system wait --timeout=5m deployments.apps rabbitmq-cluster-operator --for=condition=available
-sudo kubectl apply -k /etc/genestack/kustomize/rabbitmq-cluster/overlay
-sudo kubectl apply -k /etc/genestack/kustomize/ovn
-sudo /opt/genestack/bin/install-memcached.sh
-sudo /opt/genestack/bin/install-libvirt.sh
-EOC
-
-# Run Genestack OpenStack Setup
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
+echo "Installing OpenStack Infrastructure"
+sudo LONGHORN_STORAGE_REPLICAS=1 \
+     GATEWAY_DOMAIN="${GATEWAY_DOMAIN}" \
+     ACME_EMAIL="${ACME_EMAIL}" \
+     HYPERCONVERGED=true \
+     /opt/genestack/bin/setup-infrastructure.sh
+echo "Installing OpenStack"
 sudo /opt/genestack/bin/setup-openstack.sh
 EOC
 
 # Run Genestack post setup
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
-sudo /opt/genestack/bin/setup-openstack-rc.sh
+set -e
+if ! sudo /opt/genestack/bin/setup-openstack-rc.sh; then
+  sleep 5
+  sudo /opt/genestack/bin/setup-openstack-rc.sh
+fi
 source /opt/genestack/scripts/genestack.rc
-openstack --os-cloud default flavor create hyperconverged-test \
-          --public \
-          --ram 2048 \
-          --disk 10 \
-          --vcpus 2
-openstack --os-cloud default network create \
-          --share \
-          --availability-zone-hint az1 \
-          --external \
-          --provider-network-type flat \
-          --provider-physical-network physnet1 \
-          flat
-openstack --os-cloud default subnet create \
-          --subnet-range 192.168.102.0/24 \
-          --gateway 192.168.102.1 \
-          --dns-nameserver 1.1.1.1 \
-          --allocation-pool start=192.168.102.100,end=192.168.102.200 \
-          --dhcp \
-          --network flat \
-          flat_subnet
+if ! openstack --os-cloud default flavor show hyperconverged-test; then
+  openstack --os-cloud default flavor create hyperconverged-test \
+            --public \
+            --ram 2048 \
+            --disk 10 \
+            --vcpus 2
+fi
+if ! openstack --os-cloud default network show flat; then
+  openstack --os-cloud default network create \
+            --share \
+            --availability-zone-hint az1 \
+            --external \
+            --provider-network-type flat \
+            --provider-physical-network physnet1 \
+            flat
+fi
+if ! openstack --os-cloud default subnet show flat_subnet; then
+  openstack --os-cloud default subnet create \
+            --subnet-range 192.168.102.0/24 \
+            --gateway 192.168.102.1 \
+            --dns-nameserver 1.1.1.1 \
+            --allocation-pool start=192.168.102.100,end=192.168.102.109 \
+            --dhcp \
+            --network flat \
+            flat_subnet
+fi
 EOC
 
+echo "The lab is now ready for use and took ${SECONDS} seconds to complete."
 echo "This is the jump host address ${JUMP_HOST_VIP}, write this down."
 echo "This is the VIP address internally ${METAL_LB_IP} with public address ${METAL_LB_VIP} within MetalLB, write this down."
