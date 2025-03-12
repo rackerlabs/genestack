@@ -1,4 +1,4 @@
-#!/usr/local/env bash
+#!/usr/bin/env bash
 set -e
 
 export GENESTACK_INSTALL_TELEMETRY=${GENESTACK_INSTALL_TELEMETRY:-false}
