@@ -712,6 +712,7 @@ EOC
 # Run Genestack post setup
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
 sudo /opt/genestack/bin/setup-openstack-rc.sh
+source /opt/genestack/scripts/genestack.rc
 openstack --os-cloud default flavor create hyperconverged-test \
           --public \
           --ram 2048 \
