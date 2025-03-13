@@ -33,7 +33,19 @@ fi
 # Set the default image and ssh username
 export OS_IMAGE="${OS_IMAGE:-Ubuntu 24.04}"
 if [ -z "${SSH_USERNAME}" ]; then
-  export SSH_USERNAME=$(openstack image show "${OS_IMAGE}" -f json -c properties | jq -r '.properties.default_user' || echo "ubuntu")
+  if ! IMAGE_DEFAULT_PROPERTY=$(openstack image show "${OS_IMAGE}" -f json -c properties); then
+    read -rp "Image not found. Enter the image name: " OS_IMAGE
+    IMAGE_DEFAULT_PROPERTY=$(openstack image show "${OS_IMAGE}" -f json -c properties)
+  fi
+  if [ "${IMAGE_DEFAULT_PROPERTY}" ]; then
+    if SSH_USERNAME=$(echo "${IMAGE_DEFAULT_PROPERTY}" | jq -r '.properties.default_user'); then
+      echo "Discovered the default username for the image ${OS_IMAGE} as ${SSH_USERNAME}"
+    fi
+  fi
+  if [ -z "${SSH_USERNAME}" ] || [ "${SSH_USERNAME}" = "null" ]; then
+    echo "The image ${OS_IMAGE} does not have a default user property, please enter the default username"
+    read -rp "Enter the default username for the image: " SSH_USERNAME
+  fi
 fi
 
 if ! openstack router show hyperconverged-router; then
@@ -290,7 +302,8 @@ if [ "${HYPERCONVERGED_DEV:-false}" = "true" ]; then
     echo "HYPERCONVERGED_DEV is true, but we've failed to determine the base genestack directory"
     exit 1
   fi
-  ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} "sudo chown \${USER}:\${USER} /opt"
+  ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} \
+    "sudo apt update && sudo apt install -y rsync git; sudo chown \${USER}:\${USER} /opt"
   echo "Copying the development source code to the jump host"
   rsync -az \
         -e "ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null" \
