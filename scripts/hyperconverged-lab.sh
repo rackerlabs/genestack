@@ -30,6 +30,12 @@ if [ -z "${OS_FLAVOR}" ]; then
   export OS_FLAVOR=${OS_FLAVOR:-${DEFAULT_OS_FLAVOR}}
 fi
 
+# Set the default image and ssh username
+export OS_IMAGE="${OS_IMAGE:-Ubuntu 24.04}"
+if [ -z "${SSH_USERNAME}" ]; then
+  export SSH_USERNAME=$(openstack image show "${OS_IMAGE}" -f json -c properties | jq -r '.properties.default_user' || echo "ubuntu")
+fi
+
 if ! openstack router show hyperconverged-router; then
   openstack router create hyperconverged-router --external-gateway PUBLICNET
 fi
@@ -180,7 +186,7 @@ elif [ -z "${JUMP_HOST_VIP}" ]; then
 fi
 
 for i in {100..109}; do
-  if ! openstack port show hyperconverged-0-compute-float-${i}-port -f value -c id 2> /dev/null; then
+  if ! openstack port show hyperconverged-0-compute-float-${i}-port 2> /dev/null; then
     openstack port create --network hyperconverged-compute-net \
                           --disable-port-security \
                           --fixed-ip ip-address="192.168.102.${i}" \
@@ -238,7 +244,6 @@ fi
 ssh-add ~/.ssh/hyperconverged-key.pem
 
 # Create the three lab instances
-export OS_IMAGE="${OS_IMAGE:-Ubuntu 24.04}"
 if ! openstack server show hyperconverged-0; then
   openstack server create hyperconverged-0 \
             --port ${WORKER_0_PORT} \
@@ -268,7 +273,7 @@ fi
 
 echo "Waiting for the jump host to be ready"
 COUNT=0
-while ! ssh -o ConnectTimeout=2 -o ConnectionAttempts=3 -o UserKnownHostsFile=/dev/null -q ubuntu@${JUMP_HOST_VIP} exit; do
+while ! ssh -o ConnectTimeout=2 -o ConnectionAttempts=3 -o UserKnownHostsFile=/dev/null -q ${SSH_USERNAME}@${JUMP_HOST_VIP} exit; do
    sleep 2
    echo "SSH is not ready, Trying again..."
    COUNT=$((COUNT+1))
@@ -285,15 +290,15 @@ if [ "${HYPERCONVERGED_DEV:-false}" = "true" ]; then
     echo "HYPERCONVERGED_DEV is true, but we've failed to determine the base genestack directory"
     exit 1
   fi
-  ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} "sudo chown \${USER}:\${USER} /opt"
+  ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} "sudo chown \${USER}:\${USER} /opt"
   echo "Copying the development source code to the jump host"
   rsync -az \
         -e "ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null" \
         --rsync-path="sudo rsync" \
-        $(readlink -fn ${SCRIPT_DIR}/../) ubuntu@${JUMP_HOST_VIP}:/opt/
+        $(readlink -fn ${SCRIPT_DIR}/../) ${SSH_USERNAME}@${JUMP_HOST_VIP}:/opt/
 fi
 
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
 if [ ! -d "/opt/genestack" ]; then
   sudo git clone --recurse-submodules -j4 https://github.com/rackerlabs/genestack /opt/genestack
@@ -594,7 +599,7 @@ fi
 EOC
 
 # Run host and K8S setup
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
 if [ ! -f "/usr/local/bin/queue_max.sh" ]; then
   python3 -m venv ~/.venvs/genestack
@@ -607,7 +612,8 @@ if [ ! -d "/var/lib/kubelet" ]; then
   cd /opt/genestack/submodules/kubespray
   ANSIBLE_SSH_PIPELINING=0 ansible-playbook cluster.yml --become
 fi
-mkdir -p /opt/kube-plugins
+sudo mkdir -p /opt/kube-plugins
+sudo chown \${USER}:\${USER} /opt/kube-plugins
 pushd /opt/kube-plugins
   if [ ! -f "/usr/local/bin/kubectl" ]; then
     curl -LO "https://dl.k8s.io/release/\$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -625,7 +631,7 @@ popd
 EOC
 
 # Run Genestack Infrastucture/OpenStack Setup
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
 echo "Installing OpenStack Infrastructure"
 sudo LONGHORN_STORAGE_REPLICAS=1 \
@@ -638,7 +644,7 @@ sudo /opt/genestack/bin/setup-openstack.sh
 EOC
 
 # Run Genestack post setup
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
 if ! sudo /opt/genestack/bin/setup-openstack-rc.sh; then
   sleep 5
