@@ -719,8 +719,9 @@ EOC
 
 # Run Genestack post setup
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ubuntu@${JUMP_HOST_VIP} <<EOC
-sudo /opt/genestack/bin/setup-openstack-rc.sh
+sudo bash <<HERE
 source /opt/genestack/scripts/genestack.rc
+/opt/genestack/bin/setup-openstack-rc.sh
 openstack --os-cloud default flavor create hyperconverged-test \
           --public \
           --ram 2048 \
@@ -741,6 +742,7 @@ openstack --os-cloud default subnet create \
           --dhcp \
           --network flat \
           flat_subnet
+HERE
 EOC
 
 echo "This is the jump host address ${JUMP_HOST_VIP}, write this down."

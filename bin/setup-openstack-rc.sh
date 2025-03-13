@@ -9,7 +9,7 @@ function installYq() {
 
 yq --version || (echo "yq is not installed. Attempting to install yq" && installYq)
 
-USER_NAME="$(who am i | awk '{print $1}')"
+USER_NAME="$(whoami)"
 USER_PATH="$(getent passwd ${USER_NAME} | awk -F':' '{print $6}')"
 CONFIG_PATH="${USER_PATH}/.config/openstack"
 CONFIG_FILE="${CONFIG_PATH}/genestack-clouds.yaml"
