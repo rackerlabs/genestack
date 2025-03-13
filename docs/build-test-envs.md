@@ -15,6 +15,31 @@ The following script will deploy a hyperconverged lab environment on an OpenStac
     --8<-- "scripts/hyperconverged-lab.sh"
     ```
 
+The build script is interactive and will prompt you for the following information
+
+| <div style="width:156px">Variable</div> | Description | <div style="width:156px">Default</div> |
+|----------|-------------|---------|
+| `ACME_EMAIL` | Email address for Let's Encrypt. If an email address is defined and a real domain is used, the deployment will attempt to pull production certificates. | "" |
+| `GATEWAY_DOMAIN` | Domain name used for routes within the gateway API. If a valid domain is used, it will be associated with the gateway routes. | "cluster.local" |
+| `OS_CLOUD` | OpenStack cloud name. | "default" |
+| `OS_FLAVOR` | OpenStack instance flavor, this will automatically select a flavor with < 24GiB of RAM. | "gp.X.8.16" |
+| `OS_IMAGE` | OpenStack image name. | "Ubuntu 20.04" |
+| `HYPERCONVERGED_DEV` | enable hyperconverged development mode. This will attempt to sync a local copy of Genestack to the development environment. | `false` |
+
+All of the variables can be defined on the command line using environment variables.
+
+!!! example "Deploying a Hyper-converged Lab Environment with Environment Variables"
+
+    ``` shell
+    export ACME_EMAIL="user@domain.com"
+    export GATEWAY_DOMAIN="cluster.local"
+    export OS_CLOUD="default"
+    export OS_FLAVOR="gp.0.8.16"
+    export OS_IMAGE="Ubuntu 20.04"
+    export HYPERCONVERGED_DEV="false"
+    /opt/genestack/scripts/hyperconverged-lab.sh
+    ```
+
 ## Overview
 
 A simple reference architecture for a hyper-converged lab environment is shown below. This environment consists of three nodes

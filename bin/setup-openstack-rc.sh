@@ -4,10 +4,13 @@ set -e
 function installYq() {
     export VERSION=v4.2.0
     export BINARY=yq_linux_amd64
-    wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -O - | tar xz && mv ${BINARY} /usr/local/bin/yq
+    wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -q -O - | tar xz && mv ${BINARY} /usr/local/bin/yq
 }
 
-yq --version || (echo "yq is not installed. Attempting to install yq" && installYq)
+if ! yq --version 2> /dev/null; then
+  echo "yq is not installed. Attempting to install yq"
+  installYq
+fi
 
 USER_NAME="$(whoami)"
 USER_PATH="$(getent passwd ${USER_NAME} | awk -F':' '{print $6}')"
