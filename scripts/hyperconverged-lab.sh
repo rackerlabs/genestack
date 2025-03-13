@@ -662,7 +662,7 @@ EOC
 # Run Genestack post setup
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
-sudo /opt/genestack/bin/setup-openstack-rc.sh
+sudo bash <<HERE
 sudo /opt/genestack/bin/setup-openstack-rc.sh
 source /opt/genestack/scripts/genestack.rc
 if ! openstack --os-cloud default flavor show hyperconverged-test; then
@@ -691,6 +691,7 @@ if ! openstack --os-cloud default subnet show flat_subnet; then
             --network flat \
             flat_subnet
 fi
+HERE
 EOC
 
 echo "The lab is now ready for use and took ${SECONDS} seconds to complete."

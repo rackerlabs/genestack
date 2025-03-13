@@ -12,7 +12,7 @@ if ! yq --version 2> /dev/null; then
   installYq
 fi
 
-USER_NAME="$(who am i | awk '{print $1}')"
+USER_NAME="$(whoami)"
 USER_PATH="$(getent passwd ${USER_NAME} | awk -F':' '{print $6}')"
 CONFIG_PATH="${USER_PATH}/.config/openstack"
 CONFIG_FILE="${CONFIG_PATH}/genestack-clouds.yaml"
