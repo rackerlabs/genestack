@@ -48,19 +48,21 @@ if [ -z "${SSH_USERNAME}" ]; then
   fi
 fi
 
-if ! openstack router show hyperconverged-router 2> /dev/null; then
-  openstack router create hyperconverged-router --external-gateway PUBLICNET
+export LAB_NAME_PREFIX="${LAB_NAME_PREFIX:-hyperconverged}"
+
+if ! openstack router show ${LAB_NAME_PREFIX}-router 2> /dev/null; then
+  openstack router create ${LAB_NAME_PREFIX}-router --external-gateway PUBLICNET
 fi
 
-if ! openstack network show hyperconverged-net 2> /dev/null; then
-  openstack network create hyperconverged-net
+if ! openstack network show ${LAB_NAME_PREFIX}-net 2> /dev/null; then
+  openstack network create ${LAB_NAME_PREFIX}-net
 fi
 
-if ! TENANT_SUB_NETWORK_ID=$(openstack subnet show hyperconverged-subnet -f json  2> /dev/null | jq -r '.id'); then
-  echo "Creating the hyperconverged-subnet"
+if ! TENANT_SUB_NETWORK_ID=$(openstack subnet show ${LAB_NAME_PREFIX}-subnet -f json  2> /dev/null | jq -r '.id'); then
+  echo "Creating the ${LAB_NAME_PREFIX}-subnet"
   TENANT_SUB_NETWORK_ID=$(
-    openstack subnet create hyperconverged-subnet \
-              --network hyperconverged-net \
+    openstack subnet create ${LAB_NAME_PREFIX}-subnet \
+              --network ${LAB_NAME_PREFIX}-net \
               --subnet-range 192.168.100.0/24 \
               --dns-nameserver 1.1.1.1 \
               --dns-nameserver 1.0.0.1 \
@@ -68,43 +70,43 @@ if ! TENANT_SUB_NETWORK_ID=$(openstack subnet show hyperconverged-subnet -f json
   )
 fi
 
-if ! openstack router show hyperconverged-router -f json 2> /dev/null | jq -r '.interfaces_info.[].subnet_id' | grep -q ${TENANT_SUB_NETWORK_ID}; then
-  openstack router add subnet hyperconverged-router hyperconverged-subnet
+if ! openstack router show ${LAB_NAME_PREFIX}-router -f json 2> /dev/null | jq -r '.interfaces_info.[].subnet_id' | grep -q ${TENANT_SUB_NETWORK_ID}; then
+  openstack router add subnet ${LAB_NAME_PREFIX}-router ${LAB_NAME_PREFIX}-subnet
 fi
 
-if ! openstack network show hyperconverged-compute-net 2> /dev/null; then
-  openstack network create hyperconverged-compute-net \
+if ! openstack network show ${LAB_NAME_PREFIX}-compute-net 2> /dev/null; then
+  openstack network create ${LAB_NAME_PREFIX}-compute-net \
             --disable-port-security
 fi
 
-if ! TENANT_COMPUTE_SUB_NETWORK_ID=$(openstack subnet show hyperconverged-compute-subnet -f json 2> /dev/null | jq -r '.id'); then
-  echo "Creating the hyperconverged-compute-subnet"
+if ! TENANT_COMPUTE_SUB_NETWORK_ID=$(openstack subnet show ${LAB_NAME_PREFIX}-compute-subnet -f json 2> /dev/null | jq -r '.id'); then
+  echo "Creating the ${LAB_NAME_PREFIX}-compute-subnet"
   TENANT_COMPUTE_SUB_NETWORK_ID=$(
-    openstack subnet create hyperconverged-compute-subnet \
-              --network hyperconverged-compute-net \
+    openstack subnet create ${LAB_NAME_PREFIX}-compute-subnet \
+              --network ${LAB_NAME_PREFIX}-compute-net \
               --subnet-range 192.168.102.0/24 \
               --no-dhcp -f json | jq -r '.id'
   )
 fi
 
-if ! openstack router show hyperconverged-router -f json | jq -r '.interfaces_info.[].subnet_id' | grep -q ${TENANT_COMPUTE_SUB_NETWORK_ID} 2> /dev/null; then
-  openstack router add subnet hyperconverged-router hyperconverged-compute-subnet
+if ! openstack router show ${LAB_NAME_PREFIX}-router -f json | jq -r '.interfaces_info.[].subnet_id' | grep -q ${TENANT_COMPUTE_SUB_NETWORK_ID} 2> /dev/null; then
+  openstack router add subnet ${LAB_NAME_PREFIX}-router ${LAB_NAME_PREFIX}-compute-subnet
 fi
 
-if ! openstack security group show hyperconverged-http-secgroup 2> /dev/null; then
-  openstack security group create hyperconverged-http-secgroup
+if ! openstack security group show ${LAB_NAME_PREFIX}-http-secgroup 2> /dev/null; then
+  openstack security group create ${LAB_NAME_PREFIX}-http-secgroup
 fi
 
-if ! openstack security group show hyperconverged-http-secgroup -f json 2> /dev/null | jq -r '.rules.[].port_range_max' | grep -q 443; then
-  openstack security group rule create hyperconverged-http-secgroup \
+if ! openstack security group show ${LAB_NAME_PREFIX}-http-secgroup -f json 2> /dev/null | jq -r '.rules.[].port_range_max' | grep -q 443; then
+  openstack security group rule create ${LAB_NAME_PREFIX}-http-secgroup \
             --protocol tcp \
             --ingress \
             --remote-ip 0.0.0.0/0 \
             --dst-port 443 \
             --description "https"
 fi
-if ! openstack security group show hyperconverged-http-secgroup -f json 2> /dev/null | jq -r '.rules.[].port_range_max' | grep -q 80; then
-  openstack security group rule create hyperconverged-http-secgroup \
+if ! openstack security group show ${LAB_NAME_PREFIX}-http-secgroup -f json 2> /dev/null | jq -r '.rules.[].port_range_max' | grep -q 80; then
+  openstack security group rule create ${LAB_NAME_PREFIX}-http-secgroup \
             --protocol tcp \
             --ingress \
             --remote-ip 0.0.0.0/0 \
@@ -112,32 +114,32 @@ if ! openstack security group show hyperconverged-http-secgroup -f json 2> /dev/
             --description "http"
 fi
 
-if ! openstack security group show hyperconverged-secgroup 2> /dev/null; then
-  openstack security group create hyperconverged-secgroup
+if ! openstack security group show ${LAB_NAME_PREFIX}-secgroup 2> /dev/null; then
+  openstack security group create ${LAB_NAME_PREFIX}-secgroup
 fi
 
-if ! openstack security group show hyperconverged-secgroup -f json 2> /dev/null | jq -r '.rules.[].description' | grep -q "all internal traffic"; then
-  openstack security group rule create hyperconverged-secgroup \
+if ! openstack security group show ${LAB_NAME_PREFIX}-secgroup -f json 2> /dev/null | jq -r '.rules.[].description' | grep -q "all internal traffic"; then
+  openstack security group rule create ${LAB_NAME_PREFIX}-secgroup \
             --protocol any \
             --ingress \
             --remote-ip 192.168.100.0/24 \
             --description "all internal traffic"
 fi
 
-if ! openstack security group show hyperconverged-jump-secgroup 2> /dev/null; then
-  openstack security group create hyperconverged-jump-secgroup
+if ! openstack security group show ${LAB_NAME_PREFIX}-jump-secgroup 2> /dev/null; then
+  openstack security group create ${LAB_NAME_PREFIX}-jump-secgroup
 fi
 
-if ! openstack security group show hyperconverged-jump-secgroup -f json 2> /dev/null | jq -r '.rules.[].port_range_max' | grep -q 22; then
-  openstack security group rule create hyperconverged-jump-secgroup \
+if ! openstack security group show ${LAB_NAME_PREFIX}-jump-secgroup -f json 2> /dev/null | jq -r '.rules.[].port_range_max' | grep -q 22; then
+  openstack security group rule create ${LAB_NAME_PREFIX}-jump-secgroup \
             --protocol tcp \
             --ingress \
             --remote-ip 0.0.0.0/0 \
             --dst-port 22 \
             --description "ssh"
 fi
-if ! openstack security group show hyperconverged-jump-secgroup -f json 2> /dev/null | jq -r '.rules.[].protocol' | grep -q icmp; then
-  openstack security group rule create hyperconverged-jump-secgroup \
+if ! openstack security group show ${LAB_NAME_PREFIX}-jump-secgroup -f json 2> /dev/null | jq -r '.rules.[].protocol' | grep -q icmp; then
+  openstack security group rule create ${LAB_NAME_PREFIX}-jump-secgroup \
             --protocol icmp \
             --ingress \
             --remote-ip 0.0.0.0/0 \
@@ -146,7 +148,7 @@ fi
 
 if ! METAL_LB_IP=$(openstack port show metallb-vip-0-port -f json 2> /dev/null | jq -r '.fixed_ips[0].ip_address'); then
   echo "Creating the MetalLB VIP port"
-  METAL_LB_IP=$(openstack port create --security-group hyperconverged-http-secgroup --network hyperconverged-net metallb-vip-0-port -f json | jq -r '.fixed_ips[0].ip_address')
+  METAL_LB_IP=$(openstack port create --security-group ${LAB_NAME_PREFIX}-http-secgroup --network ${LAB_NAME_PREFIX}-net metallb-vip-0-port -f json | jq -r '.fixed_ips[0].ip_address')
 fi
 
 METAL_LB_PORT_ID=$(openstack port show metallb-vip-0-port -f value -c id)
@@ -158,40 +160,40 @@ elif [ -z "${METAL_LB_VIP}" ]; then
   METAL_LB_VIP=$(openstack floating ip create PUBLICNET --port ${METAL_LB_PORT_ID} -f json | jq -r '.floating_ip_address')
 fi
 
-if ! WORKER_0_PORT=$(openstack port show hyperconverged-0-mgmt-port -f value -c id 2> /dev/null); then
+if ! WORKER_0_PORT=$(openstack port show ${LAB_NAME_PREFIX}-0-mgmt-port -f value -c id 2> /dev/null); then
   export WORKER_0_PORT=$(
     openstack port create --allowed-address ip-address=${METAL_LB_IP} \
-                          --security-group hyperconverged-secgroup \
-                          --security-group hyperconverged-jump-secgroup \
-                          --security-group hyperconverged-http-secgroup \
-                          --network hyperconverged-net \
+                          --security-group ${LAB_NAME_PREFIX}-secgroup \
+                          --security-group ${LAB_NAME_PREFIX}-jump-secgroup \
+                          --security-group ${LAB_NAME_PREFIX}-http-secgroup \
+                          --network ${LAB_NAME_PREFIX}-net \
                           -f value \
                           -c id \
-                          hyperconverged-0-mgmt-port
+                          ${LAB_NAME_PREFIX}-0-mgmt-port
   )
 fi
 
-if ! WORKER_1_PORT=$(openstack port show hyperconverged-1-mgmt-port -f value -c id 2> /dev/null); then
+if ! WORKER_1_PORT=$(openstack port show ${LAB_NAME_PREFIX}-1-mgmt-port -f value -c id 2> /dev/null); then
   export WORKER_1_PORT=$(
     openstack port create --allowed-address ip-address=${METAL_LB_IP} \
-                          --security-group hyperconverged-secgroup \
-                          --security-group hyperconverged-http-secgroup \
-                          --network hyperconverged-net \
+                          --security-group ${LAB_NAME_PREFIX}-secgroup \
+                          --security-group ${LAB_NAME_PREFIX}-http-secgroup \
+                          --network ${LAB_NAME_PREFIX}-net \
                           -f value \
                           -c id \
-                          hyperconverged-1-mgmt-port
+                          ${LAB_NAME_PREFIX}-1-mgmt-port
   )
 fi
 
-if ! WORKER_2_PORT=$(openstack port show hyperconverged-2-mgmt-port -f value -c id 2> /dev/null); then
+if ! WORKER_2_PORT=$(openstack port show ${LAB_NAME_PREFIX}-2-mgmt-port -f value -c id 2> /dev/null); then
   export WORKER_2_PORT=$(
     openstack port create --allowed-address ip-address=${METAL_LB_IP} \
-                          --security-group hyperconverged-secgroup \
-                          --security-group hyperconverged-http-secgroup \
-                          --network hyperconverged-net \
+                          --security-group ${LAB_NAME_PREFIX}-secgroup \
+                          --security-group ${LAB_NAME_PREFIX}-http-secgroup \
+                          --network ${LAB_NAME_PREFIX}-net \
                           -f value \
                           -c id \
-                          hyperconverged-2-mgmt-port
+                          ${LAB_NAME_PREFIX}-2-mgmt-port
   )
 fi
 
@@ -203,86 +205,86 @@ fi
 
 echo "Creating pre-defined compute ports for the flat test network"
 for i in {100..109}; do
-  if ! openstack port show hyperconverged-0-compute-float-${i}-port 2> /dev/null; then
-    openstack port create --network hyperconverged-compute-net \
+  if ! openstack port show ${LAB_NAME_PREFIX}-0-compute-float-${i}-port 2> /dev/null; then
+    openstack port create --network ${LAB_NAME_PREFIX}-compute-net \
                           --disable-port-security \
                           --fixed-ip ip-address="192.168.102.${i}" \
-                          hyperconverged-0-compute-float-${i}-port
+                          ${LAB_NAME_PREFIX}-0-compute-float-${i}-port
   fi
 done
 
-if ! COMPUTE_0_PORT=$(openstack port show hyperconverged-0-compute-port -f value -c id 2> /dev/null); then
+if ! COMPUTE_0_PORT=$(openstack port show ${LAB_NAME_PREFIX}-0-compute-port -f value -c id 2> /dev/null); then
   export COMPUTE_0_PORT=$(
-    openstack port create --network hyperconverged-compute-net \
+    openstack port create --network ${LAB_NAME_PREFIX}-compute-net \
                           --no-fixed-ip \
                           --disable-port-security \
                           -f value \
                           -c id \
-                          hyperconverged-0-compute-port
+                          ${LAB_NAME_PREFIX}-0-compute-port
   )
 fi
 
-if ! COMPUTE_1_PORT=$(openstack port show hyperconverged-1-compute-port -f value -c id 2> /dev/null); then
+if ! COMPUTE_1_PORT=$(openstack port show ${LAB_NAME_PREFIX}-1-compute-port -f value -c id 2> /dev/null); then
   export COMPUTE_1_PORT=$(
-    openstack port create --network hyperconverged-compute-net \
+    openstack port create --network ${LAB_NAME_PREFIX}-compute-net \
                           --no-fixed-ip \
                           --disable-port-security \
                           -f value \
                           -c id \
-                          hyperconverged-1-compute-port
+                          ${LAB_NAME_PREFIX}-1-compute-port
   )
 fi
 
-if ! COMPUTE_2_PORT=$(openstack port show hyperconverged-2-compute-port -f value -c id 2> /dev/null); then
+if ! COMPUTE_2_PORT=$(openstack port show ${LAB_NAME_PREFIX}-2-compute-port -f value -c id 2> /dev/null); then
   export COMPUTE_2_PORT=$(
-    openstack port create --network hyperconverged-compute-net \
+    openstack port create --network ${LAB_NAME_PREFIX}-compute-net \
                           --no-fixed-ip \
                           --disable-port-security \
                           -f value \
                           -c id \
-                          hyperconverged-2-compute-port
+                          ${LAB_NAME_PREFIX}-2-compute-port
   )
 fi
 
-if ! openstack keypair show hyperconverged-key 2> /dev/null; then
-    if [ ! -f ~/.ssh/hyperconverged-key.pem ]; then
-      openstack keypair create hyperconverged-key > ~/.ssh/hyperconverged-key.pem
-      chmod 600 ~/.ssh/hyperconverged-key.pem
-      openstack keypair show hyperconverged-key --public-key > ~/.ssh/hyperconverged-key.pub
+if ! openstack keypair show ${LAB_NAME_PREFIX}-key 2> /dev/null; then
+    if [ ! -f ~/.ssh/${LAB_NAME_PREFIX}-key.pem ]; then
+      openstack keypair create ${LAB_NAME_PREFIX}-key > ~/.ssh/${LAB_NAME_PREFIX}-key.pem
+      chmod 600 ~/.ssh/${LAB_NAME_PREFIX}-key.pem
+      openstack keypair show ${LAB_NAME_PREFIX}-key --public-key > ~/.ssh/${LAB_NAME_PREFIX}-key.pub
     else
-      if [ -f ~/.ssh/hyperconverged-key.pub ]; then
-        openstack keypair create hyperconverged-key --public-key ~/.ssh/hyperconverged-key.pub
+      if [ -f ~/.ssh/${LAB_NAME_PREFIX}-key.pub ]; then
+        openstack keypair create ${LAB_NAME_PREFIX}-key --public-key ~/.ssh/${LAB_NAME_PREFIX}-key.pub
       fi
     fi
 fi
 
-ssh-add ~/.ssh/hyperconverged-key.pem
+ssh-add ~/.ssh/${LAB_NAME_PREFIX}-key.pem
 
 # Create the three lab instances
-if ! openstack server show hyperconverged-0 2> /dev/null; then
-  openstack server create hyperconverged-0 \
+if ! openstack server show ${LAB_NAME_PREFIX}-0 2> /dev/null; then
+  openstack server create ${LAB_NAME_PREFIX}-0 \
             --port ${WORKER_0_PORT} \
             --port ${COMPUTE_0_PORT} \
             --image "${OS_IMAGE}" \
-            --key-name hyperconverged-key \
+            --key-name ${LAB_NAME_PREFIX}-key \
             --flavor ${OS_FLAVOR}
 fi
 
-if ! openstack server show hyperconverged-1 2> /dev/null; then
-  openstack server create hyperconverged-1 \
+if ! openstack server show ${LAB_NAME_PREFIX}-1 2> /dev/null; then
+  openstack server create ${LAB_NAME_PREFIX}-1 \
             --port ${WORKER_1_PORT} \
             --port ${COMPUTE_1_PORT} \
             --image "${OS_IMAGE}" \
-            --key-name hyperconverged-key \
+            --key-name ${LAB_NAME_PREFIX}-key \
             --flavor ${OS_FLAVOR}
 fi
 
-if ! openstack server show hyperconverged-2 2> /dev/null; then
-  openstack server create hyperconverged-2 \
+if ! openstack server show ${LAB_NAME_PREFIX}-2 2> /dev/null; then
+  openstack server create ${LAB_NAME_PREFIX}-2 \
             --port ${WORKER_2_PORT} \
             --port ${COMPUTE_2_PORT} \
             --image "${OS_IMAGE}" \
-            --key-name hyperconverged-key \
+            --key-name ${LAB_NAME_PREFIX}-key \
             --flavor ${OS_FLAVOR}
 fi
 
@@ -306,7 +308,7 @@ if [ "${HYPERCONVERGED_DEV:-false}" = "true" ]; then
     exit 1
   fi
   ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} \
-    "sudo apt update && sudo apt install -y rsync git; sudo chown \${USER}:\${USER} /opt"
+    "timeout 1m bash -c 'while ! sudo apt update; do sleep 2; done' && sudo apt install -y rsync git"
   echo "Copying the development source code to the jump host"
   rsync -az \
         -e "ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null" \
@@ -359,15 +361,15 @@ cat > /etc/genestack/inventory/inventory.yaml <<EOF
 ---
 all:
   vars:
-    cloud_name: "hyperconverged-lab-0"
+    cloud_name: "${LAB_NAME_PREFIX}-lab-0"
     ansible_python_interpreter: "/usr/bin/python3"
     ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
   hosts:
-    hyperconverged-0.${GATEWAY_DOMAIN}:
+    ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}:
       ansible_host: $(openstack port show ${WORKER_0_PORT} -f json | jq -r '.fixed_ips[0].ip_address')
-    hyperconverged-1.${GATEWAY_DOMAIN}:
+    ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}:
       ansible_host: $(openstack port show ${WORKER_1_PORT} -f json | jq -r '.fixed_ips[0].ip_address')
-    hyperconverged-2.${GATEWAY_DOMAIN}:
+    ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}:
       ansible_host: $(openstack port show ${WORKER_2_PORT} -f json | jq -r '.fixed_ips[0].ip_address')
   children:
     k8s_cluster:
@@ -384,24 +386,24 @@ all:
         # OpenStack Controllers
         openstack_control_plane:
           hosts:
-            hyperconverged-0.${GATEWAY_DOMAIN}: null
-            hyperconverged-1.${GATEWAY_DOMAIN}: null
-            hyperconverged-2.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
         # Edge Nodes
         ovn_network_nodes:
           hosts:
-            hyperconverged-0.${GATEWAY_DOMAIN}: null
-            hyperconverged-1.${GATEWAY_DOMAIN}: null
-            hyperconverged-2.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
         # Tenant Prod Nodes
         openstack_compute_nodes:
           vars:
             enable_iscsi: true
             custom_multipath: false
           hosts:
-            hyperconverged-0.${GATEWAY_DOMAIN}: null
-            hyperconverged-1.${GATEWAY_DOMAIN}: null
-            hyperconverged-2.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
         # Block Nodes
         storage_nodes:
           vars:
@@ -411,26 +413,26 @@ all:
             cinder_storage_nodes:
               hosts: {}
           hosts:
-            hyperconverged-0.${GATEWAY_DOMAIN}: null
-            hyperconverged-1.${GATEWAY_DOMAIN}: null
-            hyperconverged-2.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
         # ETCD Nodes
         etcd:
           hosts:
-            hyperconverged-0.${GATEWAY_DOMAIN}: null
-            hyperconverged-1.${GATEWAY_DOMAIN}: null
-            hyperconverged-2.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
         # Kubernetes Nodes
         kube_control_plane:
           hosts:
-            hyperconverged-0.${GATEWAY_DOMAIN}: null
-            hyperconverged-1.${GATEWAY_DOMAIN}: null
-            hyperconverged-2.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
         kube_node:
           hosts:
-            hyperconverged-0.${GATEWAY_DOMAIN}: null
-            hyperconverged-1.${GATEWAY_DOMAIN}: null
-            hyperconverged-2.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
 EOF
 fi
 
@@ -621,7 +623,7 @@ if [ ! -f "/usr/local/bin/queue_max.sh" ]; then
   python3 -m venv ~/.venvs/genestack
   ~/.venvs/genestack/bin/pip install -r /opt/genestack/requirements.txt
   source /opt/genestack/scripts/genestack.rc
-  ANSIBLE_SSH_PIPELINING=0 ansible-playbook /opt/genestack/ansible/playbooks/host-setup.yml --become
+  ANSIBLE_SSH_PIPELINING=0 ansible-playbook /opt/genestack/ansible/playbooks/host-setup.yml --become -e host_required_kernel=\$(uname -r)
 fi
 if [ ! -d "/var/lib/kubelet" ]; then
   source /opt/genestack/scripts/genestack.rc
@@ -665,8 +667,8 @@ set -e
 sudo bash <<HERE
 sudo /opt/genestack/bin/setup-openstack-rc.sh
 source /opt/genestack/scripts/genestack.rc
-if ! openstack --os-cloud default flavor show hyperconverged-test; then
-  openstack --os-cloud default flavor create hyperconverged-test \
+if ! openstack --os-cloud default flavor show ${LAB_NAME_PREFIX}-test; then
+  openstack --os-cloud default flavor create ${LAB_NAME_PREFIX}-test \
             --public \
             --ram 2048 \
             --disk 10 \

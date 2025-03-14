@@ -10,6 +10,8 @@ if [ -z "${OS_CLOUD}" ]; then
   export OS_CLOUD="${OS_CLOUD:-default}"
 fi
 
+export LAB_NAME_PREFIX="${LAB_NAME_PREFIX:-hyperconverged}"
+
 function serverDelete() {
   if ! openstack server delete "${1}" 2> /dev/null; then
     echo "Failed to delete server ${1}"
@@ -40,7 +42,7 @@ function subnetDelete() {
   fi
 }
 
-for i in $(openstack floating ip list --router hyperconverged-router -f value -c "Floating IP Address"); do
+for i in $(openstack floating ip list --router ${LAB_NAME_PREFIX}-router -f value -c "Floating IP Address"); do
   if ! openstack floating ip unset "${i}" 2> /dev/null; then
     echo "Failed to unset floating ip ${i}"
   fi
@@ -49,47 +51,47 @@ for i in $(openstack floating ip list --router hyperconverged-router -f value -c
   fi
 done
 
-serverDelete hyperconverged-2
-serverDelete hyperconverged-1
-serverDelete hyperconverged-0
+serverDelete ${LAB_NAME_PREFIX}-2
+serverDelete ${LAB_NAME_PREFIX}-1
+serverDelete ${LAB_NAME_PREFIX}-0
 
-if ! openstack keypair delete hyperconverged-key 2> /dev/null; then
-  echo "Failed to delete keypair hyperconverged-key"
+if ! openstack keypair delete ${LAB_NAME_PREFIX}-key 2> /dev/null; then
+  echo "Failed to delete keypair ${LAB_NAME_PREFIX}-key"
 fi
 
-portDelete hyperconverged-2-compute-port
-portDelete hyperconverged-1-compute-port
-portDelete hyperconverged-0-compute-port
+portDelete ${LAB_NAME_PREFIX}-2-compute-port
+portDelete ${LAB_NAME_PREFIX}-1-compute-port
+portDelete ${LAB_NAME_PREFIX}-0-compute-port
 for i in {100..109}; do
-  portDelete "hyperconverged-0-compute-float-${i}-port"
+  portDelete "${LAB_NAME_PREFIX}-0-compute-float-${i}-port"
 done
-portDelete hyperconverged-2-mgmt-port
-portDelete hyperconverged-1-mgmt-port
-portDelete hyperconverged-0-mgmt-port
+portDelete ${LAB_NAME_PREFIX}-2-mgmt-port
+portDelete ${LAB_NAME_PREFIX}-1-mgmt-port
+portDelete ${LAB_NAME_PREFIX}-0-mgmt-port
 portDelete metallb-vip-0-port
 
-securityGroupDelete hyperconverged-jump-secgroup
-securityGroupDelete hyperconverged-http-secgroup
-securityGroupDelete hyperconverged-secgroup
+securityGroupDelete ${LAB_NAME_PREFIX}-jump-secgroup
+securityGroupDelete ${LAB_NAME_PREFIX}-http-secgroup
+securityGroupDelete ${LAB_NAME_PREFIX}-secgroup
 
-if ! openstack router remove subnet hyperconverged-router hyperconverged-subnet 2> /dev/null; then
-  echo "Failed to remove hyperconverged-subnet from router hyperconverged-router"
+if ! openstack router remove subnet ${LAB_NAME_PREFIX}-router ${LAB_NAME_PREFIX}-subnet 2> /dev/null; then
+  echo "Failed to remove ${LAB_NAME_PREFIX}-subnet from router ${LAB_NAME_PREFIX}-router"
 fi
-if ! openstack router remove subnet hyperconverged-router hyperconverged-compute-subnet 2> /dev/null; then
-  echo "Failed to remove hyperconverged-compute-subnet from router hyperconverged-router"
+if ! openstack router remove subnet ${LAB_NAME_PREFIX}-router ${LAB_NAME_PREFIX}-compute-subnet 2> /dev/null; then
+  echo "Failed to remove ${LAB_NAME_PREFIX}-compute-subnet from router ${LAB_NAME_PREFIX}-router"
 fi
-if ! openstack router remove gateway hyperconverged-router PUBLICNET 2> /dev/null; then
-  echo "Failed to remove gateway from router hyperconverged-router"
+if ! openstack router remove gateway ${LAB_NAME_PREFIX}-router PUBLICNET 2> /dev/null; then
+  echo "Failed to remove gateway from router ${LAB_NAME_PREFIX}-router"
 fi
-if ! openstack router delete hyperconverged-router 2> /dev/null; then
-  echo "Failed to delete router hyperconverged-router"
+if ! openstack router delete ${LAB_NAME_PREFIX}-router 2> /dev/null; then
+  echo "Failed to delete router ${LAB_NAME_PREFIX}-router"
 fi
 
-subnetDelete hyperconverged-compute-subnet
-subnetDelete hyperconverged-subnet
+subnetDelete ${LAB_NAME_PREFIX}-compute-subnet
+subnetDelete ${LAB_NAME_PREFIX}-subnet
 
-networkDelete hyperconverged-compute-net
-networkDelete hyperconverged-net
+networkDelete ${LAB_NAME_PREFIX}-compute-net
+networkDelete ${LAB_NAME_PREFIX}-net
 
 echo "Cleanup complete"
 echo "The lab uninstall took ${SECONDS} seconds to complete."
