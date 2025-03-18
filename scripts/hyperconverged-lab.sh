@@ -146,12 +146,12 @@ if ! openstack security group show ${LAB_NAME_PREFIX}-jump-secgroup -f json 2> /
             --description "ping"
 fi
 
-if ! METAL_LB_IP=$(openstack port show metallb-vip-0-port -f json 2> /dev/null | jq -r '.fixed_ips[0].ip_address'); then
+if ! METAL_LB_IP=$(openstack port show ${LAB_NAME_PREFIX}-metallb-vip-0-port -f json 2> /dev/null | jq -r '.fixed_ips[0].ip_address'); then
   echo "Creating the MetalLB VIP port"
-  METAL_LB_IP=$(openstack port create --security-group ${LAB_NAME_PREFIX}-http-secgroup --network ${LAB_NAME_PREFIX}-net metallb-vip-0-port -f json | jq -r '.fixed_ips[0].ip_address')
+  METAL_LB_IP=$(openstack port create --security-group ${LAB_NAME_PREFIX}-http-secgroup --network ${LAB_NAME_PREFIX}-net ${LAB_NAME_PREFIX}-metallb-vip-0-port -f json | jq -r '.fixed_ips[0].ip_address')
 fi
 
-METAL_LB_PORT_ID=$(openstack port show metallb-vip-0-port -f value -c id)
+METAL_LB_PORT_ID=$(openstack port show ${LAB_NAME_PREFIX}-metallb-vip-0-port -f value -c id)
 
 if ! METAL_LB_VIP=$(openstack floating ip list --port ${METAL_LB_PORT_ID} -f json  2> /dev/null | jq -r '.[]."Floating IP Address"'); then
   echo "Creating the MetalLB VIP floating IP"
