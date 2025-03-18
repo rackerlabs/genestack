@@ -1,0 +1,14 @@
+ARG VERSION=master-ubuntu_jammy
+FROM openstackhelm/magnum:${VERSION} as build
+ARG PLUGIN_VERSION=master
+RUN apt-get update && apt-get install -y git && apt clean
+RUN export ORIG_PLUGIN_VERSION="${PLUGIN_VERSION}"; \
+if [ "${PLUGIN_VERSION}" != 'master' ]; then export PLUGIN_VERSION=stable/${PLUGIN_VERSION}; fi; \
+/var/lib/openstack/bin/activate; \
+/var/lib/openstack/bin/pip install git+https://github.com/openstack/oslo.db@${PLUGIN_VERSION}#egg=oslo_db \
+                                   git+https://opendev.org/openstack/magnum-capi-helm@${PLUGIN_VERSION}#egg=magnum_capi_helm
+RUN /var/lib/openstack/bin/pip install --upgrade --force-reinstall pip
+RUN find /var/lib/openstack -regex '^.*\(__pycache__\|\.py[co]\)$' -delete
+
+FROM openstackhelm/magnum:${VERSION}
+COPY --from=build /var/lib/openstack/. /var/lib/openstack/
