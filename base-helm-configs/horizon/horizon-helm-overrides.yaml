@@ -6,7 +6,7 @@ images:
     horizon_db_sync: "quay.io/rackspace/rackerlabs-horizon:2024.1-ubuntu_jammy"
     horizon: "quay.io/rackspace/rackerlabs-horizon:2024.1-ubuntu_jammy"
     test: "quay.io/rackspace/rackerlabs-osh-selenium:latest-ubuntu_jammy"
-    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0"
+    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
     image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
 
 conf:
