@@ -64,7 +64,7 @@ spec:
             defaultMode: 0555
       initContainers:
         - name: init
-          image: "quay.io/airshipit/kubernetes-entrypoint:v1.0.0"
+          image: "quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy"
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: true

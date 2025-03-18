@@ -4,7 +4,7 @@ images:
     bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
     db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
     db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0"
+    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
     image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
     ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
     ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"

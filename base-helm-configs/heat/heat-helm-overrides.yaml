@@ -4,7 +4,7 @@ images:
     bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
     db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
     db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:v1.0.0"
+    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
     heat_api: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
     heat_cfn: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
     heat_cloudwatch: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
