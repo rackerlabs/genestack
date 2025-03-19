@@ -68,7 +68,7 @@ done
 portDelete ${LAB_NAME_PREFIX}-2-mgmt-port
 portDelete ${LAB_NAME_PREFIX}-1-mgmt-port
 portDelete ${LAB_NAME_PREFIX}-0-mgmt-port
-portDelete metallb-vip-0-port
+portDelete ${LAB_NAME_PREFIX}-metallb-vip-0-port
 
 securityGroupDelete ${LAB_NAME_PREFIX}-jump-secgroup
 securityGroupDelete ${LAB_NAME_PREFIX}-http-secgroup
