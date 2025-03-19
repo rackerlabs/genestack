@@ -332,7 +332,7 @@ if [ ! -d "/etc/genestack" ]; then
   sudo chown \${USER}:\${USER} -R /etc/genestack
 fi
 
-if [ ! -f "/etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml" ]; then
+# We need to clobber the sample or else we get a bogus LB vip
 cat > /etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml <<EOF
 ---
 apiVersion: metallb.io/v1beta1
@@ -354,7 +354,6 @@ spec:
   ipAddressPools:
     - gateway-api-external
 EOF
-fi
 
 if [ ! -f "/etc/genestack/inventory/inventory.yaml" ]; then
 cat > /etc/genestack/inventory/inventory.yaml <<EOF
