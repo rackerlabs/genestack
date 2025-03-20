@@ -28,9 +28,14 @@ conf:
       endpoint_type: publicURL
       region_name: RegionOne
     database:
+      connection_debug: 0
+      connection_recycle_time: 600
+      connection_trace: true
       idle_timeout: 3600
-      connection_recycle_time: 3600
+      mysql_sql_mode: ""
+      use_db_reconnect: true
       pool_timeout: 60
+      max_retries: -1
     glance_client:
       api_version: 2
       endpoint_type: publicURL

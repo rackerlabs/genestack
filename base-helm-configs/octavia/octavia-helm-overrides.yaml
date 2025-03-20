@@ -64,6 +64,15 @@ conf:
     controller_worker:
       loadbalancer_topology: ACTIVE_STANDBY
       workers: 4
+    database:
+      connection_debug: 0
+      connection_recycle_time: 600
+      connection_trace: true
+      idle_timeout: 3600
+      mysql_sql_mode: ""
+      use_db_reconnect: true
+      pool_timeout: 60
+      max_retries: -1
     driver_agent:
       enabled_provider_agents: ovn
     glance:
