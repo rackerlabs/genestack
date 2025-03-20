@@ -28,6 +28,15 @@ conf:
   barbican:
     DEFAULT:
       host_href: "http://barbican-api.openstack.svc.cluster.local:9311"
+    database:
+      connection_debug: 0
+      connection_recycle_time: 600
+      connection_trace: true
+      idle_timeout: 3600
+      mysql_sql_mode: ""
+      use_db_reconnect: true
+      pool_timeout: 60
+      max_retries: -1
     keystone_authtoken:
       service_token_roles: service
       service_token_roles_required: true

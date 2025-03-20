@@ -107,21 +107,36 @@ conf:
       cross_az_attach: true
       network_allocate_retries: 3
     api_database:
+      connection_debug: 0
+      connection_recycle_time: 600
+      connection_trace: true
       idle_timeout: 3600
-      connection_recycle_time: 3600
+      mysql_sql_mode: ""
+      use_db_reconnect: true
       pool_timeout: 60
+      max_retries: -1
     cell0_database:
+      connection_debug: 0
+      connection_recycle_time: 600
+      connection_trace: true
       idle_timeout: 3600
-      connection_recycle_time: 3600
+      mysql_sql_mode: ""
+      use_db_reconnect: true
       pool_timeout: 60
+      max_retries: -1
     compute:
       max_disk_devices_to_attach: 8
     conductor:
       workers: 4
     database:
+      connection_debug: 0
+      connection_recycle_time: 600
+      connection_trace: true
       idle_timeout: 3600
-      connection_recycle_time: 3600
+      mysql_sql_mode: ""
+      use_db_reconnect: true
       pool_timeout: 60
+      max_retries: -1
     glance:
       num_retries: 8
     key_manager:
