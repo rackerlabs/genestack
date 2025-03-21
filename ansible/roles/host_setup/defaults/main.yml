@@ -149,3 +149,8 @@ host_ntp_server:
 
 # Default tuned profile
 tuned_profile: throughput-performance
+
+# https://www.freedesktop.org/software/systemd/man/latest/systemd-system.conf.html
+systemd_CPUAffinity: numa
+systemd_NUMAPolicy: local
+systemd_NUMAMask: all

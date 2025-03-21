@@ -7,6 +7,8 @@
 {% endfor %}
 DefaultEnvironment = {{ envList | join(' ') }}
 DefaultLimitNOFILE = 65536:524288
-CPUAffinity = numa
-NUMAPolicy = local
-NUMAMask = all
+CPUAffinity = {{ (systemd_NUMAMask == "all") | ternary("", systemd_CPUAffinity) }}
+{% if (systemd_version | int) >= 243 %}
+NUMAPolicy = {{ systemd_NUMAPolicy }}
+NUMAMask = {{ systemd_NUMAMask }}
+{% endif %}
