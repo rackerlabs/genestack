@@ -18,27 +18,48 @@
     filter: "ansible_kernel"
 
 - name: Check Kernel Version
-  ansible.builtin.fail:
+  ansible.builtin.debug:
     msg: >
       Wrong kernel Version found
-      [ {{ ansible_facts['kernel'] }} < {{ host_required_kernel }} ]
+      [ {{ ansible_facts['kernel'] }} != {{ host_required_kernel }} ]
       Resolve this issue before continuing.
   when:
-    - ansible_facts['kernel'] is version(host_required_kernel, '<')
+    - ansible_facts['kernel'] is version(host_required_kernel, '!=')
 
-- name: Pin kernel packages version
-  ansible.builtin.copy:
-    dest: "{{ apt_preferences }}/pin-kernel"
-    content: |
-      Package: linux-image-{{ ansible_facts['kernel'] }}
+- name: "Install specific kernel image/modules/extra version {{ host_required_kernel }}"
+  ansible.builtin.apt:
+    name:
+      - "linux-image-{{ host_required_kernel }}"
+      - "linux-modules-{{ host_required_kernel }}"
+      - "linux-modules-extra-{{ host_required_kernel }}"
+    state: present
+
+- name: "Update grub to boot the desired kernel {{ host_required_kernel }}"
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    regexp: '^GRUB_DEFAULT='
+    line: 'GRUB_DEFAULT="Advanced options for Ubuntu>Ubuntu, with Linux 6.8.0-47-generic"'
+  notify: "Update Grub2 config file"
+
+- name: Update Grub2 config file
+  ansible.builtin.command: update-grub
+  become: yes # Required for update-grub
+  tags: grub_update
+
+- name: Create apt preference file for specific kernel
+  ansible.builtin.blockinfile:
+    path: "{{ apt_preferences }}/pin-kernel"
+    create: true
+    block: |
+      Package: linux-image-{{ host_required_kernel }}
       Pin: release *
       Pin-Priority: 1001
 
-      Package: linux-headers-{{ ansible_facts['kernel'] }}
+      Package: linux-modules-{{ host_required_kernel }}
       Pin: release *
       Pin-Priority: 1001
 
-      Package: linux-modules-{{ ansible_facts['kernel'] }}
+      Package: linux-modules-extra-{{ host_required_kernel }}
       Pin: release *
       Pin-Priority: 1001
 
@@ -46,16 +67,10 @@
       Pin: release *
       Pin-Priority: -1
 
-      Package: linux-headers-*
-      Pin: release *
-      Pin-Priority: -1
-
       Package: linux-modules-*
       Pin: release *
       Pin-Priority: -1
     mode: '0644'
-  when:
-    - ansible_facts['kernel'] is version(host_required_kernel, '<')
 
 - name: Disable unattended-upgrades
   ansible.builtin.lineinfile:
