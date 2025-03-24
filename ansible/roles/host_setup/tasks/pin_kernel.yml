@@ -39,12 +39,11 @@
     path: /etc/default/grub
     regexp: '^GRUB_DEFAULT='
     line: 'GRUB_DEFAULT="Advanced options for Ubuntu>Ubuntu, with Linux {{ host_required_kernel }}"'
-  notify: "Update Grub2 config file"
+  notify: "Update Grub"
 
-- name: Update Grub2 config file
-  ansible.builtin.command: update-grub
-  become: yes # Required for update-grub
-  tags: grub_update
+- name: Update Grub
+  ansible.builtin.command: update-grub2
+  become: yes
 
 - name: Create apt preference file for specific kernel
   ansible.builtin.blockinfile:
@@ -71,6 +70,7 @@
       Pin: release *
       Pin-Priority: -1
     mode: '0644'
+  when: ansible_distribution == 'Ubuntu'    
 
 - name: Disable unattended-upgrades
   ansible.builtin.lineinfile:
