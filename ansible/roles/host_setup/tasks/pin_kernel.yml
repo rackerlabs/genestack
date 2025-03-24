@@ -38,7 +38,7 @@
   ansible.builtin.lineinfile:
     path: /etc/default/grub
     regexp: '^GRUB_DEFAULT='
-    line: 'GRUB_DEFAULT="Advanced options for Ubuntu>Ubuntu, with Linux 6.8.0-47-generic"'
+    line: 'GRUB_DEFAULT="Advanced options for Ubuntu>Ubuntu, with Linux {{ host_required_kernel }}"'
   notify: "Update Grub2 config file"
 
 - name: Update Grub2 config file

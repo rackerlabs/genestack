@@ -1,6 +1,8 @@
 ---
 
 ## Defined required kernel
+# This variable is used to set the default kernel in grub.  Ensure you are 
+# using the ENTIRE output from uname -r
 host_required_kernel: 6.8.0-47-generic
 host_sysstat_file: /etc/default/sysstat
 host_sysstat_cron_file: /etc/cron.d/sysstat
