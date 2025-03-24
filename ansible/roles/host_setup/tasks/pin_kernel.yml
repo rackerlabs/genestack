@@ -27,7 +27,7 @@
     - ansible_facts['kernel'] is version(host_required_kernel, '!=')
 
 - name: "Install specific kernel image/modules/extra version {{ host_required_kernel }}"
-  ansible.builtin.apt:
+  ansible.builtin.package:
     name:
       - "linux-image-{{ host_required_kernel }}"
       - "linux-modules-{{ host_required_kernel }}"
@@ -90,6 +90,6 @@
       value: "0"
 
 - name: Ensure unattended-upgrades package is removed
-  ansible.builtin.apt:
+  ansible.builtin.package:
     name: unattended-upgrades
     state: absent
