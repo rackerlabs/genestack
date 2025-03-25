@@ -172,7 +172,10 @@ additionalPrometheusRulesMap:
     - name: MariaDB backup alerts
       rules:
       - alert: mariadbBackupWarning
-        expr: time() - kube_cronjob_status_last_successful_time{cronjob="mariadb-backup"} > 21600
+        expr: |
+           time() - kube_cronjob_status_last_successful_time{cronjob="mariadb-backup", namespace="openstack"} > 21900
+           or
+           time() - kube_cronjob_status_last_successful_time{cronjob="mariadb-backup", namespace="grafana"} > 86700
         for: 1h
         labels:
           severity: warning
@@ -180,14 +183,17 @@ additionalPrometheusRulesMap:
           summary: Last MariaDB backup not successful within 1 hour of scheduled run
           description: "Last MariaDB backup not successful within 1 hour of scheduled run"
       - alert: mariadbBackupCritical
-        expr: time() - kube_cronjob_status_last_successful_time{cronjob="mariadb-backup"} > 43200
+        expr: |
+           time() - kube_cronjob_status_last_successful_time{cronjob="mariadb-backup", namespace="openstack"} > 43200
+           or
+           time() - kube_cronjob_status_last_successful_time{cronjob="mariadb-backup", namespace="grafana"} > 172800
         for: 1h
         labels:
           severity: critical
         annotations:
           summary: Second successive MariaDB backup not successful within 1 hour of scheduled run
           description: "Second successive MariaDB backup not successful within 1 hour of scheduled run"
-  fluentbit-serviceMonitor-alert:
+  fluentbit-servicemonitor-alert:
     groups:
     - name: fluentbit serviceMonitor alert
       rules:
