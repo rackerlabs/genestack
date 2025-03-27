@@ -23,10 +23,10 @@ Create the secret:
 kubectl --namespace openstack \
         create secret generic etcd-backup-secrets \
         --type Opaque \
-        --from-literal=ACCESS_KEY="sadbq4bcva2392dasflkdsp" \
-        --from-literal=SECRET_KEY="aldskflkjpoq32ibdsfko23bnalkfdao2" \
+        --from-literal=ACCESS_KEY="<SECRET_ACCESS_KEY>" \
+        --from-literal=SECRET_KEY="<SECRET_SECRET_KEY>" \
         --from-literal=S3_HOST="127.0.0.1" \
-        --from-literal=S3_REGION="SJC3" \
+        --from-literal=S3_REGION="<S3_REGION>" \
         --from-literal=ETCDCTL_API="3" \
         --from-literal=ETCDCTL_ENDPOINTS="https://127.0.0.1:2379" \
         --from-literal=ETCDCTL_CACERT="/etc/ssl/etcd/ssl/ca.pem" \
