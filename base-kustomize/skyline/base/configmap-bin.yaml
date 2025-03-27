@@ -133,14 +133,14 @@ data:
           properties: []
       gpu_models: []
       usb_models: []
-  data-gunicorn.py : |
+  data-gunicorn.py: |
     import multiprocessing
     bind = "unix:/var/lib/skyline/skyline.sock"
     workers = 4
     worker_class = "uvicorn.workers.UvicornWorker"
     timeout = 3600
     keepalive = 5
-    reuse_port = True
+    reuse_port = False
     proc_name = "skyline"
     logconfig_dict = {
         "version": 1,
