@@ -8,6 +8,11 @@ resources:
 
 patches:
   - target:
+      kind: ConfigMap
+      name: glance-bin
+    path: patch-glance-bin.yaml
+
+  - target:
       kind: PersistentVolumeClaim
       name: glance-images
     patch: |-

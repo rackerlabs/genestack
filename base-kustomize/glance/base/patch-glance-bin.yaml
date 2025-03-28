@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: glance-bin
+data:
+  glance-api.sh: |
+    #!/bin/bash
+
+    set -ex
+    COMMAND="${@:-start}"
+
+    function start () {
+      /var/lib/openstack/bin/glance-api --config-file /etc/glance/glance-api.conf
+    }
+
+    function stop () {
+      kill -TERM 1
+    }
+
+    $COMMAND
