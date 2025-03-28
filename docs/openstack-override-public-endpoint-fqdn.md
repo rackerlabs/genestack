@@ -19,7 +19,6 @@ custom-keystone-gateway-route-https   ["keystone.cluster.local"]   78d
 This although doesn't modify the public endpoint for the keystone service in the catalog; to modify the fqdn for the keystone service in the catalog we would need to create an helm overrides file:
 
 ```yaml
-cat host_fqdn_override.yaml 
 endpoints:
   identity:
     host_fqdn_override:
@@ -40,41 +39,41 @@ this file needs to be moved into /etc/genestack/helm-configs/keystone/ directory
 
 This is an example overrides file for nova:
 
-!!! example
-```yaml
-cat host_fqdn_overrides.yaml 
-endpoints:
-  compute:
-    host_fqdn_override:
-      public:
-        tls: {}
-        host: nova.cluster.local
-    port:
-      api:
-        public: 443
-    scheme:
-      public: https
-  compute_metadata:
-    host_fqdn_override:
-      public:
-        tls: {}
-        host: metadata.nova.cluster.local
-    port:
-      metadata:
-        public: 443
-    scheme:
-      public: https
-  compute_novnc_proxy:
-    host_fqdn_override:
-      public:
-        tls: {}
-        host: novnc.nova.cluster.local
-    port:
-      novnc_proxy:
-        public: 443
-    scheme:
-      public: https
-```
+!!! example "`host_fqdn_overrides.yaml`"
+
+    ``` yaml
+    endpoints:
+      compute:
+        host_fqdn_override:
+          public:
+            tls: {}
+            host: nova.cluster.local
+        port:
+          api:
+            public: 443
+        scheme:
+          public: https
+      compute_metadata:
+        host_fqdn_override:
+          public:
+            tls: {}
+            host: metadata.nova.cluster.local
+        port:
+          metadata:
+            public: 443
+        scheme:
+          public: https
+      compute_novnc_proxy:
+        host_fqdn_override:
+          public:
+            tls: {}
+            host: novnc.nova.cluster.local
+        port:
+          novnc_proxy:
+            public: 443
+        scheme:
+          public: https
+    ```
 
 !!! note
     gateway-api handles tls encryption on public endpoints; it is not required to specify tls parameters in helm
