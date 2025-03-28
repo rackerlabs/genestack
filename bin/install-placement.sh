@@ -31,7 +31,9 @@ HELM_CMD+=" --set conf.placement.keystone_authtoken.memcache_secret_key=\"\$(kub
 HELM_CMD+=" --set conf.placement.placement_database.slave_connection=\"mysql+pymysql://placement:\$(kubectl --namespace openstack get secret placement-db-password -o jsonpath='{.data.password}' | base64 -d)@mariadb-cluster-secondary.openstack.svc.cluster.local:3306/placement\""
 
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
-HELM_CMD+=" --post-renderer-args placement/overlay $*"
+HELM_CMD+=" --post-renderer-args placement/overlay"
+
+HELM_CMD+=" $@"
 
 echo "Executing Helm command:"
 echo "${HELM_CMD}"

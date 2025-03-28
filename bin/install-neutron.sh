@@ -42,10 +42,12 @@ HELM_CMD+=" --set conf.plugins.ml2_conf.ovn.ovn_nb_connection=\"tcp:\$(kubectl -
 HELM_CMD+=" --set conf.plugins.ml2_conf.ovn.ovn_sb_connection=\"tcp:\$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')\""
 
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
-HELM_CMD+=" --post-renderer-args neutron/overlay $*"
+HELM_CMD+=" --post-renderer-args neutron/overlay"
 
 helm repo add openstack-helm https://tarballs.opendev.org/openstack/openstack-helm
 helm repo update
+
+HELM_CMD+=" $@"
 
 echo "Executing Helm command:"
 echo "${HELM_CMD}"

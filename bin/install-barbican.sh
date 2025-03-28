@@ -29,10 +29,12 @@ HELM_CMD+=" --set endpoints.oslo_cache.auth.memcache_secret_key=\"$(kubectl --na
 HELM_CMD+=" --set conf.barbican.keystone_authtoken.memcache_secret_key=\"$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
 
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
-HELM_CMD+=" --post-renderer-args barbican/overlay $*"
+HELM_CMD+=" --post-renderer-args barbican/overlay"
 
 helm repo add openstack-helm https://tarballs.opendev.org/openstack/openstack-helm
 helm repo update
+
+HELM_CMD+=" $@"
 
 echo "Executing Helm command:"
 echo "${HELM_CMD}"

@@ -35,10 +35,12 @@ HELM_CMD+=" --set conf.octavia.ovn.ovn_nb_connection=\"tcp:\$(kubectl --namespac
 HELM_CMD+=" --set conf.octavia.ovn.ovn_sb_connection=\"tcp:\$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')\""
 
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
-HELM_CMD+=" --post-renderer-args octavia/overlay $*"
+HELM_CMD+=" --post-renderer-args octavia/overlay"
 
 helm repo add openstack-helm https://tarballs.opendev.org/openstack/openstack-helm
 helm repo update
+
+HELM_CMD+=" $@"
 
 echo "Executing Helm command:"
 echo "${HELM_CMD}"
