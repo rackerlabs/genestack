@@ -21,16 +21,16 @@ spec:
                 operator: In
                 values:
                   - worker
-    # NOTE: (brew) uncomment below when we update to a newer mariadb crd
-#    podAntiAffinity:
-#      requiredDuringSchedulingIgnoredDuringExecution:
-#        - labelSelector:
-#          matchExpressions:
-#            - key: app.kubernetes.io/instance
-#              operator: In
-#              values:
-#                - mariadb-cluster
-#          topologyKey: kubernetes.io/hostname
+  # NOTE: (brew) uncomment below when we update to a newer mariadb crd
+  #    podAntiAffinity:
+  #      requiredDuringSchedulingIgnoredDuringExecution:
+  #        - labelSelector:
+  #          matchExpressions:
+  #            - key: app.kubernetes.io/instance
+  #              operator: In
+  #              values:
+  #                - mariadb-cluster
+  #          topologyKey: kubernetes.io/hostname
 
   storage:
     size: 10Gi
@@ -97,7 +97,7 @@ spec:
     performance_schema=ON
     innodb_log_buffer_size=33554432
     innodb_flush_log_at_trx_commit=1
-    ignore-db-dirs=lost+found
+    ignore_db_dirs=lost+found
     skip-name-resolve
     innodb_buffer_pool_size=4G
     innodb_doublewrite=0
