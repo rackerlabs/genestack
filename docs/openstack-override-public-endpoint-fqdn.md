@@ -18,7 +18,7 @@ custom-keystone-gateway-route-https   ["keystone.cluster.local"]   78d
 
 This although doesn't modify the public endpoint for the keystone service in the catalog; to modify the fqdn for the keystone service in the catalog we would need to create an helm overrides file:
 
-```shell
+```yaml
 cat host_fqdn_override.yaml 
 endpoints:
   identity:
@@ -41,7 +41,7 @@ this file needs to be moved into /etc/genestack/helm-configs/keystone/ directory
 This is an example overrides file for nova:
 
 !!! example
-```
+```yaml
 cat host_fqdn_overrides.yaml 
 endpoints:
   compute:
