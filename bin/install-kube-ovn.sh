@@ -37,6 +37,7 @@ for dir in "$GLOBAL_OVERRIDES_DIR" "$SERVICE_CONFIG_DIR"; do
     fi
 done
 
+
 HELM_CMD+=" $@"
 
 echo "Executing Helm command:"

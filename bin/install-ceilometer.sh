@@ -42,10 +42,12 @@ rabbit://octavia:\$(kubectl --namespace openstack get secret octavia-rabbitmq-pa
 rabbit://magnum:\$(kubectl --namespace openstack get secret magnum-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)@rabbitmq.openstack.svc.cluster.local:5672/magnum}\""
 
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
-HELM_CMD+=" --post-renderer-args ceilometer/overlay $*"
+HELM_CMD+=" --post-renderer-args ceilometer/overlay"
 
 helm repo add openstack-helm https://tarballs.opendev.org/openstack/openstack-helm
 helm repo update
+
+HELM_CMD+=" $@"
 
 echo "Executing Helm command:"
 echo "${HELM_CMD}"

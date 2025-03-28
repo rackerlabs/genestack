@@ -28,10 +28,12 @@ HELM_CMD+=" --set endpoints.oslo_db.auth.admin.password=\"\$(kubectl --namespace
 HELM_CMD+=" --set endpoints.oslo_db.auth.horizon.password=\"\$(kubectl --namespace openstack get secret horizon-db-password -o jsonpath='{.data.password}' | base64 -d)\""
 
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
-HELM_CMD+=" --post-renderer-args horizon/overlay $*"
+HELM_CMD+=" --post-renderer-args horizon/overlay"
 
 helm repo add openstack-helm https://tarballs.opendev.org/openstack/openstack-helm
 helm repo update
+
+HELM_CMD+=" $@"
 
 echo "Executing Helm command:"
 echo "${HELM_CMD}"
