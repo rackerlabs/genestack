@@ -56,6 +56,21 @@
     group: "root"
     mode: "0755"
 
+- name: Get systemd version
+  tags:
+    - always
+    - skip_ansible_lint
+  block:
+    - name: Pull systemd version
+      ansible.builtin.command: >-
+        /usr/bin/systemctl --version --no-pager
+      register: get_systemd_version
+      changed_when: false
+      check_mode: false
+    - name: Set systemd version
+      ansible.builtin.set_fact:
+        systemd_version: "{{ get_systemd_version.stdout_lines[0].split()[-1] }}"
+
 - name: Add DefaultEnvironment to systemd
   ansible.builtin.template:
     src: genestack-default-environment.conf.j2
