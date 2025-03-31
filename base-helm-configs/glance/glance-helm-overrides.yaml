@@ -55,7 +55,7 @@ network_policy:
 conf:
   glance:
     DEFAULT:
-      workers: 2
+      workers: 8
       # NOTE(cloudnull): This option is required when using the new glance multi-backend feature.
       #                  The example below is for the rxt_swift backend, but could easily be used
       #                  for other backends.
