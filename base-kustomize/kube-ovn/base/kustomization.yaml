@@ -1,0 +1,12 @@
+sortOptions:
+  order: fifo
+
+resources:
+  - all.yaml
+
+patches:
+  - path: kube-ovn-nodeSelector-patch.yaml
+    target:
+      kind: Deployment
+      name: kube-ovn-controller
+      namespace: kube-system
