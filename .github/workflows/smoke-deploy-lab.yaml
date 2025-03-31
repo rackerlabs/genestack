@@ -1,0 +1,38 @@
+name: Running hyperconverged smoke tests
+
+on:
+  pull_request:
+    paths:
+      - ansible/**
+      - base-kustomize/**
+      - base-helm-configs/**
+      - bin/**
+      - scripts/**
+
+env:
+  HYPERCONVERGED_DEV: "true"
+  GATEWAY_DOMAIN: cloud.local
+  ACME_EMAIL: cloud@example.local
+  OS_IMAGE: "Ubuntu 24.04"
+  SSH_USERNAME: "ubuntu"
+
+jobs:
+  smoke-deploy:
+    runs-on: self-hosted
+    container:
+      image: localhost:5000/genestack-ci:latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Dynamically set MY_DATE environment variable
+        run: echo "LAB_NAME_PREFIX=smoke-$(date +%s)" >> $GITHUB_ENV
+
+      - name: Run deployment script
+        run: |
+          eval "$(ssh-agent -s)"
+          scripts/hyperconverged-lab.sh
+
+      - name: Cleanup the lab
+        if: always()
+        run: scripts/hyperconverged-lab-uninstall.sh
