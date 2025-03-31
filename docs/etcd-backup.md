@@ -19,8 +19,14 @@ kubectl label node etcd01.your.domain.tld is-etcd-backup-node=true
 
 Create the secret:
 
-``` shell
-kubectl --namespace openstack \
+!!! note "Information about the secrets used"
+
+    Manual secret generation is only required if you haven't run the create-secrets.sh script located in /opt/genestack/bin. However, you still need to add data to a couple of empty keys that are region-specific.
+
+    ??? example "Example secret generation"
+
+        ``` shell
+        kubectl --namespace openstack \
         create secret generic etcd-backup-secrets \
         --type Opaque \
         --from-literal=ACCESS_KEY="sadbq4bcva2392dasflkdsp" \
@@ -32,7 +38,7 @@ kubectl --namespace openstack \
         --from-literal=ETCDCTL_CACERT="/etc/ssl/etcd/ssl/ca.pem" \
         --from-literal=ETCDCTL_CERT="/etc/ssl/etcd/ssl/member-etcd01.your.domain.tld.pem" \
         --from-literal=ETCDCTL_KEY="/etc/ssl/etcd/ssl/member-etcd01.your.domain.tld-key.pem"
-```
+        ```
 
 !!! note
 

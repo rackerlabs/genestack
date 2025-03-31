@@ -614,6 +614,23 @@ data:
   password: $(echo -n $grafana_secret | base64 -w0)
   root-password: $(echo -n $grafana_root_secret | base64 -w0)
   username: $(echo -n grafana | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: etcd-backup-secrets
+  namespace: openstack
+type: Opaque
+data:
+  ACCESS_KEY: $(echo -n "" | base64)
+  SECRET_KEY: $(echo -n "" | base64)
+  S3_HOST: $(echo -n "" | base64)
+  S3_REGION: $(echo -n "$region" | base64)
+  ETCDCTL_API: $(echo -n "3" | base64)
+  ETCDCTL_ENDPOINTS: $(echo -n "https://127.0.0.1:2379" | base64 -w0)
+  ETCDCTL_CACERT: $(echo -n "/etc/ssl/etcd/ssl/ca.pem" | base64 -w0)
+  ETCDCTL_CERT: $(echo -n "" | base64)
+  ETCDCTL_KEY: $(echo -n "" | base64)
 EOF
 
 rm nova_ssh_key nova_ssh_key.pub
