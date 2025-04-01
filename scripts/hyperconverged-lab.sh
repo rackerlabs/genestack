@@ -50,154 +50,154 @@ fi
 
 export LAB_NAME_PREFIX="${LAB_NAME_PREFIX:-hyperconverged}"
 
-if ! openstack router show ${LAB_NAME_PREFIX}-router 2> /dev/null; then
+if ! openstack router show ${LAB_NAME_PREFIX}-router 2>/dev/null; then
   openstack router create ${LAB_NAME_PREFIX}-router --external-gateway PUBLICNET
 fi
 
-if ! openstack network show ${LAB_NAME_PREFIX}-net 2> /dev/null; then
+if ! openstack network show ${LAB_NAME_PREFIX}-net 2>/dev/null; then
   openstack network create ${LAB_NAME_PREFIX}-net
 fi
 
-if ! TENANT_SUB_NETWORK_ID=$(openstack subnet show ${LAB_NAME_PREFIX}-subnet -f json  2> /dev/null | jq -r '.id'); then
+if ! TENANT_SUB_NETWORK_ID=$(openstack subnet show ${LAB_NAME_PREFIX}-subnet -f json 2>/dev/null | jq -r '.id'); then
   echo "Creating the ${LAB_NAME_PREFIX}-subnet"
   TENANT_SUB_NETWORK_ID=$(
     openstack subnet create ${LAB_NAME_PREFIX}-subnet \
-              --network ${LAB_NAME_PREFIX}-net \
-              --subnet-range 192.168.100.0/24 \
-              --dns-nameserver 1.1.1.1 \
-              --dns-nameserver 1.0.0.1 \
-              -f json | jq -r '.id'
+      --network ${LAB_NAME_PREFIX}-net \
+      --subnet-range 192.168.100.0/24 \
+      --dns-nameserver 1.1.1.1 \
+      --dns-nameserver 1.0.0.1 \
+      -f json | jq -r '.id'
   )
 fi
 
-if ! openstack router show ${LAB_NAME_PREFIX}-router -f json 2> /dev/null | jq -r '.interfaces_info.[].subnet_id' | grep -q ${TENANT_SUB_NETWORK_ID}; then
+if ! openstack router show ${LAB_NAME_PREFIX}-router -f json 2>/dev/null | jq -r '.interfaces_info.[].subnet_id' | grep -q ${TENANT_SUB_NETWORK_ID}; then
   openstack router add subnet ${LAB_NAME_PREFIX}-router ${LAB_NAME_PREFIX}-subnet
 fi
 
-if ! openstack network show ${LAB_NAME_PREFIX}-compute-net 2> /dev/null; then
+if ! openstack network show ${LAB_NAME_PREFIX}-compute-net 2>/dev/null; then
   openstack network create ${LAB_NAME_PREFIX}-compute-net \
-            --disable-port-security
+    --disable-port-security
 fi
 
-if ! TENANT_COMPUTE_SUB_NETWORK_ID=$(openstack subnet show ${LAB_NAME_PREFIX}-compute-subnet -f json 2> /dev/null | jq -r '.id'); then
+if ! TENANT_COMPUTE_SUB_NETWORK_ID=$(openstack subnet show ${LAB_NAME_PREFIX}-compute-subnet -f json 2>/dev/null | jq -r '.id'); then
   echo "Creating the ${LAB_NAME_PREFIX}-compute-subnet"
   TENANT_COMPUTE_SUB_NETWORK_ID=$(
     openstack subnet create ${LAB_NAME_PREFIX}-compute-subnet \
-              --network ${LAB_NAME_PREFIX}-compute-net \
-              --subnet-range 192.168.102.0/24 \
-              --no-dhcp -f json | jq -r '.id'
+      --network ${LAB_NAME_PREFIX}-compute-net \
+      --subnet-range 192.168.102.0/24 \
+      --no-dhcp -f json | jq -r '.id'
   )
 fi
 
-if ! openstack router show ${LAB_NAME_PREFIX}-router -f json | jq -r '.interfaces_info.[].subnet_id' | grep -q ${TENANT_COMPUTE_SUB_NETWORK_ID} 2> /dev/null; then
+if ! openstack router show ${LAB_NAME_PREFIX}-router -f json | jq -r '.interfaces_info.[].subnet_id' | grep -q ${TENANT_COMPUTE_SUB_NETWORK_ID} 2>/dev/null; then
   openstack router add subnet ${LAB_NAME_PREFIX}-router ${LAB_NAME_PREFIX}-compute-subnet
 fi
 
-if ! openstack security group show ${LAB_NAME_PREFIX}-http-secgroup 2> /dev/null; then
+if ! openstack security group show ${LAB_NAME_PREFIX}-http-secgroup 2>/dev/null; then
   openstack security group create ${LAB_NAME_PREFIX}-http-secgroup
 fi
 
-if ! openstack security group show ${LAB_NAME_PREFIX}-http-secgroup -f json 2> /dev/null | jq -r '.rules.[].port_range_max' | grep -q 443; then
+if ! openstack security group show ${LAB_NAME_PREFIX}-http-secgroup -f json 2>/dev/null | jq -r '.rules.[].port_range_max' | grep -q 443; then
   openstack security group rule create ${LAB_NAME_PREFIX}-http-secgroup \
-            --protocol tcp \
-            --ingress \
-            --remote-ip 0.0.0.0/0 \
-            --dst-port 443 \
-            --description "https"
+    --protocol tcp \
+    --ingress \
+    --remote-ip 0.0.0.0/0 \
+    --dst-port 443 \
+    --description "https"
 fi
-if ! openstack security group show ${LAB_NAME_PREFIX}-http-secgroup -f json 2> /dev/null | jq -r '.rules.[].port_range_max' | grep -q 80; then
+if ! openstack security group show ${LAB_NAME_PREFIX}-http-secgroup -f json 2>/dev/null | jq -r '.rules.[].port_range_max' | grep -q 80; then
   openstack security group rule create ${LAB_NAME_PREFIX}-http-secgroup \
-            --protocol tcp \
-            --ingress \
-            --remote-ip 0.0.0.0/0 \
-            --dst-port 80 \
-            --description "http"
+    --protocol tcp \
+    --ingress \
+    --remote-ip 0.0.0.0/0 \
+    --dst-port 80 \
+    --description "http"
 fi
 
-if ! openstack security group show ${LAB_NAME_PREFIX}-secgroup 2> /dev/null; then
+if ! openstack security group show ${LAB_NAME_PREFIX}-secgroup 2>/dev/null; then
   openstack security group create ${LAB_NAME_PREFIX}-secgroup
 fi
 
-if ! openstack security group show ${LAB_NAME_PREFIX}-secgroup -f json 2> /dev/null | jq -r '.rules.[].description' | grep -q "all internal traffic"; then
+if ! openstack security group show ${LAB_NAME_PREFIX}-secgroup -f json 2>/dev/null | jq -r '.rules.[].description' | grep -q "all internal traffic"; then
   openstack security group rule create ${LAB_NAME_PREFIX}-secgroup \
-            --protocol any \
-            --ingress \
-            --remote-ip 192.168.100.0/24 \
-            --description "all internal traffic"
+    --protocol any \
+    --ingress \
+    --remote-ip 192.168.100.0/24 \
+    --description "all internal traffic"
 fi
 
-if ! openstack security group show ${LAB_NAME_PREFIX}-jump-secgroup 2> /dev/null; then
+if ! openstack security group show ${LAB_NAME_PREFIX}-jump-secgroup 2>/dev/null; then
   openstack security group create ${LAB_NAME_PREFIX}-jump-secgroup
 fi
 
-if ! openstack security group show ${LAB_NAME_PREFIX}-jump-secgroup -f json 2> /dev/null | jq -r '.rules.[].port_range_max' | grep -q 22; then
+if ! openstack security group show ${LAB_NAME_PREFIX}-jump-secgroup -f json 2>/dev/null | jq -r '.rules.[].port_range_max' | grep -q 22; then
   openstack security group rule create ${LAB_NAME_PREFIX}-jump-secgroup \
-            --protocol tcp \
-            --ingress \
-            --remote-ip 0.0.0.0/0 \
-            --dst-port 22 \
-            --description "ssh"
+    --protocol tcp \
+    --ingress \
+    --remote-ip 0.0.0.0/0 \
+    --dst-port 22 \
+    --description "ssh"
 fi
-if ! openstack security group show ${LAB_NAME_PREFIX}-jump-secgroup -f json 2> /dev/null | jq -r '.rules.[].protocol' | grep -q icmp; then
+if ! openstack security group show ${LAB_NAME_PREFIX}-jump-secgroup -f json 2>/dev/null | jq -r '.rules.[].protocol' | grep -q icmp; then
   openstack security group rule create ${LAB_NAME_PREFIX}-jump-secgroup \
-            --protocol icmp \
-            --ingress \
-            --remote-ip 0.0.0.0/0 \
-            --description "ping"
+    --protocol icmp \
+    --ingress \
+    --remote-ip 0.0.0.0/0 \
+    --description "ping"
 fi
 
-if ! METAL_LB_IP=$(openstack port show ${LAB_NAME_PREFIX}-metallb-vip-0-port -f json 2> /dev/null | jq -r '.fixed_ips[0].ip_address'); then
+if ! METAL_LB_IP=$(openstack port show ${LAB_NAME_PREFIX}-metallb-vip-0-port -f json 2>/dev/null | jq -r '.fixed_ips[0].ip_address'); then
   echo "Creating the MetalLB VIP port"
   METAL_LB_IP=$(openstack port create --security-group ${LAB_NAME_PREFIX}-http-secgroup --network ${LAB_NAME_PREFIX}-net ${LAB_NAME_PREFIX}-metallb-vip-0-port -f json | jq -r '.fixed_ips[0].ip_address')
 fi
 
 METAL_LB_PORT_ID=$(openstack port show ${LAB_NAME_PREFIX}-metallb-vip-0-port -f value -c id)
 
-if ! METAL_LB_VIP=$(openstack floating ip list --port ${METAL_LB_PORT_ID} -f json  2> /dev/null | jq -r '.[]."Floating IP Address"'); then
+if ! METAL_LB_VIP=$(openstack floating ip list --port ${METAL_LB_PORT_ID} -f json 2>/dev/null | jq -r '.[]."Floating IP Address"'); then
   echo "Creating the MetalLB VIP floating IP"
   METAL_LB_VIP=$(openstack floating ip create PUBLICNET --port ${METAL_LB_PORT_ID} -f json | jq -r '.floating_ip_address')
 elif [ -z "${METAL_LB_VIP}" ]; then
   METAL_LB_VIP=$(openstack floating ip create PUBLICNET --port ${METAL_LB_PORT_ID} -f json | jq -r '.floating_ip_address')
 fi
 
-if ! WORKER_0_PORT=$(openstack port show ${LAB_NAME_PREFIX}-0-mgmt-port -f value -c id 2> /dev/null); then
+if ! WORKER_0_PORT=$(openstack port show ${LAB_NAME_PREFIX}-0-mgmt-port -f value -c id 2>/dev/null); then
   export WORKER_0_PORT=$(
     openstack port create --allowed-address ip-address=${METAL_LB_IP} \
-                          --security-group ${LAB_NAME_PREFIX}-secgroup \
-                          --security-group ${LAB_NAME_PREFIX}-jump-secgroup \
-                          --security-group ${LAB_NAME_PREFIX}-http-secgroup \
-                          --network ${LAB_NAME_PREFIX}-net \
-                          -f value \
-                          -c id \
-                          ${LAB_NAME_PREFIX}-0-mgmt-port
+      --security-group ${LAB_NAME_PREFIX}-secgroup \
+      --security-group ${LAB_NAME_PREFIX}-jump-secgroup \
+      --security-group ${LAB_NAME_PREFIX}-http-secgroup \
+      --network ${LAB_NAME_PREFIX}-net \
+      -f value \
+      -c id \
+      ${LAB_NAME_PREFIX}-0-mgmt-port
   )
 fi
 
-if ! WORKER_1_PORT=$(openstack port show ${LAB_NAME_PREFIX}-1-mgmt-port -f value -c id 2> /dev/null); then
+if ! WORKER_1_PORT=$(openstack port show ${LAB_NAME_PREFIX}-1-mgmt-port -f value -c id 2>/dev/null); then
   export WORKER_1_PORT=$(
     openstack port create --allowed-address ip-address=${METAL_LB_IP} \
-                          --security-group ${LAB_NAME_PREFIX}-secgroup \
-                          --security-group ${LAB_NAME_PREFIX}-http-secgroup \
-                          --network ${LAB_NAME_PREFIX}-net \
-                          -f value \
-                          -c id \
-                          ${LAB_NAME_PREFIX}-1-mgmt-port
+      --security-group ${LAB_NAME_PREFIX}-secgroup \
+      --security-group ${LAB_NAME_PREFIX}-http-secgroup \
+      --network ${LAB_NAME_PREFIX}-net \
+      -f value \
+      -c id \
+      ${LAB_NAME_PREFIX}-1-mgmt-port
   )
 fi
 
-if ! WORKER_2_PORT=$(openstack port show ${LAB_NAME_PREFIX}-2-mgmt-port -f value -c id 2> /dev/null); then
+if ! WORKER_2_PORT=$(openstack port show ${LAB_NAME_PREFIX}-2-mgmt-port -f value -c id 2>/dev/null); then
   export WORKER_2_PORT=$(
     openstack port create --allowed-address ip-address=${METAL_LB_IP} \
-                          --security-group ${LAB_NAME_PREFIX}-secgroup \
-                          --security-group ${LAB_NAME_PREFIX}-http-secgroup \
-                          --network ${LAB_NAME_PREFIX}-net \
-                          -f value \
-                          -c id \
-                          ${LAB_NAME_PREFIX}-2-mgmt-port
+      --security-group ${LAB_NAME_PREFIX}-secgroup \
+      --security-group ${LAB_NAME_PREFIX}-http-secgroup \
+      --network ${LAB_NAME_PREFIX}-net \
+      -f value \
+      -c id \
+      ${LAB_NAME_PREFIX}-2-mgmt-port
   )
 fi
 
-if ! JUMP_HOST_VIP=$(openstack floating ip list --port ${WORKER_0_PORT} -f json 2> /dev/null | jq -r '.[]."Floating IP Address"'); then
+if ! JUMP_HOST_VIP=$(openstack floating ip list --port ${WORKER_0_PORT} -f json 2>/dev/null | jq -r '.[]."Floating IP Address"'); then
   JUMP_HOST_VIP=$(openstack floating ip create PUBLICNET --port ${WORKER_0_PORT} -f json | jq -r '.floating_ip_address')
 elif [ -z "${JUMP_HOST_VIP}" ]; then
   JUMP_HOST_VIP=$(openstack floating ip create PUBLICNET --port ${WORKER_0_PORT} -f json | jq -r '.floating_ip_address')
@@ -205,104 +205,104 @@ fi
 
 echo "Creating pre-defined compute ports for the flat test network"
 for i in {100..109}; do
-  if ! openstack port show ${LAB_NAME_PREFIX}-0-compute-float-${i}-port 2> /dev/null; then
+  if ! openstack port show ${LAB_NAME_PREFIX}-0-compute-float-${i}-port 2>/dev/null; then
     openstack port create --network ${LAB_NAME_PREFIX}-compute-net \
-                          --disable-port-security \
-                          --fixed-ip ip-address="192.168.102.${i}" \
-                          ${LAB_NAME_PREFIX}-0-compute-float-${i}-port
+      --disable-port-security \
+      --fixed-ip ip-address="192.168.102.${i}" \
+      ${LAB_NAME_PREFIX}-0-compute-float-${i}-port
   fi
 done
 
-if ! COMPUTE_0_PORT=$(openstack port show ${LAB_NAME_PREFIX}-0-compute-port -f value -c id 2> /dev/null); then
+if ! COMPUTE_0_PORT=$(openstack port show ${LAB_NAME_PREFIX}-0-compute-port -f value -c id 2>/dev/null); then
   export COMPUTE_0_PORT=$(
     openstack port create --network ${LAB_NAME_PREFIX}-compute-net \
-                          --no-fixed-ip \
-                          --disable-port-security \
-                          -f value \
-                          -c id \
-                          ${LAB_NAME_PREFIX}-0-compute-port
+      --no-fixed-ip \
+      --disable-port-security \
+      -f value \
+      -c id \
+      ${LAB_NAME_PREFIX}-0-compute-port
   )
 fi
 
-if ! COMPUTE_1_PORT=$(openstack port show ${LAB_NAME_PREFIX}-1-compute-port -f value -c id 2> /dev/null); then
+if ! COMPUTE_1_PORT=$(openstack port show ${LAB_NAME_PREFIX}-1-compute-port -f value -c id 2>/dev/null); then
   export COMPUTE_1_PORT=$(
     openstack port create --network ${LAB_NAME_PREFIX}-compute-net \
-                          --no-fixed-ip \
-                          --disable-port-security \
-                          -f value \
-                          -c id \
-                          ${LAB_NAME_PREFIX}-1-compute-port
+      --no-fixed-ip \
+      --disable-port-security \
+      -f value \
+      -c id \
+      ${LAB_NAME_PREFIX}-1-compute-port
   )
 fi
 
-if ! COMPUTE_2_PORT=$(openstack port show ${LAB_NAME_PREFIX}-2-compute-port -f value -c id 2> /dev/null); then
+if ! COMPUTE_2_PORT=$(openstack port show ${LAB_NAME_PREFIX}-2-compute-port -f value -c id 2>/dev/null); then
   export COMPUTE_2_PORT=$(
     openstack port create --network ${LAB_NAME_PREFIX}-compute-net \
-                          --no-fixed-ip \
-                          --disable-port-security \
-                          -f value \
-                          -c id \
-                          ${LAB_NAME_PREFIX}-2-compute-port
+      --no-fixed-ip \
+      --disable-port-security \
+      -f value \
+      -c id \
+      ${LAB_NAME_PREFIX}-2-compute-port
   )
 fi
 
-if ! openstack keypair show ${LAB_NAME_PREFIX}-key 2> /dev/null; then
-    if [ ! -f ~/.ssh/${LAB_NAME_PREFIX}-key.pem ]; then
-      openstack keypair create ${LAB_NAME_PREFIX}-key > ~/.ssh/${LAB_NAME_PREFIX}-key.pem
-      chmod 600 ~/.ssh/${LAB_NAME_PREFIX}-key.pem
-      openstack keypair show ${LAB_NAME_PREFIX}-key --public-key > ~/.ssh/${LAB_NAME_PREFIX}-key.pub
-    else
-      if [ -f ~/.ssh/${LAB_NAME_PREFIX}-key.pub ]; then
-        openstack keypair create ${LAB_NAME_PREFIX}-key --public-key ~/.ssh/${LAB_NAME_PREFIX}-key.pub
-      fi
+if ! openstack keypair show ${LAB_NAME_PREFIX}-key 2>/dev/null; then
+  if [ ! -f ~/.ssh/${LAB_NAME_PREFIX}-key.pem ]; then
+    openstack keypair create ${LAB_NAME_PREFIX}-key >~/.ssh/${LAB_NAME_PREFIX}-key.pem
+    chmod 600 ~/.ssh/${LAB_NAME_PREFIX}-key.pem
+    openstack keypair show ${LAB_NAME_PREFIX}-key --public-key >~/.ssh/${LAB_NAME_PREFIX}-key.pub
+  else
+    if [ -f ~/.ssh/${LAB_NAME_PREFIX}-key.pub ]; then
+      openstack keypair create ${LAB_NAME_PREFIX}-key --public-key ~/.ssh/${LAB_NAME_PREFIX}-key.pub
     fi
+  fi
 fi
 
 ssh-add ~/.ssh/${LAB_NAME_PREFIX}-key.pem
 
 # Create the three lab instances
-if ! openstack server show ${LAB_NAME_PREFIX}-0 2> /dev/null; then
+if ! openstack server show ${LAB_NAME_PREFIX}-0 2>/dev/null; then
   openstack server create ${LAB_NAME_PREFIX}-0 \
-            --port ${WORKER_0_PORT} \
-            --port ${COMPUTE_0_PORT} \
-            --image "${OS_IMAGE}" \
-            --key-name ${LAB_NAME_PREFIX}-key \
-            --flavor ${OS_FLAVOR}
+    --port ${WORKER_0_PORT} \
+    --port ${COMPUTE_0_PORT} \
+    --image "${OS_IMAGE}" \
+    --key-name ${LAB_NAME_PREFIX}-key \
+    --flavor ${OS_FLAVOR}
 fi
 
-if ! openstack server show ${LAB_NAME_PREFIX}-1 2> /dev/null; then
+if ! openstack server show ${LAB_NAME_PREFIX}-1 2>/dev/null; then
   openstack server create ${LAB_NAME_PREFIX}-1 \
-            --port ${WORKER_1_PORT} \
-            --port ${COMPUTE_1_PORT} \
-            --image "${OS_IMAGE}" \
-            --key-name ${LAB_NAME_PREFIX}-key \
-            --flavor ${OS_FLAVOR}
+    --port ${WORKER_1_PORT} \
+    --port ${COMPUTE_1_PORT} \
+    --image "${OS_IMAGE}" \
+    --key-name ${LAB_NAME_PREFIX}-key \
+    --flavor ${OS_FLAVOR}
 fi
 
-if ! openstack server show ${LAB_NAME_PREFIX}-2 2> /dev/null; then
+if ! openstack server show ${LAB_NAME_PREFIX}-2 2>/dev/null; then
   openstack server create ${LAB_NAME_PREFIX}-2 \
-            --port ${WORKER_2_PORT} \
-            --port ${COMPUTE_2_PORT} \
-            --image "${OS_IMAGE}" \
-            --key-name ${LAB_NAME_PREFIX}-key \
-            --flavor ${OS_FLAVOR}
+    --port ${WORKER_2_PORT} \
+    --port ${COMPUTE_2_PORT} \
+    --image "${OS_IMAGE}" \
+    --key-name ${LAB_NAME_PREFIX}-key \
+    --flavor ${OS_FLAVOR}
 fi
 
 echo "Waiting for the jump host to be ready"
 COUNT=0
 while ! ssh -o ConnectTimeout=2 -o ConnectionAttempts=3 -o UserKnownHostsFile=/dev/null -q ${SSH_USERNAME}@${JUMP_HOST_VIP} exit; do
-   sleep 2
-   echo "SSH is not ready, Trying again..."
-   COUNT=$((COUNT+1))
-   if [ $COUNT -gt 30 ]; then
-     echo "Failed to ssh into the jump host"
-     exit 1
-   fi
+  sleep 2
+  echo "SSH is not ready, Trying again..."
+  COUNT=$((COUNT + 1))
+  if [ $COUNT -gt 30 ]; then
+    echo "Failed to ssh into the jump host"
+    exit 1
+  fi
 done
 
 # Run bootstrap
 if [ "${HYPERCONVERGED_DEV:-false}" = "true" ]; then
-  export SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+  export SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
   if [ ! -d "${SCRIPT_DIR}" ]; then
     echo "HYPERCONVERGED_DEV is true, but we've failed to determine the base genestack directory"
     exit 1
@@ -311,9 +311,20 @@ if [ "${HYPERCONVERGED_DEV:-false}" = "true" ]; then
     "timeout 1m bash -c 'while ! sudo apt update; do sleep 2; done' && sudo apt install -y rsync git"
   echo "Copying the development source code to the jump host"
   rsync -az \
-        -e "ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null" \
-        --rsync-path="sudo rsync" \
-        $(readlink -fn ${SCRIPT_DIR}/../) ${SSH_USERNAME}@${JUMP_HOST_VIP}:/opt/
+    -e "ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null" \
+    --rsync-path="sudo rsync" \
+    $(readlink -fn ${SCRIPT_DIR}/../) ${SSH_USERNAME}@${JUMP_HOST_VIP}:/opt/
+fi
+
+#
+# git is not installed by default on Debian so if we are Debian, install it
+#
+if [ "${SSH_USERNAME}" = "debian" ]; then
+  echo "The image ${OS_IMAGE} does not have git installed by default, so we need to install it"
+  ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+set -e
+sudo apt install -y git
+EOC
 fi
 
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
