@@ -19,7 +19,7 @@ Run the helm command to install Envoy Gateway.
     --8<-- "bin/install-envoy-gateway.sh"
     ```
 
-The install script will deploy Envoy Gateway to the `envoy-gateway-system` namespace via Helm.
+The install script will deploy Envoy Gateway to the `envoyproxy-gateway-system` namespace via Helm.
 
 ## Setup
 
