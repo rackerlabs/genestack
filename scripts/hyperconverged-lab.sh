@@ -645,7 +645,7 @@ pushd /opt/kube-plugins
     sudo install -o root -g root -m 0755 kubectl-convert /usr/local/bin/kubectl-convert
   fi
   if [ ! -f "/usr/local/bin/kubectl-ko" ]; then
-    curl -LO https://raw.githubusercontent.com/kubeovn/kube-ovn/release-1.12/dist/images/kubectl-ko
+    curl -LO https://raw.githubusercontent.com/kubeovn/kube-ovn/refs/heads/release-1.12/dist/images/kubectl-ko
     sudo install -o root -g root -m 0755 kubectl-ko /usr/local/bin/kubectl-ko
   fi
 popd
