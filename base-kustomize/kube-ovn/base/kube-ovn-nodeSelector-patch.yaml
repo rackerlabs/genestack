@@ -1,0 +1,5 @@
+- op: replace
+  path: "/spec/template/spec/nodeSelector"
+  value:
+    "kubernetes.io/os": "linux"
+    "kube-ovn/role": "master"
