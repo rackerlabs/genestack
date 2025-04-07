@@ -45,17 +45,6 @@ additionalPrometheusRulesMap:
         annotations:
           summary: "Loadbalancer stuck in error state for a prolonged period"
           description: "This may indicate a potential problem with failover and/or healthmanager services. This could also indicate other problems building load balancers in general"
-  rabbitmq-alerts:
-    groups:
-    - name: Prometheus Alerts
-      rules:
-      - alert: RabbitQueueSizeTooLarge
-        expr: rabbitmq_queuesTotal>3600
-        for: 5m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Rabbit queue size too large (instance {{ `{{ $labels.instance }}` }} )"
   database-alerts:
     groups:
     - name: Mysql Alerts
