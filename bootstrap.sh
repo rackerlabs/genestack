@@ -32,7 +32,7 @@ apt update
 DEBIAN_FRONTEND=noninteractive \
   apt-get -o "Dpkg::Options::=--force-confdef" \
           -o "Dpkg::Options::=--force-confold" \
-          -qy install make git python3-pip python3-venv jq make > ~/genestack-base-package-install.log 2>&1
+          -qy install git python3-pip python3-venv python3-dev jq build-essential > ~/genestack-base-package-install.log 2>&1
 
 if [ $? -gt 1 ]; then
   error "Check for ansible errors at ~/genestack-base-package-install.log"
