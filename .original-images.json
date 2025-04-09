@@ -33,5 +33,9 @@
   "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy-1737928811",
   "ghcr.io/rackerlabs/genestack/octavia-ovn:2024.1-ubuntu_jammy-1737651745",
   "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1739377879",
-  "ghcr.io/rackerlabs/skyline-rxt:master-ubuntu_jammy-1739967315"
+  "ghcr.io/rackerlabs/skyline-rxt:master-ubuntu_jammy-1739967315",
+  "docker.io/openstackhelm/ironic:2024.1-ubuntu_jammy",
+  "docker.io/openstackhelm/ironic-inspector:2024.1-ubuntu_jammy",
+  "docker.io/openstackhelm/heat:2024.1-ubuntu_jammy",
+  "docker.io/nginx:1.13.3"
 ]
