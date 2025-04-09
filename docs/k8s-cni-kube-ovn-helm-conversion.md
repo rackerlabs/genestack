@@ -94,7 +94,7 @@ After converting the Kube-OVN deployment to a Helm chart, you can manage the dep
 To ensure there's no future conflict with the Kube-OVN deployment, you can reset the network plugin option
 deployment options from the `/etc/genestack/inventory/group_vars/k8s_cluster/k8s-cluster.yml` file.
 
-Set the value `kube_network_plugin` to **cni**.
+Set the value `kube_network_plugin` to **`none`**.
 
 ``` diff
 --- a/inventory/group_vars/k8s_cluster/k8s-cluster.yml
