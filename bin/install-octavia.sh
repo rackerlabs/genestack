@@ -29,7 +29,6 @@ HELM_CMD+=" --set endpoints.oslo_messaging.auth.admin.password=\"\$(kubectl --na
 HELM_CMD+=" --set endpoints.oslo_messaging.auth.octavia.password=\"\$(kubectl --namespace openstack get secret octavia-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_cache.auth.memcache_secret_key=\"\$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
 HELM_CMD+=" --set conf.octavia.keystone_authtoken.memcache_secret_key=\"\$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
-HELM_CMD+=" --set conf.octavia.database.slave_connection=\"mysql+pymysql://octavia:\$(kubectl --namespace openstack get secret octavia-db-password -o jsonpath='{.data.password}' | base64 -d)@mariadb-cluster-secondary.openstack.svc.cluster.local:3306/octavia\""
 HELM_CMD+=" --set conf.octavia.certificates.ca_private_key_passphrase=\"\$(kubectl --namespace openstack get secret octavia-certificates -o jsonpath='{.data.password}' | base64 -d)\""
 HELM_CMD+=" --set conf.octavia.ovn.ovn_nb_connection=\"tcp:\$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')\""
 HELM_CMD+=" --set conf.octavia.ovn.ovn_sb_connection=\"tcp:\$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')\""

@@ -28,7 +28,6 @@ HELM_CMD+=" --set endpoints.oslo_db.auth.placement.password=\"\$(kubectl --names
 HELM_CMD+=" --set endpoints.oslo_cache.auth.memcache_secret_key=\"\$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_db.auth.nova_api.password=\"\$(kubectl --namespace openstack get secret nova-db-password -o jsonpath='{.data.password}' | base64 -d)\""
 HELM_CMD+=" --set conf.placement.keystone_authtoken.memcache_secret_key=\"\$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
-HELM_CMD+=" --set conf.placement.placement_database.slave_connection=\"mysql+pymysql://placement:\$(kubectl --namespace openstack get secret placement-db-password -o jsonpath='{.data.password}' | base64 -d)@mariadb-cluster-secondary.openstack.svc.cluster.local:3306/placement\""
 
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
 HELM_CMD+=" --post-renderer-args placement/overlay"
