@@ -6,6 +6,7 @@ GENESTACK_DIR="${GENESTACK_DIR:-/opt/genestack}"
 GENESTACK_CONFIG_DIR="${GENESTACK_CONFIG_DIR:-/etc/genestack}"
 
 GENESTACK_PROMETHEUS_DIR="${GENESTACK_PROMETHEUS_DIR:-$GENESTACK_DIR/base-helm-configs/prometheus}"
+GENESTACK_PROMETHEUS_RULES_DIR="${GENESTACK_PROMETHEUS_RULES_DIR:-$GENESTACK_DIR/base-helm-configs/prometheus/rules}"
 GENESTACK_PROMETHEUS_CONFIG_DIR="${GENESTACK_PROMETHEUS_CONFIG_DIR:-$GENESTACK_CONFIG_DIR/helm-configs/prometheus}"
 
 # Prepare an array to collect --values arguments
@@ -18,6 +19,20 @@ if [[ -e "$base_override" ]]; then
   values_args+=("--values" "$base_override")
 else
   echo "Warning: Base override file not found: $base_override"
+fi
+
+# Include all rules YAML files from base
+if [[ -d "$GENESTACK_PROMETHEUS_RULES_DIR" ]]; then
+  echo "Including rules files from base directory:"
+  for file in "$GENESTACK_PROMETHEUS_RULES_DIR"/*.yaml; do
+    # Check that there is at least one match
+    if [[ -e "$file" ]]; then
+      echo "    $file"
+      values_args+=("--values" "$file")
+    fi
+  done
+else
+  echo "Info: Rules directory not found: $GENESTACK_PROMETHEUS_RULES_DIR"
 fi
 
 # Include all YAML files from the configuration directory

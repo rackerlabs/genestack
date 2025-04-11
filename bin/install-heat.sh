@@ -26,7 +26,6 @@ HELM_CMD+=" --set endpoints.oslo_db.auth.admin.password=\"\$(kubectl --namespace
 HELM_CMD+=" --set endpoints.oslo_db.auth.heat.password=\"\$(kubectl --namespace openstack get secret heat-db-password -o jsonpath='{.data.password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_cache.auth.memcache_secret_key=\"\$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
 HELM_CMD+=" --set conf.heat.keystone_authtoken.memcache_secret_key=\"\$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
-HELM_CMD+=" --set conf.heat.database.slave_connection=\"mysql+pymysql://heat:\$(kubectl --namespace openstack get secret heat-db-password -o jsonpath='{.data.password}' | base64 -d)@mariadb-cluster-secondary.openstack.svc.cluster.local:3306/heat\""
 HELM_CMD+=" --set endpoints.oslo_messaging.auth.admin.password=\"\$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_messaging.auth.heat.password=\"\$(kubectl --namespace openstack get secret heat-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)\""
 

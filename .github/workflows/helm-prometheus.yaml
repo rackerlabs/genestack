@@ -32,7 +32,8 @@ jobs:
             --create-namespace \
             --namespace=prometheus \
             -f ${{ github.workspace }}//base-helm-configs/prometheus/prometheus-helm-overrides.yaml \
-            -f ${{ github.workspace }}//base-helm-configs/prometheus/alerting_rules.yaml \
+            -f ${{ github.workspace }}//base-helm-configs/prometheus/rules/alerting_rules.yaml \
+            -f ${{ github.workspace }}//base-helm-configs/prometheus/rules/rabbitmq_alerting_rules.yaml \
             -f ${{ github.workspace }}//base-helm-configs/prometheus/alertmanager_config.yaml \
             --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
             --post-renderer-args prometheus/${{ matrix.overlays }} > /tmp/rendered.yaml

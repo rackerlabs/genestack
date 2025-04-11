@@ -1,0 +1,235 @@
+additionalPrometheusRulesMap:
+  openstack-resource-alerts:
+    groups:
+      - name: Compute Resource Alerts
+        rules:
+          - alert: AbnormalInstanceFailures
+            expr: |
+              count(count(last_over_time(openstack_nova_server_status{status=~"BUILD|ERROR"}[60m])) by (id)) /
+              count(count(last_over_time(openstack_nova_server_status{status="ACTIVE"}[60m])) by (id)) * 100 >= 20
+            labels:
+              severity: critical
+            annotations:
+              summary: "Instance build failure rate is abnormally high"
+              description: |
+                This indicates a major problem building compute instances.
+                View logs and take action to resolve the build failures.
+          - alert: InstancesStuckInFailureState
+            expr: count(openstack_nova_server_status{status=~"BUILD|ERROR"}) > 0
+            for: 90m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Instances stuck in failure state for a prolonged period"
+              description: |
+                There are instances stuck in a building or error state for a prolonged period
+                that need to be cleaned up.
+      - name: Image Resource Alerts
+        rules:
+          - alert: AbnormalImageFailures
+            expr: |
+              count(count(last_over_time(openstack_glance_image_created_at{status!~"active|deactivated"}[60m])) by (id)) /
+              count(count(last_over_time(openstack_glance_image_created_at{status="active"}[60m])) by (id)) * 100 >= 20
+            labels:
+              severity: critical
+            annotations:
+              summary: "Image create failure rate is abnormally high"
+              description: |
+                This indicates a major problem creating images.
+                View logs and take action to resolve the build failures.
+          - alert: ImagesStuckInFailureState
+            expr: count(openstack_glance_image_created_at{status="failure"}) > 0
+            for: 90m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Images stuck in failure state for a prolonged period"
+              description: |
+                There are images stuck in a failure state for a prolonged period
+                that need to be cleaned up.
+      - name: Octavia Resource Alerts
+        rules:
+          - alert: LoadbalancersInError
+            expr: count(openstack_loadbalancer_loadbalancer_status{provisioning_status="ERROR"}) > 0
+            for: 90m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Loadbalancer stuck in error state for a prolonged period"
+              description: |
+                This may indicate a potential problem with failover and/or health manager services.
+                This could also indicate other problems building load balancers in general.
+  database-alerts:
+    groups:
+      - name: Mysql Alerts
+        rules:
+          - alert: MysqlDown
+            expr: mysql_up == 0
+            for: 0m
+            labels:
+              severity: critical
+            annotations:
+              summary: "MariaDB down (instance {{ $labels.instance }})"
+              description: |
+                MariaDB instance is down on {{ $labels.instance }}
+                VALUE = {{ $value }}
+                LABELS = {{ $labels }}
+          - alert: MysqlTooManyConnections(>80%)
+            expr: max_over_time(mysql_global_status_threads_connected[1m]) / mysql_global_variables_max_connections * 100 > 90
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Database too many connections (> 90%) (instance {{ $labels.instance }})"
+              description: |
+                More than 90% of MySQL connections are in use on {{ $labels.instance }}
+                VALUE = {{ $value }}
+                LABELS = {{ $labels }}
+          - alert: MysqlSlowQueries
+            expr: increase(mysql_global_status_slow_queries[1m]) > 0
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "MySQL slow queries (instance {{ $labels.instance }})"
+              description: |
+                MySQL server has some new slow queries.
+                VALUE = {{ $value }}
+                LABELS = {{ $labels }}
+          - alert: MysqlRestarted
+            expr: mysql_global_status_uptime < 60
+            for: 0m
+            labels:
+              severity: info
+            annotations:
+              summary: "MySQL restarted (instance {{ $labels.instance }})"
+              description: |
+                MySQL has just been restarted, less than one minute ago on {{ $labels.instance }}.
+                VALUE = {{ $value }}
+                LABELS = {{ $labels }}
+  blackbox-alerts:
+    groups:
+      - name: Blackbox Alerts
+        rules:
+          - alert: TLS certificate expiring
+            expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 30
+            labels:
+              severity: warning
+            annotations:
+              summary: "SSL certificate will expire soon on (instance {{ $labels.instance }})"
+              description: |
+                SSL certificate expires within 30 days.
+                VALUE = {{ $value }}
+                LABELS = {{ $labels }}
+          - alert: TLS certificate expiring
+            expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 15
+            labels:
+              severity: critical
+            annotations:
+              summary: "SSL certificate will expire soon on (instance {{ $labels.instance }})"
+              description: |
+                SSL certificate expires within 15 days.
+                VALUE = {{ $value }}
+                LABELS = {{ $labels }}
+          - alert: Service Down
+            expr: probe_success == 0
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Service probe has failed for more than two minutes on (instance {{ $labels.instance }})"
+              description: |
+                Service probe has failed for more than two minutes.
+                LABELS = {{ $labels }}
+  volume-alerts:
+    groups:
+      - name: Volume Alerts
+        rules:
+          - alert: KubernetesVolumeOutOfDiskSpace
+            expr: kubelet_volume_stats_available_bytes / kubelet_volume_stats_capacity_bytes * 100 < 20
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Kubernetes Volume out of disk space (instance {{ $labels.instance }})"
+              description: |
+                Volume is almost full (< 20% left).
+                VALUE = {{ $value }}
+                LABELS = {{ $labels }}
+  backup-alerts:
+    groups:
+      - name: OVN backup alerts
+        rules:
+          - alert: ovnBackupUploadWarning
+            expr: time() - upload_pairs_success_timestamp{job="ovn-backup"} > 21600
+            for: 1h
+            labels:
+              severity: warning
+            annotations:
+              summary: "Last OVN backup not uploaded within 1 hour of scheduled run"
+              description: |
+                Last OVN backup not uploaded within 1 hour of scheduled run.
+          - alert: ovnBackupUploadCritical
+            expr: time() - upload_pairs_success_timestamp{job="ovn-backup"} > 43200
+            for: 1h
+            labels:
+              severity: critical
+            annotations:
+              summary: "Second successive OVN backup not uploaded within 1 hour of scheduled run"
+              description: |
+                Second successive OVN backup not uploaded within 1 hour of scheduled run.
+          - alert: ovnBackupDiskUsageWarning
+            expr: disk_used_percent_gauge{job="ovn-backup"} > 80
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: "OVN backup volume >= 80% disk usage"
+              description: |
+                OVN backup volume >= 80% disk usage.
+          - alert: ovnBackupDiskUsageCritical
+            expr: disk_used_percent_gauge{job="ovn-backup"} > 90
+            for: 0m
+            labels:
+              severity: critical
+            annotations:
+              summary: "OVN backup volume >= 90% disk usage"
+              description: |
+                OVN backup volume >= 90% disk usage.
+      - name: MariaDB backup alerts
+        rules:
+          - alert: mariadbBackupWarning
+            expr: |
+              time() - kube_cronjob_status_last_successful_time{cronjob="mariadb-backup", namespace="openstack"} > 21900 or
+              time() - kube_cronjob_status_last_successful_time{cronjob="mariadb-backup", namespace="grafana"} > 86700
+            for: 1h
+            labels:
+              severity: warning
+            annotations:
+              summary: "Last MariaDB backup not successful within 1 hour of scheduled run"
+              description: |
+                Last MariaDB backup not successful within 1 hour of scheduled run.
+          - alert: mariadbBackupCritical
+            expr: |
+              time() - kube_cronjob_status_last_successful_time{cronjob="mariadb-backup", namespace="openstack"} > 43200 or
+              time() - kube_cronjob_status_last_successful_time{cronjob="mariadb-backup", namespace="grafana"} > 172800
+            for: 1h
+            labels:
+              severity: critical
+            annotations:
+              summary: "Second successive MariaDB backup not successful within 1 hour of scheduled run"
+              description: |
+                Second successive MariaDB backup not successful within 1 hour of scheduled run.
+  fluentbit-servicemonitor-alert:
+    groups:
+      - name: fluentbit serviceMonitor alert
+        rules:
+          - alert: MissingFluentbitServiceMonitor
+            expr: count(up{job="fluentbit-fluent-bit"}) == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "ServiceMonitor 'fluentbit-fluent-bit' is either down or missing."
+              description: |
+                Check if the Fluentbit ServiceMonitor is properly configured and deployed.

@@ -1,3 +1,4 @@
+---
 # Default values for kube-prometheus-stack.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
@@ -331,13 +332,13 @@ alertmanager:
       repeat_interval: 12h
       receiver: 'null'
       routes:
-      - receiver: 'null'
-        matchers:
-          - alertname = "Watchdog"
+        - receiver: 'null'
+          matchers:
+            - alertname = "Watchdog"
     receivers:
-    - name: 'null'
+      - name: 'null'
     templates:
-    - '/etc/alertmanager/config/*.tmpl'
+      - '/etc/alertmanager/config/*.tmpl'
 
   ## Alertmanager configuration directives (as string type, preferred over the config hash map)
   ## stringConfig will be used only, if tplConfig is true
@@ -743,13 +744,12 @@ alertmanager:
     ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/user-guides/storage.md
     ##
     storage:
-       volumeClaimTemplate:
-         spec:
-           storageClassName: general
-           accessModes: ["ReadWriteOnce"]
-           resources:
-             requests:
-               storage: 15Gi
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 15Gi
 
     ## The external URL the Alertmanager instances will be available under. This is necessary to generate correct URLs. This is necessary if Alertmanager is not served from root of a DNS name. string  false
     ##
@@ -2380,7 +2380,7 @@ prometheusOperator:
         readOnlyRootFilesystem: true
         capabilities:
           drop:
-          - ALL
+            - ALL
 
       # Security context for patch job container
     patchWebhookJob:
@@ -2389,7 +2389,7 @@ prometheusOperator:
         readOnlyRootFilesystem: true
         capabilities:
           drop:
-          - ALL
+            - ALL
 
     # Use certmanager to generate webhook certs
     certManager:
@@ -2651,7 +2651,7 @@ prometheusOperator:
     readOnlyRootFilesystem: true
     capabilities:
       drop:
-      - ALL
+        - ALL
 
   # Enable vertical pod autoscaler support for prometheus-operator
   verticalPodAutoscaler:
@@ -3590,7 +3590,6 @@ prometheus:
     storageSpec:
       volumeClaimTemplate:
         spec:
-          storageClassName: general
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:

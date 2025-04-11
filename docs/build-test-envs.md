@@ -23,7 +23,7 @@ The build script is interactive and will prompt you for the following informatio
 | `GATEWAY_DOMAIN` | Domain name used for routes within the gateway API. If a valid domain is used, it will be associated with the gateway routes. | "cluster.local" |
 | `OS_CLOUD` | OpenStack cloud name. | "default" |
 | `OS_FLAVOR` | OpenStack instance flavor, this will automatically select a flavor with < 24GiB of RAM. | "gp.X.8.16" |
-| `OS_IMAGE` | OpenStack image name. | "Ubuntu 20.04" |
+| `OS_IMAGE` | OpenStack image name. | "Ubuntu 24.04" |
 | `HYPERCONVERGED_DEV` | enable hyperconverged development mode. This will attempt to sync a local copy of Genestack to the development environment. | `false` |
 | `LAB_NAME_PREFIX` | Prefix for the lab environment. Useful when building multiple labs in a single project | "hyperconverged" |
 
@@ -36,7 +36,7 @@ All of the variables can be defined on the command line using environment variab
     export GATEWAY_DOMAIN="cluster.local"
     export OS_CLOUD="default"
     export OS_FLAVOR="gp.0.8.16"
-    export OS_IMAGE="Ubuntu 20.04"
+    export OS_IMAGE="Ubuntu 24.04"
     export HYPERCONVERGED_DEV="false"
     /opt/genestack/scripts/hyperconverged-lab.sh
     ```

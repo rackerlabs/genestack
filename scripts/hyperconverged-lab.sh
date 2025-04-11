@@ -323,6 +323,10 @@ fi
 
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
+if ! command -v git &> /dev/null; then
+  echo "git could not be found, installing..."
+  sudo apt update && sudo apt install -y git
+fi
 if [ ! -d "/opt/genestack" ]; then
   sudo git clone --recurse-submodules -j4 https://github.com/rackerlabs/genestack /opt/genestack
 else
@@ -648,7 +652,7 @@ pushd /opt/kube-plugins
     sudo install -o root -g root -m 0755 kubectl-convert /usr/local/bin/kubectl-convert
   fi
   if [ ! -f "/usr/local/bin/kubectl-ko" ]; then
-    curl -LO https://raw.githubusercontent.com/kubeovn/kube-ovn/release-1.12/dist/images/kubectl-ko
+    curl -LO https://raw.githubusercontent.com/kubeovn/kube-ovn/refs/heads/release-1.12/dist/images/kubectl-ko
     sudo install -o root -g root -m 0755 kubectl-ko /usr/local/bin/kubectl-ko
   fi
 popd
