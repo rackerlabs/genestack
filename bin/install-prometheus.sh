@@ -56,7 +56,7 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 helm repo update
 
 # Run the Helm upgrade/install command using the collected --values arguments
-HELM_CMD="helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack --create-namespace --namespace=prometheus --timeout 10m"
+HELM_CMD="helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack --create-namespace --namespace=prometheus --timeout 10m --version 70.4.2"
 HELM_CMD+=" ${values_args[@]}"
 HELM_CMD+=" --post-renderer $GENESTACK_CONFIG_DIR/kustomize/kustomize.sh"
 HELM_CMD+=" --post-renderer-args prometheus/overlay"
