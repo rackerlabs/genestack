@@ -290,7 +290,7 @@ fi
 
 echo "Waiting for the jump host to be ready"
 COUNT=0
-while ! ssh -o ConnectTimeout=2 -o ConnectionAttempts=3 -o UserKnownHostsFile=/dev/null -q ${SSH_USERNAME}@${JUMP_HOST_VIP} exit; do
+while ! ssh -o StrictHostKeyChecking=no -o ConnectTimeout=2 -o ConnectionAttempts=3 -o UserKnownHostsFile=/dev/null -q ${SSH_USERNAME}@${JUMP_HOST_VIP} exit; do
    sleep 2
    echo "SSH is not ready, Trying again..."
    COUNT=$((COUNT+1))
@@ -307,17 +307,21 @@ if [ "${HYPERCONVERGED_DEV:-false}" = "true" ]; then
     echo "HYPERCONVERGED_DEV is true, but we've failed to determine the base genestack directory"
     exit 1
   fi
-  ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} \
+  ssh -o StrictHostKeyChecking=no -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} \
     "timeout 1m bash -c 'while ! sudo apt update; do sleep 2; done' && sudo apt install -y rsync git"
   echo "Copying the development source code to the jump host"
   rsync -az \
-        -e "ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null" \
+        -e "ssh -o StrictHostKeyChecking=no -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null" \
         --rsync-path="sudo rsync" \
         $(readlink -fn ${SCRIPT_DIR}/../) ${SSH_USERNAME}@${JUMP_HOST_VIP}:/opt/
 fi
 
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+ssh -o StrictHostKeyChecking=no -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
+if ! command -v git &> /dev/null; then
+  echo "git could not be found, installing..."
+  sudo apt update && sudo apt install -y git
+fi
 if [ ! -d "/opt/genestack" ]; then
   sudo git clone --recurse-submodules -j4 https://github.com/rackerlabs/genestack /opt/genestack
 else
@@ -616,7 +620,7 @@ fi
 EOC
 
 # Run host and K8S setup
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+ssh -o StrictHostKeyChecking=no -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
 if [ ! -f "/usr/local/bin/queue_max.sh" ]; then
   python3 -m venv ~/.venvs/genestack
@@ -641,14 +645,14 @@ pushd /opt/kube-plugins
     sudo install -o root -g root -m 0755 kubectl-convert /usr/local/bin/kubectl-convert
   fi
   if [ ! -f "/usr/local/bin/kubectl-ko" ]; then
-    curl -LO https://raw.githubusercontent.com/kubeovn/kube-ovn/release-1.12/dist/images/kubectl-ko
+    curl -LO https://raw.githubusercontent.com/kubeovn/kube-ovn/refs/heads/release-1.12/dist/images/kubectl-ko
     sudo install -o root -g root -m 0755 kubectl-ko /usr/local/bin/kubectl-ko
   fi
 popd
 EOC
 
 # Run Genestack Infrastucture/OpenStack Setup
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+ssh -o StrictHostKeyChecking=no -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
 echo "Installing OpenStack Infrastructure"
 sudo LONGHORN_STORAGE_REPLICAS=1 \
@@ -661,7 +665,7 @@ sudo /opt/genestack/bin/setup-openstack.sh
 EOC
 
 # Run Genestack post setup
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+ssh -o StrictHostKeyChecking=no -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
 sudo bash <<HERE
 sudo /opt/genestack/bin/setup-openstack-rc.sh
