@@ -116,6 +116,13 @@ conf:
   glance_api_uwsgi:
     uwsgi:
       processes: 4
+  policy:
+    "admin_required": "role:admin or role:glance_admin"
+    "default": "role:admin or role:glance_admin"
+    "context_is_admin": "role:admin or role:glance_admin"
+    "publicize_image": "role:glance_admin"
+    "is_owner": "tenant:%(owner)s"
+    "download_image": "rule:is_owner or rule:context_is_admin"
   logging:
     logger_root:
       level: INFO
