@@ -12,6 +12,8 @@
   "docker.io/openstackhelm/glance:2024.1-ubuntu_jammy",
   "docker.io/openstackhelm/horizon:2023.1-ubuntu_jammy",
   "docker.io/openstackhelm/magnum:2024.1-ubuntu_jammy",
+  "docker.io/openstackhelm/masakari:2024.1-ubuntu_jammy",
+  "docker.io/openstackhelm/masakari-monitors:2024.1-ubuntu_jammy",
   "docker.io/openstackhelm/neutron:2024.1-ubuntu_jammy",
   "docker.io/openstackhelm/osh-selenium:latest-ubuntu_jammy",
   "docker.io/openstackhelm/ospurge:latest",
