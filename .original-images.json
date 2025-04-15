@@ -35,7 +35,6 @@
   "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1739377879",
   "ghcr.io/rackerlabs/skyline-rxt:master-ubuntu_jammy-1739967315",
   "docker.io/openstackhelm/ironic:2024.1-ubuntu_jammy",
-  "docker.io/openstackhelm/ironic-inspector:2024.1-ubuntu_jammy",
   "ghcr.io/vexxhost/netoffload:v1.0.1",
   "quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy",
   "quay.io/airshipit/porthole-postgresql-utility:latest-ubuntu_bionic"
