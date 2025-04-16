@@ -94,6 +94,8 @@ ceilometer_rabbitmq_password=$(generate_password 32)
 memcached_shared_secret=$(generate_password 32)
 grafana_secret=$(generate_password 32)
 grafana_root_secret=$(generate_password 32)
+ironic-db-password=$(generate_password 32)
+ironic-rabbitmq-password=$(generate_password 32)
 
 OUTPUT_FILE="/etc/genestack/kubesecrets.yaml"
 
@@ -321,6 +323,25 @@ metadata:
 type: Opaque
 data:
   password: $(echo -n $ironic_admin_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ironic-db-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $ironic_db_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ironic-rabbitmq-password
+  namespace: openstack
+type: Opaque
+data:
+  username: $(echo -n "ironic" | base64)
+  password: $(echo -n $ironic_rabbitmq_password | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret
