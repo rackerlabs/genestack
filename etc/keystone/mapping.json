@@ -14,21 +14,6 @@
                 "projects": [
                     {
                         "name": "{2}",
-                        "domain": {
-                            "name": "rackspace_cloud_domain"
-                        },
-                        "description": "Project for DDI {3}",
-                        "metadata": [
-                            {
-                                "key": "ddi",
-                                "value": "{3}"
-                            }
-                        ],
-                        "tags": [
-                            {
-                                "project_tag": "{3}"
-                            }
-                        ],
                         "roles": [
                             {
                                 "name": "member"
