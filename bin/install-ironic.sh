@@ -4,7 +4,7 @@ GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/ironic"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/ironic/ironic-helm-overrides.yaml"
 
-HELM_CMD="helm upgrade --install ironic openstack-helm/ironic --version 2024.2.4087+f37dd907f-a96a6b95 \
+HELM_CMD="helm upgrade --install ironic openstack-helm/ironic --version 2024.2.121+13651f45-628a320c \
     --namespace=openstack \
     --timeout 120m"
 
