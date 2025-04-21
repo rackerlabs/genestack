@@ -20,7 +20,7 @@ jobs:
           fi
       - name: Run Kustomize Build
         run: |
-          kustomize build base-kustomize/k8s-dashboard > /tmp/rendered.yaml
+          kustomize build base-kustomize/k8s-dashboard/base > /tmp/rendered.yaml
       - name: Return Kustomize Build
         uses: actions/upload-artifact@v4
         with:
