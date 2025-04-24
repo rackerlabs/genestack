@@ -47,7 +47,7 @@ serviceMonitor:
   # Set relabel_configs as per https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config
   relabelings: []
   multipleTarget:
-    enabled: false
+    enabled: true
     targets:
       # target connection information with name (required), endpoint (required) and port (optionnal)
       # if sharedSecret is not enabled the name must match an entry client.{{ name }} existing in the secret
@@ -56,10 +56,16 @@ serviceMonitor:
       #   port: 3307
       # - endpoint: mysql2.dns.local
       #   name: mysql2
+      - endpoint: mariadb-cluster-0.mariadb-cluster-internal
+        name: maria0
+      - endpoint: mariadb-cluster-1.mariadb-cluster-internal
+        name: maria1
+      - endpoint: mariadb-cluster-2.mariadb-cluster-internal
+        name: maria2
     # Enable shared credentials for all targets
     sharedSecret:
-      enabled: false
-      name: ""
+      enabled: true
+      name: "mariadb-monitor"
 
 serviceAccount:
   # Specifies whether a ServiceAccount should be created
@@ -81,7 +87,8 @@ resources: {}
   #  cpu: 100m
   #  memory: 128Mi
 
-nodeSelector: {}
+nodeSelector:
+  openstack-control-plane: enabled
 
 tolerations: []
 
@@ -159,7 +166,7 @@ collectors:
   # perf_schema.indexiowaits: false
   # perf_schema.tableiowaits: false
   # perf_schema.tablelocks: false
-  # perf_schema.replication_group_member_stats: false
+  perf_schema.replication_group_member_stats: true
   # slave_status: true
   # slave_hosts: false
   # heartbeat: false
@@ -169,7 +176,7 @@ collectors:
 # mysql connection params which build the my.cnf config
 mysql:
   db: ""
-  host: "mariadb-cluster"
+  host: ""
   # config my.cnf https://dev.mysql.com/doc/c-api/8.0/en/mysql-options.html
   additionalConfig:
     # - connect-timeout=5
@@ -180,8 +187,8 @@ mysql:
   user: "monitoring"
   # secret with full config my.cnf
   existingConfigSecret:
-    name: ""
-    key: ""
+    name: "mariadb-monitor"
+    key: "my.conf"
   # secret only containing the password
   existingPasswordSecret:
     name: "mariadb-monitoring"
