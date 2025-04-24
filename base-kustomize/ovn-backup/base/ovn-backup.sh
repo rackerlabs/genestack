@@ -229,7 +229,14 @@ FAILED_UPLOAD=false
 find "$YMD" -type f -newer "$BACKUP_DIR/last_upload" | \
 while read -r file
 do
-    upload_file "$file"
+    gzip "$file"
+    if [ $? -eq 0 ]
+    then
+        log_line INFO "$file compressed successfully to ${file}.gz"
+        upload_file "${file}.gz"
+    else
+        log_line ERROR "Error compressing $file"
+    fi
 done
 
 if [[ "$FAILED_UPLOAD" == "true" ]]
