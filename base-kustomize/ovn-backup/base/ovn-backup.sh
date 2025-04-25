@@ -183,6 +183,10 @@ else
     timestamp_metric save_pairs_to_disk_success_timestamp
 fi
 
+# compressing the OVN backups before uploading to swift container
+[[ -e "ovnnb_db" ]] || gzip ovnnb_db*
+[[ -e "ovnsb_db" ]] || gzip ovnsb_db*
+
 if [[ "$SWIFT_TEMPAUTH_UPLOAD" != "true" ]]
 then
     exit 0
@@ -229,14 +233,7 @@ FAILED_UPLOAD=false
 find "$YMD" -type f -newer "$BACKUP_DIR/last_upload" | \
 while read -r file
 do
-    gzip "$file"
-    if [ $? -eq 0 ]
-    then
-        log_line INFO "$file compressed successfully to ${file}.gz"
-        upload_file "${file}.gz"
-    else
-        log_line ERROR "Error compressing $file"
-    fi
+    upload_file "$file"
 done
 
 if [[ "$FAILED_UPLOAD" == "true" ]]
