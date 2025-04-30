@@ -183,6 +183,18 @@ else
     timestamp_metric save_pairs_to_disk_success_timestamp
 fi
 
+# compressing the OVN backups, if created successfully, before uploading to swift container
+find . -name "*.backup" | \
+while read -r file
+do
+    if gzip "$file"
+    then
+      log_line INFO "$file compressed successfully to ${file}.gz"
+    else
+      log_line ERROR "Error compressing file"
+    fi
+done
+
 if [[ "$SWIFT_TEMPAUTH_UPLOAD" != "true" ]]
 then
     exit 0
