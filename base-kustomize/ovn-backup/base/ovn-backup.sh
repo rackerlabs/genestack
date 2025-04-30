@@ -187,8 +187,7 @@ fi
 find . -name "*.backup" | \
 while read -r file
 do
-    gzip "$file"
-    if [ $? -eq 0 ]
+    if gzip "$file"
     then
       log_line INFO "$file compressed successfully to ${file}.gz"
     else
