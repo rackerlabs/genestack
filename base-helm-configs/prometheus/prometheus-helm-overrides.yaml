@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+---
+>>>>>>> 87e6b2f (fix: Reverting prometheus override pruning to resolve issues (#966))
 # Default values for kube-prometheus-stack.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
@@ -331,6 +335,7 @@ alertmanager:
       repeat_interval: 12h
       receiver: 'null'
       routes:
+<<<<<<< HEAD
       - receiver: 'null'
         matchers:
           - alertname = "Watchdog"
@@ -338,6 +343,15 @@ alertmanager:
     - name: 'null'
     templates:
     - '/etc/alertmanager/config/*.tmpl'
+=======
+        - receiver: 'null'
+          matchers:
+            - alertname = "Watchdog"
+    receivers:
+      - name: 'null'
+    templates:
+      - '/etc/alertmanager/config/*.tmpl'
+>>>>>>> 87e6b2f (fix: Reverting prometheus override pruning to resolve issues (#966))
 
   ## Alertmanager configuration directives (as string type, preferred over the config hash map)
   ## stringConfig will be used only, if tplConfig is true
@@ -743,6 +757,7 @@ alertmanager:
     ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/user-guides/storage.md
     ##
     storage:
+<<<<<<< HEAD
        volumeClaimTemplate:
          spec:
            storageClassName: general
@@ -750,6 +765,14 @@ alertmanager:
            resources:
              requests:
                storage: 15Gi
+=======
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 15Gi
+>>>>>>> 87e6b2f (fix: Reverting prometheus override pruning to resolve issues (#966))
 
     ## The external URL the Alertmanager instances will be available under. This is necessary to generate correct URLs. This is necessary if Alertmanager is not served from root of a DNS name. string  false
     ##
@@ -2380,7 +2403,11 @@ prometheusOperator:
         readOnlyRootFilesystem: true
         capabilities:
           drop:
+<<<<<<< HEAD
           - ALL
+=======
+            - ALL
+>>>>>>> 87e6b2f (fix: Reverting prometheus override pruning to resolve issues (#966))
 
       # Security context for patch job container
     patchWebhookJob:
@@ -2389,7 +2416,11 @@ prometheusOperator:
         readOnlyRootFilesystem: true
         capabilities:
           drop:
+<<<<<<< HEAD
           - ALL
+=======
+            - ALL
+>>>>>>> 87e6b2f (fix: Reverting prometheus override pruning to resolve issues (#966))
 
     # Use certmanager to generate webhook certs
     certManager:
@@ -2601,7 +2632,12 @@ prometheusOperator:
   ## Define which Nodes the Pods are scheduled on.
   ## ref: https://kubernetes.io/docs/user-guide/node-selection/
   ##
+<<<<<<< HEAD
   nodeSelector: {}
+=======
+  nodeSelector:
+    openstack-control-plane: enabled
+>>>>>>> 87e6b2f (fix: Reverting prometheus override pruning to resolve issues (#966))
 
   ## Tolerations for use with node taints
   ## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
@@ -2651,7 +2687,11 @@ prometheusOperator:
     readOnlyRootFilesystem: true
     capabilities:
       drop:
+<<<<<<< HEAD
       - ALL
+=======
+        - ALL
+>>>>>>> 87e6b2f (fix: Reverting prometheus override pruning to resolve issues (#966))
 
   # Enable vertical pod autoscaler support for prometheus-operator
   verticalPodAutoscaler:
@@ -3590,7 +3630,10 @@ prometheus:
     storageSpec:
       volumeClaimTemplate:
         spec:
+<<<<<<< HEAD
           storageClassName: general
+=======
+>>>>>>> 87e6b2f (fix: Reverting prometheus override pruning to resolve issues (#966))
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
