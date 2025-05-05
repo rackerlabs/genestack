@@ -24,6 +24,16 @@ You're also welcome to generate your own mapping to suit your needs; however, if
 
 The example mapping **JSON** file can be found within the genestack repository at `/opt/genestack/etc/keystone/mapping.json`.
 
+!!! tip "Creating the `creator` role"
+
+    The creator role does not exist by default, but is included in the example
+    mapping. One must create the creator role in order to prevent authentication
+    errors if using the mapping "as is".
+
+    ``` shell
+    openstack --os-cloud default role create creator
+    ```
+
 ## Now register the mapping within Keystone
 
 ``` shell
