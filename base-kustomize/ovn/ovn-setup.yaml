@@ -73,7 +73,16 @@ data:
     fi
     if [[ "${OVN_BRIDGE_MAPPINGS}" != "null" ]]; then
       ovs-vsctl set Open_vSwitch . external-ids:ovn-bridge-mappings="${OVN_BRIDGE_MAPPINGS}"
+      export CHASSIS_MACS=()
+      IFS=',' read -r -a outerarray <<< "${OVN_BRIDGE_MAPPINGS}"
+      for i in ${outerarray[@]}; do
+        IFS=':' read -r -a innerarray <<< "$i"
+        macaddr=$(echo "$NODENAME-${innerarray[0]}" | md5sum | sed 's/^\(..\)\(..\)\(..\)\(..\).*$/52:54:\1:\2:\3:\4/')
+        CHASSIS_MACS+=("${innerarray[0]}:${macaddr}")
+      done
     fi
+    printf -v mac_results "%s," "${CHASSIS_MACS[@]}"
+    ovs-vsctl set Open_vSwitch . external-ids:ovn-chassis-mac-mappings="${mac_results%,}"
     if [[ "${OVN_GW_ENABLED:-disabled}" == "enabled" ]]; then
       ovs-vsctl set Open_vSwitch . external-ids:ovn-cms-options="enable-chassis-as-gw,availability-zones=${OVN_AVAILABILITY_ZONES:-az1}"
     else
@@ -106,13 +115,13 @@ spec:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
-            - matchExpressions:
-              - key: ovn.openstack.org/configured
-                operator: DoesNotExist
-              - key: openstack-network-node
-                operator: In
-                values:
-                  - enabled
+              - matchExpressions:
+                  - key: ovn.openstack.org/configured
+                    operator: DoesNotExist
+                  - key: openstack-network-node
+                    operator: In
+                    values:
+                      - enabled
       serviceAccountName: ovn-setup
       volumes:
         - name: pod-tmp
@@ -221,23 +230,28 @@ spec:
               name: run
             - mountPath: /node
               name: node-info
+          env:
+            - name: NODENAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
         - name: ovn-setup-tag-completed
           image: alpine/k8s:1.26.11
           imagePullPolicy: IfNotPresent
           env:
-          - name: MY_NODE_NAME
-            valueFrom:
-              fieldRef:
-                fieldPath: spec.nodeName
+            - name: NODENAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           command:
-          - sh
-          - -c
-          - |
-            set -xe
-            if [[ -f /node/ovn-setup-completed ]]; then
-              kubectl label node "$MY_NODE_NAME" ovn.openstack.org/configured=$(date +%s)
-            fi
-            sleep 200
+            - sh
+            - -c
+            - |
+              set -xe
+              if [[ -f /node/ovn-setup-completed ]]; then
+                kubectl label node "$NODENAME" ovn.openstack.org/configured=$(date +%s)
+              fi
+              sleep 200
           securityContext:
             runAsUser: 0
             privileged: true

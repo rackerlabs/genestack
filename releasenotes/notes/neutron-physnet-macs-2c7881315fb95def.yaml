@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    The OVN-Setup manifest will now set the MAC address of the neutron
+    physical network interface to the MAC address of the OVN logical
+    network interface using the hostname + interface name as the seed.
+upgrade:
+  - |
+    Operators upgrading from an early build will need to ensure that the OVN-Setup
+    manifest is re-applied so that the MAC address of the neutron physical network
+    interface is set. Operators who chose to not run this manifest will need will
+    need to set their MAC addresses manually.
+
+    See https://docs.openstack.org/neutron/latest/install/ovn/manual_install.html
+    for more information on the manual OVN Setup process.
