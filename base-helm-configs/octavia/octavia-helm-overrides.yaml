@@ -51,6 +51,8 @@ conf:
         - stdout
       level: INFO
   octavia:
+    amphora_agent:
+      disable_local_log_storage: true
     api_settings:
       default_provider_driver: amphora
       enabled_provider_drivers: >-
