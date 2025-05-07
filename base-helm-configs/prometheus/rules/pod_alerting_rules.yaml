@@ -1,0 +1,34 @@
+additionalPrometheusRulesMap:
+  pod-alerts:
+    groups:
+      - name: pod-state-alerts
+        rules:
+          - alert: TooManyContainerRestarts
+            expr: sum(increase(kube_pod_container_status_restarts_total{pod_template_hash=""}[15m])) by (pod,namespace,container) > 5
+            for: 0m
+            labels:
+              severity: critical
+              app: "{{ $labels.pod }}"
+            annotations:
+              summary: "Container named {{ $labels.container }} in {{ $labels.pod }} in {{ $labels.namespace }} has restarted too many times in a short period and needs to be investigated."
+              description: "Namespace: {{$labels.namespace}}\nPod name: {{$labels.pod}}\nContainer name: {{$labels.container}}\n"
+          - alert: HighPodRestartRate
+            expr: rate(kube_pod_container_status_restarts_total[5m]) > 2
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High pod restart count detected"
+              description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is restarting frequently, which may indicate network instability."
+          - alert: KubePodNotReadyCritical
+            expr: sum by(namespace, pod) (
+              max by(namespace, pod) (kube_pod_status_phase{job="kube-state-metrics",namespace=~".*",phase=~"Pending|Unknown", namespace=~".*"})
+              * on(namespace, pod) group_left(owner_kind)
+              topk by(namespace, pod) (1, max by(namespace, pod, owner_kind) (kube_pod_owner{owner_kind!="Job"}))
+              ) > 0
+            for: 10m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Pod has been in a non-ready state for more than 5 minutes."
+              description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} has been in a non-ready state for longer than 5 minutes."
