@@ -1,3 +1,5 @@
+<meta http-equiv="refresh" content="45">
+
 # Rackspace OpenStack Flex
 
 Clouds Without Borders. Rackspace OpenStack Private Goes __Public__.
