@@ -225,7 +225,9 @@ upload_file() {
     # but stops shellcheck from identifying this as trying to read and write
     # the same file.
     OBJECT_NAME="$FILE"
-    if $SWIFT upload "$CONTAINER" --object-name "$OBJECT_NAME" - < "$FILE"
+    # Delete swift uploaded object after calculated seconds for RETENTION_DAYS, ie. 30 days from now.
+    SECONDS=$(date -d "+$RETENTION_DAYS days" +%s)
+    if $SWIFT upload "$CONTAINER" --object-name "$OBJECT_NAME" -H "X-Delete-After:$SECONDS" - < "$FILE"
     then
       log_line INFO "SUCCESSFUL UPLOAD $FILE as object $OBJECT_NAME to container $CONTAINER"
     else
