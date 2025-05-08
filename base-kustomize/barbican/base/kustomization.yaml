@@ -5,3 +5,4 @@ resources:
   - barbican-rabbitmq-queue.yaml
   - all.yaml
   - hpa-barbican-api.yaml
+  - policies.yaml
