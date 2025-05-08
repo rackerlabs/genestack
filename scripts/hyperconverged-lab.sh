@@ -246,6 +246,11 @@ if ! COMPUTE_2_PORT=$(openstack port show ${LAB_NAME_PREFIX}-2-compute-port -f v
   )
 fi
 
+if [ ! -d "~/.ssh" ]; then
+  echo "Creating the SSH directory"
+  mkdir -p ~/.ssh
+  chmod 700 ~/.ssh
+fi
 if ! openstack keypair show ${LAB_NAME_PREFIX}-key 2> /dev/null; then
     if [ ! -f ~/.ssh/${LAB_NAME_PREFIX}-key.pem ]; then
       openstack keypair create ${LAB_NAME_PREFIX}-key > ~/.ssh/${LAB_NAME_PREFIX}-key.pem
@@ -290,11 +295,11 @@ fi
 
 echo "Waiting for the jump host to be ready"
 COUNT=0
-while ! ssh -o StrictHostKeyChecking=no -o ConnectTimeout=2 -o ConnectionAttempts=3 -o UserKnownHostsFile=/dev/null -q ${SSH_USERNAME}@${JUMP_HOST_VIP} exit; do
+while ! ssh -o ConnectTimeout=2 -o ConnectionAttempts=3 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q ${SSH_USERNAME}@${JUMP_HOST_VIP} exit; do
    sleep 2
    echo "SSH is not ready, Trying again..."
    COUNT=$((COUNT+1))
-   if [ $COUNT -gt 30 ]; then
+   if [ $COUNT -gt 60 ]; then
      echo "Failed to ssh into the jump host"
      exit 1
    fi
@@ -307,16 +312,16 @@ if [ "${HYPERCONVERGED_DEV:-false}" = "true" ]; then
     echo "HYPERCONVERGED_DEV is true, but we've failed to determine the base genestack directory"
     exit 1
   fi
-  ssh -o StrictHostKeyChecking=no -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} \
+  ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} \
     "timeout 1m bash -c 'while ! sudo apt update; do sleep 2; done' && sudo apt install -y rsync git"
   echo "Copying the development source code to the jump host"
   rsync -az \
-        -e "ssh -o StrictHostKeyChecking=no -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null" \
+        -e "ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" \
         --rsync-path="sudo rsync" \
         $(readlink -fn ${SCRIPT_DIR}/../) ${SSH_USERNAME}@${JUMP_HOST_VIP}:/opt/
 fi
 
-ssh -o StrictHostKeyChecking=no -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
 if ! command -v git &> /dev/null; then
   echo "git could not be found, installing..."
@@ -472,6 +477,8 @@ if [ ! -f "/etc/genestack/helm-configs/glance/glance-helm-overrides.yaml" ]; the
 cat > /etc/genestack/helm-configs/glance/glance-helm-overrides.yaml <<EOF
 conf:
   glance:
+    DEFAULT:
+      workers: 2
     oslo_messaging_notifications:
       driver: noop
   glance_api_uwsgi:
@@ -620,7 +627,7 @@ fi
 EOC
 
 # Run host and K8S setup
-ssh -o StrictHostKeyChecking=no -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
 if [ ! -f "/usr/local/bin/queue_max.sh" ]; then
   python3 -m venv ~/.venvs/genestack
@@ -652,7 +659,7 @@ popd
 EOC
 
 # Run Genestack Infrastucture/OpenStack Setup
-ssh -o StrictHostKeyChecking=no -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
 echo "Installing OpenStack Infrastructure"
 sudo LONGHORN_STORAGE_REPLICAS=1 \
@@ -665,7 +672,7 @@ sudo /opt/genestack/bin/setup-openstack.sh
 EOC
 
 # Run Genestack post setup
-ssh -o StrictHostKeyChecking=no -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
 sudo bash <<HERE
 sudo /opt/genestack/bin/setup-openstack-rc.sh
