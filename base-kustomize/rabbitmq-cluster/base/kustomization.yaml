@@ -2,3 +2,4 @@ sortOptions:
   order: fifo
 resources:
   - rabbitmq-cluster.yaml
+  - policies.yaml

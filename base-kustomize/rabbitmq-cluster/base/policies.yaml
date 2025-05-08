@@ -1,0 +1,144 @@
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Policy
+metadata:
+  name: barbican-quorum-three-replicas
+  namespace: openstack
+spec:
+  name: barbican-quorum-three-replicas
+  vhost: "barbican"
+  pattern: ".*"
+  applyTo: queues
+  definition:
+    target-group-size: 3
+  priority: 0
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Policy
+metadata:
+  name: cinder-quorum-three-replicas
+  namespace: openstack
+spec:
+  name: cinder-quorum-three-replicas
+  vhost: "cinder"
+  pattern: ".*"
+  applyTo: queues
+  definition:
+    target-group-size: 3
+  priority: 0
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Policy
+metadata:
+  name: glance-quorum-three-replicas
+  namespace: openstack
+spec:
+  name: glance-quorum-three-replicas
+  vhost: "glance"
+  pattern: ".*"
+  applyTo: queues
+  definition:
+    target-group-size: 3
+  priority: 0
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Policy
+metadata:
+  name: heat-quorum-three-replicas
+  namespace: openstack
+spec:
+  name: heat-quorum-three-replicas
+  vhost: "heat"
+  pattern: ".*"
+  applyTo: queues
+  definition:
+    target-group-size: 3
+  priority: 0
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Policy
+metadata:
+  name: keystone-quorum-three-replicas
+  namespace: openstack
+spec:
+  name: keystone-quorum-three-replicas
+  vhost: "keystone"
+  pattern: ".*"
+  applyTo: queues
+  definition:
+    target-group-size: 3
+  priority: 0
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Policy
+metadata:
+  name: magnum-quorum-three-replicas
+  namespace: openstack
+spec:
+  name: magnum-quorum-three-replicas
+  vhost: "magnum"
+  pattern: ".*"
+  applyTo: queues
+  definition:
+    target-group-size: 3
+  priority: 0
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Policy
+metadata:
+  name: neutron-quorum-three-replicas
+  namespace: openstack
+spec:
+  name: neutron-quorum-three-replicas
+  vhost: "neutron"
+  pattern: ".*"
+  applyTo: queues
+  definition:
+    target-group-size: 3
+  priority: 0
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Policy
+metadata:
+  name: nova-quorum-three-replicas
+  namespace: openstack
+spec:
+  name: nova-quorum-three-replicas
+  vhost: "nova"
+  pattern: ".*"
+  applyTo: queues
+  definition:
+    target-group-size: 3
+  priority: 0
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Policy
+metadata:
+  name: octavia-quorum-three-replicas
+  namespace: openstack
+spec:
+  name: octavia-quorum-three-replicas
+  vhost: "octavia"
+  pattern: ".*"
+  applyTo: queues
+  definition:
+    target-group-size: 3
+  priority: 0
+  rabbitmqClusterReference:
+    name: rabbitmq
