@@ -5,3 +5,4 @@ resources:
   - keystone-rabbitmq-queue.yaml
   - all.yaml
   - hpa-keystone-api.yaml
+  - policies.yaml
