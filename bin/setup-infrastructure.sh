@@ -131,7 +131,7 @@ kubectl -n metallb-system wait --timeout=5m deployments.apps/metallb-controller 
 kubectl apply -f /etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml
 
 # Deploy openstack
-kubectl apply -k /etc/genestack/kustomize/openstack
+kubectl apply -k /etc/genestack/kustomize/openstack/base
 
 # Deploy envoy
 /opt/genestack/bin/install-envoy-gateway.sh
@@ -161,14 +161,14 @@ echo "Waiting for the mariadb-operator-webhook to be available"
 kubectl -n openstack apply -k /etc/genestack/kustomize/mariadb-cluster/overlay
 
 # Deploy rabbitmq
-kubectl apply -k /etc/genestack/kustomize/rabbitmq-operator
-kubectl apply -k /etc/genestack/kustomize/rabbitmq-topology-operator
+kubectl apply -k /etc/genestack/kustomize/rabbitmq-operator/base
+kubectl apply -k /etc/genestack/kustomize/rabbitmq-topology-operator/base
 echo "Waiting for the rabbitmq-cluster-operator to be available"
 kubectl -n rabbitmq-system wait --timeout=5m deployments.apps rabbitmq-cluster-operator --for=condition=available
 kubectl apply -k /etc/genestack/kustomize/rabbitmq-cluster/overlay
 
 # Deploy ovn
-kubectl apply -k /etc/genestack/kustomize/ovn
+kubectl apply -k /etc/genestack/kustomize/ovn/base
 
 # Deploy memcached
 /opt/genestack/bin/install-memcached.sh
