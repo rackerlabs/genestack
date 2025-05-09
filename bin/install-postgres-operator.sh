@@ -2,7 +2,7 @@
 # shellcheck disable=SC2124,SC2145,SC2294
 
 # Directory to check for YAML files
-CONFIG_DIR="/etc/genestack/helm-configs/postgres-operator"
+CONFIG_DIR="/etc/genestack/helm-configs/postgres-operator/base"
 
 pushd /opt/genestack/submodules/postgres-operator/charts || exit
 
