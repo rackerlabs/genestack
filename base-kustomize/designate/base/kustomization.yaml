@@ -5,3 +5,4 @@ resources:
   - designate-rabbitmq-queue.yaml
   - all.yaml
   - hpa-designate-api.yaml
+  - policies.yaml
