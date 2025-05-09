@@ -157,7 +157,7 @@
         path: "/etc/cinder/cinder.conf.stage"
         section: DEFAULT
         option: host
-        value: "{{ ansible_fqdn }}"
+        value: "{{ inventory_hostname }}"
         create: true
 
     - name: Ensure the backend configuration is set to our expected value
