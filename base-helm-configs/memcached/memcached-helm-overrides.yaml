@@ -213,6 +213,7 @@ lifecycleHooks: {}
 ## @param resources.requests.cpu The requested cpu for the Memcached containers
 ##
 resources:
+  enabled: true
   limits: {}
   requests:
     memory: 1G

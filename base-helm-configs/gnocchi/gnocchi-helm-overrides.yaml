@@ -88,6 +88,8 @@ conf:
     update archive policy rule: "role:admin"
 
 pod:
+  resources:
+    enabled: true
   lifecycle:
     upgrades:
       daemonsets:

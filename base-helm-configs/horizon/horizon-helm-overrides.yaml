@@ -9,6 +9,10 @@ images:
     dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
     image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
 
+pod:
+  resources:
+    enabled: true
+
 conf:
   horizon:
     branding:

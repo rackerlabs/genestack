@@ -27,6 +27,8 @@ images:
     test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
 
 pod:
+  resources:
+    enabled: true
   security_context:
     cinder_api:
       container:

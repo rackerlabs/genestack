@@ -178,6 +178,8 @@ endpoints:
       default: rabbitmq-nodes
 
 pod:
+  resources:
+    enabled: true
   affinity:
     anti:
       weight:

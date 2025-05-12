@@ -65,6 +65,8 @@ dependencies:
         - neutron-ks-endpoints
 
 pod:
+  resources:
+    enabled: true
   use_fqdn:
     neutron_agent: false
 

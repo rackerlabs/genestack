@@ -236,6 +236,8 @@ endpoints:
         service: 80
 
 pod:
+  resources:
+    enabled: true
   replicas:
     api: 1
   lifecycle:
@@ -266,8 +268,6 @@ pod:
             initialDelaySeconds: 30
             periodSeconds: 15
             timeoutSeconds: 10
-  resources:
-    enabled: false
 
 manifests:
   ingress_api: false

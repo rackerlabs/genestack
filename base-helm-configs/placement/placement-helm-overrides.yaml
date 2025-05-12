@@ -11,6 +11,10 @@ images:
     placement: "quay.io/rackspace/rackerlabs-placement:2024.1-ubuntu_jammy"
     placement_db_sync: "quay.io/rackspace/rackerlabs-placement:2024.1-ubuntu_jammy"
 
+pod:
+  resources:
+    enabled: true
+
 conf:
   logging:
     logger_root:

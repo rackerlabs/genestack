@@ -8,10 +8,10 @@ spec:
   minReplicas: 3
   metrics:
     - resource:
-        name: memory
+        name: cpu
         target:
-          type: AverageValue
-          averageValue: 500Mi
+          averageUtilization: 70
+          type: Utilization
       type: Resource
   scaleTargetRef:
     apiVersion: apps/v1

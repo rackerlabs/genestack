@@ -18,6 +18,10 @@ images:
     rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
     test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
 
+pod:
+  resources:
+    enabled: true
+
 dependencies:
   static:
     db_sync:

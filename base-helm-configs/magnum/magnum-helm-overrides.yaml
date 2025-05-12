@@ -14,6 +14,10 @@ images:
     magnum_db_sync: "quay.io/rackspace/rackerlabs-magnum:2024.1-ubuntu_jammy"
     rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
 
+pod:
+  resources:
+    enabled: true
+
 conf:
   logging:
     logger_root:

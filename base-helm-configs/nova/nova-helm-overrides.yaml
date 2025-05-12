@@ -280,6 +280,8 @@ endpoints:
         service: 8778
 
 pod:
+  resources:
+    enabled: true  
   probes:
     rpc_retries: 3
   security_context:
