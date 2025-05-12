@@ -32,7 +32,7 @@
   "ghcr.io/rackerlabs/genestack/neutron-oslodb:2024.1-ubuntu_jammy-1742943886",
   "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy-1737928811",
   "ghcr.io/rackerlabs/genestack/octavia-ovn:2024.1-ubuntu_jammy-1737651745",
-  "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1739377879",
+  "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1747061260",
   "ghcr.io/rackerlabs/skyline-rxt:master-ubuntu_jammy-1739967315",
   "docker.io/openstackhelm/ironic:2024.1-ubuntu_jammy",
   "ghcr.io/vexxhost/netoffload:v1.0.1",
