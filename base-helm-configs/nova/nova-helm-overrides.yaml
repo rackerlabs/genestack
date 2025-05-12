@@ -281,7 +281,7 @@ endpoints:
 
 pod:
   resources:
-    enabled: true  
+    enabled: true
   probes:
     rpc_retries: 3
   security_context:
