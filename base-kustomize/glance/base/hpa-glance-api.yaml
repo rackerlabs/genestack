@@ -13,7 +13,7 @@ spec:
         target:
           averageUtilization: 70
           type: Utilization
-      type: Resource  
+      type: Resource
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
