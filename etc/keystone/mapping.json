@@ -29,20 +29,7 @@
                                 "project_tag": "{3}"
                             }
                         ],
-                        "roles": [
-                            {
-                                "name": "member"
-                            },
-                            {
-                                "name": "load-balancer_member"
-                            },
-                            {
-                                "name": "heat_stack_user"
-                            },
-                            {
-                                "name": "creator"
-                            }
-                        ]
+                        "roles": []
                     }
                 ]
             }
@@ -63,10 +50,9 @@
             {
                 "type": "RXT_orgPersonType",
                 "any_one_of": [
-                    "admin",
-                    "default",
-                    "user-admin",
-                    "tenant-access"
+                    "creator",
+                    "member",
+                    "reader"
                 ]
             }
         ]
