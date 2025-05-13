@@ -67,6 +67,13 @@ dependencies:
 pod:
   resources:
     enabled: true
+    rpc_server:
+      limits:
+        cpu: "2"
+        memory: 1Gi
+      requests:
+        cpu: 100m
+        memory: 128Mi
   use_fqdn:
     neutron_agent: false
 
