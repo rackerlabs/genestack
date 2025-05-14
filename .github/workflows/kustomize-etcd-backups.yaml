@@ -3,7 +3,7 @@ name: Kustomize GitHub Actions for Backups directory
 on:
   pull_request:
     paths:
-      - base-kustomize/backups/etcd/**
+      - base-kustomize/backups/base/**
       - .github/workflows/kustomize-etcd-backups.yaml
 jobs:
   kustomize:
@@ -25,7 +25,7 @@ jobs:
           fi
       - name: Run Kustomize Build
         run: |
-          kustomize build base-kustomize/backups/etcd/  > /tmp/rendered.yaml
+          kustomize build base-kustomize/backups/base/  > /tmp/rendered.yaml
       - name: Return Kustomize Build
         uses: actions/upload-artifact@v4
         with:

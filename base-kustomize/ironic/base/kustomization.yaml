@@ -1,0 +1,7 @@
+resources:
+  - ironic-mariadb-database.yaml
+  - ironic-rabbitmq-queue.yaml
+  - all.yaml
+  - hpa-ironic-api.yaml
+  - hpa-ironic-conductor.yaml
+  - policies.yaml

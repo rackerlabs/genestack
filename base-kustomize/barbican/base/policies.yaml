@@ -1,0 +1,16 @@
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Policy
+metadata:
+  name: barbican-quorum-three-replicas
+  namespace: openstack
+spec:
+  name: barbican-quorum-three-replicas
+  vhost: "barbican"
+  pattern: ".*"
+  applyTo: queues
+  definition:
+    target-group-size: 3
+  priority: 0
+  rabbitmqClusterReference:
+    name: rabbitmq

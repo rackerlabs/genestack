@@ -94,6 +94,8 @@ ceilometer_rabbitmq_password=$(generate_password 32)
 memcached_shared_secret=$(generate_password 32)
 grafana_secret=$(generate_password 32)
 grafana_root_secret=$(generate_password 32)
+ironic_db_password=$(generate_password 32)
+ironic_rabbitmq_password=$(generate_password 32)
 
 OUTPUT_FILE="/etc/genestack/kubesecrets.yaml"
 

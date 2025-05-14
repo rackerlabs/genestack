@@ -8,7 +8,7 @@ hide:
 ## Deploy the Rook operator
 
 ``` shell
-kubectl apply -k /etc/genestack/kustomize/rook-operator/
+kubectl apply -k /etc/genestack/kustomize/rook-operator/base
 ```
 
 !!! tip "Manually specifying the rook-operator image"
@@ -59,7 +59,7 @@ kubectl --namespace rook-ceph get cephclusters.ceph.rook.io
 Once the rook cluster is online with a HEALTH status of `HEALTH_OK`, deploy the filesystem, storage-class, and pool defaults.
 
 ``` shell
-kubectl apply -k /etc/genestack/kustomize/rook-defaults
+kubectl apply -k /etc/genestack/kustomize/rook-defaults/base
 ```
 
 !!! note

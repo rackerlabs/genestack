@@ -9,6 +9,7 @@ spec:
     - "SELECT"
     - "PROCESS"
     - "REPLICATION CLIENT"
+    - "SLAVE MONITOR"
   database: "*"
   table: "*"
   username: monitoring

@@ -9,3 +9,4 @@ resources:
   - hpa-nova-conductor.yaml
   - hpa-nova-novncproxy.yaml
   - hpa-nova-scheduler.yaml
+  - policies.yaml

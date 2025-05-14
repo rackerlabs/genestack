@@ -47,5 +47,5 @@ Create the secret:
 Next, Deploy the backup job:
 
 ```
-kubectl apply -k /etc/genestack/kustomize/backups/etcd/etcd-backup.yaml --namespace openstack
+kubectl apply -k /etc/genestack/kustomize/backups/base/etcd --namespace openstack
 ```
