@@ -1761,7 +1761,7 @@ endpoints:
 # NOTE: (brew) requests cpu/mem values based on a three node
 # hyperconverged lab (bin/scripts/hyperconverged-lab.sh).
 # limit values based on defaults from the openstack-helm charts unless defined
- pod:
+pod:
   resources:
     enabled: true
     notification:

@@ -17,9 +17,9 @@ images:
 # NOTE: (brew) CPU requests values based on a three node
 # hyperconverged lab (bin/scripts/hyperconverged-lab.sh).
 # limits based on defaults from the openstack-helm charts unless defined
- pod:
-   resources:
-     enabled: true
+pod:
+  resources:
+    enabled: true
     api:
       requests:
         memory: "384Mi"
