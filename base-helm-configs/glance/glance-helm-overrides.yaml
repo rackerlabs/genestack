@@ -246,7 +246,7 @@ pod:
       requests:
         memory: "384Mi"
         cpu: "300m"
-      limits: {}  
+      limits: {}
   replicas:
     api: 1
   lifecycle:

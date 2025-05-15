@@ -39,7 +39,7 @@ pod:
       requests:
         memory: "384Mi"
         cpu: "300m"
-      limits: {}    
+      limits: {}
 
 conf:
   heat:

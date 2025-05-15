@@ -97,7 +97,7 @@ pod:
       requests:
         memory: "512Mi"
         cpu: "200m"
-      limits: {}    
+      limits: {}
   lifecycle:
     upgrades:
       daemonsets:

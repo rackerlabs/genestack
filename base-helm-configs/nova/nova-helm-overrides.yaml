@@ -325,7 +325,7 @@ pod:
       requests:
         memory: "256Mi"
         cpu: "200m"
-      limits: {}      
+      limits: {}
   probes:
     rpc_retries: 3
   security_context:

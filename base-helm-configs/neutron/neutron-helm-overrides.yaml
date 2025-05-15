@@ -75,8 +75,8 @@ pod:
         memory: "1024Mi"
         cpu: "1000m"
       limits:
-         memory: "2048Mi"
-         cpu: "3000m"
+        memory: "2048Mi"
+        cpu: "3000m"
     rpc_server:
       requests:
         memory: "512Mi"
