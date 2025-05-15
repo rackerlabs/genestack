@@ -11,9 +11,17 @@ images:
     placement: "quay.io/rackspace/rackerlabs-placement:2024.1-ubuntu_jammy"
     placement_db_sync: "quay.io/rackspace/rackerlabs-placement:2024.1-ubuntu_jammy"
 
-pod:
-  resources:
-    enabled: true
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (bin/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
+ pod:
+   resources:
+     enabled: true
+    api:
+      requests:
+        memory: "256Mi"
+        cpu: "300m"
+      limits: {}
 
 conf:
   logging:
@@ -64,8 +72,8 @@ conf:
       max_retries: -1
   placement_api_uwsgi:
     uwsgi:
-      processes: 4
-      threads: 2
+      processes: 2
+      threads: 1
 
 endpoints:
   fluentd:

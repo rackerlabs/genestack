@@ -55,7 +55,7 @@ network_policy:
 conf:
   glance:
     DEFAULT:
-      workers: 8
+      workers: 2
       # NOTE(cloudnull): This option is required when using the new glance multi-backend feature.
       #                  The example below is for the rxt_swift backend, but could easily be used
       #                  for other backends.
@@ -115,7 +115,8 @@ conf:
       kombu_reconnect_delay: 0.5
   glance_api_uwsgi:
     uwsgi:
-      processes: 4
+      processes: 2
+      threads: 1
   policy:
     "admin_required": "role:admin or role:glance_admin"
     "default": "role:admin or role:glance_admin"
@@ -235,9 +236,17 @@ endpoints:
         internal: 80
         service: 80
 
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (bin/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
 pod:
   resources:
     enabled: true
+    api:
+      requests:
+        memory: "384Mi"
+        cpu: "300m"
+      limits: {}  
   replicas:
     api: 1
   lifecycle:

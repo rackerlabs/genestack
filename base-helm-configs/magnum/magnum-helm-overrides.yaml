@@ -14,9 +14,24 @@ images:
     magnum_db_sync: "quay.io/rackspace/rackerlabs-magnum:2024.1-ubuntu_jammy"
     rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
 
-pod:
-  resources:
-    enabled: true
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (bin/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
+ pod:
+   resources:
+     enabled: true
+    api:
+      requests:
+        memory: "384Mi"
+        cpu: "300m"
+      limits: {}
+    conductor:
+      requests:
+        memory: "768Mi"
+        cpu: "300m"
+      limits:
+        memory: "3072Mi"
+        cpu: "2000m"        
 
 conf:
   logging:
@@ -97,8 +112,8 @@ conf:
       trustee_keystone_interface: public
   magnum_api_uwsgi:
     uwsgi:
-      processes: 4
-      threads: 2
+      processes: 2
+      threads: 1
 
 dependencies:
   static:
