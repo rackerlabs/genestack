@@ -1759,7 +1759,7 @@ endpoints:
         default: 24220
 
 # NOTE: (brew) requests cpu/mem values based on a three node
-# hyperconverged lab (bin/scripts/hyperconverged-lab.sh).
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
 # limit values based on defaults from the openstack-helm charts unless defined
 pod:
   resources:

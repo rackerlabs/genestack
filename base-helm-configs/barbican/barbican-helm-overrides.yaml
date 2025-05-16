@@ -15,7 +15,7 @@ images:
     scripted_test: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
 
 # NOTE: (brew) CPU requests values based on a three node
-# hyperconverged lab (bin/scripts/hyperconverged-lab.sh).
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
 # limits based on defaults from the openstack-helm charts unless defined
 pod:
   resources:
