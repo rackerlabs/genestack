@@ -305,6 +305,48 @@ while ! ssh -o ConnectTimeout=2 -o ConnectionAttempts=3 -o UserKnownHostsFile=/d
   fi
 done
 
+echo "Configuring second ethernet interface for VM traffic..."
+case "${SSH_USERNAME}" in
+"debian")
+  # Using Debian - getting rid of b0rken Holland Backup repo...
+  for NUM in {0..2}; do
+    HOSTIP=$(openstack port show ${LAB_NAME_PREFIX}-${NUM}-mgmt-port -f json | jq -r '.fixed_ips.[].ip_address')
+    echo "Configuring ${LAB_NAME_PREFIX}-${NUM} at ${HOSTIP}"
+    ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -J ${SSH_USERNAME}@${JUMP_HOST_VIP} -t ${SSH_USERNAME}@${HOSTIP} <<EOC
+set -e
+sudo rm -f /etc/apt/sources.list.d/holland-obs.list
+cat > /etc/netplan/99-second-net.yml <<EOF
+network:
+  version: 2
+  ethernets:
+    eth1:
+      dhcp4: false
+EOF
+EOC
+  done
+  ;;
+"ubuntu")
+  # Using Ubuntu - Carry on...
+  for NUM in {0..2}; do
+    HOSTIP=$(openstack port show ${LAB_NAME_PREFIX}-${NUM}-mgmt-port -f json | jq -r '.fixed_ips.[].ip_address')
+    echo "Configuring ${LAB_NAME_PREFIX}-${NUM} at ${HOSTIP}"
+    ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -J ${SSH_USERNAME}@${JUMP_HOST_VIP} -t ${SSH_USERNAME}@${HOSTIP} <<EOC
+set -e
+cat > /etc/netplan/99-second-net.yml <<EOF
+network:
+  version: 2
+  ethernets:
+    enp4s0:
+      dhcp4: false
+EOF
+EOC
+  ;;
+*)
+  # Using something else - May god have mercy on your soul...
+  echo "Not using Debian or Ubuntu, you will have to manually configure the 2nd ethernet interface to be up without an IP to run VMs"
+  ;;
+esac
+
 # Run bootstrap
 if [ "${HYPERCONVERGED_DEV:-false}" = "true" ]; then
   export SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
