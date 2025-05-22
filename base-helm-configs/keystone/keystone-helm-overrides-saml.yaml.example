@@ -1,0 +1,85 @@
+---
+conf:
+  software:
+    apache2:
+      a2enmod:
+        - shib
+  keystone:
+    auth:
+      methods: "password,token,saml2,application_credential,totp"
+    saml2:
+      remote_id_attribute: Shib-Identity-Provider
+    federation:
+      trusted_dashboard:
+        type: multistring
+        values:
+          - https://skyline.api.example.com/api/openstack/skyline/api/v1/websso
+          - https://horizon.api.example.com/auth/websso
+  wsgi_keystone: |
+    {{- $portInt := tuple "identity" "service" "api" $ | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
+
+    Listen 0.0.0.0:{{ $portInt }}
+
+    LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" combined
+    LogFormat "%{X-Forwarded-For}i %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" proxy
+
+    SetEnvIf X-Forwarded-For "^.*\..*\..*\..*" forwarded
+    CustomLog /dev/stdout combined env=!forwarded
+    CustomLog /dev/stdout proxy env=forwarded
+
+    <VirtualHost *:{{ $portInt }}>
+        ServerName https://keystone.api.example.com:443
+        UseCanonicalName On
+
+        WSGIDaemonProcess keystone-public processes={{ .Values.conf.keystone_api_wsgi.wsgi.processes }} threads={{ .Values.conf.keystone_api_wsgi.wsgi.threads }} user=keystone group=keystone display-name=%{GROUP}
+        WSGIProcessGroup keystone-public
+        WSGIScriptAlias / /var/www/cgi-bin/keystone/keystone-wsgi-public
+        WSGIScriptAliasMatch ^(/v3/OS-FEDERATION/identity_providers/IDENTITY_PROVIDER_NAME/protocols/saml2/auth)$ /var/www/cgi-bin/keystone/keystone-wsgi-public/$1
+        WSGIApplicationGroup %{GLOBAL}
+        WSGIPassAuthorization On
+        LimitRequestBody 114688
+
+        <IfVersion >= 2.4>
+          ErrorLogFormat "%{cu}t %M"
+        </IfVersion>
+        ErrorLog /dev/stdout
+
+        SetEnvIf X-Forwarded-For "^.*\..*\..*\..*" forwarded
+        CustomLog /dev/stdout combined env=!forwarded
+        CustomLog /dev/stdout proxy env=forwarded
+
+        <Location /Shibboleth.sso>
+            SetHandler shib
+        </Location>
+        <Location /v3/OS-FEDERATION/identity_providers/IDENTITY_PROVIDER_NAME/protocols/saml2/auth>
+            Require valid-user
+            AuthType shibboleth
+            ShibRequestSetting requireSession 1
+            ShibExportAssertion off
+            <IfVersion < 2.4>
+                ShibRequireSession On
+                ShibRequireAll On
+            </IfVersion>
+        </Location>
+        RedirectMatch ^/v3/auth/OS-FEDERATION/websso/IDENTITY_PROVIDER_NAME$ /v3/auth/OS-FEDERATION/websso/saml2
+        <Location /v3/auth/OS-FEDERATION/websso/saml2>
+            Require valid-user
+            AuthType shibboleth
+            ShibRequestSetting requireSession 1
+            ShibExportAssertion off
+            <IfVersion < 2.4>
+                ShibRequireSession On
+                ShibRequireAll On
+            </IfVersion>
+        </Location>
+        <Location /v3/auth/OS-FEDERATION/identity_providers/IDENTITY_PROVIDER_NAME/protocols/saml2/websso>
+            Require valid-user
+            AuthType shibboleth
+            ShibRequestSetting requireSession 1
+            ShibExportAssertion off
+            <IfVersion < 2.4>
+                ShibRequireSession On
+                ShibRequireAll On
+            </IfVersion>
+        </Location>
+    </VirtualHost>
