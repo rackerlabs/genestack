@@ -51,3 +51,7 @@ spec:
     release_group: skyline
     application: skyline
     component: api
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 600
