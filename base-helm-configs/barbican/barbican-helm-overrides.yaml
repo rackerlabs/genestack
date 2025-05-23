@@ -86,6 +86,7 @@ conf:
       "rule:container_project_admin or (rule:container_project_member and
       rule:container_owner) or (rule:container_project_member and
       rule:container_is_not_private) or role:creator"
+
 endpoints:
   fluentd:
     namespace: fluentbit
