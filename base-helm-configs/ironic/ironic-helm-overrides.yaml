@@ -1,4 +1,4 @@
-# ironic-helm-overrides.yml
+base-helm-configs/ironic/ironic-helm-overrides.yaml# ironic-helm-overrides.yml
 # Helm overrides for OpenStack Ironic based on openstack-helm/ironic/values.yaml
 # Integrated with Keystone, Glance, Nova, Cinder, Horizon, and Neutron configurations
 # Date: April 03, 2025
@@ -75,7 +75,7 @@ conf:
       rabbit_interval_max: 10
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
-      heartbeat_in_pthread: true # Note: Deprecation warning for 2024.2
+      heartbeat_in_pthread: True # Note: Deprecation warning for 2024.2
       kombu_reconnect_delay: 0.5
     pxe:
       pxe_append_params: "nofb nomodeset vga=normal ipa-debug=1"
