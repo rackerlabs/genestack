@@ -38,5 +38,6 @@
   "ghcr.io/vexxhost/netoffload:v1.0.1",
   "quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy",
   "quay.io/airshipit/porthole-postgresql-utility:latest-ubuntu_bionic",
-  "cr.fluentbit.io/fluent/fluent-bit"
+  "cr.fluentbit.io/fluent/fluent-bit",
+  "docker.io/pbandark/barbican-exporter"
 ]
