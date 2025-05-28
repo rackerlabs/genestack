@@ -1,0 +1,264 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+images:
+  tags:
+    db_init: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+    db_sync: docker.io/openstackhelm/masakari:2024.1-ubuntu_jammy
+    db_drop: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+    ks_endpoints: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+    ks_service: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+    ks_user: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+    masakari_api: quay.io/rackspace/rackerlabs-masakari:2024.1-ubuntu_jammy
+    masakari_engine: quay.io/rackspace/rackerlabs-masakari:2024.1-ubuntu_jammy
+    #TEMP HOST-MONITOR IMAGE TO FIX: https://github.com/zhmarvi/masakari-monitors/tree/kubernetes_check_status 
+    masakari_host_monitor: kernelpanic53/rackerlabs-masakari-monitors:zhmarvi-ubuntu_jammy_v1.0
+    masakari_process_monitor: quay.io/rackspace/rackerlabs-masakari-monitors:2024.1-ubuntu_jammy
+    masakari_instance_monitor: quay.io/rackspace/rackerlabs-masakari-monitors:2024.1-ubuntu_jammy
+    rabbit_init: docker.io/rabbitmq:3.13-management
+    dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
+  pull_policy: "IfNotPresent"
+  local_registry:
+    active: false
+    exclude:
+      - dep_check
+      - image_repo_sync
+
+labels:
+  masakari:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  job:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  monitors:
+    node_selector_key: openstack-compute-node
+    node_selector_value: enabled
+  test:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+endpoints:
+  identiy:
+    port:
+      api:
+        default: 5000
+        internal: 5000
+        public: 80
+        service: 5000
+  instance_ha:
+    port:
+      api:
+        default: 15868
+        internal: 15868
+        public: 80
+        service: 15868
+  oslo_db:
+    host_fqdn_override:
+      default: mariadb-cluster-primary.openstack.svc.cluster.local
+    hosts:
+      default: mariadb-cluster-primary
+  oslo_cache:
+    host_fqdn_override:
+      default: memcached.openstack.svc.cluster.local
+    hosts:
+      default: memcached
+  oslo_messaging:
+    host_fqdn_override:
+      default: rabbitmq.openstack.svc.cluster.local
+    hosts:
+      default: rabbitmq-nodes
+
+secrets:
+  identity:
+    admin: masakari-keystone-admin
+    masakari: masakari-keystone-user
+    test: masakari-keystone-test
+  oslo_db:
+    admin: masakari-db-admin
+    masakari: masakari-db-user
+  oslo_messaging:
+    admin: masakari-rabbitmq-admin
+    masakari: masakari-rabbitmq-user
+  oci_image_registry:
+    masakari: masakari-oci-image-registry
+
+dependencies:
+  static:
+    masakari_api:
+      jobs:
+        - masakari-db-sync
+        - masakari-ks-user
+        - masakari-ks-endpoints
+        - masakari-ks-service
+      services:
+        - endpoint: internal
+          service: identity
+    masakari_engine:
+      jobs:
+        - masakari-db-sync
+        - masakari-ks-user
+        - masakari-ks-endpoints
+        - masakari-ks-service
+      services:
+        - endpoint: internal
+          service: identity
+    db_init:
+      services:
+        - endpoint: internal
+          service: oslo_db
+    db_sync:
+      jobs:
+        - masakari-db-init
+      services:
+        - endpoint: internal
+          service: oslo_db
+    ks_endpoints:
+      jobs:
+        - masakari-ks-service
+      services:
+        - endpoint: internal
+          service: identity
+    ks_service:
+      services:
+        - endpoint: internal
+          service: identity
+    ks_user:
+      services:
+        - endpoint: internal
+          service: identity
+
+pod:
+  probes:
+    rpc_retries: 2
+  security_context:
+    masakari:
+      container:
+        masakari_engine:
+          readOnlyRootFilesystem: false
+  replicas:
+    masakari_api: 3
+    masakari_engine: 3
+  use_fqdn:
+    api: false
+conf:
+  paste:
+    composite:masakari_api:
+      use: call:masakari.api.urlmap:urlmap_factory
+      /: apiversions
+      /v1: masakari_api_v1
+    composite:masakari_api_v1:
+      use: call:masakari.api.auth:pipeline_factory_v1
+      keystone: cors http_proxy_to_wsgi request_id faultwrap sizelimit authtoken keystonecontext osapi_masakari_app_v1
+      noauth2: cors http_proxy_to_wsgi request_id faultwrap sizelimit noauth2 osapi_masakari_app_v1
+    filter:cors:
+      paste.filter_factory: oslo_middleware.cors:filter_factory
+      oslo_config_project: masakari
+    filter:http_proxy_to_wsgi:
+      paste.filter_factory: oslo_middleware.http_proxy_to_wsgi:HTTPProxyToWSGI.factory
+    filter:request_id:
+      paste.filter_factory: oslo_middleware:RequestId.factory
+    filter:faultwrap:
+      paste.filter_factory: masakari.api.openstack:FaultWrapper.factory
+    filter:sizelimit:
+      paste.filter_factory: oslo_middleware:RequestBodySizeLimiter.factory
+    filter:authtoken:
+      paste.filter_factory: keystonemiddleware.auth_token:filter_factory
+    filter:keystonecontext:
+      paste.filter_factory: masakari.api.auth:MasakariKeystoneContext.factory
+    filter:noauth2:
+      paste.filter_factory: masakari.api.auth:NoAuthMiddleware.factory
+    app:osapi_masakari_app_v1:
+      paste.app_factory: masakari.api.openstack.ha:APIRouterV1.factory
+    pipeline:apiversions:
+      pipeline: faultwrap http_proxy_to_wsgi apiversionsapp
+    app:apiversionsapp:
+      paste.app_factory: masakari.api.openstack.ha.versions:Versions.factory
+  masakari:
+    DEFAULT:
+      auth_strategy: keystone
+      duplicate_notification_detection_interval: 180
+      host_failure_recovery_threads: 1
+      masakari_api_workers: 4
+      graceful_shutdown_timeout: 5
+      api_paste_config: /etc/masakari/api-paste.ini
+      nova_catalog_admin_info: compute:nova:adminURL
+      service_down_time: 30
+      wait_period_after_service_update: 30
+    host_failure:
+      ignore_instances_in_error_state: true
+      add_reserved_host_to_aggregate: true
+    instance_failure:
+      process_all_instances: false
+    keystone_authtoken:
+      auth_type: password
+      service_type: instance-ha
+    database:
+      max_retries: -1
+    # Connection string is evaluated though the endpoints for taskflow.
+    taskflow:
+      connection: null
+  masakarimonitors:
+    DEFAULT:
+      debug: False
+    api:
+      api_version: v1
+      api_interface: internal
+    callback:
+      retry_max: 10
+      retry_interval: 10
+    host:
+      monitoring_driver: kubernetes
+      monitoring_interval: 30
+      monitoring_samples: 2
+      disable_ipmi_checks: true
+      corosync_multicast_interfaces: null
+      corosync_multicast_ports: null
+    kubernetes:
+      monitoring_node_labels: "openstack-compute-node=enabled"
+  masakari_sudoers: |
+    Defaults secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:/var/lib/openstack/bin"
+    masakari-monitors ALL=(ALL:ALL) NOPASSWD: /var/lib/openstack/bin/privsep-helper
+
+# Note(xuxant): Hooks will break the upgrade for helm2
+# Set to false if using helm2.
+helm3_hook: true
+
+network:
+  masakari_api:
+    node_port:
+      enabled: false
+      port: 33033
+    external_policy_local: false
+
+manifests:
+  job_ks_user: true
+  job_db_sync: true
+  job_db_init: false
+  job_db_drop: false
+  job_ks_endpoints: true
+  job_ks_service: true
+  deployment_api: true
+  deployment_engine: true
+  configmap_bin: true
+  configmap_etc: true
+  secret_db: true
+  secret_rabbitmq: true
+  secret_keystone: true
+  secret_registry: true
+  job_rabbit_init: false
+  service_api: true
+  pdb_api: true
+  # Host Monitors in containers needs pacemaker remote or kubernetes_check.
+  host_monitor: true
+  instance_monitor: true
+  process_monitor: false
