@@ -21,7 +21,7 @@ images:
     ks_user: quay.io/airshipit/heat:2024.1-ubuntu_jammy
     masakari_api: quay.io/rackspace/rackerlabs-masakari:2024.1-ubuntu_jammy
     masakari_engine: quay.io/rackspace/rackerlabs-masakari:2024.1-ubuntu_jammy
-    #TEMP HOST-MONITOR IMAGE TO FIX: https://github.com/zhmarvi/masakari-monitors/tree/kubernetes_check_status 
+    # TEMP HOST-MONITOR IMAGE TO FIX: https://review.opendev.org/c/openstack/masakari-monitors/+/951336
     masakari_host_monitor: kernelpanic53/rackerlabs-masakari-monitors:zhmarvi-ubuntu_jammy_v1.0
     masakari_process_monitor: quay.io/rackspace/rackerlabs-masakari-monitors:2024.1-ubuntu_jammy
     masakari_instance_monitor: quay.io/rackspace/rackerlabs-masakari-monitors:2024.1-ubuntu_jammy
@@ -209,7 +209,7 @@ conf:
       connection: null
   masakarimonitors:
     DEFAULT:
-      debug: False
+      debug: false
     api:
       api_version: v1
       api_interface: internal

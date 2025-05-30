@@ -10,12 +10,12 @@ metadata:
     route: masakari
 spec:
   parentRefs:
-  - name: flex-gateway
-    sectionName: masakari-https
-    namespace: nginx-gateway
+    - name: flex-gateway
+      sectionName: masakari-https
+      namespace: nginx-gateway
   hostnames:
-  - "masakari.your.domain.tld"
+    - "masakari.your.domain.tld"
   rules:
     - backendRefs:
-      - name: masakari-api
-        port: 15868
+       - name: masakari-api
+         port: 15868
