@@ -1,6 +1,44 @@
 name: Running hyperconverged smoke tests
 
 on:
+  workflow_dispatch:
+    inputs:
+      acmeEmail:
+        description: Set email for ACME
+        required: true
+        default: "cloud@example.local"
+        type: string
+      gatewayDomain:
+        description: Set domain for the gateway
+        required: true
+        default: master
+        type: string
+      osImage:
+        description: Set OS image
+        required: true
+        default: "Ubuntu 24.04"
+        type: choice
+        options:
+          - "Ubuntu 24.04"
+          - "Ubuntu 22.04"
+          - "Debian 12"
+      sshUsername:
+        description: Set SSH username
+        required: true
+        default: "ubuntu"
+        type: choice
+        options:
+          - "ubuntu"
+          - "debian"
+      mode:
+        description: Set mode
+        required: true
+        default: "test"
+        type: choice
+        options:
+          - "test"
+          - "deploy"
+          - "cleanup"
   pull_request:
     paths:
       - ansible/**
@@ -8,6 +46,7 @@ on:
       - base-helm-configs/**
       - bin/**
       - scripts/**
+      - ".github/workflows/smoke-deploy-lab.yaml"
 
 env:
   HYPERCONVERGED_DEV: "true"
@@ -26,13 +65,24 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Dynamically set MY_DATE environment variable
+        if: ${{ github.event_name == 'pull_request' }}
         run: echo "LAB_NAME_PREFIX=smoke-$(date +%s)" >> $GITHUB_ENV
 
+      - name: Statically set environment variable
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          echo "LAB_NAME_PREFIX=${{ github.event.inputs.mode }}-$(date +%s)" >> $GITHUB_ENV
+          echo "GATEWAY_DOMAIN=${{ github.event.inputs.gatewayDomain }}-$(date +%s)" >> $GITHUB_ENV
+          echo "ACME_EMAIL=${{ github.event.inputs.acmeEmail }}-$(date +%s)" >> $GITHUB_ENV
+          echo "OS_IMAGE=${{ github.event.inputs.osImage }}-$(date +%s)" >> $GITHUB_ENV
+          echo "SSH_USERNAME=${{ github.event.inputs.sshUsername }}-$(date +%s)" >> $GITHUB_ENV
+
       - name: Run deployment script
+        if: ${{ github.event_name == 'pull_request' || contains(fromJSON('["deploy", "test"]'), github.event.inputs.mode) }}
         run: |
           eval "$(ssh-agent -s)"
           scripts/hyperconverged-lab.sh
 
       - name: Cleanup the lab
-        if: always()
+        if: ${{ always() && (github.event_name == 'pull_request' || contains(fromJSON('["cleanup", "test"]'), github.event.inputs.mode)) }}
         run: scripts/hyperconverged-lab-uninstall.sh
