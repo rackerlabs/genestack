@@ -1,0 +1,53 @@
+---
+upgrade:
+  - |
+    When upgrading from a previous release of Genestack, if SAML Federation
+    was enabled, you must update the HTTP Routes for both Keystone and
+    Skyline. During the development of the SAML Federation feature,
+    Keystone and Skyline HTTRoutes were updated to have cookie driven session
+    persistence to ensure compatibility with Shibboleth.
+
+    ::
+
+      Full example files for the HTTP Routes can be found in the
+      ``etc/gateway-api/routes`` directory.
+
+    The following stanza should be added to the HTTP Routes for Keystone; file typically
+    located at ``/etc/genestack/gateway-api/routes/custom-keystone-gateway-route.yaml``.
+
+    .. code-block:: yaml
+
+      sessionPersistence:
+        sessionName: KeystoneSession
+        type: Cookie
+        absoluteTimeout: 300s
+        cookieConfig:
+          lifetimeType: Permanent
+
+    The following stanza should be added to the HTTP Routes for Skyline; file typically
+    located at ``/etc/genestack/gateway-api/routes/custom-skyline-gateway-route.yaml``.
+
+    .. code-block:: yaml
+
+      sessionPersistence:
+        sessionName: SkylineSession
+        type: Cookie
+        absoluteTimeout: 300s
+        cookieConfig:
+          lifetimeType: Permanent
+
+    Once the configuration is updated, Run the deployment update with the
+    following apply commands.
+
+    .. code-block:: shell
+
+      kubectl -n openstack apply -f /etc/genestack/gateway-api/routes/custom-keystone-gateway-route.yaml
+      kubectl -n openstack apply -f /etc/genestack/gateway-api/routes/custom-skyline-gateway-route.yaml
+
+    Once the HTTP Routes are updated, verify that the changes have been
+    applied by checking the status of the HTTP Routes.
+
+    .. code-block:: shell
+
+      kubectl -n openstack get httproutes.gateway.networking.k8s.io custom-keystone-gateway-route -o yaml
+      kubectl -n openstack get httproutes.gateway.networking.k8s.io custom-skyline-gateway-route -o yaml

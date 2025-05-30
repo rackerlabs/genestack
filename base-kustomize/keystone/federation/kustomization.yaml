@@ -1,0 +1,89 @@
+---
+sortOptions:
+  order: fifo
+resources:
+  - ../base
+
+images:
+  - name: keystone-shib
+    newName: ghcr.io/rackerlabs/keystone-rxt/shibd
+    newTag: "1747958286"
+
+patches:
+  - target:
+      kind: Service
+      name: keystone-api
+    patch: |-
+      - op: add
+        path: /spec/sessionAffinity
+        value: ClientIP
+      - op: add
+        path: /spec/sessionAffinityConfig
+        value:
+          clientIP:
+            timeoutSeconds: 28800
+  - target:
+      kind: Deployment
+      name: keystone-api
+    patch: |-
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: keystone-shibd-etc
+          secret:
+            secretName: keystone-shibd-etc
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: run-shibd
+          emptyDir: {}
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          mountPath: "/etc/shibboleth"
+          name: keystone-shibd-etc
+          readOnly: true
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          mountPath: "/var/run/shibboleth"
+          name: run-shibd
+      - op: add
+        path: /spec/template/spec/containers/-
+        value:
+          command:
+            - /usr/sbin/shibd
+            - -f
+            - -c
+            - /etc/shibboleth/shibboleth2.xml
+            - -p
+            - /var/run/shibboleth/shibd.pid
+            - -F
+          name: keystone-shib
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          image: keystone-shib
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: "/etc/shibboleth"
+              name: keystone-shibd-etc
+              readOnly: true
+            - mountPath: /var/run/shibboleth
+              name: run-shibd
+          livenessProbe:
+            exec:
+              command:
+              - stat
+              - /var/run/shibboleth/shibd.sock
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+              - stat
+              - /var/run/shibboleth/shibd.sock
+            initialDelaySeconds: 10
+            periodSeconds: 10
