@@ -65,7 +65,7 @@ conf:
       valid_interfaces: internal
     controller_worker:
       loadbalancer_topology: ACTIVE_STANDBY
-      workers: 4
+      workers: 2
     database:
       connection_debug: 0
       connection_recycle_time: 600
@@ -121,8 +121,8 @@ conf:
       insecure: true
   octavia_api_uwsgi:
     uwsgi:
-      processes: 4
-      threads: 2
+      processes: 2
+      threads: 1
 
 endpoints:
   fluentd:
@@ -177,7 +177,22 @@ endpoints:
     hosts:
       default: rabbitmq-nodes
 
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
 pod:
+  resources:
+    enabled: true
+    api:
+      requests:
+        memory: "768Mi"
+        cpu: "300m"
+      limits: {}
+    worker:
+      requests:
+        memory: "256Mi"
+        cpu: "1000m"
+      limits: {}
   affinity:
     anti:
       weight:

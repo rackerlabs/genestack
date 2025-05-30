@@ -447,6 +447,10 @@ fi
 if [ ! -f "/etc/genestack/helm-configs/barbican/barbican-helm-overrides.yaml" ]; then
 cat > /etc/genestack/helm-configs/barbican/barbican-helm-overrides.yaml <<EOF
 ---
+pod:
+  resources:
+    enabled: false
+  
 conf:
   barbican_api_uwsgi:
     uwsgi:
@@ -460,6 +464,9 @@ fi
 if [ ! -f "/etc/genestack/helm-configs/cinder/cinder-helm-overrides.yaml" ]; then
 cat > /etc/genestack/helm-configs/cinder/cinder-helm-overrides.yaml <<EOF
 ---
+pod:
+  resources:
+    enabled: false
 conf:
   cinder:
     DEFAULT:
@@ -475,6 +482,10 @@ fi
 
 if [ ! -f "/etc/genestack/helm-configs/glance/glance-helm-overrides.yaml" ]; then
 cat > /etc/genestack/helm-configs/glance/glance-helm-overrides.yaml <<EOF
+---
+pod:
+  resources:
+    enabled: false
 conf:
   glance:
     DEFAULT:
@@ -493,6 +504,9 @@ fi
 if [ ! -f "/etc/genestack/helm-configs/gnocchi/gnocchi-helm-overrides.yaml" ]; then
 cat > /etc/genestack/helm-configs/gnocchi/gnocchi-helm-overrides.yaml <<EOF
 ---
+pod:
+  resources:
+    enabled: false
 conf:
   gnocchi:
     metricd:
@@ -507,6 +521,9 @@ fi
 if [ ! -f "/etc/genestack/helm-configs/heat/heat-helm-overrides.yaml" ]; then
 cat > /etc/genestack/helm-configs/heat/heat-helm-overrides.yaml <<EOF
 ---
+pod:
+  resources:
+    enabled: false
 conf:
   heat:
     DEFAULT:
@@ -533,6 +550,9 @@ fi
 if [ ! -f "/etc/genestack/helm-configs/keystone/keystone-helm-overrides.yaml" ]; then
 cat > /etc/genestack/helm-configs/keystone/keystone-helm-overrides.yaml <<EOF
 ---
+pod:
+  resources:
+    enabled: false
 conf:
   keystone_api_wsgi:
     wsgi:
@@ -546,6 +566,10 @@ fi
 
 if [ ! -f "/etc/genestack/helm-configs/magnum/magnum-helm-overrides.yaml" ]; then
 cat > /etc/genestack/helm-configs/neutron/neutron-helm-overrides.yaml <<EOF
+---
+pod:
+  resources:
+    enabled: false
 conf:
   neutron:
     DEFAULT:
@@ -559,6 +583,10 @@ fi
 
 if [ ! -f "/etc/genestack/helm-configs/magnum/magnum-helm-overrides.yaml" ]; then
 cat > /etc/genestack/helm-configs/magnum/magnum-helm-overrides.yaml <<EOF
+---
+pod:
+  resources:
+    enabled: false
 conf:
   magnum_api_uwsgi:
     uwsgi:
@@ -570,6 +598,9 @@ fi
 if [ ! -f "/etc/genestack/helm-configs/nova/nova-helm-overrides.yaml" ]; then
 cat > /etc/genestack/helm-configs/nova/nova-helm-overrides.yaml <<EOF
 ---
+pod:
+  resources:
+    enabled: false
 conf:
   nova:
     DEFAULT:
@@ -595,6 +626,9 @@ fi
 if [ ! -f "/etc/genestack/helm-configs/octavia/octavia-helm-overrides.yaml" ]; then
 cat > /etc/genestack/helm-configs/octavia/octavia-helm-overrides.yaml <<EOF
 ---
+pod:
+  resources:
+    enabled: false
 conf:
   octavia:
     DEFAULT:
@@ -614,6 +648,9 @@ fi
 if [ ! -f "/etc/genestack/helm-configs/placement/placement-helm-overrides.yaml" ]; then
 cat > /etc/genestack/helm-configs/placement/placement-helm-overrides.yaml <<EOF
 ---
+pod:
+  resources:
+    enabled: false
 conf:
   placement:
     oslo_messaging_notifications:

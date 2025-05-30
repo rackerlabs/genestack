@@ -9,6 +9,13 @@ images:
     dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
     image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
 
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
+pod:
+  resources:
+    enabled: true
+
 conf:
   horizon:
     branding:
