@@ -17,5 +17,5 @@ spec:
     - "masakari.your.domain.tld"
   rules:
     - backendRefs:
-       - name: masakari-api
-         port: 15868
+        - name: masakari-api
+          port: 15868
