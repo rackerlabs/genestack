@@ -414,7 +414,7 @@ enableServiceLinks: true
 ##
 autoscaling:
   enabled: true
-  minReplicas: 2
+  minReplicas: 1
   maxReplicas: 6
   targetCPU: 50
   targetMemory: 50
