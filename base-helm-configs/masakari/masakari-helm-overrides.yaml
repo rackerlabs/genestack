@@ -28,25 +28,7 @@ images:
     rabbit_init: docker.io/rabbitmq:3.13-management
     dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
   pull_policy: "IfNotPresent"
-  local_registry:
-    active: false
-    exclude:
-      - dep_check
-      - image_repo_sync
 
-labels:
-  masakari:
-    node_selector_key: openstack-control-plane
-    node_selector_value: enabled
-  job:
-    node_selector_key: openstack-control-plane
-    node_selector_value: enabled
-  monitors:
-    node_selector_key: openstack-compute-node
-    node_selector_value: enabled
-  test:
-    node_selector_key: openstack-control-plane
-    node_selector_value: enabled
 endpoints:
   identiy:
     port:
@@ -62,6 +44,7 @@ endpoints:
         internal: 15868
         public: 80
         service: 15868
+
   oslo_db:
     host_fqdn_override:
       default: mariadb-cluster-primary.openstack.svc.cluster.local
@@ -78,111 +61,27 @@ endpoints:
     hosts:
       default: rabbitmq-nodes
 
-secrets:
-  identity:
-    admin: masakari-keystone-admin
-    masakari: masakari-keystone-user
-    test: masakari-keystone-test
-  oslo_db:
-    admin: masakari-db-admin
-    masakari: masakari-db-user
-  oslo_messaging:
-    admin: masakari-rabbitmq-admin
-    masakari: masakari-rabbitmq-user
-  oci_image_registry:
-    masakari: masakari-oci-image-registry
-
-dependencies:
-  static:
-    masakari_api:
-      jobs:
-        - masakari-db-sync
-        - masakari-ks-user
-        - masakari-ks-endpoints
-        - masakari-ks-service
-      services:
-        - endpoint: internal
-          service: identity
-    masakari_engine:
-      jobs:
-        - masakari-db-sync
-        - masakari-ks-user
-        - masakari-ks-endpoints
-        - masakari-ks-service
-      services:
-        - endpoint: internal
-          service: identity
-    db_init:
-      services:
-        - endpoint: internal
-          service: oslo_db
-    db_sync:
-      jobs:
-        - masakari-db-init
-      services:
-        - endpoint: internal
-          service: oslo_db
-    ks_endpoints:
-      jobs:
-        - masakari-ks-service
-      services:
-        - endpoint: internal
-          service: identity
-    ks_service:
-      services:
-        - endpoint: internal
-          service: identity
-    ks_user:
-      services:
-        - endpoint: internal
-          service: identity
-
 pod:
-  probes:
-    rpc_retries: 2
   security_context:
     masakari:
       container:
+        masakari_api:
+          allowPrivilegeEscalation: false
+          privileged: true
         masakari_engine:
-          readOnlyRootFilesystem: false
-  replicas:
-    masakari_api: 3
-    masakari_engine: 3
-  use_fqdn:
-    api: false
+          allowPrivilegeEscalation: false
+          privileged: true
+        masakari_host_monitor:
+          allowPrivilegeEscalation: true
+          privileged: true
+        masakari_process_monitor:
+          allowPrivilegeEscalation: false
+          privileged: true
+        masakari_instance_monitor:
+          allowPrivilegeEscalation: false
+          privileged: true
+          runAsUser: 0
 conf:
-  paste:
-    composite:masakari_api:
-      use: call:masakari.api.urlmap:urlmap_factory
-      /: apiversions
-      /v1: masakari_api_v1
-    composite:masakari_api_v1:
-      use: call:masakari.api.auth:pipeline_factory_v1
-      keystone: cors http_proxy_to_wsgi request_id faultwrap sizelimit authtoken keystonecontext osapi_masakari_app_v1
-      noauth2: cors http_proxy_to_wsgi request_id faultwrap sizelimit noauth2 osapi_masakari_app_v1
-    filter:cors:
-      paste.filter_factory: oslo_middleware.cors:filter_factory
-      oslo_config_project: masakari
-    filter:http_proxy_to_wsgi:
-      paste.filter_factory: oslo_middleware.http_proxy_to_wsgi:HTTPProxyToWSGI.factory
-    filter:request_id:
-      paste.filter_factory: oslo_middleware:RequestId.factory
-    filter:faultwrap:
-      paste.filter_factory: masakari.api.openstack:FaultWrapper.factory
-    filter:sizelimit:
-      paste.filter_factory: oslo_middleware:RequestBodySizeLimiter.factory
-    filter:authtoken:
-      paste.filter_factory: keystonemiddleware.auth_token:filter_factory
-    filter:keystonecontext:
-      paste.filter_factory: masakari.api.auth:MasakariKeystoneContext.factory
-    filter:noauth2:
-      paste.filter_factory: masakari.api.auth:NoAuthMiddleware.factory
-    app:osapi_masakari_app_v1:
-      paste.app_factory: masakari.api.openstack.ha:APIRouterV1.factory
-    pipeline:apiversions:
-      pipeline: faultwrap http_proxy_to_wsgi apiversionsapp
-    app:apiversionsapp:
-      paste.app_factory: masakari.api.openstack.ha.versions:Versions.factory
   masakari:
     DEFAULT:
       auth_strategy: keystone
@@ -202,24 +101,48 @@ conf:
     keystone_authtoken:
       auth_type: password
       service_type: instance-ha
+      auth_version: v3
+      memcache_security_strategy: ENCRYPT
+      service_token_roles: service
+      service_token_roles_required: true
     database:
+      connection_debug: 0
+      connection_recycle_time: 600
+      connection_trace: true
+      idle_timeout: 3600
+      mysql_sql_mode: {}
+      use_db_reconnect: true
+      pool_timeout: 60
       max_retries: -1
-    # Connection string is evaluated though the endpoints for taskflow.
+    oslo_messaging_rabbit:
+      amqp_durable_queues: false
+      rabbit_ha_queues: false
+      rabbit_quorum_queue: true
+      rabbit_transient_quorum_queue: false
+      use_queue_manager: false
+      rabbit_interval_max: 10
+      # Send more frequent heartbeats and fail unhealthy nodes faster
+      # heartbeat_timeout / heartbeat_rate / 2.0 = 30 / 3 / 2.0 = 5
+      # https://opendev.org/openstack/oslo.messaging/commit/36fb5bceabe08a982ebd52e4a8f005cd26fdf6b8
+      heartbeat_rate: 3
+      heartbeat_timeout_threshold: 60
+      # DEPRECIATION:  (warning) heartbeat_in_pthread will be deprecated in 2024.2
+      heartbeat_in_pthread: True
+      # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
+      # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
+      # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
+      kombu_reconnect_delay: 0.5
     taskflow:
       connection: null
   masakarimonitors:
     DEFAULT:
       debug: false
     api:
-      api_version: v1
       api_interface: internal
-    callback:
-      retry_max: 10
-      retry_interval: 10
     host:
       monitoring_driver: kubernetes
       monitoring_interval: 30
-      monitoring_samples: 2
+      monitoring_samples: 3
       disable_ipmi_checks: true
       corosync_multicast_interfaces: null
       corosync_multicast_ports: null
@@ -228,17 +151,6 @@ conf:
   masakari_sudoers: |
     Defaults secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:/var/lib/openstack/bin"
     masakari-monitors ALL=(ALL:ALL) NOPASSWD: /var/lib/openstack/bin/privsep-helper
-
-# Note(xuxant): Hooks will break the upgrade for helm2
-# Set to false if using helm2.
-helm3_hook: true
-
-network:
-  masakari_api:
-    node_port:
-      enabled: false
-      port: 33033
-    external_policy_local: false
 
 manifests:
   job_ks_user: true
@@ -258,7 +170,7 @@ manifests:
   job_rabbit_init: false
   service_api: true
   pdb_api: true
-  # Host Monitors in containers needs pacemaker remote or kubernetes_check.
+  # Genestack is using Kubernetes Check driver for Host-Monitor
   host_monitor: true
   instance_monitor: true
   process_monitor: false
