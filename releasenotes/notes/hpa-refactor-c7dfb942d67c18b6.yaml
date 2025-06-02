@@ -8,12 +8,12 @@ features:
 
     In order to ensure that HPA has been properly tuned for a 3-node
     hyper-converged lab deployment (our recommended lab/testing deployment)
-    this change will also standardize, across all OpenStack services, the 
+    this change will also standardize, across all OpenStack services, the
     number of workers to 2, the number or processes to 2, and the number of
-    threads per process to 1.  While this is NOT a breaking change, it will 
-    change the resource consumption of any deployment going forward. 
+    threads per process to 1.  While this is NOT a breaking change, it will
+    change the resource consumption of any deployment going forward.
 
-    Finally, this change also reduces the minReplica's for HPA from 3 to 1.  
+    Finally, this change also reduces the minReplica's for HPA from 3 to 1.
     This is to allow HPA to control resource utilization on a per-need basis.
 other:
   - |
@@ -26,7 +26,7 @@ other:
     In base-helm-configs, por resources needed to be enabled and the
     requests/limits configured.  If limits is set to {} it is pulling
     the defaults from the Helm chart.
-    [example] 
+    [example]
       resources:
         enabled: true
         api:
