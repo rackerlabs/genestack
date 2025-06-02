@@ -3,12 +3,18 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: ironic-api
   namespace: openstack
-spec:
+  spec:
   maxReplicas: 9
-  minReplicas: 3
+  minReplicas: 2
   metrics:
     - resource:
         name: cpu
+        target:
+          averageUtilization: 80
+          type: Utilization
+      type: Resource
+    - resource:
+        name: memory
         target:
           averageUtilization: 80
           type: Utilization
