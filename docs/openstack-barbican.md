@@ -47,7 +47,7 @@ and ensure that the service operates correctly within your OpenStack environment
 
 ## Run the package deployment
 
-!!! example "Run the Barbican deployment Script `bin/install-barbican.sh`"
+!!! example "Run the Barbican deployment Script `/opt/genestack/bin/install-barbican.sh`"
 
     ``` shell
     --8<-- "bin/install-barbican.sh"
