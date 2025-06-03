@@ -19,10 +19,32 @@ images:
     rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
     test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
 
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
+pod:
+  resources:
+    enabled: true
+    api:
+      requests:
+        memory: "384Mi"
+        cpu: "300m"
+      limits: {}
+    cfn:
+      requests:
+        memory: "384Mi"
+        cpu: "300m"
+      limits: {}
+    engine:
+      requests:
+        memory: "384Mi"
+        cpu: "300m"
+      limits: {}
+
 conf:
   heat:
     DEFAULT:
-      num_engine_workers: 4
+      num_engine_workers: 2
       server_keystone_endpoint_type: public
     clients_keystone:
       endpoint_type: publicURL
@@ -36,11 +58,11 @@ conf:
       pool_timeout: 60
       max_retries: -1
     heat_api:
-      workers: 1
+      workers: 2
     heat_api_cfn:
-      workers: 1
+      workers: 2
     heat_api_cloudwatch:
-      workers: 1
+      workers: 2
     keystone_authtoken:
       auth_type: password
       auth_version: v3
@@ -71,12 +93,12 @@ conf:
       kombu_reconnect_delay: 0.5
   heat_api_cfn_uwsgi:
     uwsgi:
-      processes: 4
-      threads: 2
+      processes: 2
+      threads: 1
   heat_api_uwsgi:
     uwsgi:
-      processes: 4
-      threads: 2
+      processes: 2
+      threads: 1
   logging:
     logger_root:
       handlers:
