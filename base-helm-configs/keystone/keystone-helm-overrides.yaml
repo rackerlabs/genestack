@@ -18,6 +18,18 @@ images:
     rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
     test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
 
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
+pod:
+  resources:
+    enabled: true
+    api:
+      requests:
+        memory: "512Mi"
+        cpu: "500m"
+      limits: {}
+
 dependencies:
   static:
     db_sync:
@@ -29,7 +41,7 @@ conf:
   keystone_api_wsgi:
     wsgi:
       processes: 2
-      threads: 4
+      threads: 1
   keystone:
     DEFAULT:
       max_token_size: 300

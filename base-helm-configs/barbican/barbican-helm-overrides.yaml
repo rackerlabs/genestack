@@ -14,6 +14,18 @@ images:
     rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
     scripted_test: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
 
+# NOTE: (brew) CPU requests values based on a three node
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
+# limits based on defaults from the openstack-helm charts unless defined
+pod:
+  resources:
+    enabled: true
+    api:
+      requests:
+        memory: "384Mi"
+        cpu: "200m"
+      limits: {}
+
 dependencies:
   static:
     db_sync:
@@ -70,7 +82,8 @@ conf:
       enable_proxy_headers_parsing: true
   barbican_api_uwsgi:
     uwsgi:
-      processes: 4
+      processes: 2
+      threads: 1
   logging:
     logger_root:
       handlers:
