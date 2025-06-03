@@ -4,7 +4,7 @@ def bit_length_power_of_2(value):
     :type value: ``int``
     :returns: ``int``
     """
-    return 2**(int(value) - 1).bit_length()
+    return 2 ** (int(value) - 1).bit_length()
 
 
 class FilterModule(object):
@@ -12,6 +12,4 @@ class FilterModule(object):
 
     @staticmethod
     def filters():
-        return {
-            'bit_length_power_of_2': bit_length_power_of_2
-        }
+        return {"bit_length_power_of_2": bit_length_power_of_2}
