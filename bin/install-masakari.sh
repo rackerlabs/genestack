@@ -4,7 +4,7 @@ GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/masakari"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/masakari/masakari-helm-overrides.yaml"
 
-HELM_CMD="helm upgrade --install masakari openstack-helm/masakari --version 2024.2.157+13651f45-628a320c  \
+HELM_CMD="helm upgrade --install masakari openstack-helm/masakari --version 2024.2.17+13651f45-628a320c  \
     --namespace=openstack \
     --timeout 10m"
 

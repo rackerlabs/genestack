@@ -66,19 +66,19 @@ pod:
     masakari:
       container:
         masakari_api:
-          allowPrivilegeEscalation: false
+          allowPrivilegeEscalation: true
           privileged: true
         masakari_engine:
-          allowPrivilegeEscalation: false
+          allowPrivilegeEscalation: true
           privileged: true
         masakari_host_monitor:
           allowPrivilegeEscalation: true
           privileged: true
         masakari_process_monitor:
-          allowPrivilegeEscalation: false
+          allowPrivilegeEscalation: true
           privileged: true
         masakari_instance_monitor:
-          allowPrivilegeEscalation: false
+          allowPrivilegeEscalation: true
           privileged: true
           runAsUser: 0
 conf:
