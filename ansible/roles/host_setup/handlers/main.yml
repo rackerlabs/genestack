@@ -42,5 +42,26 @@
 - name: Reload systemd-timesyncd
   ansible.builtin.systemd:
     name: systemd-timesyncd.service
-    state: restarted
+    state: "restarted"
     enabled: true
+
+- name: Restart multipathd and multipath-tools service
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: "restarted"
+    daemon_reload: true
+    enabled: true
+  loop:
+    - multipathd.service
+    - multipath-tools.service
+
+- name: Restart iscsid
+  ansible.builtin.systemd:
+    name: "iscsid.service"
+    state: "restarted"
+    enabled: true
+
+- name: Update apt
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 600

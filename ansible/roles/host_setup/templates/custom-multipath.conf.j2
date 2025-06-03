@@ -9,9 +9,12 @@ blacklist {
     devnode    "scini*"
     devnode    "^rbd[0-9]*"
     devnode    "^nbd[0-9]*"
-    devnode    "sd[a-b]$"
+    devnode    "^sda$"
     devnode    "^(ram|raw|loop|fd|md|dm-|sr|scd|st)[0-9]*"
     devnode    "^(td|ha)d[a-z]"
+    protocol   scsi:unspec
+    protocol   scsi:sas
+    protocol   scsi:ata
 }
 
 blacklist_exceptions {

@@ -1,0 +1,33 @@
+---
+hp_tools:
+  sdr_url: "https://downloads.linux.hpe.com/SDR"
+  repo_keys:
+    - {url: "{{hp_tools.sdr_url}}/hpPublicKey2048_key1.pub", download_file: "/tmp/hpPublicKey2048_key1.pub"}
+    - {url: "{{hp_tools.sdr_url}}/hpePublicKey2048_key1.pub", download_file: "/tmp/hpePublicKey2048_key1.pub"}
+    - {url: "{{hp_tools.sdr_url}}/hpePublicKey2048_key2.pub", download_file: "/tmp/hpePublicKey2048_key2.pub"}
+  apt:
+    mcp_version: "current"
+    gpg_keyring: "/usr/share/keyrings/hpePublicKey.gpg"
+    repo_str: "[signed-by={{hp_tools.apt.gpg_keyring}}] https://downloads.linux.hpe.com/SDR/repo/mcp"
+    deb_repo: "deb {{hp_tools.apt.repo_str}} {{ansible_lsb.codename}}/{{hp_tools.apt.mcp_version}} non-free"
+    deb_src_repo: "deb-src {{hp_tools.apt.repo_str}} {{ansible_lsb.codename}}/{{hp_tools.apt.mcp_version}} non-free"
+    state: "present"
+    repo_list_file: "mcp"
+  rpm:
+    url: "https://downloads.linux.hpe.com/repo/mcp"
+    dist: "{{ansible_distribution}}"
+    dist_ver: "{{ansible_distribution_version}}"
+    arch: "{{ansible_architecture}}"
+    filename: "mcp"
+  package: ssacli
+
+dell_tools:
+  file_tar_gz: "PERCCLI_7.2616.0_Linux.tar.gz"
+  url: "https://dl.dell.com/FOLDER11213122M/1/{{dell_tools.file_tar_gz}}"
+  tmp_dir: "/tmp/perccli"
+  download_path: "{{dell_tools.tmp_dir}}/{{dell_tools.file_tar_gz}}"
+  deb_file: "{{dell_tools.tmp_dir}}/perccli_007.2616.0000.0000_all.deb"
+  rpm_file: "{{dell_tools.tmp_dir}}/perccli-007.2616.0000.0000-1.noarch.rpm"
+  perccli_path: "/opt/MegaRAID/perccli/perccli64"
+  symlink_path: "/usr/sbin/perccli"
+  symlink_64_path: "/usr/sbin/perccli64"
