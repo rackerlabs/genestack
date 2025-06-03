@@ -1,0 +1,63 @@
+---
+- name: Stop multipathd and multipath-tools service
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+    daemon_reload: true
+    enabled: false
+  failed_when: false
+  loop:
+    - multipathd.socket
+    - multipathd.service
+    - multipath-tools.service
+  when:
+    - not (custom_multipath | default(false) | bool)
+
+- name: Copy over multipath Round Robin configuration file
+  when:
+    - custom_multipath | default(false) | bool
+  block:
+    - name: Install Packages
+      ansible.builtin.package:
+        name:
+          - multipath-tools
+      notify:
+        - Restart multipathd and multipath-tools service
+    - name: Copy config file and restart multipathd
+      ansible.builtin.template:
+        src: custom-multipath.conf.j2
+        dest: /etc/multipath.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - Restart multipathd and multipath-tools service
+
+- name: Install open-iscsi and multipath on nova compute nodes
+  when:
+    - enable_iscsi | default(false) | bool
+  block:
+    - name: Install Packages
+      ansible.builtin.package:
+        name:
+          - open-iscsi
+        state: "{{ iscsi_package_state | default('present') }}"
+        update_cache: true
+    - name: Determine initiator name
+      set_fact:
+        initiator_name: >
+          {% set _iqn = "iqn.2004-10.com." + ansible_distribution |lower() + ":" + ansible_hostname -%}
+          {% if ansible_iscsi_iqn is defined -%}
+          {% if (ansible_iscsi_iqn |length >= 15) -%}
+          {% set _iqn = ansible_iscsi_iqn  -%}
+          {% endif -%}
+          {% endif -%}
+          {{ _iqn }}
+    - name: Set iscsi initiator name
+      ansible.builtin.lineinfile:
+        path: /etc/iscsi/initiatorname.iscsi
+        regexp: '^InitiatorName=.*|^GenerateName=.*'
+        line: "InitiatorName={{ initiator_name }}"
+      notify:
+        - Restart iscsid
+        - Restart multipathd and multipath-tools service

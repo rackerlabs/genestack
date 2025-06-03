@@ -1,0 +1,49 @@
+---
+hp_tools:
+  apt:
+    mcp_version: "current"
+    gpg_keyring: "/usr/share/keyrings/hpePublicKey.gpg"
+    _repo_str: "[signed-by={{hp_tools.apt.gpg_keyring}}] https://downloads.linux.hpe.com/SDR/repo/mcp"
+    _repos:
+      jammy:
+        - {repo: "deb {{hp_tools.apt._repo_str}} {{ansible_lsb.codename}}/{{hp_tools.apt.mcp_version}} non-free", state: "present"}
+      noble:
+        - {repo: "deb {{hp_tools.apt._repo_str}} {{ansible_lsb.codename}}/{{hp_tools.apt.mcp_version}} non-free", state: "present"}
+      bookworm:
+        - {repo: "deb {{hp_tools.apt._repo_str}} {{ansible_lsb.codename}}/{{hp_tools.apt.mcp_version}} non-free", state: "present"}
+        - {repo: "deb-src {{hp_tools.apt._repo_str}} {{ansible_lsb.codename}}/{{hp_tools.apt.mcp_version}} non-free", state: "present"}
+      other:
+        - {repo: "deb {{hp_tools.apt._repo_str}} {{ansible_lsb.codename}}/{{hp_tools.apt.mcp_version}} non-free", state: "present"}
+    repos: >
+      {% set _var = [] -%}
+      {% for repo in hp_tools['apt']['_repos'][ansible_distribution_release] | default(hp_tools['apt']['_repos']['other']) -%}
+      {%   if _var.append(repo) -%}
+      {%   endif -%}
+      {% endfor -%}
+      {{ _var }}
+    repo_keys:
+      - {url: "https://downloads.linux.hpe.com/SDR/hpPublicKey2048_key1.pub", repo_list_file: "mcp", state: "present", download_file: "/tmp/hpPublicKey2048_key1.pub"}
+      - {url: "https://downloads.linux.hpe.com/SDR/hpePublicKey2048_key1.pub", repo_list_file: "mcp", state: "present", download_file: "/tmp/hpePublicKey2048_key1.pub"}
+      - {url: "https://downloads.linux.hpe.com/SDR/hpePublicKey2048_key2.pub", repo_list_file: "mcp", state: "present", download_file: "/tmp/hpePublicKey2048_key2.pub"}
+    packages:
+      - ssacli
+  rpm:
+    repo_keys:
+      - {url: "https://downloads.linux.hpe.com/SDR/hpPublicKey2048_key1.pub", state: "present", download_file: "/tmp/hpPublicKey2048_key1.pub"}
+      - {url: "https://downloads.linux.hpe.com/SDR/hpePublicKey2048_key1.pub", state: "present", download_file: "/tmp/hpePublicKey2048_key1.pub"}
+      - {url: "https://downloads.linux.hpe.com/SDR/hpePublicKey2048_key2.pub", state: "present", download_file: "/tmp/hpePublicKey2048_key2.pub"}
+    yum_repos:
+      - {url: "https://downloads.linux.hpe.com/repo/mcp", dist: "{{ansible_facts['distribution']}}", dist_ver: "{{ansible_facts['distribution_version']}}", arch: "{{ansible_facts['architecture']}}"}
+    packages:
+      - ssacli
+
+dell_tools:
+  file_tar_gz: "PERCCLI_7.2616.0_Linux.tar.gz"
+  url: "https://dl.dell.com/FOLDER11213122M/1/{{dell_tools.file_tar_gz}}"
+  tmp_dir: "/tmp/perccli"
+  download_path: "{{dell_tools.tmp_dir}}/{{dell_tools.file_tar_gz}}"
+  deb_file: "{{dell_tools.tmp_dir}}/perccli_007.2616.0000.0000_all.deb"
+  rpm_file: "{{dell_tools.tmp_dir}}/perccli-007.2616.0000.0000-1.noarch.rpm"
+  perccli_path: "/opt/MegaRAID/perccli/perccli64"
+  symlink_path: "/usr/sbin/perccli"
+  symlink_64_path: "/usr/sbin/perccli64"
