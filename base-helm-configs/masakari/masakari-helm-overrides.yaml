@@ -150,7 +150,7 @@ manifests:
   job_rabbit_init: false
   service_api: true
   pdb_api: true
-  # Genestack is using Kubernetes Check driver for Host-Monitor
+  # Genestack is using kubernetes check driver for Host-Monitor
   host_monitor: true
   instance_monitor: true
   process_monitor: false
