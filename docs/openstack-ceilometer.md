@@ -24,7 +24,7 @@ OpenStack Ceilometer is the telemetry service within the OpenStack ecosystem, re
 
 ## Run the package deployment
 
-!!! example "Run the Ceilometer deployment Script `bin/install-ceilometer.sh`"
+!!! example "Run the Ceilometer deployment Script `/opt/genestack/bin/install-ceilometer.sh`"
 
     ``` shell
     --8<-- "bin/install-ceilometer.sh"
