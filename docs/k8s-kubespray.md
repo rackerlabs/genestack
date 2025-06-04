@@ -16,7 +16,7 @@ you will need to prepare your networking infrastructure and basic storage layout
 
     While we would expect the environment to be running with multiple bonds in a production cloud, two network interfaces is all that's required. This can be achieved with vlan
     tagged devices, physical ethernet devices, macvlan, or anything else. Have a look at the netplan example file found
-    [here](https://github.com/rackerlabs/genestack/blob/main/etc/netplan/default-DHCP.yaml) for an example of how you could setup the network.
+    [here](https://github.com/rackerlabs/genestack/blob/main/etc/netplan/default.yaml) for an example of how you could setup the network.
 
 * Ensure we're running kernel 5.17+
 
