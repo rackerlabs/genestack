@@ -171,6 +171,7 @@ cert_manager_controller_extra_args:
 #   - "--dns01-recursive-nameservers=1.1.1.1:53,8.8.8.8:53"
 
 # MetalLB deployment
+# NOTE: Metallb is installed outside kubespray
 metallb_enabled: false
 metallb_namespace: metallb-system
 metallb_speaker_enabled: "{{ metallb_enabled }}"
@@ -199,14 +200,6 @@ metallb_config:
     primary:
       ip_range:
         - 10.5.0.0/16
-      auto_assign: true
-    pool1:
-      ip_range:
-        - 10.6.0.0/16
-      auto_assign: true
-    pool2:
-      ip_range:
-        - 10.10.0.0/16
       auto_assign: true
   layer2:
     - primary
