@@ -4,7 +4,7 @@ The first part of the compute kit is Libvirt.
 
 ## Run the package deployment
 
-!!! example "Run the libvirt deployment Script `bin/install-libvirt.sh`"
+!!! example "Run the libvirt deployment Script `/opt/genestack/bin/install-libvirt.sh`"
 
     ``` shell
     --8<-- "bin/install-libvirt.sh"
