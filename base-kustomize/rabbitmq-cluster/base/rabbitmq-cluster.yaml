@@ -1,10 +1,11 @@
+---
 apiVersion: rabbitmq.com/v1beta1
 kind: RabbitmqCluster
 metadata:
   name: rabbitmq
   namespace: openstack
   annotations:
-    metallb.universe.tf/address-pool: pool1
+    metallb.universe.tf/address-pool: primary
 spec:
   replicas: 3
   resources:
@@ -38,13 +39,13 @@ spec:
                   - worker
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
-      - labelSelector:
-          matchExpressions:
+        - labelSelector:
+            matchExpressions:
               - key: app.kubernetes.io/name
                 operator: In
                 values:
-                - rabbitmq
-        topologyKey: kubernetes.io/hostname
+                  - rabbitmq
+          topologyKey: kubernetes.io/hostname
   override:
     service:
       spec:
@@ -55,12 +56,13 @@ spec:
           spec:
             containers: []
             topologySpreadConstraints:
-            - maxSkew: 1
-              topologyKey: "topology.kubernetes.io/zone"
-              whenUnsatisfiable: ScheduleAnyway  # This should be changed to DoNotSchedule for production
-              labelSelector:
-                matchLabels:
-                  app.kubernetes.io/name: openstack
+              - maxSkew: 1
+                topologyKey: "topology.kubernetes.io/zone"
+                # Should be changed to DoNotSchedule for production
+                whenUnsatisfiable: ScheduleAnyway
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: openstack
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget

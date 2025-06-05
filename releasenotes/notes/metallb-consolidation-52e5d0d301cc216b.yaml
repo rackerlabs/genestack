@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The metallb configuration is now consolidated and cleaned up by providing the
+    metallb IP address pools:
+    - `gateway-api-external` for Envoy
+    - `primary` for all internal services including MariaDB, RabbitMQ and others
+    - The pool `pool1` is replaced by `primary`
