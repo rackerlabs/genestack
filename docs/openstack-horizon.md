@@ -24,7 +24,7 @@ OpenStack Horizon is the web-based dashboard for the OpenStack ecosystem, provid
 
 ## Run the package deployment
 
-!!! example "Run the Horizon deployment Script `bin/install-horizon.sh`"
+!!! example "Run the Horizon deployment Script `/opt/genestack/bin/install-horizon.sh`"
 
     ``` shell
     --8<-- "bin/install-horizon.sh"

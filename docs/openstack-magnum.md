@@ -32,7 +32,7 @@ OpenStack Magnum is the container orchestration service within the OpenStack eco
 
 ## Run the package deployment
 
-!!! example "Run the Magnum deployment Script `bin/install-magnum.sh`"
+!!! example "Run the Magnum deployment Script `/opt/genestack/bin/install-magnum.sh`"
 
     ``` shell
     --8<-- "bin/install-magnum.sh"

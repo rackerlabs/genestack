@@ -26,7 +26,22 @@ images:
     rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
     test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
 
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
 pod:
+  resources:
+    enabled: true
+    api:
+      requests:
+        memory: "512Mi"
+        cpu: "300m"
+      limits: {}
+    scheduler:
+      requests:
+        memory: "256Mi"
+        cpu: "300m"
+      limits: {}
   security_context:
     cinder_api:
       container:
@@ -128,8 +143,8 @@ conf:
       kombu_reconnect_delay: 0.5
   cinder_api_uwsgi:
     uwsgi:
-      processes: 4
-      threads: 2
+      processes: 2
+      threads: 1
   enable_iscsi: true
   logging:
     logger_root:

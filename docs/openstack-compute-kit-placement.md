@@ -1,6 +1,6 @@
 # Deploy Placement
 
-!!! example "Run the Placement deployment Script `bin/install-placement.sh`"
+!!! example "Run the Placement deployment Script `/opt/genestack/bin/install-placement.sh`"
 
     ``` shell
     --8<-- "bin/install-placement.sh"
