@@ -3,14 +3,13 @@
 # Declare variables to be passed into your templates.
 global:
   registry:
-    address: ghcr.io/rackerlabs
+    address: docker.io/kubeovn
     imagePullSecrets: []
   images:
     kubeovn:
       repository: kube-ovn
-      dpdkRepository: kube-ovn-dpdk
       vpcRepository: vpc-nat-gateway
-      tag: v1.12.32
+      tag: v1.13.13
       support_arm: true
       thirdparty: true
 
