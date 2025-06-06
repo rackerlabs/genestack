@@ -22,8 +22,8 @@ pod:
     enabled: true
     api:
       requests:
-        memory: "384Mi"
-        cpu: "200m"
+        memory: "256Mi"
+        cpu: "100m"
       limits: {}
 
 dependencies:

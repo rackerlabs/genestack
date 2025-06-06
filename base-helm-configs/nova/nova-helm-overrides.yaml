@@ -296,19 +296,13 @@ pod:
       requests:
         memory: "384Mi"
         cpu: "300m"
-      limits:
-        memory: "1024Mi"
-        cpu: "2000m"
+      limits: {}
     ssh:
-      requests:
-        memory: "512Mi"
-        cpu: "200m"
-      limits:
-        memory: "4096Mi"
-        cpu: "4000m"
+      requests: {}
+      limits: {}
     api:
       requests:
-        memory: "640Mi"
+        memory: "512Mi"
         cpu: "500m"
       limits: {}
     conductor:

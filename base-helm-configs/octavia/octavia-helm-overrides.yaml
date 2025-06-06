@@ -187,7 +187,9 @@ pod:
       requests:
         memory: "768Mi"
         cpu: "300m"
-      limits: {}
+      limits:
+        memory: "3072Mi"
+        cpu: "2000m"
     worker:
       requests:
         memory: "256Mi"
