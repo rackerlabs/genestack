@@ -20,5 +20,29 @@ spec:
   nodeSelectors:  # Optional block to limit nodes for a given advertisement
     - matchLabels:
         node-role.kubernetes.io/worker: worker
-  # interfaces:  # Optional block to limit ifaces used to advertise VIPs
-  #   - br-mgmt
+#  interfaces:  # Optional block to limit ifaces used to advertise VIPs
+#    - br-host
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: primary
+  namespace: metallb-system
+spec:
+  addresses:
+    - 10.234.0.0/24
+  autoAssign: false
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: cluster-internal-advertisement
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - primary
+  nodeSelectors:  # Optional block to limit nodes for a given advertisement
+    - matchLabels:
+        node-role.kubernetes.io/worker: worker
+#  interfaces:  # Optional block to limit ifaces used to advertise VIPs
+#    - br-host
