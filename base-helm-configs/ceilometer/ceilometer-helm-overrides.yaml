@@ -1766,32 +1766,32 @@ pod:
     enabled: true
     compute:
       requests:
-        memory: "128Mi"
-        cpu: "100m"
+        memory: {}
+        cpu: {}
       limits:
-        memory: "6144Mi"
-        cpu: "2000m"
+        memory: {}
+        cpu: {}
     notification:
       requests:
-        memory: "256Mi"
-        cpu: "100m"
+        memory: {}
+        cpu: {}
       limits:
-        memory: "6144Mi"
-        cpu: "2000m"
+        memory: {}
+        cpu: {}
     central:
       requests:
-        memory: "128Mi"
-        cpu: "100m"
+        memory: {}
+        cpu: {}
       limits:
-        memory: "6144Mi"
-        cpu: "2000m"
+        memory: {}
+        cpu: {}
     ipmi:
       requests:
-        memory: "124Mi"
-        cpu: "100m"
+        memory: {}
+        cpu: {}
       limits:
-        memory: "6144Mi"
-        cpu: "2000m"
+        memory: {}
+        cpu: {}
   replicas:
     central: 1
     notification: 1

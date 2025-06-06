@@ -27,18 +27,18 @@ pod:
     enabled: true
     api:
       requests:
-        memory: "384Mi"
-        cpu: "300m"
+        memory: "256Mi"
+        cpu: "100m"
       limits: {}
     cfn:
       requests:
-        memory: "384Mi"
-        cpu: "300m"
+        memory: "256Mi"
+        cpu: "100m"
       limits: {}
     engine:
       requests:
-        memory: "384Mi"
-        cpu: "300m"
+        memory: "256Mi"
+        cpu: "100m"
       limits: {}
 
 conf:

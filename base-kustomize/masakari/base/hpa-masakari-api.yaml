@@ -6,7 +6,7 @@ metadata:
   namespace: openstack
 spec:
   maxReplicas: 9
-  minReplicas: 3
+  minReplicas: 1
   metrics:
     - resource:
         name: cpu

@@ -34,13 +34,13 @@ pod:
     enabled: true
     api:
       requests:
-        memory: "512Mi"
-        cpu: "300m"
+        memory: "384Mi"
+        cpu: "100m"
       limits: {}
     scheduler:
       requests:
-        memory: "256Mi"
-        cpu: "300m"
+        memory: "192Mi"
+        cpu: "100m"
       limits: {}
   security_context:
     cinder_api:

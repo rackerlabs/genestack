@@ -27,8 +27,10 @@ pod:
     api:
       requests:
         memory: "512Mi"
-        cpu: "500m"
-      limits: {}
+        cpu: "2"
+      limits:
+        memory: 2Gi
+        cpu: "4"
 
 dependencies:
   static:

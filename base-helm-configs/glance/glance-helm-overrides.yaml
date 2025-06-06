@@ -245,7 +245,7 @@ pod:
     api:
       requests:
         memory: "384Mi"
-        cpu: "300m"
+        cpu: "100m"
       limits: {}
   replicas:
     api: 1

@@ -29,8 +29,33 @@ images:
     dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
   pull_policy: "IfNotPresent"
 
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
+pod:
+  resources:
+    enabled: true
+    masakari_api:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    masakari_engine:
+      requests: {}
+      limits: {}
+    masakari_host_monitor:
+      requests:
+        memory: "192Mi"
+        cpu: "100m"
+      limits: {}        
+    masakari_instance_monitor:
+      requests: {}
+      limits: {}
+
 endpoints:
-  identiy:
+  identity:
     port:
       api:
         default: 5000

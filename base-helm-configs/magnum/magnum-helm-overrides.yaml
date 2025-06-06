@@ -22,15 +22,15 @@ pod:
     enabled: true
     api:
       requests:
-        memory: "384Mi"
+        memory: "256Mi"
         cpu: "300m"
       limits: {}
     conductor:
       requests:
-        memory: "768Mi"
+        memory: "512Mi"
         cpu: "300m"
       limits:
-        memory: "3072Mi"
+        memory: "2048Mi"
         cpu: "2000m"
 
 conf:
