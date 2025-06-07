@@ -6,6 +6,7 @@ resources:
   - all.yaml
   - hpa-neutron-server.yaml
   - hpa-neutron-rpc-server.yaml
+  - policies.yaml
 
 patches:
   - target:

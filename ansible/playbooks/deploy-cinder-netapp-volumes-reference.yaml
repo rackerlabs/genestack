@@ -139,7 +139,7 @@
         path: "/etc/cinder/cinder.conf.stage"
         section: DEFAULT
         option: host
-        value: "{{ ansible_fqdn }}"
+        value: "{{ inventory_hostname }}"
         create: true
 
     - name: Create the cinder-volume-netapp configuration stage file

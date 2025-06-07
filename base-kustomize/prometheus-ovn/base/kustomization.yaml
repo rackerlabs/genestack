@@ -1,0 +1,7 @@
+sortOptions:
+  order: fifo
+resources:
+  - cni-monitor.yaml
+  - controller-monitor.yaml
+  - ovn-monitor.yaml
+  - pinger-monitor.yaml

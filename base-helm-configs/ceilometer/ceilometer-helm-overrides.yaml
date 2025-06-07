@@ -1757,24 +1757,11 @@ endpoints:
         default: 24224
       metrics:
         default: 24220
+
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
 pod:
-  replicas:
-    central: 1
-    notification: 1
-  lifecycle:
-    upgrades:
-      deployments:
-        revision_history: 3
-        pod_replacement_strategy: RollingUpdate
-        rolling_update:
-          max_unavailable: 1
-          max_surge: 3
-      daemonsets:
-        pod_replacement_strategy: RollingUpdate
-        compute:
-          enabled: true
-          min_ready_seconds: 0
-          max_unavailable: 20%
   resources:
     enabled: true
     compute:
@@ -1805,6 +1792,23 @@ pod:
       limits:
         memory: "6144Mi"
         cpu: "2000m"
+  replicas:
+    central: 1
+    notification: 1
+  lifecycle:
+    upgrades:
+      deployments:
+        revision_history: 3
+        pod_replacement_strategy: RollingUpdate
+        rolling_update:
+          max_unavailable: 1
+          max_surge: 3
+      daemonsets:
+        pod_replacement_strategy: RollingUpdate
+        compute:
+          enabled: true
+          min_ready_seconds: 0
+          max_unavailable: 20%
 
 manifests:
   deployment_api: false

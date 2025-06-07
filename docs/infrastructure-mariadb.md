@@ -19,13 +19,13 @@
 ## Deploy the mariadb operator
 
 ```
-cluster_name=`kubectl config view --minify -o jsonpath='{.clusters[0].name}'`
-echo $cluster_name
+CLUSTER_NAME=`kubectl config view --minify -o jsonpath='{.clusters[0].name}'`
+echo $CLUSTER_NAME
 ```
 
 If `cluster_name` was anything other than `cluster.local` you should pass that as a parameter to the installer
 
-!!! example "Run the mariadb-operator deployment Script `bin/install-mariadb-operator.sh` You can include cluster_name paramater. No paramaters deploys with `cluster.local` cluster name."
+!!! example "Run the mariadb-operator deployment Script `/opt/genestack/bin/install-mariadb-operator.sh` You can include cluster_name paramater from the output of $CLUSTER_NAME. If no paramaters are provided, the system will deploy with `cluster.local` as the cluster name."
 
     ``` shell
     --8<-- "bin/install-mariadb-operator.sh"

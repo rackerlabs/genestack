@@ -5,12 +5,18 @@ metadata:
   namespace: openstack
 spec:
   maxReplicas: 9
-  minReplicas: 3
+  minReplicas: 1
   metrics:
     - resource:
         name: cpu
         target:
-          averageUtilization: 50
+          averageUtilization: 80
+          type: Utilization
+      type: Resource
+    - resource:
+        name: memory
+        target:
+          averageUtilization: 80
           type: Utilization
       type: Resource
   scaleTargetRef:

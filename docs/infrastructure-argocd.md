@@ -2,7 +2,7 @@
 
 ## Install Argocd
 
-!!! example "Run the argocd deployment Script `bin/install-argocd.sh`"
+!!! example "Run the argocd deployment Script `/opt/genestack/bin/install-argocd.sh`"
 
     ``` shell
     --8<-- "bin/install-argocd.sh"

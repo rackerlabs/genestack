@@ -69,7 +69,7 @@ OpenStack Glance is the image service within the OpenStack ecosystem, responsibl
 
 ## Run the package deployment
 
-!!! example "Run the Glance deployment Script `bin/install-glance.sh`"
+!!! example "Run the Glance deployment Script `/opt/genestack/bin/install-glance.sh`"
 
     ``` shell
     --8<-- "bin/install-glance.sh"

@@ -6,12 +6,18 @@ metadata:
   namespace: openstack
 spec:
   parentRefs:
-  - name: flex-gateway
-    sectionName: keystone-https
-    namespace: nginx-gateway
+    - name: flex-gateway
+      sectionName: keystone-https
+      namespace: nginx-gateway
   hostnames:
-  - "keystone.your.domain.tld"
+    - "keystone.your.domain.tld"
   rules:
     - backendRefs:
-      - name: keystone-api
-        port: 5000
+        - name: keystone-api
+          port: 5000
+      sessionPersistence:
+        sessionName: KeystoneSession
+        type: Cookie
+        absoluteTimeout: 300s
+        cookieConfig:
+          lifetimeType: Permanent

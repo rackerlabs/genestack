@@ -1,3 +1,4 @@
+---
 sortOptions:
   order: fifo
 resources:
@@ -6,3 +7,4 @@ resources:
   - all.yaml
   - hpa-cinder-scheduler.yaml
   - hpa-cinder-api.yaml
+  - policies.yaml

@@ -1,0 +1,156 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+images:
+  tags:
+    db_init: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+    db_sync: docker.io/openstackhelm/masakari:2024.1-ubuntu_jammy
+    db_drop: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+    ks_endpoints: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+    ks_service: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+    ks_user: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+    masakari_api: quay.io/rackspace/rackerlabs-masakari:2024.1-ubuntu_jammy
+    masakari_engine: quay.io/rackspace/rackerlabs-masakari:2024.1-ubuntu_jammy
+    # TEMP HOST-MONITOR IMAGE TO FIX: https://review.opendev.org/c/openstack/masakari-monitors/+/951336
+    masakari_host_monitor: kernelpanic53/rackerlabs-masakari-monitors:zhmarvi-ubuntu_jammy_v1.0
+    masakari_process_monitor: quay.io/rackspace/rackerlabs-masakari-monitors:2024.1-ubuntu_jammy
+    masakari_instance_monitor: quay.io/rackspace/rackerlabs-masakari-monitors:2024.1-ubuntu_jammy
+    rabbit_init: docker.io/rabbitmq:3.13-management
+    dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
+  pull_policy: "IfNotPresent"
+
+endpoints:
+  identiy:
+    port:
+      api:
+        default: 5000
+        internal: 5000
+        public: 80
+        service: 5000
+  instance_ha:
+    port:
+      api:
+        default: 15868
+        internal: 15868
+        public: 80
+        service: 15868
+
+  oslo_db:
+    host_fqdn_override:
+      default: mariadb-cluster-primary.openstack.svc.cluster.local
+    hosts:
+      default: mariadb-cluster-primary
+  oslo_cache:
+    host_fqdn_override:
+      default: memcached.openstack.svc.cluster.local
+    hosts:
+      default: memcached
+  oslo_messaging:
+    host_fqdn_override:
+      default: rabbitmq.openstack.svc.cluster.local
+    hosts:
+      default: rabbitmq-nodes
+
+conf:
+  masakari:
+    DEFAULT:
+      auth_strategy: keystone
+      duplicate_notification_detection_interval: 180
+      host_failure_recovery_threads: 1
+      masakari_api_workers: 4
+      graceful_shutdown_timeout: 5
+      api_paste_config: /etc/masakari/api-paste.ini
+      nova_catalog_admin_info: compute:nova:adminURL
+      service_down_time: 30
+      wait_period_after_service_update: 30
+    host_failure:
+      ignore_instances_in_error_state: true
+      add_reserved_host_to_aggregate: true
+    instance_failure:
+      process_all_instances: false
+    keystone_authtoken:
+      auth_type: password
+      service_type: instance-ha
+      auth_version: v3
+      memcache_security_strategy: ENCRYPT
+      service_token_roles: service
+      service_token_roles_required: true
+    database:
+      connection_debug: 0
+      connection_recycle_time: 600
+      connection_trace: true
+      idle_timeout: 3600
+      mysql_sql_mode: {}
+      use_db_reconnect: true
+      pool_timeout: 60
+      max_retries: -1
+    oslo_messaging_rabbit:
+      amqp_durable_queues: false
+      rabbit_ha_queues: false
+      rabbit_quorum_queue: true
+      rabbit_transient_quorum_queue: false
+      use_queue_manager: false
+      rabbit_interval_max: 10
+      # Send more frequent heartbeats and fail unhealthy nodes faster
+      # heartbeat_timeout / heartbeat_rate / 2.0 = 30 / 3 / 2.0 = 5
+      # https://opendev.org/openstack/oslo.messaging/commit/36fb5bceabe08a982ebd52e4a8f005cd26fdf6b8
+      heartbeat_rate: 3
+      heartbeat_timeout_threshold: 60
+      # DEPRECIATION:  (warning) heartbeat_in_pthread will be deprecated in 2024.2
+      heartbeat_in_pthread: True
+      # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
+      # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
+      # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
+      kombu_reconnect_delay: 0.5
+    taskflow:
+      connection: null
+  masakarimonitors:
+    DEFAULT:
+      debug: false
+    api:
+      api_interface: internal
+    host:
+      monitoring_driver: kubernetes
+      monitoring_interval: 30
+      monitoring_samples: 3
+      disable_ipmi_checks: true
+      corosync_multicast_interfaces: null
+      corosync_multicast_ports: null
+    kubernetes:
+      monitoring_node_labels: "openstack-compute-node=enabled"
+  masakari_sudoers: |
+    Defaults secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:/var/lib/openstack/bin"
+    masakari-monitors ALL=(ALL:ALL) NOPASSWD: /var/lib/openstack/bin/privsep-helper
+
+manifests:
+  job_ks_user: true
+  job_db_sync: true
+  job_db_init: false
+  job_db_drop: false
+  job_ks_endpoints: true
+  job_ks_service: true
+  deployment_api: true
+  deployment_engine: true
+  configmap_bin: true
+  configmap_etc: true
+  secret_db: true
+  secret_rabbitmq: true
+  secret_keystone: true
+  secret_registry: true
+  job_rabbit_init: false
+  service_api: true
+  pdb_api: true
+  # Genestack is using kubernetes check driver for Host-Monitor
+  host_monitor: true
+  instance_monitor: true
+  process_monitor: false

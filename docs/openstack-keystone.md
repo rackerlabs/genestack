@@ -32,7 +32,7 @@ OpenStack Keystone is the identity service within the OpenStack ecosystem, servi
 
 ## Run the package deployment
 
-!!! example "Run the Keystone deployment Script `bin/install-keystone.sh`"
+!!! example "Run the Keystone deployment Script `/opt/genestack/bin/install-keystone.sh`"
 
     ``` shell
     --8<-- "bin/install-keystone.sh"

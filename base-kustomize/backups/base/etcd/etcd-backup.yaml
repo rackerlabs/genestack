@@ -1,0 +1,101 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: etcd-backup
+spec:
+  schedule: "0 1 * * *"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  concurrencyPolicy: Allow
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          initContainers:
+            - name: etcd-backup
+              image: csengteam/etcd-backup:v0.0.5
+              env:
+                - name: ETCDCTL_API
+                  valueFrom:
+                    secretKeyRef:
+                      name: etcd-backup-secrets
+                      key: ETCDCTL_API
+                - name: ETCDCTL_ENDPOINTS
+                  valueFrom:
+                    secretKeyRef:
+                      name: etcd-backup-secrets
+                      key: ETCDCTL_ENDPOINTS
+                - name: ETCDCTL_CACERT
+                  valueFrom:
+                    secretKeyRef:
+                      name: etcd-backup-secrets
+                      key: ETCDCTL_CACERT
+                - name: ETCDCTL_CERT
+                  valueFrom:
+                    secretKeyRef:
+                      name: etcd-backup-secrets
+                      key: ETCDCTL_CERT
+                - name: ETCDCTL_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: etcd-backup-secrets
+                      key: ETCDCTL_KEY
+              command: ["/bin/bash", "-c"]
+              args: ["etcdctl snapshot save /data/etcd-backup/etcd-snapshot-$(date +%Y-%m-%d).db"]
+              volumeMounts:
+                - mountPath: /etc/ssl/etcd/ssl
+                  name: etcd-certs
+                  readOnly: true
+                - mountPath: /data/etcd-backup
+                  name: etcd-backup
+          restartPolicy: Never
+          containers:
+            - name: backup-to-s3
+              image: csengteam/etcd-backup:v0.0.5
+              env:
+                - name: ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: etcd-backup-secrets
+                      key: ACCESS_KEY
+                - name: SECRET_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: etcd-backup-secrets
+                      key: SECRET_KEY
+                - name: S3_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: etcd-backup-secrets
+                      key: S3_HOST
+                - name: S3_REGION
+                  valueFrom:
+                    secretKeyRef:
+                      name: etcd-backup-secrets
+                      key: S3_REGION
+              command: ["/bin/bash", "-c"]
+              args: ["python /backup.py /data/etcd-backup/etcd-snapshot-$(date +%Y-%m-%d).db"]
+              volumeMounts:
+                - mountPath: /data/etcd-backup
+                  name: etcd-backup
+          hostNetwork: true
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: is-etcd-backup-node
+                        operator: Exists
+          tolerations:
+            - key: node.kubernetes.io/memory-pressure
+              effect: NoSchedule
+              operator: Exists
+          volumes:
+            - name: etcd-certs
+              hostPath:
+                path: /etc/ssl/etcd/ssl
+                type: Directory
+            - name: etcd-backup
+              hostPath:
+                path: /data/etcd-backup
+                type: DirectoryOrCreate

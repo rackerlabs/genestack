@@ -28,14 +28,8 @@ kubectl apply -f /etc/genestack/manifests/metallb/metallb-namespace.yaml
 
 !!! tip
 
-    It is recommended that you modify the file locally so that your changes are not impacted by the git tree.
-
-    ``` shell
-    mkdir -p /etc/genestack/manifests/metallb/
-    cp /etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml /etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml
-    ```
-
-    Edit the `metallb-openstack-service-lb.yml` file following the comment instructions with the details of your cluster.
+    Edit the `/etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml` file following the comment instructions with the details of your cluster.
+    The file `metallb-openstack-service-lb.yml` is intially provided during bootstrap for genestack.
 
 Verify the deployment of MetalLB by checking the pods in the `metallb-system` namespace.
 

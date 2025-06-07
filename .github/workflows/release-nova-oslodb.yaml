@@ -1,5 +1,5 @@
 #
-name: Create and publish a the Nova oslodb patched image
+name: Create and publish a Nova oslodb patched image
 
 # Configures this workflow to run every time a change is pushed to the branch called `release`.
 on:

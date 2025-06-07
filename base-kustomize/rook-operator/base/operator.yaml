@@ -20,7 +20,7 @@ apiVersion: v1
 metadata:
   name: rook-ceph-operator-config
   # should be in the namespace of the operator
-  namespace: rook-ceph # namespace:operator
+  namespace: rook-ceph  # namespace:operator
 data:
   # The logging level for the operator: ERROR | WARNING | INFO | DEBUG
   ROOK_LOG_LEVEL: "INFO"
@@ -553,7 +553,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: rook-ceph-operator
-  namespace: rook-ceph # namespace:operator
+  namespace: rook-ceph  # namespace:operator
   labels:
     operator: rook
     storage-backend: ceph

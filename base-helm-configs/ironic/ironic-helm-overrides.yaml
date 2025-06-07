@@ -4,7 +4,6 @@
 # Date: April 03, 2025
 
 ---
-
 images:
   tags:
     ironic_manage_cleaning_network: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
@@ -22,7 +21,7 @@ images:
     ironic_conductor: "quay.io/rackspace/rackerlabs-ironic:2024.1-ubuntu_jammy"
     ironic_pxe: "quay.io/rackspace/rackerlabs-ironic:2024.1-ubuntu_jammy"
     ironic_pxe_init: "quay.io/rackspace/rackerlabs-ironic:2024.1-ubuntu_jammy"
-    ironic_pxe_http: "docker.io/nginx:1.13.3"  # Retained from openstack-helm default
+    ironic_pxe_http: "docker.io/nginx:1.13.3" # Retained from openstack-helm default
     ironic_inspector: "quay.io/rackspace/rackerlabs-ironic-inspector:2024.1-ubuntu_jammy"
     ironic_inspector_db_sync: "quay.io/rackspace/rackerlabs-ironic-inspector:2024.1-ubuntu_jammy"
     dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
@@ -33,7 +32,7 @@ conf:
   ironic:
     DEFAULT:
       log_config_append: /etc/ironic/logging.conf
-      tempdir: /var/lib/openstack-helm/tmp  # Matches openstack-helm default
+      tempdir: /var/lib/openstack-helm/tmp # Matches openstack-helm default
       default_deploy_interface: "direct"
       default_inspect_interface: "inspector"
       default_network_interface: "neutron"
@@ -76,7 +75,7 @@ conf:
       rabbit_interval_max: 10
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
-      heartbeat_in_pthread: True  # Note: Deprecation warning for 2024.2
+      heartbeat_in_pthread: True # Note: Deprecation warning for 2024.2
       kombu_reconnect_delay: 0.5
     pxe:
       pxe_append_params: "nofb nomodeset vga=normal ipa-debug=1"
@@ -111,7 +110,7 @@ network:
     neutron_subnet_cidr: 172.24.6.0/24
     neutron_subnet_alloc_start: 172.24.6.100
     neutron_subnet_alloc_end: 172.24.6.200
-    neutron_subnet_dns_nameserver: 8.8.8.8  # Aligned with Neutron's OVN DNS
+    neutron_subnet_dns_nameserver: 8.8.8.8 # Aligned with Neutron's OVN DNS
 
 dependencies:
   static:
@@ -219,6 +218,8 @@ endpoints:
         default: 5672
 
 pod:
+  resources:
+    enabled: true
   replicas:
     api: 1
     conductor: 1

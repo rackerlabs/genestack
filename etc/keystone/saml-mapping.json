@@ -1,0 +1,194 @@
+[
+    {
+        "local": [
+            {
+                "user": {
+                    "id": "{0}",
+                    "name": "{1}",
+                    "email": "{2}",
+                    "domain": {
+                        "name": "rackspace_cloud_domain"
+                    }
+                }
+            },
+            {
+                "projects": [
+                    {
+                        "name": "{3}",
+                        "domain": {
+                            "name": "rackspace_cloud_domain"
+                        },
+                        "roles": [
+                            {
+                                "name": "reader"
+                            },
+                            {
+                                "name": "load-balancer_observer"
+                            },
+                            {
+                                "name": "network_observer"
+                            },
+                            {
+                                "name": "heat_stack_user"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "remote": [
+            {
+                "type": "REMOTE_UID"
+            },
+            {
+                "type": "REMOTE_USER"
+            },
+            {
+                "type": "REMOTE_EMAIL"
+            },
+            {
+                "type": "REMOTE_PROJECT_NAME"
+            },
+            {
+                "type": "REMOTE_ORG_PERSON_TYPE",
+                "any_one_of": [
+                    "observer"
+                ]
+            },
+            {
+                "type": "REMOTE_VERIFIED",
+                "any_one_of": [
+                    "true"
+                ]
+            }
+        ]
+    },
+    {
+        "local": [
+            {
+                "user": {
+                    "id": "{0}",
+                    "name": "{1}",
+                    "email": "{2}",
+                    "domain": {
+                        "name": "rackspace_cloud_domain"
+                    }
+                }
+            },
+            {
+                "projects": [
+                    {
+                        "name": "{3}",
+                        "domain": {
+                            "name": "rackspace_cloud_domain"
+                        },
+                        "roles": [
+                            {
+                                "name": "member"
+                            },
+                            {
+                                "name": "load-balancer_member"
+                            },
+                            {
+                                "name": "network_member"
+                            },
+                            {
+                                "name": "heat_stack_user"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "remote": [
+            {
+                "type": "REMOTE_UID"
+            },
+            {
+                "type": "REMOTE_USER"
+            },
+            {
+                "type": "REMOTE_EMAIL"
+            },
+            {
+                "type": "REMOTE_PROJECT_NAME"
+            },
+            {
+                "type": "REMOTE_ORG_PERSON_TYPE",
+                "any_one_of": [
+                    "member"
+                ]
+            },
+            {
+                "type": "REMOTE_VERIFIED",
+                "any_one_of": [
+                    "true"
+                ]
+            }
+        ]
+    },
+    {
+        "local": [
+            {
+                "user": {
+                    "id": "{0}",
+                    "name": "{1}",
+                    "email": "{2}",
+                    "domain": {
+                        "name": "rackspace_cloud_domain"
+                    }
+                }
+            },
+            {
+                "projects": [
+                    {
+                        "name": "{3}",
+                        "domain": {
+                            "name": "rackspace_cloud_domain"
+                        },
+                        "roles": [
+                            {
+                                "name": "creator"
+                            },
+                            {
+                                "name": "load-balancer_member"
+                            },
+                            {
+                                "name": "network_creator"
+                            },
+                            {
+                                "name": "heat_stack_user"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "remote": [
+            {
+                "type": "REMOTE_UID"
+            },
+            {
+                "type": "REMOTE_USER"
+            },
+            {
+                "type": "REMOTE_EMAIL"
+            },
+            {
+                "type": "REMOTE_PROJECT_NAME"
+            },
+            {
+                "type": "REMOTE_ORG_PERSON_TYPE",
+                "any_one_of": [
+                    "creator"
+                ]
+            },
+            {
+                "type": "REMOTE_VERIFIED",
+                "any_one_of": [
+                    "true"
+                ]
+            }
+        ]
+    }
+]

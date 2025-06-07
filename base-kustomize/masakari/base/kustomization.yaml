@@ -1,0 +1,9 @@
+---
+sortOptions:
+  order: fifo
+resources:
+  - masakari-mariadb-database.yaml
+  - masakari-rabbitmq-queue.yaml
+  - all.yaml
+  - hpa-masakari-api.yaml
+  - masakari-hostmonitor-clusterrolebinding.yaml

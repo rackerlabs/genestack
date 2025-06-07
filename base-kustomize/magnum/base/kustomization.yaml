@@ -1,3 +1,4 @@
+---
 sortOptions:
   order: fifo
 resources:
@@ -6,3 +7,4 @@ resources:
   - all.yaml
   - hpa-magnum-api.yaml
   - hpa-magnum-conductor.yaml
+  - policies.yaml
