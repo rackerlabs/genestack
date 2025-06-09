@@ -8,7 +8,6 @@ spec:
   maxReplicas: 9
   minReplicas: 2
   metrics:
-  metrics:
     - resource:
         name: cpu
         target:
