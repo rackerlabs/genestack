@@ -5,7 +5,7 @@ metadata:
   namespace: openstack
 spec:
   maxReplicas: 9
-  minReplicas: 1
+  minReplicas: 2
   metrics:
     - resource:
         name: memory
