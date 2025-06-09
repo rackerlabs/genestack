@@ -168,7 +168,7 @@ conf:
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
       # NOTE (deprecation warning) heartbeat_in_pthread will be deprecated in 2024.2
-      heartbeat_in_pthread: True
+      heartbeat_in_pthread: true
       # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
@@ -296,19 +296,13 @@ pod:
       requests:
         memory: "384Mi"
         cpu: "300m"
-      limits:
-        memory: "1024Mi"
-        cpu: "2000m"
+      limits: {}
     ssh:
-      requests:
-        memory: "512Mi"
-        cpu: "200m"
-      limits:
-        memory: "4096Mi"
-        cpu: "4000m"
+      requests: {}
+      limits: {}
     api:
       requests:
-        memory: "640Mi"
+        memory: "512Mi"
         cpu: "500m"
       limits: {}
     conductor:

@@ -11,7 +11,7 @@ spec:
       envoyService:
         externalTrafficPolicy: Cluster
       envoyHpa:
-        minReplicas: 1
+        minReplicas: 2
         maxReplicas: 9
         metrics:
           - resource:
