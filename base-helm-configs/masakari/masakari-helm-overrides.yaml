@@ -29,8 +29,33 @@ images:
     dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
   pull_policy: "IfNotPresent"
 
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
+pod:
+  resources:
+    enabled: true
+    masakari_api:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    masakari_engine:
+      requests: {}
+      limits: {}
+    masakari_host_monitor:
+      requests:
+        memory: "192Mi"
+        cpu: "100m"
+      limits: {}
+    masakari_instance_monitor:
+      requests: {}
+      limits: {}
+
 endpoints:
-  identiy:
+  identity:
     port:
       api:
         default: 5000
@@ -107,7 +132,7 @@ conf:
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
       # DEPRECIATION:  (warning) heartbeat_in_pthread will be deprecated in 2024.2
-      heartbeat_in_pthread: True
+      heartbeat_in_pthread: true
       # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617

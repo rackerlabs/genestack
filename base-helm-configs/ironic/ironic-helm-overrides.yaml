@@ -75,7 +75,7 @@ conf:
       rabbit_interval_max: 10
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
-      heartbeat_in_pthread: True # Note: Deprecation warning for 2024.2
+      heartbeat_in_pthread: true # Note: Deprecation warning for 2024.2
       kombu_reconnect_delay: 0.5
     pxe:
       pxe_append_params: "nofb nomodeset vga=normal ipa-debug=1"
