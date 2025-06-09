@@ -215,33 +215,84 @@ used by the SAML2 identity provider.
             }
             ```
 
+    === "Rackspace"
+
+        When using the Rackspace the `shibboleth2.xml` file must be updated to include signing for all requests and responses.
+
+        The `shibboleth2.xml` file must be updated to include the following options:
+
+        ``` xml
+        <ApplicationDefaults entityID="EXAMPLE_ENTITY_ID_REPLACED_WITH_THE_ENTITY_ID_OF_THE_IDP"
+                             REMOTE_USER="eppn persistent-id targeted-id uid"
+                             cipherSuites="DEFAULT:!EXP:!LOW:!aNULL:!eNULL:!DES:!IDEA:!SEED:!RC4:!3DES:!kRSA:!SSLv2:!SSLv3:!TLSv1:!TLSv1.1"
+                             signing="true"
+                             encryption="false"
+                             signingAlg="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
+                             digestAlg="http://www.w3.org/2001/04/xmlenc#sha256"
+                             NameIDFormat="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">
+        ```
+
+        The `MetadataProvider` should be made dynamic.
+
+        ``` xml
+        <MetadataProvider type="XML"
+                          validate="true"
+                          url="https://example.com/idp.xml"
+                          maxRefreshDelay="7200"
+                          id="login.rackspace.com"
+                          ignoreTransport="true"
+                          cacheDirectory="rackspace">
+            <MetadataFilter type="RequireValidUntil" maxValidityInterval="2419200"/>
+        </MetadataProvider>
+        ```
+
+        Additionally the `Handler` for the `MetadataGenerator` must be updated to include signing:
+
+        ``` xml
+        <Handler type="MetadataGenerator"
+                 Location="/Metadata"
+                 signing="true"
+                 signingAlg="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
+                 digestAlg="http://www.w3.org/2001/04/xmlenc#sha256" />
+        ```
+
+        The following attributes are used by the Rackspace identity provider. Add the following options to the
+        `attribute-map.xml` to have it compatible with the provided `mapping.json` which will be used
+        within keystone.
+
+        ``` xml
+        <!-- Rackspace attributes -->
+        <Attribute name="account_name" id="REMOTE_ACCOUNT_NAME"/>
+        <Attribute name="auth_token" id="REMOTE_AUTH_TOKEN"/>
+        <Attribute name="auth_url" id="REMOTE_AUTH_URL"/>
+        <Attribute name="ddi" id="REMOTE_DDI"/>
+        <Attribute name="domain" id="REMOTE_DOMAIN"/>
+        <Attribute name="scoped_token" id="REMOTE_SCOPED_TOKEN"/>
+        <Attribute name="session_creation_time" id="REMOTE_SESSION_CREATION"/>
+        <Attribute name="urn:oid:1.2.840.113549.1.9.1.1" id="REMOTE_EMAIL"/>
+        <Attribute name="user_id" id="uid"/>
+        <Attribute name="username" id="REMOTE_USERNAME"/>
+        ```
+
 #### Generate the SAML Keys
 
 For **N** numbers of years. The keys are used to sign the SAML requests and responses.
 
 ``` shell
-docker run -v /etc/genestack/keystone-sp:/etc/shibboleth \
-       ghcr.io/rackerlabs/keystone-rxt/shibd:latest \
-       shib-keygen -y 5
+openssl req -x509 -newkey rsa:2048 -keyout sp-key.pem -out sp-cert.pem -days 1825 -nodes
 ```
 
-!!! note "The `shib-keygen` command"
+!!! note "Define all values for the following options"
 
-    * The `shib-keygen` command is used to generate the SAML keys. The keys are used to sign the SAML requests and responses.
-    * The `-y` option is used to specify the number of years for which the keys are valid. The example uses 5 years.
-
-    While the example command doesn't specifically call it out, deployers can further customize the keys by using the following options:
-
-    | Switch | Description |
+    | Name | Description |
     | ------ | ----------- |
-    | -u | username to own keypair |
-    | -g | owning groupname |
-    | -h | hostname for cert |
-    | -y | years to issue cert |
-    | -e | entityID to embed in cert |
-    | -n | filename prefix (default 'sp') |
-
-    Upon completion, the `shib-keygen` command will generate a set of keys and certificates for the SAML2 identity provider. The keys are used to sign the SAML requests and responses.
+    | Country Name | (2 letter code) |
+    | State or Province Name | (full name) |
+    | Locality Name | (eg, city) |
+    | Organization Name | (eg, company) |
+    | Organizational Unit Name | (eg, section) |
+    | Common Name | (e.g. server FQDN or YOUR name) |
+    | Email Address | (contact address) |
 
     The default filenames are:
 
@@ -383,3 +434,23 @@ Run the following command to update the skyline-apiserver deployment.
 ``` shell
 kubectl -n openstack rollout restart deployment skyline
 ```
+
+!!! genestack "Using the API with WebSSO and Federation"
+
+    When the SAML driver is enabled, the OpenStack API will not permit authentication via username and password.
+    To best leverage the OpenStack API, it is recommended to use an Application Credential to authenticate. This
+    can be done by creating an Application Credential in the Skyline UI and then using the `openstack` CLI to
+    authenticate. Once an Application Credential is created, the OpenStack Clouds YAML file can be updated to
+    include the Application Credential ID and Secret, as show here.
+
+    ``` yaml
+    rxt-application-credential:
+        auth_type: v3applicationcredential
+        auth:
+            auth_url: http://localhost:5000/v3
+            application_credential_id: ${APP_CRED_ID}
+            application_credential_secret: ${APP_CRED_SECRET}
+        region_name: RegionOne
+        interface: internal
+        identity_api_version: "3"
+    ```
