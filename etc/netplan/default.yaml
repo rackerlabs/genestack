@@ -1,0 +1,65 @@
+# This file describes the network interfaces available on your system
+# For more information, see netplan(5).
+network:
+  version: 2
+  ethernets:
+    eno12399np0:
+      dhcp4: false
+    enp152s0f0np0:
+      dhcp4: false
+  bonds:
+    bond0:
+      interfaces:
+        - eno12399np0
+        - enp152s0f1np1
+      parameters:
+        lacp-rate: fast
+        mode: 802.3ad
+        transmit-hash-policy: layer2+3
+        mii-monitor-interval: 100
+      dhcp4: false
+  bridges:
+    br-host:
+      dhcp4: true
+      mtu: 1500
+      interfaces: [vlan100]
+
+    br-overlay:
+      dhcp4: false
+      mtu: 9000
+      interfaces: [vlan120]
+      addresses:
+        - 172.29.240.51/22
+
+    br-storage:
+      dhcp4: false
+      mtu: 9000
+      interfaces: [vlan130]
+      addresses:
+        - 172.29.244.51/22
+
+    # OpenStack Ironic controller nodes only
+    br-pxe:
+      dhcp4: false
+      mtu: 1500
+      interfaces: [vlan150]
+      addresses:
+        - 172.23.208.51/22
+
+  vlans:
+    vlan100:
+      id: 100
+      link: bond0
+      mtu: 1500
+    vlan120:
+      id: 120
+      link: bond0
+      mtu: 9000
+    vlan150:
+      id: 150
+      link: bond0
+      mtu: 1500
+    vlan130:
+      id: 130
+      link: bond0
+      mtu: 9000

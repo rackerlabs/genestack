@@ -10,12 +10,18 @@ metadata:
     route: skyline
 spec:
   parentRefs:
-  - name: flex-gateway
-    sectionName: skyline-https
-    namespace: nginx-gateway
+    - name: flex-gateway
+      sectionName: skyline-https
+      namespace: nginx-gateway
   hostnames:
-  - "skyline.your.domain.tld"
+    - "skyline.your.domain.tld"
   rules:
     - backendRefs:
-      - name: skyline-apiserver
-        port: 9999
+        - name: skyline-apiserver
+          port: 9999
+      sessionPersistence:
+        sessionName: SkylineSession
+        type: Cookie
+        absoluteTimeout: 300s
+        cookieConfig:
+          lifetimeType: Permanent

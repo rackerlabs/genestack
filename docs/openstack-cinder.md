@@ -30,7 +30,7 @@ OpenStack Cinder is a core component of the OpenStack cloud computing platform, 
 
 ## Run the package deployment
 
-!!! example "Run the Cinder deployment Script `bin/install-cinder.sh`"
+!!! example "Run the Cinder deployment Script `/opt/genestack/bin/install-cinder.sh`"
 
     ``` shell
     --8<-- "bin/install-cinder.sh"

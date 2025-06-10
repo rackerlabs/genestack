@@ -65,7 +65,7 @@ conf:
       valid_interfaces: internal
     controller_worker:
       loadbalancer_topology: ACTIVE_STANDBY
-      workers: 4
+      workers: 2
     database:
       connection_debug: 0
       connection_recycle_time: 600
@@ -109,7 +109,7 @@ conf:
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
       # NOTE (deprecation warning) heartbeat_in_pthread will be deprecated in 2024.2
-      heartbeat_in_pthread: True
+      heartbeat_in_pthread: true
       # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
@@ -121,8 +121,8 @@ conf:
       insecure: true
   octavia_api_uwsgi:
     uwsgi:
-      processes: 4
-      threads: 2
+      processes: 2
+      threads: 1
 
 endpoints:
   fluentd:
@@ -177,7 +177,24 @@ endpoints:
     hosts:
       default: rabbitmq-nodes
 
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
 pod:
+  resources:
+    enabled: true
+    api:
+      requests:
+        memory: "768Mi"
+        cpu: "300m"
+      limits:
+        memory: "3072Mi"
+        cpu: "2000m"
+    worker:
+      requests:
+        memory: "256Mi"
+        cpu: "1000m"
+      limits: {}
   affinity:
     anti:
       weight:

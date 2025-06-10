@@ -1,6 +1,6 @@
 ---
 prelude: >
-    Creating the foundation for the stable branch.
+  Creating the foundation for the stable branch.
 features:
   - |
     Kubernetes deployment and management with Kubespray. This release uses Kubernetes

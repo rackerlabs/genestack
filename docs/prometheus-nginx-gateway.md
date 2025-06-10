@@ -7,7 +7,7 @@ create a pod monitor to pull these metrics into Prometheus.
 ## Installation
 
 ``` shell
-kubectl apply -f /etc/genestack/kustomize/prometheus-nginx-gateway/
+kubectl apply -f /etc/genestack/kustomize/prometheus-nginx-gateway/base
 ```
 
 !!! success

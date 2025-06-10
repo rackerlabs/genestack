@@ -26,7 +26,22 @@ images:
     rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
     test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
 
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
 pod:
+  resources:
+    enabled: true
+    api:
+      requests:
+        memory: "384Mi"
+        cpu: "100m"
+      limits: {}
+    scheduler:
+      requests:
+        memory: "192Mi"
+        cpu: "100m"
+      limits: {}
   security_context:
     cinder_api:
       container:
@@ -121,15 +136,15 @@ conf:
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
       # DEPRECIATION:  (warning) heartbeat_in_pthread will be deprecated in 2024.2
-      heartbeat_in_pthread: True
+      heartbeat_in_pthread: true
       # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
       kombu_reconnect_delay: 0.5
   cinder_api_uwsgi:
     uwsgi:
-      processes: 4
-      threads: 2
+      processes: 2
+      threads: 1
   enable_iscsi: true
   logging:
     logger_root:

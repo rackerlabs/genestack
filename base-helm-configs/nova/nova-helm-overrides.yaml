@@ -127,7 +127,7 @@ conf:
     compute:
       max_disk_devices_to_attach: 8
     conductor:
-      workers: 4
+      workers: 2
     database:
       connection_debug: 0
       connection_recycle_time: 600
@@ -168,24 +168,24 @@ conf:
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
       # NOTE (deprecation warning) heartbeat_in_pthread will be deprecated in 2024.2
-      heartbeat_in_pthread: True
+      heartbeat_in_pthread: true
       # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
       kombu_reconnect_delay: 0.5
     schedule:
-      workers: 4
+      workers: 2
     workarounds:
       skip_cpu_compare_at_startup: false
       skip_cpu_compare_on_dest: false
   nova_api_uwsgi:
     uwsgi:
-      processes: 4
-      threads: 2
+      processes: 2
+      threads: 1
   nova_metadata_uwsgi:
     uwsgi:
-      processes: 4
-      threads: 2
+      processes: 2
+      threads: 1
   rabbitmq:
     policies: []
 
@@ -279,7 +279,47 @@ endpoints:
         public: 80
         service: 8778
 
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
 pod:
+  resources:
+    enabled: true
+    compute:
+      requests:
+        memory: "512Mi"
+        cpu: "500m"
+      limits:
+        memory: "4096Mi"
+        cpu: "4000m"
+    api_metadata:
+      requests:
+        memory: "384Mi"
+        cpu: "300m"
+      limits: {}
+    ssh:
+      requests: {}
+      limits: {}
+    api:
+      requests:
+        memory: "512Mi"
+        cpu: "500m"
+      limits: {}
+    conductor:
+      requests:
+        memory: "384Mi"
+        cpu: "500m"
+      limits: {}
+    scheduler:
+      requests:
+        memory: "256Mi"
+        cpu: "500m"
+      limits: {}
+    novncproxy:
+      requests:
+        memory: "256Mi"
+        cpu: "200m"
+      limits: {}
   probes:
     rpc_retries: 3
   security_context:

@@ -14,6 +14,25 @@ images:
     magnum_db_sync: "quay.io/rackspace/rackerlabs-magnum:2024.1-ubuntu_jammy"
     rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
 
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
+pod:
+  resources:
+    enabled: true
+    api:
+      requests:
+        memory: "256Mi"
+        cpu: "300m"
+      limits: {}
+    conductor:
+      requests:
+        memory: "512Mi"
+        cpu: "300m"
+      limits:
+        memory: "2048Mi"
+        cpu: "2000m"
+
 conf:
   logging:
     logger_root:
@@ -82,7 +101,7 @@ conf:
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
       # NOTE (deprecation warning) heartbeat_in_pthread will be deprecated in 2024.2
-      heartbeat_in_pthread: True
+      heartbeat_in_pthread: true
       # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
@@ -93,8 +112,8 @@ conf:
       trustee_keystone_interface: public
   magnum_api_uwsgi:
     uwsgi:
-      processes: 4
-      threads: 2
+      processes: 2
+      threads: 1
 
 dependencies:
   static:

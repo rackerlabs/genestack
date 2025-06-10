@@ -87,7 +87,17 @@ conf:
     context_is_admin: "role:admin"
     update archive policy rule: "role:admin"
 
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
 pod:
+  resources:
+    enabled: true
+    api:
+      requests:
+        memory: "512Mi"
+        cpu: "200m"
+      limits: {}
   lifecycle:
     upgrades:
       daemonsets:

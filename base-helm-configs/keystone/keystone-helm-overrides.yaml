@@ -6,17 +6,31 @@ images:
     db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
     dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
     image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
-    keystone_api: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879"
+    keystone_api: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1747958291"
     keystone_credential_cleanup: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    keystone_credential_rotate: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879"
-    keystone_credential_setup: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879"
-    keystone_db_sync: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879"
-    keystone_domain_manage: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879"
-    keystone_fernet_rotate: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879"
-    keystone_fernet_setup: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1739377879"
+    keystone_credential_rotate: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1747958291"
+    keystone_credential_setup: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1747958291"
+    keystone_db_sync: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1747958291"
+    keystone_domain_manage: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1747958291"
+    keystone_fernet_rotate: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1747958291"
+    keystone_fernet_setup: "quay.io/rackspace/rackerlabs-keystone-rxt:2024.1-ubuntu_jammy-1747958291"
     ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
     rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
     test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
+
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
+pod:
+  resources:
+    enabled: true
+    api:
+      requests:
+        memory: "512Mi"
+        cpu: "2"
+      limits:
+        memory: 2Gi
+        cpu: "4"
 
 dependencies:
   static:
@@ -29,7 +43,7 @@ conf:
   keystone_api_wsgi:
     wsgi:
       processes: 2
-      threads: 4
+      threads: 1
   keystone:
     DEFAULT:
       max_token_size: 300
@@ -63,7 +77,7 @@ conf:
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
       # DEPRECIATION:  (warning) heartbeat_in_pthread will be deprecated in 2024.2
-      heartbeat_in_pthread: True
+      heartbeat_in_pthread: true
       # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
@@ -111,6 +125,7 @@ conf:
         WSGIApplicationGroup %{GLOBAL}
         WSGIPassAuthorization On
         LimitRequestBody 114688
+
         <IfVersion >= 2.4>
           ErrorLogFormat "%{cu}t %M"
         </IfVersion>

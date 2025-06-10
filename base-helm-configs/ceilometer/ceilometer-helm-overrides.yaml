@@ -80,7 +80,7 @@ conf:
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
       # DEPRECIATION:  (warning) heartbeat_in_pthread will be deprecated in 2024.2
-      heartbeat_in_pthread: True
+      heartbeat_in_pthread: true
       # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
@@ -1757,7 +1757,41 @@ endpoints:
         default: 24224
       metrics:
         default: 24220
+
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
 pod:
+  resources:
+    enabled: true
+    compute:
+      requests:
+        memory: {}
+        cpu: {}
+      limits:
+        memory: {}
+        cpu: {}
+    notification:
+      requests:
+        memory: {}
+        cpu: {}
+      limits:
+        memory: {}
+        cpu: {}
+    central:
+      requests:
+        memory: {}
+        cpu: {}
+      limits:
+        memory: {}
+        cpu: {}
+    ipmi:
+      requests:
+        memory: {}
+        cpu: {}
+      limits:
+        memory: {}
+        cpu: {}
   replicas:
     central: 1
     notification: 1
@@ -1775,36 +1809,6 @@ pod:
           enabled: true
           min_ready_seconds: 0
           max_unavailable: 20%
-  resources:
-    enabled: true
-    compute:
-      requests:
-        memory: "128Mi"
-        cpu: "100m"
-      limits:
-        memory: "6144Mi"
-        cpu: "2000m"
-    notification:
-      requests:
-        memory: "256Mi"
-        cpu: "100m"
-      limits:
-        memory: "6144Mi"
-        cpu: "2000m"
-    central:
-      requests:
-        memory: "128Mi"
-        cpu: "100m"
-      limits:
-        memory: "6144Mi"
-        cpu: "2000m"
-    ipmi:
-      requests:
-        memory: "124Mi"
-        cpu: "100m"
-      limits:
-        memory: "6144Mi"
-        cpu: "2000m"
 
 manifests:
   deployment_api: false

@@ -64,7 +64,26 @@ dependencies:
         - neutron-ks-user
         - neutron-ks-endpoints
 
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
 pod:
+  resources:
+    enabled: true
+    server:
+      requests:
+        memory: "1024Mi"
+        cpu: "1000m"
+      limits:
+        memory: "2048Mi"
+        cpu: "3000m"
+    rpc_server:
+      requests:
+        memory: "512Mi"
+        cpu: "1000m"
+      limits:
+        memory: "2048Mi"
+        cpu: "3000m"
   use_fqdn:
     neutron_agent: false
 
@@ -91,7 +110,7 @@ conf:
       router_distributed: true
       router_scheduler_driver: neutron.scheduler.l3_agent_scheduler.AZLeastRoutersScheduler
       rpc_state_report_workers: 2
-      rpc_workers: 4
+      rpc_workers: 2
       service_plugins: "ovn-router,qos,metering,trunk,segments"
     agent:
       availability_zone: az1
@@ -117,7 +136,7 @@ conf:
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
       # NOTE (deprecation warning) heartbeat_in_pthread will be deprecated in 2024.2
-      heartbeat_in_pthread: True
+      heartbeat_in_pthread: true
       # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
@@ -132,13 +151,13 @@ conf:
       ovn_sb_connection: "tcp:127.0.0.1:6642"
   neutron_api_uwsgi:
     uwsgi:
-      processes: 4
-      threads: 2
+      processes: 2
+      threads: 1
   openvswitch_db_server:
     ptcp_port: 6640
   ovn_metadata_agent:
     DEFAULT:
-      metadata_workers: 8
+      metadata_workers: 2
     ovs:
       ovsdb_connection: "tcp:127.0.0.1:6640"
   plugins:

@@ -55,7 +55,7 @@ network_policy:
 conf:
   glance:
     DEFAULT:
-      workers: 8
+      workers: 2
       # NOTE(cloudnull): This option is required when using the new glance multi-backend feature.
       #                  The example below is for the rxt_swift backend, but could easily be used
       #                  for other backends.
@@ -108,14 +108,15 @@ conf:
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
       # DEPRECIATION:  (warning) heartbeat_in_pthread will be deprecated in 2024.2
-      heartbeat_in_pthread: True
+      heartbeat_in_pthread: true
       # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
       kombu_reconnect_delay: 0.5
   glance_api_uwsgi:
     uwsgi:
-      processes: 4
+      processes: 2
+      threads: 1
   policy:
     "admin_required": "role:admin or role:glance_admin"
     "default": "role:admin or role:glance_admin"
@@ -235,7 +236,17 @@ endpoints:
         internal: 80
         service: 80
 
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
 pod:
+  resources:
+    enabled: true
+    api:
+      requests:
+        memory: "384Mi"
+        cpu: "100m"
+      limits: {}
   replicas:
     api: 1
   lifecycle:
@@ -266,8 +277,6 @@ pod:
             initialDelaySeconds: 30
             periodSeconds: 15
             timeoutSeconds: 10
-  resources:
-    enabled: false
 
 manifests:
   ingress_api: false

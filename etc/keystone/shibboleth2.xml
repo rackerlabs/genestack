@@ -1,0 +1,83 @@
+<SPConfig xmlns="urn:mace:shibboleth:3.0:native:sp:config"
+    xmlns:conf="urn:mace:shibboleth:3.0:native:sp:config"
+    clockSkew="180">
+    <OutOfProcess logger="shibd.logger"
+        tranLogFormat="%u|%s|%IDP|%i|%ac|%t|%attr|%n|%b|%E|%S|%SS|%L|%UA|%a">
+        <Extensions>
+            <Library path="memcache-store.so" fatal="true" />
+        </Extensions>
+    </OutOfProcess>
+    <StorageService type="MEMCACHE"
+        id="mc"
+        prefix="shib:">
+        <Hosts>
+            memcached.openstack.svc.cluster.local:11211
+        </Hosts>
+    </StorageService>
+    <StorageService type="MEMCACHE"
+        id="mc-ctx"
+        prefix="shib:"
+        buildMap="1">
+        <Hosts>
+            memcached.openstack.svc.cluster.local:11211
+        </Hosts>
+    </StorageService>
+    <SessionCache type="StorageService"
+        StorageService="mc-ctx"
+        StorageServiceLite="mc"
+        cacheAllowance="3600"
+        inprocTimeout="900"
+        cleanupInterval="900" />
+    <ReplayCache StorageService="mc" />
+    <ArtifactMap StorageService="mc" artifactTTL="180" />
+    <!-- The following is a sample configuration for the SP.
+         You will need to replace the entityID and the metadata URL with your own values.
+         For the REMOTE_USER, common values are "eppn" "persistent-id" "targeted-id"
+         The example "uid" value is a custom mapping comming from the IDP -->
+    <ApplicationDefaults
+        entityID="https://skyline.api.example.com/api/openstack/skyline/api/v1/websso"
+        REMOTE_USER="eppn persistent-id targeted-id uid"
+        cipherSuites="DEFAULT:!EXP:!LOW:!aNULL:!eNULL:!DES:!IDEA:!SEED:!RC4:!3DES:!kRSA:!SSLv2:!SSLv3:!TLSv1:!TLSv1.1">
+        <Sessions lifetime="28800"
+            timeout="3600"
+            relayState="ss:mc"
+            checkAddress="false"
+            handlerSSL="true"
+            cookieProps="https"
+            redirectLimit="exact">
+            <SSO entityID="EXAMPLE_ENTITY_ID_REPLACED_WITH_THE_ENTITY_ID_OF_THE_IDP">
+                SAML2
+            </SSO>
+            <Logout>
+                SAML2 Local
+            </Logout>
+            <LogoutInitiator type="Admin" Location="/Logout/Admin" acl="127.0.0.1 ::1" />
+            <Handler type="MetadataGenerator" Location="/Metadata" signing="false" />
+            <Handler type="Status" Location="/Status" acl="127.0.0.1 ::1" />
+            <Handler type="Session" Location="/Session" showAttributeValues="false" />
+            <Handler type="DiscoveryFeed" Location="/DiscoFeed" />
+        </Sessions>
+        <Errors supportContact="admin@example.com"
+            helpLocation="https://example.com/about.html"
+            styleSheet="/shibboleth-sp/main.css" />
+        <MetadataProvider type="XML" path="idp-metadata.xml" />
+        <AttributeExtractor type="XML"
+            validate="true"
+            reloadChanges="false"
+            path="attribute-map.xml" />
+        <AttributeFilter type="XML" validate="true" path="attribute-policy.xml" />
+        <CredentialResolver type="File"
+            use="signing"
+            key="sp-key.pem"
+            certificate="sp-cert.pem" />
+        <CredentialResolver type="File"
+            use="encryption"
+            key="sp-key.pem"
+            certificate="sp-cert.pem" />
+    </ApplicationDefaults>
+    <SecurityPolicyProvider type="XML" validate="true" path="security-policy.xml" />
+    <ProtocolProvider type="XML"
+        validate="true"
+        reloadChanges="false"
+        path="protocols.xml" />
+</SPConfig>

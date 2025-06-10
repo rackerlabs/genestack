@@ -1,0 +1,38 @@
+---
+features:
+  - |
+    HPA will now trigger off CPU utilization as well as RAM consumption.
+    OpenStack services ram consumption is fairly static based on the number
+    of workers, threads, and processes.  With this change, CPU consumption
+    will now also be considered for horizontal auto scaling.
+
+    In order to ensure that HPA has been properly tuned for a 3-node
+    hyper-converged lab deployment (our recommended lab/testing deployment)
+    this change will also standardize, across all OpenStack services, the
+    number of workers to 2, the number or processes to 2, and the number of
+    threads per process to 1.
+    Additionally, we will reduce the minReplicas from 3 to 2 to reduce
+    overall resource usage while still maintaining a fault tolerant cluster.
+
+    While this is NOT a breaking change, it will change the resource consumption
+    of any deployment going forward.
+
+other:
+  - |
+    Current HPA values included in this change were determined using the,
+    workers=2, processes=2, and threads=1 model.  A hyper-converged lab was
+    created and workers, processes,threads reduced to provide a baseline of
+    resource usage.  From pod requests and limits were adjusted to take into
+    account the baseline resource consumption.
+
+    In base-helm-configs, por resources needed to be enabled and the
+    requests/limits configured.  If limits is set to {} it is pulling
+    the defaults from the Helm chart.
+    [example]
+      resources:
+        enabled: true
+        api:
+          requests:
+            memory: "384Mi"
+            cpu: "200m"
+          limits: {}

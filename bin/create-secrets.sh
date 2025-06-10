@@ -81,6 +81,9 @@ barbican_admin_password=$(generate_password 32)
 magnum_rabbitmq_password=$(generate_password 64)
 magnum_db_password=$(generate_password 32)
 magnum_admin_password=$(generate_password 32)
+masakari_rabbitmq_password=$(generate_password 64)
+masakari_db_password=$(generate_password 32)
+masakari_admin_password=$(generate_password 32)
 postgresql_identity_admin_password=$(generate_password 32)
 postgresql_db_admin_password=$(generate_password 32)
 postgresql_db_exporter_password=$(generate_password 32)
@@ -94,8 +97,8 @@ ceilometer_rabbitmq_password=$(generate_password 32)
 memcached_shared_secret=$(generate_password 32)
 grafana_secret=$(generate_password 32)
 grafana_root_secret=$(generate_password 32)
-ironic-db-password=$(generate_password 32)
-ironic-rabbitmq-password=$(generate_password 32)
+ironic_db_password=$(generate_password 32)
+ironic_rabbitmq_password=$(generate_password 32)
 
 OUTPUT_FILE="/etc/genestack/kubesecrets.yaml"
 
@@ -516,6 +519,34 @@ metadata:
 type: Opaque
 data:
   password: $(echo -n $magnum_admin_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: masakari-rabbitmq-password
+  namespace: openstack
+type: Opaque
+data:
+  username: $(echo -n "masakari" | base64)
+  password: $(echo -n $masakari_rabbitmq_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: masakari-db-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $masakari_db_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: masakari-admin
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $masakari_admin_password | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret

@@ -1,3 +1,4 @@
+---
 sortOptions:
   order: fifo
 resources:
@@ -5,6 +6,7 @@ resources:
   - glance-rabbitmq-queue.yaml
   - all.yaml
   - hpa-glance-api.yaml
+  - policies.yaml
 
 patches:
   - target:
