@@ -6,21 +6,140 @@ to manage cloud infrastructure in the way you need it.
 
 They say a picture is worth 1000 words, so here's a picture.
 
-![Genestack Architecture Diagram](assets/images/diagram-genestack.png)
+``` mermaid
+flowchart LR
+  %% ─── Class styles ───────────────────────────────────────────
+  classDef storage fill:#fdf6e3,stroke:#657b83;
+  class LONGHORN,ISCSI,RBD,NFS,STORLAYER,LOCALSTORLAYER storage;
+
+  %% ─── External sources / Artifacts ───────────────────────────
+  subgraph "Artifacts & External Input"
+    direction TB
+    INT["🌐 Internet"]
+    A1(OCI Containers)
+    A2(Git Repo)
+    A3([Helm + Kustomize])
+    A1 --> A3
+    A2 --> A3
+  end
+
+  %% ─── Kubernetes control plane ───────────────────────────────
+  subgraph "Kubernetes Control Plane"
+    direction TB
+    ETCD[(etcd)]
+    K1[[K8s API Server]]
+    ETCD --> K1
+    A3 --> K1
+  end
+
+  %% ─── Ingress & CNI / Networking ─────────────────────────────
+  subgraph "Ingress & CNI / Networking"
+    direction TB
+    GWAPI[[Gateway API]]
+    CNI[CNI Plugin]
+    NET[Kube-OVN]
+    OVS["OVS/OVN&nbsp;Switch"]
+    NETLAYER[[Networking Layer]]
+
+    INT <--> |Ingress/Egress| GWAPI
+    K1 --> GWAPI
+    K1 --> CNI
+    CNI --> NET
+    NET --> OVS
+    OVS --> NETLAYER
+  end
+
+  %% ─── Storage systems ────────────────────────────────────────
+  subgraph "Storage Systems"
+    direction TB
+    CSI[CSI Plugin]
+    LONGHORN[Longhorn]
+    STORAGECHOICE{{Storage Driver}}
+    ISCSI[iSCSI]
+    RBD["RBD (Ceph)"]
+    NFS[NFS]
+    STORLAYER[[Network Storage]]
+    LOCALSTORLAYER[[Local Storage]]
+
+    K1 --> CSI
+    CSI --> LONGHORN
+    LONGHORN <-->|PVC| K1
+    LONGHORN <--> |PVC Replication| STORLAYER
+    LONGHORN <--> |PVC| LOCALSTORLAYER
+
+    NETLAYER <--> STORAGECHOICE
+    STORAGECHOICE --> ISCSI
+    STORAGECHOICE --> RBD
+    STORAGECHOICE --> NFS
+    STORAGECHOICE --> |LVM| LOCALSTORLAYER
+
+    ISCSI --> STORLAYER
+    RBD   --> STORLAYER
+    NFS   --> STORLAYER
+  end
+
+  %% ─── Observability stack ────────────────────────────────────
+  subgraph "Observability"
+    direction TB
+    EXPORTER(Node / API Exporter)
+    PROM(Prometheus)
+    AM(Alertmanager)
+    GRAF(Grafana)
+    TICKET[Trouble-Ticket Sys]
+
+    K1 --> EXPORTER
+    EXPORTER --> PROM
+    EXPORTER --> GRAF
+    PROM --> GRAF
+    PROM --> AM
+    AM --> TICKET
+  end
+
+  %% ─── Provisioning & Operators ───────────────────────────────
+  subgraph "K8s Operators & Backing DB/MQ"
+    direction TB
+    KOPS[K8s Operators]
+    MQ[(rabbitMQ)]
+    MARIADB[(Mariadb)]
+    MEM[(memcacheD)]
+
+    K1 --> KOPS
+    KOPS --> MQ
+    KOPS --> MARIADB
+    KOPS --> MEM
+  end
+
+  %% ─── OpenStack integration ──────────────────────────────────
+  subgraph "OpenStack Integration"
+    direction TB
+    OSAPI[(OpenStack API)]
+    OSS[[OpenStack Services]]
+
+    OSAPI --> OSS
+    OSAPI --> EXPORTER
+    OSAPI <--> GWAPI
+
+    OSS <--> MQ
+    OSS <--> MARIADB
+    OSS <--> MEM
+    OSS <--> |Cinder| STORAGECHOICE
+    OSS <--> |Neutron| OVS
+  end
+
+  %% ─── Compute & identity layer ───────────────────────────────
+  subgraph "Compute & Identity"
+    direction TB
+    IDENTITY[Keystone]
+    LIBVIRT[libvirt]
+    KVM["KVM (qemu)"]
+
+    OSS --> |Nova Scheduling| LIBVIRT
+    LIBVIRT --> |VMs| KVM
+    KVM --> |vSwitch| OVS
+    IDENTITY --> OSS
+  end
+```
 
 The idea behind Genestack is simple, build an Open Infrastructure system that unites Public and Private
 clouds with a platform that is simple enough for the hobbyist yet capable of exceeding the needs of the
 enterprise.
-
-## Dependencies
-
-Yes there are dependencies. This project is made up of several submodules which are the component
-architecture of the Genestack ecosystem.
-
-* Kubespray: The bit delivery mechanism for Kubernetes. While we're using Kubespray to deliver a production
-  grade Kubernetes baremetal solution, we don't really care how Kubernetes gets there.
-* MariaDB-Operator: Used to deliver MariaBD clusters
-* OpenStack-Helm: The helm charts used to create an OpenStack cluster.
-* OpenStack-Helm-Infra: The helm charts used to create infrastructure components for OpenStack.
-* Rook: The Ceph storage solution du jour. This is optional component and only needed to manage Ceph
-  when you want Ceph.
