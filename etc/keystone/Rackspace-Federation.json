@@ -1,0 +1,82 @@
+[
+    {
+        "local": [
+            {
+                "user": {
+                    "id": "{0}",
+                    "name": "{1}",
+                    "email": "{2}",
+                    "domain": {
+                        "name": "rackspace_cloud_domain"
+                    }
+                }
+            },
+            {
+                "projects": [
+                    {
+                        "name": "{3}",
+                        "domain": {
+                            "name": "rackspace_cloud_domain"
+                        },
+                        "description": "Project for DDI {4}",
+                        "metadata": [
+                            {
+                                "key": "ddi",
+                                "value": "{4}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "project_tag": "{4}"
+                            }
+                        ],
+                        "roles": []
+                    }
+                ]
+            }
+        ],
+        "remote": [
+            {
+                "type": "uid"
+            },
+            {
+                "type": "REMOTE_USERNAME"
+            },
+            {
+                "type": "REMOTE_EMAIL"
+            },
+            {
+                "type": "REMOTE_PROJECTS"
+            },
+            {
+                "type": "REMOTE_DDI"
+            },
+            {
+                "type": "REMOTE_SESSION_CREATION"
+            },
+            {
+                "type": "REMOTE_SCOPED_TOKEN"
+            },
+            {
+                "type": "REMOTE_DOMAIN"
+            },
+            {
+                "type": "REMOTE_AUTH_URL"
+            },
+            {
+                "type": "REMOTE_AUTH_TOKEN"
+            },
+            {
+                "type": "REMOTE_ACCOUNT_NAME"
+            },
+            {
+                "type": "RXT_orgPersonType",
+                "any_one_of": [
+                    "creator",
+                    "member",
+                    "reader"
+                ]
+            }
+        ]
+    }
+]
