@@ -6,8 +6,9 @@ metadata:
   namespace: metallb-system
 spec:
   addresses:
-    - 10.74.8.99/32  # This is assumed to be the public LB vip address
+    - 10.234.0.10/32  # This is assumed to be the public LB vip address
   autoAssign: false
+  avoidBuggyIPs: true
 ---
 apiVersion: metallb.io/v1beta1
 kind: L2Advertisement
@@ -30,8 +31,9 @@ metadata:
   namespace: metallb-system
 spec:
   addresses:
-    - 10.234.0.0/24
+    - 10.234.0.128/25
   autoAssign: false
+  avoidBuggyIPs: true
 ---
 apiVersion: metallb.io/v1beta1
 kind: L2Advertisement
