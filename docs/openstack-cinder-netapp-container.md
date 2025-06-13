@@ -1,72 +1,157 @@
-# NetApp Volume Worker Configuration Documentation
+# NetApp **Container** Volume Worker – Backend Options Guide
 
-This document provides information on configuring NetApp backends for the isolated Cinder volume worker. Each backend is defined by a set of
-11 comma-separated options, and multiple backends can be specified by separating them with semicolons.
+**Audience:** Cloud operators who will deploy the *containerised* NetApp Cinder volume worker (NFS‑only).
 
+**Why a separate guide?** The container image does **not** support iSCSI; if you need iSCSI, follow the
+[NetApp Volume Worker – Operator Guide](openstack-cinder-netapp-worker.md) instead.
 
-!!! warning "The NetApp container is incompatible with iSCSI workloads"
+## 1  Understand the BACKENDS Variable
 
-    The NetApp container is incompatible with iSCSI workloads. If the environment requires iSCSI support, review the [Cinder NetApp Worker ](openstack-cinder-netapp-worker.md) documentation instead.
+The container expects a single environment variable – `BACKENDS` – that embeds one or more backend definitions. Each backend is a comma‑separated
+list of **10** fields; multiple backends are separated by semicolons.
 
-## Backend Options
-
-Below is a table detailing each option, its position in the backend configuration, a description, and the expected data type.
-
-| Option Index | Option Name                   | Description                                                                  | Type    |
-|--------------|-------------------------------|------------------------------------------------------------------------------|---------|
-| 0            | `backend_name`                | The name of the backend configuration section. Used as `volume_backend_name`.| String  |
-| 1            | `netapp_login`                | Username for authenticating with the NetApp storage system.                  | String  |
-| 2            | `netapp_password`             | Password for authenticating with the NetApp storage system.                  | String  |
-| 3            | `netapp_server_hostname`      | Hostname or IP address of the NetApp storage system.                         | String  |
-| 4            | `netapp_server_port`          | Port number to communicate with the NetApp storage system.                   | Integer |
-| 5            | `netapp_vserver`              | The name of the Vserver on the NetApp storage system.                        | String  |
-| 6            | `netapp_dedup`                | Enable (`True`) or disable (`False`) deduplication.                          | Boolean |
-| 7            | `netapp_compression`          | Enable (`True`) or disable (`False`) compression.                            | Boolean |
-| 8            | `netapp_thick_provisioned`    | Use thick (`True`) or thin (`False`) provisioning.                           | Boolean |
-| 9            | `netapp_lun_space_reservation`| Enable (`enabled`) or disable (`disabled`) LUN space reservation.            | String  |
-
-### Detailed Option Descriptions
-
-- **`backend_name`**: A unique identifier for the backend configuration. This name is used internally by Cinder to distinguish between different backends.
-- **`netapp_login`**: The username credential required to authenticate with the NetApp storage system.
-- **`netapp_password`**: The password credential required for authentication. Ensure this is kept secure.
-- **`netapp_server_hostname`**: The address of the NetApp storage system. This can be either an IP address or a fully qualified domain name (FQDN).
-- **`netapp_server_port`**: The port number used for communication with the NetApp storage system. Common ports are `80` for HTTP and `443` for HTTPS.
-- **`netapp_vserver`**: Specifies the virtual storage server (Vserver) on the NetApp storage system that will serve the volumes.
-- **`netapp_dedup`**: A boolean value to enable or disable deduplication on the storage volumes. Acceptable values are `True` or `False`.
-- **`netapp_compression`**: A boolean value to enable or disable compression on the storage volumes. Acceptable values are `True` or `False`.
-- **`netapp_thick_provisioned`**: Determines whether volumes are thick (`True`) or thin (`False`) provisioned.
-- **`netapp_lun_space_reservation`**: A String indicating whether to enable space reservation for LUNs. If `enabled`, space is reserved for the entire LUN size at creation time.
-
-## Example opaque Configuration
-
-Before deploying the NetApp volume worker, create the necessary Kubernetes secret with the `BACKENDS` environment variable:
-
-```shell
-kubectl --namespace openstack create secret generic cinder-netapp \
-        --type Opaque \
-        --from-literal=BACKENDS="backend1,user1,password1,host1,80,vserver1,qos1,True,True,False,enabled"
+``` bash
+BACKENDS="<field0>,<field1>,…,<field10>; <field0>,<field1>,…,<field10>; …"
 ```
 
-### `BACKENDS` Environment Variable Structure
+### 1.1  Field Reference
 
-The `BACKENDS` environment variable is used to pass backend configurations to the NetApp volume worker. Each backend configuration consists of 11 options
-in a specific order.
+| Index | Field Name                     | Purpose / Example                                           | Type    |
+| ----- | ------------------------------ | ----------------------------------------------------------- | ------- |
+| **0** | `backend_name`                 | Logical name → becomes `volume_backend_name` (`nfs-prod-a`) | String  |
+| **1** | `netapp_login`                 | API username                                                | String  |
+| **2** | `netapp_password`              | API password (store secret!)                                | String  |
+| **3** | `netapp_server_hostname`       | FQDN or IP of ONTAP cluster                                 | String  |
+| **4** | `netapp_server_port`           | 80 / 443                                                    | Integer |
+| **5** | `netapp_vserver`               | SVM that exports the NFS volumes                            | String  |
+| **6** | `netapp_dedup`                 | `True` or `False`                                           | Boolean |
+| **7** | `netapp_compression`           | `True` or `False`                                           | Boolean |
+| **8** | `netapp_thick_provisioned`     | `True` (guaranteed) or `False` (thin)                       | Boolean |
+| **9** | `netapp_lun_space_reservation` | `enabled` / `disabled`                                      | String  |
 
-!!! Example "Replace the placeholder values with your actual backend configuration details"
+!!! tip "Dedup + compression combo"
 
-    ```shell
-    BACKENDS="backend1,user1,password1,host1,80,vserver1,qos1,True,True,False,disabled;backend2,user2,password2,host2,443,vserver2,qos2,False,True,True,enabled"
+    ONTAP generally requires both `dedup=True` and `compression=True` for best space savings on hybrid‐disk aggregates.
+
+## 2  Operator Workflow
+
+1. ✅ Draft backend string
+2. 🔐 Create Kubernetes secret
+3. 🚀 Deploy Kustomize manifest
+4. 🔍 Validate Cinder services & exports
+
+### 2.1  Draft the BACKENDS String
+
+Fill in real values; keep the order **exactly** as in § 1.1.
+
+``` bash
+export BACKENDS="nfs-prod-a,netappuser,supersecret,ontap‑01.example.com,443,SVM01,none,True,True,False,disabled"
+```
+
+For multiple backends:
+
+``` bash
+export BACKENDS="nfs-prod-a,netappuser,supersecret,ontap‑01.example.com,443,SVM01,none,True,True,False,disabled; \
+                nfs-dr-b,netappuser,supersecret,ontap‑02.example.com,443,SVM02,none,True,True,False,disabled"
+```
+
+### 2.2  Create the Secret
+
+``` bash
+kubectl -n openstack create secret generic cinder-netapp \
+        --type Opaque \
+        --from-literal=BACKENDS="${BACKENDS}"
+```
+
+!!! caution "Store passwords securely"
+
+    Prefer `--from-file` with an encrypted `backends.env` manifest in GitOps pipelines instead of inline literals.
+
+### 2.3  Deploy the Worker
+
+``` bash
+kubectl -n openstack apply -k /etc/genestack/kustomize/cinder/netapp
+```
+
+The Kustomize overlay mounts the secret as an env‑file and launches the container.
+
+## 3  Post‑Deployment Checks
+
+### 3.1  Volume Type Mapping
+
+Create a volume type per backend and attach `extra_specs`:
+
+``` bash
+openstack --os-cloud default volume type create nfs-prod-a
+```
+
+!!! example "Expected Output"
+
+    ``` shell
+    +-------------+---------------------------------------+
+    | Field       | Value                                 |
+    +-------------+---------------------------------------+
+    | description | None                                  |
+    | id          | 6af6ade2-53ca-4260-8b79-1ba2f208c91d  |
+    | is_public   | True                                  |
+    | name        | nfs-prod-a                            |
+    +-------------+---------------------------------------+
     ```
 
-## Run the deployment
+Refer to:
 
-!!! warning
+- [Volume QoS](openstack-cinder-volume-qos-policies.md)
+- [Provisioning Specs](openstack-cinder-volume-provisioning-specs.md)
+- [Extra Specs](openstack-cinder-volume-type-specs.md)
 
-    **Before** deploying a new backend, ensure that your volume type has been set up correctly and that you have applied QoS policies, provisioning specifications (min and max volume size), and any extra specs. See [Cinder Volume QoS Policies](openstack-cinder-volume-qos-policies.md), [Cinder Volume Provisioning Specs](openstack-cinder-volume-provisioning-specs.md), and [Cinder Volume Type Specs](openstack-cinder-volume-type-specs.md).
+!!! warning "Backend without policies = sad tenants"
 
-With your configuration defined, run the deployment with a standard `kubectl apply` command.
+    Skipping this step may leave tenants with a backend they cannot consume or that violates performance guarantees.
 
-``` shell
-kubectl --namespace openstack apply -k /etc/genestack/kustomize/cinder/netapp
+### 3.2  Service Health
+
+``` bash
+kubectl -n openstack exec -it openstack-admin-client -- openstack volume service list
 ```
+
+You should see entries like:
+
+!!! example "Expected Output"
+
+    ``` shell
+    +------------------+--------------------------------------------------------------------+------+---------+-------+----------------------------+
+    | Binary           | Host                                                               | Zone | Status  | State | Updated At                 |
+    +------------------+--------------------------------------------------------------------+------+---------+-------+----------------------------+
+    | cinder-scheduler | cinder-volume-worker                                               | az1  | enabled | up    | 2023-12-26T17:43:07.000000 |
+    | cinder-volume    | cinder-volume-netapp-worker@nfs-prod-a                             | az1  | enabled | up    | 2023-12-26T17:43:04.000000 |
+    +------------------+--------------------------------------------------------------------+------+---------+-------+----------------------------+
+    ```
+
+## Appendix
+
+### Example Secret Manifest (GitOps‑friendly)
+
+!!! genestack
+
+    Inject secrets manager values (e.g., `sealed-secrets`, `external-secrets`) in place of `${…}` placeholders.
+
+    ``` yaml
+    apiVersion: v1
+    kind: Secret
+    metadata:
+        name: cinder-netapp
+        namespace: openstack
+    stringData:
+        BACKENDS: >
+        nfs-prod-a,${ONTAP_USER},${ONTAP_PASS},ontap-01.example.com,443,SVM01,none,True,True,False,disabled;
+        nfs-dr-b,${ONTAP_USER},${ONTAP_PASS},ontap-02.example.com,443,SVM02,none,True,True,False,disabled
+    ```
+
+### Common Issues
+
+| Symptom                               | Likely Cause                     | Resolution                                        |
+| ------------------------------------- | -------------------------------- | ------------------------------------------------- |
+| `No valid host was found`             | Type not mapped to backend       | Check `volume_backend_name` extra‑spec            |
+| `HTTP 403` from ONTAP API in logs     | Wrong creds or insufficient role | Verify `netapp_login` permissions                 |
+| Pod crash‑loop with `BACKENDS` parse  | Missing or extra field           | Ensure **11** fields per backend, no trailing `;` |
+| NFS export accessible but perms issue | SVM export‑policy mismatch       | Update ONTAP export policy to allow compute CIDRs |

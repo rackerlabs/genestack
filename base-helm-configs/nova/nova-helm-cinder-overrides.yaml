@@ -1,0 +1,9 @@
+# This override file is used to configure nova libvirt for cinder volume services.
+---
+conf:
+  enable_iscsi: false
+  ceph:
+    enabled: false
+  nova:
+    libvirt:
+      volume_use_multipath: false

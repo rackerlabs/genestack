@@ -83,8 +83,6 @@ dependencies:
         - nova-db-sync
 
 conf:
-  ceph:
-    enabled: false
   logging:
     logger_root:
       handlers:
@@ -152,7 +150,6 @@ conf:
       cpu_mode: host-model
       max_queues: 8
       num_pcie_ports: 16
-      volume_use_multipath: false
     os_vif_ovs:
       ovsdb_connection: "tcp:127.0.0.1:6640"
     oslo_messaging_rabbit:
