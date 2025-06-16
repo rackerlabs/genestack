@@ -14,7 +14,66 @@ After switch and firewall configuration, deployment nodes are created with in th
 
 ### Ironic Diagram
 
-![conceptual_architecture](./assets/images/ironic-architecture.png)
+``` mermaid
+%%{ init: { "theme": "default",
+            "flowchart": { "curve": "basis", "nodeSpacing": 80, "rankSpacing": 60 } } }%%
+
+flowchart TD
+    %% ──────────── TIER 1 ────────────
+    subgraph UI [" "]
+        CO(["🛠️ Cloud Orchestration"])
+        HR(["🌄 Skyline (UI)"])
+        CO --> HR
+        class CO orchestration;
+        class HR ui;
+    end
+
+    %% ──────────── TIER 2 (APIs) ─────
+    subgraph APIS [" "]
+        direction TB
+        NEU(["🔌 Neutron"])
+        CIN(["🧱 Cinder"])
+        NOV(["🖥️ Nova"])
+        GLA(["🖼️ Glance"])
+        KEY(["🔑 Keystone"])
+        IRO(["⚙️ Ironic"])
+        class NEU,CIN,NOV,GLA,KEY,IRO service;
+    end
+
+    %% ──────────── CORE (Bare Metal) ─
+    BM{{<b>Bare Metal</b>}}
+    class BM metal;
+
+    %% ──────────── LINKING  ──────────
+    %% UI ↔︎ API connections
+    HR  -->|Net| NEU
+    HR  -->|Vol| CIN
+    HR  -->|Comp| NOV
+    HR  -->|Img| GLA
+    HR  -->|Auth| KEY
+
+    %% Keystone as auth hub
+    KEY --> NEU
+    KEY --> CIN
+    KEY --> IRO
+
+    %% Ironic relationships
+    IRO -->|Mgmt| NEU
+    IRO -->|PXE| NOV
+    IRO -->|Img| GLA
+
+    %% Spokes to Bare Metal
+    NEU --> BM
+    CIN --> BM
+    GLA --> BM
+    KEY --> BM
+    IRO --> BM
+
+    classDef orchestration fill:#ffdddd,stroke:#555,color:#000000,font-weight:bold;
+    classDef ui             fill:#fff4e6,stroke:#555,color:#000000;
+    classDef service        fill:#ffe9cc,stroke:#555,color:#000000;
+    classDef metal          fill:#e4f5e4,stroke:#555,color:#000000,font-style:italic;
+```
 
 #### Benefits of Ironic
 
