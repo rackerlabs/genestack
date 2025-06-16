@@ -36,7 +36,7 @@ OpenStack Heat is the orchestration service within the OpenStack ecosystem, desi
 
 ## Run the package deployment
 
-!!! example "Run the Heat deployment Script `bin/install-heat.sh`"
+!!! example "Run the Heat deployment Script `/opt/genestack/bin/install-heat.sh`"
 
     ``` shell
     --8<-- "bin/install-heat.sh"

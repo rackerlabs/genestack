@@ -144,7 +144,7 @@ gnocchi-metricd).
 
 ## Run the package deployment
 
-!!! example "Run the Gnocchi deployment Script `bin/install-gnocchi.sh`"
+!!! example "Run the Gnocchi deployment Script `/opt/genestack/bin/install-gnocchi.sh`"
 
     ``` shell
     --8<-- "bin/install-gnocchi.sh"

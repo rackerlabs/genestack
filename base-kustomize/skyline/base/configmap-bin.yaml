@@ -53,6 +53,9 @@ data:
     yq -yi ".openstack.system_project_domain=\"${SERVICE_PROJECT_DOMAIN}\"" /etc/skyline/skyline.yaml
     yq -yi ".openstack.keystone_url=\"${SKYLINE_KEYSTONE_ENDPOINT}\"" /etc/skyline/skyline.yaml
     yq -yi ".openstack.default_region=\"${SKYLINE_DEFAULT_REGION}\"" /etc/skyline/skyline.yaml
+    yq -yi ".openstack.sso_enabled=${SKYLINE_SSO_ENABLED:-false}" /etc/skyline/skyline.yaml
+    yq -yi ".openstack.sso_protocols=${SKYLINE_SSO_PROTOCOLS:-[]}" /etc/skyline/skyline.yaml
+    yq -yi ".openstack.sso_region=\"${SKYLINE_SSO_REGION:-RegionOne}\"" /etc/skyline/skyline.yaml
     yq -yi ".default.secret_key=\"${SKYLINE_SECRET_KEY}\"" /etc/skyline/skyline.yaml
     yq -yi ".default.database_url=\"mysql://${DB_USERNAME}:${DB_PASSWORD}@${DB_ENDPOINT}/${DB_NAME}\"" /etc/skyline/skyline.yaml
     yq -yi ".default.prometheus_basic_auth_password=\"${PROMETHEUS_BASIC_AUTH_PASSWORD}\"" /etc/skyline/skyline.yaml
@@ -91,12 +94,15 @@ data:
       reclaim_instance_interval: 604800
       service_mapping:
         baremetal: ironic
+        block-storage: cinder
         compute: nova
         container: zun
         container-infra: magnum
         database: trove
+        dns: designate
         identity: keystone
         image: glance
+        instance-ha: masakari
         key-manager: barbican
         load-balancer: octavia
         network: neutron
@@ -104,11 +110,10 @@ data:
         orchestration: heat
         placement: placement
         sharev2: manilav2
-        volumev3: cinder
-        cloudformation: heat-cfn
       sso_enabled: false
       sso_protocols:
       - openid
+      sso_region: RegionOne
       system_admin_roles:
       - admin
       system_project: 'service'

@@ -48,6 +48,23 @@
         state: present
         update_cache: true
 
+    - name: Determine iscsi initiator name
+      set_fact:
+        initiator_name: >
+          {% set _iqn = "iqn.2004-10.com." + ansible_distribution |lower() + ":" + ansible_hostname -%}
+          {% if ansible_iscsi_iqn is defined -%}
+          {% if (ansible_iscsi_iqn |length >= 15) -%}
+          {% set _iqn = ansible_iscsi_iqn  -%}
+          {% endif -%}
+          {% endif -%}
+          {{ _iqn }}
+
+    - name: Set iscsi initiator name if not set
+      ansible.builtin.lineinfile:
+        path: /etc/iscsi/initiatorname.iscsi
+        regexp: '^InitiatorName=.*|^GenerateName=.*'
+        line: "InitiatorName={{ initiator_name }}"
+
     - name: Upgrade pip and install required packages
       ansible.builtin.pip:
         name:
