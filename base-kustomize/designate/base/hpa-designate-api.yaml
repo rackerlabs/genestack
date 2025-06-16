@@ -1,3 +1,4 @@
+---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -5,19 +6,19 @@ metadata:
   namespace: openstack
 spec:
   maxReplicas: 9
-  minReplicas: 3
+  minReplicas: 2
   metrics:
     - resource:
         name: cpu
         target:
-          averageUtilization: 50
+          averageUtilization: 80
           type: Utilization
       type: Resource
     - resource:
         name: memory
         target:
-          type: AverageValue
-          averageValue: 500Mi
+          averageUtilization: 80
+          type: Utilization
       type: Resource
   scaleTargetRef:
     apiVersion: apps/v1

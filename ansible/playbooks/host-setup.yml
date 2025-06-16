@@ -19,7 +19,7 @@
   gather_facts: "{{ gather_facts | default(true) }}"
   environment: "{{ deployment_environment_variables | default({}) }}"
   vars:
-    helm_version: "" # Assume the default or set an explicit version.
+    helm_version: v3.17.3 # Assume the default or set an explicit version.
   tasks:
     - name: Download Helm command line tool
       ansible.builtin.uri:

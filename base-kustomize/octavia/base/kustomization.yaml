@@ -1,3 +1,4 @@
+---
 sortOptions:
   order: fifo
 
@@ -40,6 +41,13 @@ patches:
             - /etc/octavia/octavia.conf
           image: image-octavia-ovn
           imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "1024Mi"
+              cpu: "2000m"
           securityContext:
             runAsUser: 0
           name: octavia-agent

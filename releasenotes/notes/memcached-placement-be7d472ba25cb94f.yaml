@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    The memcached helm chart now places memcached on the openstack control plane
+    using the label `openstack-control-plane=enabled`.
+    Min replicas set to 1 as default setting and can be change according the
+    control plane installation.
