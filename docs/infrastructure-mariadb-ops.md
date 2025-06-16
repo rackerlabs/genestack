@@ -53,6 +53,18 @@ Run the `/opt/genestack/bin/backup-mariadb.sh` script to dump all databases as i
     --8<-- "bin/backup-mariadb.sh"
     ```
 
+### Automated All Database Backups
+
+The MariaDB Operator automatically creates backups of all databases in the cluster every 6 hours. These backups are stored in the `mariadb-backup` Persistent Volume Claim (PVC) or within a target object storage, depending on your configuration.
+
+It is possible to trigger a manual backup using the automated backup cron job by creating a `Backup` resource. This will create a new backup with the current timestamp.
+
+``` shell
+kubectl -n openstack create job --from=cronjob/mariadb-backup mariadb-backup-$(date +%s)
+```
+
+This command will create a job that runs the backup process immediately, creating a new backup in the same storage location as the automated backups.
+
 ### Individual Database Restores
 
 !!! tip "Ensure the destination database exists"
@@ -178,7 +190,7 @@ replication again on the busted pod.
     kubectl -n openstack cp /home/ubuntu/backups/mariadb-cluster-1.sql mariadb-cluster-0:/tmp/mariadb-cluster-1.sql
     ```
 
-4. Restore the backup, depending on its contents it may take a while, be 
+4. Restore the backup, depending on its contents it may take a while, be
    patient.
 
     ``` shell
@@ -204,10 +216,10 @@ Identify master log file and position from the backup file:
 
 ###  Update and Restart Slave
 
-1. Change the values in the following command to include the master log file 
-   and position from your previous grep result, making sure to also replace the 
-   master password value with the one from your cluster along with the real 
-   MASTER_HOST from your environment, then execute it on the broken slave 
+1. Change the values in the following command to include the master log file
+   and position from your previous grep result, making sure to also replace the
+   master password value with the one from your cluster along with the real
+   MASTER_HOST from your environment, then execute it on the broken slave
    pod (in our example, that is mariadb-cluster-0).
 
     ``` shell
@@ -231,9 +243,9 @@ Identify master log file and position from the backup file:
     SHOW ALL REPLICAS STATUS\G
     ```
 
-4. Wait for replication to be caught up, then kill the slave pod. We are 
-   doing this to ensure it comes back online as expected (the operator should 
-   automatically execute CHANGE MASTER for mariadb-operator on the slave). 
+4. Wait for replication to be caught up, then kill the slave pod. We are
+   doing this to ensure it comes back online as expected (the operator should
+   automatically execute CHANGE MASTER for mariadb-operator on the slave).
    When the pod has started; logs should contain something like the following:
 
     ``` text
