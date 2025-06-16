@@ -87,3 +87,10 @@ patches:
               - /var/run/shibboleth/shibd.sock
             initialDelaySeconds: 10
             periodSeconds: 10
+          resources:
+            limits:
+              cpu: "1"
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 64Mi
