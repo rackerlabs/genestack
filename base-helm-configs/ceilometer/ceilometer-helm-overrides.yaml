@@ -509,7 +509,11 @@ conf:
       traits:
         <<: *network_traits
         resource_id:
-          fields: ["payload.floatingip.id", "payload.id"]
+          fields: payload.floatingip.id
+        ip_address:
+          fields: payload.floatingip.floating_ip_address
+        event_type:
+          fields: event_type
     - event_type: firewall.*
       traits:
         <<: *network_traits
@@ -1045,9 +1049,17 @@ conf:
         metrics:
           bandwidth:
           ip.floating:
+        event_create:
+          - floatingip.create.end
         event_delete: floatingip.delete.end
+        event_update:
+          - floatingip.update.end
         event_attributes:
           id: resource_id
+          user_id: user_id
+          project_id: project_id
+          floating_ip_address: ip_address
+          event_type: event_type
 
       - resource_type: stack
         metrics:
