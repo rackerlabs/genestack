@@ -4,22 +4,43 @@
 
 Host Aggregates[^1] are a mechanism for partitioning hosts in an OpenStack cloud, or a [Region](openstack-cloud-design-regions.md) of an OpenStack cloud, based on arbitrary characteristics. Examples where an administrator may want to do this include where a group of hosts have additional hardware or performance characteristics.
 
-![Host Aggregates](assets/images/Host-Aggregates.png)
+```mermaid
+flowchart TB
+    subgraph AZ1 [ Availability Zone ]
+        direction TB
+        subgraph HA2 [ Host Aggregate - Intel ]
+            direction TB
+            HOST21(<div style="padding: 4em 1em; font-weight:bold;">Server</div>)
+            HOST22(<div style="padding: 4em 1em; font-weight:bold;">Server</div>)
+            HOST23(<div style="padding: 4em 1em; font-weight:bold;">Server</div>)
+            HOST24(<div style="padding: 4em 1em; font-weight:bold;">Server</div>)
+            HOST25(<div style="padding: 4em 1em; font-weight:bold;">Server</div>)
+        end
+        subgraph HA1 [ Host Aggregate - AMD ]
+            direction TB
+            HOST11(<div style="padding: 4em 1em; font-weight:bold;">Server</div>)
+            HOST12(<div style="padding: 4em 1em; font-weight:bold;">Server</div>)
+            HOST13(<div style="padding: 4em 1em; font-weight:bold;">Server</div>)
+            HOST14(<div style="padding: 4em 1em; font-weight:bold;">Server</div>)
+            HOST15(<div style="padding: 4em 1em; font-weight:bold;">Server</div>)
+        end
+    end
 
-Each node can have multiple aggregates, each aggregate can have multiple key-value pairs, and the same key-value pair can be assigned to multiple aggregates. This information can be used in the scheduler to enable advanced scheduling or to define logical groups for migration.  In general, Host Aggregates can be thought of as a way to segregate compute resources _behind the scenes_ to control and influence where VM instances will be placed.
+HA1 --- HA2
 
-## Host Aggregates in Nova
+class HOST11,HOST12,HOST13,HOST14,HOST15 host
+class HOST21,HOST22,HOST23,HOST24,HOST25 host
+class HA1,HA2 hostagg
+class AZ1,AZ2 az
 
-Host aggregates are not explicitly exposed to users. Instead administrators map flavors to host aggregates. Administrators do this by setting metadata on a host aggregate, and setting matching flavor extra specifications. The scheduler then endeavors to match user requests for instances of the given flavor to a host aggregate with the same key-value pair in its metadata. Hosts can belong to multiple Host Aggregates, depending on the attributes being used to define the aggregate.
+%% Display Classes
+classDef host           fill:#8181ff,stroke:#613da6,color:#fcfcfc;
+classDef hostagg        fill:#edf2f8,stroke:#356ba2,color:#356ba2;
+classDef az             fill:none,stroke:#000,color:#000;
 
-A common use case for host aggregates is when you want to support scheduling instances to a subset of compute hosts because they have a specific capability. For example, you may want to allow users to request compute hosts that have NVMe drives if they need access to faster disk I/O, or access to compute hosts that have GPU cards to take advantage of GPU-accelerated code. Examples include:
+linkStyle 0 fill:none,stroke:none;
 
-- Hosts with GPU compute resources
-- Hosts with different local storage capabilities (e.g. SSD vs NVMe)
-- Different CPU manufacturers (e.g. AMD vs Intel)
-- Different CPU microarchitectures (e.g. Skylake vs Raptor Cove)
-
-![Multiple Host Aggregates](assets/images/Multiple-Host-Aggregates.png)
+```
 
 ### Host Aggregates vs. Availability Zones
 
@@ -27,6 +48,49 @@ While Host Aggregates themselves are hidden from OpenStack cloud users, Cloud ad
 
 !!! Warning
     It is not allowed to move instances between Availability Zones. If adding a host to an aggregate or removing a host from an aggregate would cause an instance to move between Availability Zones (including moving from or moving to the default AZ) then the operation will be fail.
+
+```mermaid
+flowchart TB
+    subgraph AZ1 [ Availability Zone 1 ]
+        direction TB
+        subgraph HA2 [ Host Aggregate ]
+            direction TB
+            HOST21(<div style="padding: 4em 1em; font-weight:bold;">Server</div>)
+            HOST22(<div style="padding: 4em 1em; font-weight:bold;">Server</div>)
+            HOST23(<div style="padding: 4em 1em; font-weight:bold;">Server</div>)
+            HOST24(<div style="padding: 4em 1em; font-weight:bold;">Server</div>)
+            HOST25(<div style="padding: 4em 1em; font-weight:bold;">Server</div>)
+        end
+    end
+    subgraph AZ2 [ Availability Zone 2 ]
+        direction TB
+        subgraph HA1 [ Host Aggregate ]
+            direction TB
+            HOST11(<div style="padding: 4em 1em; font-weight:bold;">Server</div>)
+            HOST12(<div style="padding: 4em 1em; font-weight:bold;">Server</div>)
+            HOST13(<div style="padding: 4em 1em; font-weight:bold;">Server</div>)
+            HOST14(<div style="padding: 4em 1em; font-weight:bold;">Server</div>)
+            HOST15(<div style="padding: 4em 1em; font-weight:bold;">Server</div>)
+        end
+    end
+
+HOST21 -- #9940; --> HOST11
+
+class HOST11 target
+class HOST12,HOST13,HOST14,HOST15 host
+class HOST21,HOST22,HOST23,HOST24,HOST25 host
+class HA1,HA2 hostagg
+class AZ1,AZ2 az
+
+%% Display Classes
+classDef host           fill:#8181ff,stroke:#613da6,color:#fcfcfc;
+classDef hostagg        fill:#edf2f8,stroke:#356ba2,color:#356ba2;
+classDef az             fill:none,stroke:#000,color:#000;
+classDef target         color:#b00,fill:#ccf,stroke:#b00,stroke-width:2px,stroke-dasharray: 5, 5;
+
+linkStyle 0 stroke-width:4px,fill:red,stroke:red;
+
+```
 
 ### Host Aggregates in Genestack
 
