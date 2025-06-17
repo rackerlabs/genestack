@@ -13,7 +13,13 @@ function runTrackErator() {
 
 function waitErator () {
     for pid in ${pids[*]}; do
-        wait "${pid}"
+        if ! timeout --preserve-status --verbose 30m tail --pid=${pid} -f /dev/null; then
+            echo "==== PROCESS TIMEOUT ====================================="
+            cat /proc/${pid}/cmdline | xargs -0 echo
+            echo "==== PROCESS TIMEOUT ====================================="
+            echo "Timeout after 30 minutes waiting for process ${pid} to finish. Exiting."
+            exit 1
+        fi
     done
 }
 
