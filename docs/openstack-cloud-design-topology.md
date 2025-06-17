@@ -12,7 +12,41 @@ As the cloud designer and builder, providing the capabilities for high-availabil
 
 These are typically arranged as in a hierarchy, with each increasing lower layer becoming less independent of the other layers:
 
-![Cloud Hierarchy](assets/images/cloud-hierarchy.png)
+```mermaid
+%%{ init: { "theme": "default",
+            'themeVariables': {
+            "fontSize": "20px"
+             },
+            "flowchart": { "curve": "basis", 
+            "nodeSpacing": 80, 
+            "rankSpacing": 160
+             } } }%%
+flowchart TD
+
+%% Node Defs
+    CLD(<div style="padding: 1em; font-weight:bold">Cloud</div>)
+   
+    REG1(<div style="padding: 1em; font-weight:bold">Region</div>)
+
+    REG2(<div style="padding: 1em; font-weight:bold">Region</div>)
+
+    AZ11(<div style="padding: 1em; font-weight:bold">Availability</BR>Zone</div>)
+
+    AZ12(<div style="padding: 1em; font-weight:bold">Availability</BR>Zone</div>)
+
+    AZ21(<div style="padding: 1em; font-weight:bold">Availability</BR>Zone</div>)
+
+    AZ22(<div style="padding: 1em; font-weight:bold">Availability</BR>Zone</div>)
+
+%% Diagram Layout
+
+    CLD --> REG1
+    CLD --> REG2
+    REG1 --> AZ11
+    REG1 --> AZ12
+    REG2 --> AZ21
+    REG2 --> AZ22
+```
 
 ## Clouds
 

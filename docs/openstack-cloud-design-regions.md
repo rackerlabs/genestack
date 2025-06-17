@@ -2,7 +2,46 @@
 
 Regions are separate physical locations served by a single cloud.  In terms of our taxonomy, a Cloud can contain several Regions.
 
-![Regions in Cloud Hierarchy](assets/images/cloud-hierarchy-region.png)
+```mermaid
+%%{ init: { "theme": "default",
+            'themeVariables': {
+            "fontSize": "20px"
+             },
+            "flowchart": { "curve": "basis", 
+            "nodeSpacing": 80, 
+            "rankSpacing": 160
+             } } }%%
+flowchart TD
+
+%% Node Defs
+    CLD(<div style="padding: 1em; font-weight:bold;">Cloud</div>)
+    REG1(<div style="padding: 1em; font-weight:bold; box-shadow: 0px 0px 10px 5px #356ba280;">Region</div>)
+    REG2(<div style="padding: 1em; font-weight:bold;">Region</div>)
+    AZ11(<div style="padding: 1em; font-weight:bold;">Availability</BR>Zone</div>)
+    AZ12(<div style="padding: 1em; font-weight:bold;">Availability</BR>Zone</div>)
+    AZ21(<div style="padding: 1em; font-weight:bold;">Availability</BR>Zone</div>)
+    AZ22(<div style="padding: 1em; font-weight:bold;">Availability</BR>Zone</div>)
+
+    class REG2,AZ21,AZ22 dimmed
+    %%class REG1 emphasis
+    class CLD,AZ11,AZ12 plain
+
+%% Diagram Layout
+    CLD CDL1@--> REG1
+    CLD CDL2@--> REG2
+    REG1 R11DL@--> AZ11
+    REG1 R12DL@--> AZ12
+    REG2 R21DL@--> AZ21
+    REG2 R22DL@--> AZ22
+
+    class CDL2,R21DL,R22DL dimmed
+    class CDL1,R11DL,R12DL plain
+
+%% Display Classes
+    classDef dimmed         fill:#fff,stroke:#f2f2f2,color:#f2f2f2;
+    classDef emphasis       fill:#fff,stroke:#356ba2,color:#356ba2;
+    classDef plain          fill:#fff,stroke:#888,color:#888;
+```
 
 In OpenStack, a Region is defined as an independently deployed cloud infrastructure, excepting authentication (Keystone) and possibly a dashboard (Horizon or Skyline.)  **_A Region should be able to operate autonomously from other Regions._** This means that a Region has it's own API endpoints for most services.  For the OpenStack CLI, this usually means a separate entry in
 [`clouds.yaml`](https://docs.openstack.org/python-openstackclient/latest/configuration/index.html#clouds-yaml){:target="_blank"}

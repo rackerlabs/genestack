@@ -6,7 +6,46 @@ Ultimately, because it has no set physical analogue, an Availability Zone become
 
 Availability Zones are a logical abstraction for partitioning a cloud without knowing the physical infrastructure. They can be used to partition a cloud on arbitrary factors, such as location (country, data center, rack), network layout, or power source.
 
-![Availability Zones in Cloud Hierarchy](assets/images/cloud-hierarchy-az.png)
+```mermaid
+%%{ init: { "theme": "default",
+            'themeVariables': {
+            "fontSize": "20px"
+             },
+            "flowchart": { "curve": "basis", 
+            "nodeSpacing": 80, 
+            "rankSpacing": 160
+             } } }%%
+flowchart TD
+
+%% Node Defs
+    CLD(<div style="padding: 1em; font-weight:bold;">Cloud</div>)
+    REG1(<div style="padding: 1em; font-weight:bold; box-shadow: 0px 0px 10px 5px #356ba280;">Region</div>)
+    REG2(<div style="padding: 1em; font-weight:bold;">Region</div>)
+    AZ11(<div style="padding: 1em; font-weight:bold;">Availability</BR>Zone</div>)
+    AZ12(<div style="padding: 1em; font-weight:bold;">Availability</BR>Zone</div>)
+    AZ21(<div style="padding: 1em; font-weight:bold;">Availability</BR>Zone</div>)
+    AZ22(<div style="padding: 1em; font-weight:bold;">Availability</BR>Zone</div>)
+
+    class REG2,AZ21,AZ22 dimmed
+    %%class REG1 emphasis
+    class CLD,REG1 plain
+
+%% Diagram Layout
+    CLD CDL1@--> REG1
+    CLD CDL2@--> REG2
+    REG1 R11DL@--> AZ11
+    REG1 R12DL@--> AZ12
+    REG2 R21DL@--> AZ21
+    REG2 R22DL@--> AZ22
+
+    class CDL2,R21DL,R22DL dimmed
+    class CDL1,R11DL,R12DL plain
+
+%% Display Classes
+    classDef dimmed         fill:#fff,stroke:#f2f2f2,color:#f2f2f2;
+    classDef emphasis       fill:#fff,stroke:#356ba2,color:#356ba2;
+    classDef plain          fill:#fff,stroke:#888,color:#888;
+```
 
 ## The Use Case for Availability Zones
 
@@ -78,7 +117,7 @@ This matching includes naming of Availability Zones.  If your AZs don't match, i
 !!! Tip
     You can prevent this from happening by setting the following parameter in `cinder.conf` the nodes running the `cinder-api` service:
     ```
-    [DEFAULT]
+[DEFAULT]
     allow_availability_zone_fallback=True
     ```
     This parameter prevents the API call from failing, because if the AZ _name_ does not exist, Cinder will fallback to another availability zone (whichever you defined as the `default_availability_zone` parameter or in the `storage_availability_zone` parameter.)
