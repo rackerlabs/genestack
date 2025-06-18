@@ -683,8 +683,23 @@ data:
   ETCDCTL_CACERT: $(echo -n "/etc/ssl/etcd/ssl/ca.pem" | base64 -w0)
   ETCDCTL_CERT: $(echo -n "" | base64)
   ETCDCTL_KEY: $(echo -n "" | base64)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: keystone-auth
+  namespace: openstack
+type: Opaque
+data:
+  AUTH_URL: $(echo -n "http://keystone-api.openstack.svc.cluster.local:5000/v3" | base64 -w0)
+  USERNAME: $(echo -n "admin" | base64)
+  PASSWORD: $(echo -n $keystone_admin_password | base64 -w0)
+  USER_DOMAIN_NAME: $(echo -n "Default" | base64)
+  PROJECT_NAME: $(echo -n "admin" | base64)
+  PROJECT_DOMAIN_NAME: $(echo -n "Default" | base64)  
 EOF
 
 rm nova_ssh_key nova_ssh_key.pub
 chmod 0640 ${OUTPUT_FILE}
 echo "Secrets YAML file created as ${OUTPUT_FILE}"
+
