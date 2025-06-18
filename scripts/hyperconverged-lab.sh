@@ -450,7 +450,7 @@ cat > /etc/genestack/helm-configs/barbican/barbican-helm-overrides.yaml <<EOF
 pod:
   resources:
     enabled: false
-  
+
 conf:
   barbican_api_uwsgi:
     uwsgi:
@@ -972,6 +972,8 @@ fi
 HERE
 EOC
 
-echo "The lab is now ready for use and took ${SECONDS} seconds to complete."
-echo "This is the jump host address ${JUMP_HOST_VIP}, write this down."
-echo "This is the VIP address internally ${METAL_LB_IP} with public address ${METAL_LB_VIP} within MetalLB, write this down."
+{ cat | tee /tmp/output.txt; } <<EOF
+The lab is now ready for use and took ${SECONDS} seconds to complete.
+This is the jump host address ${JUMP_HOST_VIP}, write this down.
+This is the VIP address internally ${METAL_LB_IP} with public address ${METAL_LB_VIP} within MetalLB, write this down.
+EOF

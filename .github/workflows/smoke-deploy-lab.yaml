@@ -89,9 +89,24 @@ jobs:
         with:
           name: ssh-keys
           if-no-files-found: warn  # 'warn' or 'ignore' are also available, defaults to `warn`
-          path: |
-            ~/.ssh/${LAB_NAME_PREFIX}-key.pem
-            ~/.ssh/${LAB_NAME_PREFIX}-key.pub
+          path: "/github/home/.ssh/${{ env.LAB_NAME_PREFIX }}-key.pem"
+
+      - name: Create output file in markdown format
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'deploy' }}
+        run: |
+          if [[ -s /tmp/output.txt ]]; then
+              echo "### Cloud Access" > access-output.txt
+              cat /tmp/output.txt >> access-output.txt
+          fi
+
+      - name: Publish Output to Summary
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'deploy' }}
+        run: |
+          if [[ -s access-output.txt ]]; then
+            {
+              cat access-output.txt
+            } >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: Cleanup the lab
         if: ${{ always() && (github.event_name == 'pull_request' || contains(fromJSON('["cleanup", "test"]'), github.event.inputs.mode)) }}
