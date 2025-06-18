@@ -53,10 +53,10 @@
         - multipathd.service
         - multipath-tools.service
       when:
-        - not (custom_multipath | default(false) | bool)
+        - not (storage_network_multipath | default(false) | bool)
     - name: Copy over multipath Round Robin configuration file
       when:
-        - custom_multipath | default(false) | bool
+        - storage_network_multipath | default(false) | bool
       block:
         - name: Install Packages
           ansible.builtin.package:

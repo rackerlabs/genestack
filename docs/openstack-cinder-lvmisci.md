@@ -1,18 +1,24 @@
-# Cinder LVM iSCSI – **Operator Guide**
+# Cinder LVM iSCSI – **Operator Guide**
 
-This guide explains how a **cloud operator** can enable the **reference LVM backend** over iSCSI for OpenStack Cinder. It assumes you are running
+This guide explains how a **cloud operator** can enable the **reference LVM backend** over iSCSI for OpenStack Cinder. It assumes you are running
 the volume service directly on bare‑metal storage nodes.
+
+In order to utilize the logical volume driver (reference), it must be deployed in hybrid way, outside of the K8s workflow on baremetal volume hosts.
+Specifically, iSCSI is incompatible with containerized work environments. Fortunately, Genestack has a playbook which will facilitate the installation
+of cinder-volume services and ensure that everything is deployed in working order on the baremetal nodes. The playbook can be found at
+`playbooks/deploy-cinder-volumes-reference.yaml`. Included in the playbooks directory is an example inventory for cinder hosts; however, any inventory
+should work fine.
 
 ## Quick path to success
 
-1. 📝 Pre‑flight checklist
-2. 🦾 Storage‑node preparation
-3. 🚀 Run the deployment playbook
-4. 📦 Create volume type & policies
-5. 🔍 Validate operations
-6. ⚙️ Enable iSCSI + multipath for computes
+1. 📝 Pre‑flight checklist
+2. 🦾 Storage‑node preparation
+3. 🚀 Run the deployment playbook
+4. 📦 Create volume type & policies
+5. 🔍 Validate operations
+6. ⚙️ Enable iSCSI + multipath for computes
 
-## 1  Pre‑Flight Checklist
+## 1  Pre‑Flight Checklist
 
 | Item                                 | Why it matters                                                  |
 | ------------------------------------ | --------------------------------------------------------------- |
@@ -26,14 +32,14 @@ the volume service directly on bare‑metal storage nodes.
     The reference driver hard‑codes `lvmdriver-1` (volume type) and `cinder-volumes-1` (volume group). Keep these names unless you also
     edit the playbook templates.
 
-## 2  Storage‑Node Preparation
+## 2  Storage‑Node Preparation
 
 Because the Cinder Reference LVM driver is incompatible with a containerized work environment, the services are setup as baremetal targets.
 Genestack has a playbook which will facilitate the installation of our services and ensure that we've deployed everything in a working order.
 The playbook can be found at `playbooks/deploy-cinder-volumes-reference.yaml`. Included in the playbooks directory is an example inventory
 for our cinder hosts; however, any inventory should work fine.
 
-### 2.1  Ensure DNS Works
+### 2.1  Ensure DNS Works
 
 If your storage host isn’t a Kubernetes worker, configure **systemd‑resolved** manually:
 
@@ -49,7 +55,7 @@ Cache=no-negative
 systemctl restart systemd-resolved
 ```
 
-### 2.2  Create Volume Group
+### 2.2  Create Volume Group
 
 ``` bash
 pvcreate /dev/vdf
@@ -58,7 +64,12 @@ vgcreate cinder-volumes-1 /dev/vdf
 
 Add additional PVs to extend capacity later as needed.
 
-## 3  Deploy the LVM Volume Worker
+## 3  Deploy the LVM Volume Worker
+
+Add the `enable_iscsi` and `storage_network_multipath` variables to the inventory file vars stanzas pertaining to nova_compute_nodes
+and cinder_storage_nodes. Additionally, add the `storage_network_multipath` to the inventory file vars only for cinder_storage_nodes.
+Edit /opt/genestack/ansible/playbooks/templates/genestack-multipath.conf.j2 to meet your specific requirements. Then re-run
+`host-setup.yaml` on compute nodes and block nodes.
 
 ## 3.1  Prepare the Inventory
 
@@ -68,11 +79,11 @@ Within the `inventory.yaml` file, ensure you have the following variables for yo
 openstack_compute_nodes:
   vars:
     enable_iscsi: true
-    custom_multipath: false  # optional -- enable when running multipath
+    storage_network_multipath: false  # optional -- enable when running multipath
 storage_nodes:
   vars:
     enable_iscsi: true
-    custom_multipath: false  # optional -- enable when running multipath
+    storage_network_multipath: false  # optional -- enable when running multipath
 ```
 
 Hosts should be grouped as `storage_nodes` in the inventory file. The host are simple and can be defined as follows:
@@ -96,12 +107,21 @@ Use the hybrid playbook to install `cinder-volume` as a **systemd** service:
 ansible-playbook -i inventory.yaml playbooks/deploy-cinder-volumes-reference.yaml
 ```
 
-!!! note
+!!! example "Runtime with CLI flags"
 
-    Consider the **storage** network on your Cinder hosts that will be accessible to Nova compute hosts. By default, the playbook uses
-    `ansible_default_ipv4.address` to configure the target address, which may or may not work for your environment. Append var, i.e.,
-    `-e cinder_storage_network_interface=ansible_br_mgmt` to use the specified iface address in `cinder.conf` for `my_ip` and
-    `target_ip_address` in `cinder/backends.conf`. **Interface names with a `-` must be entered with a `_` and be prefixed with `ansible`**
+    ``` console
+    ansible-playbook -i /etc/genestack/inventory/inventory.yaml deploy-cinder-volumes-reference.yaml \
+                    -e "cinder_storage_network_interface=ansible_br_storage_a cinder_storage_network_interface_secondary=ansible_br_storage_b storage_network_multipath=true storage_network_multipath=true cinder_backend_name=lvmdriver-1" \
+                    --user ubuntu \
+                    --become 'cinder_storage_nodes'
+    ```
+
+    !!! note
+
+        Consider the **storage** network on your Cinder hosts that will be accessible to Nova compute hosts. By default, the playbook uses
+        `ansible_default_ipv4.address` to configure the target address, which may or may not work for your environment. Append var, i.e.,
+        `-e cinder_storage_network_interface=ansible_br_mgmt` to use the specified iface address in `cinder.conf` for `my_ip` and
+        `target_ip_address` in `cinder/backends.conf`. **Interface names with a `-` must be entered with a `_` and be prefixed with `ansible`**
 
 The playbook will:
 
@@ -109,7 +129,7 @@ The playbook will:
 2. Render `/etc/cinder/cinder.conf` with an `[lvmdriver-1]` stanza.
 3. Enable + start `cinder-volume` under systemd.
 
-## 4  Create Volume Type & Attach Policies
+## 4  Create Volume Type & Attach Policies
 
 ``` bash
 openstack --os-cloud default volume type create lvmdriver-1
@@ -134,9 +154,9 @@ Refer to:
 - [Provisioning Specs](openstack-cinder-volume-provisioning-specs.md)
 - [Extra Specs](openstack-cinder-volume-type-specs.md)
 
-## 5  Validate Operations
+## 5  Validate Operations
 
-### 5.1  Service status
+### 5.1  Service status
 
 ``` bash
 kubectl -n openstack exec -ti openstack-admin-client -- openstack volume service list
@@ -156,7 +176,7 @@ kubectl -n openstack exec -ti openstack-admin-client -- openstack volume service
 
 Should show `openstack-node‑X@lvmdriver-1` **enabled/up**.
 
-### 5.2  Create a test volume
+### 5.2  Create a test volume
 
 ``` bash
 openstack --os-cloud default volume create --size 1 --type lvmdriver-1 smoke-test-lvm
@@ -224,9 +244,9 @@ You can validate the environment is operational by logging into the storage node
 
 If the LV exists, Cinder is provisioning correctly.
 
-## 6  Enable iSCSI & Multipath on Compute Nodes
+## 6  Enable iSCSI & Multipath on Compute Nodes
 
-### 6.1  Nova chart overrides
+### 6.1  Nova chart overrides
 
 Edit `/etc/genestack/helm-configs/nova/nova-helm-cinder-overrides.yaml`
 
@@ -234,13 +254,13 @@ Edit `/etc/genestack/helm-configs/nova/nova-helm-cinder-overrides.yaml`
 enable_iscsi: true
 ```
 
-#### 6.1.1  Optionally Enable Multipath
+#### 6.1.1  Optionally Enable Multipath
 
 ``` yaml
 volume_use_multipath: true
 ```
 
-### 6.2  Host services
+### 6.2  Host services
 
 Add to inventory and rerun **host‑setup**:
 
@@ -248,7 +268,7 @@ Add to inventory and rerun **host‑setup**:
 storage:
   vars:
     enable_iscsi: true
-    custom_multipath: true   # optional – uses queue-length policy
+    storage_network_multipath: true   # optional – uses queue-length policy
 ```
 
 !!! Tip "When using Multipath"
