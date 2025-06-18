@@ -1,0 +1,148 @@
+---
+- name: Gather the package facts before install
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: Install PERCCLI command line tool for DELL servers
+  when:
+    - ansible_system_vendor | lower == "dell inc."
+    - "'perccli' not in ansible_facts.packages"
+  block:
+    - name: Create perccli tmp directory
+      ansible.builtin.file:
+        path: "{{ dell_tools.tmp_dir }}"
+        state: directory
+        mode: '0755'
+    - name: Download PERCCLI command line tool
+      ansible.builtin.uri:
+        url: "{{ dell_tools.url }}"
+        http_agent: Chrome/1337
+        validate_certs: false
+        dest: "{{ dell_tools.download_path }}"
+    - name: Extract PERCCLI tar.gz
+      ansible.builtin.unarchive:
+        src: "{{ dell_tools.download_path }}"
+        dest: "{{ dell_tools.tmp_dir }}"
+    - name: Install perccli APT
+      when: ansible_os_family | lower == "debian"
+      ansible.builtin.apt:
+        deb: "{{ dell_tools.deb_file }}"
+        install_recommends: true
+        state: present
+    - name: Install perccli RPM
+      when: ansible_os_family | lower == "redhat"
+      ansible.builtin.dnf:
+        name: "{{ dell_tools.rpm_file }}"
+        state: present
+    - name: Remove perccli tmp directory
+      ansible.builtin.file:
+        path: "{{ dell_tools.tmp_dir }}"
+        state: absent
+    - name: Gather the package facts
+      ansible.builtin.package_facts:
+        manager: auto
+    - name: Create symlink to perccli64 in PATH
+      when: "'perccli' in ansible_facts.packages"
+      ansible.builtin.file:
+        src: "{{ dell_tools.perccli_path }}"
+        dest: "{{ dell_tools.symlink_64_path }}"
+        owner: root
+        group: root
+        state: link
+    - name: Create convenience symlink to perccli64 via perccli in PATH
+      when: "'perccli' in ansible_facts.packages"
+      ansible.builtin.file:
+        src: "{{ dell_tools.perccli_path }}"
+        dest: "{{ dell_tools.symlink_path }}"
+        owner: root
+        group: root
+        state: link
+
+- name: Install HP ssacli DEB
+  when:
+    - ansible_os_family | lower == "debian"
+    - (ansible_system_vendor | lower == "hp" or ansible_system_vendor | lower == "hpe")
+    - "'ssacli' not in ansible_facts.packages"
+  block:
+    - name: Download HP tools apt keys
+      ansible.builtin.uri:
+        url: "{{ item.url }}"
+        dest: "{{ item.download_file }}"
+      with_items: "{{ hp_tools.repo_keys }}"
+      when:
+        - hp_tools.repo_keys is defined
+      register: download_keys_url
+      until: download_keys_url is success
+      retries: 2
+      delay: 4
+    - name: Add HP tools apt keys to gpg
+      ansible.builtin.command:
+        cmd: "cat {{ item.download_file }} | gpg --dearmor | sudo tee -a {{ hp_tools.apt.gpg_keyring }} > /dev/null"
+      with_items: "{{ hp_tools.repo_keys }}"
+      when:
+        - hp_tools.repo_keys is defined
+      register: add_keys_url
+      until: add_keys_url is success
+      retries: 2
+      delay: 2
+    - name: Add HP tools MCP apt repositories
+      ansible.builtin.apt_repository:
+        repo: "{{ hp_tools.apt.deb_repo }}"
+        state: "{{ hp_tools.apt.state }}"
+        filename: "{{ hp_tools.apt.repo_list_file | default(omit) }}"
+      register: add_repos
+      until: add_repos is success
+      retries: 2
+      delay: 2
+      notify: Update apt
+    - name: Add HP tools MCP apt deb-src repository for Debian
+      when: (ansible_distribution | lower == "debian")
+      ansible.builtin.apt_repository:
+        repo: "{{ hp_tools.apt.deb_src_repo }}"
+        state: "{{ hp_tools.apt.state }}"
+        filename: "{{ hp_tools.apt.repo_list_file | default(omit) }}"
+      register: add_src_repos
+      until: add_src_repos is success
+      retries: 2
+      delay: 2
+      notify: Update apt
+    - name: Install HP tools packages
+      ansible.builtin.package:
+        name: "{{ hp_tools.package }}"
+        state: present
+      when:
+        - hp_tools.package is defined
+
+- name: Install HP ssacli RPM
+  when:
+    - ansible_os_family | lower == "redhat"
+    - (ansible_system_vendor | lower == "hp" or ansible_system_vendor | lower == "hpe")
+    - "'ssacli' not in ansible_facts.packages"
+  block:
+    - name: Add HP tools RPM keys
+      ansible.builtin.rpm_key:
+        state: "present"
+        key: "{{ item.url }}"
+      with_items: "{{ hp_tools.repo_keys }}"
+      when:
+        - hp_tools.repo_keys is defined
+      register: add_keys_url
+      until: add_keys_url is success
+      retries: 2
+      delay: 2
+    - name: Add HP tools MCP RPM repositories
+      ansible.builtin.yum_repository:
+        name: mcp
+        description: Management Component Pack
+        file: "{{ hp_tools.rpm.filename | default(omit) }}"
+        baseurl: "{{ hp_tools.rpm.url }}/{{ hp_tools.rpm.dist }}/{{ hp_tools.rpm.dist_ver }}/{{ hp_tools.rpm.arch }}/current"
+        enabled: true
+        gpgcheck: false
+      register: add_repos
+      until: add_repos is success
+      retries: 2
+      delay: 2
+    - name: Install ssacli
+      ansible.builtin.package:
+        name: "{{ hp_tools.package }}"
+        state: "present"
