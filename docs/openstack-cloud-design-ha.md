@@ -4,6 +4,8 @@
 
 Host Aggregates[^1] are a mechanism for partitioning hosts in an OpenStack cloud, or a [Region](openstack-cloud-design-regions.md) of an OpenStack cloud, based on arbitrary characteristics. Examples where an administrator may want to do this include where a group of hosts have additional hardware or performance characteristics.
 
+Each node can belong to multiple aggregates, each aggregate can have multiple key-value pairs, and the same key-value pair can be assigned to multiple aggregates. This information can be used in the scheduler to enable advanced scheduling or to define logical groups for migration.  In general, Host Aggregates can be thought of as a way to segregate compute resources _behind the scenes_ to control and influence where VM instances will be placed.
+
 ```mermaid
 flowchart TB
     subgraph AZ1 [ Availability Zone ]
@@ -41,6 +43,17 @@ classDef az             fill:none,stroke:#000,color:#000;
 linkStyle 0 fill:none,stroke:none;
 
 ```
+
+## Host Aggregates in Nova
+
+Host aggregates are not explicitly exposed to users. Instead administrators map flavors to host aggregates. Administrators do this by setting metadata on a host aggregate, and setting matching flavor extra specifications. The scheduler then endeavors to match user requests for instances of the given flavor to a host aggregate with the same key-value pair in its metadata. Hosts can belong to multiple Host Aggregates, depending on the attributes being used to define the aggregate.
+
+A common use case for host aggregates is when you want to support scheduling instances to a subset of compute hosts because they have a specific capability. For example, you may want to allow users to request compute hosts that have NVMe drives if they need access to faster disk I/O, or access to compute hosts that have GPU cards to take advantage of GPU-accelerated code. Examples include:
+
+- Hosts with GPU compute resources
+- Hosts with different local storage capabilities (e.g. SSD vs NVMe)
+- Different CPU manufacturers (e.g. AMD vs Intel)
+- Different CPU microarchitectures (e.g. Skylake vs Raptor Cove)
 
 ### Host Aggregates vs. Availability Zones
 
