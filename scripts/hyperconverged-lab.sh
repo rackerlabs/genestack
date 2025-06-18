@@ -407,7 +407,7 @@ all:
         openstack_compute_nodes:
           vars:
             enable_iscsi: true
-            custom_multipath: false
+            storage_network_multipath: false
           hosts:
             ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
@@ -416,7 +416,7 @@ all:
         storage_nodes:
           vars:
             enable_iscsi: true
-            custom_multipath: false
+            storage_network_multipath: false
           children:
             cinder_storage_nodes:
               hosts: {}

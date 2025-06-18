@@ -8,7 +8,7 @@
     cinder_storage_network_interface: ansible_br_storage
     cinder_storage_network_interface_secondary: ansible_br_storage_secondary
     cinder_backend_name: "block-ha-performance-at-rest-encrypted,block-ha-standard-at-rest-encrypted,block-ha-performance-end-to-end-encrypted,block-ha-standard-end-to-end-encrypted"
-    custom_multipath: false
+    storage_network_multipath: false
   handlers:
     - name: Restart cinder-volume-netapp systemd services
       ansible.builtin.systemd:
