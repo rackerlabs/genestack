@@ -1,4 +1,4 @@
-<meta http-equiv="refresh" content="45">
+<meta http-equiv="refresh" content="420">
 
 # Rackspace OpenStack Flex
 
