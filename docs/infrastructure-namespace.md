@@ -11,9 +11,9 @@ Then you can create all needed secrets by running the create-secrets.sh command 
 !!! tip "Optional --region param"
 
     Note that the `create-secrets.sh` script by default creates a secret
-    with a default region of RegionOne. This can be overridden with the
+    with a default region of *RegionOne*. This can be overridden with the
     `--region` parameter to specify your custom region name in Keystone.
-    > Usage: ./create-secrets.sh [--region <region> default: RegionOne]
+    > Usage: ./create-secrets.sh [--region <region>]
 
 ``` shell
 /opt/genestack/bin/create-secrets.sh
