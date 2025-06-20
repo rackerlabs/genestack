@@ -1,0 +1,54 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: barbican-exporter
+  namespace: openstack
+  labels:
+    app: barbican-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: barbican-exporter
+  template:
+    metadata:
+      labels:
+        app: barbican-exporter
+    spec:
+      containers:
+        - name: barbican-exporter
+          image: quay.io/rackspace/barbican-exporter:latest
+          ports:
+            - containerPort: 8080
+          env:
+          - name: AUTH_URL
+            valueFrom:
+              secretKeyRef:
+                name: keystone-auth
+                key: AUTH_URL
+          - name: USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: keystone-auth
+                key: USERNAME
+          - name: PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: keystone-auth
+                key: PASSWORD
+          - name: USER_DOMAIN_NAME
+            valueFrom:
+              secretKeyRef:
+                name: keystone-auth
+                key: USER_DOMAIN_NAME
+          - name: PROJECT_NAME
+            valueFrom:
+              secretKeyRef:
+                name: keystone-auth
+                key: PROJECT_NAME
+          - name: PROJECT_DOMAIN_NAME
+            valueFrom:
+              secretKeyRef:
+                name: keystone-auth
+                key: PROJECT_DOMAIN_NAME
