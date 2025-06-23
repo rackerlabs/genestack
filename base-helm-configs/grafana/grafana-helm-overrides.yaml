@@ -125,6 +125,52 @@ alerting:
                   interferes with the function of the affected ports.
               labels: {}
               isPaused: false
+            - uid: c14dd8fd-54ec-4e15-9813-e02cc3269899  #generated using uuidgen
+              title: Neutron IPAM Duplicate Entry Error
+              condition: C
+              data:
+                - refId: A
+                  queryType: instant
+                  relativeTimeRange:
+                    from: 60
+                    to: 0
+                  datasourceUid: P8E80F9AEF21F6940  #using same loki datasource as rule#ba943125-33ca-4e4e-85f8-13359a8e4d65
+                  model:
+                    expr: rate({app="fluentbit"} |= `Duplicate entry|ERROR` [1m])
+                    queryType: instant
+                    refId: A
+                - refId: B
+                  relativeTimeRange:
+                    from: 60  #past 60 seconds (can be adjusted further)
+                    to: 0  #0 denotes till current time
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                      - evaluator:
+                          params:
+                            - 1
+                            - 0
+                          type: gt
+                        operator:
+                          type: and
+                        reducer:
+                          type: avg
+                        type: query
+                    datasource:
+                      name: Expression
+                      type: __expr__
+                      uid: __expr__
+                    expression: A
+                    refId: B
+                    type: threshold
+              noDataState: OK
+              execErrState: Error
+              notifications:
+                - uid: prom-alertmanager-notification
+              annotations:
+                summary: >
+                  Checks for log lines containing 'Duplicate entry|ERROR'  in nova logs.
+              isPaused: false              
   contactpoints.yaml:
     secret:
       apiVersion: 1
