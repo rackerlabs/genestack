@@ -125,7 +125,7 @@ alerting:
                 interferes with the function of the affected ports.
             labels: {}
             isPaused: false
-          # Generated UUID using 'uuidgen'  
+          # Generated UUID using 'uuidgen'
           - uid: c14dd8fd-54ec-4e15-9813-e02cc3269899
             title: Neutron IPAM Duplicate Entry Error
             condition: C
