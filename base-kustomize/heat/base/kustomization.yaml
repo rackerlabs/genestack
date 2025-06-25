@@ -37,7 +37,7 @@ patches:
           failureThreshold: 3
           httpGet:
             path: /
-            port: 8004
+            port: 8000
             scheme: HTTP
           initialDelaySeconds: 10
           periodSeconds: 60
