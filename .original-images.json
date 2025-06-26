@@ -37,6 +37,7 @@
   "ghcr.io/rackerlabs/genestack/neutron-oslodb:2024.1-ubuntu_jammy-1750723622",
   "ghcr.io/rackerlabs/genestack/neutron-oslodb:2024.1-ubuntu_jammy-1750797661",
   "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy-1737928811",
+  "ghcr.io/rackerlabs/genestack/nova-efi:2025.1-ubuntu_jammy-1750943616",
   "ghcr.io/rackerlabs/genestack/octavia-ovn:2024.1-ubuntu_jammy-1737651745",
   "ghcr.io/rackerlabs/keystone-rxt/shibd:1747958286",
   "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1747958291",
