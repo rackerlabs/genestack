@@ -45,23 +45,23 @@ networking:
   DEFAULT_SUBNET: "ovn-default"
   DEFAULT_VPC: "ovn-cluster"
   NODE_SUBNET: "join" #mesh network
-  ENABLE_ECMP: false
+  ENABLE_ECMP: true
   ENABLE_METRICS: true
   # comma-separated string of nodelocal DNS ip addresses
   NODE_LOCAL_DNS_IP: ""
-  PROBE_INTERVAL: 180000
-  OVN_NORTHD_PROBE_INTERVAL: 5000
-  OVN_LEADER_PROBE_INTERVAL: 5
-  OVN_REMOTE_PROBE_INTERVAL: 10000
+  PROBE_INTERVAL: 60000
+  OVN_NORTHD_PROBE_INTERVAL: 15000
+  OVN_LEADER_PROBE_INTERVAL: 15
+  OVN_REMOTE_PROBE_INTERVAL: 30000
   OVN_REMOTE_OPENFLOW_INTERVAL: 180
-  OVN_NORTHD_N_THREADS: 1
-  ENABLE_COMPACT: false
+  OVN_NORTHD_N_THREADS: 4  # Number of threads for ovn-northd, default is 4 production environments could set it to a higher value.
+  ENABLE_COMPACT: true
 
 func:
   ENABLE_LB: true
   ENABLE_NP: true
   ENABLE_EXTERNAL_VPC: true
-  HW_OFFLOAD: false
+  HW_OFFLOAD: false  # Enable hardware offload, if supported by the underlying network hardware.
   ENABLE_LB_SVC: false
   ENABLE_KEEP_VM_IP: true
   LS_DNAT_MOD_DL_DST: true
@@ -77,8 +77,8 @@ func:
   ENABLE_OVN_IPSEC: false
   ENABLE_ANP: false
   SET_VXLAN_TX_OFF: false
-  OVSDB_CON_TIMEOUT: 3
-  OVSDB_INACTIVITY_TIMEOUT: 10
+  OVSDB_CON_TIMEOUT: 5
+  OVSDB_INACTIVITY_TIMEOUT: 30
   ENABLE_LIVE_MIGRATION_OPTIMIZE: true
 
 ipv4:
@@ -91,8 +91,8 @@ ipv4:
 
 performance:
   GC_INTERVAL: 0
-  INSPECT_INTERVAL: 20
-  OVS_VSCTL_CONCURRENCY: 100
+  INSPECT_INTERVAL: 300
+  OVS_VSCTL_CONCURRENCY: 150
 
 debug:
   ENABLE_MIRROR: false
