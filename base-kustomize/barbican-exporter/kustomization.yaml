@@ -1,0 +1,7 @@
+---
+sortOptions:
+  order: fifo
+resources:
+  - './deployment.yaml'
+  - './service.yaml'
+  - './service_monitor.yaml'
