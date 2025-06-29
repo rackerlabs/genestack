@@ -88,6 +88,8 @@ conf:
       handlers:
         - stdout
       level: INFO
+  ceph:
+    enabled: false
   nova:
     DEFAULT:
       block_device_allocate_retries: 180
