@@ -140,7 +140,7 @@ spec:
           emptyDir: {}
       initContainers:
         - name: init
-          image: "quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy"
+          image: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: true
@@ -213,7 +213,7 @@ spec:
             - 'echo "$$SCRIPT" > /tmp/script && ash /tmp/script'
       containers:
         - name: ovn-setup-exec
-          image: "docker.io/openstackhelm/ovn:ubuntu_jammy"
+          image: "ghcr.io/rackerlabs/genestack-images/ovs:v3.5.1-latest"
           imagePullPolicy: IfNotPresent
           command:
             - bash

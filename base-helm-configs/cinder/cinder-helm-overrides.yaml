@@ -7,7 +7,7 @@ labels:
 
 images:
   tags:
-    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     cinder_api: "quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy"
     cinder_backup: "quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy"
     cinder_backup_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
@@ -16,13 +16,13 @@ images:
     cinder_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
     cinder_volume: "quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy"
     cinder_volume_usage_audit: "quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy"
-    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
     image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
-    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
     test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
 

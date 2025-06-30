@@ -4,16 +4,16 @@ images:
     db_init: "quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy"
     db_init_indexer: "quay.io/rackspace/rackerlabs-postgres:14.5"
     db_sync: "quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy"
-    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
     gnocchi_api: "quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy"
     gnocchi_metricd: "quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy"
     gnocchi_resources_cleaner: "quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy"
     gnocchi_statsd: "quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy"
     gnocchi_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
     image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
-    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
 
 ceph_client:
   user_secret_name: gnocchi-temp-keyring
