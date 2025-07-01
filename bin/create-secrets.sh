@@ -2,7 +2,7 @@
 # shellcheck disable=SC2086
 
 usage() {
-    echo "Usage: $0 [--region <region> default: RegionOne]"
+    echo "Usage: $0 [--region <region [RegionOne]>"
     exit 1
 }
 
