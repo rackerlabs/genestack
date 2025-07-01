@@ -13,12 +13,12 @@
 ---
 images:
   tags:
-    db_init: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+    db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
     db_sync: docker.io/openstackhelm/masakari:2024.1-ubuntu_jammy
-    db_drop: quay.io/airshipit/heat:2024.1-ubuntu_jammy
-    ks_endpoints: quay.io/airshipit/heat:2024.1-ubuntu_jammy
-    ks_service: quay.io/airshipit/heat:2024.1-ubuntu_jammy
-    ks_user: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
     masakari_api: quay.io/rackspace/rackerlabs-masakari:2024.1-ubuntu_jammy
     masakari_engine: quay.io/rackspace/rackerlabs-masakari:2024.1-ubuntu_jammy
     # TEMP HOST-MONITOR IMAGE TO FIX: https://review.opendev.org/c/openstack/masakari-monitors/+/951336
@@ -26,7 +26,7 @@ images:
     masakari_process_monitor: quay.io/rackspace/rackerlabs-masakari-monitors:2024.1-ubuntu_jammy
     masakari_instance_monitor: quay.io/rackspace/rackerlabs-masakari-monitors:2024.1-ubuntu_jammy
     rabbit_init: docker.io/rabbitmq:3.13-management
-    dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
+    dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
   pull_policy: "IfNotPresent"
 
 # NOTE: (brew) requests cpu/mem values based on a three node

@@ -4,11 +4,11 @@ sortOptions:
 
 images:
   - name: image-kubernetes-entrypoint-init
-    newName: quay.io/airshipit/kubernetes-entrypoint
-    newTag: v1.0.0
+    newName: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint
+    newTag: latest
   - name: image-octavia-ovn
-    newName: quay.io/rackspace/rackerlabs-octavia-ovn
-    newTag: 2024.1-ubuntu_jammy-1737651745
+    newName: ghcr.io/rackerlabs/genestack-images/octavia
+    newTag: 2024.1-latest
 
 resources:
   - octavia-mariadb-database.yaml
