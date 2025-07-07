@@ -79,7 +79,7 @@ for MD_DEVICE in /dev/md*; do
         if echo "$line" | grep -E -qv "^/|Array Size|Used Dev Size|Events|Update Time|Check Status|Rebuild Status" ; then
           echo -n ", "
           MDADM_DETAIL_KEY=$(echo "$line" | cut -d ":" -f 1 | tr -cd '[a-zA-Z0-9]._-')
-          MDADM_DETAIL_VALUE=$(echo "$line" | cut -d ":" -f 2- | sed 's:^ ::')
+          MDADM_DETAIL_VALUE=$(echo "$line" | cut -d ":" -f 2- | sed 's:^ ::' | sed 's: $::')
           echo -n "${MDADM_DETAIL_KEY}=\"${MDADM_DETAIL_VALUE}\""
         fi
       fi
