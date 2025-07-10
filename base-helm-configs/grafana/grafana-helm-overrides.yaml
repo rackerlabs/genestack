@@ -1,16 +1,26 @@
 ---
+
+# Set the custom_host variable to the desired hostname for Grafana
+# This is used to set the domain and root_url in the grafana.ini file
+# and the value of the custom_host variable must be a valid domain.
 custom_host: grafana.example.com
+
 persistence:
   type: pvc
   enabled: true
+  storageClassName: general
   accessModes:
     - ReadWriteMany
+
 nodeSelector:
   openstack-control-plane: enabled
+
 ingress:
   enabled: false
+
 image:
-  tag: 10.3.3
+  tag: "10.3.3"
+
 grafana.ini:
   paths:
     data: /var/lib/grafana/
@@ -24,14 +34,15 @@ grafana.ini:
   grafana_net:
     url: https://grafana.net
   server:
-    domain: "{{ .Values.custom_host }}"
-    root_url: https://{{ .Values.custom_host }}
+    domain: "{{ .Values.custom_host }}"  # Ref: custom_host variable above
+    root_url: "https://{{ .Values.custom_host }}"  # Ref: custom_host variable above
   database:
     type: mysql
     host: mariadb-cluster.grafana.svc:3306
     user: $__file{/etc/secrets/grafana-db/username}
     password: $__file{/etc/secrets/grafana-db/password}
     name: grafana
+
 datasources:
   datasources.yaml:
     apiversion: 1
@@ -46,6 +57,7 @@ datasources:
         access: proxy
         url: http://loki-gateway.{{ $.Release.Namespace }}.svc.cluster.local:80
         editable: false
+
 alerting:
   rules.yaml:
     groups:
@@ -106,12 +118,65 @@ alerting:
             notifications:
               - uid: prom-alertmanager-notification
             annotations:
-              description: Checks app=ovs (ovs-ovn) pod logs for lines with string
+              description: >-
+                Checks app=ovs (ovs-ovn) pod logs for lines with string
                 'binding|INFO|cr-lrp'
-              summary: This alerts on rapid port claims for cr-lrp ports on OVN gateway nodes,
-                which overloads the OVN south database and interferes with the
-                function of the affected ports.
+              summary: >-
+                This alerts on rapid port claims for cr-lrp ports on OVN
+                gateway nodes, which overloads the OVN south database and
+                interferes with the function of the affected ports.
             labels: {}
+            isPaused: false
+          # Generated UUID using 'uuidgen'
+          - uid: c14dd8fd-54ec-4e15-9813-e02cc3269899
+            title: Neutron IPAM Duplicate Entry Error
+            condition: B
+            data:
+              - refId: A
+                queryType: instant
+                relativeTimeRange:
+                  from: 60
+                  to: 0
+                # Using same loki datasource as rule#ba943125-33ca-4e4e-85f8-13359a8e4d65
+                datasourceUid: P8E80F9AEF21F6940
+                model:
+                  expr: rate({app="fluentbit"} |= `Duplicate entry|ERROR` [1m])
+                  queryType: instant
+                  refId: A
+              - refId: B
+                relativeTimeRange:
+                  # Past 60 seconds (can be adjusted further)
+                  from: 60
+                  # 0 denotes till current time
+                  to: 0
+                datasourceUid: __expr__
+                model:
+                  conditions:
+                    - evaluator:
+                        params:
+                          - 1
+                          - 0
+                        type: gt
+                      operator:
+                        type: and
+                      reducer:
+                        type: avg
+                      type: query
+                  datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                  expression: A
+                  refId: B
+                  type: threshold
+            noDataState: OK
+            execErrState: Error
+            for: 0s
+            notifications:
+              - uid: prom-alertmanager-notification
+            annotations:
+              summary: >
+                Checks for log lines containing 'Duplicate entry|ERROR'  in nova logs.
             isPaused: false
   contactpoints.yaml:
     secret:
@@ -134,11 +199,13 @@ alerting:
         group_wait: 1s
         group_interval: 1s
         repeat_interval: 1s
+
 plugins:
   - camptocamp-prometheus-alertmanager-datasource
+
 extraSecretMounts:
   - name: grafana-db-secret-mount
     secretName: grafana-db
-    defaultMode: 440
+    defaultMode: 0440
     mountPath: /etc/secrets/grafana-db
     readOnly: true
