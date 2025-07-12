@@ -23,7 +23,7 @@ done
 
 HELM_CMD+=" --set endpoints.identity.auth.admin.password=\"\$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_cache.auth.memcache_secret_key=\"\$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
-HELM_CMD+=" --set conf.horizon.local_settings.config.horizon_secret_key=\"\$(kubectl --namespace openstack get secret horizon-secret-key -o jsonpath='{.data.root-password}' | base64 -d)\""
+HELM_CMD+=" --set conf.horizon.local_settings.config.horizon_secret_key=\"\$(kubectl --namespace openstack get secret horizon-secret-key -o jsonpath='{.data.horizon_secret_key}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_db.auth.admin.password=\"\$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_db.auth.horizon.password=\"\$(kubectl --namespace openstack get secret horizon-db-password -o jsonpath='{.data.password}' | base64 -d)\""
 
