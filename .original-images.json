@@ -44,5 +44,7 @@
   "ghcr.io/rackerlabs/skyline-rxt:master-ubuntu_jammy-1748595671",
   "ghcr.io/vexxhost/netoffload:v1.0.1",
   "quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy",
-  "quay.io/airshipit/porthole-postgresql-utility:latest-ubuntu_bionic"
+  "quay.io/airshipit/porthole-postgresql-utility:latest-ubuntu_bionic",
+  "quay.io/airshipit/freezer:2025.1-ubuntu_jammy",
+  "quay.io/airshipit/freezer-api:2025.1-ubuntu_jammy"
 ]
