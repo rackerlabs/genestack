@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: static-vendor-data
+  namespace: openstack
+data:
+  vendor_data.json: '{}'
