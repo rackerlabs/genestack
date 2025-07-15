@@ -190,7 +190,7 @@ conf:
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
       kombu_reconnect_delay: 0.5
-    schedule:
+    scheduler:
       workers: 2
     workarounds:
       skip_cpu_compare_at_startup: false
