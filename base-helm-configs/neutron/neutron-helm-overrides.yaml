@@ -86,6 +86,62 @@ pod:
         cpu: "3000m"
   use_fqdn:
     neutron_agent: false
+  lifecycle:
+    upgrades:
+      deployments:
+        revision_history: 3
+        pod_replacement_strategy: RollingUpdate
+        rolling_update:
+          max_unavailable: 20%
+          max_surge: 3
+      daemonsets:
+        pod_replacement_strategy: RollingUpdate
+        dhcp_agent:
+          enabled: true
+          min_ready_seconds: 0
+          max_unavailable: 20%
+        l3_agent:
+          enabled: true
+          min_ready_seconds: 0
+          max_unavailable: 20%
+        lb_agent:
+          enabled: true
+          min_ready_seconds: 0
+          max_unavailable: 20%
+        metadata_agent:
+          enabled: true
+          min_ready_seconds: 0
+          max_unavailable: 20%
+        ovn_metadata_agent:
+          enabled: true
+          min_ready_seconds: 0
+          max_unavailable: 20%
+        ovn_vpn_agent:
+          enabled: true
+          min_ready_seconds: 0
+          max_unavailable: 20%
+        ovs_agent:
+          enabled: true
+          min_ready_seconds: 0
+          max_unavailable: 20%
+        sriov_agent:
+          enabled: true
+          min_ready_seconds: 0
+          max_unavailable: 20%
+        netns_cleanup_cron:
+          enabled: true
+          min_ready_seconds: 0
+          max_unavailable: 20%
+    disruption_budget:
+      server:
+        min_available: 0
+    termination_grace_period:
+      server:
+        timeout: 60
+      rpc_server:
+        timeout: 60
+      ironic_agent:
+        timeout: 60
 
 conf:
   dhcp_agent:
