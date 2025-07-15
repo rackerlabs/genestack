@@ -18,3 +18,12 @@ dependencies:
       ovn:
         libvirt:
           pod: []  # In a hybrid deployment, we don't want to run ovn-controller on the same node as libvirt
+pod:
+  lifecycle:
+    upgrades:
+      daemonsets:
+        pod_replacement_strategy: RollingUpdate
+        libvirt:
+          enabled: true
+          min_ready_seconds: 0
+          max_unavailable: 20%

@@ -121,7 +121,7 @@ pod:
         revision_history: 3
         pod_replacement_strategy: RollingUpdate
         rolling_update:
-          max_unavailable: 1
+          max_unavailable: 20%
           max_surge: 3
     disruption_budget:
       api:
@@ -138,9 +138,9 @@ pod:
         min_available: 0
     termination_grace_period:
       api:
-        timeout: 30
+        timeout: 60
       mdns:
-        timeout: 30
+        timeout: 60
   resources:
     enabled: true
     api:

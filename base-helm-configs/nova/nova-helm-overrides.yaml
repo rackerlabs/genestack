@@ -34,10 +34,28 @@ network:
     - ovn
   lifecycle:
     upgrades:
+      deployments:
+        revision_history: 3
+        pod_replacement_strategy: RollingUpdate
+        rolling_update:
+          max_unavailable: 20%
+          max_surge: 3
       daemonsets:
+        pod_replacement_strategy: RollingUpdate
         compute:
           enabled: true
+          min_ready_seconds: 0
           max_unavailable: 20%
+    disruption_budget:
+      metadata:
+        min_available: 0
+      osapi:
+        min_available: 0
+    termination_grace_period:
+      metadata:
+        timeout: 60
+      osapi:
+        timeout: 60
   ssh:
     enabled: true
 
