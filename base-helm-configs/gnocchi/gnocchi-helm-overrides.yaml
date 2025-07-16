@@ -45,7 +45,7 @@ conf:
   gnocchi_api_wsgi:
     wsgi:
       processes: 2
-      threads: 4
+      threads: 1
   paste:
     "app:gnocchiv1":
       paste.app_factory: "gnocchi.rest.app:app_factory"
