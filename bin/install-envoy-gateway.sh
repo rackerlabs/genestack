@@ -4,7 +4,7 @@
 GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/envoyproxy-gateway"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/envoyproxy-gateway/envoy-gateway-helm-overrides.yaml"
-ENVOY_VERSION="v1.3.0"
+ENVOY_VERSION="v1.4.2"
 HELM_CMD="helm upgrade --install envoyproxy-gateway oci://docker.io/envoyproxy/gateway-helm \
                        --version ${ENVOY_VERSION} \
                        --namespace envoyproxy-gateway-system \
