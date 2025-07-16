@@ -369,11 +369,13 @@ openstack --os-cloud default image create \
           SLES15-SP6
 ```
 
-## Get RHEL
+## Get Red Hat Enterprise Linux (RHEL)
+
+### RHEL 9
 
 !!! note
 
-    Make sure you download the latest available image from [here](https://access.redhat.com/downloads/content/479/ver=/rhel---9/9.4/x86_64/product-software). We used the rhel-9.4-x86_64-kvm.qcow2 image.
+    Make sure you download the latest available image from [here](https://access.redhat.com/downloads/content/479/ver=/rhel---9/9.6/x86_64/product-software). We used the `rhel-9.6-x86_64-kvm.qcow2` image.
 
 ``` shell
 openstack --os-cloud default image create \
@@ -381,7 +383,7 @@ openstack --os-cloud default image create \
           --disk-format qcow2 \
           --container-format bare \
           --public \
-          --file rhel-9.4-x86_64-kvm.qcow2 \
+          --file rhel-9.6-x86_64-kvm.qcow2 \
           --property hw_vif_multiqueue_enabled=true \
           --property hw_qemu_guest_agent=yes \
           --property hypervisor_type=kvm \
@@ -392,8 +394,35 @@ openstack --os-cloud default image create \
           --property os_type=linux \
           --property os_admin_user=cloud-user \
           --property os_distro=rhel \
-          --property os_version=9.4 \
-          RHEL-9.4
+          --property os_version=9.6 \
+          RHEL-9.6
+```
+
+### RHEL 10
+
+!!! note
+
+    Make sure you download the latest available image from [here](https://access.redhat.com/downloads/content/479/ver=/rhel---10/10.0/x86_64/product-software). We used the `rhel-10.0-x86_64-kvm.qcow2` image.
+
+``` shell
+openstack --os-cloud default image create \
+          --progress \
+          --disk-format qcow2 \
+          --container-format bare \
+          --public \
+          --file rhel-10.0-x86_64-kvm.qcow2 \
+          --property hw_vif_multiqueue_enabled=true \
+          --property hw_qemu_guest_agent=yes \
+          --property hypervisor_type=kvm \
+          --property img_config_drive=optional \
+          --property hw_machine_type=q35 \
+          --property hw_firmware_type=uefi \
+          --property os_require_quiesce=yes \
+          --property os_type=linux \
+          --property os_admin_user=cloud-user \
+          --property os_distro=rhel \
+          --property os_version=10.0 \
+          RHEL-10.0
 ```
 
 ## Get Windows
