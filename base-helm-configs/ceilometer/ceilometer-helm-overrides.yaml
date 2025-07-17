@@ -1782,7 +1782,7 @@ pod:
         cpu: 500
       limits:
         memory: 2Gi
-        cpu: "2000m"    
+        cpu: "2000m"
   replicas:
     central: 1
     notification: 1
