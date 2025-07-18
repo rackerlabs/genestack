@@ -1776,34 +1776,13 @@ endpoints:
 pod:
   resources:
     enabled: true
-    compute:
-      requests:
-        memory: {}
-        cpu: {}
-      limits:
-        memory: {}
-        cpu: {}
     notification:
       requests:
-        memory: {}
-        cpu: {}
+        memory: 256
+        cpu: 500
       limits:
-        memory: {}
-        cpu: {}
-    central:
-      requests:
-        memory: {}
-        cpu: {}
-      limits:
-        memory: {}
-        cpu: {}
-    ipmi:
-      requests:
-        memory: {}
-        cpu: {}
-      limits:
-        memory: {}
-        cpu: {}
+        memory: 2Gi
+        cpu: "2000m"
   replicas:
     central: 1
     notification: 1
