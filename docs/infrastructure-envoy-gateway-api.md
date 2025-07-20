@@ -60,5 +60,5 @@ kubectl -n envoy-gateway get gateways.gateway.networking.k8s.io flex-gateway
 If you encounter any issues, check the logs of the `envoy-gateway` deployment.
 
 ``` shell
-kubectl logs -n envoygateway-system deployment/envoy-gateway
+kubectl logs -n envoyproxy-gateway-system deployment/envoy-gateway
 ```
