@@ -16,7 +16,7 @@ set -e
 function ethernetDevs () {
     # Returns all physical devices
     ip -details -json link show | jq -r '.[] |
-        if .linkinfo.info_kind // .link_type == "loopback" or (.ifname | test("idrac+")) then
+        if .linkinfo.info_kind // .link_type == "loopback" or (.ifname | test("idrac+")) or (.ifname | test("wlp+")) then
             empty
         else
             .ifname
