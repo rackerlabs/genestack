@@ -4,13 +4,13 @@ images:
     test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
     ceilometer_db_sync: "quay.io/rackspace/rackerlabs-ceilometer:2024.1-ubuntu_jammy"
     rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
-    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     ceilometer_central: "quay.io/rackspace/rackerlabs-ceilometer:2024.1-ubuntu_jammy"
     ceilometer_compute: "quay.io/rackspace/rackerlabs-ceilometer:2024.1-ubuntu_jammy"
     ceilometer_ipmi: "quay.io/rackspace/rackerlabs-ceilometer:2024.1-ubuntu_jammy"
     ceilometer_notification: "quay.io/rackspace/rackerlabs-ceilometer:2024.1-ubuntu_jammy"
-    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
     image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
   pull_policy: "Always"
 
@@ -80,7 +80,7 @@ conf:
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
       # DEPRECIATION:  (warning) heartbeat_in_pthread will be deprecated in 2024.2
-      heartbeat_in_pthread: True
+      heartbeat_in_pthread: true
       # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
@@ -509,7 +509,11 @@ conf:
       traits:
         <<: *network_traits
         resource_id:
-          fields: ["payload.floatingip.id", "payload.id"]
+          fields: payload.floatingip.id
+        ip_address:
+          fields: payload.floatingip.floating_ip_address
+        event_type:
+          fields: event_type
     - event_type: firewall.*
       traits:
         <<: *network_traits
@@ -1045,9 +1049,17 @@ conf:
         metrics:
           bandwidth:
           ip.floating:
+        event_create:
+          - floatingip.create.end
         event_delete: floatingip.delete.end
+        event_update:
+          - floatingip.update.end
         event_attributes:
           id: resource_id
+          user_id: user_id
+          project_id: project_id
+          floating_ip_address: ip_address
+          event_type: event_type
 
       - resource_type: stack
         metrics:
@@ -1764,33 +1776,12 @@ endpoints:
 pod:
   resources:
     enabled: true
-    compute:
-      requests:
-        memory: "128Mi"
-        cpu: "100m"
-      limits:
-        memory: "6144Mi"
-        cpu: "2000m"
     notification:
       requests:
-        memory: "256Mi"
-        cpu: "100m"
+        memory: 256
+        cpu: 500
       limits:
-        memory: "6144Mi"
-        cpu: "2000m"
-    central:
-      requests:
-        memory: "128Mi"
-        cpu: "100m"
-      limits:
-        memory: "6144Mi"
-        cpu: "2000m"
-    ipmi:
-      requests:
-        memory: "124Mi"
-        cpu: "100m"
-      limits:
-        memory: "6144Mi"
+        memory: 2Gi
         cpu: "2000m"
   replicas:
     central: 1
@@ -1801,7 +1792,7 @@ pod:
         revision_history: 3
         pod_replacement_strategy: RollingUpdate
         rolling_update:
-          max_unavailable: 1
+          max_unavailable: 20%
           max_surge: 3
       daemonsets:
         pod_replacement_strategy: RollingUpdate
@@ -1809,6 +1800,12 @@ pod:
           enabled: true
           min_ready_seconds: 0
           max_unavailable: 20%
+    disruption_budget:
+      api:
+        min_available: 0
+    termination_grace_period:
+      api:
+        timeout: 600
 
 manifests:
   deployment_api: false

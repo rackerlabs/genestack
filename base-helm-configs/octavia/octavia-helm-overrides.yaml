@@ -1,20 +1,20 @@
 ---
 images:
   tags:
-    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
     image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
-    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    octavia_api: "quay.io/rackspace/rackerlabs-octavia-ovn:2024.1-ubuntu_jammy-1737651745"
-    octavia_db_sync: "quay.io/rackspace/rackerlabs-octavia-ovn:2024.1-ubuntu_jammy-1737651745"
-    octavia_health_manager: "quay.io/rackspace/rackerlabs-octavia-ovn:2024.1-ubuntu_jammy-1737651745"
-    octavia_health_manager_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    octavia_housekeeping: "quay.io/rackspace/rackerlabs-octavia-ovn:2024.1-ubuntu_jammy-1737651745"
-    octavia_worker: "quay.io/rackspace/rackerlabs-octavia-ovn:2024.1-ubuntu_jammy-1737651745"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    octavia_api: "ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest"
+    octavia_db_sync: "ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest"
+    octavia_health_manager: "ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest"
+    octavia_health_manager_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    octavia_housekeeping: "ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest"
+    octavia_worker: "ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest"
     openvswitch_vswitchd: "docker.io/kolla/centos-source-openvswitch-vswitchd:rocky"
     rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
     test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
@@ -109,7 +109,7 @@ conf:
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
       # NOTE (deprecation warning) heartbeat_in_pthread will be deprecated in 2024.2
-      heartbeat_in_pthread: True
+      heartbeat_in_pthread: true
       # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
@@ -181,13 +181,35 @@ endpoints:
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
 # limit values based on defaults from the openstack-helm charts unless defined
 pod:
+  lifecycle:
+    upgrades:
+      deployments:
+        revision_history: 3
+        pod_replacement_strategy: RollingUpdate
+        rolling_update:
+          max_unavailable: 20%
+          max_surge: 3
+      daemonsets:
+        pod_replacement_strategy: RollingUpdate
+        health_manager:
+          enabled: true
+          min_ready_seconds: 0
+          max_unavailable: 20%
+    disruption_budget:
+      api:
+        min_available: 0
+    termination_grace_period:
+      api:
+        timeout: 60
   resources:
     enabled: true
     api:
       requests:
         memory: "768Mi"
         cpu: "300m"
-      limits: {}
+      limits:
+        memory: "3072Mi"
+        cpu: "2000m"
     worker:
       requests:
         memory: "256Mi"

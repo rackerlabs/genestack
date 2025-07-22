@@ -11,7 +11,7 @@ on:
       gatewayDomain:
         description: Set domain for the gateway
         required: true
-        default: master
+        default: cloud.local
         type: string
       osImage:
         description: Set OS image
@@ -71,17 +71,40 @@ jobs:
       - name: Statically set environment variable
         if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
-          echo "LAB_NAME_PREFIX=${{ github.event.inputs.mode }}-$(date +%s)" >> $GITHUB_ENV
-          echo "GATEWAY_DOMAIN=${{ github.event.inputs.gatewayDomain }}-$(date +%s)" >> $GITHUB_ENV
-          echo "ACME_EMAIL=${{ github.event.inputs.acmeEmail }}-$(date +%s)" >> $GITHUB_ENV
-          echo "OS_IMAGE=${{ github.event.inputs.osImage }}-$(date +%s)" >> $GITHUB_ENV
-          echo "SSH_USERNAME=${{ github.event.inputs.sshUsername }}-$(date +%s)" >> $GITHUB_ENV
+          echo "LAB_NAME_PREFIX=$(echo '${{ github.event.inputs.gatewayDomain }}' | tr '.' '-')" >> $GITHUB_ENV
+          echo "GATEWAY_DOMAIN=${{ github.event.inputs.gatewayDomain }}" >> $GITHUB_ENV
+          echo "ACME_EMAIL=${{ github.event.inputs.acmeEmail }}" >> $GITHUB_ENV
+          echo "OS_IMAGE=${{ github.event.inputs.osImage }}" >> $GITHUB_ENV
+          echo "SSH_USERNAME=${{ github.event.inputs.sshUsername }}" >> $GITHUB_ENV
 
       - name: Run deployment script
         if: ${{ github.event_name == 'pull_request' || contains(fromJSON('["deploy", "test"]'), github.event.inputs.mode) }}
         run: |
           eval "$(ssh-agent -s)"
           scripts/hyperconverged-lab.sh
+
+      - name: Retrieve Keys
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'deploy' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ssh-keys
+          if-no-files-found: warn  # 'warn' or 'ignore' are also available, defaults to `warn`
+          path: "/github/home/.ssh/${{ env.LAB_NAME_PREFIX }}-key.pem"
+
+      - name: Create output file in markdown format
+        run: |
+          if [ -s /tmp/output.txt ]; then
+              echo "### Cloud Access" > access-output.txt
+              cat /tmp/output.txt >> access-output.txt
+          fi
+
+      - name: Publish Output to Summary
+        run: |
+          if [ -s access-output.txt ]; then
+            {
+              cat access-output.txt
+            } >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: Cleanup the lab
         if: ${{ always() && (github.event_name == 'pull_request' || contains(fromJSON('["cleanup", "test"]'), github.event.inputs.mode)) }}

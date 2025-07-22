@@ -407,7 +407,7 @@ all:
         openstack_compute_nodes:
           vars:
             enable_iscsi: true
-            custom_multipath: false
+            storage_network_multipath: false
           hosts:
             ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
@@ -416,7 +416,7 @@ all:
         storage_nodes:
           vars:
             enable_iscsi: true
-            custom_multipath: false
+            storage_network_multipath: false
           children:
             cinder_storage_nodes:
               hosts: {}
@@ -450,7 +450,7 @@ cat > /etc/genestack/helm-configs/barbican/barbican-helm-overrides.yaml <<EOF
 pod:
   resources:
     enabled: false
-  
+
 conf:
   barbican_api_uwsgi:
     uwsgi:
@@ -972,6 +972,8 @@ fi
 HERE
 EOC
 
-echo "The lab is now ready for use and took ${SECONDS} seconds to complete."
-echo "This is the jump host address ${JUMP_HOST_VIP}, write this down."
-echo "This is the VIP address internally ${METAL_LB_IP} with public address ${METAL_LB_VIP} within MetalLB, write this down."
+{ cat | tee /tmp/output.txt; } <<EOF
+The lab is now ready for use and took ${SECONDS} seconds to complete.
+This is the jump host address ${JUMP_HOST_VIP}, write this down.
+This is the VIP address internally ${METAL_LB_IP} with public address ${METAL_LB_VIP} within MetalLB, write this down.
+EOF

@@ -6,16 +6,16 @@
 ---
 images:
   tags:
-    ironic_manage_cleaning_network: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ironic_retrive_cleaning_network: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ironic_retrive_swift_config: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ironic_manage_cleaning_network: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ironic_retrive_cleaning_network: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ironic_retrive_swift_config: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     ironic_db_sync: "quay.io/rackspace/rackerlabs-ironic:2024.1-ubuntu_jammy"
-    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
     ironic_api: "quay.io/rackspace/rackerlabs-ironic:2024.1-ubuntu_jammy"
     ironic_conductor: "quay.io/rackspace/rackerlabs-ironic:2024.1-ubuntu_jammy"
@@ -24,7 +24,7 @@ images:
     ironic_pxe_http: "docker.io/nginx:1.13.3" # Retained from openstack-helm default
     ironic_inspector: "quay.io/rackspace/rackerlabs-ironic-inspector:2024.1-ubuntu_jammy"
     ironic_inspector_db_sync: "quay.io/rackspace/rackerlabs-ironic-inspector:2024.1-ubuntu_jammy"
-    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
     image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
   pull_policy: "IfNotPresent"
 
@@ -75,7 +75,7 @@ conf:
       rabbit_interval_max: 10
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
-      heartbeat_in_pthread: True # Note: Deprecation warning for 2024.2
+      heartbeat_in_pthread: true # Note: Deprecation warning for 2024.2
       kombu_reconnect_delay: 0.5
     pxe:
       pxe_append_params: "nofb nomodeset vga=normal ipa-debug=1"

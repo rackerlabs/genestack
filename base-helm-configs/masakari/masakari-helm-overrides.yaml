@@ -13,12 +13,12 @@
 ---
 images:
   tags:
-    db_init: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+    db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
     db_sync: docker.io/openstackhelm/masakari:2024.1-ubuntu_jammy
-    db_drop: quay.io/airshipit/heat:2024.1-ubuntu_jammy
-    ks_endpoints: quay.io/airshipit/heat:2024.1-ubuntu_jammy
-    ks_service: quay.io/airshipit/heat:2024.1-ubuntu_jammy
-    ks_user: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
     masakari_api: quay.io/rackspace/rackerlabs-masakari:2024.1-ubuntu_jammy
     masakari_engine: quay.io/rackspace/rackerlabs-masakari:2024.1-ubuntu_jammy
     # TEMP HOST-MONITOR IMAGE TO FIX: https://review.opendev.org/c/openstack/masakari-monitors/+/951336
@@ -26,11 +26,60 @@ images:
     masakari_process_monitor: quay.io/rackspace/rackerlabs-masakari-monitors:2024.1-ubuntu_jammy
     masakari_instance_monitor: quay.io/rackspace/rackerlabs-masakari-monitors:2024.1-ubuntu_jammy
     rabbit_init: docker.io/rabbitmq:3.13-management
-    dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
+    dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
   pull_policy: "IfNotPresent"
 
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
+pod:
+  lifecycle:
+    upgrades:
+      deployments:
+        revision_history: 3
+        pod_replacement_strategy: RollingUpdate
+        rolling_update:
+          max_unavailable: 20%
+          max_surge: 3
+      daemonsets:
+        pod_replacement_strategy: RollingUpdate
+        compute:
+          enabled: true
+          min_ready_seconds: 0
+          max_unavailable: 20%
+    disruption_budget:
+      masakari_api:
+        min_available: 0
+      masakari_engine:
+        min_available: 0
+    termination_grace_period:
+      masakari_api:
+        timeout: 60
+      masakari_engine:
+        timeout: 60
+  resources:
+    enabled: true
+    masakari_api:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    masakari_engine:
+      requests: {}
+      limits: {}
+    masakari_host_monitor:
+      requests:
+        memory: "192Mi"
+        cpu: "100m"
+      limits: {}
+    masakari_instance_monitor:
+      requests: {}
+      limits: {}
+
 endpoints:
-  identiy:
+  identity:
     port:
       api:
         default: 5000
@@ -107,7 +156,7 @@ conf:
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
       # DEPRECIATION:  (warning) heartbeat_in_pthread will be deprecated in 2024.2
-      heartbeat_in_pthread: True
+      heartbeat_in_pthread: true
       # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617

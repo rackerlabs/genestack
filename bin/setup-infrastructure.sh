@@ -151,21 +151,29 @@ fi
 
 # Deploy mariadb
 /opt/genestack/bin/install-mariadb-operator.sh
+echo "Waiting for the mariadb-operator-webhook to be available"
 if ! kubectl -n mariadb-system wait --timeout=1m deployments.apps mariadb-operator-webhook --for=condition=available; then
   echo "Recycling the mariadb-operator pods because sometimes they're stupid"
   kubectl -n mariadb-system get pods -o name | xargs kubectl -n mariadb-system delete
   kubectl -n mariadb-system wait --timeout=5m deployments.apps mariadb-operator-webhook --for=condition=available
 fi
 
-echo "Waiting for the mariadb-operator-webhook to be available"
 kubectl -n openstack apply -k /etc/genestack/kustomize/mariadb-cluster/overlay
 
-# Deploy rabbitmq
-kubectl apply -k /etc/genestack/kustomize/rabbitmq-operator/base
-kubectl apply -k /etc/genestack/kustomize/rabbitmq-topology-operator/base
-echo "Waiting for the rabbitmq-cluster-operator to be available"
-kubectl -n rabbitmq-system wait --timeout=5m deployments.apps rabbitmq-cluster-operator --for=condition=available
-kubectl apply -k /etc/genestack/kustomize/rabbitmq-cluster/overlay
+function create_rabbitmq() {
+  # Deploy rabbitmq
+  kubectl apply -k /etc/genestack/kustomize/rabbitmq-operator/base
+  kubectl apply -k /etc/genestack/kustomize/rabbitmq-topology-operator/base
+  echo "Waiting for the rabbitmq-cluster-operator to be available"
+  kubectl -n rabbitmq-system wait --timeout=5m deployments.apps rabbitmq-cluster-operator --for=condition=available
+  kubectl apply -k /etc/genestack/kustomize/rabbitmq-cluster/overlay
+}
+
+if ! create_rabbitmq; then
+  echo "Recycling the rabbitmq-cluster create because sometimes it is stupid"
+  sleep 5
+  create_rabbitmq
+fi
 
 # Deploy ovn
 kubectl apply -k /etc/genestack/kustomize/ovn/base

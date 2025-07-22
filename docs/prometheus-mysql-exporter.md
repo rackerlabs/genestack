@@ -21,7 +21,7 @@ kubectl --namespace openstack \
 
 Then add the config to a secret that'll be used within the container for our shared services
 ``` shell
-kubectl -n openstack create secret generic mariadb-monitor --type Opaque --from-literal=my.cnf="[client.monitoring]
+kubectl -n openstack create secret generic mariadb-monitor --type Opaque --from-literal=my.cnf="[client.mariadb-monitor]
 user=monitoring
 password=$(kubectl --namespace openstack get secret mariadb-monitoring -o jsonpath='{.data.password}' | base64 -d)"
 ```

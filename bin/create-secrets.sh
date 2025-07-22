@@ -2,7 +2,7 @@
 # shellcheck disable=SC2086
 
 usage() {
-    echo "Usage: $0 [--region <region> default: RegionOne]"
+    echo "Usage: $0 [--region <region [RegionOne]>"
     exit 1
 }
 
@@ -66,7 +66,7 @@ designate_admin_password=$(generate_password 32)
 neutron_rabbitmq_password=$(generate_password 64)
 neutron_db_password=$(generate_password 32)
 neutron_admin_password=$(generate_password 32)
-horizon_secret_key_password=$(generate_password 64)
+horizon_secret_key=$(generate_password 64)
 horizon_db_password=$(generate_password 32)
 skyline_service_password=$(generate_password 32)
 skyline_db_password=$(generate_password 32)
@@ -390,8 +390,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  username: $(echo -n "horizon" | base64)
-  password: $(echo -n $horizon_secret_key_password | base64 -w0)
+  horizon_secret_key: $(echo -n $horizon_secret_key | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret

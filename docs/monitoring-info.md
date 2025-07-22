@@ -177,7 +177,7 @@ You can manually add additional datasources by following the [add datasource](ht
 More information about the primary datasources can be found in the [Prometheus datasource](https://grafana.com/docs/grafana/latest/datasources/prometheus/) and [Loki datasource](https://grafana.com/docs/grafana/latest/datasources/loki/) documentation.
 
 As things stand now, the Grafana deployment does not deploy dashboards as part of the default deployment instructions. However, there are dashboards available found in the [etc directory](https://github.com/rackerlabs/genestack/tree/main/etc/grafana-dashboards) of the Genestack repo that can be installed manually by importing them into Grafana.
-View the [importing dashboards](https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/import-dashboards/) documentation for more information.
+View the [importing dashboards](https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/import-dashboards/) documentation for more information. You can also use [import-grafana-dashboard.py](https://github.com/rackerlabs/genestack/tree/main/scripts/import-grafana-dashboard.py) script for the same.
 The dashboards available cover just about every exporter/metric noted here and then some. Some of the dashboards may not be complete or may not provide the desired view. Please feel free to adjust them as needed and submit a PR to [Genestack repo](https://github.com/rackerlabs/genestack) if they may help others!
 
 ## Next Steps

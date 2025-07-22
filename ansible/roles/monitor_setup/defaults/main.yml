@@ -1,7 +1,0 @@
----
-# defaults file for monitor_setup
-
-monitor_dirs:
-  - /opt/monitor
-  - /opt/monitor/bin
-  - /opt/monitor/conf

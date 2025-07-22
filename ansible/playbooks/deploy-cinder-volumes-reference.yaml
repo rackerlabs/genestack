@@ -8,7 +8,7 @@
     cinder_storage_network_interface: ansible_br_storage
     cinder_storage_network_interface_secondary: ansible_br_storage_secondary
     cinder_backend_name: "lvmdriver-1"
-    custom_multipath: false
+    storage_network_multipath: false
   handlers:
     - name: Restart cinder-volume and cinder-backup systemd services
       ansible.builtin.systemd:
@@ -59,6 +59,23 @@
           - tgt
         state: present
         update_cache: true
+
+    - name: Determine iscsi initiator name
+      set_fact:
+        initiator_name: >
+          {% set _iqn = "iqn.2004-10.com." + ansible_distribution |lower() + ":" + ansible_hostname -%}
+          {% if ansible_iscsi_iqn is defined -%}
+          {% if (ansible_iscsi_iqn |length >= 15) -%}
+          {% set _iqn = ansible_iscsi_iqn  -%}
+          {% endif -%}
+          {% endif -%}
+          {{ _iqn }}
+
+    - name: Set iscsi initiator name if not set
+      ansible.builtin.lineinfile:
+        path: /etc/iscsi/initiatorname.iscsi
+        regexp: '^InitiatorName=.*|^GenerateName=.*'
+        line: "InitiatorName={{ initiator_name }}"
 
     - name: Upgrade pip and install required packages
       ansible.builtin.pip:
@@ -188,7 +205,7 @@
           {%   set default_backend = (_kubernetes_cinder_etc_secret.resources[0].data['backends.conf'] | b64decode | community.general.from_ini)[backend] %}
           {%   set network_interface = hostvars[inventory_hostname][cinder_storage_network_interface]['ipv4']['address'] | default(ansible_default_ipv4.address) %}
           {%   set _ = default_backend.__setitem__("target_ip_address", network_interface) %}
-          {%   if ("lvm" in backend) and (custom_multipath | bool) %}
+          {%   if ("lvm" in backend) and (storage_network_multipath | bool) %}
           {%       set network_interface_secondary = hostvars[inventory_hostname][cinder_storage_network_interface_secondary]['ipv4']['address'] %}
           {%       set _ = default_backend.__setitem__("iscsi_secondary_ip_addresses", network_interface_secondary) %}
           {%   endif %}

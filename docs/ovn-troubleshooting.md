@@ -16,9 +16,9 @@ openstack server show ${INSTANCE_UUID} -c hypervisor_hostname
 ## Kube-OVN kubectl plugin
 
 - Kube-OVN has a `kubectl` plugin.
-- You can see documentation at [the Kube-OVN documentation](https://kubeovn.github.io/docs/v1.12.x/en/)
+- You can see documentation at [the Kube-OVN documentation](https://kubeovn.github.io/docs/v1.13.x/en/)
 - You should install it from wherever you would like to use `kubectl` from, as described
-      [here](https://kubeovn.github.io/docs/v1.12.x/en/ops/kubectl-ko/#plugin-installation)
+      [here](https://kubeovn.github.io/docs/v1.13.x/en/ops/kubectl-ko/#plugin-installation)
   - However, you will also find it already on installed on _Genestack_ Kubernetes
       nodes, so you can use it with `kubectl` there, if desired.
 - You can use this to run many OVS commands for a particular node

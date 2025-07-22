@@ -21,8 +21,9 @@ From your generated `clouds.yaml` file, create a new manifest for your cloud con
 
 ``` shell
 printf -v m "$(cat ~/.config/openstack/clouds.yaml)"; \
-    m="$m" yq -I6 -n '."clouds.yaml" = strenv(m)' | \
-        tee /tmp/generated-clouds-yaml
+	t=$(echo "$m" | yq '.[] |= pick(["clouds", "default"])' | yq 'del(.cache)'); \
+		 t="$t" yq -I6 -n '."clouds.yaml" = strenv(t)' | \
+			 tee /tmp/generated-clouds-yaml
 ```
 
 !!! example "generated file will look similar to this"
@@ -61,7 +62,7 @@ cd /opt/genestack/submodules/openstack-exporter/charts
 helm upgrade --install os-metrics ./prometheus-openstack-exporter \
   --namespace=openstack \
     --timeout 15m \
-    -f /etc/genestack/helm-configs/monitoring/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml \
+    -f /opt/genestack/base-helm-configs/monitoring/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml \
     --set clouds_yaml_config="$(kubectl --namespace openstack get secret clouds-yaml-secret -o jsonpath='{.data.generated-clouds-yaml}' | base64 -d)"
 ```
 
@@ -73,7 +74,7 @@ cd /opt/genestack/submodules/openstack-exporter/charts
 helm upgrade --install os-metrics ./prometheus-openstack-exporter \
   --namespace=openstack \
     --timeout 15m \
-    -f /etc/genestack/helm-configs/monitoring/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml \
+    -f /opt/genestack/base-helm-configs/monitoring/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml \
     --set clouds_yaml_config="$(kubectl --namespace openstack get secret clouds-yaml-secret -o jsonpath='{.data.generated-clouds-certs-yaml}' | base64 -d)"
 ```
 

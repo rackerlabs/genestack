@@ -43,14 +43,14 @@ labels:
 
 images:
   tags:
-    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
-    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
     designate_db_sync: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
     designate_api: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
     designate_central: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
@@ -121,7 +121,7 @@ pod:
         revision_history: 3
         pod_replacement_strategy: RollingUpdate
         rolling_update:
-          max_unavailable: 1
+          max_unavailable: 20%
           max_surge: 3
     disruption_budget:
       api:
@@ -138,76 +138,18 @@ pod:
         min_available: 0
     termination_grace_period:
       api:
-        timeout: 30
+        timeout: 60
       mdns:
-        timeout: 30
-
+        timeout: 60
   resources:
     enabled: true
     api:
       requests:
-        memory: "128Mi"
-        cpu: "100m"
+        memory: {}
+        cpu: {}
       limits:
-        memory: "4096Mi"
-        cpu: "2000m"
-    jobs:
-      bootstrap:
-        requests:
-          memory: "128Mi"
-          cpu: "100m"
-        limits:
-          memory: "1024Mi"
-          cpu: "2000m"
-      db_init:
-        requests:
-          memory: "128Mi"
-          cpu: "100m"
-        limits:
-          memory: "1024Mi"
-          cpu: "2000m"
-      db_sync:
-        requests:
-          memory: "128Mi"
-          cpu: "100m"
-        limits:
-          memory: "1024Mi"
-          cpu: "2000m"
-      ks_endpoints:
-        requests:
-          memory: "128Mi"
-          cpu: "100m"
-        limits:
-          memory: "1024Mi"
-          cpu: "2000m"
-      ks_service:
-        requests:
-          memory: "128Mi"
-          cpu: "100m"
-        limits:
-          memory: "1024Mi"
-          cpu: "2000m"
-      ks_user:
-        requests:
-          memory: "128Mi"
-          cpu: "100m"
-        limits:
-          memory: "1024Mi"
-          cpu: "2000m"
-      rabbit_init:
-        requests:
-          memory: "128Mi"
-          cpu: "100m"
-        limits:
-          memory: "1024Mi"
-          cpu: "2000m"
-      tests:
-        requests:
-          memory: "128Mi"
-          cpu: "100m"
-        limits:
-          memory: "1024Mi"
-          cpu: "2000m"
+        memory: {}
+        cpu: {}
 
 network:
   api:
@@ -495,7 +437,7 @@ conf:
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
       # DEPRECIATION:  (warning) heartbeat_in_pthread will be deprecated in 2024.2
-      heartbeat_in_pthread: True
+      heartbeat_in_pthread: true
       # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
