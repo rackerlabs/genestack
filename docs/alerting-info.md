@@ -81,11 +81,5 @@ We can now take all this information and build out an alerting workflow that sui
 
 ## Genestack alerts
 
-This section contains some information on individual Genestack alert.
-
-### MariaDB backup alert
-
-Based on a schedule of 6 hours by default, it allows 1 hour to upload and
-alerts when MySQL doesn't successfully complete a backup.
-
-It alerts at warning level the first time this happens, and at critical level the second time this happens.
+Genestack supplies default alerts, some of which are configured as part of the prometheus install and some of them come from the exporters deployments directly and are not controlled by Genestack.
+View the list of currently defined alerts supplied by genestack at [Genestack Alerts](genestack-alerts.md).
