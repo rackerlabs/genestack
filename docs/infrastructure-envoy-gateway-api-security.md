@@ -84,11 +84,11 @@ You will need to create a kubernetes secret that contains the client secret for 
     ``` yaml title="azuread-client-secret-APP_NAME.yaml"
     apiVersion: v1
     data:
-    client-secret: <BASE64_ENCODED_CLIENT_SECRET>
+      client-secret: <BASE64_ENCODED_CLIENT_SECRET>
     kind: Secret
     metadata:
-    name: azuread-client-secret
-    namespace: <APP_NAMESPACE>
+      name: azuread-client-secret
+      namespace: <APP_NAMESPACE>
     type: Opaque
     ```
 
