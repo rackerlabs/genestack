@@ -504,7 +504,9 @@ conf:
         name:
           fields: payload.router.name
         resource_id:
-          fields: ["payload.router.id", "payload.id"]
+          fields: payload.router.id
+        event_type:
+          fields: event_type
     - event_type: floatingip.*
       traits:
         <<: *network_traits
@@ -1051,15 +1053,20 @@ conf:
           ip.floating:
         event_create:
           - floatingip.create.end
-        event_delete: floatingip.delete.end
+          - router.create.end
+        event_delete:
+          - floatingip.delete.end
+          - router.delete.end
         event_update:
           - floatingip.update.end
+          - router.update.end
         event_attributes:
           id: resource_id
           user_id: user_id
           project_id: project_id
           floating_ip_address: ip_address
           event_type: event_type
+          display_name: name
 
       - resource_type: stack
         metrics:
