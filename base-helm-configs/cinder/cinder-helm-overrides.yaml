@@ -89,6 +89,8 @@ conf:
       volume_clear: zero
       volume_driver: cinder_rxt.rackspace.RXTLVM
       volume_group: cinder-volumes-1
+  policy:
+    "volume_extension:types_extra_specs:read_sensitive": "rule:xena_system_admin_or_project_reader"
   cinder:
     DEFAULT:
       allow_availability_zone_fallback: true
