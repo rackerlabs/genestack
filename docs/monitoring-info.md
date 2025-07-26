@@ -68,6 +68,12 @@ View the [kube-state-docs](https://github.com/kubernetes/kube-state-metrics/tree
 
 Beyond those two highly important ones installed by default are many more equally important metric exporters that we install as part of Genestack's workflow that we'll go over next.
 
+* ### Kubernetes Event Exporter
+Kubernetes clusters are constantly sending events that contain potentially important data that should be captured.
+With the [Kubernetes Event Exporter](https://github.com/resmoio/kubernetes-event-exporter) we can capture these events to gain a better view of what our cluster is doing.
+This exporter also includes built in alerting mechanisms for things like Slack and MSTeams that can be configured to send messages when specific events are seen.
+View the [Kubernetes Event Exporter Install Instructions](prometheus-kube-event-exporter.md) to get this exporter installed.
+
 * ### MariaDB/MySQL Exporter:
 Genestack uses a couple different database solutions to run OpenStack or just for general storage capabilities, the most prominent of them is MySQL or more specifically within Genestack MariaDB and Galera.
 When installing [MariaDB](infrastructure-mariadb.md) as part of Genestack's workflow it is default to enable metrics which deploys its own service monitor as part of the [mariadb-operator](https://mariadb-operator.github.io/mariadb-operator/latest/) helm charts.
@@ -169,12 +175,6 @@ Currently, in Genestack the textfile-collector is used to collect kernel-taint s
 
 This is currently the complete list of exporters and monitoring callouts deployed within the Genestack workflow. That said, Genestack is constantly evolving and list may grow or change entirely as we look to further improve our systems!
 With all these metrics available we need a way to visualize them to get a better picture of our systems and their health, we'll discuss that next!
-
-* ### Kubernetes Event Exporter
-Kubernetes clusters are constantly sending events that contain potentially important data that should be captured. 
-With the [Kubernetes Event Exporter](https://github.com/resmoio/kubernetes-event-exporter) we can capture these events to gain a better view of what our cluster is doing. 
-This exporter also includes built in alerting mechanisms for things like Slack and MSTeams that can be configured to send messages when specific events are seen.
-View the [Kubernetes Event Exporter Install Instructions](prometheus-kube-event-exporter.md) to get this exporter installed.
 
 ## Visualization
 
