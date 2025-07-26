@@ -11,3 +11,4 @@ resources:
   - hpa-nova-novncproxy.yaml
   - hpa-nova-scheduler.yaml
   - policies.yaml
+  - static-vendordata-configmap.yaml
