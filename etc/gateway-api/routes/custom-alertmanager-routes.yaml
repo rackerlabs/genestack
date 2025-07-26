@@ -1,7 +1,7 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: custom-alertmanger-gateway-route
+  name: custom-alertmanager-gateway-route
   namespace: prometheus
 spec:
   parentRefs:
