@@ -295,6 +295,7 @@ nav:
                       - Nova PCI Passthrough: openstack-pci-passthrough.md
                       - Host Aggregates: openstack-host-aggregates.md
                       - Instance Data Recovery: openstack-data-disk-recovery.md
+                      - Vendordata: openstack-vendordata.md
                 - Quota Management:
                       - Quota Management: openstack-quota-managment.md
                 - Images:
@@ -315,7 +316,6 @@ nav:
                 - Override Public Endpoint fqdn for service catalog: openstack-override-public-endpoint-fqdn.md
                 - Service Overrides: openstack-service-overrides.md
                 - Resource and Project Lookups: openstack-resource-lookups.md
-                - Vendordata: openstack-vendordata.md
           - Working locally With Docs: mkdocs-howto.md
     - Cloud Onboarding:
           - Cloud Onboarding Welcome: cloud-onboarding-welcome.md
