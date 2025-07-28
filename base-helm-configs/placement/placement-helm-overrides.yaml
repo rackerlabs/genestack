@@ -4,7 +4,7 @@ images:
     db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
+    image_repo_sync: null
     ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"

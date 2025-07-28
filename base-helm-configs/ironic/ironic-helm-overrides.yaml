@@ -12,20 +12,20 @@ images:
     bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ironic_db_sync: "quay.io/rackspace/rackerlabs-ironic:2024.1-ubuntu_jammy"
+    ironic_db_sync: "ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest"
     ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
-    ironic_api: "quay.io/rackspace/rackerlabs-ironic:2024.1-ubuntu_jammy"
-    ironic_conductor: "quay.io/rackspace/rackerlabs-ironic:2024.1-ubuntu_jammy"
-    ironic_pxe: "quay.io/rackspace/rackerlabs-ironic:2024.1-ubuntu_jammy"
-    ironic_pxe_init: "quay.io/rackspace/rackerlabs-ironic:2024.1-ubuntu_jammy"
+    rabbit_init: null
+    ironic_api: "ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest"
+    ironic_conductor: "ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest"
+    ironic_pxe: "ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest"
+    ironic_pxe_init: "ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest"
     ironic_pxe_http: "docker.io/nginx:1.13.3" # Retained from openstack-helm default
-    ironic_inspector: "quay.io/rackspace/rackerlabs-ironic-inspector:2024.1-ubuntu_jammy"
-    ironic_inspector_db_sync: "quay.io/rackspace/rackerlabs-ironic-inspector:2024.1-ubuntu_jammy"
+    ironic_inspector: "ghcr.io/rackerlabs/genestack-images/ironic-inspector:2024.1-latest"
+    ironic_inspector_db_sync: "ghcr.io/rackerlabs/genestack-images/ironic-inspector:2024.1-latest"
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
+    image_repo_sync: null
   pull_policy: "IfNotPresent"
 
 conf:

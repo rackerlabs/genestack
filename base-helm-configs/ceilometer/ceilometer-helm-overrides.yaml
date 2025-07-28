@@ -1,9 +1,9 @@
 ---
 images:
   tags:
-    test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
+    test: null
     ceilometer_db_sync: "quay.io/rackspace/rackerlabs-ceilometer:2024.1-ubuntu_jammy"
-    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
+    rabbit_init: null
     ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     ceilometer_central: "quay.io/rackspace/rackerlabs-ceilometer:2024.1-ubuntu_jammy"
@@ -11,7 +11,7 @@ images:
     ceilometer_ipmi: "quay.io/rackspace/rackerlabs-ceilometer:2024.1-ubuntu_jammy"
     ceilometer_notification: "quay.io/rackspace/rackerlabs-ceilometer:2024.1-ubuntu_jammy"
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
+    image_repo_sync: null
   pull_policy: "Always"
 
 conf:
