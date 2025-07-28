@@ -100,6 +100,9 @@ conf:
       vif_plugging_timeout: 300
       cross_az_attach: true
       network_allocate_retries: 3
+    api:
+      vendordata_providers: ['StaticJSON']
+      vendordata_jsonfile_path: /etc/nova/vendor_data.json
     api_database:
       connection_debug: 0
       connection_recycle_time: 600
@@ -347,6 +350,19 @@ pod:
           readOnlyRootFilesystem: false
   use_fqdn:
     compute: false
+  mounts:
+    nova_api_metadata:
+      init_container: null
+      nova_api_metadata:
+        volumeMounts:
+          - name: metadata-api-static-vendordata
+            mountPath: /etc/nova/vendor_data.json
+            subPath: vendor_data.json
+            readOnly: true
+        volumes:
+          - name: metadata-api-static-vendordata
+            configMap:
+              name: static-vendor-data
 
 manifests:
   deployment_spiceproxy: false

@@ -351,3 +351,6 @@ nav:
       - DFW3:
           - "<img src='https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fthe2hill%2Frs-flex-uptime-dfw%2Frefs%2Fheads%2Fmaster%2Fstatus.json'/>": https://status.api.dfw3.rackspacecloud.com
           - "<strong>Control Panel</strong>": https://skyline.api.dfw3.rackspacecloud.com
+      - IAD:
+          - "<img src='https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fthe2hill%2Frs-flex-uptime-iad%2Frefs%2Fheads%2Fmaster%2Fstatus.json'/>": https://status.api.iad3.rackspacecloud.com
+          - "<strong>Control Panel</strong>": https://keystone.api.iad3.rackspacecloud.com/v3/auth/OS-FEDERATION/websso/saml2?origin=https://skyline.api.iad3.rackspacecloud.com/api/openstack/skyline/api/v1/websso
