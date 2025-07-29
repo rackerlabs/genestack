@@ -33,6 +33,30 @@ images:
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
 # limit values based on defaults from the openstack-helm charts unless defined
 pod:
+  lifecycle:
+    upgrades:
+      deployments:
+        revision_history: 3
+        pod_replacement_strategy: RollingUpdate
+        rolling_update:
+          max_unavailable: 20%
+          max_surge: 3
+      daemonsets:
+        pod_replacement_strategy: RollingUpdate
+        compute:
+          enabled: true
+          min_ready_seconds: 0
+          max_unavailable: 20%
+    disruption_budget:
+      masakari_api:
+        min_available: 0
+      masakari_engine:
+        min_available: 0
+    termination_grace_period:
+      masakari_api:
+        timeout: 60
+      masakari_engine:
+        timeout: 60
   resources:
     enabled: true
     masakari_api:
