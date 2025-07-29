@@ -79,7 +79,7 @@ Within the `inventory.yaml` file, ensure you have the following variables for yo
 openstack_compute_nodes:
   vars:
     enable_iscsi: true
-    storage_network_multipath: false  # optional -- enable when running multipath
+    custom_multipath: false  # optional -- enable when running multipath with custom multipath.conf
 storage_nodes:
   vars:
     enable_iscsi: true
@@ -111,7 +111,7 @@ ansible-playbook -i inventory.yaml playbooks/deploy-cinder-volumes-reference.yam
 
     ``` console
     ansible-playbook -i /etc/genestack/inventory/inventory.yaml deploy-cinder-volumes-reference.yaml \
-                    -e "cinder_storage_network_interface=ansible_br_storage_a cinder_storage_network_interface_secondary=ansible_br_storage_b storage_network_multipath=true storage_network_multipath=true cinder_backend_name=lvmdriver-1" \
+                    -e "cinder_storage_network_interface=ansible_br_storage_a cinder_storage_network_interface_secondary=ansible_br_storage_b storage_network_multipath=true cinder_backend_name=lvmdriver-1" \
                     --user ubuntu \
                     --become 'cinder_storage_nodes'
     ```
@@ -277,7 +277,7 @@ storage:
 
 ## 7  Verify Multipath Operations
 
-If multipath is enabled, you check the status of the multipath devices on the storage nodes.
+If multipath is enabled on compute nodes, you can verify dual iscsi targets on the storage nodes.
 
 ``` bash
 tgtadm --mode target --op show

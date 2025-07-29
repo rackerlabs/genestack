@@ -407,7 +407,7 @@ all:
         openstack_compute_nodes:
           vars:
             enable_iscsi: true
-            storage_network_multipath: false
+            custom_multipath: false
           hosts:
             ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
