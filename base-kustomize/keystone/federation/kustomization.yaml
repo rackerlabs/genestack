@@ -6,8 +6,8 @@ resources:
 
 images:
   - name: keystone-shib
-    newName: ghcr.io/rackerlabs/keystone-rxt/shibd
-    newTag: "1747958286"
+    newName: ghcr.io/rackerlabs/genestack-images/shibd
+    newTag: "1753574514"
 
 patches:
   - target:
