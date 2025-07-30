@@ -12,12 +12,12 @@ images:
     heat_engine: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     heat_engine_cleaner: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     heat_purge_deleted: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
+    image_repo_sync: null
     ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
-    test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
+    rabbit_init: null
+    test: null
 
 # NOTE: (brew) requests cpu/mem values based on a three node
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).

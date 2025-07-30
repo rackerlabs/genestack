@@ -5,7 +5,7 @@ images:
     db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
+    image_repo_sync: null
     ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
@@ -16,8 +16,8 @@ images:
     octavia_housekeeping: "ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest"
     octavia_worker: "ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest"
     openvswitch_vswitchd: "docker.io/kolla/centos-source-openvswitch-vswitchd:rocky"
-    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
-    test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
+    rabbit_init: null
+    test: null
 
 dependencies:
   static:

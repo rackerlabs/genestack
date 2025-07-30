@@ -20,16 +20,16 @@ images:
     neutron_rpc_server: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
     neutron_bagpipe_bgp: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
     neutron_netns_cleanup_cron: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
+    test: null
     purge_test: "quay.io/rackspace/rackerlabs-ospurge:latest"
-    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
-    netoffload: "quay.io/rackspace/rackerlabs-netoffload:v1.0.1"
+    rabbit_init: null
+    netoffload: null
     neutron_sriov_agent: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
     neutron_sriov_agent_init: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
     neutron_bgp_dragent: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
     neutron_ironic_agent: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
+    image_repo_sync: null
 
 labels:
   ovs:

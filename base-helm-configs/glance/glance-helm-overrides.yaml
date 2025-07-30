@@ -4,7 +4,7 @@ storage: pvc
 
 images:
   tags:
-    test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
+    test: null
     glance_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
     glance_metadefs_load: "ghcr.io/rackerlabs/genestack-images/glance:2024.1-latest"
     db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
@@ -13,12 +13,12 @@ images:
     ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
+    rabbit_init: null
     glance_api: "ghcr.io/rackerlabs/genestack-images/glance:2024.1-latest"
     # Bootstrap image requires curl
     bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
+    image_repo_sync: null
 
 bootstrap:
   enabled: true
