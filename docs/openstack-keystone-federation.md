@@ -101,7 +101,7 @@ Using the `docker` command and the shibd image, retrieve the SAML2 files from th
 
 ``` shell
 docker run -v /etc/genestack/keystone-sp:/mnt \
-       ghcr.io/rackerlabs/keystone-rxt/shibd:latest \
+       ghcr.io/rackerlabs/genestack-images/shibd:latest \
        cp -R /etc/shibboleth /mnt/
 ```
 
