@@ -45,7 +45,7 @@ conf:
   gnocchi_api_wsgi:
     wsgi:
       processes: 2
-      threads: 4
+      threads: 1
   paste:
     "app:gnocchiv1":
       paste.app_factory: "gnocchi.rest.app:app_factory"
@@ -100,14 +100,28 @@ pod:
       limits: {}
   lifecycle:
     upgrades:
-      daemonsets:
-        metricd:
-          enabled: true
-          max_unavailable: 20%
+      deployments:
+        revision_history: 3
         pod_replacement_strategy: RollingUpdate
-        statsd:
-          enabled: true
+        rolling_update:
           max_unavailable: 20%
+          max_surge: 3
+      daemonsets:
+        pod_replacement_strategy: RollingUpdate
+        metricd:
+          enabled: false
+          min_ready_seconds: 0
+          max_unavailable: 20%
+        statsd:
+          enabled: false
+          min_ready_seconds: 0
+          max_unavailable: 20%
+    disruption_budget:
+      api:
+        min_available: 0
+    termination_grace_period:
+      api:
+        timeout: 60
 
 endpoints:
   fluentd:

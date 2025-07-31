@@ -30,6 +30,20 @@ images:
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
 # limit values based on defaults from the openstack-helm charts unless defined
 pod:
+  lifecycle:
+    upgrades:
+      deployments:
+        revision_history: 3
+        pod_replacement_strategy: RollingUpdate
+        rolling_update:
+          max_unavailable: 20%
+          max_surge: 3
+    disruption_budget:
+      api:
+        min_available: 0
+    termination_grace_period:
+      api:
+        timeout: 60
   resources:
     enabled: true
     api:
@@ -89,6 +103,8 @@ conf:
       volume_clear: zero
       volume_driver: cinder_rxt.rackspace.RXTLVM
       volume_group: cinder-volumes-1
+  policy:
+    "volume_extension:types_extra_specs:read_sensitive": "rule:xena_system_admin_or_project_reader"
   cinder:
     DEFAULT:
       allow_availability_zone_fallback: true

@@ -21,6 +21,24 @@ resources:
 # To run the OVN driver, the octavia-api container must have an agent container within the same pod.
 patches:
   - target:
+      kind: Secret
+      name: octavia-etc
+    patch: |-
+      - op: add
+        path: /data/policy.yaml
+        value: b3NfbG9hZC1iYWxhbmNlcl9hcGk6Zmxhdm9yLXByb2ZpbGU6Z2V0X29uZTogcnVsZTpsb2FkLWJhbGFuY2VyOnJlYWQKb3NfbG9hZC1iYWxhbmNlcl9hcGk6Zmxhdm9yLXByb2ZpbGU6Z2V0X2FsbDogcnVsZTpsb2FkLWJhbGFuY2VyOnJlYWQ=
+  - target:
+      kind: Deployment
+      name: octavia-api
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          name: octavia-etc
+          mountPath: /etc/octavia/policy.yaml
+          subPath: policy.yaml
+          readOnly: true
+  - target:
       kind: Deployment
       name: octavia-api
     patch: |-

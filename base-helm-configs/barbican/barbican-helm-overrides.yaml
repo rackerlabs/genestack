@@ -25,6 +25,14 @@ pod:
         memory: "256Mi"
         cpu: "100m"
       limits: {}
+  lifecycle:
+    upgrades:
+      deployments:
+        revision_history: 3
+        pod_replacement_strategy: RollingUpdate
+        rolling_update:
+          max_unavailable: 20%
+          max_surge: 3
 
 dependencies:
   static:
