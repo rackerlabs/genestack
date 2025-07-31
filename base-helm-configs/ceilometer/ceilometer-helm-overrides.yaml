@@ -1066,7 +1066,6 @@ conf:
           project_id: project_id
           floating_ip_address: ip_address
           event_type: event_type
-          display_name: name
 
       - resource_type: stack
         metrics:
