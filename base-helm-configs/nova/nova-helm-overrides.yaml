@@ -351,6 +351,18 @@ pod:
   use_fqdn:
     compute: false
   mounts:
+    nova_compute:
+      init_container: null
+      nova_compute:
+        volumeMounts:
+          - name: metadata-api-static-vendordata
+            mountPath: /etc/nova/vendor_data.json
+            subPath: vendor_data.json
+            readOnly: true
+        volumes:
+          - name: metadata-api-static-vendordata
+            configMap:
+              name: static-vendor-data
     nova_api_metadata:
       init_container: null
       nova_api_metadata:
