@@ -3,13 +3,13 @@
 # Declare variables to be passed into your templates.
 global:
   registry:
-    address: docker.io/kubeovn
+    address: ghcr.io/rackerlabs/genestack-images
     imagePullSecrets: []
   images:
     kubeovn:
       repository: kube-ovn
       vpcRepository: vpc-nat-gateway
-      tag: v1.13.14
+      tag: v1.13.14-latest
       support_arm: true
       thirdparty: true
 
