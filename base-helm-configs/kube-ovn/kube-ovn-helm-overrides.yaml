@@ -3,13 +3,13 @@
 # Declare variables to be passed into your templates.
 global:
   registry:
-    address: docker.io/kubeovn
+    address: ghcr.io/rackerlabs/genestack-images
     imagePullSecrets: []
   images:
     kubeovn:
       repository: kube-ovn
       vpcRepository: vpc-nat-gateway
-      tag: v1.13.14
+      tag: v1.13.14-latest
       support_arm: true
       thirdparty: true
 
@@ -41,7 +41,7 @@ networking:
     #VLAN_NAME: "ovn-vlan"
     #VLAN_ID: "100"
   EXCHANGE_LINK_NAME: false
-  ENABLE_EIP_SNAT: true
+  ENABLE_EIP_SNAT: false
   DEFAULT_SUBNET: "ovn-default"
   DEFAULT_VPC: "ovn-cluster"
   NODE_SUBNET: "join" #mesh network
