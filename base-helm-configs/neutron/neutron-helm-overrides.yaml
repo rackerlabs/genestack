@@ -177,6 +177,8 @@ conf:
       idle_timeout: 3600
       mysql_sql_mode: {}
       use_db_reconnect: true
+      max_pool_size: 30
+      max_overflow: 60
       pool_timeout: 60
       max_retries: -1
     oslo_messaging_rabbit:
