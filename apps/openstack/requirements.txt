@@ -10,3 +10,5 @@ pbr==5.11.1
 ruamel.yaml==0.18.6
 ruamel.yaml.clib==0.2.8
 kubernetes>=24.2.0
+openstacksdk>=1.0.0
+python-openstackclient==7.4.0
