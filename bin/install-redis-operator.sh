@@ -37,7 +37,7 @@ helm repo update
 helm upgrade --install --namespace=redis-systems --create-namespace redis-operator ot-helm/redis-operator --version "${VERSION}"
 
 # Helm command setup for Redis operator and cluster
-HELM_CMD="helm upgrade --install redis-operator ot-helm/redis-operator \
+HELM_CMD="helm upgrade --install redis-cluster ot-helm/redis-cluster \
     --namespace=redis-systems \
     --timeout 120m \
     -f /opt/genestack/base-helm-configs/redis-operator/redis-operator-helm-overrides.yaml"

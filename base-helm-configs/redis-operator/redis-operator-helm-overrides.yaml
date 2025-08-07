@@ -21,10 +21,9 @@ redisCluster:
   # -- Enable persistence for the cluster
   persistenceEnabled: true
   # -- Image configuration for Redis pods
-  image:
-    repository: quay.io/opstree/redis
-    tag: v7.0.15
-    pullPolicy: IfNotPresent
+  image: quay.io/opstree/redis
+  tag: v7.0.15
+  imagePullPolicy: IfNotPresent
   # -- Secrets for image pull (optional)
   imagePullSecrets: []
     # - name: Secret with Registry credentials
@@ -212,11 +211,11 @@ serviceAccountName: ""
 storageSpec:
   volumeClaimTemplate:
     spec:
+      # storageClassName: standard
       accessModes: ["ReadWriteOnce"]
       resources:
         requests:
           storage: 1Gi
-      # storageClassName: standard
   nodeConfVolume: true
   nodeConfVolumeClaimTemplate:
     spec:
