@@ -1,0 +1,3 @@
+# Stub file for the OpenStack outcome.  We need to be able to define what openstack services and additional
+# services to be installed here.  Think, do we need a mariadb cluster, how to we create one using the operator
+# here etc etc etc
