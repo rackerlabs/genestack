@@ -18,8 +18,8 @@ images:
     ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     rabbit_init: null
     ironic_api: "ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest"
-    ironic_conductor: "ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest"
-    ironic_pxe: "ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest"
+    ironic_conductor: "ghcr.io/rackerlabs/genestack-images/ironic-conductor:2024.1-latest"
+    ironic_pxe: "ghcr.io/rackerlabs/genestack-images/ironic-pxe:2024.1-latest"
     ironic_pxe_init: "ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest"
     ironic_pxe_http: "docker.io/nginx:1.13.3" # Retained from openstack-helm default
     ironic_inspector: "ghcr.io/rackerlabs/genestack-images/ironic-inspector:2024.1-latest"
