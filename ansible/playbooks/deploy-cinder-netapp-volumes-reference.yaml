@@ -7,8 +7,19 @@
     cinder_release: "2024.1"
     cinder_storage_network_interface: ansible_br_storage
     cinder_storage_network_interface_secondary: ansible_br_storage_secondary
-    cinder_backend_name: "block-ha-performance-at-rest-encrypted,block-ha-standard-at-rest-encrypted,block-ha-performance-end-to-end-encrypted,block-ha-standard-end-to-end-encrypted"
+    cinder_backend_name: "ha-block-EXAMPLE"
     storage_network_multipath: false
+    enable_netapp_ssl: false
+    netapp_cert_src_dir: "{{ playbook_dir }}/templates"
+    netapp_cert_filenames:
+      - "ontap-EXAMPLE-0.0.0.0.crt"
+    netapp_host_ip_mapping_list:
+      # cluster_name and ip
+      - name: None
+        ip: None
+      # vserver_name and ip
+      - name: None
+        ip: None
   handlers:
     - name: Restart cinder-volume-netapp systemd services
       ansible.builtin.systemd:
@@ -64,6 +75,55 @@
         path: /etc/iscsi/initiatorname.iscsi
         regexp: '^InitiatorName=.*|^GenerateName=.*'
         line: "InitiatorName={{ initiator_name }}"
+
+    - name: Update hosts file with NetApp cluster and vserver
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^{{ item.ip }}'
+        line: "{{ item.ip }} {{ item.name }}"
+        state: present
+      when:
+        - (netapp_host_ip_mapping_list | map('dict2items') | list | selectattr(0, 'search', '^(name|ip)$') | selectattr(1, 'defined') | list | length) > 0
+        - enable_netapp_ssl | bool
+      loop: "{{ netapp_host_ip_mapping_list }}"
+
+    - name: Copy NetApp client certificates Debian
+      ansible.builtin.copy:
+        src: "{{ netapp_cert_src_dir }}/{{ item }}"
+        dest: "/usr/local/share/ca-certificates/{{ item }}"
+        owner: root
+        group: root
+        mode: '0644'
+      when:
+        - enable_netapp_ssl | bool
+        - ansible_os_family | lower == "debian"
+      loop: "{{ netapp_cert_filenames }}"
+
+    - name: Copy NetApp client certificates Redhat
+      ansible.builtin.copy:
+        src: "{{ netapp_cert_src_dir }}/{{ item }}"
+        dest: "/etc/pki/ca-trust/source/anchors/{{ item }}"
+        owner: root
+        group: root
+        mode: '0644'
+      when:
+        - enable_netapp_ssl | bool
+        - ansible_os_family | lower == "redhat"
+      loop: "{{ netapp_cert_filenames }}"
+
+    - name: Update CA certificate trust Debian
+      ansible.builtin.command:
+        cmd: /usr/sbin/update-ca-certificates
+      when:
+        - enable_netapp_ssl | bool
+        - ansible_os_family | lower == "debian"
+
+    - name: Update CA certificate trust Redhat
+      ansible.builtin.command:
+        cmd: /usr/sbin/update-ca-trust extract
+      when:
+        - enable_netapp_ssl | bool
+        - ansible_os_family | lower == "redhat"
 
     - name: Upgrade pip and install required packages
       ansible.builtin.pip:
