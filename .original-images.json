@@ -1,7 +1,6 @@
 [
   "cr.fluentbit.io/fluent/fluent-bit",
   "docker.io/docker:17.07.0",
-  "docker.io/kolla/centos-source-openvswitch-vswitchd:master",
   "docker.io/kolla/ubuntu-source-nova-compute-ironic:master",
   "docker.io/library/postgres:14.5",
   "docker.io/library/postgres:14.5",
