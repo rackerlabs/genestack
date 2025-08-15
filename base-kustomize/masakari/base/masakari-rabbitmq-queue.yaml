@@ -4,8 +4,12 @@ kind: User
 metadata:
   name: masakari
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "masakari"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   tags:
     - management # available tags are 'management', 'policymaker', 'monitoring' and 'administrator'
@@ -21,8 +25,12 @@ kind: Vhost
 metadata:
   name: masakari-vhost
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "masakari"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   name: "masakari" # vhost name; required and cannot be updated
   defaultQueueType: quorum # default queue type for this vhost; require RabbitMQ version 3.11.12 or above
@@ -35,8 +43,12 @@ kind: Queue
 metadata:
   name: masakari-queue
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "masakari"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   name: masakari-qq # name of the queue
   vhost: "masakari" # default to '/' if not provided
@@ -52,8 +64,12 @@ kind: Permission
 metadata:
   name: masakari-permission
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "masakari"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   vhost: "masakari" # name of a vhost
   userReference:

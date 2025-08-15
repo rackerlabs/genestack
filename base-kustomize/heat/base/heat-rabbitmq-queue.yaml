@@ -4,10 +4,16 @@ kind: User
 metadata:
   name: heat
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
+  annotations:
+    helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "heat"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   tags:
-  - management # available tags are 'management', 'policymaker', 'monitoring' and 'administrator'
-  - policymaker
+    - management # available tags are 'management', 'policymaker', 'monitoring' and 'administrator'
+    - policymaker
   rabbitmqClusterReference:
     name: rabbitmq # rabbitmqCluster must exist in the same namespace as this resource
     namespace: openstack
@@ -19,6 +25,12 @@ kind: Vhost
 metadata:
   name: heat-vhost
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
+  annotations:
+    helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "heat"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   name: "heat" # vhost name; required and cannot be updated
   defaultQueueType: quorum # default queue type for this vhost; require RabbitMQ version 3.11.12 or above
@@ -38,6 +50,12 @@ kind: Queue
 metadata:
   name: heat-queue
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
+  annotations:
+    helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "heat"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   name: heat-qq # name of the queue
   vhost: "heat" # default to '/' if not provided
@@ -53,6 +71,12 @@ kind: Permission
 metadata:
   name: heat-permission
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
+  annotations:
+    helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "heat"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   vhost: "heat" # name of a vhost
   userReference:
