@@ -18,8 +18,8 @@ images:
     ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     rabbit_init: null
     ironic_api: "ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest"
-    ironic_conductor: "ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest"
-    ironic_pxe: "ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest"
+    ironic_conductor: "ghcr.io/rackerlabs/genestack-images/ironic-conductor:2024.1-latest"
+    ironic_pxe: "ghcr.io/rackerlabs/genestack-images/ironic-pxe:2024.1-latest"
     ironic_pxe_init: "ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest"
     ironic_pxe_http: "docker.io/nginx:1.13.3" # Retained from openstack-helm default
     ironic_inspector: "ghcr.io/rackerlabs/genestack-images/ironic-inspector:2024.1-latest"
@@ -112,6 +112,32 @@ network:
     neutron_subnet_alloc_end: 172.24.6.200
     neutron_subnet_dns_nameserver: 8.8.8.8 # Aligned with Neutron's OVN DNS
 
+bootstrap:
+  image:
+    enabled: true
+    openstack:
+      enabled: true
+      ks_user: ironic
+    # NOTE: if source_base is null the source will be used as is
+    source_base: http://tarballs.openstack.org/ironic-python-agent/tinyipa/files
+    structured:
+      ironic-agent.initramfs:
+        source: tinyipa-stable-2024.1.gz
+        disk_format: ari
+        container_format: ari
+      ironic-agent.kernel:
+        source: tinyipa-stable-2024.1.vmlinuz
+        disk_format: aki
+        container_format: aki
+  network:
+    enabled: false
+    openstack:
+      enabled: false
+  object_store:
+    enabled: false
+    openstack:
+      enabled: false
+
 dependencies:
   static:
     api:
@@ -119,8 +145,6 @@ dependencies:
         - ironic-db-sync
         - ironic-ks-user
         - ironic-ks-endpoints
-        - ironic-manage-cleaning-network
-        - ironic-rabbit-init
       services:
         - endpoint: internal
           service: oslo_db
@@ -133,8 +157,6 @@ dependencies:
         - ironic-db-sync
         - ironic-ks-user
         - ironic-ks-endpoints
-        - ironic-manage-cleaning-network
-        - ironic-rabbit-init
       services:
         - endpoint: internal
           service: oslo_db
@@ -233,12 +255,12 @@ manifests:
   ingress_api: false
   job_bootstrap: false
   job_db_drop: false
-  job_db_init: true
+  job_db_init: false
   job_db_sync: true
   job_ks_endpoints: true
   job_ks_service: true
   job_ks_user: true
-  job_manage_cleaning_network: true
-  job_rabbit_init: true
+  job_manage_cleaning_network: false
+  job_rabbit_init: false
   service_ingress_api: false
   statefulset_conductor: true
