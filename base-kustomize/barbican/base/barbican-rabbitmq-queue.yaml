@@ -4,6 +4,8 @@ kind: User
 metadata:
   name: barbican
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
     meta.helm.sh/release-name: "barbican"

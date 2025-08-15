@@ -4,11 +4,12 @@ kind: User
 metadata:
     name: keystone
     namespace: openstack
-    annotations:
-      helm.sh/resource-policy: keep
-      app.kubernetes.io/managed-by: "Helm"
-      meta.helm.sh/release-name: "keystone"
-      meta.helm.sh/release-namespace: "openstack"
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
+  annotations:
+    helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "keystone"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
     tags:
       - management

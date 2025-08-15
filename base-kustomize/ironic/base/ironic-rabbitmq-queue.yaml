@@ -4,8 +4,12 @@ kind: User
 metadata:
   name: ironic
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "ironic"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   tags:
     - management  # available tags are 'management', 'policymaker', 'monitoring' and 'administrator'
@@ -21,8 +25,12 @@ kind: Vhost
 metadata:
   name: ironic-vhost
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "ironic"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   name: "ironic"  # vhost name; required and cannot be updated
   defaultQueueType: quorum  # default queue type for this vhost; require RabbitMQ version 3.11.12 or above
@@ -42,8 +50,12 @@ kind: Queue
 metadata:
   name: ironic-queue
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "ironic"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   name: ironic-qq  # name of the queue
   vhost: "ironic"  # default to '/' if not provided
@@ -59,8 +71,12 @@ kind: Permission
 metadata:
   name: ironic-permission
   namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
   annotations:
     helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "ironic"
+    meta.helm.sh/release-namespace: "openstack"
 spec:
   vhost: "ironic"  # name of a vhost
   userReference:
