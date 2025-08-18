@@ -25,59 +25,51 @@ test -f ~/.rackspace/datacenter && export RAX_DC="$(cat ~/.rackspace/datacenter 
 test -f /etc/openstack_deploy/openstack_inventory.json && export RPC_CONFIG_IN_PLACE=true || export RPC_CONFIG_IN_PLACE=false
 
 # Global functions
+# Function to wait for Apt and DNF locks, then install packages
+wait_and_install_packages() {
+    local sleep_time=5  # Default sleep time between checks (in seconds)
+    local pkg_manager=""
+    local apt_packages=("python3-pip" "python3-venv" "python3-dev" "jq" "build-essential")
+    local dnf_packages=("npython3-pip" "python3-venv" "python3-dev" "jq" "build-essential")
 
-wait_for_dnf_locks() {
-    local max_retries=180  # Maximum retries for dnf commands
-    local retry_delay=10 # Delay between retries in seconds
-
-    for i in $(seq 1 $max_retries); do
-        if sudo dnf clean all && sudo dnf makecache; then
-            echo "dnf locks released. Proceeding."
-            return 0 # Indicate success
-        else
-            echo "dnf still locked. Retrying in $retry_delay seconds..."
-            sleep $retry_delay
-        fi
+    # Check for Apt locks
+    echo "Checking for Apt locks..."
+    while sudo fuser /var/lib/dpkg/lock /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || sudo fuser /var/cache/apt/archives/lock >/dev/null 2>&1; do
+        echo "Apt lock detected. Waiting for it to be released..."
+        sleep "$sleep_time"
     done
 
-    echo "Error: Timed out after $max_retries retries waiting for dnf to become available." >&2
-    return 1 # Indicate failure
-}
-
-wait_for_apt_locks() {
-    local max_wait_time=180  # Maximum time to wait in seconds
-    local elapsed_time=0
-
-    while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || \
-          sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
-
-        if (( elapsed_time >= max_wait_time )); then
-            echo "Error: Timed out waiting for apt locks to release." >&2
-            return 1 # Indicate failure
-        fi
-
-        echo "Waiting for apt locks to release..."
-        sleep 5  # Wait for 5 seconds before checking again
-        elapsed_time=$((elapsed_time + 5))
+    # Check for DNF process (indicating a DNF operation)
+    echo "Checking for DNF locks..."
+    while pgrep dnf >/dev/null; do
+        echo "DNF process detected. Waiting for it to finish..."
+        sleep "$sleep_time"
     done
-    echo "apt locks released. Proceeding."
-    return 0 # Indicate success
-}
 
-wait_for_package_manager_locks() {
-    # Check if apt or dnf is the package manager
-    if command -v apt-get &>/dev/null; then
-        echo "Detected apt package manager."
-        wait_for_apt_locks
-        return $?
-    elif command -v dnf &>/dev/null; then
-        echo "Detected dnf package manager."
-        wait_for_dnf_locks
-        return $?
+    echo "No package manager locks or active processes found. Proceeding with installation."
+
+    # Detect package manager
+    if command -v apt >/dev/null 2>&1; then
+        pkg_manager="apt"
+    elif command -v dnf >/dev/null 2>&1; then
+        pkg_manager="dnf"
     else
-        echo "Error: Neither apt nor dnf package manager found." >&2
+        echo "Error: Neither Apt nor DNF package manager found. Cannot install packages."
         return 1
     fi
+
+    # Install packages based on detected manager
+    if [[ "$pkg_manager" == "apt" ]]; then
+        echo "Detected Apt. Installing packages: ${apt_packages[@]}"
+        sudo apt update
+        sudo apt install -y "${apt_packages[@]}" # -y to auto-confirm installations
+    elif [[ "$pkg_manager" == "dnf" ]]; then
+        echo "Detected DNF. Installing packages: ${dnf_packages[@]}"
+        sudo dnf check-update # Checks for updates, but does not download or install packages
+        sudo dnf install -y "${dnf_packages[@]}" # -y to auto-confirm installations
+    fi
+
+    echo "Package installation complete."
 }
 
 function success {

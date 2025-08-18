@@ -28,17 +28,10 @@ env | grep -E '^(SUDO|RPC_|ANSIBLE_|GENESTACK_|K8S|CONTAINER_|OPENSTACK_|OSH_)' 
 
 success "Installing base packages (git):"
 
-if wait_for_package_manager_locks; then
-    echo "Package manager ready, proceeding with installations/updates."
-    apt update
-    DEBIAN_FRONTEND=noninteractive \
-    apt-get -o "Dpkg::Options::=--force-confdef" \
-            -o "Dpkg::Options::=--force-confold" \
-            -qy install git python3-pip python3-venv python3-dev jq build-essential > ~/genestack-base-package-install.log 2>&1
-else
-    echo "Failed to acquire package manager lock, exiting."
-    exit 1
-fi
+# NOTE: (brew) This function will determine wether DNF or APT should be used to install
+#       packages and will install then.  
+#       Package list found here: scripts/lib/funcitons.sh ['apt_packages', 'dnf_packages']
+wait_and_install_packages
 
 if [ $? -gt 1 ]; then
   error "Check for ansible errors at ~/genestack-base-package-install.log"
