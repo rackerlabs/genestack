@@ -30,7 +30,7 @@ wait_and_install_packages() {
     local sleep_time=5  # Default sleep time between checks (in seconds)
     local pkg_manager=""
     local apt_packages=("python3-pip" "python3-venv" "python3-dev" "jq" "build-essential")
-    local dnf_packages=("npython3-pip" "python3-venv" "python3-dev" "jq" "build-essential")
+    local dnf_packages=("python3-pip" "python3-venv" "python3-dev" "jq" "build-essential")
 
     # Check for Apt locks
     echo "Checking for Apt locks..."

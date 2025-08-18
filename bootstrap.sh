@@ -31,6 +31,7 @@ success "Installing base packages (git):"
 # NOTE: (brew) This function will determine wether DNF or APT should be used to install
 #       packages and will install then.  
 #       Package list found here: scripts/lib/funcitons.sh ['apt_packages', 'dnf_packages']
+echo "Starting package installation..."
 wait_and_install_packages
 
 if [ $? -gt 1 ]; then
