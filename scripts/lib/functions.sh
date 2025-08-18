@@ -25,7 +25,8 @@ test -f ~/.rackspace/datacenter && export RAX_DC="$(cat ~/.rackspace/datacenter 
 test -f /etc/openstack_deploy/openstack_inventory.json && export RPC_CONFIG_IN_PLACE=true || export RPC_CONFIG_IN_PLACE=false
 
 # Global functions
-# Function to wait for cloud-init to finish.  BLOCKING
+# Function to wait for cloud-init to finish.
+# BLOCKING if cloud-init is found and will retur exit code.
 wait_for_cloud_init() {
     if command -v cloud-init &> /dev/null; then
         cloud-init status --wait
