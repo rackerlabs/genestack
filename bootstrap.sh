@@ -26,8 +26,6 @@ set -e
 success "Environment variables:"
 env | grep -E '^(SUDO|RPC_|ANSIBLE_|GENESTACK_|K8S|CONTAINER_|OPENSTACK_|OSH_)' | sort -u
 
-bash
-
 echo "Waiting for cloud-init to finish..."
 wait_for_cloud_init
 
@@ -42,7 +40,7 @@ else
 fi
 
 # NOTE: (brew) This function will determine wether DNF or APT should be used
-#       to install packages and will install then.  
+#       to install packages and will install them.
 #       Package: scripts/lib/funcitons.sh ['apt_packages', 'dnf_packages']
 wait_and_install_packages
 
