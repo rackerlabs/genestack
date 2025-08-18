@@ -21,8 +21,6 @@ cd "${BASEDIR}" || error "Could not change to ${BASEDIR}"
 
 source scripts/lib/functions.sh
 
-#set -e
-
 success "Environment variables:"
 env | grep -E '^(SUDO|RPC_|ANSIBLE_|GENESTACK_|K8S|CONTAINER_|OPENSTACK_|OSH_)' | sort -u
 
@@ -45,11 +43,14 @@ fi
 #       Package: scripts/lib/funcitons.sh ['apt_packages', 'dnf_packages']
 wait_and_install_packages
 
-#if [ $? -gt 1 ]; then
-#  error "Check for ansible errors at ~/genestack-base-package-install.log"
-#else
-#  success "Local base OS packages installed."
-#fi
+if [ $? -gt 1 ]; then
+  error "Check for ansible errors at ~/genestack-base-package-install.log"
+else
+  success "Local base OS packages installed."
+fi
+
+# Set script to exit on any non-zero error code
+set -e
 
 # Install project dependencies
 success "Configuring genestack directory and overrides directory structure:"
