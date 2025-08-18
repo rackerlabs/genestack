@@ -26,12 +26,24 @@ set -e
 success "Environment variables:"
 env | grep -E '^(SUDO|RPC_|ANSIBLE_|GENESTACK_|K8S|CONTAINER_|OPENSTACK_|OSH_)' | sort -u
 
-success "Installing base packages (git):"
+bash
 
-# NOTE: (brew) This function will determine wether DNF or APT should be used to install
-#       packages and will install then.  
-#       Package list found here: scripts/lib/funcitons.sh ['apt_packages', 'dnf_packages']
-echo "Starting package installation..."
+echo "Waiting for cloud-init to finish..."
+wait_for_cloud_init
+
+if [[ $? -eq 0 ]]; then
+    echo "Cloud-init completed successfully!"
+elif [[ $? -eq 1 ]]; then
+    echo "Cloud-init crashed or experienced a serious issue."
+elif [[ $? -eq 2 ]]; then
+    echo "Cloud-init completed with errors."
+else
+    echo "Cloud-init command not found."
+fi
+
+# NOTE: (brew) This function will determine wether DNF or APT should be used
+#       to install packages and will install then.  
+#       Package: scripts/lib/funcitons.sh ['apt_packages', 'dnf_packages']
 wait_and_install_packages
 
 if [ $? -gt 1 ]; then
@@ -41,7 +53,7 @@ else
 fi
 
 # Install project dependencies
-success "Installing genestack dependencies"
+success "Configuring genestack directory and overrides directory structure:"
 test -L "$GENESTACK_CONFIG" 2>&1 || mkdir -p "${GENESTACK_CONFIG}"
 
 # Set config
@@ -92,13 +104,13 @@ for service in "$base_source_dir"/*; do
         ln -s "$service" "$base_target_dir/$service_name"
         success "Created symlink for $service_name directly under $base_target_dir"
       else
-        message "Symlink for $service_name already exists directly under $base_target_dir"
+        message "Symlink for $service_name already exists directly under $base_target_dir."
       fi
     else
       if [ -d "$base_target_dir/$service_name" ]; then
-        message "$base_target_dir/$service_name already exists"
+        message "$base_target_dir/$service_name already exists."
       else
-        message "Creating $base_target_dir/$service_name"
+        message "Creating $base_target_dir/$service_name."
         mkdir -p "$base_target_dir/$service_name"
       fi
       for item in "$service"/*; do
@@ -107,7 +119,7 @@ for service in "$base_source_dir"/*; do
           ln -s "$item" "$base_target_dir/$service_name/$item_name"
           success "Created symlink for $service_name/$item_name"
         else
-          message "Symlink for $service_name/$item_name already exists"
+          message "Symlink for $service_name/$item_name already exists."
         fi
       done
     fi
@@ -175,7 +187,7 @@ done
 
 if [ ! -d "/etc/genestack/helm-configs/global_overrides" ]; then
   mkdir -p /etc/genestack/helm-configs/global_overrides
-  echo "Created /etc/genestack/helm-configs/global_overrides"
+  echo "Created /etc/genestack/helm-configs/global_overrides."
 else
   echo "/etc/genestack/helm-configs/global_overrides already exists, skipping creation."
 fi
