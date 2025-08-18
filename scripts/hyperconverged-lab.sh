@@ -325,7 +325,7 @@ fi
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
 if [ ! -d "/opt/genestack" ]; then
-  sudo git clone --recurse-submodules -j4 --branch add-wait-for-pkg-mgr  https://github.com/rackerchris/genestack.git /opt/genestack
+  sudo git clone --recurse-submodules -j4 https://github.com/rackerlabs/genestack /opt/genestack
 else
   sudo git config --global --add safe.directory /opt/genestack
   pushd /opt/genestack
