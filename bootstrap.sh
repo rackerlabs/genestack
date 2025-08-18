@@ -24,6 +24,9 @@ source scripts/lib/functions.sh
 success "Environment variables:"
 env | grep -E '^(SUDO|RPC_|ANSIBLE_|GENESTACK_|K8S|CONTAINER_|OPENSTACK_|OSH_)' | sort -u
 
+# Explictily do not exit script on non-zero returns
+set +e
+
 # Wait until cloud-init is finished before proceeding
 echo "Waiting for cloud-init to finish..."
 wait_for_cloud_init
