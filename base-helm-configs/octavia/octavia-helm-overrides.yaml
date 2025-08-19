@@ -75,6 +75,8 @@ conf:
       use_db_reconnect: true
       pool_timeout: 60
       max_retries: -1
+      max_overflow: 60
+      max_pool_size: 30
     driver_agent:
       enabled_provider_agents: ovn
     glance:
