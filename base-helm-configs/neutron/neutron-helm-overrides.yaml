@@ -330,3 +330,4 @@ manifests:
   secret_ingress_tls: false
   secret_rabbitmq: false
   service_ingress_server: false
+  deployment_rpc_server: false
