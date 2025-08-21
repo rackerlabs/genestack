@@ -3,8 +3,12 @@
 
 GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/fluentbit"
+FLUENTBIT_CHART_VERSION="0.52.0"
 
-HELM_CMD="helm upgrade --install --namespace fluentbit --create-namespace fluentbit fluent/fluent-bit"
+HELM_CMD="helm upgrade --install \
+                       --version $FLUENTBIT_CHART_VERSION \
+                       --namespace fluentbit \
+                       --create-namespace fluentbit fluent/fluent-bit"
 
 HELM_CMD+=" -f /opt/genestack/base-helm-configs/fluentbit/fluentbit-helm-overrides.yaml"
 
