@@ -69,17 +69,21 @@ def compute_patch(base, edited):
 
 
 def main():
-    if len(sys.argv) != 3:
-        print("Usage: {} <base_yaml_file> <override_yaml_file>".format(sys.argv[0]))
+    if len(sys.argv) != 2:
+        print("Usage: {} <service_name>".format(sys.argv[0]))
         print(
-            "ye - (YamlEditor) will launch an editor to edit the values in base_yaml_file. If the override_yaml_file exists, "
-            "it will read its values in and will overlay the valies on top of base."
-            "After editing, the edited values will be saved to override_yaml_file and base will remain the same."
+            "ye - (YamlEditor) will launch an editor to edit the values for the specified service's base YAML file. "
+            "The base file is located at /opt/genestack/base-helm-configs/<service>/<service>-helm-overrides.yaml. "
+            "If the override file exists at /etc/genestack/helm-configs/<service>/<service>-helm-overrides.yaml, "
+            "its values will be overlaid on the base. After editing, the changes will be saved to the override file."
+            "Created by Jake Briggs Rackspace"
         )
         sys.exit(1)
 
-    base_filename = sys.argv[1]
-    override_filename = sys.argv[2]
+    service_name = sys.argv[1]
+    base_filename = f"/opt/genestack/base-helm-configs/{service_name}/{service_name}-helm-overrides.yaml"
+    override_filename = f"/etc/genestack/helm-configs/{service_name}/{service_name}-helm-overrides.yaml"
+
     base_data = load_yaml_file(base_filename)
     if not base_data:
         print(f"Error: Base file '{base_filename}' not found or is empty.")
