@@ -65,3 +65,9 @@
   ansible.builtin.apt:
     update_cache: yes
     cache_valid_time: 600
+
+- name: Restart lldpd
+  ansible.builtin.systemd:
+    name: "lldpd.service"
+    state: "restarted"
+    enabled: true

@@ -41,8 +41,8 @@ _host_distro_packages:
   - apt-utils
   - bridge-utils
   - cgroup-tools
-  - curl
   - cryptsetup
+  - curl
   - dmeventd
   - dstat
   - ebtables
@@ -50,6 +50,7 @@ _host_distro_packages:
   - iptables
   - irqbalance
   - libkmod2
+  - lldpd
   - lsscsi
   - lvm2
   - nfs-client

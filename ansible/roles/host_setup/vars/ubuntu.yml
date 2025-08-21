@@ -49,6 +49,7 @@ _host_distro_packages:
   - iptables
   - irqbalance
   - libkmod2
+  - lldpd
   - lsscsi
   - lvm2
   - nfs-client
