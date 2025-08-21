@@ -1,5 +1,5 @@
 [
-  "cr.fluentbit.io/fluent/fluent-bit",
+  "cr.fluentbit.io/fluent/fluent-bit:4.0.7",
   "docker.io/docker:17.07.0",
   "docker.io/kolla/ubuntu-source-nova-compute-ironic:master",
   "docker.io/library/postgres:14.5",
