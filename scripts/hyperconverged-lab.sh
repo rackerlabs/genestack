@@ -941,6 +941,7 @@ components:
   gnocchi: false
   skyline: true
 EOF
+fi
 
 # Run Genestack Infrastucture/OpenStack Setup
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
