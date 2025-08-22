@@ -188,4 +188,7 @@ else
   message "manifests already exists in /etc/genestack, skipping copy."
 fi
 
+# Copy yaml editor to /usr/local/bin
+cp /opt/genestack/yaml-editor/ye /usr/local/bin/ye
+
 echo
