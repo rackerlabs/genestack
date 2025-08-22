@@ -922,7 +922,8 @@ popd
 EOC
 
 echo "Creating config for setup-openstack.sh"
-
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+set -e
 if [ ! -f "/etc/genestack/openstack-components.yaml" ]; then
 cat > /etc/genestack/openstack-components.yaml <<EOF
 components:
@@ -942,6 +943,7 @@ components:
   skyline: true
 EOF
 fi
+EOC
 
 # Run Genestack Infrastucture/OpenStack Setup
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
