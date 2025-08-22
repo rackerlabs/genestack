@@ -921,6 +921,27 @@ pushd /opt/kube-plugins
 popd
 EOC
 
+echo "Creating config for setup-openstack.sh"
+
+if [ ! -f "/etc/genestack/openstack-components.yaml" ]; then
+cat > /etc/genestack/openstack-components.yaml <<EOF
+components:
+  keystone: true
+  glance: true
+  heat: true
+  barbican: true
+  cinder: true
+  placement: true
+  nova: true
+  neutron: true
+  magnum: true
+  octavia: true
+  masakari: false
+  ceilometer: false
+  gnocchi: false
+  skyline: true
+EOF
+
 # Run Genestack Infrastucture/OpenStack Setup
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
