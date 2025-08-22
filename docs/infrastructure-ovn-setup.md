@@ -99,11 +99,12 @@ kubectl annotate \
 ### Set `ovn.openstack.org/gateway`
 
 Define where the gateways nodes will reside. There are many ways to run this, some like every compute node to be a gateway, some like dedicated gateway hardware. Either way you will need at least one gateway node within your environment.
+NOTE: In the following example, we will apply the 'ovn.openstack.org/gateway' to dedicated network nodes.  You will want to change the node filter to the specific nodes you wish to use as ovn gateway nodes.
 
 ``` shell
 kubectl annotate \
         nodes \
-        -l openstack-network-node=enabled \
+        -l $(kubectl get nodes | awk '/network/ {print $1}') \
         ovn.openstack.org/gateway='enabled'
 ```
 
