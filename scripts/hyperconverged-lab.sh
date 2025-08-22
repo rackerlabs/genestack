@@ -935,7 +935,7 @@ components:
   nova: true
   neutron: true
   magnum: true
-  octavia: true
+  octavia: false
   masakari: false
   ceilometer: false
   gnocchi: false
@@ -988,6 +988,43 @@ if ! openstack --os-cloud default subnet show flat_subnet; then
             flat_subnet
 fi
 HERE
+EOC
+
+echo "Installing k9s"
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} << 'EOC'
+set -e
+echo "Installing k9s"
+if [ ! -e "/usr/bin/k9s" ]; then
+  sudo wget https://github.com/derailed/k9s/releases/latest/download/k9s_linux_amd64.deb && mv ./k9s_linux_amd64.deb /tmp/ && sudo apt install /tmp/k9s_linux_amd64.deb && sudo rm /tmp/k9s_linux_amd64.deb
+fi
+
+if [ ! -d ~/.kube ]; then
+  mkdir ~/.kube
+  sudo cp -i /etc/kubernetes/admin.conf ~/.kube/config
+  sudo chown $(id -u):$(id -g) ~/.kube/config
+fi
+EOC
+
+echo "Installing Octavia preconf"
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} << 'EOC'
+set -e
+
+if [ ! -f ~/.config/openstack ]; then
+  sudo cp -r /root/.config/openstack ~/.config/
+fi
+
+source ~/.venvs/genestack/bin/activate
+
+ANSIBLE_SSH_PIPELINING=0 ansible-playbook /opt/genestack/ansible/playbooks/octavia-preconf-main.yaml \
+  -e octavia_os_password=$(/usr/local/bin/kubectl get secrets keystone-admin -n openstack -o jsonpath='{.data.password}' | base64 -d) \
+  -e octavia_os_region_name=$(~/.venvs/genestack/bin/openstack --os-cloud=default endpoint list --service keystone --interface internal -c Region -f value) \
+  -e octavia_os_auth_url=$(~/.venvs/genestack/bin/openstack --os-cloud=default endpoint list --service keystone --interface internal -c URL -f value) \
+  -e octavia_os_endpoint_type=internal \
+  -e interface=internal \
+  -e endpoint_type=internal
+
+echo "Installing Octavia"
+sudo /opt/genestack/bin/install-octavia.sh
 EOC
 
 { cat | tee /tmp/output.txt; } <<EOF
