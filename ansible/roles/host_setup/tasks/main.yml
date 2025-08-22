@@ -137,6 +137,17 @@
   retries: 5
   delay: 2
 
+# NOTE(cloudnull): This configuration will ensure that LLDP is working on all interfaces
+#                  except our overlay and tenant networks.
+- name: Create base LLDPD configuration
+  ansible.builtin.copy:
+    content: |
+      DAEMON_ARGS="-c -I *,!tap*,!ovn*,!genev*,!mirror*,!o-hm*"
+    dest: /etc/default/lldpd
+    mode: "0644"
+  notify:
+    - Restart lldpd
+
 - name: Ensure timesyncd is running
   ansible.builtin.service:
     name: systemd-timesyncd
