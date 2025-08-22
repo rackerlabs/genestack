@@ -36,7 +36,7 @@ prompt_component() {
 # Function to check if a component is set to true in the YAML file
 is_component_enabled() {
     local component=$1
-    grep -q "^[[:space:]]*${component}:[[:space:]]*true" "$CONFIG_FILE"
+    grep -qi "^[[:space:]]*${component}:[[:space:]]*true" "$CONFIG_FILE"
 }
 
 # Check for YAML file and create if it doesn't exist
