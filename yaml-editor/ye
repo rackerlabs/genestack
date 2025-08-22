@@ -82,7 +82,9 @@ def main():
 
     service_name = sys.argv[1]
     base_filename = f"/opt/genestack/base-helm-configs/{service_name}/{service_name}-helm-overrides.yaml"
-    override_filename = f"/etc/genestack/helm-configs/{service_name}/{service_name}-helm-overrides.yaml"
+    override_filename = (
+        f"/etc/genestack/helm-configs/{service_name}/{service_name}-helm-overrides.yaml"
+    )
 
     base_data = load_yaml_file(base_filename)
     if not base_data:
