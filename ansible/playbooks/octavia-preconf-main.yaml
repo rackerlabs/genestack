@@ -14,6 +14,8 @@
     octavia_os_identity_api_version: 3
     octavia_os_auth_version: 3
     octavia_nova_endpoint_type: "{{ octavia_os_endpoint_type }}"
+    interface: "{{ interface }}"
+    endpoint_type: "{{ endpoint_type }}"
   environment:
     OS_ENDPOINT_TYPE: "{{ octavia_os_endpoint_type }}"
     OS_INTERFACE: "{{ octavia_os_interface}}"
