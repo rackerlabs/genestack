@@ -49,10 +49,10 @@
     filename: /tmp/test-only-amphora-x64-haproxy-ubuntu-{{ amphora_image_version }}.qcow2
     container_format: bare
     disk_format: qcow2
-    visibility: public
+    visibility: private
     protected: true
     tags:
-    - amphora
+      - amphora
     interface: public
   register: push_amphora_image
   until: push_amphora_image is success
