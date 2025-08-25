@@ -1015,18 +1015,25 @@ echo "Installing Octavia preconf"
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} << 'EOC'
 set -e
 
+if [ ! -f ~/.config/openstack ]; then
+  sudo cp -r /root/.config/openstack ~/.config/
+fi
+
 source ~/.venvs/genestack/bin/activate
+
+OCTAVIA_HELM_FILE=/tmp/octavia_helm_overrides.yaml
 
 ANSIBLE_SSH_PIPELINING=0 ansible-playbook /opt/genestack/ansible/playbooks/octavia-preconf-main.yaml \
   -e octavia_os_password=$(/usr/local/bin/kubectl get secrets keystone-admin -n openstack -o jsonpath='{.data.password}' | base64 -d) \
   -e octavia_os_region_name=$(sudo ~/.venvs/genestack/bin/openstack --os-cloud=default endpoint list --service keystone --interface internal -c Region -f value) \
   -e octavia_os_auth_url=$(sudo ~/.venvs/genestack/bin/openstack --os-cloud=default endpoint list --service keystone --interface internal -c URL -f value) \
   -e octavia_os_endpoint_type=internal \
+  -e octavia_helm_file=$OCTAVIA_HELM_FILE \
   -e interface=internal \
   -e endpoint_type=internal
 
 echo "Installing Octavia"
-sudo /opt/genestack/bin/install-octavia.sh
+sudo /opt/genestack/bin/install-octavia.sh -f $OCTAVIA_HELM_FILE
 EOC
 
 { cat | tee /tmp/output.txt; } <<EOF
