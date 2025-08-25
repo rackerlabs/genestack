@@ -52,7 +52,7 @@
     visibility: private
     protected: true
     tags:
-    - amphora
+      - amphora
     interface: public
   register: push_amphora_image
   until: push_amphora_image is success
