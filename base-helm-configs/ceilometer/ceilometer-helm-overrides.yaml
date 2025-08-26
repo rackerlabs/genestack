@@ -1697,7 +1697,6 @@ dependencies:
     central:
       jobs:
         - ceilometer-db-sync
-        - ceilometer-rabbit-init
         - ceilometer-ks-user
       services:
         - endpoint: internal
@@ -1707,7 +1706,6 @@ dependencies:
     ipmi:
       jobs:
         - ceilometer-db-sync
-        - ceilometer-rabbit-init
         - ceilometer-ks-user
       services:
         - endpoint: internal
@@ -1717,7 +1715,6 @@ dependencies:
     compute:
       jobs:
         - ceilometer-db-sync
-        - ceilometer-rabbit-init
         - ceilometer-ks-user
       services:
         - endpoint: internal
@@ -1730,7 +1727,6 @@ dependencies:
     notification:
       jobs:
         - ceilometer-db-sync
-        - ceilometer-rabbit-init
         - ceilometer-ks-user
       services:
         - endpoint: internal
@@ -1818,6 +1814,7 @@ manifests:
   deployment_collector: false
   ingress_api: false
   # using gnocchi so no db init
+  job_rabbit_init: false
   job_db_init: false
   job_db_init_mongodb: false
   job_ks_endpoints: false
