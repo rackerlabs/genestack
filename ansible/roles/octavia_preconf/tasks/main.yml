@@ -22,7 +22,7 @@
     - always
 
 - name: import tasks to create worker ports
-  import_tasks: octavia_health_worker_ports.yml
+  import_tasks: octavia_worker_ports.yml
   tags:
     - always
 
