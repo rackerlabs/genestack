@@ -21,6 +21,11 @@
   tags:
     - always
 
+- name: import tasks to create worker ports
+  import_tasks: octavia_health_worker_ports.yml
+  tags:
+    - always
+
 - name: import tasks to create amphora image, flavor and ssh keypair
   import_tasks: octavia_amphora_keypair_image_flavor.yml
   tags:
