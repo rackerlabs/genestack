@@ -994,7 +994,7 @@ HERE
 EOC
 
 echo "Installing k9s"
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} << 'EOC'
 set -e
 echo "Installing k9s"
 if [ ! -e "/usr/bin/k9s" ]; then
@@ -1009,7 +1009,7 @@ fi
 EOC
 
 echo "Installing Octavia preconf"
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} << 'EOC'
 set -e
 
 if [ ! -f ~/.config/openstack ]; then
@@ -1038,4 +1038,3 @@ The lab is now ready for use and took ${SECONDS} seconds to complete.
 This is the jump host address ${JUMP_HOST_VIP}, write this down.
 This is the VIP address internally ${METAL_LB_IP} with public address ${METAL_LB_VIP} within MetalLB, write this down.
 EOF
-
