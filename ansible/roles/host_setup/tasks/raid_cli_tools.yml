@@ -23,10 +23,13 @@
         http_agent: Chrome/1337
         validate_certs: false
         dest: "{{ dell_tools.download_path }}"
+        status_code: [200, 304]
+        mode: '0755'
     - name: Extract PERCCLI tar.gz
       ansible.builtin.unarchive:
         src: "{{ dell_tools.download_path }}"
         dest: "{{ dell_tools.tmp_dir }}"
+        remote_src: true
     - name: Install perccli APT
       when: ansible_os_family | lower == "debian"
       ansible.builtin.apt:
