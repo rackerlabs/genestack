@@ -81,3 +81,27 @@
   until: lb_health_mgr_secgroup_r1 is success
   retries: 5
   delay: 5
+
+- name: Create security group for worker ports
+  openstack.cloud.security_group:
+    name: "{{ lb_worker_secgrp_name }}"
+    state: present
+    description: "security group for worker ports"
+    interface: public
+  register: create_lb_worker_secgroup
+  until: create_lb_worker_secgroup is success
+  retries: 5
+  delay: 5
+
+- name: Create Security group rule to allow traffic on port 5555 for worker
+  openstack.cloud.security_group_rule:
+    security_group: "{{ create_lb_worker_secgroup.security_group.id }}"
+    state: present
+    protocol: udp
+    port_range_min: 5555
+    port_range_max: 5555
+    interface: public
+  register: lb_worker_secgroup_r1
+  until: lb_worker_secgroup_r1 is success
+  retries: 5
+  delay: 5
