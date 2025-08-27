@@ -1,0 +1,47 @@
+---
+# --------- HPE / HP ---------
+hpe_sdr_url: "https://downloads.linux.hpe.com/SDR"
+hpe_gpg_keyring: "/usr/share/keyrings/hpePublicKey.gpg"
+hpe_repo_base: "https://downloads.linux.hpe.com/SDR/repo/mcp"
+hpe_mcp_version: "current"
+
+hpe_repo_str: "[signed-by={{ hpe_gpg_keyring }}] {{ hpe_repo_base }}"
+
+hpe_repo_keys:
+  - {url: "{{ hpe_sdr_url }}/hpPublicKey2048_key1.pub", download_file: "/tmp/hpPublicKey2048_key1.pub"}
+  - {url: "{{ hpe_sdr_url }}/hpePublicKey2048_key1.pub", download_file: "/tmp/hpePublicKey2048_key1.pub"}
+  - {url: "{{ hpe_sdr_url }}/hpePublicKey2048_key2.pub", download_file: "/tmp/hpePublicKey2048_key2.pub"}
+
+hp_tools:
+  sdr_url: "{{ hpe_sdr_url }}"
+  repo_keys: "{{ hpe_repo_keys }}"
+  apt:
+    mcp_version: "{{ hpe_mcp_version }}"
+    gpg_keyring: "{{ hpe_gpg_keyring }}"
+    repo_str: "{{ hpe_repo_str }}"
+    deb_repo: "deb {{ hpe_repo_str }} {{ ansible_lsb.codename }}/{{ hpe_mcp_version }} non-free"
+    deb_src_repo: "deb-src {{ hpe_repo_str }} {{ ansible_lsb.codename }}/{{ hpe_mcp_version }} non-free"
+    state: "present"
+    repo_list_file: "mcp"
+  rpm:
+    url: "https://downloads.linux.hpe.com/repo/mcp"
+    dist: "{{ ansible_distribution }}"
+    dist_ver: "{{ ansible_distribution_version }}"
+    arch: "{{ ansible_architecture }}"
+    filename: "mcp"
+  package: "ssacli"
+
+# --------- Dell ---------
+dell_perc_file_tar_gz: "PERCCLI_7.2616.0_Linux.tar.gz"
+dell_tmp_dir: "/tmp/perccli"
+
+dell_tools:
+  file_tar_gz: "{{ dell_perc_file_tar_gz }}"
+  url: "https://dl.dell.com/FOLDER11213122M/1/{{ dell_perc_file_tar_gz }}"
+  tmp_dir: "{{ dell_tmp_dir }}"
+  download_path: "{{ dell_tmp_dir }}/{{ dell_perc_file_tar_gz }}"
+  deb_file: "{{ dell_tmp_dir }}/perccli_007.2616.0000.0000_all.deb"
+  rpm_file: "{{ dell_tmp_dir }}/perccli-007.2616.0000.0000-1.noarch.rpm"
+  perccli_path: "/opt/MegaRAID/perccli/perccli64"
+  symlink_path: "/usr/sbin/perccli"
+  symlink_64_path: "/usr/sbin/perccli64"
