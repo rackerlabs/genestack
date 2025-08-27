@@ -3,6 +3,10 @@
   ansible.builtin.package_facts:
     manager: auto
 
+- name: Load additional variables
+  include_vars:
+    file: "{{ role_path }}/vars/raid_cli_tools.yml"
+
 - name: Install PERCCLI command line tool for DELL servers
   when:
     - ansible_system_vendor | lower == "dell inc."
@@ -64,27 +68,69 @@
     - (ansible_system_vendor | lower == "hp" or ansible_system_vendor | lower == "hpe")
     - "'ssacli' not in ansible_facts.packages"
   block:
+    - name: Ensure keyring dir and staging dir exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ hp_tools.apt.gpg_keyring | dirname }}"
+        - "/usr/share/keyrings/hpe-keys.d"
+      become: true
     - name: Download HP tools apt keys
       ansible.builtin.uri:
         url: "{{ item.url }}"
         dest: "{{ item.download_file }}"
-      with_items: "{{ hp_tools.repo_keys }}"
-      when:
-        - hp_tools.repo_keys is defined
+        status_code: [200, 304]     # accept Not Modified
+        mode: "0644"
+      loop: "{{ hp_tools.repo_keys }}"
+      when: hp_tools.repo_keys is defined
       register: download_keys_url
-      until: download_keys_url is success
+      changed_when: download_keys_url.status == 200   # 304 -> not changed
       retries: 2
       delay: 4
-    - name: Add HP tools apt keys to gpg
+      until: download_keys_url is success
+    - name: Remove existing consolidated HPE keyring (if corrupted)
+      ansible.builtin.file:
+        path: "{{ hp_tools.apt.gpg_keyring }}"
+        state: absent
+      become: true
+    - name: Ensure staging dir for ASCII keys exists
+      ansible.builtin.file:
+        path: "/tmp/hpe-keys.asc.d"
+        state: directory
+        mode: "0755"
+    - name: Stage downloaded ASCII keys
+      ansible.builtin.copy:
+        src: "{{ item.download_file }}"
+        dest: "/tmp/hpe-keys.asc.d/{{ item.url | basename }}"
+        remote_src: true
+        mode: "0644"
+      loop: "{{ hp_tools.repo_keys }}"
+      when: hp_tools.repo_keys is defined
+    - name: Concatenate ASCII keys
+      ansible.builtin.assemble:
+        src: "/tmp/hpe-keys.asc.d"
+        dest: "/tmp/hpe-keys.asc"
+        regexp: ".*\\.pub$"
+        mode: "0644"
+    - name: Build consolidated HPE keyring from ASCII bundle
       ansible.builtin.command:
-        cmd: "cat {{ item.download_file }} | gpg --dearmor | sudo tee -a {{ hp_tools.apt.gpg_keyring }} > /dev/null"
-      with_items: "{{ hp_tools.repo_keys }}"
-      when:
-        - hp_tools.repo_keys is defined
-      register: add_keys_url
-      until: add_keys_url is success
-      retries: 2
-      delay: 2
+        cmd: >-
+          gpg --batch --yes --dearmor
+          --output '{{ hp_tools.apt.gpg_keyring }}'
+          '/tmp/hpe-keys.asc'
+      register: dearmor_out
+      changed_when: dearmor_out.rc == 0
+      become: true
+    - name: Remove ASCII staging files
+      ansible.builtin.file:
+        path: "/tmp/hpe-keys.asc.d"
+        state: absent
+    - name: Remove ASCII bundle
+      ansible.builtin.file:
+        path: "/tmp/hpe-keys.asc"
+        state: absent
     - name: Add HP tools MCP apt repositories
       ansible.builtin.apt_repository:
         repo: "{{ hp_tools.apt.deb_repo }}"
