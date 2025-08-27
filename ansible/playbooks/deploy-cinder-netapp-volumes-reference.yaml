@@ -8,6 +8,7 @@
     cinder_storage_network_interface: ansible_br_storage
     cinder_storage_network_interface_secondary: ansible_br_storage_secondary
     cinder_backend_name: "block-ha-performance-at-rest-encrypted,block-ha-standard-at-rest-encrypted,block-ha-performance-end-to-end-encrypted,block-ha-standard-end-to-end-encrypted"
+    virtualenv_path: "/opt/cinder"
     storage_network_multipath: false
     enable_netapp_ssl: false
     netapp_cert_src_dir: "/opt/genestack/ansible/playbooks/templates/"
@@ -116,8 +117,23 @@
           - "git+https://github.com/openstack/cinder@stable/{{ cinder_release }}"
           - "git+https://github.com/rackerlabs/cinder-rxt.git"
         state: present
-        virtualenv: /opt/cinder
+        virtualenv: "{{ virtualenv_path }}"
         virtualenv_command: python3 -m venv
+
+    - name: "Get Python site-packages path from virtualenv"
+      command: "{{ virtualenv_path }}/bin/python -c 'import site; print(site.getsitepackages()[0])'"
+      register: venv_site
+      changed_when: false
+
+    - name: "Normalize site-packages path"
+      set_fact:
+        venv_site_packages: "{{ venv_site.stdout | trim }}"
+
+    - name: "Ensure site-packages exists"
+      file:
+        path: "{{ venv_site_packages }}"
+        state: directory
+      when: venv_site_packages != ""
 
     - name: Install eventlet SSL patch
       ansible.builtin.copy:
@@ -128,10 +144,10 @@
         mode: "{{ item.mode | default('0644') }}"
       loop:
         - src: "{{ playbook_dir }}/templates/zzz_eventlet_ssl_patch.pth"
-          dest: /opt/cinder/lib/python3.12/site-packages/zzz_eventlet_ssl_patch.pth
+          dest: "{{ venv_site_packages }}/zzz_eventlet_ssl_patch.pth"
           mode: "0644"
         - src: "{{ playbook_dir }}/templates/eventlet_ssl_patch.py"
-          dest: /opt/cinder/lib/python3.12/site-packages/eventlet_ssl_patch.py
+          dest: "{{ venv_site_packages }}/eventlet_ssl_patch.py"
           mode: "0644"
 
     - name: Create the cinder system user
