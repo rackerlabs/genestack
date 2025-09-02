@@ -33,6 +33,7 @@ DEFAULT_REPOS = [
     "kubeovn",
 ]
 
+
 def load_yaml_file(filename):
     """Load a YAML file and return its contents as a dictionary."""
     try:
@@ -47,6 +48,7 @@ def load_yaml_file(filename):
         logging.error(f"Error parsing YAML file {filename}: {e}")
         return {}
 
+
 def save_yaml_file(data, filename):
     """Save a dictionary to a YAML file."""
     try:
@@ -57,6 +59,7 @@ def save_yaml_file(data, filename):
     except Exception as e:
         logging.error(f"Error saving YAML file {filename}: {e}")
         sys.exit(1)
+
 
 def merge_dicts(base, overrides):
     """Merge two dictionaries, with overrides taking precedence."""
@@ -72,6 +75,7 @@ def merge_dicts(base, overrides):
             result[key] = override_value
     return result
 
+
 def launch_editor(initial_content):
     """Launch an editor to modify YAML content and return the edited content."""
     editor = os.environ.get("EDITOR", "vim")
@@ -86,6 +90,7 @@ def launch_editor(initial_content):
     os.unlink(temp_filename)
     logging.info("Editor closed, temporary file deleted")
     return edited_content
+
 
 def compute_patch(base, edited):
     """Compute the difference between base and edited data, returning the patch."""
@@ -103,6 +108,7 @@ def compute_patch(base, edited):
                 if edited_value != base_value:
                     patch[key] = edited_value
     return patch
+
 
 def load_helm_defaults(service_name, repos):
     """Load default values from the Helm chart for the given service, trying multiple repos."""
@@ -131,6 +137,7 @@ def load_helm_defaults(service_name, repos):
         f"No Helm defaults found for {service_name} in any repo. Proceeding without."
     )
     return {}
+
 
 def main():
     """Main function to orchestrate YAML editing and patching."""
@@ -197,6 +204,7 @@ def main():
     # Save patch to override file
     save_yaml_file(patch, override_filename)
     print(f"Overrides saved to '{override_filename}'.")
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
