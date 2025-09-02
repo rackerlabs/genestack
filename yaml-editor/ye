@@ -141,7 +141,7 @@ def main():
     parser.add_argument(
         "--repos",
         default=",".join(DEFAULT_REPOS),
-        help=f"Comma-separated list of Helm repos (default: {','.join(DEFAULT_REPOS)})"
+        help=f"Comma-separated list of Helm repos (default: {','.join(DEFAULT_REPOS)})",
     )
     args = parser.parse_args()
 
