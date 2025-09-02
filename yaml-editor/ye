@@ -14,7 +14,9 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler(f"/var/log/ye_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"),
+        logging.FileHandler(
+            f"/var/log/ye_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+        ),
         logging.StreamHandler(),
     ],
 )
@@ -115,7 +117,9 @@ def load_helm_defaults(service_name, repos):
             )
             defaults_str = result.stdout
             data = yaml.safe_load(defaults_str)
-            logging.info(f"Loaded Helm defaults for service: {service_name} from repo: {repo}")
+            logging.info(
+                f"Loaded Helm defaults for service: {service_name} from repo: {repo}"
+            )
             return data if data is not None else {}
         except subprocess.CalledProcessError:
             logging.warning(f"Chart '{chart_ref}' not found in repo '{repo}'")
@@ -123,13 +127,17 @@ def load_helm_defaults(service_name, repos):
             logging.warning(f"Error parsing Helm defaults for {chart_ref}: {e}")
         except Exception as e:
             logging.warning(f"Error loading Helm chart from {repo}: {e}")
-    logging.warning(f"No Helm defaults found for {service_name} in any repo. Proceeding without.")
+    logging.warning(
+        f"No Helm defaults found for {service_name} in any repo. Proceeding without."
+    )
     return {}
 
 def main():
     """Main function to orchestrate YAML editing and patching."""
     parser = argparse.ArgumentParser(description="YamlEditor for Helm configurations")
-    parser.add_argument("service_name", help="Name of the service (e.g., keystone, grafana)")
+    parser.add_argument(
+        "service_name", help="Name of the service (e.g., keystone, grafana)"
+    )
     parser.add_argument(
         "--repos",
         default=",".join(DEFAULT_REPOS),
@@ -140,18 +148,24 @@ def main():
     repos = [r.strip() for r in args.repos.split(",")]
     service_name = args.service_name
     base_filename = f"/opt/genestack/base-helm-configs/{service_name}/{service_name}-helm-overrides.yaml"
-    override_filename = f"/etc/genestack/helm-configs/{service_name}/{service_name}-helm-overrides.yaml"
+    override_filename = (
+        f"/etc/genestack/helm-configs/{service_name}/{service_name}-helm-overrides.yaml"
+    )
 
     # Load all configuration sources
     helm_defaults = load_helm_defaults(service_name, repos)
     base_data = load_yaml_file(base_filename)
     if not base_data:
-        logging.warning(f"Base file '{base_filename}' not found or is empty. Proceeding without base.")
+        logging.warning(
+            f"Base file '{base_filename}' not found or is empty. Proceeding without base."
+        )
         base_data = {}
     previous_overrides = load_yaml_file(override_filename)
     if not isinstance(previous_overrides, dict):
         previous_overrides = {}
-        logging.warning(f"Override file '{override_filename}' is not a valid dictionary, using empty dict")
+        logging.warning(
+            f"Override file '{override_filename}' is not a valid dictionary, using empty dict"
+        )
 
     # Merge configurations: Helm defaults -> Base -> Overrides
     base_merged = merge_dicts(helm_defaults, base_data)
