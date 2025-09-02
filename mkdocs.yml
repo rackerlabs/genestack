@@ -280,6 +280,7 @@ nav:
                 - Monitoring Overview: monitoring-info.md
                 - Alerting Overview: alerting-info.md
                 - Logging Overview: genestack-logging.md
+          - Upgrades: 2024.1-to-2025.1.md
           - OpenStack:
                 - CLI Access:
                       - Generating Clouds YAML: openstack-clouds.md
