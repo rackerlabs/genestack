@@ -97,13 +97,21 @@ they are not required. You can also use the `shibd` command directly on the host
 
 #### Retrieve the SAML2 files
 
-Using the `docker` command and the shibd image, retrieve the SAML2 files from the container and place them in a local directory.
+A example *keystone-sp* configuration is provided under `/opt/genestack/etc/keystone-sp` and needs to be copied to the local configuration directory
 
 ``` shell
-docker run -v /etc/genestack/keystone-sp:/mnt \
-       ghcr.io/rackerlabs/genestack-images/shibd:latest \
-       cp -R /etc/shibboleth /mnt/
+cp -r /opt/genestack/etc/keystone-sp /etc/genestack
 ```
+
+??? "Extracting the configuration from the original source"
+
+    Using the `docker` command and the shibd image, retrieve the SAML2 files from the container and place them in a local directory.
+
+    ``` shell
+    docker run -v /etc/genestack/keystone-sp:/mnt \
+        ghcr.io/rackerlabs/genestack-images/shibd:latest \
+        cp -R /etc/shibboleth /mnt/
+    ```
 
 #### Update the `shibboleth2.xml` file
 
@@ -219,10 +227,10 @@ used by the SAML2 identity provider.
 
         When using the Rackspace the `shibboleth2.xml` file must be updated to include signing for all requests and responses.
 
-        The `shibboleth2.xml` file must be updated to include the following options:
+        The *shibboleth2.xml* file must be updated to include the following options, commonly the URLs of the entities
 
         ``` xml
-        <ApplicationDefaults entityID="EXAMPLE_ENTITY_ID_REPLACED_WITH_THE_ENTITY_ID_OF_THE_IDP"
+        <ApplicationDefaults entityID="https://keystone.api.example.com/v3"
                              REMOTE_USER="eppn persistent-id targeted-id uid"
                              cipherSuites="DEFAULT:!EXP:!LOW:!aNULL:!eNULL:!DES:!IDEA:!SEED:!RC4:!3DES:!kRSA:!SSLv2:!SSLv3:!TLSv1:!TLSv1.1"
                              signing="true"
@@ -253,7 +261,7 @@ used by the SAML2 identity provider.
                  Location="/Metadata"
                  signing="true"
                  signingAlg="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
-                 digestAlg="http://www.w3.org/2001/04/xmlenc#sha256" />
+                 digestAlg="http://www.w3.org/2001/04/xmlenc#sha256"/>
         ```
 
         The following attributes are used by the Rackspace identity provider. Add the following options to the
@@ -273,6 +281,81 @@ used by the SAML2 identity provider.
         <Attribute name="user_id" id="uid"/>
         <Attribute name="username" id="REMOTE_USERNAME"/>
         ```
+
+    === "Keycloak"
+
+        The following attributes are an example of attributes exported through keycloak.
+        The attributes name provided by keycloak depend on the backend configuration inside keycloak and how
+        other identity provider are imported and mapped. Add the following options to the
+        `attribute-map.xml` to have it compatible with the provided `saml-mapping.json` which will be used
+        within keystone.
+
+        ``` xml
+        <!--- Keycloak provided attributes -->
+        <Attribute name="urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified" id="nameID"/>
+        <Attribute name="username" nameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic" id="REMOTE_USERNAME"/>
+        <Attribute name="member" nameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic" id="REMOTE_GROUP"/>
+        <Attribute name="email" nameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic" id="REMOTE_EMAIL"/>
+        <Attribute name="Role" nameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic" id="REMOTE_ROLE"/>
+        ```
+
+        The most simplest form of user mapping with Keycloak is to pass-through attributes and map to existing
+        Keystone groups inside a domain. Those groups would inherit OpenStack roles such as *admin* or *member*
+
+
+        !!! note
+            By default Keycloak exports group names with a path prefix such as **/** and this behavior can be turned off
+            with creating a mapping rule for a attribute such **group** and configure the option as shown below.
+            In addition to disabling **Full Group Path** option, enable the **Single Group Attribute** option.
+
+            Select your realm > Configure > User Federation > Provider (such as LDAP) > Mappers > Add Mapper
+
+            ![Attribute mapping](assets/images/keycloak-group-mapping.png){align=center : style="max-width:296px"}
+
+
+        When using the Keycloak the *shibboleth2.xml* file must be updated to include signing for all requests and responses.
+
+        The *shibboleth2.xml* file must be updated to include the following options, commonly the URLs marked with `example.com`.
+        In this example the username attribute 
+
+        ``` xml
+        <ApplicationDefaults entityID="https://keystone.api.example.com/v3"
+                             REMOTE_USER="username"
+                             cipherSuites="DEFAULT:!EXP:!LOW:!aNULL:!eNULL:!DES:!IDEA:!SEED:!RC4:!3DES:!kRSA:!SSLv2:!SSLv3:!TLSv1:!TLSv1.1"
+                             signing="true"
+                             encryption="false"
+                             signingAlg="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
+                             digestAlg="http://www.w3.org/2001/04/xmlenc#sha256"
+                             NameIDFormat="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">
+        ```
+
+        The `MetadataProvider` should be made dynamic, where *openstack* designates the created realm inside keycloak.
+
+        ``` xml
+        <MetadataProvider type="XML"
+                          validate="true"
+                          url="https://keycloak.example.com/realms/openstack/protocol/saml/descriptor"
+                          maxRefreshDelay="7200"
+                          backingFile="idp-metadata.xml">
+            <MetadataFilter type="RequireValidUntil" maxValidityInterval="2419200"/>
+        </MetadataProvider>
+        ```
+
+        Additionally the `Handler` for the `MetadataGenerator` must be updated to include signing:
+
+        ``` xml
+        <Handler type="MetadataGenerator"
+                 Location="/Metadata"
+                 signing="true"
+                 signingAlg="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
+                 digestAlg="http://www.w3.org/2001/04/xmlenc#sha256"/>
+        ```
+
+        !!! note Configure Keystone SP inside keycloak
+            Keystone SP must be introduced to keycloak as Client and entity ID among redirect URLs must be configured
+            to enable the SAML protocol via *Client type* SAML
+
+            ![Allowing entities](assets/images/keycloak-client-config.png){align=center}
 
 #### Generate the SAML Keys
 
@@ -323,7 +406,8 @@ kubectl -n openstack create secret generic keystone-shibd-etc \
         --from-file=/etc/genestack/keystone-sp/shibboleth/shibd.logger \
         --from-file=/etc/genestack/keystone-sp/shibboleth/sp-cert.pem \
         --from-file=/etc/genestack/keystone-sp/shibboleth/sp-key.pem \
-        --from-file=/etc/genestack/keystone-sp/shibboleth/sslError.html
+        --from-file=/etc/genestack/keystone-sp/shibboleth/sslError.html \
+        --from-file=/etc/genestack/keystone-sp/shibboleth/sso_callback_template.html
 ```
 
 ### Create the SAML identity provider
@@ -343,9 +427,49 @@ You're also welcome to generate your own mapping to suit your needs; however, if
 
 !!! abstract "Example keystone `saml-mapping.json` file"
 
-    ``` json
-    --8<-- "etc/keystone/saml-mapping.json"
-    ```
+    === "Rackspace"
+
+        ``` json
+        --8<-- "etc/keystone/saml-mapping.json"
+        ```
+
+    === "Keycloak"
+
+        ``` json
+        [
+            {
+                "local": [
+                    {
+                        "user": {
+                            "name": "{0}",
+                            "email": "{1}",
+                            "domain": {
+                                "name": "KEYSTONE DOMAIN"
+                            }
+                        },
+                            "group": {
+                            "name": "{2}",
+                            "domain": {
+                                "name": "KEYSTONE DOMAIN"
+                            }
+                        }
+                    }
+                ],
+                "remote": [
+                    {
+                        "type": "REMOTE_USERNAME"
+                    },
+                    {
+                        "type": "REMOTE_EMAIL"
+                    },
+                    {
+                        "type": "REMOTE_GROUP"
+                    }
+                ]
+            }
+        ]
+        ```
+
 
 The example mapping **JSON** file can be found within the genestack repository at `etc/keystone/saml-mapping.json`.
 
