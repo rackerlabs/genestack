@@ -1,0 +1,30 @@
+# set overall behavior
+log4j.rootCategory=WARN, native_log
+
+# fairly verbose for DEBUG, so generally leave at WARN/INFO
+log4j.category.XMLTooling.XMLObject=WARN
+log4j.category.XMLTooling.XMLObjectBuilder=WARN
+log4j.category.XMLTooling.KeyInfoResolver=WARN
+log4j.category.Shibboleth.IPRange=WARN
+log4j.category.Shibboleth.PropertySet=WARN
+
+# useful categories to tune independently:
+#
+# interprocess message remoting
+#log4j.category.Shibboleth.Listener=DEBUG
+# mapping of requests to applicationId
+#log4j.category.Shibboleth.RequestMapper=DEBUG
+# high level session cache operations
+#log4j.category.Shibboleth.SessionCache=DEBUG
+
+# define the appender
+
+# Change to SyslogAppender for remote syslog, and set host/port
+log4j.appender.native_log=org.apache.log4j.LocalSyslogAppender
+#log4j.appender.native_log.syslogHost=localhost
+#log4j.appender.native_log.portNumber=514
+log4j.appender.native_log.syslogName=shibboleth
+# Facility is numeric, 16 is LOCAL0
+log4j.appender.native_log.facility=16
+log4j.appender.native_log.layout=org.apache.log4j.PatternLayout
+log4j.appender.native_log.layout.ConversionPattern=%p %c %x: %m%n

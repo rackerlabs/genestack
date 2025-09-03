@@ -1,0 +1,299 @@
+<SPConfig xmlns="urn:mace:shibboleth:3.0:native:sp:config"
+    xmlns:conf="urn:mace:shibboleth:3.0:native:sp:config"
+    xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata"
+    clockSkew="180">
+
+    <!-- The OutOfProcess section contains properties affecting the shibd daemon. -->
+    <OutOfProcess logger="shibd.logger" tranLogFormat="%u|%s|%IDP|%i|%ac|%t|%attr|%n|%b|%E|%S|%SS|%L|%UA|%a">
+        <!--
+        <Extensions>
+            <Library path="odbc-store.so" fatal="true"/>
+        </Extensions>
+        -->
+    </OutOfProcess>
+
+    <!--
+    The InProcess section contains settings affecting web server modules.
+    Required for IIS, but can be removed when using other web servers.
+    -->
+    <InProcess logger="native.logger">
+        <ISAPI normalizeRequest="true" safeHeaderNames="true">
+            <!--
+            Maps IIS Instance ID values to the host scheme/name/port. The name is
+            required so that the proper <Host> in the request map above is found without
+            having to cover every possible DNS/IP combination the user might enter.
+            -->
+            <Site id="1" name="sp.example.org"/>
+            <!--
+            When the port and scheme are omitted, the HTTP request's port and scheme are used.
+            If these are wrong because of virtualization, they can be explicitly set here to
+            ensure proper redirect generation.
+            -->
+            <!--
+            <Site id="42" name="virtual.example.org" scheme="https" port="443"/>
+            -->
+        </ISAPI>
+    </InProcess>
+    
+    <!-- Only one listener can be defined, to connect in-process modules to shibd. -->
+    <UnixListener address="shibd.sock"/>
+    <!-- <TCPListener address="127.0.0.1" port="1600" acl="127.0.0.1"/> -->
+    
+    <!-- This set of components stores sessions and other persistent data in daemon memory. -->
+    <StorageService type="Memory" id="mem" cleanupInterval="900"/>
+    <SessionCache type="StorageService" StorageService="mem" cacheAssertions="false"
+                  cacheAllowance="900" inprocTimeout="900" cleanupInterval="900"/>
+    <ReplayCache StorageService="mem"/>
+    <ArtifactMap artifactTTL="180"/>
+
+    <!-- This set of components stores sessions and other persistent data in an ODBC database. -->
+    <!--
+    <StorageService type="ODBC" id="db" cleanupInterval="900">
+        <ConnectionString>
+        DRIVER=drivername;SERVER=dbserver;UID=shibboleth;PWD=password;DATABASE=shibboleth;APP=Shibboleth
+        </ConnectionString>
+    </StorageService>
+    <SessionCache type="StorageService" StorageService="db" cacheAssertions="false"
+                  cacheTimeout="3600" inprocTimeout="900" cleanupInterval="900"/>
+    <ReplayCache StorageService="db"/>
+    <ArtifactMap StorageService="db" artifactTTL="180"/>
+    -->
+
+    <!--
+    To customize behavior for specific resources on Apache, use web server options/commands
+    instead of this mechanism, which is meant for IIS usage.
+    -->
+    <RequestMapper type="Native">
+        <RequestMap>
+            <!--
+            The example requires a session for documents in /secure on the containing host with http and
+            https on the default ports. Note that the name and port in the <Host> elements MUST match
+            Apache's ServerName and Port directives or the IIS Site name in the <ISAPI> element above.
+            -->
+            <Host name="sp.example.org">
+                <Path name="secure" authType="shibboleth" requireSession="true"/>
+            </Host>
+            <!-- Example of a second vhost mapped to a different applicationId. -->
+            <!--
+            <Host name="admin.example.org" applicationId="admin" authType="shibboleth" requireSession="true"/>
+            -->
+        </RequestMap>
+    </RequestMapper>
+
+    <!--
+    The ApplicationDefaults element is where most of Shibboleth's SAML bits are defined.
+    Resource requests are mapped by the RequestMapper to an applicationId that
+    points into to this section (or to the defaults here).
+    -->
+    <ApplicationDefaults entityID="https://sp.example.org/shibboleth"
+        REMOTE_USER="eppn subject-id pairwise-id persistent-id"
+        metadataAttributePrefix="Meta-"
+        sessionHook="/Shibboleth.sso/AttrChecker"
+        cipherSuites="DEFAULT:!EXP:!LOW:!aNULL:!eNULL:!DES:!IDEA:!SEED:!RC4:!3DES:!kRSA:!SSLv2:!SSLv3:!TLSv1:!TLSv1.1">
+
+        <!--
+        Controls session lifetimes, address checks, cookie handling, and the protocol handlers.
+        Each Application has an effectively unique handlerURL, which defaults to "/Shibboleth.sso"
+        and should be a relative path, with the SP computing the full value based on the virtual
+        host. Using handlerSSL="true" will force the protocol to be https. You should also set
+        cookieProps to "https" for SSL-only sites. Note that while we default checkAddress to
+        "false", this makes an assertion stolen in transit easier for attackers to misuse.
+        -->
+        <Sessions lifetime="28800" timeout="3600" checkAddress="false"
+            handlerURL="/Shibboleth.sso" handlerSSL="false" cookieProps="http" relayState="ss:mem"
+            redirectLimit="exact"
+            exportLocation="http://localhost/Shibboleth.sso/GetAssertion" exportACL="127.0.0.1"
+            idpHistory="false" idpHistoryDays="7">
+
+            <!--
+            The "stripped down" files use the shorthand syntax for configuring handlers.
+            This uses the old "every handler specified directly" syntax. You can supplement
+            the new syntax following these examples but it is NOT advisable to use this
+            approach wholesale.
+            -->
+          
+            <!--
+            SessionInitiators handle session requests and relay them to a Discovery page,
+            or to an IdP if possible. Automatic/active session  rules will use the default
+            or first element (or requireSessionWith can specify a specific id to use).
+            -->
+
+            <!-- Default directs to a specific IdP. -->
+            <SessionInitiator type="Chaining" Location="/Login" isDefault="true" id="Login"
+                              entityID="https://idp.example.org/idp/shibboleth">
+              
+                <SessionInitiator type="SAML2" template="bindingTemplate.html"/>
+                <SessionInitiator type="Shib1"/>
+              
+                <!--
+                To allow for >1 IdP, remove entityID property from Chaining element and add
+                *either* of the SAMLDS or WAYF handlers below:
+                
+                <SessionInitiator type="SAMLDS" URL="https://ds.example.org/DS/WAYF"/>
+                <SessionInitiator type="WAYF" URL="https://wayf.example.org/WAYF"/>
+                -->
+            </SessionInitiator>
+            
+            <!--
+            md:AssertionConsumerService locations handle specific SSO protocol bindings,
+            such as SAML 2.0 POST or SAML 1.1 Artifact. The isDefault and index attributes
+            are used when sessions are initiated to determine how to tell the IdP where and
+            how to return the response.
+            -->
+            <md:AssertionConsumerService Location="/SAML2/POST" index="1"
+                Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"/>
+            <md:AssertionConsumerService Location="/SAML2/POST-SimpleSign" index="2"
+                Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST-SimpleSign"/>
+            <md:AssertionConsumerService Location="/SAML2/Artifact" index="3"
+                Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact"/>
+            <md:AssertionConsumerService Location="/SAML2/ECP" index="4"
+                Binding="urn:oasis:names:tc:SAML:2.0:bindings:PAOS"/>
+            <md:AssertionConsumerService Location="/SAML/POST" index="5"
+                Binding="urn:oasis:names:tc:SAML:1.0:profiles:browser-post"/>
+            <md:AssertionConsumerService Location="/SAML/Artifact" index="6"
+                Binding="urn:oasis:names:tc:SAML:1.0:profiles:artifact-01"/>
+
+            <!-- LogoutInitiators enable SP-initiated local or global/single logout of sessions. -->
+            <LogoutInitiator type="Chaining" Location="/Logout">
+                <LogoutInitiator type="SAML2" template="bindingTemplate.html"/>
+                <LogoutInitiator type="Local"/>
+            </LogoutInitiator>
+
+            <!-- Administrative logout, separate from user-driven logout above. -->
+            <LogoutInitiator type="Admin" Location="/Logout/Admin" acl="127.0.0.1 ::1" />
+
+            <!-- md:SingleLogoutService locations handle single logout (SLO) protocol messages. -->
+            <md:SingleLogoutService Location="/SLO/SOAP"
+                Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP"/>
+            <md:SingleLogoutService Location="/SLO/Redirect" conf:template="bindingTemplate.html"
+                Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"/>
+            <md:SingleLogoutService Location="/SLO/POST" conf:template="bindingTemplate.html"
+                Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"/>
+            <md:SingleLogoutService Location="/SLO/Artifact" conf:template="bindingTemplate.html"
+                Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact"/>
+
+            <!-- md:ManageNameIDService locations handle NameID management (NIM) protocol messages. -->
+            <md:ManageNameIDService Location="/NIM/SOAP"
+                Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP"/>
+            <md:ManageNameIDService Location="/NIM/Redirect" conf:template="bindingTemplate.html"
+                Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"/>
+            <md:ManageNameIDService Location="/NIM/POST" conf:template="bindingTemplate.html"
+                Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"/>
+            <md:ManageNameIDService Location="/NIM/Artifact" conf:template="bindingTemplate.html"
+                Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact"/>
+
+            <!--
+            md:ArtifactResolutionService locations resolve artifacts issued when using the
+            SAML 2.0 HTTP-Artifact binding on outgoing messages, generally uses SOAP.
+            -->
+            <md:ArtifactResolutionService Location="/Artifact/SOAP" index="1"
+                Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP"/>
+
+            <!-- Extension service that generates "approximate" metadata based on SP configuration. -->
+            <Handler type="MetadataGenerator" Location="/Metadata" signing="false"/>
+
+            <!-- Status reporting service. -->
+            <Handler type="Status" Location="/Status" acl="127.0.0.1 ::1"/>
+
+            <!-- Session diagnostic service. -->
+            <Handler type="Session" Location="/Session" showAttributeValues="false"/>
+
+            <!-- JSON feed of discovery information. -->
+            <Handler type="DiscoveryFeed" Location="/DiscoFeed"/>
+
+            <!-- Checks for required attribute(s) before login completes. -->
+            <Handler type="AttributeChecker" Location="/AttrChecker" template="attrChecker.html"
+                attributes="eppn" flushSession="true"/>
+        </Sessions>
+
+        <!--
+        Allows overriding of error template information/filenames. You can
+        also add your own attributes with values that can be plugged into the
+        templates, e.g., helpLocation below.
+        -->
+        <Errors supportContact="root@localhost"
+            helpLocation="/about.html"
+            styleSheet="/shibboleth-sp/main.css"/>
+        
+        <!--
+        Uncomment and modify to tweak settings for specific IdPs or groups. Settings here
+        generally match those allowed by the <ApplicationDefaults> element.
+        -->
+        <!--
+        <RelyingParty Name="SpecialFederation" keyName="SpecialKey"/>
+        -->
+
+        <!-- Example of locally maintained metadata. -->
+        <!--
+        <MetadataProvider type="XML" validate="true" path="partner-metadata.xml"/>
+        -->
+
+        <!-- Example of remotely supplied batch of signed metadata. -->
+        <!--
+        <MetadataProvider type="XML" validate="true"
+	            url="http://federation.org/federation-metadata.xml"
+              backingFilePath="federation-metadata.xml" maxRefreshDelay="7200">
+            <MetadataFilter type="RequireValidUntil" maxValidityInterval="2419200"/>
+            <MetadataFilter type="Signature" certificate="fedsigner.pem" verifyBackup="false"/>
+            <DiscoveryFilter type="Exclude" matcher="EntityAttributes" trimTags="true" 
+              attributeName="http://macedir.org/entity-category"
+              attributeNameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri"
+              attributeValue="http://refeds.org/category/hide-from-discovery" />
+        </MetadataProvider>
+        -->
+
+        <!-- Example of remotely supplied "on-demand" signed metadata. -->
+        <!--
+        <MetadataProvider type="MDQ" validate="true" cacheDirectory="mdq"
+	            baseUrl="http://mdq.federation.org" ignoreTransport="true">
+            <MetadataFilter type="RequireValidUntil" maxValidityInterval="2419200"/>
+            <MetadataFilter type="Signature" certificate="mdqsigner.pem" />
+        </MetadataProvider>
+        -->
+
+        <!-- TrustEngines run in order to evaluate peer keys and certificates. -->
+        <TrustEngine type="ExplicitKey"/>
+        <!-- <TrustEngine type="PKIX"/> -->
+
+        <!-- Map to extract attributes from SAML assertions. -->
+        <AttributeExtractor type="XML" validate="true" reloadChanges="false" path="attribute-map.xml"/>
+
+        <!-- Extracts support information for IdP from its metadata. -->
+        <AttributeExtractor type="Metadata" errorURL="errorURL" DisplayName="displayName"/>
+
+        <!-- Use a SAML query if no attributes are supplied during SSO. -->
+        <AttributeResolver type="Query" subjectMatch="true"/>
+
+        <!-- Default filtering policy for recognized attributes, lets other data pass. -->
+        <AttributeFilter type="XML" validate="true" path="attribute-policy.xml"/>
+
+        <!-- Simple file-based resolvers for separate signing/encryption keys. -->
+        <CredentialResolver type="File" use="signing"
+            key="sp-signing-key.pem" certificate="sp-signing-cert.pem"/>
+        <CredentialResolver type="File" use="encryption"
+            key="sp-encrypt-key.pem" certificate="sp-encrypt-cert.pem"/>
+        
+        <!--
+        The default settings can be overridden by creating ApplicationOverride elements.
+        Resource requests are mapped by web server commands, or the RequestMapper, to an
+        applicationId setting.
+        
+        This "canonical" use case of overriding the SP's entityID alone is now obsolete;
+        you can apply selfEntityID as a content setting based on host or path to control
+        the SP's own identity.
+        
+        Avoid overrides: ask on the list or refer to the wiki for examples of how to do
+        whatever you want to do without them.
+        -->
+        <!--
+        <ApplicationOverride id="admin" entityID="https://admin.example.org/shibboleth"/>
+        -->
+    </ApplicationDefaults>
+    
+    <!-- Policies that determine how to process and authenticate runtime messages. -->
+    <SecurityPolicyProvider type="XML" validate="true" path="security-policy.xml"/>
+
+    <!-- Low-level configuration about protocols and bindings available for use. -->
+    <ProtocolProvider type="XML" validate="true" reloadChanges="false" path="protocols.xml"/>
+
+</SPConfig>
