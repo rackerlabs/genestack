@@ -32,7 +32,6 @@ DEFAULT_REPOS = [
     "longhorn",
     "fluent",
     "kubeovn",
-    "ot-helm",
 ]
 
 

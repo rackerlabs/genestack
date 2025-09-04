@@ -1,0 +1,73 @@
+<SPConfig xmlns="urn:mace:shibboleth:3.0:native:sp:config"
+    xmlns:conf="urn:mace:shibboleth:3.0:native:sp:config"
+    clockSkew="180">
+    <OutOfProcess logger="shibd.logger"
+        tranLogFormat="%u|%s|%IDP|%i|%ac|%t|%attr|%n|%b|%E|%S|%SS|%L|%UA|%a">
+        <Extensions>
+            <Library path="memcache-store.so" fatal="true" />
+        </Extensions>
+    </OutOfProcess>
+    <StorageService type="MEMCACHE"
+        id="mc"
+        prefix="shib:">
+        <Hosts>
+            memcached.openstack.svc.cluster.local:11211
+        </Hosts>
+    </StorageService>
+    <StorageService type="MEMCACHE"
+        id="mc-ctx"
+        prefix="shib:"
+        buildMap="1">
+        <Hosts>
+            memcached.openstack.svc.cluster.local:11211
+        </Hosts>
+    </StorageService>
+    <SessionCache type="StorageService"
+        StorageService="mc-ctx"
+        StorageServiceLite="mc"
+        cacheAllowance="3600"
+        inprocTimeout="900"
+        cleanupInterval="900" />
+    <ReplayCache StorageService="mc" />
+    <ArtifactMap StorageService="mc" artifactTTL="180" />
+    <ApplicationDefaults entityID="https://keystone.api.example.com/v3"
+	                 REMOTE_USER="username"
+	                 cipherSuites="DEFAULT:!EXP:!LOW:!aNULL:!eNULL:!DES:!IDEA:!SEED:!RC4:!3DES:!kRSA:!SSLv2:!SSLv3:!TLSv1:!TLSv1.1"
+                         signing="true"
+	                 encryption="false">
+
+        <Sessions lifetime="28800" timeout="3600"
+                  relayState="ss:mc"
+                  checkAddress="false"
+                  handlerSSL="true"
+                  cookieProps="https"
+                  redirectLimit="exact">
+
+            <SSO entityID="https://keycloak.example.com/realms/openstack">
+                SAML2
+	    </SSO>
+
+	    <Logout>SAML2 Local</Logout>
+
+	    <LogoutInitiator type="Admin" Location="/Logout/Admin" acl="127.0.0.1 ::1" />
+
+	    <Handler type="MetadataGenerator" Location="/Metadata"
+                     signing="true"
+                     signingAlg="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
+                     digestAlg="http://www.w3.org/2001/04/xmlenc#sha256" />
+            <Handler type="Status" Location="/Status" acl="127.0.0.1 ::1" />
+            <Handler type="Session" Location="/Session" showAttributeValues="false" />
+            <Handler type="DiscoveryFeed" Location="/DiscoFeed" />
+        </Sessions>
+
+	<Errors supportContact="admin@example.com" helpLocation="https://example.com" styleSheet="/shibboleth-sp/main.css" />
+        <!-- <MetadataProvider type="XML" path="idp-metadata.xml" /> -->
+        <MetadataProvider type="XML" url="https://keycloak.example.com/openstack/protocol/saml/descriptor" backingFile="idp-metadata.xml" />
+        <AttributeExtractor type="XML" validate="true" reloadChanges="false" path="attribute-map.xml" />
+        <AttributeFilter type="XML" validate="true" path="attribute-policy.xml" />
+	<CredentialResolver type="File" use="signing" key="sp-key.pem" certificate="sp-cert.pem" />
+        <CredentialResolver type="File" use="encryption" key="sp-key.pem" certificate="sp-cert.pem" />
+    </ApplicationDefaults>
+    <SecurityPolicyProvider type="XML" validate="true" path="security-policy.xml" />
+    <ProtocolProvider type="XML" validate="true" reloadChanges="false" path="protocols.xml" />
+</SPConfig>
