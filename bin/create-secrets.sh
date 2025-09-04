@@ -53,6 +53,9 @@ heat_stack_user_password=$(generate_password 32)
 cinder_rabbitmq_password=$(generate_password 64)
 cinder_db_password=$(generate_password 32)
 cinder_admin_password=$(generate_password 32)
+cloudkitty_rabbitmq_password=$(generate_password 64)
+cloudkitty_db_password=$(generate_password 32)
+cloudkitty_admin_password=$(generate_password 32)
 metadata_shared_secret_password=$(generate_password 32)
 placement_db_password=$(generate_password 32)
 placement_admin_password=$(generate_password 32)
@@ -252,6 +255,34 @@ metadata:
 type: Opaque
 data:
   password: $(echo -n $cinder_admin_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cloudkitty-rabbitmq-password
+  namespace: openstack
+type: Opaque
+data:
+  username: $(echo -n "cloudkitty" | base64)
+  password: $(echo -n $cloudkitty_rabbitmq_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cloudkitty-db-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $cloudkitty_db_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cloudkitty-admin
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $cloudkitty_admin_password | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret
