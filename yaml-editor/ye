@@ -125,7 +125,9 @@ def load_helm_defaults(service_name, repos, chart_versions):
     """Load default values from the Helm chart for the given service, trying multiple repos with version."""
     service_version = chart_versions.get(service_name)
     if not service_version:
-        logging.warning(f"No version found for {service_name} in helm-chart-versions.yaml")
+        logging.warning(
+            f"No version found for {service_name} in helm-chart-versions.yaml"
+        )
         return {}
 
     for repo in repos:
