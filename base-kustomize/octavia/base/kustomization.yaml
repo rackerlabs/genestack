@@ -26,7 +26,7 @@ patches:
     patch: |-
       - op: add
         path: /data/policy.yaml
-        value: b3NfbG9hZC1iYWxhbmNlcl9hcGk6Zmxhdm9yLXByb2ZpbGU6Z2V0X29uZTogcnVsZTpsb2FkLWJhbGFuY2VyOnJlYWQKb3NfbG9hZC1iYWxhbmNlcl9hcGk6Zmxhdm9yLXByb2ZpbGU6Z2V0X2FsbDogcnVsZTpsb2FkLWJhbGFuY2VyOnJlYWQ=
+        value: LS0tCm9zX2xvYWQtYmFsYW5jZXJfYXBpOmZsYXZvci1wcm9maWxlOmdldF9vbmU6IHJ1bGU6bG9hZC1iYWxhbmNlcjpyZWFkCm9zX2xvYWQtYmFsYW5jZXJfYXBpOmZsYXZvci1wcm9maWxlOmdldF9hbGw6IHJ1bGU6bG9hZC1iYWxhbmNlcjpyZWFkCm9zX2xvYWQtYmFsYW5jZXJfYXBpOmxvYWRiYWxhbmNlcjpwdXRfZmFpbG92ZXI6ICJydWxlOmxvYWQtYmFsYW5jZXI6YWRtaW4gb3IgcnVsZTpsb2FkLWJhbGFuY2VyOm1lbWJlcl9hbmRfb3duZXIiCm9zX2xvYWQtYmFsYW5jZXJfYXBpOmFtcGhvcmE6cHV0X2ZhaWxvdmVyOiAicnVsZTpsb2FkLWJhbGFuY2VyOmFkbWluIG9yIHJ1bGU6bG9hZC1iYWxhbmNlcjptZW1iZXJfYW5kX293bmVyIgoK
   - target:
       kind: Deployment
       name: octavia-api
