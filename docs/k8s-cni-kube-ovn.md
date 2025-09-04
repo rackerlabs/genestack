@@ -6,7 +6,7 @@ and easy-to-use network solution for Kubernetes.
 
 ## Prerequisites
 
-The override values file for Kube-OVN can be found in `/etc/genestack/helm-configs/kube-ovn/kube-ovn-helm-overrides.yaml`
+The override values file for Kube-OVN can be found in `/etc/genestack/base-helm-configs/kube-ovn/kube-ovn-helm-overrides.yaml`
 and should be setup-up before running the deployment. In a common production ready setup, the only values that will
 likely need to be defined is the network interface that will Kube-OVN will bind to.
 
