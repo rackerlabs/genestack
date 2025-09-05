@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-import os
-import sys
-import subprocess
-import tempfile
-import yaml
+
+import argparse
 import copy
 import logging
+import os
+import subprocess
+import sys
+import tempfile
+import yaml
 from datetime import datetime
-import argparse
 
 # Set up logging
 logging.basicConfig(
@@ -47,6 +48,16 @@ def load_yaml_file(filename):
     except yaml.YAMLError as e:
         logging.error(f"Error parsing YAML file {filename}: {e}")
         return {}
+
+
+def load_helm_chart_versions():
+    """Load the helm-chart-versions.yaml file and return its contents."""
+    version_file = "/etc/genestack/helm-chart-versions.yaml"
+    versions = load_yaml_file(version_file)
+    if not versions or "charts" not in versions:
+        logging.error(f"Invalid or missing charts in {version_file}")
+        return {}
+    return versions["charts"]
 
 
 def save_yaml_file(data, filename):
@@ -110,13 +121,20 @@ def compute_patch(base, edited):
     return patch
 
 
-def load_helm_defaults(service_name, repos):
-    """Load default values from the Helm chart for the given service, trying multiple repos."""
+def load_helm_defaults(service_name, repos, chart_versions):
+    """Load default values from the Helm chart for the given service, trying multiple repos with version."""
+    service_version = chart_versions.get(service_name)
+    if not service_version:
+        logging.warning(
+            f"No version found for {service_name} in helm-chart-versions.yaml"
+        )
+        return {}
+
     for repo in repos:
         try:
             chart_ref = f"{repo}/{service_name}"
             result = subprocess.run(
-                ["helm", "show", "values", chart_ref],
+                ["helm", "show", "values", chart_ref, "--version", service_version],
                 capture_output=True,
                 text=True,
                 check=True,
@@ -124,17 +142,19 @@ def load_helm_defaults(service_name, repos):
             defaults_str = result.stdout
             data = yaml.safe_load(defaults_str)
             logging.info(
-                f"Loaded Helm defaults for service: {service_name} from repo: {repo}"
+                f"Loaded Helm defaults for service: {service_name} from repo: {repo} with version: {service_version}"
             )
             return data if data is not None else {}
         except subprocess.CalledProcessError:
-            logging.warning(f"Chart '{chart_ref}' not found in repo '{repo}'")
+            logging.warning(
+                f"Chart '{chart_ref}' not found in repo '{repo}' with version '{service_version}'"
+            )
         except yaml.YAMLError as e:
             logging.warning(f"Error parsing Helm defaults for {chart_ref}: {e}")
         except Exception as e:
             logging.warning(f"Error loading Helm chart from {repo}: {e}")
     logging.warning(
-        f"No Helm defaults found for {service_name} in any repo. Proceeding without."
+        f"No Helm defaults found for {service_name} in any repo with version {service_version}. Proceeding without."
     )
     return {}
 
@@ -151,16 +171,19 @@ def main():
         help=f"Comma-separated list of Helm repos (default: {','.join(DEFAULT_REPOS)})",
     )
     args = parser.parse_args()
-
     repos = [r.strip() for r in args.repos.split(",")]
     service_name = args.service_name
+
+    # Load chart versions from helm-chart-versions.yaml
+    chart_versions = load_helm_chart_versions()
+
     base_filename = f"/opt/genestack/base-helm-configs/{service_name}/{service_name}-helm-overrides.yaml"
     override_filename = (
         f"/etc/genestack/helm-configs/{service_name}/{service_name}-helm-overrides.yaml"
     )
 
     # Load all configuration sources
-    helm_defaults = load_helm_defaults(service_name, repos)
+    helm_defaults = load_helm_defaults(service_name, repos, chart_versions)
     base_data = load_yaml_file(base_filename)
     if not base_data:
         logging.warning(
@@ -211,7 +234,8 @@ if __name__ == "__main__":
         print(
             f"Usage: {sys.argv[0]} <service_name>\n"
             "ye - (YamlEditor) launches an editor to edit Helm configuration values for the specified service. \n"
-            "It merges Helm chart defaults from specified or default repos, base overrides from /opt/genestack/base-helm-configs/<service>/<service>-helm-overrides.yaml, \n"
+            "It merges Helm chart defaults from specified or default repos, \n"
+            "base overrides from /opt/genestack/base-helm-configs/<service>/<service>-helm-overrides.yaml, \n"
             "and user overrides from /etc/genestack/helm-configs/<service>/<service>-helm-overrides.yaml. \n"
             "If Helm defaults or base file are unavailable, it proceeds with available data. \n"
             "Only changes not in defaults or base are saved to the user override file.\n"
