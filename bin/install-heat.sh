@@ -1,10 +1,24 @@
 #!/bin/bash
-
 GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/heat"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/heat/heat-helm-overrides.yaml"
 
-HELM_CMD="helm upgrade --install heat openstack-helm/heat --version 2024.2.294+13651f45-628a320c \
+# Read heat version from helm-chart-versions.yaml
+VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
+if [ ! -f "$VERSION_FILE" ]; then
+    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE"
+    exit 1
+fi
+
+# Extract heat version using grep and sed
+HEAT_VERSION=$(grep 'heat:' "$VERSION_FILE" | sed 's/.*heat: *//')
+
+if [ -z "$HEAT_VERSION" ]; then
+    echo "Error: Could not extract heat version from $VERSION_FILE"
+    exit 1
+fi
+
+HELM_CMD="helm upgrade --install heat openstack-helm/heat --version ${HEAT_VERSION} \
     --namespace=openstack \
     --timeout 120m"
 
@@ -18,17 +32,16 @@ for dir in "$GLOBAL_OVERRIDES_DIR" "$SERVICE_CONFIG_DIR"; do
     fi
 done
 
-HELM_CMD+=" --set endpoints.identity.auth.admin.password=\"\$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)\""
-HELM_CMD+=" --set endpoints.identity.auth.heat.password=\"\$(kubectl --namespace openstack get secret heat-admin -o jsonpath='{.data.password}' | base64 -d)\""
-HELM_CMD+=" --set endpoints.identity.auth.heat_trustee.password=\"\$(kubectl --namespace openstack get secret heat-trustee -o jsonpath='{.data.password}' | base64 -d)\""
-HELM_CMD+=" --set endpoints.identity.auth.heat_stack_user.password=\"\$(kubectl --namespace openstack get secret heat-stack-user -o jsonpath='{.data.password}' | base64 -d)\""
-HELM_CMD+=" --set endpoints.oslo_db.auth.admin.password=\"\$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)\""
-HELM_CMD+=" --set endpoints.oslo_db.auth.heat.password=\"\$(kubectl --namespace openstack get secret heat-db-password -o jsonpath='{.data.password}' | base64 -d)\""
-HELM_CMD+=" --set endpoints.oslo_cache.auth.memcache_secret_key=\"\$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
-HELM_CMD+=" --set conf.heat.keystone_authtoken.memcache_secret_key=\"\$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
-HELM_CMD+=" --set endpoints.oslo_messaging.auth.admin.password=\"\$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)\""
-HELM_CMD+=" --set endpoints.oslo_messaging.auth.heat.password=\"\$(kubectl --namespace openstack get secret heat-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)\""
-
+HELM_CMD+=" --set endpoints.identity.auth.admin.password=\"$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)\""
+HELM_CMD+=" --set endpoints.identity.auth.heat.password=\"$(kubectl --namespace openstack get secret heat-admin -o jsonpath='{.data.password}' | base64 -d)\""
+HELM_CMD+=" --set endpoints.identity.auth.heat_trustee.password=\"$(kubectl --namespace openstack get secret heat-trustee -o jsonpath='{.data.password}' | base64 -d)\""
+HELM_CMD+=" --set endpoints.identity.auth.heat_stack_user.password=\"$(kubectl --namespace openstack get secret heat-stack-user -o jsonpath='{.data.password}' | base64 -d)\""
+HELM_CMD+=" --set endpoints.oslo_db.auth.admin.password=\"$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)\""
+HELM_CMD+=" --set endpoints.oslo_db.auth.heat.password=\"$(kubectl --namespace openstack get secret heat-db-password -o jsonpath='{.data.password}' | base64 -d)\""
+HELM_CMD+=" --set endpoints.oslo_cache.auth.memcache_secret_key=\"$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
+HELM_CMD+=" --set conf.heat.keystone_authtoken.memcache_secret_key=\"$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
+HELM_CMD+=" --set endpoints.oslo_messaging.auth.admin.password=\"$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)\""
+HELM_CMD+=" --set endpoints.oslo_messaging.auth.heat.password=\"$(kubectl --namespace openstack get secret heat-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)\""
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
 HELM_CMD+=" --post-renderer-args heat/overlay"
 

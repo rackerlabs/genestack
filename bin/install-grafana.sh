@@ -1,11 +1,26 @@
 #!/bin/bash
 # shellcheck disable=SC2124,SC2145,SC2294
-
 GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/grafana"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/grafana/grafana-helm-overrides.yaml"
 
+# Read grafana version from helm-chart-versions.yaml
+VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
+if [ ! -f "$VERSION_FILE" ]; then
+    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE"
+    exit 1
+fi
+
+# Extract grafana version using grep and sed
+GRAFANA_VERSION=$(grep 'grafana:' "$VERSION_FILE" | sed 's/.*grafana: *//')
+
+if [ -z "$GRAFANA_VERSION" ]; then
+    echo "Error: Could not extract grafana version from $VERSION_FILE"
+    exit 1
+fi
+
 HELM_CMD="helm upgrade --install grafana grafana/grafana \
+  --version ${GRAFANA_VERSION} \
   --namespace=grafana \
   --create-namespace \
   --timeout 120m \

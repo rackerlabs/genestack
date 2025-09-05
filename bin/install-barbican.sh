@@ -1,9 +1,23 @@
 #!/bin/bash
-
 GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 CONFIG_DIR="/etc/genestack/helm-configs/barbican"
 
-HELM_CMD="helm upgrade --install barbican openstack-helm/barbican --version 2024.2.208+13651f45-628a320c \
+# Read barbican version from helm-chart-versions.yaml
+VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
+if [ ! -f "$VERSION_FILE" ]; then
+    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE"
+    exit 1
+fi
+
+# Extract barbican version using grep and sed
+BARBICAN_VERSION=$(grep 'barbican:' "$VERSION_FILE" | sed 's/.*barbican: *//')
+
+if [ -z "$BARBICAN_VERSION" ]; then
+    echo "Error: Could not extract barbican version from $VERSION_FILE"
+    exit 1
+fi
+
+HELM_CMD="helm upgrade --install barbican openstack-helm/barbican --version ${BARBICAN_VERSION} \
     --namespace=openstack \
     --timeout 120m"
 
@@ -27,7 +41,6 @@ HELM_CMD+=" --set endpoints.oslo_messaging.auth.admin.password=\"$(kubectl --nam
 HELM_CMD+=" --set endpoints.oslo_messaging.auth.barbican.password=\"$(kubectl --namespace openstack get secret barbican-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_cache.auth.memcache_secret_key=\"$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
 HELM_CMD+=" --set conf.barbican.keystone_authtoken.memcache_secret_key=\"$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
-
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
 HELM_CMD+=" --post-renderer-args barbican/overlay"
 

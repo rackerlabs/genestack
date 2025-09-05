@@ -48,5 +48,4 @@ Within Genestack, multiple options are available for use as Gateway API implemen
 
 | Backend Options | Status | <div style="width:256px">Overview</div> |
 | --------------- | ------ | --------------------------------------- |
-| [Envoy](infrastructure-envoy-gateway-api.md) | **Recommended** | Feature rich, large community, recommended for Production environments. |
-| [NGINX](infrastructure-nginx-gateway-api.md) | | Stable codebase, simple implementation |
+| [Envoy](infrastructure-envoy-gateway-api.md) | Feature rich, large community, recommended for Production environments. |

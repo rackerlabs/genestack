@@ -1,13 +1,26 @@
 #!/bin/bash
 # shellcheck disable=SC2124,SC2145,SC2294
-
 # Set default directories
 GENESTACK_DIR="${GENESTACK_DIR:-/opt/genestack}"
 GENESTACK_CONFIG_DIR="${GENESTACK_CONFIG_DIR:-/etc/genestack}"
-
 GENESTACK_PROMETHEUS_DIR="${GENESTACK_PROMETHEUS_DIR:-$GENESTACK_DIR/base-helm-configs/prometheus}"
 GENESTACK_PROMETHEUS_RULES_DIR="${GENESTACK_PROMETHEUS_RULES_DIR:-$GENESTACK_DIR/base-helm-configs/prometheus/rules}"
 GENESTACK_PROMETHEUS_CONFIG_DIR="${GENESTACK_PROMETHEUS_CONFIG_DIR:-$GENESTACK_CONFIG_DIR/helm-configs/prometheus}"
+
+# Read prometheus version from helm-chart-versions.yaml
+VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
+if [ ! -f "$VERSION_FILE" ]; then
+    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE"
+    exit 1
+fi
+
+# Extract prometheus version using grep and sed
+PROMETHEUS_VERSION=$(grep 'prometheus:' "$VERSION_FILE" | sed 's/.*prometheus: *//')
+
+if [ -z "$PROMETHEUS_VERSION" ]; then
+    echo "Error: Could not extract prometheus version from $VERSION_FILE"
+    exit 1
+fi
 
 # Prepare an array to collect --values arguments
 values_args=()
@@ -27,7 +40,7 @@ if [[ -d "$GENESTACK_PROMETHEUS_RULES_DIR" ]]; then
   for file in "$GENESTACK_PROMETHEUS_RULES_DIR"/*.yaml; do
     # Check that there is at least one match
     if [[ -e "$file" ]]; then
-      echo "    $file"
+      echo " $file"
       values_args+=("--values" "$file")
     fi
   done
@@ -41,7 +54,7 @@ if [[ -d "$GENESTACK_PROMETHEUS_CONFIG_DIR" ]]; then
   for file in "$GENESTACK_PROMETHEUS_CONFIG_DIR"/*.yaml; do
     # Check that there is at least one match
     if [[ -e "$file" ]]; then
-      echo "    $file"
+      echo " $file"
       values_args+=("--values" "$file")
     fi
   done
@@ -56,7 +69,8 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 helm repo update
 
 # Run the Helm upgrade/install command using the collected --values arguments
-HELM_CMD="helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack --create-namespace --namespace=prometheus --timeout 10m --version 70.4.2"
+HELM_CMD="helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack --create-namespace --namespace=prometheus --timeout 10m --version ${PROMETHEUS_VERSION}"
+
 HELM_CMD+=" ${values_args[@]}"
 HELM_CMD+=" --post-renderer $GENESTACK_CONFIG_DIR/kustomize/kustomize.sh"
 HELM_CMD+=" --post-renderer-args prometheus/overlay"

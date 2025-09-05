@@ -1,21 +1,31 @@
 #!/bin/bash
 # shellcheck disable=SC2124,SC2145,SC2294
 
-export VERSION="${VERSION:-0.36.0}"
+# Read mariadb-operator version from helm-chart-versions.yaml
+VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
+if [ ! -f "$VERSION_FILE" ]; then
+    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE"
+    exit 1
+fi
+
+# Extract mariadb-operator version using grep and sed
+MARIADB_OPERATOR_VERSION=$(grep 'mariadb-operator:' "$VERSION_FILE" | sed 's/.*mariadb-operator: *//')
+
+if [ -z "$MARIADB_OPERATOR_VERSION" ]; then
+    echo "Error: Could not extract mariadb-operator version from $VERSION_FILE"
+    exit 1
+fi
 
 # Default parameter value
 export CLUSTER_NAME=${CLUSTER_NAME:-cluster.local}
-
 # Directory to check for YAML files
 CONFIG_DIR="/etc/genestack/helm-configs/mariadb-operator"
 
 # 'cluster.local' is the default value in base helm values file
 if [ "${CLUSTER_NAME}" != "cluster.local" ]; then
     CONFIG_FILE="$CONFIG_DIR/mariadb-operator-helm-overrides.yaml"
-
     mkdir -p $CONFIG_DIR
     touch "$CONFIG_FILE"
-
     # Check if the file is empty and add/modify content accordingly
     if [ ! -s "$CONFIG_FILE" ]; then
         echo "clusterName: $CLUSTER_NAME" > "$CONFIG_FILE"
@@ -34,13 +44,13 @@ helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
 helm repo update
 
 # Install the CRDs that match the version defined
-helm upgrade --install --namespace=mariadb-system --create-namespace mariadb-operator-crds mariadb-operator/mariadb-operator-crds --version "${VERSION}"
+helm upgrade --install --namespace=mariadb-system --create-namespace mariadb-operator-crds mariadb-operator/mariadb-operator-crds --version "${MARIADB_OPERATOR_VERSION}"
 
 # Helm command setup
 HELM_CMD="helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator \
     --namespace=mariadb-system \
     --timeout 120m \
-    --version ${VERSION} \
+    --version ${MARIADB_OPERATOR_VERSION} \
     --post-renderer /etc/genestack/kustomize/kustomize.sh \
     --post-renderer-args mariadb-operator/overlay \
     -f /opt/genestack/base-helm-configs/mariadb-operator/mariadb-operator-helm-overrides.yaml"

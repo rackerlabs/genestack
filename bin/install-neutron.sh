@@ -1,10 +1,24 @@
 #!/bin/bash
-
 GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/neutron"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/neutron/neutron-helm-overrides.yaml"
 
-HELM_CMD="helm upgrade --install neutron openstack-helm/neutron --version 2024.2.529+13651f45-628a320c \
+# Read neutron version from helm-chart-versions.yaml
+VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
+if [ ! -f "$VERSION_FILE" ]; then
+    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE"
+    exit 1
+fi
+
+# Extract neutron version using grep and sed
+NEUTRON_VERSION=$(grep 'neutron:' "$VERSION_FILE" | sed 's/.*neutron: *//')
+
+if [ -z "$NEUTRON_VERSION" ]; then
+    echo "Error: Could not extract neutron version from $VERSION_FILE"
+    exit 1
+fi
+
+HELM_CMD="helm upgrade --install neutron openstack-helm/neutron --version ${NEUTRON_VERSION} \
     --namespace=openstack \
     --timeout 120m"
 
@@ -21,25 +35,24 @@ for dir in "$GLOBAL_OVERRIDES_DIR" "$SERVICE_CONFIG_DIR"; do
   fi
 done
 
-HELM_CMD+=" --set conf.metadata_agent.DEFAULT.metadata_proxy_shared_secret=\"\$(kubectl --namespace openstack get secret metadata-shared-secret -o jsonpath='{.data.password}' | base64 -d)\""
-HELM_CMD+=" --set conf.ovn_metadata_agent.DEFAULT.metadata_proxy_shared_secret=\"\$(kubectl --namespace openstack get secret metadata-shared-secret -o jsonpath='{.data.password}' | base64 -d)\""
-HELM_CMD+=" --set endpoints.identity.auth.admin.password=\"\$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)\""
-HELM_CMD+=" --set endpoints.identity.auth.neutron.password=\"\$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)\""
-HELM_CMD+=" --set endpoints.identity.auth.nova.password=\"\$(kubectl --namespace openstack get secret nova-admin -o jsonpath='{.data.password}' | base64 -d)\""
-HELM_CMD+=" --set endpoints.identity.auth.placement.password=\"\$(kubectl --namespace openstack get secret placement-admin -o jsonpath='{.data.password}' | base64 -d)\""
-HELM_CMD+=" --set endpoints.identity.auth.designate.password=\"\$(kubectl --namespace openstack get secret designate-admin -o jsonpath='{.data.password}' | base64 -d)\""
-HELM_CMD+=" --set endpoints.identity.auth.ironic.password=\"\$(kubectl --namespace openstack get secret ironic-admin -o jsonpath='{.data.password}' | base64 -d)\""
-HELM_CMD+=" --set endpoints.oslo_db.auth.admin.password=\"\$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)\""
-HELM_CMD+=" --set endpoints.oslo_db.auth.neutron.password=\"\$(kubectl --namespace openstack get secret neutron-db-password -o jsonpath='{.data.password}' | base64 -d)\""
-HELM_CMD+=" --set endpoints.oslo_cache.auth.memcache_secret_key=\"\$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
-HELM_CMD+=" --set conf.neutron.keystone_authtoken.memcache_secret_key=\"\$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
-HELM_CMD+=" --set endpoints.oslo_messaging.auth.admin.password=\"\$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)\""
-HELM_CMD+=" --set endpoints.oslo_messaging.auth.neutron.password=\"\$(kubectl --namespace openstack get secret neutron-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)\""
-HELM_CMD+=" --set conf.neutron.ovn.ovn_nb_connection=\"tcp:\$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')\""
-HELM_CMD+=" --set conf.neutron.ovn.ovn_sb_connection=\"tcp:\$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')\""
-HELM_CMD+=" --set conf.plugins.ml2_conf.ovn.ovn_nb_connection=\"tcp:\$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')\""
-HELM_CMD+=" --set conf.plugins.ml2_conf.ovn.ovn_sb_connection=\"tcp:\$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')\""
-
+HELM_CMD+=" --set conf.metadata_agent.DEFAULT.metadata_proxy_shared_secret=\"$(kubectl --namespace openstack get secret metadata-shared-secret -o jsonpath='{.data.password}' | base64 -d)\""
+HELM_CMD+=" --set conf.ovn_metadata_agent.DEFAULT.metadata_proxy_shared_secret=\"$(kubectl --namespace openstack get secret metadata-shared-secret -o jsonpath='{.data.password}' | base64 -d)\""
+HELM_CMD+=" --set endpoints.identity.auth.admin.password=\"$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)\""
+HELM_CMD+=" --set endpoints.identity.auth.neutron.password=\"$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)\""
+HELM_CMD+=" --set endpoints.identity.auth.nova.password=\"$(kubectl --namespace openstack get secret nova-admin -o jsonpath='{.data.password}' | base64 -d)\""
+HELM_CMD+=" --set endpoints.identity.auth.placement.password=\"$(kubectl --namespace openstack get secret placement-admin -o jsonpath='{.data.password}' | base64 -d)\""
+HELM_CMD+=" --set endpoints.identity.auth.designate.password=\"$(kubectl --namespace openstack get secret designate-admin -o jsonpath='{.data.password}' | base64 -d)\""
+HELM_CMD+=" --set endpoints.identity.auth.ironic.password=\"$(kubectl --namespace openstack get secret ironic-admin -o jsonpath='{.data.password}' | base64 -d)\""
+HELM_CMD+=" --set endpoints.oslo_db.auth.admin.password=\"$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)\""
+HELM_CMD+=" --set endpoints.oslo_db.auth.neutron.password=\"$(kubectl --namespace openstack get secret neutron-db-password -o jsonpath='{.data.password}' | base64 -d)\""
+HELM_CMD+=" --set endpoints.oslo_cache.auth.memcache_secret_key=\"$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
+HELM_CMD+=" --set conf.neutron.keystone_authtoken.memcache_secret_key=\"$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
+HELM_CMD+=" --set endpoints.oslo_messaging.auth.admin.password=\"$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)\""
+HELM_CMD+=" --set endpoints.oslo_messaging.auth.neutron.password=\"$(kubectl --namespace openstack get secret neutron-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)\""
+HELM_CMD+=" --set conf.neutron.ovn.ovn_nb_connection=\"tcp:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')\""
+HELM_CMD+=" --set conf.neutron.ovn.ovn_sb_connection=\"tcp:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')\""
+HELM_CMD+=" --set conf.plugins.ml2_conf.ovn.ovn_nb_connection=\"tcp:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')\""
+HELM_CMD+=" --set conf.plugins.ml2_conf.ovn.ovn_sb_connection=\"tcp:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')\""
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
 HELM_CMD+=" --post-renderer-args neutron/overlay"
 

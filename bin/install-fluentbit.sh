@@ -1,12 +1,25 @@
 #!/bin/bash
 # shellcheck disable=SC2124,SC2145,SC2294
-
 GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/fluentbit"
-FLUENTBIT_CHART_VERSION="0.52.0"
+
+# Read fluentbit version from helm-chart-versions.yaml
+VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
+if [ ! -f "$VERSION_FILE" ]; then
+    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE"
+    exit 1
+fi
+
+# Extract fluentbit version using grep and sed
+FLUENTBIT_VERSION=$(grep 'fluentbit:' "$VERSION_FILE" | sed 's/.*fluentbit: *//')
+
+if [ -z "$FLUENTBIT_VERSION" ]; then
+    echo "Error: Could not extract fluentbit version from $VERSION_FILE"
+    exit 1
+fi
 
 HELM_CMD="helm upgrade --install \
-                       --version $FLUENTBIT_CHART_VERSION \
+                       --version $FLUENTBIT_VERSION \
                        --namespace fluentbit \
                        --create-namespace fluentbit fluent/fluent-bit"
 
