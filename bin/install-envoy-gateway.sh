@@ -1,10 +1,24 @@
 #!/bin/bash
 # shellcheck disable=SC2124,SC2145,SC2294
-
 GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/envoyproxy-gateway"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/envoyproxy-gateway/envoy-gateway-helm-overrides.yaml"
-ENVOY_VERSION="v1.4.2"
+
+# Read envoy version from helm-chart-versions.yaml
+VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
+if [ ! -f "$VERSION_FILE" ]; then
+    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE"
+    exit 1
+fi
+
+# Extract envoy version using grep and sed
+ENVOY_VERSION=$(grep 'envoy:' "$VERSION_FILE" | sed 's/.*envoy: *//')
+
+if [ -z "$ENVOY_VERSION" ]; then
+    echo "Error: Could not extract envoy version from $VERSION_FILE"
+    exit 1
+fi
+
 HELM_CMD="helm upgrade --install envoyproxy-gateway oci://docker.io/envoyproxy/gateway-helm \
                        --version ${ENVOY_VERSION} \
                        --namespace envoyproxy-gateway-system \
