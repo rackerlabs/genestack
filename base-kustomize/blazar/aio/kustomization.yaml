@@ -1,0 +1,4 @@
+sortOptions:
+  order: fifo
+resources:
+  - ../base

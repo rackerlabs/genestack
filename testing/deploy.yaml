@@ -309,6 +309,9 @@
     - name: Install barbican
       command: /opt/genestack/bin/install-barbican.sh
 
+    - name: Install blazar
+      command: /opt/genestack/bin/install-blazar.sh
+
     - name: Install cinder
       command: /opt/genestack/bin/install-cinder.sh
 
