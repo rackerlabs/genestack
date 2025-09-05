@@ -669,6 +669,16 @@ pod:
     enabled: false
 
 endpoints:
+  baremetal:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: ironic.${GATEWAY_DOMAIN}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
   compute:
     host_fqdn_override:
       public:

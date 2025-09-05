@@ -1,0 +1,21 @@
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: custom-ironic-gateway-route
+  namespace: openstack
+  labels:
+    application: gateway-api
+    service: HTTPRoute
+    route: ironic
+spec:
+  parentRefs:
+    - name: flex-gateway
+      sectionName: ironic-https
+      namespace: nginx-gateway
+    hostnames:
+    - "ironic.your.domain.tld"
+    rules:
+      - backendRefs:
+        - name: ironic-api
+          port: 6385
