@@ -244,6 +244,7 @@ nav:
                             - alertmanager-pagerduty.md
     - Operational Guide:
           - Genestack:
+                - Genestack Structure and Files: genestack-structure-and-files.md
                 - Supporting multi-region: multi-region-support.md
                 - Sync Keystone Fernet Keys: sync-fernet-keys.md
                 - Running Upgrades: genestack-upgrade.md
