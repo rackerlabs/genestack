@@ -953,6 +953,7 @@ components:
   masakari: false
   ceilometer: false
   gnocchi: false
+  cloudkitty: false
   skyline: true
 EOF
 fi
