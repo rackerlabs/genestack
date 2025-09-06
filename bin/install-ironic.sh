@@ -37,6 +37,7 @@ done
 
 HELM_CMD+=" --set endpoints.identity.auth.admin.password=\"$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.identity.auth.ironic.password=\"$(kubectl --namespace openstack get secret ironic-admin -o jsonpath='{.data.password}' | base64 -d)\""
+HELM_CMD+=" --set endpoints.identity.auth.glance.password=\"$(kubectl --namespace openstack get secret glance-admin -o jsonpath='{.data.password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_db.auth.admin.password=\"$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_db.auth.ironic.password=\"$(kubectl --namespace openstack get secret ironic-db-password -o jsonpath='{.data.password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_cache.auth.memcache_secret_key=\"$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
