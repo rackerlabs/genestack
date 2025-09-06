@@ -759,11 +759,23 @@ endpoints:
         public: 443
     scheme:
       public: https
+  reservation:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: barbican.${GATEWAY_DOMAIN}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
   identity:
     auth:
       admin:
         region_name: *region
       barbican:
+        region_name: *region
+      blazar:
         region_name: *region
       cinder:
         region_name: *region
@@ -931,6 +943,7 @@ components:
   glance: true
   heat: true
   barbican: true
+  blazar: true
   cinder: true
   placement: true
   nova: true

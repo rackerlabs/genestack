@@ -50,6 +50,7 @@ EOF
     prompt_component "glance" "Glance (Image Service)"
     prompt_component "heat" "Heat (Orchestration)"
     prompt_component "barbican" "Barbican (Key Manager)"
+    prompt_component "blazar" "Blazar (Reservation)"
     prompt_component "cinder" "Cinder (Block Storage)"
     prompt_component "placement" "Placement"
     prompt_component "nova" "Nova (Compute)"
@@ -69,6 +70,7 @@ fi
 is_component_enabled "glance" && runTrackErator /opt/genestack/bin/install-glance.sh
 is_component_enabled "heat" && runTrackErator /opt/genestack/bin/install-heat.sh
 is_component_enabled "barbican" && runTrackErator /opt/genestack/bin/install-barbican.sh
+is_component_enabled "blazar" && runTrackErator /opt/genestack/bin/install-blazar.sh
 is_component_enabled "cinder" && runTrackErator /opt/genestack/bin/install-cinder.sh
 is_component_enabled "placement" && runTrackErator /opt/genestack/bin/install-placement.sh
 is_component_enabled "nova" && runTrackErator /opt/genestack/bin/install-nova.sh
