@@ -6,12 +6,12 @@ metadata:
   namespace: openstack
 spec:
   parentRefs:
-  - name: flex-gateway
-    sectionName: blazar-https
-    namespace: nginx-gateway
+    - name: flex-gateway
+      sectionName: blazar-https
+      namespace: nginx-gateway
   hostnames:
-  - "blazar.your.domain.tld"
+    - "blazar.your.domain.tld"
   rules:
     - backendRefs:
-      - name: blazar-api
-        port: 9311
+        - name: blazar-api
+          port: 9311
