@@ -14,4 +14,4 @@ spec:
   rules:
     - backendRefs:
         - name: blazar-api
-          port: 9311
+          port: 1234
