@@ -10,12 +10,11 @@ metadata:
     route: octavia
 spec:
   parentRefs:
-  - name: flex-gateway
-    sectionName: octavia-https
-    namespace: nginx-gateway
-  hostnames:
-  - "octavia.your.domain.tld"
+    - name: flex-gateway
+      sectionName: octavia-https
+      namespace: nginx-gateway
+  hostnames: [octavia.your.domain.tld]
   rules:
     - backendRefs:
-      - name: octavia-api
-        port: 9876
+        - name: octavia-api
+          port: 9876

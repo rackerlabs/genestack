@@ -1,3 +1,4 @@
+---
 # This file describes the network interfaces available on your system
 # For more information, see netplan(5).
 network:
@@ -9,9 +10,7 @@ network:
       dhcp4: false
   bonds:
     bond0:
-      interfaces:
-        - eno12399np0
-        - enp152s0f1np1
+      interfaces: [eno12399np0, enp152s0f1np1]
       parameters:
         lacp-rate: fast
         mode: 802.3ad
@@ -28,8 +27,7 @@ network:
       dhcp4: false
       mtu: 9000
       interfaces: [vlan120]
-      addresses:
-        - 172.29.240.51/22
+      addresses: [172.29.240.51/22]
 
     br-storage:
       dhcp4: false
@@ -43,8 +41,7 @@ network:
       dhcp4: false
       mtu: 1500
       interfaces: [vlan150]
-      addresses:
-        - 172.23.208.51/22
+      addresses: [172.23.208.51/22]
 
   vlans:
     vlan100:

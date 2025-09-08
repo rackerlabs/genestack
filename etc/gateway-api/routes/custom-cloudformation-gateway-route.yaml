@@ -10,12 +10,11 @@ metadata:
     route: cloudformation
 spec:
   parentRefs:
-  - name: flex-gateway
-    sectionName: cloudformation-https
-    namespace: nginx-gateway
-  hostnames:
-  - "cloudformation.your.domain.tld"
+    - name: flex-gateway
+      sectionName: cloudformation-https
+      namespace: nginx-gateway
+  hostnames: [cloudformation.your.domain.tld]
   rules:
     - backendRefs:
-      - name: heat-cfn
-        port: 8000
+        - name: heat-cfn
+          port: 8000

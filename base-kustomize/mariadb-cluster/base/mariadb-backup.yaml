@@ -1,3 +1,4 @@
+---
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: Backup
 metadata:
@@ -8,7 +9,7 @@ spec:
     name: mariadb-cluster
     namespace: openstack
   schedule:
-    cron: "0 0 * * *"
+    cron: 0 0 * * *
   serviceAccountName: backup
   compression: gzip
   storage:
@@ -16,12 +17,8 @@ spec:
       resources:
         requests:
           storage: 1Gi
-      accessModes:
-        - ReadWriteOnce
-  args:
-    - --single-transaction
-    - --all-databases
-    - --verbose
+      accessModes: [ReadWriteOnce]
+  args: [--single-transaction, --all-databases, --verbose]
   resources:
     requests:
       cpu: 100m

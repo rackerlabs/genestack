@@ -1,3 +1,4 @@
+---
 galaxy_info:
   author: Punit Shankar Kundal
   description: Create the required pre-requisite resources for enabling amphora provider in Octavia

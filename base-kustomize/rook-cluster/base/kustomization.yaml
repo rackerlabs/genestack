@@ -1,5 +1,4 @@
+---
 sortOptions:
   order: fifo
-resources:
-  - rook-cluster.yaml
-  - toolbox.yaml
+resources: [rook-cluster.yaml, toolbox.yaml]

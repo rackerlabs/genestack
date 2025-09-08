@@ -5,17 +5,15 @@ metadata:
   name: keystone
   namespace: openstack
   labels:
-    app.kubernetes.io/managed-by: "Helm"
+    app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
-    meta.helm.sh/release-name: "keystone"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-name: keystone
+    meta.helm.sh/release-namespace: openstack
 spec:
-  tags:
-    - management
-    - policymaker
+  tags: [management, policymaker]
   rabbitmqClusterReference:
-    name: rabbitmq # rabbitmqCluster must exist in the same namespace as this resource
+    name: rabbitmq  # rabbitmqCluster must exist in the same namespace as this resource
     namespace: openstack
   importCredentialsSecret:
     name: keystone-rabbitmq-password
@@ -26,16 +24,16 @@ metadata:
   name: keystone-vhost
   namespace: openstack
   labels:
-    app.kubernetes.io/managed-by: "Helm"
+    app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
-    meta.helm.sh/release-name: "keystone"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-name: keystone
+    meta.helm.sh/release-namespace: openstack
 spec:
-  name: "keystone" # vhost name; required and cannot be updated
-  defaultQueueType: quorum # default queue type for this vhost; require RabbitMQ version 3.11.12 or above
+  name: keystone  # vhost name; required and cannot be updated
+  defaultQueueType: quorum  # default queue type for this vhost; require RabbitMQ version 3.11.12 or above
   rabbitmqClusterReference:
-    name: rabbitmq # rabbitmqCluster must exist in the same namespace as this resource
+    name: rabbitmq  # rabbitmqCluster must exist in the same namespace as this resource
     namespace: openstack
 # status:
 #   conditions:
@@ -51,19 +49,19 @@ metadata:
   name: keystone-queue
   namespace: openstack
   labels:
-    app.kubernetes.io/managed-by: "Helm"
+    app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
-    meta.helm.sh/release-name: "keystone"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-name: keystone
+    meta.helm.sh/release-namespace: openstack
 spec:
-  name: keystone-qq # name of the queue
-  vhost: "keystone" # default to '/' if not provided
-  type: quorum # without providing a queue type, rabbitmq creates a classic queue
+  name: keystone-qq  # name of the queue
+  vhost: keystone  # default to '/' if not provided
+  type: quorum  # without providing a queue type, rabbitmq creates a classic queue
   autoDelete: false
-  durable: true # setting 'durable' to false means this queue won't survive a server restart
+  durable: true  # setting 'durable' to false means this queue won't survive a server restart
   rabbitmqClusterReference:
-    name: rabbitmq # rabbitmqCluster must exist in the same namespace as this resource
+    name: rabbitmq  # rabbitmqCluster must exist in the same namespace as this resource
     namespace: openstack
 ---
 apiVersion: rabbitmq.com/v1beta1
@@ -72,21 +70,21 @@ metadata:
   name: keystone-permission
   namespace: openstack
   labels:
-    app.kubernetes.io/managed-by: "Helm"
+    app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
-    meta.helm.sh/release-name: "keystone"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-name: keystone
+    meta.helm.sh/release-namespace: openstack
 spec:
-  vhost: "keystone" # name of a vhost
+  vhost: keystone  # name of a vhost
   userReference:
-    name: "keystone" # name of a user.rabbitmq.com in the same namespace; must specify either spec.userReference or spec.user
+    name: keystone  # name of a user.rabbitmq.com in the same namespace; must specify either spec.userReference or spec.user
   permissions:
-    write: ".*"
-    configure: ".*"
-    read: ".*"
+    write: .*
+    configure: .*
+    read: .*
   rabbitmqClusterReference:
-    name: rabbitmq # rabbitmqCluster must exist in the same namespace as this resource
+    name: rabbitmq  # rabbitmqCluster must exist in the same namespace as this resource
     namespace: openstack
 # status:
 #   conditions:

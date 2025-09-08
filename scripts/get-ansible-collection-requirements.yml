@@ -25,7 +25,7 @@
 
     - name: Generate a list of required collections excluding user overridden collections
       set_fact:
-         galaxy_collections_list : "{{ galaxy_collections_list + [ item ] }}"
+        galaxy_collections_list: "{{ galaxy_collections_list + [ item ] }}"
       when:
         - item.name not in user_collection_names
       loop: "{{ required_collections.collections }}"

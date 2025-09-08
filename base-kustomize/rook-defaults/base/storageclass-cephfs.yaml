@@ -1,13 +1,14 @@
+---
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: general-multi-attach
 # Change "rook-ceph" provisioner prefix to match the operator namespace if needed
-provisioner: rook-ceph.cephfs.csi.ceph.com # driver:namespace:operator
+provisioner: rook-ceph.cephfs.csi.ceph.com  # driver:namespace:operator
 parameters:
   # clusterID is the namespace where the rook cluster is running
   # If you change this namespace, also change the namespace below where the secret namespaces are defined
-  clusterID: rook-ceph # namespace:cluster
+  clusterID: rook-ceph  # namespace:cluster
 
   # CephFS filesystem name into which the volume shall be created
   fsName: myfs
@@ -19,11 +20,11 @@ parameters:
   # The secrets contain Ceph admin credentials. These are generated automatically by the operator
   # in the same namespace as the cluster.
   csi.storage.k8s.io/provisioner-secret-name: rook-csi-cephfs-provisioner
-  csi.storage.k8s.io/provisioner-secret-namespace: rook-ceph # namespace:cluster
+  csi.storage.k8s.io/provisioner-secret-namespace: rook-ceph  # namespace:cluster
   csi.storage.k8s.io/controller-expand-secret-name: rook-csi-cephfs-provisioner
-  csi.storage.k8s.io/controller-expand-secret-namespace: rook-ceph # namespace:cluster
+  csi.storage.k8s.io/controller-expand-secret-namespace: rook-ceph  # namespace:cluster
   csi.storage.k8s.io/node-stage-secret-name: rook-csi-cephfs-node
-  csi.storage.k8s.io/node-stage-secret-namespace: rook-ceph # namespace:cluster
+  csi.storage.k8s.io/node-stage-secret-namespace: rook-ceph  # namespace:cluster
 
   # (optional) The driver can use either ceph-fuse (fuse) or ceph kernel client (kernel)
   # If omitted, default volume mounter will be used - this is determined by probing for ceph-fuse
@@ -33,4 +34,4 @@ reclaimPolicy: Delete
 allowVolumeExpansion: true
 mountOptions:
   # uncomment the following line for debugging
-  #- debug
+  # - debug

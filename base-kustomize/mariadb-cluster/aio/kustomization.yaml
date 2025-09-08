@@ -1,7 +1,7 @@
+---
 sortOptions:
   order: fifo
-resources:
-  - "../base"
+resources: [../base]
 
 patches:
   - target:

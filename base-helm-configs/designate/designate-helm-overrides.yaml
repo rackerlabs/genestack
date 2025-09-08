@@ -1,22 +1,5 @@
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# Default values for designate.
-# This is a YAML-formatted file.
-# Declare name/value pairs to be passed into your templates.
-# name: value
-
 ---
-release_group: null
+release_group:
 
 labels:
   api:
@@ -43,28 +26,26 @@ labels:
 
 images:
   tags:
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    rabbit_init: null
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    designate_db_sync: "ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest"
-    designate_api: "ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest"
-    designate_central: "ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest"
-    designate_mdns: "ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest"
-    designate_worker: "ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest"
-    designate_producer: "ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest"
-    designate_sink: "ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest"
-    image_repo_sync: null
-  pull_policy: "IfNotPresent"
+    bootstrap: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    rabbit_init:
+    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
+    designate_db_sync: ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest
+    designate_api: ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest
+    designate_central: ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest
+    designate_mdns: ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest
+    designate_worker: ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest
+    designate_producer: ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest
+    designate_sink: ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest
+    image_repo_sync:
+  pull_policy: IfNotPresent
   local_registry:
     active: false
-    exclude:
-      - dep_check
-      - image_repo_sync
+    exclude: [dep_check, image_repo_sync]
 
 pod:
   affinity:
@@ -75,32 +56,32 @@ pod:
         default: kubernetes.io/hostname
   mounts:
     designate_api:
-      init_container: null
+      init_container:
       designate_api:
         volumeMounts:
         volumes:
     designate_central:
-      init_container: null
+      init_container:
       designate_central:
         volumeMounts:
         volumes:
     designate_mdns:
-      init_container: null
+      init_container:
       designate_mdns:
         volumeMounts:
         volumes:
     designate_worker:
-      init_container: null
+      init_container:
       designate_worker:
         volumeMounts:
         volumes:
     designate_producer:
-      init_container: null
+      init_container:
       designate_producer:
         volumeMounts:
         volumes:
     designate_sink:
-      init_container: null
+      init_container:
       designate_sink:
         volumeMounts:
         volumes:
@@ -156,8 +137,8 @@ network:
     ingress:
       public: true
       classes:
-        namespace: "nginx"
-        cluster: "nginx-cluster"
+        namespace: nginx
+        cluster: nginx-cluster
       annotations:
         nginx.ingress.kubernetes.io/rewrite-target: /
     external_policy_local: false
@@ -165,8 +146,8 @@ network:
       enabled: false
       port: 9001
   mdns:
-    name: "designate-mdns"
-    proto: "http"
+    name: designate-mdns
+    proto: http
     external_policy_local: false
     node_port:
       enabled: true
@@ -181,32 +162,26 @@ dependencies:
   dynamic:
     common:
       local_image_registry:
-        jobs:
-          - designate-image-repo-sync
+        jobs: [designate-image-repo-sync]
         services:
           - endpoint: node
             service: local_image_registry
     job_rabbit_init:
       api:
-        jobs:
-          - designate-rabbit-init
+        jobs: [designate-rabbit-init]
       sink:
-        jobs:
-          - designate-rabbit-init
+        jobs: [designate-rabbit-init]
       central:
-        jobs:
-          - designate-rabbit-init
+        jobs: [designate-rabbit-init]
       worker:
-        jobs:
-          - designate-rabbit-init
+        jobs: [designate-rabbit-init]
   static:
     db_init:
       services:
         - service: oslo_db
           endpoint: internal
     db_sync:
-      jobs:
-        - designate-db-init
+      jobs: [designate-db-init]
       services:
         - service: oslo_db
           endpoint: internal
@@ -219,8 +194,7 @@ dependencies:
         - service: identity
           endpoint: internal
     ks_endpoints:
-      jobs:
-        - designate-ks-service
+      jobs: [designate-ks-service]
       services:
         - service: identity
           endpoint: internal
@@ -229,10 +203,7 @@ dependencies:
         - service: oslo_messaging
           endpoint: internal
     api:
-      jobs:
-        - designate-db-sync
-        - designate-ks-user
-        - designate-ks-endpoints
+      jobs: [designate-db-sync, designate-ks-user, designate-ks-endpoints]
       service:
         - service: oslo_db
           endpoint: internal
@@ -241,10 +212,7 @@ dependencies:
         - service: oslo_messaging
           endpoint: internal
     central:
-      jobs:
-        - designate-db-sync
-        - designate-ks-user
-        - designate-ks-endpoints
+      jobs: [designate-db-sync, designate-ks-user, designate-ks-endpoints]
       service:
         - service: oslo_db
           endpoint: internal
@@ -253,10 +221,7 @@ dependencies:
         - service: oslo_messaging
           endpoint: internal
     worker:
-      jobs:
-        - designate-db-sync
-        - designate-ks-user
-        - designate-ks-endpoints
+      jobs: [designate-db-sync, designate-ks-user, designate-ks-endpoints]
       services:
         - service: oslo_db
           endpoint: internal
@@ -265,30 +230,21 @@ dependencies:
         - service: mdns
           endpoint: internal
     mdns:
-      jobs:
-        - designate-db-sync
-        - designate-ks-user
-        - designate-ks-endpoints
+      jobs: [designate-db-sync, designate-ks-user, designate-ks-endpoints]
       services:
         - service: oslo_db
           endpoint: internal
         - service: identity
           endpoint: internal
     producer:
-      jobs:
-        - designate-db-sync
-        - designate-ks-user
-        - designate-ks-endpoints
+      jobs: [designate-db-sync, designate-ks-user, designate-ks-endpoints]
       services:
         - service: oslo_db
           endpoint: internal
         - service: identity
           endpoint: internal
     sink:
-      jobs:
-        - designate-db-sync
-        - designate-ks-user
-        - designate-ks-endpoints
+      jobs: [designate-db-sync, designate-ks-user, designate-ks-endpoints]
       services:
         - service: oslo_db
           endpoint: internal
@@ -315,7 +271,7 @@ conf:
       # List out the nameservers for this pool. These are the actual DNS servers.
       # We use these to verify changes have propagated to all nameservers.
       nameservers:
-        - host: 127.0.0.1 # enter your own values ${POWERDNS_SERVICE_HOST}
+        - host: 127.0.0.1  # enter your own values ${POWERDNS_SERVICE_HOST}
           port: {{ tuple "powerdns" "internal" "powerdns" . | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
 
       # List out the targets for this pool. For BIND there will be one
@@ -330,12 +286,12 @@ conf:
           # If you have multiple controllers you can add multiple masters
           # by running designate-mdns on them, and adding them here.
           masters:
-            - host: 127.0.0.1 # enter your own values ${MINIDNS_SERVICE_HOST}
+            - host: 127.0.0.1  # enter your own values ${MINIDNS_SERVICE_HOST}
               port: {{ tuple "mdns" "internal" "ipc" . | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
 
           # PowerDNS Configuration options
           options:
-            host: 127.0.0.1 # enter your own values ${POWERDNS_SERVICE_HOST}
+            host: 127.0.0.1  # enter your own values ${POWERDNS_SERVICE_HOST}
             port: {{ tuple "powerdns" "internal" "powerdns" . | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
             api_endpoint: http://${POWERDNS_SERVICE_HOST}:{{ tuple "powerdns" "internal" "powerdns_api" . | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
             api_token: {{ tuple "powerdns" "service" . | include "helm-toolkit.endpoints.endpoint_token_lookup" }}
@@ -353,14 +309,18 @@ conf:
       paste.app_factory: designate.api.versions:factory
     composite:osapi_dns_v2:
       use: call:designate.api.middleware:auth_pipeline_factory
-      noauth: http_proxy_to_wsgi cors request_id faultwrapper validation_API_v2 noauthcontext maintenance normalizeuri osapi_dns_app_v2
-      keystone: http_proxy_to_wsgi cors request_id faultwrapper validation_API_v2 authtoken keystonecontext maintenance normalizeuri osapi_dns_app_v2
+      noauth: http_proxy_to_wsgi cors request_id faultwrapper validation_API_v2 noauthcontext
+        maintenance normalizeuri osapi_dns_app_v2
+      keystone: http_proxy_to_wsgi cors request_id faultwrapper validation_API_v2
+        authtoken keystonecontext maintenance normalizeuri osapi_dns_app_v2
     app:osapi_dns_app_v2:
       paste.app_factory: designate.api.v2:factory
     composite:osapi_dns_admin:
       use: call:designate.api.middleware:auth_pipeline_factory
-      noauth: http_proxy_to_wsgi cors request_id faultwrapper noauthcontext maintenance normalizeuri osapi_dns_app_admin
-      keystone: http_proxy_to_wsgi cors request_id faultwrapper authtoken keystonecontext maintenance normalizeuri osapi_dns_app_admin
+      noauth: http_proxy_to_wsgi cors request_id faultwrapper noauthcontext maintenance
+        normalizeuri osapi_dns_app_admin
+      keystone: http_proxy_to_wsgi cors request_id faultwrapper authtoken keystonecontext
+        maintenance normalizeuri osapi_dns_app_admin
     app:osapi_dns_app_admin:
       paste.app_factory: designate.api.admin:factory
     filter:cors:
@@ -445,26 +405,17 @@ conf:
 
   logging:
     loggers:
-      keys:
-        - root
-        - designate
+      keys: [root, designate]
     handlers:
-      keys:
-        - stdout
-        - stderr
-        - "null"
+      keys: [stdout, stderr, 'null']
     formatters:
-      keys:
-        - context
-        - default
+      keys: [context, default]
     logger_root:
       level: INFO
-      handlers:
-        - stdout
+      handlers: [stdout]
     logger_designate:
       level: INFO
-      handlers:
-        - stdout
+      handlers: [stdout]
       qualname: designate
     logger_amqp:
       level: WARNING
@@ -500,10 +451,10 @@ conf:
       formatter: context
     formatter_context:
       class: oslo_log.formatters.ContextFormatter
-      datefmt: "%Y-%m-%d %H:%M:%S"
+      datefmt: '%Y-%m-%d %H:%M:%S'
     formatter_default:
-      format: "%(message)s"
-      datefmt: "%Y-%m-%d %H:%M:%S"
+      format: '%(message)s'
+      datefmt: '%Y-%m-%d %H:%M:%S'
 
 # Names of secrets used by bootstrap and environmental checks
 secrets:
@@ -534,7 +485,7 @@ endpoints:
       internal: docker-registry
       node: localhost
     host_fqdn_override:
-      default: null
+      default:
     port:
       registry:
         node: 5000
@@ -549,10 +500,10 @@ endpoints:
     hosts:
       default: localhost
     host_fqdn_override:
-      default: null
+      default:
     port:
       registry:
-        default: null
+        default:
   identity:
     name: keystone
     auth:
@@ -583,7 +534,7 @@ endpoints:
       default: keystone
       internal: keystone-api
     host_fqdn_override:
-      default: null
+      default:
     path:
       default: /v3
     scheme:
@@ -598,11 +549,11 @@ endpoints:
       default: designate-api
       public: designate
     host_fqdn_override:
-      default: null
+      default:
     path:
       default: /
     scheme:
-      default: "http"
+      default: http
     port:
       api:
         default: 9001
@@ -613,11 +564,11 @@ endpoints:
       default: minidns
       public: designate-mdns
     host_fqdn_override:
-      default: null
+      default:
     path:
-      default: null
+      default:
     scheme:
-      default: "tcp"
+      default: tcp
     port:
       ipc:
         default: 5354
@@ -632,7 +583,7 @@ endpoints:
     hosts:
       default: mariadb-cluster-primary
     host_fqdn_override:
-      default: null
+      default:
     path: /designate
     scheme: mysql+pymysql
     port:
@@ -642,7 +593,7 @@ endpoints:
     hosts:
       default: memcached
     host_fqdn_override:
-      default: null
+      default:
     port:
       memcache:
         default: 11211
@@ -652,7 +603,7 @@ endpoints:
       # automatically with a random value, but to take advantage of
       # this feature all services should be set to use the same key,
       # and memcache service.
-      memcache_secret_key: null
+      memcache_secret_key:
   oslo_messaging:
     auth:
       admin:
@@ -685,7 +636,7 @@ endpoints:
     hosts:
       default: 8.8.8.8
     host_fqdn_override:
-      default: null
+      default:
     port:
       powerdns_api:
         default: 8081
@@ -697,10 +648,10 @@ endpoints:
     hosts:
       default: fluentd-logging
     host_fqdn_override:
-      default: null
+      default:
     path:
-      default: null
-    scheme: "http"
+      default:
+    scheme: http
     port:
       service:
         default: 24224

@@ -1,3 +1,4 @@
+---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -5,8 +6,7 @@ metadata:
 spec:
   capacity:
     storage: 7Gi
-  accessModes:
-  - ReadWriteOnce
+  accessModes: [ReadWriteOnce]
   persistentVolumeReclaimPolicy: Retain
   storageClassName: local-storage
   local:
@@ -14,8 +14,7 @@ spec:
   nodeAffinity:
     required:
       nodeSelectorTerms:
-      - matchExpressions:
-        - key: vault-storage
-          operator: In
-          values:
-          - 'enabled'
+        - matchExpressions:
+            - key: vault-storage
+              operator: In
+              values: [enabled]

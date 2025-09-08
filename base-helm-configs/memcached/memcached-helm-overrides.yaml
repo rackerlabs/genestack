@@ -1,3 +1,4 @@
+---
 ## Global Docker image parameters
 ## Please, note that this will override the image parameters, including dependencies, configured to use the global value
 ## Current available global Docker image parameters: imageRegistry, imagePullSecrets and storageClass
@@ -7,25 +8,24 @@
 ## @param global.storageClass Global StorageClass for Persistent Volume(s)
 ##
 global:
-  imageRegistry: ""
+  imageRegistry: ''
   ## E.g.
   ## imagePullSecrets:
   ##   - myRegistryKeySecretName
   ##
   imagePullSecrets: []
-  storageClass: ""
-
+  storageClass: ''
 ## @section Common parameters
 
 ## @param kubeVersion Override Kubernetes version
 ##
-kubeVersion: ""
+kubeVersion: ''
 ## @param nameOverride String to partially override common.names.fullname template (will maintain the release name)
 ##
-nameOverride: ""
+nameOverride: ''
 ## @param fullnameOverride String to fully override common.names.fullname template
 ##
-fullnameOverride: ""
+fullnameOverride: ''
 ## @param clusterDomain Kubernetes Cluster Domain
 ##
 clusterDomain: cluster.local
@@ -68,7 +68,7 @@ image:
   registry: docker.io
   repository: bitnami/memcached
   tag: 1.6.33-debian-12-r0
-  digest: ""
+  digest: ''
   ## Specify a imagePullPolicy
   ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
   ## ref: https://kubernetes.io/docs/user-guide/images/#pre-pulling-images
@@ -97,13 +97,13 @@ auth:
   enabled: false
   ## @param auth.username Memcached admin user
   ##
-  username: ""
+  username: ''
   ## @param auth.password Memcached admin password
   ##
-  password: ""
+  password: ''
   ## @param auth.existingPasswordSecret Existing secret with Memcached credentials (must contain a value for `memcached-password` key)
   ##
-  existingPasswordSecret: ""
+  existingPasswordSecret: ''
 ## @param command Override default container command (useful when using custom images)
 ##
 command: []
@@ -126,20 +126,19 @@ args: []
 # Review https://hub.docker.com/r/bitnami/memcached for more information.
 extraEnvVars:
   - name: MEMCACHED_CACHE_SIZE
-    value: "9216"
+    value: '9216'
   - name: MEMCACHED_MAX_CONNECTIONS
-    value: "4096"
+    value: '4096'
   - name: MEMCACHED_THREADS
-    value: "8"
+    value: '8'
   - name: MEMCACHED_MAX_ITEM_SIZE
-    value: "4194304"
-
+    value: '4194304'
 ## @param extraEnvVarsCM Name of existing ConfigMap containing extra env vars for Memcached nodes
 ##
-extraEnvVarsCM: ""
+extraEnvVarsCM: ''
 ## @param extraEnvVarsSecret Name of existing Secret containing extra env vars for Memcached nodes
 ##
-extraEnvVarsSecret: ""
+extraEnvVarsSecret: ''
 ## @section Deployment/Statefulset parameters
 
 ## @param replicaCount Number of Memcached nodes
@@ -213,7 +212,7 @@ lifecycleHooks: {}
 ##
 resources:
   limits:
-    cpu: "2"
+    cpu: '2'
     memory: 3Gi
   requests:
     cpu: 200m
@@ -255,9 +254,9 @@ containerSecurityContext:
   readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false
   capabilities:
-    drop: ["ALL"]
+    drop: [ALL]
   seccompProfile:
-    type: "RuntimeDefault"
+    type: RuntimeDefault
 ## @param automountServiceAccountToken Mount Service Account token in pod
 ##
 automountServiceAccountToken: false
@@ -276,7 +275,7 @@ podAnnotations: {}
 ## @param podAffinityPreset Pod affinity preset. Ignored if `affinity` is set. Allowed values: `soft` or `hard`
 ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
 ##
-podAffinityPreset: ""
+podAffinityPreset: ''
 ## @param podAntiAffinityPreset Pod anti-affinity preset. Ignored if `affinity` is set. Allowed values: `soft` or `hard`
 ## Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
 ##
@@ -287,12 +286,12 @@ podAntiAffinityPreset: soft
 nodeAffinityPreset:
   ## @param nodeAffinityPreset.type Node affinity preset type. Ignored if `affinity` is set. Allowed values: `soft` or `hard`
   ##
-  type: ""
+  type: ''
   ## @param nodeAffinityPreset.key Node label key to match Ignored if `affinity` is set.
   ## E.g.
   ## key: "kubernetes.io/e2e-az-name"
   ##
-  key: ""
+  key: ''
   ## @param nodeAffinityPreset.values Node label values to match. Ignored if `affinity` is set.
   ## E.g.
   ## values:
@@ -325,15 +324,15 @@ podManagementPolicy: Parallel
 ## @param priorityClassName Name of the existing priority class to be used by Memcached pods, priority class needs to be created beforehand
 ## Ref: https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/
 ##
-priorityClassName: ""
+priorityClassName: ''
 ## @param schedulerName Kubernetes pod scheduler registry
 ## https://kubernetes.io/docs/tasks/administer-cluster/configure-multiple-schedulers/
 ##
-schedulerName: ""
+schedulerName: ''
 ## @param terminationGracePeriodSeconds In seconds, time the given to the memcached pod needs to terminate gracefully
 ## ref: https://kubernetes.io/docs/concepts/workloads/pods/pod/#termination-of-pods
 ##
-terminationGracePeriodSeconds: ""
+terminationGracePeriodSeconds: ''
 ## @param updateStrategy.type Memcached statefulset strategy type
 ## @param updateStrategy.rollingUpdate Memcached statefulset rolling update configuration parameters
 ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#update-strategies
@@ -344,7 +343,7 @@ updateStrategy:
 ## @param emptyDir.medium Override emptyDir Volume type, defaults to emptyDir: {}
 ## Possible values: "Memory", ""
 emptyDir:
-  medium: ""
+  medium: ''
 ## @param extraVolumes Optionally specify extra list of additional volumes for the Memcached pod(s)
 ## Example Use Case: mount certificates to enable TLS
 ## e.g:
@@ -419,7 +418,7 @@ autoscaling:
 ##
 pdb:
   create: false
-  minAvailable: ""
+  minAvailable: ''
   maxUnavailable: 1
 
 ## @section Traffic Exposure parameters
@@ -436,12 +435,12 @@ service:
   ## @param service.nodePorts.memcached Node port for Memcached
   ##
   nodePorts:
-    memcached: ""
+    memcached: ''
   ## @param service.sessionAffinity Control where client requests go, to the same pod or round-robin
   ## Values: ClientIP or None
   ## ref: https://kubernetes.io/docs/concepts/services-networking/service/
   ##
-  sessionAffinity: "ClientIP"
+  sessionAffinity: ClientIP
   ## @param service.sessionAffinityConfig Additional settings for the sessionAffinity
   ## sessionAffinityConfig:
   ##   clientIP:
@@ -454,11 +453,11 @@ service:
   ## e.g.:
   ## clusterIP: None
   ##
-  clusterIP: ""
+  clusterIP: ''
   ## @param service.loadBalancerIP Memcached service Load Balancer IP
   ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-loadbalancer
   ##
-  loadBalancerIP: ""
+  loadBalancerIP: ''
   ## @param service.loadBalancerSourceRanges Memcached service Load Balancer sources
   ## ref: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/#restrict-access-for-loadbalancer-service
   ## e.g:
@@ -551,7 +550,7 @@ serviceAccount:
   ## @param serviceAccount.name The name of the ServiceAccount to use.
   ## If not set and create is true, a name is generated using the common.names.fullname template
   ##
-  name: ""
+  name: ''
   ## @param serviceAccount.automountServiceAccountToken Allows auto mount of ServiceAccountToken on the serviceAccount created
   ## Can be set to false if pods using this serviceAccount do not need to use K8s API
   ##
@@ -575,7 +574,7 @@ persistence:
   ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
   ##   GKE, AWS & OpenStack)
   ##
-  storageClass: ""
+  storageClass: ''
   ## @param persistence.accessModes PVC Access modes
   ##
   accessModes:
@@ -618,7 +617,7 @@ volumePermissions:
     registry: docker.io
     repository: bitnami/os-shell
     tag: 12-debian-12-r34
-    digest: ""
+    digest: ''
     pullPolicy: IfNotPresent
     ## Optionally specify an array of imagePullSecrets.
     ## Secrets must be manually created in the namespace.
@@ -664,7 +663,7 @@ metrics:
     registry: docker.io
     repository: bitnami/memcached-exporter
     tag: 0.15.0-debian-12-r3
-    digest: ""
+    digest: ''
     pullPolicy: IfNotPresent
     ## Optionally specify an array of imagePullSecrets.
     ## Secrets must be manually created in the namespace.
@@ -685,7 +684,7 @@ metrics:
   ##
   resources:
     limits:
-      cpu: "2"
+      cpu: '2'
       memory: 3Gi
     requests:
       cpu: 200m
@@ -713,9 +712,9 @@ metrics:
     readOnlyRootFilesystem: true
     allowPrivilegeEscalation: false
     capabilities:
-      drop: ["ALL"]
+      drop: [ALL]
     seccompProfile:
-      type: "RuntimeDefault"
+      type: RuntimeDefault
   ## Configure extra options for Memcached Prometheus exporter containers' liveness, readiness and startup probes
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   ## @param metrics.livenessProbe.enabled Enable livenessProbe on Memcached Prometheus exporter containers
@@ -773,8 +772,8 @@ metrics:
   ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
   ##
   podAnnotations:
-    prometheus.io/scrape: "true"
-    prometheus.io/port: "{{ .Values.metrics.containerPorts.metrics }}"
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '{{ .Values.metrics.containerPorts.metrics }}'
   ## Service configuration
   ##
   service:
@@ -785,7 +784,7 @@ metrics:
     ## @param metrics.service.clusterIP Static clusterIP or None for headless services
     ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#choosing-your-own-ip-address
     ##
-    clusterIP: ""
+    clusterIP: ''
     ## @param metrics.service.sessionAffinity Control where client requests go, to the same pod or round-robin
     ## Values: ClientIP or None
     ## ref: https://kubernetes.io/docs/concepts/services-networking/service/
@@ -794,8 +793,8 @@ metrics:
     ## @param metrics.service.annotations [object] Annotations for the Prometheus metrics service
     ##
     annotations:
-      prometheus.io/scrape: "true"
-      prometheus.io/port: "{{ .Values.metrics.service.ports.metrics }}"
+      prometheus.io/scrape: 'true'
+      prometheus.io/port: '{{ .Values.metrics.service.ports.metrics }}'
   ## Prometheus Operator ServiceMonitor configuration
   ##
   serviceMonitor:
@@ -804,15 +803,15 @@ metrics:
     enabled: false
     ## @param metrics.serviceMonitor.namespace Namespace for the ServiceMonitor Resource (defaults to the Release Namespace)
     ##
-    namespace: ""
+    namespace: ''
     ## @param metrics.serviceMonitor.interval Interval at which metrics should be scraped.
     ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint
     ##
-    interval: ""
+    interval: ''
     ## @param metrics.serviceMonitor.scrapeTimeout Timeout after which the scrape is ended
     ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint
     ##
-    scrapeTimeout: ""
+    scrapeTimeout: ''
     ## @param metrics.serviceMonitor.labels Additional labels that can be used so ServiceMonitor will be discovered by Prometheus
     ##
     labels: {}
@@ -831,4 +830,4 @@ metrics:
     honorLabels: false
     ## @param metrics.serviceMonitor.jobLabel The name of the label on the target service to use as the job name in prometheus.
     ##
-    jobLabel: ""
+    jobLabel: ''

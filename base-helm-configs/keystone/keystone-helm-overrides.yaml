@@ -1,22 +1,22 @@
 ---
 images:
   tags:
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    image_repo_sync: null
-    keystone_api: "ghcr.io/rackerlabs/genestack-images/keystone:2024.1-latest"
-    keystone_credential_cleanup: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    keystone_credential_rotate: "ghcr.io/rackerlabs/genestack-images/keystone:2024.1-latest"
-    keystone_credential_setup: "ghcr.io/rackerlabs/genestack-images/keystone:2024.1-latest"
-    keystone_db_sync: "ghcr.io/rackerlabs/genestack-images/keystone:2024.1-latest"
-    keystone_domain_manage: "ghcr.io/rackerlabs/genestack-images/keystone:2024.1-latest"
-    keystone_fernet_rotate: "ghcr.io/rackerlabs/genestack-images/keystone:2024.1-latest"
-    keystone_fernet_setup: "ghcr.io/rackerlabs/genestack-images/keystone:2024.1-latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    rabbit_init: null
-    test: null
+    bootstrap: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
+    image_repo_sync:
+    keystone_api: ghcr.io/rackerlabs/genestack-images/keystone:2024.1-latest
+    keystone_credential_cleanup: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    keystone_credential_rotate: ghcr.io/rackerlabs/genestack-images/keystone:2024.1-latest
+    keystone_credential_setup: ghcr.io/rackerlabs/genestack-images/keystone:2024.1-latest
+    keystone_db_sync: ghcr.io/rackerlabs/genestack-images/keystone:2024.1-latest
+    keystone_domain_manage: ghcr.io/rackerlabs/genestack-images/keystone:2024.1-latest
+    keystone_fernet_rotate: ghcr.io/rackerlabs/genestack-images/keystone:2024.1-latest
+    keystone_fernet_setup: ghcr.io/rackerlabs/genestack-images/keystone:2024.1-latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    rabbit_init:
+    test:
 
 # NOTE: (brew) requests cpu/mem values based on a three node
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
@@ -40,18 +40,16 @@ pod:
     enabled: true
     api:
       requests:
-        memory: "512Mi"
-        cpu: "2"
+        memory: 512Mi
+        cpu: '2'
       limits:
         memory: 2Gi
-        cpu: "4"
+        cpu: '4'
 
 dependencies:
   static:
     db_sync:
-      jobs:
-        - keystone-credential-setup
-        - keystone-fernet-setup
+      jobs: [keystone-credential-setup, keystone-fernet-setup]
 
 conf:
   keystone_api_wsgi:
@@ -62,7 +60,7 @@ conf:
     DEFAULT:
       max_token_size: 300
     auth:
-      methods: "password,token,application_credential,totp"
+      methods: password,token,application_credential,totp
       password: rxt
       totp: rxt
     database:
@@ -106,8 +104,7 @@ conf:
       disable_user_account_days_inactive: 90
   logging:
     logger_root:
-      handlers:
-        - stdout
+      handlers: [stdout]
       level: INFO
   mpm_event: |
     <IfModule mpm_event_module>
@@ -122,7 +119,8 @@ conf:
       MaxConnectionsPerChild 0
     </IfModule>
   policy:
-    "identity:list_system_grants_for_user": "rule:admin_required or (role:reader and system_scope:all) or rule:owner"
+    identity:list_system_grants_for_user: rule:admin_required or (role:reader and
+      system_scope:all) or rule:owner
   rabbitmq:
     policies: []
   wsgi_keystone: |

@@ -6,8 +6,8 @@ metadata:
   namespace: openstack
 spec:
   name: placement-quorum-three-replicas
-  vhost: "placement"
-  pattern: ".*"
+  vhost: placement
+  pattern: .*
   applyTo: queues
   definition:
     target-group-size: 3

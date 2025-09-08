@@ -1,3 +1,4 @@
+---
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: BUSL-1.1
 
@@ -138,7 +139,7 @@ controller:
       #
       # default: "none"
       # @type: string
-      persistenceModel: ""
+      persistenceModel: ''
 
       # Defines the size of the in-memory LRU cache *in entries*, that is used by the client cache controller.
       # May also be set via the `VSO_CLIENT_CACHE_SIZE` environment variable.
@@ -170,15 +171,15 @@ controller:
 
         # KeyName to use for encrypt/decrypt operations via Vault Transit.
         # @type: string
-        keyName: ""
+        keyName: ''
 
         # Mount path for the Transit VaultAuthMethod.
         # @type: string
-        transitMount: ""
+        transitMount: ''
 
         # Vault namespace for the Transit VaultAuthMethod CR.
         # @type: string
-        namespace: ""
+        namespace: ''
 
         # Vault Auth method to be used with the Transit VaultAuthMethod CR.
         # @type: string
@@ -194,7 +195,7 @@ controller:
           # This is a required field and must be setup in Vault prior to deploying the helm chart
           # if `defaultAuthMethod.enabled=true`
           # @type: string
-          role: ""
+          role: ''
 
           # Kubernetes ServiceAccount associated with the Transit Vault Auth Role
           # Defaults to using the Operator's service-account.
@@ -211,7 +212,7 @@ controller:
           # This is a required field and must be setup in Vault prior to deploying the helm chart
           # if using JWT for the Transit VaultAuthMethod.
           # @type: string
-          role: ""
+          role: ''
 
           # One of the following is required prior to deploying the helm chart
           # - K8s secret that contains the JWT
@@ -223,11 +224,11 @@ controller:
           # must exist in the namespace of any consuming VaultSecret CR. This is a required field if
           # a JWT token is provided.
           # @type: string
-          secretRef: ""
+          secretRef: ''
 
           # Kubernetes ServiceAccount to generate a service account JWT
           # @type: string
-          serviceAccount: "default"
+          serviceAccount: default
 
           # Token Audience should match the bound_audiences or the `aud` list in bound_claims if
           # applicable of the Vault JWT auth role.
@@ -240,14 +241,14 @@ controller:
           # This is a required field when using appRole and must be setup in Vault prior to deploying
           # the helm chart.
           # @type: string
-          roleId: ""
+          roleId: ''
           # Name of Kubernetes Secret that has the AppRole Role's SecretID used to authenticate with
           # Vault. The Kubernetes Secret must contain a key named `id` which references the AppRole
           # Role's SecretID, and must exist in the namespace of any consuming VaultSecret CR.
           # This is a required field when using appRole and must be setup in Vault prior to
           # deploying the helm chart.
           # @type: string
-          secretRef: ""
+          secretRef: ''
 
         # AWS auth method specific configuration
         aws:
@@ -255,66 +256,66 @@ controller:
           # This is a required field and must be setup in Vault prior to deploying the helm chart
           # if using the AWS for the Transit auth method.
           # @type: string
-          role: ""
+          role: ''
 
           # AWS region to use for signing the authentication request
           # Optional, but most commonly will be the EKS cluster region.
           # @type: string
-          region: ""
+          region: ''
 
           # Vault header value to include in the STS signing request
           # @type: string
-          headerValue: ""
+          headerValue: ''
 
           # The role session name to use when creating a WebIdentity provider
           # @type: string
-          sessionName: ""
+          sessionName: ''
 
           # The STS endpoint to use; if not set will use the default
           # @type: string
-          stsEndpoint: ""
+          stsEndpoint: ''
 
           # The IAM endpoint to use; if not set will use the default
           # @type: string
-          iamEndpoint: ""
+          iamEndpoint: ''
 
           # The name of a Kubernetes Secret which holds credentials for AWS. Supported keys
           # include `access_key_id`, `secret_access_key`, `session_token`
           # @type: string
-          secretRef: ""
+          secretRef: ''
 
           # Name of a Kubernetes service account that is configured with IAM Roles
           # for Service Accounts (IRSA). Should be annotated with "eks.amazonaws.com/role-arn".
           # @type: string
-          irsaServiceAccount: ""
+          irsaServiceAccount: ''
 
         gcp:
           # Vault Auth Role to use
           # This is a required field and must be setup in Vault prior to deploying the helm chart
           # if using GCP for the Transit auth method.
           # @type: string
-          role: ""
+          role: ''
 
           # Name of a Kubernetes service account that is configured for workload
           # identity in GKE.
           # @type: string
-          workloadIdentityServiceAccount: ""
+          workloadIdentityServiceAccount: ''
 
           # GCP Region of the GKE cluster's identity provider. Defaults to the
           # region returned from the operator pod's local metadata server if
           # unspecified.
           # @type: string
-          region: ""
+          region: ''
 
           # GKE cluster name. Defaults to the cluster-name returned from the
           # operator pod's local metadata server if unspecified.
           # @type: string
-          clusterName: ""
+          clusterName: ''
 
           # GCP project id. Defaults to the project-id returned from the
           # operator pod's local metadata server if unspecified.
           # @type: string
-          projectID: ""
+          projectID: ''
 
         # Params to use when authenticating to Vault using this auth method.
         # params:
@@ -423,10 +424,10 @@ metricsService:
   # https://kubernetes.io/docs/concepts/services-networking/service/
   # @type: map
   ports:
-  - name: https
-    port: 8443
-    protocol: TCP
-    targetPort: https
+    - name: https
+      port: 8443
+      protocol: TCP
+      targetPort: https
   type: ClusterIP
 
 # Configures the default VaultConnection CR which will be used by resources
@@ -443,16 +444,16 @@ defaultVaultConnection:
   # Address of the Vault Server
   # @type: string
   # Example: http://vault.default.svc.cluster.local:8200
-  address: "https://vault.vault.svc.cluster.local:8200"
+  address: https://vault.vault.svc.cluster.local:8200
 
   # CACertSecret is the name of a Kubernetes secret containing the trusted PEM encoded CA certificate chain as `ca.crt`.
   # Note: This secret must exist prior to deploying the CR.
   # @type: string
-  caCertSecret: ""
+  caCertSecret: ''
 
   # TLSServerName to use as the SNI host for TLS connections.
   # @type: string
-  tlsServerName: ""
+  tlsServerName: ''
 
   # SkipTLSVerify for TLS connections.
   # @type: boolean
@@ -463,7 +464,6 @@ defaultVaultConnection:
   #   X-vault-something: "foo"
   # @type: map
   headers: {}
-
 
 # Configures and deploys the default VaultAuthMethod CR which will be used by resources
 # if they do not specify a VaultAuthMethod reference. The name is 'default' and will
@@ -478,7 +478,7 @@ defaultAuthMethod:
 
   # Vault namespace for the VaultAuthMethod CR
   # @type: string
-  namespace: ""
+  namespace: ''
 
   # Kubernetes namespace glob patterns which are allow-listed for use with the default AuthMethod.
   # @type: array<string>
@@ -498,7 +498,7 @@ defaultAuthMethod:
     # This is a required field and must be setup in Vault prior to deploying the helm chart
     # if `defaultAuthMethod.enabled=true`
     # @type: string
-    role: ""
+    role: ''
 
     # Kubernetes ServiceAccount associated with the default Vault Auth Role
     # @type: string
@@ -514,7 +514,7 @@ defaultAuthMethod:
     # This is a required field and must be setup in Vault prior to deploying the helm chart
     # if using the JWT for the default auth method.
     # @type: string
-    role: ""
+    role: ''
 
     # One of the following is required prior to deploying the helm chart
     # - K8s secret that contains the JWT
@@ -524,11 +524,11 @@ defaultAuthMethod:
     # The Kubernetes Secret must contain a key named `jwt` which references the JWT token, and must exist in the namespace
     # of any consuming VaultSecret CR. This is a required field if a JWT token is provided.
     # @type: string
-    secretRef: ""
+    secretRef: ''
 
     # Kubernetes ServiceAccount to generate a service account JWT
     # @type: string
-    serviceAccount: "default"
+    serviceAccount: default
 
     # Token Audience should match the bound_audiences or the `aud` list in bound_claims if applicable
     # of the Vault JWT auth role.
@@ -541,14 +541,14 @@ defaultAuthMethod:
     # This is a required field when using appRole and must be setup in Vault prior to deploying the
     # helm chart.
     # @type: string
-    roleId: ""
+    roleId: ''
     # Name of Kubernetes Secret that has the AppRole Role's SecretID used to authenticate with Vault.
     # The Kubernetes Secret must contain a key named `id` which references the AppRole Role's
     # SecretID, and must exist in the namespace of any consuming VaultSecret CR.
     # This is a required field when using appRole and must be setup in Vault prior to deploying the
     # helm chart.
     # @type: string
-    secretRef: ""
+    secretRef: ''
 
   # AWS auth method specific configuration
   aws:
@@ -556,66 +556,66 @@ defaultAuthMethod:
     # This is a required field and must be setup in Vault prior to deploying the helm chart
     # if using the AWS for the default auth method.
     # @type: string
-    role: ""
+    role: ''
 
     # AWS region to use for signing the authentication request
     # Optional, but most commonly will be the region where the EKS cluster is running
     # @type: string
-    region: ""
+    region: ''
 
     # Vault header value to include in the STS signing request
     # @type: string
-    headerValue: ""
+    headerValue: ''
 
     # The role session name to use when creating a WebIdentity provider
     # @type: string
-    sessionName: ""
+    sessionName: ''
 
     # The STS endpoint to use; if not set will use the default
     # @type: string
-    stsEndpoint: ""
+    stsEndpoint: ''
 
     # The IAM endpoint to use; if not set will use the default
     # @type: string
-    iamEndpoint: ""
+    iamEndpoint: ''
 
     # The name of a Kubernetes Secret which holds credentials for AWS. Supported keys include
     # `access_key_id`, `secret_access_key`, `session_token`
     # @type: string
-    secretRef: ""
+    secretRef: ''
 
     # Name of a Kubernetes service account that is configured with IAM Roles
     # for Service Accounts (IRSA). Should be annotated with "eks.amazonaws.com/role-arn".
     # @type: string
-    irsaServiceAccount: ""
+    irsaServiceAccount: ''
 
   gcp:
     # Vault Auth Role to use
     # This is a required field and must be setup in Vault prior to deploying the helm chart
     # if using GCP for the Transit auth method.
     # @type: string
-    role: ""
+    role: ''
 
     # Name of a Kubernetes service account that is configured for workload
     # identity in GKE.
     # @type: string
-    workloadIdentityServiceAccount: ""
+    workloadIdentityServiceAccount: ''
 
     # GCP Region of the GKE cluster's identity provider. Defaults to the
     # region returned from the operator pod's local metadata server if
     # unspecified.
     # @type: string
-    region: ""
+    region: ''
 
     # GKE cluster name. Defaults to the cluster-name returned from the
     # operator pod's local metadata server if unspecified.
     # @type: string
-    clusterName: ""
+    clusterName: ''
 
     # GCP project id. Defaults to the project-id returned from the
     # operator pod's local metadata server if unspecified.
     # @type: string
-    projectID: ""
+    projectID: ''
 
   # Params to use when authenticating to Vault
   # params:

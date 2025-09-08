@@ -1,23 +1,23 @@
 ---
 images:
   tags:
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    heat_api: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    heat_cfn: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    heat_cloudwatch: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    heat_db_sync: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    heat_engine: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    heat_engine_cleaner: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    heat_purge_deleted: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    image_repo_sync: null
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    rabbit_init: null
-    test: null
+    bootstrap: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
+    heat_api: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    heat_cfn: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    heat_cloudwatch: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    heat_db_sync: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    heat_engine: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    heat_engine_cleaner: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    heat_purge_deleted: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    image_repo_sync:
+    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    rabbit_init:
+    test:
 
 # NOTE: (brew) requests cpu/mem values based on a three node
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
@@ -51,18 +51,18 @@ pod:
     enabled: true
     api:
       requests:
-        memory: "256Mi"
-        cpu: "100m"
+        memory: 256Mi
+        cpu: 100m
       limits: {}
     cfn:
       requests:
-        memory: "256Mi"
-        cpu: "100m"
+        memory: 256Mi
+        cpu: 100m
       limits: {}
     engine:
       requests:
-        memory: "256Mi"
-        cpu: "100m"
+        memory: 256Mi
+        cpu: 100m
       limits: {}
 
 conf:
@@ -125,8 +125,7 @@ conf:
       threads: 1
   logging:
     logger_root:
-      handlers:
-        - stdout
+      handlers: [stdout]
       level: INFO
   rabbitmq:
     policies: []

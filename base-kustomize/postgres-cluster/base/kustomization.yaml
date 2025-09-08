@@ -1,4 +1,4 @@
+---
 sortOptions:
   order: fifo
-resources:
-  - postgres-cluster.yaml
+resources: [postgres-cluster.yaml]

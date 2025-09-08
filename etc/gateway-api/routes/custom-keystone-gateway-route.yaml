@@ -9,8 +9,7 @@ spec:
     - name: flex-gateway
       sectionName: keystone-https
       namespace: nginx-gateway
-  hostnames:
-    - "keystone.your.domain.tld"
+  hostnames: [keystone.your.domain.tld]
   rules:
     - backendRefs:
         - name: keystone-api

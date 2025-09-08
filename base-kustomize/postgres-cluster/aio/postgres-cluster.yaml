@@ -1,25 +1,25 @@
-apiVersion: "acid.zalan.do/v1"
+---
+apiVersion: acid.zalan.do/v1
 kind: postgresql
 metadata:
   name: postgres-cluster
   namespace: openstack
 spec:
   dockerImage: ghcr.io/zalando/spilo-16:3.2-p3
-  teamId: "acid"
+  teamId: acid
   numberOfInstances: 1
   postgresql:
-    version: "16"
+    version: '16'
     parameters:
-      shared_buffers: "32MB"
-      max_connections: "256"
-      log_statement: "all"
+      shared_buffers: 32MB
+      max_connections: '256'
+      log_statement: all
   volume:
     size: 20Gi
   nodeAffinity:
     requiredDuringSchedulingIgnoredDuringExecution:
       nodeSelectorTerms:
         - matchExpressions:
-          - key: node-role.kubernetes.io/worker
-            operator: In
-            values:
-            - worker
+            - key: node-role.kubernetes.io/worker
+              operator: In
+              values: [worker]

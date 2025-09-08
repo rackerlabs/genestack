@@ -1,3 +1,4 @@
+---
 additionalPrometheusRulesMap:
   mariadb-alerts:
     groups:
@@ -10,25 +11,32 @@ additionalPrometheusRulesMap:
               severity: critical
             annotations:
               summary: MariaDB not up and running, immediate attention is required.
-              description: "MariaDB {{$labels.job}} on {{$labels.instance}} is not up."
+              description: MariaDB {{$labels.job}} on {{$labels.instance}} is not
+                up.
           - alert: MysqlTooManyConnections(>80%)
-            expr: max_over_time(mysql_global_status_threads_connected[1m]) / mysql_global_variables_max_connections * 100 > 80
+            expr: max_over_time(mysql_global_status_threads_connected[1m]) / mysql_global_variables_max_connections
+              * 100 > 80
             for: 2m
             labels:
               severity: warning
             annotations:
               summary: MySQL too many connections (> 80%) (instance {{ $labels.instance }})
-              description: "More than 80% of MySQL connections are in use on {{ $labels.instance }}\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              description: "More than 80% of MySQL connections are in use on {{ $labels.instance }}\n\
+                \  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
           - alert: MariaDBReplicationErrors
-            expr: mysql_slave_status_last_sql_errno != 0 or mysql_slave_status_last_io_errno != 0 or mysql_slave_status_last_errno != 0
+            expr: mysql_slave_status_last_sql_errno != 0 or mysql_slave_status_last_io_errno
+              != 0 or mysql_slave_status_last_errno != 0
             for: 5m
             labels:
               severity: critical
             annotations:
-              summary: MariaDB is reporting replication errors from {{$labels.instance}}, immediate attention is required.
-              description: "MariaDB {{$labels.job}} on {{$labels.instance}} is reporting replication errors."
+              summary: MariaDB is reporting replication errors from {{$labels.instance}},
+                immediate attention is required.
+              description: MariaDB {{$labels.job}} on {{$labels.instance}} is reporting
+                replication errors.
           - alert: MysqlSlaveReplicationLag
-            expr: ( (mysql_slave_status_seconds_behind_master - mysql_slave_status_sql_delay) and ON (instance) mysql_slave_status_master_server_id > 0 ) > 30
+            expr: ( (mysql_slave_status_seconds_behind_master - mysql_slave_status_sql_delay)
+              and ON (instance) mysql_slave_status_master_server_id > 0 ) > 30
             for: 1m
             labels:
               severity: critical

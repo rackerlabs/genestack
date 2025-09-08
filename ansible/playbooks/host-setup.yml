@@ -16,10 +16,10 @@
 - hosts: localhost
   connection: local
   become: true
-  gather_facts: "{{ gather_facts | default(true) }}"
-  environment: "{{ deployment_environment_variables | default({}) }}"
+  gather_facts: '{{ gather_facts | default(true) }}'
+  environment: '{{ deployment_environment_variables | default({}) }}'
   vars:
-    helm_version: v3.17.3 # Assume the default or set an explicit version.
+    helm_version: v3.17.3  # Assume the default or set an explicit version.
   tasks:
     - name: Download Helm command line tool
       ansible.builtin.uri:
@@ -29,14 +29,13 @@
     - name: Install Helm
       ansible.builtin.command:
         cmd: bash
-        stdin: "{{ helm_installer.content }}"
+        stdin: '{{ helm_installer.content }}'
         creates: /usr/local/bin/helm
       environment:
-        DESIRED_VERSION: "{{ helm_version }}"
+        DESIRED_VERSION: '{{ helm_version }}'
 
 - hosts: all
   become: true
   gather_facts: true
-  environment: "{{ deployment_environment_variables | default({}) }}"
-  roles:
-    - host_setup
+  environment: '{{ deployment_environment_variables | default({}) }}'
+  roles: [host_setup]

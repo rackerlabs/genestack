@@ -6,8 +6,8 @@ metadata:
   namespace: openstack
 spec:
   name: barbican-quorum-three-replicas
-  vhost: "barbican"
-  pattern: ".*"
+  vhost: barbican
+  pattern: .*
   applyTo: queues
   definition:
     target-group-size: 3

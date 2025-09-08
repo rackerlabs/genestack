@@ -1,18 +1,15 @@
+---
 commonLabels:
   app: ovn-backup
 namespace: kube-system
 secretGenerator:
   - name: ovn-backup-swift-tempauth-account
-    envs:
-      - swift-tempauth.env
+    envs: [swift-tempauth.env]
 configMapGenerator:
   - name: ovn-backup-script
-    files:
-    - ovn-backup.sh
+    files: [ovn-backup.sh]
   - name: ovn-backup-config
-    envs:
-    - ovn-backup.config
+    envs: [ovn-backup.config]
 sortOptions:
   order: fifo
-resources:
-  - ovn-backup.yaml
+resources: [ovn-backup.yaml]

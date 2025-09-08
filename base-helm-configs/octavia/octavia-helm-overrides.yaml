@@ -1,54 +1,41 @@
 ---
 images:
   tags:
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    image_repo_sync: null
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    octavia_api: "ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest"
-    octavia_db_sync: "ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest"
-    octavia_health_manager: "ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest"
-    octavia_health_manager_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    octavia_housekeeping: "ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest"
-    octavia_worker: "ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest"
-    openvswitch_vswitchd: "ghcr.io/rackerlabs/genestack-images/ovs:v3.5.1-latest"
-    rabbit_init: null
-    test: null
+    bootstrap: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
+    image_repo_sync:
+    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    octavia_api: ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest
+    octavia_db_sync: ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest
+    octavia_health_manager: ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest
+    octavia_health_manager_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    octavia_housekeeping: ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest
+    octavia_worker: ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest
+    openvswitch_vswitchd: ghcr.io/rackerlabs/genestack-images/ovs:v3.5.1-latest
+    rabbit_init:
+    test:
 
 dependencies:
   static:
     api:
-      jobs:
-        - octavia-db-sync
-        - octavia-ks-user
-        - octavia-ks-endpoints
+      jobs: [octavia-db-sync, octavia-ks-user, octavia-ks-endpoints]
     db_sync:
       jobs: []
     health_manager:
-      jobs:
-        - octavia-db-sync
-        - octavia-ks-user
-        - octavia-ks-endpoints
+      jobs: [octavia-db-sync, octavia-ks-user, octavia-ks-endpoints]
     housekeeping:
-      jobs:
-        - octavia-db-sync
-        - octavia-ks-user
-        - octavia-ks-endpoints
+      jobs: [octavia-db-sync, octavia-ks-user, octavia-ks-endpoints]
     worker:
-      jobs:
-        - octavia-db-sync
-        - octavia-ks-user
-        - octavia-ks-endpoints
+      jobs: [octavia-db-sync, octavia-ks-user, octavia-ks-endpoints]
 
 conf:
   logging:
     logger_root:
-      handlers:
-        - stdout
+      handlers: [stdout]
       level: INFO
   octavia:
     amphora_agent:
@@ -94,7 +81,7 @@ conf:
       endpoint_type: internalURL
       valid_interfaces: internal
     nova:
-      enable_anti_affinity: "True"
+      enable_anti_affinity: 'True'
       endpoint_type: internalURL
     oslo_concurrency:
       lock_path: /tmp/octavia
@@ -117,8 +104,8 @@ conf:
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
       kombu_reconnect_delay: 0.5
     ovn:
-      ovn_nb_connection: "tcp:127.0.0.1:6641"
-      ovn_sb_connection: "tcp:127.0.0.1:6642"
+      ovn_nb_connection: tcp:127.0.0.1:6641
+      ovn_sb_connection: tcp:127.0.0.1:6642
     service_auth:
       insecure: true
   octavia_api_uwsgi:
@@ -207,15 +194,15 @@ pod:
     enabled: true
     api:
       requests:
-        memory: "768Mi"
-        cpu: "300m"
+        memory: 768Mi
+        cpu: 300m
       limits:
-        memory: "3072Mi"
-        cpu: "2000m"
+        memory: 3072Mi
+        cpu: 2000m
     worker:
       requests:
-        memory: "256Mi"
-        cpu: "1000m"
+        memory: 256Mi
+        cpu: 1000m
       limits: {}
   affinity:
     anti:
@@ -223,7 +210,7 @@ pod:
         default: 10
   mounts:
     octavia_api:
-      init_container: null
+      init_container:
       octavia_api:
         volumeMounts:
           - name: pod-run-octavia
@@ -232,7 +219,7 @@ pod:
           - name: pod-run-octavia
             emptyDir: {}
     octavia_worker:
-      init_container: null
+      init_container:
       octavia_worker:
         volumeMounts:
           - name: pod-run-octavia
@@ -241,7 +228,7 @@ pod:
           - name: pod-run-octavia
             emptyDir: {}
     octavia_driver_agent:
-      init_container: null
+      init_container:
       octavia_bootstrap:
         volumeMounts:
         volumes:

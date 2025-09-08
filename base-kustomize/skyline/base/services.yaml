@@ -11,19 +11,9 @@ metadata:
   name: skyline-openstack-skyline-apiserver
   namespace: openstack
 rules:
-  - apiGroups:
-      - ""
-      - extensions
-      - batch
-      - apps
-    verbs:
-      - get
-      - list
-    resources:
-      - services
-      - endpoints
-      - jobs
-      - pods
+  - apiGroups: ['', extensions, batch, apps]
+    verbs: [get, list]
+    resources: [services, endpoints, jobs, pods]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

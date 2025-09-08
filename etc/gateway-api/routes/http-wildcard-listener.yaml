@@ -10,14 +10,13 @@ metadata:
     route: http2https
 spec:
   parentRefs:
-  - name: flex-gateway
-    sectionName: http-wildcard-listener
-    namespace: nginx-gateway
-  hostnames:
-  - "*.your.domain.tld"
+    - name: flex-gateway
+      sectionName: http-wildcard-listener
+      namespace: nginx-gateway
+  hostnames: ['*.your.domain.tld']
   rules:
     - filters:
-      - type: RequestRedirect
-        requestRedirect:
-          scheme: https
-          statusCode: 301
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301

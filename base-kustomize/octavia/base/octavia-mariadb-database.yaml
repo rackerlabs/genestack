@@ -5,11 +5,11 @@ metadata:
   name: octavia
   namespace: openstack
   labels:
-    app.kubernetes.io/managed-by: "Helm"
+    app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
-    meta.helm.sh/release-name: "octavia"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-name: octavia
+    meta.helm.sh/release-namespace: openstack
 spec:
   # If you want the database to be created with a different name than the resource name
   # name: data-custom
@@ -25,11 +25,11 @@ metadata:
   name: octavia
   namespace: openstack
   labels:
-    app.kubernetes.io/managed-by: "Helm"
+    app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
-    meta.helm.sh/release-name: "octavia"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-name: octavia
+    meta.helm.sh/release-namespace: openstack
 spec:
   # If you want the user to be created with a different name than the resource name
   # name: user-custom
@@ -40,7 +40,7 @@ spec:
     key: password
   # This field is immutable and defaults to 10, 0 means unlimited.
   maxUserConnections: 0
-  host: "%"
+  host: '%'
   retryInterval: 5s
 ---
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -49,19 +49,18 @@ metadata:
   name: octavia-grant
   namespace: openstack
   labels:
-    app.kubernetes.io/managed-by: "Helm"
+    app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
-    meta.helm.sh/release-name: "octavia"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-name: octavia
+    meta.helm.sh/release-namespace: openstack
 spec:
   mariaDbRef:
     name: mariadb-cluster
-  privileges:
-    - "ALL"
-  database: "octavia"
-  table: "*"
+  privileges: [ALL]
+  database: octavia
+  table: '*'
   username: octavia
   grantOption: true
-  host: "%"
+  host: '%'
   retryInterval: 5s

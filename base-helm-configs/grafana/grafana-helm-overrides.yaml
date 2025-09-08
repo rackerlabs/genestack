@@ -9,8 +9,7 @@ persistence:
   type: pvc
   enabled: true
   storageClassName: general
-  accessModes:
-    - ReadWriteMany
+  accessModes: [ReadWriteMany]
 
 nodeSelector:
   openstack-control-plane: enabled
@@ -19,7 +18,7 @@ ingress:
   enabled: false
 
 image:
-  tag: "10.3.3"
+  tag: 10.3.3
 
 grafana.ini:
   paths:
@@ -34,8 +33,8 @@ grafana.ini:
   grafana_net:
     url: https://grafana.net
   server:
-    domain: "{{ .Values.custom_host }}"  # Ref: custom_host variable above
-    root_url: "https://{{ .Values.custom_host }}"  # Ref: custom_host variable above
+    domain: '{{ .Values.custom_host }}'  # Ref: custom_host variable above
+    root_url: https://{{ .Values.custom_host }}  # Ref: custom_host variable above
   database:
     type: mysql
     host: mariadb-cluster.grafana.svc:3306
@@ -91,9 +90,7 @@ alerting:
                 model:
                   conditions:
                     - evaluator:
-                        params:
-                          - 1
-                          - 0
+                        params: [1, 0]
                         type: gt
                       operator:
                         type: and
@@ -153,9 +150,7 @@ alerting:
                 model:
                   conditions:
                     - evaluator:
-                        params:
-                          - 1
-                          - 0
+                        params: [1, 0]
                         type: gt
                       operator:
                         type: and
@@ -199,9 +194,7 @@ alerting:
         group_wait: 1s
         group_interval: 1s
         repeat_interval: 1s
-
-plugins:
-  - camptocamp-prometheus-alertmanager-datasource
+plugins: [camptocamp-prometheus-alertmanager-datasource]
 
 extraSecretMounts:
   - name: grafana-db-secret-mount

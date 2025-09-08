@@ -1,3 +1,4 @@
+---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -9,8 +10,7 @@ spec:
       interval: 15s
       port: metrics
   namespaceSelector:
-    matchNames:
-      - kube-system
+    matchNames: [kube-system]
   selector:
     matchLabels:
       app: kube-ovn-cni

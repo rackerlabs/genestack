@@ -1,5 +1,6 @@
+---
 global:
-  dnsService: "coredns"
+  dnsService: coredns
 minio:
   enabled: false
 loki:
@@ -9,17 +10,17 @@ loki:
     autoforget_unhealthy: true
   storage:
     bucketNames:
-      chunks: < CHUNKS BUCKET NAME > # TODO: Update with relevant bucket name for chunks
-      ruler: < RULER BUCKET NAME > # TODO: Update with relevant bucket name for ruler
-      admin: < ADMIN BUCKET NAME > # TODO: Update with relevant bucket name for admin
+      chunks: < CHUNKS BUCKET NAME >  # TODO: Update with relevant bucket name for chunks
+      ruler: < RULER BUCKET NAME >  # TODO: Update with relevant bucket name for ruler
+      admin: < ADMIN BUCKET NAME >  # TODO: Update with relevant bucket name for admin
     type: s3
     s3:
-      endpoint: < ENDPOINT URL > # TODO: Update with valid enpoint URL
-      region: < REGION > # TODO: Update with valid region
-      secretAccessKey: < SECRET ACCESS KEY > # TODO: Update with valid secret access key
-      accessKeyId: < ACCESS KEY ID > # TODO: Update with access key id
+      endpoint: < ENDPOINT URL >  # TODO: Update with valid enpoint URL
+      region: < REGION >  # TODO: Update with valid region
+      secretAccessKey: < SECRET ACCESS KEY >  # TODO: Update with valid secret access key
+      accessKeyId: < ACCESS KEY ID >  # TODO: Update with access key id
       s3ForcePathStyle: false
-      insecure: [ true | false ] # TODO: True if valid cert or false if not
+      insecure: [true | false]  # TODO: True if valid cert or false if not
 monitoring:
   serviceMonitor:
     enabled: true

@@ -1,13 +1,12 @@
 ---
 sortOptions:
   order: fifo
-resources:
-  - ../base
+resources: [../base]
 
 images:
   - name: keystone-shib
     newName: ghcr.io/rackerlabs/genestack-images/shibd
-    newTag: "latest"
+    newTag: latest
 
 patches:
   - target:

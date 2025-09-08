@@ -10,12 +10,11 @@ metadata:
     route: gnocchi
 spec:
   parentRefs:
-  - name: flex-gateway
-    sectionName: gnocchi-https
-    namespace: nginx-gateway
-  hostnames:
-  - "gnocchi.your.domain.tld"
+    - name: flex-gateway
+      sectionName: gnocchi-https
+      namespace: nginx-gateway
+  hostnames: [gnocchi.your.domain.tld]
   rules:
     - backendRefs:
-      - name: gnocchi-api
-        port: 8041
+        - name: gnocchi-api
+          port: 8041

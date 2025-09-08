@@ -1,3 +1,4 @@
+---
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -5,14 +6,13 @@ metadata:
 spec:
   isCA: false
   dnsNames:
-    - "vault.vault.svc"
-    - "vault.vault.svc.cluster.local"
-    - "*.vault-internal"
-    - "*.vault-internal.vault"
-    - "*.vault-internal.vault.svc"
-    - "*.vault-internal.vault.svc.cluster.local"
-  ipAddresses:
-    - 127.0.0.1
+    - vault.vault.svc
+    - vault.vault.svc.cluster.local
+    - '*.vault-internal'
+    - '*.vault-internal.vault'
+    - '*.vault-internal.vault.svc'
+    - '*.vault-internal.vault.svc.cluster.local'
+  ipAddresses: [127.0.0.1]
   secretName: vault-tls-secret
   duration: 8760h0m0s
   renewBefore: 360h0m0s

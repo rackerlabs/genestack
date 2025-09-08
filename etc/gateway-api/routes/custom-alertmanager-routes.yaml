@@ -9,8 +9,7 @@ spec:
     - name: flex-gateway
       sectionName: http
       namespace: nginx-gateway
-  hostnames:
-    - "alertmanager.your.domain.tld"
+  hostnames: [alertmanager.your.domain.tld]
   rules:
     - backendRefs:
         - name: kube-prometheus-stack-alertmanager

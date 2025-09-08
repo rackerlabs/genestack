@@ -5,5 +5,5 @@ metadata:
   name: flex-gateway
   namespace: nginx-gateway
   annotations:
-    acme.cert-manager.io/http01-edit-in-place: "true"
+    acme.cert-manager.io/http01-edit-in-place: 'true'
     cert-manager.io/cluster-issuer: letsencrypt-prod

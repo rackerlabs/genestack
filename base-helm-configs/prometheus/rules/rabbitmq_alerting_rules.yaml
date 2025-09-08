@@ -1,3 +1,4 @@
+---
 additionalPrometheusRulesMap:
   openstack-services-rabbitmq:
     groups:
@@ -9,8 +10,8 @@ additionalPrometheusRulesMap:
             labels:
               severity: warning
             annotations:
-              summary: "Nova vhost has too many messages"
-              description: "Nova vhost in RabbitMQ has too many messages. Check consumers."
+              summary: Nova vhost has too many messages
+              description: Nova vhost in RabbitMQ has too many messages. Check consumers.
 
           - alert: GlanceQueueTotalToLarge
             expr: rabbitmq_queue_messages{vhost="glance"} > 25
@@ -18,8 +19,8 @@ additionalPrometheusRulesMap:
             labels:
               severity: warning
             annotations:
-              summary: "Glance vhost has too many messages"
-              description: "Glance vhost in RabbitMQ has too many messages. Check consumers."
+              summary: Glance vhost has too many messages
+              description: Glance vhost in RabbitMQ has too many messages. Check consumers.
 
           - alert: NeutronQueueTotalToLarge
             expr: rabbitmq_queue_messages{vhost="neutron"} > 25
@@ -27,8 +28,9 @@ additionalPrometheusRulesMap:
             labels:
               severity: warning
             annotations:
-              summary: "Neutron vhost has too many messages"
-              description: "Neutron vhost in RabbitMQ has too many messages. Check consumers."
+              summary: Neutron vhost has too many messages
+              description: Neutron vhost in RabbitMQ has too many messages. Check
+                consumers.
 
           - alert: KeystoneQueueTotalToLarge
             expr: rabbitmq_queue_messages{vhost="keystone"} > 25
@@ -36,8 +38,9 @@ additionalPrometheusRulesMap:
             labels:
               severity: warning
             annotations:
-              summary: "Keystone vhost has too many messages"
-              description: "Keystone vhost in RabbitMQ has too many messages. Check consumers."
+              summary: Keystone vhost has too many messages
+              description: Keystone vhost in RabbitMQ has too many messages. Check
+                consumers.
 
           - alert: CinderQueueTotalToLarge
             expr: rabbitmq_queue_messages{vhost="cinder"} > 25
@@ -45,8 +48,8 @@ additionalPrometheusRulesMap:
             labels:
               severity: warning
             annotations:
-              summary: "Cinder vhost has too many messages"
-              description: "Cinder vhost in RabbitMQ has too many messages. Check consumers."
+              summary: Cinder vhost has too many messages
+              description: Cinder vhost in RabbitMQ has too many messages. Check consumers.
 
           - alert: MagnumQueueTotalToLarge
             expr: rabbitmq_queue_messages{vhost="magnum"} > 25
@@ -54,8 +57,8 @@ additionalPrometheusRulesMap:
             labels:
               severity: warning
             annotations:
-              summary: "Magnum vhost has too many messages"
-              description: "Magnum vhost in RabbitMQ has too many messages. Check consumers."
+              summary: Magnum vhost has too many messages
+              description: Magnum vhost in RabbitMQ has too many messages. Check consumers.
 
           - alert: OctaviaQueueTotalToLarge
             expr: rabbitmq_queue_messages{vhost="octavia"} > 25
@@ -63,8 +66,9 @@ additionalPrometheusRulesMap:
             labels:
               severity: warning
             annotations:
-              summary: "Octavia vhost has too many messages"
-              description: "Octavia vhost in RabbitMQ has too many messages. Check consumers."
+              summary: Octavia vhost has too many messages
+              description: Octavia vhost in RabbitMQ has too many messages. Check
+                consumers.
 
           - alert: BarbicanQueueTotalToLarge
             expr: rabbitmq_queue_messages{vhost="barbican"} > 25
@@ -72,5 +76,6 @@ additionalPrometheusRulesMap:
             labels:
               severity: warning
             annotations:
-              summary: "Barbican vhost has too many messages"
-              description: "Barbican vhost in RabbitMQ has too many messages. Check consumers."
+              summary: Barbican vhost has too many messages
+              description: Barbican vhost in RabbitMQ has too many messages. Check
+                consumers.

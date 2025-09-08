@@ -7,24 +7,24 @@ labels:
 
 images:
   tags:
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    cinder_api: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-latest"
-    cinder_backup: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-latest"
-    cinder_backup_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
-    cinder_db_sync: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-latest"
-    cinder_scheduler: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-latest"
-    cinder_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
-    cinder_volume: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-latest"
-    cinder_volume_usage_audit: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    image_repo_sync: null
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    rabbit_init: null
-    test: null
+    bootstrap: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    cinder_api: ghcr.io/rackerlabs/genestack-images/cinder:2024.1-latest
+    cinder_backup: ghcr.io/rackerlabs/genestack-images/cinder:2024.1-latest
+    cinder_backup_storage_init: quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy
+    cinder_db_sync: ghcr.io/rackerlabs/genestack-images/cinder:2024.1-latest
+    cinder_scheduler: ghcr.io/rackerlabs/genestack-images/cinder:2024.1-latest
+    cinder_storage_init: quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy
+    cinder_volume: ghcr.io/rackerlabs/genestack-images/cinder:2024.1-latest
+    cinder_volume_usage_audit: ghcr.io/rackerlabs/genestack-images/cinder:2024.1-latest
+    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
+    image_repo_sync:
+    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    rabbit_init:
+    test:
 
 # NOTE: (brew) requests cpu/mem values based on a three node
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
@@ -48,13 +48,13 @@ pod:
     enabled: true
     api:
       requests:
-        memory: "384Mi"
-        cpu: "100m"
+        memory: 384Mi
+        cpu: 100m
       limits: {}
     scheduler:
       requests:
-        memory: "192Mi"
-        cpu: "100m"
+        memory: 192Mi
+        cpu: 100m
       limits: {}
   security_context:
     cinder_api:
@@ -104,7 +104,7 @@ conf:
       volume_driver: cinder_rxt.rackspace.RXTLVM
       volume_group: cinder-volumes-1
   policy:
-    "volume_extension:types_extra_specs:read_sensitive": "rule:xena_system_admin_or_project_reader"
+    volume_extension:types_extra_specs:read_sensitive: rule:xena_system_admin_or_project_reader
   cinder:
     DEFAULT:
       allow_availability_zone_fallback: true
@@ -116,7 +116,7 @@ conf:
       enabled_backends: lvmdriver-1
       osapi_volume_workers: 2
       rootwrap_config: /etc/cinder/rootwrap.conf
-      scheduler_default_filters: "AvailabilityZoneFilter,CapacityFilter,CapabilitiesFilter"
+      scheduler_default_filters: AvailabilityZoneFilter,CapacityFilter,CapabilitiesFilter
       storage_availability_zone: az1
       use_multipath_for_image_xfer: false
     database:
@@ -164,8 +164,7 @@ conf:
   enable_iscsi: true
   logging:
     logger_root:
-      handlers:
-        - stdout
+      handlers: [stdout]
       level: INFO
   rabbitmq:
     policies: []
@@ -173,32 +172,17 @@ conf:
 dependencies:
   static:
     api:
-      jobs:
-        - cinder-db-sync
-        - cinder-ks-user
-        - cinder-ks-endpoints
+      jobs: [cinder-db-sync, cinder-ks-user, cinder-ks-endpoints]
     backup:
-      jobs:
-        - cinder-db-sync
-        - cinder-ks-user
-        - cinder-ks-endpoints
+      jobs: [cinder-db-sync, cinder-ks-user, cinder-ks-endpoints]
     db_sync:
-      jobs: null
+      jobs:
     scheduler:
-      jobs:
-        - cinder-db-sync
-        - cinder-ks-user
-        - cinder-ks-endpoints
+      jobs: [cinder-db-sync, cinder-ks-user, cinder-ks-endpoints]
     volume:
-      jobs:
-        - cinder-db-sync
-        - cinder-ks-user
-        - cinder-ks-endpoints
+      jobs: [cinder-db-sync, cinder-ks-user, cinder-ks-endpoints]
     volume_usage_audit:
-      jobs:
-        - cinder-db-sync
-        - cinder-ks-user
-        - cinder-ks-endpoints
+      jobs: [cinder-db-sync, cinder-ks-user, cinder-ks-endpoints]
 
 endpoints:
   fluentd:

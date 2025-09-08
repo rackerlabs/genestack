@@ -254,7 +254,6 @@ upgrade:
     When upgrading from a pre-release to stable, the following file no longer has
     any effect on the environment and can be removed from the ansible group_vars.
 
-
     /etc/genestack/inventory/group_vars/k8s_cluster/k8s-net-kube-ovn.yml
 
     This file can be eliminated.
@@ -271,7 +270,7 @@ deprecations:
     In early builds of Genestack MetalLB was deployed and managed by Kubespray;
     however, this is no longer the case. The MetalLB helm chart is now used to
     deploy and manage the MetalLB LoadBalancer.
-  - |
+  - |-
     In early builds of Genestack the cert-manager option ``ExperimentalGatewayAPISupport``
     was set to true, within the ansible group_vars. This option should be removed as it
     no longer has any effect.

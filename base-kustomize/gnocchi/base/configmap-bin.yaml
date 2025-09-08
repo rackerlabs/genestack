@@ -1,5 +1,3 @@
-# A patch to supplant the `storage-init.sh` script containing an updated
-# ceph command that does not use `profile` when setting auth capabilities.
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -56,7 +54,7 @@ data:
     EOF
     kubectl apply --namespace ${NAMESPACE} -f ${SECRET}
 
-  gnocchi-resources-cleaner.sh: |
+  gnocchi-resources-cleaner.sh: |-
     #!/bin/bash
 
     set -ex

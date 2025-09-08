@@ -1,5 +1,6 @@
+---
 global:
-  dnsService: "coredns"
+  dnsService: coredns
 minio:
   enabled: true
 loki:

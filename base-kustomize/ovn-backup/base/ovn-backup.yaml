@@ -1,18 +1,10 @@
-# The resources contained in this file (ovn-backup.yaml) write OVN NB and SB
-# snapshots to a persistent volume, assuming you installed OVN with kubespray,
-# since it assumes resources exist as seen in the
-# genestack/submodules/kubespray/roles/network_plugin/kube-ovn/templates
-# directory, assuming you have checked out the genestack submodules.
-# (For instance, it uses the `ovn` service account as seen in
-# genestack/submodules/kubespray/roles/network_plugin/kube-ovn/templates/cni-ovn.yml.j2
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: ovndb-backup
 spec:
-  accessModes:
-    - ReadWriteOnce
+  accessModes: [ReadWriteOnce]
   resources:
     requests:
       storage: 1Gi
@@ -23,7 +15,7 @@ kind: CronJob
 metadata:
   name: ovn-snapshot-cron
 spec:
-  schedule: "0 0 * * *"
+  schedule: 0 0 * * *
   concurrencyPolicy: Forbid
   failedJobsHistoryLimit: 1
   jobTemplate:
@@ -31,9 +23,9 @@ spec:
       backoffLimit: 5
       template:
         spec:
-          serviceAccount: "ovn"
-          serviceAccountName: "ovn"
-          restartPolicy: "Never"
+          serviceAccount: ovn
+          serviceAccountName: ovn
+          restartPolicy: Never
           volumes:
             - name: backup
               persistentVolumeClaim:
@@ -49,11 +41,11 @@ spec:
                     name: ovn-backup-config
                 - secretRef:
                     name: ovn-backup-swift-tempauth-account
-              command: ["/backup-script/ovn-backup.sh"]
+              command: [/backup-script/ovn-backup.sh]
               image: docker.io/kubeovn/kube-ovn:v1.13.13
               imagePullPolicy: IfNotPresent
               volumeMounts:
                 - name: backup
-                  mountPath: "/backup"
+                  mountPath: /backup
                 - name: backup-script
                   mountPath: /backup-script

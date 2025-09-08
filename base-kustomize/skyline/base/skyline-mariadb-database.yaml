@@ -28,7 +28,7 @@ spec:
     key: db-password
   # This field is immutable and defaults to 10, 0 means unlimited.
   maxUserConnections: 0
-  host: "%"
+  host: '%'
   retryInterval: 5s
 ---
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -39,11 +39,10 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb-cluster
-  privileges:
-    - "ALL"
-  database: "skyline"
-  table: "*"
+  privileges: [ALL]
+  database: skyline
+  table: '*'
   username: skyline
   grantOption: true
-  host: "%"
+  host: '%'
   retryInterval: 5s

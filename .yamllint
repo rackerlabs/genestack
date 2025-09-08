@@ -1,0 +1,8 @@
+---
+extends: default
+rules:
+  indentation:
+    spaces: 2
+  line-length: disable
+  comments:
+    min-spaces-from-content: 2

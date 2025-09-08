@@ -1,18 +1,18 @@
 ---
 images:
   tags:
-    barbican_api: "ghcr.io/rackerlabs/genestack-images/barbican:2024.1-latest"
-    barbican_db_sync: "ghcr.io/rackerlabs/genestack-images/barbican:2024.1-latest"
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    image_repo_sync: null
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    rabbit_init: null
-    scripted_test: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    barbican_api: ghcr.io/rackerlabs/genestack-images/barbican:2024.1-latest
+    barbican_db_sync: ghcr.io/rackerlabs/genestack-images/barbican:2024.1-latest
+    bootstrap: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
+    image_repo_sync:
+    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    rabbit_init:
+    scripted_test: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
 
 # NOTE: (brew) CPU requests values based on a three node
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
@@ -22,8 +22,8 @@ pod:
     enabled: true
     api:
       requests:
-        memory: "256Mi"
-        cpu: "100m"
+        memory: 256Mi
+        cpu: 100m
       limits: {}
   lifecycle:
     upgrades:
@@ -37,17 +37,14 @@ pod:
 dependencies:
   static:
     db_sync:
-      jobs: null
-    api:
       jobs:
-        - barbican-db-sync
-        - barbican-ks-user
-        - barbican-ks-endpoints
+    api:
+      jobs: [barbican-db-sync, barbican-ks-user, barbican-ks-endpoints]
 
 conf:
   barbican:
     DEFAULT:
-      host_href: "http://barbican-api.openstack.svc.cluster.local:9311"
+      host_href: http://barbican-api.openstack.svc.cluster.local:9311
     database:
       connection_debug: 0
       connection_recycle_time: 600
@@ -94,8 +91,7 @@ conf:
       threads: 1
   logging:
     logger_root:
-      handlers:
-        - stdout
+      handlers: [stdout]
       level: INFO
 
 endpoints:

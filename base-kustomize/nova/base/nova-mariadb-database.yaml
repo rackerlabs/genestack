@@ -5,11 +5,11 @@ metadata:
   name: nova
   namespace: openstack
   labels:
-    app.kubernetes.io/managed-by: "Helm"
+    app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
-    meta.helm.sh/release-name: "nova"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-name: nova
+    meta.helm.sh/release-namespace: openstack
 spec:
   # If you want the database to be created with a different name than the resource name
   # name: data-custom
@@ -25,11 +25,11 @@ metadata:
   name: nova-api
   namespace: openstack
   labels:
-    app.kubernetes.io/managed-by: "Helm"
+    app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
-    meta.helm.sh/release-name: "nova"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-name: nova
+    meta.helm.sh/release-namespace: openstack
 spec:
   # If you want the database to be created with a different name than the resource name
   # name: data-custom
@@ -46,11 +46,11 @@ metadata:
   name: nova-cell0
   namespace: openstack
   labels:
-    app.kubernetes.io/managed-by: "Helm"
+    app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
-    meta.helm.sh/release-name: "nova"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-name: nova
+    meta.helm.sh/release-namespace: openstack
 spec:
   # If you want the database to be created with a different name than the resource name
   # name: data-custom
@@ -67,11 +67,11 @@ metadata:
   name: nova
   namespace: openstack
   labels:
-    app.kubernetes.io/managed-by: "Helm"
+    app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
-    meta.helm.sh/release-name: "nova"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-name: nova
+    meta.helm.sh/release-namespace: openstack
 spec:
   # If you want the user to be created with a different name than the resource name
   # name: user-custom
@@ -82,7 +82,7 @@ spec:
     key: password
   # This field is immutable and defaults to 10, 0 means unlimited.
   maxUserConnections: 0
-  host: "%"
+  host: '%'
   retryInterval: 5s
 ---
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -91,21 +91,20 @@ metadata:
   name: nova-grant
   namespace: openstack
   labels:
-    app.kubernetes.io/managed-by: "Helm"
+    app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
-    meta.helm.sh/release-name: "nova"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-name: nova
+    meta.helm.sh/release-namespace: openstack
 spec:
   mariaDbRef:
     name: mariadb-cluster
-  privileges:
-    - "ALL"
-  database: "nova"
-  table: "*"
+  privileges: [ALL]
+  database: nova
+  table: '*'
   username: nova
   grantOption: true
-  host: "%"
+  host: '%'
   retryInterval: 5s
 ---
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -114,21 +113,20 @@ metadata:
   name: nova-api-grant
   namespace: openstack
   labels:
-    app.kubernetes.io/managed-by: "Helm"
+    app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
-    meta.helm.sh/release-name: "nova"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-name: nova
+    meta.helm.sh/release-namespace: openstack
 spec:
   mariaDbRef:
     name: mariadb-cluster
-  privileges:
-    - "ALL"
-  database: "nova_api"
-  table: "*"
+  privileges: [ALL]
+  database: nova_api
+  table: '*'
   username: nova
   grantOption: true
-  host: "%"
+  host: '%'
   retryInterval: 5s
 ---
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -137,19 +135,18 @@ metadata:
   name: nova-cell0-grant
   namespace: openstack
   labels:
-    app.kubernetes.io/managed-by: "Helm"
+    app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
-    meta.helm.sh/release-name: "nova"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-name: nova
+    meta.helm.sh/release-namespace: openstack
 spec:
   mariaDbRef:
     name: mariadb-cluster
-  privileges:
-    - "ALL"
-  database: "nova_cell0"
-  table: "*"
+  privileges: [ALL]
+  database: nova_cell0
+  table: '*'
   username: nova
   grantOption: true
-  host: "%"
+  host: '%'
   retryInterval: 5s

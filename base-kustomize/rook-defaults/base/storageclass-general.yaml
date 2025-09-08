@@ -1,3 +1,4 @@
+---
 apiVersion: ceph.rook.io/v1
 kind: CephBlockPool
 metadata:
@@ -19,7 +20,7 @@ kind: StorageClass
 metadata:
   name: general
   annotations:
-    storageclass.kubernetes.io/is-default-class: "true"
+    storageclass.kubernetes.io/is-default-class: 'true'
 # Change "rook-ceph" provisioner prefix to match the operator namespace if needed
 provisioner: rook-ceph.rbd.csi.ceph.com
 parameters:
@@ -59,7 +60,7 @@ parameters:
    # encryptionKMSID: <kms-config-id>
 
   # RBD image format. Defaults to "2".
-  imageFormat: "2"
+  imageFormat: '2'
 
   # RBD image features
   # Available for imageFormat: "2". Older releases of CSI RBD
@@ -70,7 +71,7 @@ parameters:
   # correspond to Ceph's OR'd bitfield value of "63". Here we use
   # a symbolic, comma-separated format:
   # For 5.4 or later kernels:
-  #imageFeatures: layering,fast-diff,object-map,deep-flatten,exclusive-lock
+  # imageFeatures: layering,fast-diff,object-map,deep-flatten,exclusive-lock
   # For 5.3 or earlier kernels:
   imageFeatures: layering
 

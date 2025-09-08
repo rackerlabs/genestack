@@ -10,12 +10,11 @@ metadata:
     route: placement
 spec:
   parentRefs:
-  - name: flex-gateway
-    sectionName: placement-https
-    namespace: nginx-gateway
-  hostnames:
-  - "placement.your.domain.tld"
+    - name: flex-gateway
+      sectionName: placement-https
+      namespace: nginx-gateway
+  hostnames: [placement.your.domain.tld]
   rules:
     - backendRefs:
-      - name: placement-api
-        port: 8778
+        - name: placement-api
+          port: 8778

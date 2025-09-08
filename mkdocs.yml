@@ -1,363 +1,359 @@
 ---
 site_name: Rackspace OpenStack Documentation
 site_description: >-
-    Rackspace OpenStack, a Rackspace solution, is open-source technologies that provide a
-    flexible, scalable, and cost-effective infrastructure solution for your business. This documentation provides
-    information on how to deploy and manage Open-Infrastructure in your environment. It also provides information on how
-    to onboard and manage your workloads on OpenStack, Kubernetes, and other open-source technologies.
+  Rackspace OpenStack, a Rackspace solution, is open-source technologies that provide
+  a
+  flexible, scalable, and cost-effective infrastructure solution for your business.
+  This documentation provides
+  information on how to deploy and manage Open-Infrastructure in your environment.
+  It also provides information on how
+  to onboard and manage your workloads on OpenStack, Kubernetes, and other open-source
+  technologies.
 
 site_url: https://docs.rackspacecloud.com
 
 theme:
-    name: material
-    logo: assets/images/rackspace_logo-white.svg
-    favicon: assets/images/pngegg.png
-    icon:
-        logo: logo
-    palette:
-        - media: "(prefers-color-scheme)"
-          toggle:
-              icon: material/link
-              name: Switch to dark mode
-        - media: "(prefers-color-scheme: light)"
-          scheme: default
-          primary: black
-          accent: red
-          toggle:
-              icon: material/toggle-switch
-              name: Switch to dark mode
-        - media: "(prefers-color-scheme: dark)"
-          scheme: rxt
-          primary: black
-          accent: red
-          toggle:
-              icon: material/toggle-switch-off
-              name: Switch to system preference
+  name: material
+  logo: assets/images/rackspace_logo-white.svg
+  favicon: assets/images/pngegg.png
+  icon:
+    logo: logo
+  palette:
+    - media: (prefers-color-scheme)
+      toggle:
+        icon: material/link
+        name: Switch to dark mode
+    - media: '(prefers-color-scheme: light)'
+      scheme: default
+      primary: black
+      accent: red
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to dark mode
+    - media: '(prefers-color-scheme: dark)'
+      scheme: rxt
+      primary: black
+      accent: red
+      toggle:
+        icon: material/toggle-switch-off
+        name: Switch to system preference
 
-    font:
-        text: Roboto
-        code: Roboto Mono
+  font:
+    text: Roboto
+    code: Roboto Mono
 
-    features:
-        - announce.dismiss
-        - header.autohide
-        - content.action.edit
-        - content.action.view
-        - content.code.annotate
-        - content.code.copy
-        - content.tooltips
-        - navigation.footer
-        - navigation.indexes
-        - navigation.instant
-        - navigation.instant.progress
-        - navigation.instant.preview
-        - navigation.prune
-        - navigation.path
-        - navigation.sections
-        - navigation.tabs
-        - navigation.top
-        - navigation.tracking
-        - search.highlight
-        - search.share
-        - search.suggest
-        - toc.follow
-
+  features:
+    - announce.dismiss
+    - header.autohide
+    - content.action.edit
+    - content.action.view
+    - content.code.annotate
+    - content.code.copy
+    - content.tooltips
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.instant.preview
+    - navigation.prune
+    - navigation.path - navigation.sections - navigation.tabs - navigation.top - navigation.tracking
+      - search.highlight - search.share - search.suggest - toc.follow
 copyright: Copyright &copy; 2025 RACKSPACE TECHNOLOGY
 
 extra:
-    social:
-        - icon: fontawesome/brands/linkedin
-          link: https://linkedin.com/company/rackspace
-          name: Rackspace on LinkedIn
-        - icon: fontawesome/brands/x-twitter
-          link: https://twitter.com/rackspace
-          name: Rackspace on X
-        - icon: fontawesome/brands/github
-          link: https://github.com/rackerlabs
-          name: Rackspace on github
-        - icon: fontawesome/brands/discord
-          link: https://discord.gg/2mN5yZvV3a
-          name: Rackspace on Discord
-        - icon: fontawesome/solid/blog
-          link: https://blog.rackspacecloud.com/
+  social:
+    - icon: fontawesome/brands/linkedin
+      link: https://linkedin.com/company/rackspace
+      name: Rackspace on LinkedIn
+    - icon: fontawesome/brands/x-twitter
+      link: https://twitter.com/rackspace
+      name: Rackspace on X
+    - icon: fontawesome/brands/github
+      link: https://github.com/rackerlabs
+      name: Rackspace on github
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/2mN5yZvV3a
+      name: Rackspace on Discord
+    - icon: fontawesome/solid/blog
+      link: https://blog.rackspacecloud.com/
 
 extra_css:
-    - overrides/stylesheets/adr.css
-    - overrides/stylesheets/admonition.css
+  - overrides/stylesheets/adr.css
+  - overrides/stylesheets/admonition.css
 
 plugins:
-    - search
-    - swagger-ui-tag
-    - mkdocs-material-adr/adr
-    - glightbox
+  - search
+  - swagger-ui-tag
+  - mkdocs-material-adr/adr
+  - glightbox
 
 markdown_extensions:
-    - admonition
-    - attr_list
-    - md_in_html
-    - def_list
-    - footnotes
-    - pymdownx.tasklist:
-          custom_checkbox: true
-    - pymdownx.superfences:
-          custom_fences:
-              - name: python
-                class: python
-                validator: !!python/name:markdown_exec.validator
-                format: !!python/name:markdown_exec.formatter
-              - name: mermaid
-                class: mermaid
-                format: !!python/name:pymdownx.superfences.fence_code_format
-    - pymdownx.emoji:
-          emoji_index: !!python/name:material.extensions.emoji.twemoji
-          emoji_generator: !!python/name:material.extensions.emoji.to_svg
-    - pymdownx.highlight:
-          anchor_linenums: true
-          line_spans: __span
-          pygments_lang_class: true
-    - pymdownx.inlinehilite
-    - pymdownx.details
-    - pymdownx.tabbed:
-          alternate_style: true
-    - pymdownx.snippets:
-          restrict_base_path: false
-
+  - admonition
+  - attr_list
+  - md_in_html
+  - def_list
+  - footnotes
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: python
+          class: python
+          validator: !!python/name:markdown_exec.validator
+          format: !!python/name:markdown_exec.formatter
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.snippets:
+      restrict_base_path: false
 repo_name: rackerlabs/genestack
 repo_url: https://github.com/rackerlabs/genestack
-dev_addr: "127.0.0.1:8001"
-edit_uri: "edit/main/docs"
+dev_addr: 127.0.0.1:8001
+edit_uri: edit/main/docs
 
 nav:
-    - Welcome: index.md
-    - Overview:
-          - Architecture: genestack-architecture.md
-          - Components: genestack-components.md
-          - Swift Object Storage: openstack-object-storage-swift.md
-          - Release Notes: release-notes.md
-    - Design Guide:
-          - Introduction: openstack-cloud-design-intro.md
-          - SDLC: sdlc.md
-          - Cloud Design:
-                - Cloud Topology: openstack-cloud-design-topology.md
-                - Regions: openstack-cloud-design-regions.md
-                - Availability Zones: openstack-cloud-design-az.md
-                - Host Aggregates: openstack-cloud-design-ha.md
-          - Accelerated Computing:
-                - Overview: accelerated-computing-overview.md
-                - Infrastructure: accelerated-computing-infrastructure.md
-          - Other Design Documentation:
-                - Disaster Recovery for OpenStack Clouds: openstack-cloud-design-dr.md
-                - Genestack Infrastructure Design: openstack-cloud-design-genestack-infra.md
-          - Style Guide: documentation-standards.md
-    - Deployment Guide:
-          - What is Genestack?: deployment-guide-welcome.md
-          - Getting Started:
-                - Building Virtual Environments: build-test-envs.md
-                - Getting the code: genestack-getting-started.md
-          - Open Infrastructure:
-                - Kubernetes:
-                      - k8s-overview.md
-                      - Providers:
-                            - Kubespray: k8s-kubespray.md
-                      - Post Deployment:
-                            - Kubernetes Labels: k8s-labels.md
-                            - Kubernetes Dashboard: k8s-dashboard.md
-                            - Kubernetes Taint: k8s-taint.md
-                      - Plugins and Tools: k8s-tools.md
-                      - Container Network Interface:
-                            - Kube-OVN: k8s-cni-kube-ovn.md
-                      - Retrieve kube config: k8s-config.md
-                      - Prometheus: prometheus.md
-                - Storage:
-                      - storage-overview.md
-                      - Ceph Internal: storage-ceph-rook-internal.md
-                      - Ceph External: storage-ceph-rook-external.md
-                      - NFS External: storage-nfs-external.md
-                      - TopoLVM: storage-topolvm.md
-                      - External Storage CSI: storage-external-block.md
-                      - Longhorn: storage-longhorn.md
-                - Infrastructure:
-                      - infrastructure-overview.md
-                      - Namespace: infrastructure-namespace.md
-                      - MetalLB: infrastructure-metallb.md
-                      - Gateway API:
-                            - Gateway API Overview: infrastructure-gateway-api.md
-                            - Envoy Gateway: infrastructure-envoy-gateway-api.md
-                            - NGINX Gateway: infrastructure-nginx-gateway-api.md
-                      - MariaDB:
-                            - infrastructure-mariadb.md
-                      - RabbitMQ:
-                            - infrastructure-rabbitmq.md
-                      - Memcached: infrastructure-memcached.md
-                      - Libvirt: infrastructure-libvirt.md
-                      - OVN: infrastructure-ovn-setup.md
-                      - FluentBit: infrastructure-fluentbit.md
-                      - Loki: infrastructure-loki.md
-                - OpenStack:
-                      - openstack-overview.md
-                      - OpenStack Services:
-                            - Keystone: openstack-keystone.md
-                            - Glance: openstack-glance.md
-                            - Heat: openstack-heat.md
-                            - Barbican: openstack-barbican.md
-                            - Block Storage:
-                                  - Cinder: openstack-cinder.md
-                                  - LVM iSCSI: openstack-cinder-lvmisci.md
-                                  - NETAPP:
-                                        - Worker: openstack-cinder-netapp-worker.md
-                                        - Containerized: openstack-cinder-netapp-container.md
-                                  - FIPS Cinder Encryption: openstack-cinder-fips-encryption.md
-                            - Compute Kit:
-                                  - Compute Overview: openstack-compute-kit.md
-                                  - Secrets: openstack-compute-kit-secrets.md
-                                  - Placement: openstack-compute-kit-placement.md
-                                  - Nova: openstack-compute-kit-nova.md
-                                  - Neutron: openstack-compute-kit-neutron.md
-                            - Dashboards:
-                                  - Horizon: openstack-horizon.md
-                                  - skyline: openstack-skyline.md
-                            - Octavia: openstack-octavia.md
-                            - Magnum: openstack-magnum.md
-                            - Metering:
-                                  - PostgreSQL: infrastructure-postgresql.md
-                                  - Gnocchi: openstack-gnocchi.md
-                                  - Ceilometer: openstack-ceilometer.md
-                            - Blazar: openstack-blazar.md
-                - Monitoring:
-                      - Monitoring Overview: prometheus-monitoring-overview.md
-                      - Getting Started: monitoring-getting-started.md
-                      - Grafana: grafana.md
-                      - Kube-OVN Monitoring: prometheus-kube-ovn.md
-                      - Kube-event Monitoring: prometheus-kube-event-exporter.md
-                      - NGINX Gateway Fabric Monitoring: prometheus-nginx-gateway.md
-                      - RabbitMQ Exporter: prometheus-rabbitmq-exporter.md
-                      - Memcached Exporter: prometheus-memcached-exporter.md
-                      - MariaDB Exporter: prometheus-mysql-exporter.md
-                      - Postgres Exporter: prometheus-postgres-exporter.md
-                      - Openstack Exporter: prometheus-openstack-metrics-exporter.md
-                      - Blackbox Exporter: prometheus-blackbox-exporter.md
-                      - Pushgateway: prometheus-pushgateway.md
-                      - SNMP Exporter: prometheus-snmp-exporter.md
-                      - Custom Node Metrics: prometheus-custom-node-metrics.md
-                      - Alert Manager Examples:
-                            - alertmanager-slack.md
-                            - alertmanager-msteams.md
-                            - alertmanager-pagerduty.md
-    - Operational Guide:
-          - Genestack:
-                - Genestack Structure and Files: genestack-structure-and-files.md
-                - Supporting multi-region: multi-region-support.md
-                - Sync Keystone Fernet Keys: sync-fernet-keys.md
-                - Running Upgrades: genestack-upgrade.md
-          - Resource Metering:
-                - Metering Overview: metering-overview.md
-                - Ceilometer: metering-ceilometer.md
-                - Gnocchi: metering-gnocchi.md
-                - Billing Tenants: metering-billing.md
-                - Chargebacks: metering-chargebacks.md
+  - Welcome: index.md
+  - Overview:
+      - Architecture: genestack-architecture.md
+      - Components: genestack-components.md
+      - Swift Object Storage: openstack-object-storage-swift.md
+      - Release Notes: release-notes.md
+  - Design Guide:
+      - Introduction: openstack-cloud-design-intro.md
+      - SDLC: sdlc.md
+      - Cloud Design:
+          - Cloud Topology: openstack-cloud-design-topology.md
+          - Regions: openstack-cloud-design-regions.md
+          - Availability Zones: openstack-cloud-design-az.md
+          - Host Aggregates: openstack-cloud-design-ha.md
+      - Accelerated Computing:
+          - Overview: accelerated-computing-overview.md
+          - Infrastructure: accelerated-computing-infrastructure.md
+      - Other Design Documentation:
+          - Disaster Recovery for OpenStack Clouds: openstack-cloud-design-dr.md
+          - Genestack Infrastructure Design: openstack-cloud-design-genestack-infra.md
+      - Style Guide: documentation-standards.md
+  - Deployment Guide:
+      - What is Genestack: deployment-guide-welcome.md
+      - Getting Started:
+          - Building Virtual Environments: build-test-envs.md
+          - Getting the code: genestack-getting-started.md
+      - Open Infrastructure:
+          - Kubernetes:
+              - k8s-overview.md
+              - Providers:
+                  - Kubespray: k8s-kubespray.md
+              - Post Deployment:
+                  - Kubernetes Labels: k8s-labels.md
+                  - Kubernetes Dashboard: k8s-dashboard.md
+                  - Kubernetes Taint: k8s-taint.md
+              - Plugins and Tools: k8s-tools.md
+              - Container Network Interface:
+                  - Kube-OVN: k8s-cni-kube-ovn.md
+              - Retrieve kube config: k8s-config.md
+              - Prometheus: prometheus.md
+          - Storage:
+              - storage-overview.md
+              - Ceph Internal: storage-ceph-rook-internal.md
+              - Ceph External: storage-ceph-rook-external.md
+              - NFS External: storage-nfs-external.md
+              - TopoLVM: storage-topolvm.md
+              - External Storage CSI: storage-external-block.md
+              - Longhorn: storage-longhorn.md
           - Infrastructure:
-                - Kubernetes:
-                      - Etcd Backup: etcd-backup.md
-                      - Adding New Nodes: adding-new-node.md
-                      - Running Kubespray Upgrades: k8s-kubespray-upgrade.md
-                - OVN:
-                      - Introduction: ovn-intro.md
-                      - Troubleshooting: ovn-troubleshooting.md
-                      - Traffic flow introduction: ovn-traffic-flow-intro.md
-                      - Database Backup: infrastructure-ovn-db-backup.md
-                      - Monitoring introduction: ovn-monitoring-introduction.md
-                      - Claim Storm alert: ovn-alert-claim-storm.md
-                      - Updating Kube OVN to OpenStack Configuration: ovn-kube-ovn-openstack.md
-                      - Updating Kube OVN IP Space: infrastructure-kube-ovn-re-ip.md
-                      - Updating Kube OVN to Helm: k8s-cni-kube-ovn-helm-conversion.md
-                - MariaDB:
-                      - Operations: infrastructure-mariadb-ops.md
-                - Gateway API:
-                      - Custom Routes: infrastructure-nginx-gateway-api-custom.md
-                      - Rackspace Example Gateway Overview: rackspace-infrastructure-nginx-gateway-api.md
-                      - Creating self-signed CA issuer for Gateway API: infrastructure-nginx-gateway-api-ca-issuer.md
-                      - Creating Security Policies: infrastructure-envoy-gateway-api-security.md
-          - Observability:
-                - Observability Overview: observability-info.md
-                - Monitoring Overview: monitoring-info.md
-                - Alerting Overview: alerting-info.md
-                - Logging Overview: genestack-logging.md
-          - Upgrades: 2024.1-to-2025.1.md
+              - infrastructure-overview.md
+              - Namespace: infrastructure-namespace.md
+              - MetalLB: infrastructure-metallb.md
+              - Gateway API:
+                  - Gateway API Overview: infrastructure-gateway-api.md
+                  - Envoy Gateway: infrastructure-envoy-gateway-api.md
+                  - NGINX Gateway: infrastructure-nginx-gateway-api.md
+              - MariaDB: [infrastructure-mariadb.md]
+              - RabbitMQ: [infrastructure-rabbitmq.md]
+              - Memcached: infrastructure-memcached.md
+              - Libvirt: infrastructure-libvirt.md
+              - OVN: infrastructure-ovn-setup.md
+              - FluentBit: infrastructure-fluentbit.md
+              - Loki: infrastructure-loki.md
           - OpenStack:
-                - CLI Access:
-                      - Generating Clouds YAML: openstack-clouds.md
-                - Block Storage:
-                      - Cinder Volume Provisioning Specs: openstack-cinder-volume-provisioning-specs.md
-                      - Cinder Volume QoS Policies: openstack-cinder-volume-qos-policies.md
-                      - Cinder Volume Type Specs: openstack-cinder-volume-type-specs.md
-                      - Decommission a Cinder Block Node: openstack-cinder-block-node-decommission-process.md
-                - Compute:
-                      - Nova Flavor Creation: openstack-flavors.md
-                      - Nova CPU Allocation Ratio: openstack-cpu-allocation-ratio.md
-                      - Nova PCI Passthrough: openstack-pci-passthrough.md
-                      - Host Aggregates: openstack-host-aggregates.md
-                      - Instance Data Recovery: openstack-data-disk-recovery.md
-                      - Vendordata: openstack-vendordata.md
-                - Quota Management:
-                      - Quota Management: openstack-quota-managment.md
-                - Images:
-                      - Glance Images Creation: openstack-glance-images.md
-                      - Glance External Swift Image Store: openstack-glance-swift-store.md
-                - Identity:
-                      - Keystone Federation to Rackspace: openstack-keystone-federation.md
-                      - Keystone Readonly Users: openstack-keystone-readonly.md
-                - Networking:
-                      - Creating Networks: openstack-neutron-networks.md
-                - Containers:
-                      - Creating kubernetes clusters: magnum-kubernetes-cluster-setup-guide.md
-                - Loadbalancers:
-                      - Creating Flavor Profiles and Flavors: octavia-flavor-and-flavorprofile-guide.md
-                      - Creating Cloud Load Balancers: octavia-loadbalancer-setup-guide.md
-                - Object Storage:
-                      - Operating Swift Object Storage: openstack-swift-operators-guide.md
-                - Override Public Endpoint fqdn for service catalog: openstack-override-public-endpoint-fqdn.md
-                - Service Overrides: openstack-service-overrides.md
-                - Resource and Project Lookups: openstack-resource-lookups.md
-                - Reservation:
-                      - Blazar Reservations Creation: openstack-blazar.md
+              - openstack-overview.md
+              - OpenStack Services:
+                  - Keystone: openstack-keystone.md
+                  - Glance: openstack-glance.md
+                  - Heat: openstack-heat.md
+                  - Barbican: openstack-barbican.md
+                  - Block Storage:
+                      - Cinder: openstack-cinder.md
+                      - LVM iSCSI: openstack-cinder-lvmisci.md
+                      - NETAPP:
+                          - Worker: openstack-cinder-netapp-worker.md
+                          - Containerized: openstack-cinder-netapp-container.md
+                      - FIPS Cinder Encryption: openstack-cinder-fips-encryption.md
+                  - Compute Kit:
+                      - Compute Overview: openstack-compute-kit.md
+                      - Secrets: openstack-compute-kit-secrets.md
+                      - Placement: openstack-compute-kit-placement.md
+                      - Nova: openstack-compute-kit-nova.md
+                      - Neutron: openstack-compute-kit-neutron.md
+                  - Dashboards:
+                      - Horizon: openstack-horizon.md
+                      - skyline: openstack-skyline.md
+                  - Octavia: openstack-octavia.md
+                  - Magnum: openstack-magnum.md
+                  - Metering:
+                      - PostgreSQL: infrastructure-postgresql.md
+                      - Gnocchi: openstack-gnocchi.md
+                      - Ceilometer: openstack-ceilometer.md
+                  - Blazar: openstack-blazar.md
+          - Monitoring:
+              - Monitoring Overview: prometheus-monitoring-overview.md
+              - Getting Started: monitoring-getting-started.md
+              - Grafana: grafana.md
+              - Kube-OVN Monitoring: prometheus-kube-ovn.md
+              - Kube-event Monitoring: prometheus-kube-event-exporter.md
+              - NGINX Gateway Fabric Monitoring: prometheus-nginx-gateway.md
+              - RabbitMQ Exporter: prometheus-rabbitmq-exporter.md
+              - Memcached Exporter: prometheus-memcached-exporter.md
+              - MariaDB Exporter: prometheus-mysql-exporter.md
+              - Postgres Exporter: prometheus-postgres-exporter.md
+              - Openstack Exporter: prometheus-openstack-metrics-exporter.md
+              - Blackbox Exporter: prometheus-blackbox-exporter.md
+              - Pushgateway: prometheus-pushgateway.md
+              - SNMP Exporter: prometheus-snmp-exporter.md
+              - Custom Node Metrics: prometheus-custom-node-metrics.md
+              - Alert Manager Examples:
+                  - alertmanager-slack.md
+                  - alertmanager-msteams.md
+                  - alertmanager-pagerduty.md
+  - Operational Guide:
+      - Genestack:
+          - Genestack Structure and Files: genestack-structure-and-files.md
+          - Supporting multi-region: multi-region-support.md
+          - Sync Keystone Fernet Keys: sync-fernet-keys.md
+          - Running Upgrades: genestack-upgrade.md
+      - Resource Metering:
+          - Metering Overview: metering-overview.md
+          - Ceilometer: metering-ceilometer.md
+          - Gnocchi: metering-gnocchi.md
+          - Billing Tenants: metering-billing.md
+          - Chargebacks: metering-chargebacks.md
+      - Infrastructure:
+          - Kubernetes:
+              - Etcd Backup: etcd-backup.md
+              - Adding New Nodes: adding-new-node.md
+              - Running Kubespray Upgrades: k8s-kubespray-upgrade.md
+          - OVN:
+              - Introduction: ovn-intro.md
+              - Troubleshooting: ovn-troubleshooting.md
+              - Traffic flow introduction: ovn-traffic-flow-intro.md
+              - Database Backup: infrastructure-ovn-db-backup.md
+              - Monitoring introduction: ovn-monitoring-introduction.md
+              - Claim Storm alert: ovn-alert-claim-storm.md
+              - Updating Kube OVN to OpenStack Configuration: ovn-kube-ovn-openstack.md
+              - Updating Kube OVN IP Space: infrastructure-kube-ovn-re-ip.md
+              - Updating Kube OVN to Helm: k8s-cni-kube-ovn-helm-conversion.md
+          - MariaDB:
+              - Operations: infrastructure-mariadb-ops.md
+          - Gateway API:
+              - Custom Routes: infrastructure-nginx-gateway-api-custom.md
+              - Rackspace Example Gateway Overview: rackspace-infrastructure-nginx-gateway-api.md
+              - Creating self-signed CA issuer for Gateway API: infrastructure-nginx-gateway-api-ca-issuer.md
+              - Creating Security Policies: infrastructure-envoy-gateway-api-security.md
+      - Observability:
+          - Observability Overview: observability-info.md
+          - Monitoring Overview: monitoring-info.md
+          - Alerting Overview: alerting-info.md
+          - Logging Overview: genestack-logging.md
+      - Upgrades: 2024.1-to-2025.1.md
+      - OpenStack:
+          - CLI Access:
+              - Generating Clouds YAML: openstack-clouds.md
+          - Block Storage:
+              - Cinder Volume Provisioning Specs: openstack-cinder-volume-provisioning-specs.md
+              - Cinder Volume QoS Policies: openstack-cinder-volume-qos-policies.md
+              - Cinder Volume Type Specs: openstack-cinder-volume-type-specs.md
+              - Decommission a Cinder Block Node: openstack-cinder-block-node-decommission-process.md
+          - Compute:
+              - Nova Flavor Creation: openstack-flavors.md
+              - Nova CPU Allocation Ratio: openstack-cpu-allocation-ratio.md
+              - Nova PCI Passthrough: openstack-pci-passthrough.md
+              - Host Aggregates: openstack-host-aggregates.md
+              - Instance Data Recovery: openstack-data-disk-recovery.md
+              - Vendordata: openstack-vendordata.md
+          - Quota Management:
+              - Quota Management: openstack-quota-managment.md
+          - Images:
+              - Glance Images Creation: openstack-glance-images.md
+              - Glance External Swift Image Store: openstack-glance-swift-store.md
+          - Identity:
+              - Keystone Federation to Rackspace: openstack-keystone-federation.md
+              - Keystone Readonly Users: openstack-keystone-readonly.md
+          - Networking:
+              - Creating Networks: openstack-neutron-networks.md
+          - Containers:
+              - Creating kubernetes clusters: magnum-kubernetes-cluster-setup-guide.md
+          - Loadbalancers:
+              - Creating Flavor Profiles and Flavors: octavia-flavor-and-flavorprofile-guide.md
+              - Creating Cloud Load Balancers: octavia-loadbalancer-setup-guide.md
+          - Object Storage:
+              - Operating Swift Object Storage: openstack-swift-operators-guide.md
+          - Override Public Endpoint fqdn for service catalog: openstack-override-public-endpoint-fqdn.md
+          - Service Overrides: openstack-service-overrides.md
+          - Resource and Project Lookups: openstack-resource-lookups.md
+          - Reservation:
+              - Blazar Reservations Creation: openstack-blazar.md
 
-          - Working locally With Docs: mkdocs-howto.md
-    - Cloud Onboarding:
-          - Cloud Onboarding Welcome: cloud-onboarding-welcome.md
-          - Openstack Installing CLI Tools: openstack-deploy-cli.md
-          - OpenStack Getting Started: openstack-getting-started-cli.md
-          - Openstack Security Groups: openstack-security-groups.md
-          - Openstack Floating Ips: openstack-floating-ips.md
-          - Openstack Keypairs: openstack-keypairs.md
-          - Openstack Servers: openstack-servers.md
-          - Openstack Routers: openstack-router.md
-          - Openstack Images: openstack-images.md
-          - Openstack Metrics: openstack-metrics.md
-          - Openstack Object Store:
-                - Openstack CLI: storage-object-store-openstack-cli.md
-                - Swift CLI: storage-object-store-swift-cli.md
-                - S3 CLI: storage-object-store-s3-cli.md
-                - Skyline GUI: storage-object-store-skyline-gui.md
-                - 3rd Party SDK, Tools: storage-object-store-swift-3rd-party.md
-          - Openstack Snapshot: openstack-snapshot.md
-          - Openstack Volumes: openstack-volumes.md
-          - Openstack Load Balancers: openstack-load-balancer.md
-          - Openstack Networks: openstack-networks.md
-          - Openstack Quotas: openstack-quota.md
-    - Security Primer:
-          - Introduction: security-introduction.md
-          - Security In Phases: security-lifecycle.md
-          - Cloud Security: security-stages.md
-          - Summary: security-summary.md
-    - Blog: https://blog.rackspacecloud.com/blog
-    - Regions:
-          - Availability: api-status.md
-          - SJC:
-                - "<img src='https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Frackerlabs%2Frs-flex-uptime%2Frefs%2Fheads%2Fmaster%2Fstatus.json'/>": https://status.api.sjc3.rackspacecloud.com
-                - "<strong>Control Panel</strong>": https://keystone.api.sjc3.rackspacecloud.com/v3/auth/OS-FEDERATION/websso/saml2?origin=https://skyline.api.sjc3.rackspacecloud.com/api/openstack/skyline/api/v1/websso
-          - DFW:
-                - "<img src='https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fthe2hill%2Frs-flex-uptime-dfw%2Frefs%2Fheads%2Fmaster%2Fstatus.json'/>": https://status.api.dfw3.rackspacecloud.com
-                - "<strong>Control Panel</strong>": https://keystone.api.dfw3.rackspacecloud.com/v3/auth/OS-FEDERATION/websso/saml2?origin=https://skyline.api.dfw3.rackspacecloud.com/api/openstack/skyline/api/v1/websso
-          - IAD:
-                - "<img src='https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fthe2hill%2Frs-flex-uptime-iad%2Frefs%2Fheads%2Fmaster%2Fstatus.json'/>": https://status.api.iad3.rackspacecloud.com
-                - "<strong>Control Panel</strong>": https://keystone.api.iad3.rackspacecloud.com/v3/auth/OS-FEDERATION/websso/saml2?origin=https://skyline.api.iad3.rackspacecloud.com/api/openstack/skyline/api/v1/websso
+      - Working locally With Docs: mkdocs-howto.md
+  - Cloud Onboarding:
+      - Cloud Onboarding Welcome: cloud-onboarding-welcome.md
+      - Openstack Installing CLI Tools: openstack-deploy-cli.md
+      - OpenStack Getting Started: openstack-getting-started-cli.md
+      - Openstack Security Groups: openstack-security-groups.md
+      - Openstack Floating Ips: openstack-floating-ips.md
+      - Openstack Keypairs: openstack-keypairs.md
+      - Openstack Servers: openstack-servers.md
+      - Openstack Routers: openstack-router.md
+      - Openstack Images: openstack-images.md
+      - Openstack Metrics: openstack-metrics.md
+      - Openstack Object Store:
+          - Openstack CLI: storage-object-store-openstack-cli.md
+          - Swift CLI: storage-object-store-swift-cli.md
+          - S3 CLI: storage-object-store-s3-cli.md
+          - Skyline GUI: storage-object-store-skyline-gui.md
+          - 3rd Party SDK, Tools: storage-object-store-swift-3rd-party.md
+      - Openstack Snapshot: openstack-snapshot.md
+      - Openstack Volumes: openstack-volumes.md
+      - Openstack Load Balancers: openstack-load-balancer.md
+      - Openstack Networks: openstack-networks.md
+      - Openstack Quotas: openstack-quota.md
+  - Security Primer:
+      - Introduction: security-introduction.md
+      - Security In Phases: security-lifecycle.md
+      - Cloud Security: security-stages.md
+      - Summary: security-summary.md
+  - Blog: https://blog.rackspacecloud.com/blog
+  - Regions:
+      - Availability: api-status.md
+      - SJC:
+          - ? <img src='https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Frackerlabs%2Frs-flex-uptime%2Frefs%2Fheads%2Fmaster%2Fstatus.json'/>
+            : https://status.api.sjc3.rackspacecloud.com
+          - <strong>Control Panel</strong>: https://keystone.api.sjc3.rackspacecloud.com/v3/auth/OS-FEDERATION/websso/saml2?origin=https://skyline.api.sjc3.rackspacecloud.com/api/openstack/skyline/api/v1/websso
+      - DFW:
+          - ? <img src='https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fthe2hill%2Frs-flex-uptime-dfw%2Frefs%2Fheads%2Fmaster%2Fstatus.json'/>
+            : https://status.api.dfw3.rackspacecloud.com
+          - <strong>Control Panel</strong>: https://keystone.api.dfw3.rackspacecloud.com/v3/auth/OS-FEDERATION/websso/saml2?origin=https://skyline.api.dfw3.rackspacecloud.com/api/openstack/skyline/api/v1/websso
+      - IAD:
+          - ? <img src='https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fthe2hill%2Frs-flex-uptime-iad%2Frefs%2Fheads%2Fmaster%2Fstatus.json'/>
+            : https://status.api.iad3.rackspacecloud.com
+          - <strong>Control Panel</strong>: https://keystone.api.iad3.rackspacecloud.com/v3/auth/OS-FEDERATION/websso/saml2?origin=https://skyline.api.iad3.rackspacecloud.com/api/openstack/skyline/api/v1/websso

@@ -4,15 +4,15 @@
   gather_facts: true
   become: true
   vars:
-    cinder_release: "2024.1"
+    cinder_release: '2024.1'
     cinder_storage_network_interface: ansible_br_storage
     cinder_storage_network_interface_secondary: ansible_br_storage_secondary
-    cinder_backend_name: "lvmdriver-1"
+    cinder_backend_name: lvmdriver-1
     storage_network_multipath: false
   handlers:
     - name: Restart cinder-volume and cinder-backup systemd services
       ansible.builtin.systemd:
-        name: "{{ item }}"
+        name: '{{ item }}'
         state: restarted
         daemon_reload: true
         enabled: true
@@ -23,12 +23,11 @@
         - iscsid.service
     - name: Reload cinder-volume-tgt systemd service
       ansible.builtin.systemd:
-        name: "{{ item }}"
+        name: '{{ item }}'
         state: reloaded
         daemon_reload: true
         enabled: true
-      loop:
-        - tgt.service
+      loop: [tgt.service]
   tasks:
     - name: K8S Facts block
       delegate_to: "{{ groups['kube_control_plane'][0] }}"
@@ -63,7 +62,8 @@
     - name: Determine iscsi initiator name
       set_fact:
         initiator_name: >
-          {% set _iqn = "iqn.2004-10.com." + ansible_distribution |lower() + ":" + ansible_hostname -%}
+          {% set _iqn = "iqn.2004-10.com." + ansible_distribution |lower() + ":"
+          + ansible_hostname -%}
           {% if ansible_iscsi_iqn is defined -%}
           {% if (ansible_iscsi_iqn |length >= 15) -%}
           {% set _iqn = ansible_iscsi_iqn  -%}
@@ -74,16 +74,16 @@
     - name: Set iscsi initiator name if not set
       ansible.builtin.lineinfile:
         path: /etc/iscsi/initiatorname.iscsi
-        regexp: '^InitiatorName=.*|^GenerateName=.*'
-        line: "InitiatorName={{ initiator_name }}"
+        regexp: ^InitiatorName=.*|^GenerateName=.*
+        line: InitiatorName={{ initiator_name }}
 
     - name: Upgrade pip and install required packages
       ansible.builtin.pip:
         name:
           - pip
           - pymysql
-          - "git+https://github.com/openstack/cinder@stable/{{ cinder_release }}"
-          - "git+https://github.com/rackerlabs/cinder-rxt.git"
+          - git+https://github.com/openstack/cinder@stable/{{ cinder_release }}
+          - git+https://github.com/rackerlabs/cinder-rxt.git
         state: present
         virtualenv: /opt/cinder
         virtualenv_command: python3 -m venv
@@ -104,11 +104,11 @@
 
     - name: Create the cinder service directory
       ansible.builtin.file:
-        path: "{{ item }}"
+        path: '{{ item }}'
         state: directory
         owner: cinder
         group: cinder
-        mode: "0755"
+        mode: '0755'
       loop:
         - /var/lib/cinder/backup
         - /var/lib/cinder/tmp
@@ -124,78 +124,76 @@
 
     - name: Create the cinder systemd service units
       ansible.builtin.copy:
-        src: "{{ item.src }}"
-        dest: "{{ item.dest }}"
+        src: '{{ item.src }}'
+        dest: '{{ item.dest }}'
         owner: root
         group: root
         mode: "{{ item.mode | default('0644') }}"
       loop:
-        - src: "{{ playbook_dir }}/templates/cinder-volume-usage-audit.timer"
+        - src: '{{ playbook_dir }}/templates/cinder-volume-usage-audit.timer'
           dest: /etc/systemd/system/cinder-volume-usage-audit.timer
-        - src: "{{ playbook_dir }}/templates/cinder-volume-usage-audit.service"
+        - src: '{{ playbook_dir }}/templates/cinder-volume-usage-audit.service'
           dest: /etc/systemd/system/cinder-volume-usage-audit.service
-        - src: "{{ playbook_dir }}/templates/cinder-volume.service"
+        - src: '{{ playbook_dir }}/templates/cinder-volume.service'
           dest: /etc/systemd/system/cinder-volume.service
-        - src: "{{ playbook_dir }}/templates/cinder-backup.service"
+        - src: '{{ playbook_dir }}/templates/cinder-backup.service'
           dest: /etc/systemd/system/cinder-backup.service
-        - src: "{{ playbook_dir }}/templates/sudoers"
+        - src: '{{ playbook_dir }}/templates/sudoers'
           dest: /etc/sudoers.d/cinder-volume
-          mode: "0440"
-      notify:
-        - Restart cinder-volume and cinder-backup systemd services
+          mode: '0440'
+      notify: [Restart cinder-volume and cinder-backup systemd services]
 
     - name: Create the cinder-volume service configuration
       ansible.builtin.copy:
-        content: "{{ _kubernetes_cinder_etc_secret.resources[0].data[item.src] | b64decode }}"
-        dest: "{{ item.dest }}"
+        content: '{{ _kubernetes_cinder_etc_secret.resources[0].data[item.src] | b64decode }}'
+        dest: '{{ item.dest }}'
         owner: root
         group: root
-        mode: "0644"
+        mode: '0644'
       loop:
-        - src: "logging.conf"
+        - src: logging.conf
           dest: /etc/cinder/logging.conf
-        - src: "volume.filters"
+        - src: volume.filters
           dest: /etc/cinder/volume.filters
-      notify:
-        - Restart cinder-volume and cinder-backup systemd services
+      notify: [Restart cinder-volume and cinder-backup systemd services]
 
     - name: Create the cinder-volume configuration stage file
       changed_when: false
       ansible.builtin.copy:
         content: "{{ _kubernetes_cinder_etc_secret.resources[0].data['cinder.conf'] | b64decode }}"
-        dest: "/etc/cinder/cinder.conf.stage"
+        dest: /etc/cinder/cinder.conf.stage
         owner: root
         group: root
-        mode: "0644"
+        mode: '0644'
 
-    - name: Replace the host in the cinder.conf.stage with the current Ansible FQDN in the stage file
+    - name: Replace the host in the cinder.conf.stage with the current Ansible FQDN
+        in the stage file
       changed_when: false
       community.general.ini_file:
-        path: "/etc/cinder/cinder.conf.stage"
+        path: /etc/cinder/cinder.conf.stage
         section: DEFAULT
         option: host
-        value: "{{ inventory_hostname }}"
+        value: '{{ inventory_hostname }}'
         create: true
 
     - name: Ensure the backend configuration is set to our expected value
       changed_when: false
       community.general.ini_file:
-        path: "/etc/cinder/cinder.conf.stage"
+        path: /etc/cinder/cinder.conf.stage
         section: DEFAULT
         option: enabled_backends
-        value: "{{ cinder_backend_name }}"
+        value: '{{ cinder_backend_name }}'
         create: true
 
     - name: Create the cinder-volume configuration
       ansible.builtin.copy:
-        src: "/etc/cinder/cinder.conf.stage"
-        dest: "/etc/cinder/cinder.conf"
+        src: /etc/cinder/cinder.conf.stage
+        dest: /etc/cinder/cinder.conf
         owner: root
         group: root
-        mode: "0644"
+        mode: '0644'
         remote_src: true
-      notify:
-        - Restart cinder-volume and cinder-backup systemd services
+      notify: [Restart cinder-volume and cinder-backup systemd services]
 
     - name: Set enabled backend fact
       set_fact:
@@ -215,28 +213,26 @@
 
     - name: Create the cinder-volume backend configuration
       ansible.builtin.copy:
-        content: "{{ cinder_backend | community.general.to_ini }}"
-        dest: "/etc/cinder/backends.conf"
+        content: '{{ cinder_backend | community.general.to_ini }}'
+        dest: /etc/cinder/backends.conf
         owner: root
         group: root
-        mode: "0644"
-      notify:
-        - Restart cinder-volume and cinder-backup systemd services
+        mode: '0644'
+      notify: [Restart cinder-volume and cinder-backup systemd services]
 
     - name: Replace exec path in rootwrap
       community.general.ini_file:
         path: /etc/cinder/rootwrap.conf
         section: DEFAULT
-        option: "{{ item.key }}"
-        value: "{{ item.value }}"
+        option: '{{ item.key }}'
+        value: '{{ item.value }}'
         create: true
       loop:
-        - key: "exec_dirs"
-          value: "/opt/cinder/bin,/sbin,/usr/sbin,/bin,/usr/bin,/usr/local/bin,/usr/local/sbin,/usr/lpp/mmfs/bin"
-        - key: "filters_path"
-          value: "/etc/cinder/rootwrap.d"
-      notify:
-        - Restart cinder-volume and cinder-backup systemd services
+        - key: exec_dirs
+          value: /opt/cinder/bin,/sbin,/usr/sbin,/bin,/usr/bin,/usr/local/bin,/usr/local/sbin,/usr/lpp/mmfs/bin
+        - key: filters_path
+          value: /etc/cinder/rootwrap.d
+      notify: [Restart cinder-volume and cinder-backup systemd services]
 
     - name: Create the cinder tgtd integration
       ansible.builtin.copy:
@@ -245,9 +241,8 @@
         dest: /etc/tgt/conf.d/cinder.conf
         owner: root
         group: root
-        mode: "0644"
-      notify:
-        - Reload cinder-volume-tgt systemd service
+        mode: '0644'
+      notify: [Reload cinder-volume-tgt systemd service]
 
     - name: Remove cinder conf staging file
       ansible.builtin.file:

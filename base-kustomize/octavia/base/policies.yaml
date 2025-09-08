@@ -6,8 +6,8 @@ metadata:
   namespace: openstack
 spec:
   name: octavia-quorum-three-replicas
-  vhost: "octavia"
-  pattern: ".*"
+  vhost: octavia
+  pattern: .*
   applyTo: queues
   definition:
     target-group-size: 3

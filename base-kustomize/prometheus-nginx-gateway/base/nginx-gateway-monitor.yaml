@@ -1,3 +1,4 @@
+---
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
@@ -7,8 +8,7 @@ metadata:
     app.kubernetes.io/name: nginx-gateway-fabric
 spec:
   namespaceSelector:
-    matchNames:
-      - nginx-gateway
+    matchNames: [nginx-gateway]
   selector:
     matchLabels:
       app.kubernetes.io/name: nginx-gateway-fabric

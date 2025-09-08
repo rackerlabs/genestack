@@ -4,7 +4,6 @@ kind: ServiceAccount
 metadata:
   name: cinder-volume-netapp
   namespace: openstack
-
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -12,20 +11,9 @@ metadata:
   name: cinder-openstack-cinder-volume-netapp
   namespace: openstack
 rules:
-  - apiGroups:
-      - ""
-      - extensions
-      - batch
-      - apps
-    verbs:
-      - get
-      - list
-    resources:
-      - services
-      - endpoints
-      - jobs
-      - pods
-
+  - apiGroups: ['', extensions, batch, apps]
+    verbs: [get, list]
+    resources: [services, endpoints, jobs, pods]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -40,7 +28,6 @@ subjects:
   - kind: ServiceAccount
     name: cinder-volume-netapp
     namespace: openstack
-
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -81,16 +68,13 @@ spec:
                   matchExpressions:
                     - key: release_group
                       operator: In
-                      values:
-                        - cinder
+                      values: [cinder]
                     - key: application
                       operator: In
-                      values:
-                        - cinder
+                      values: [cinder]
                     - key: component
                       operator: In
-                      values:
-                        - volume
+                      values: [volume]
                 topologyKey: kubernetes.io/hostname
               weight: 10
       nodeSelector:
@@ -118,19 +102,18 @@ spec:
             - name: PATH
               value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/
             - name: DEPENDENCY_SERVICE
-              value: "openstack:keystone-api,openstack:cinder-api"
+              value: openstack:keystone-api,openstack:cinder-api
             - name: DEPENDENCY_JOBS
-              value: "cinder-db-sync,cinder-ks-user,cinder-ks-endpoints"
+              value: cinder-db-sync,cinder-ks-user,cinder-ks-endpoints
             - name: DEPENDENCY_DAEMONSET
-              value: ""
+              value: ''
             - name: DEPENDENCY_CONTAINER
-              value: ""
+              value: ''
             - name: DEPENDENCY_POD_JSON
-              value: ""
+              value: ''
             - name: DEPENDENCY_CUSTOM_RESOURCE
-              value: ""
-          command:
-            - kubernetes-entrypoint
+              value: ''
+          command: [kubernetes-entrypoint]
           volumeMounts: []
         - name: init-cinder-conf
           securityContext:
@@ -138,8 +121,7 @@ spec:
             runAsUser: 0
           image: image-heat-conf-init
           imagePullPolicy: IfNotPresent
-          command:
-            - /tmp/retrieve-internal-tenant.sh
+          command: [/tmp/retrieve-internal-tenant.sh]
           volumeMounts:
             - name: pod-tmp
               mountPath: /tmp
@@ -151,7 +133,7 @@ spec:
               mountPath: /tmp/pod-shared
           env:
             - name: OS_IDENTITY_API_VERSION
-              value: "3"
+              value: '3'
             - name: OS_AUTH_URL
               valueFrom:
                 secretKeyRef:
@@ -203,9 +185,9 @@ spec:
                   name: cinder-keystone-admin
                   key: OS_DEFAULT_DOMAIN
             - name: INTERNAL_PROJECT_NAME
-              value: "internal_cinder"
+              value: internal_cinder
             - name: INTERNAL_USER_NAME
-              value: "internal_cinder"
+              value: internal_cinder
             - name: SERVICE_OS_REGION_NAME
               valueFrom:
                 secretKeyRef:
@@ -241,9 +223,7 @@ spec:
           imagePullPolicy: IfNotPresent
           securityContext:
             readOnlyRootFilesystem: true
-          command:
-            - /var/lib/openstack/bin/python3
-            - /tmp/generate-backends.py
+          command: [/var/lib/openstack/bin/python3, /tmp/generate-backends.py]
           env:
             - name: NETAPP_BACKENDS
               valueFrom:
@@ -253,10 +233,10 @@ spec:
           terminationMessagePath: /var/log/termination-log
           resources:
             limits:
-              memory: "1Gi"
+              memory: 1Gi
             requests:
-              memory: "256Mi"
-              cpu: "250m"
+              memory: 256Mi
+              cpu: 250m
           volumeMounts:
             - name: cinder-netapp-data
               mountPath: /tmp/generate-backends.py
@@ -270,21 +250,19 @@ spec:
           imagePullPolicy: IfNotPresent
           securityContext:
             capabilities:
-              add:
-                - SYS_ADMIN
+              add: [SYS_ADMIN]
             privileged: true
             allowPrivilegeEscalation: true
             readOnlyRootFilesystem: true
-          command:
-            - /tmp/cinder-volume.sh
+          command: [/tmp/cinder-volume.sh]
           env: []
           terminationMessagePath: /var/log/termination-log
           resources:
             limits:
-              memory: "1Gi"
+              memory: 1Gi
             requests:
-              memory: "256Mi"
-              cpu: "250m"
+              memory: 256Mi
+              cpu: 250m
           volumeMounts:
             - name: pod-tmp
               mountPath: /tmp
@@ -344,5 +322,5 @@ spec:
           emptyDir: {}
         - name: cinder-netapp-data
           configMap:
-            name: "cinder-volume-netapp-config"
+            name: cinder-volume-netapp-config
             defaultMode: 0555

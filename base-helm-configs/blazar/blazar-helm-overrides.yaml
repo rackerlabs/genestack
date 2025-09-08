@@ -40,22 +40,16 @@ endpoints:
 dependencies:
   static:
     api:
-      jobs:
-        - blazar-db-sync
-        - blazar-ks-user
-        - blazar-ks-endpoints
+      jobs: [blazar-db-sync, blazar-ks-user, blazar-ks-endpoints]
     manager:
-      jobs:
-        - blazar-db-sync
-        - blazar-ks-user
-        - blazar-ks-endpoints
+      jobs: [blazar-db-sync, blazar-ks-user, blazar-ks-endpoints]
     db_sync:
-      jobs: null
+      jobs:
 
 conf:
   blazar:
     DEFAULT:
-      host_href: "http://blazar-api.openstack.svc.cluster.local:1234"
+      host_href: http://blazar-api.openstack.svc.cluster.local:1234
     database:
       connection_debug: 0
       connection_recycle_time: 600
@@ -87,8 +81,7 @@ conf:
       kombu_reconnect_delay: 0.5
   logging:
     logger_root:
-      handlers:
-        - stdout
+      handlers: [stdout]
       level: INFO
 
 manifests:

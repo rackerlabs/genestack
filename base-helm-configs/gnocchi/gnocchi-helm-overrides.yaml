@@ -1,19 +1,19 @@
 ---
 images:
   tags:
-    db_init: "quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy"
-    db_init_indexer: "quay.io/rackspace/rackerlabs-postgres:14.5"
-    db_sync: "quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy"
-    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    gnocchi_api: "quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy"
-    gnocchi_metricd: "quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy"
-    gnocchi_resources_cleaner: "quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy"
-    gnocchi_statsd: "quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy"
-    gnocchi_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
-    image_repo_sync: null
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_init: quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy
+    db_init_indexer: quay.io/rackspace/rackerlabs-postgres:14.5
+    db_sync: quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy
+    dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
+    gnocchi_api: quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy
+    gnocchi_metricd: quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy
+    gnocchi_resources_cleaner: quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy
+    gnocchi_statsd: quay.io/rackspace/rackerlabs-gnocchi:2024.1-ubuntu_jammy
+    gnocchi_storage_init: quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy
+    image_repo_sync:
+    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
 
 ceph_client:
   user_secret_name: gnocchi-temp-keyring
@@ -47,45 +47,45 @@ conf:
       processes: 2
       threads: 1
   paste:
-    "app:gnocchiv1":
-      paste.app_factory: "gnocchi.rest.app:app_factory"
+    app:gnocchiv1:
+      paste.app_factory: gnocchi.rest.app:app_factory
       root: gnocchi.rest.api.V1Controller
-    "app:gnocchiversions":
-      paste.app_factory: "gnocchi.rest.app:app_factory"
+    app:gnocchiversions:
+      paste.app_factory: gnocchi.rest.app:app_factory
       root: gnocchi.rest.api.VersionsController
-    "app:healthcheck":
+    app:healthcheck:
       oslo_config_project: gnocchi
-      use: "egg:oslo.middleware#healthcheck"
-    "composite:gnocchi+basic":
+      use: egg:oslo.middleware#healthcheck
+    composite:gnocchi+basic:
       /: gnocchiversions_pipeline
       /healthcheck: healthcheck
       /v1: gnocchiv1+noauth
-      use: "egg:Paste#urlmap"
-    "composite:gnocchi+keystone":
+      use: egg:Paste#urlmap
+    composite:gnocchi+keystone:
       /: gnocchiversions_pipeline
       /healthcheck: healthcheck
       /v1: gnocchiv1+keystone
-      use: "egg:Paste#urlmap"
-    "composite:gnocchi+remoteuser":
+      use: egg:Paste#urlmap
+    composite:gnocchi+remoteuser:
       /: gnocchiversions_pipeline
       /healthcheck: healthcheck
       /v1: gnocchiv1+noauth
-      use: "egg:Paste#urlmap"
-    "filter:keystone_authtoken":
+      use: egg:Paste#urlmap
+    filter:keystone_authtoken:
       oslo_config_project: gnocchi
-      use: "egg:keystonemiddleware#auth_token"
-    "pipeline:gnocchiv1+keystone":
+      use: egg:keystonemiddleware#auth_token
+    pipeline:gnocchiv1+keystone:
       pipeline: keystone_authtoken gnocchiv1
-    "pipeline:gnocchiv1+noauth":
+    pipeline:gnocchiv1+noauth:
       pipeline: gnocchiv1
-    "pipeline:gnocchiversions_pipeline":
+    pipeline:gnocchiversions_pipeline:
       pipeline: gnocchiversions
-    "pipeline:main":
+    pipeline:main:
       pipeline: gnocchi+keystone
   policy:
-    admin_or_creator: "role:admin or project_id:%(created_by_project_id)s"
-    context_is_admin: "role:admin"
-    update archive policy rule: "role:admin"
+    admin_or_creator: role:admin or project_id:%(created_by_project_id)s
+    context_is_admin: role:admin
+    update archive policy rule: role:admin
 
 # NOTE: (brew) requests cpu/mem values based on a three node
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
@@ -95,8 +95,8 @@ pod:
     enabled: true
     api:
       requests:
-        memory: "512Mi"
-        cpu: "200m"
+        memory: 512Mi
+        cpu: 200m
       limits: {}
   lifecycle:
     upgrades:

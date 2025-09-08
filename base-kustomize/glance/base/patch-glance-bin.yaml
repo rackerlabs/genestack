@@ -4,7 +4,7 @@ kind: ConfigMap
 metadata:
   name: glance-bin
 data:
-  glance-api.sh: |
+  glance-api.sh: |-
     #!/bin/bash
 
     set -ex

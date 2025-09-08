@@ -10,12 +10,11 @@ metadata:
     route: cinder
 spec:
   parentRefs:
-  - name: flex-gateway
-    sectionName: cinder-https
-    namespace: nginx-gateway
-  hostnames:
-  - "cinder.your.domain.tld"
+    - name: flex-gateway
+      sectionName: cinder-https
+      namespace: nginx-gateway
+  hostnames: [cinder.your.domain.tld]
   rules:
     - backendRefs:
-      - name: cinder-api
-        port: 8776
+        - name: cinder-api
+          port: 8776

@@ -6,8 +6,8 @@ metadata:
   namespace: openstack
 spec:
   name: neutron-quorum-three-replicas
-  vhost: "neutron"
-  pattern: ".*"
+  vhost: neutron
+  pattern: .*
   applyTo: queues
   definition:
     target-group-size: 3

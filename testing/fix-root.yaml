@@ -1,15 +1,16 @@
 ---
 - name: Remove first 164 characters from /root/.ssh/authorized_keys
   hosts: all
-  become: yes
+  become: true
   vars:
     ansible_user: ubuntu
   tasks:
     - name: Remove the first 164 characters from the authorized_keys file
-      shell: "tail -c +165 /root/.ssh/authorized_keys > /root/.ssh/authorized_keys.tmp && mv /root/.ssh/authorized_keys.tmp /root/.ssh/authorized_keys"
+      shell: tail -c +165 /root/.ssh/authorized_keys > /root/.ssh/authorized_keys.tmp
+        && mv /root/.ssh/authorized_keys.tmp /root/.ssh/authorized_keys
       args:
         executable: /bin/bash
-      become: yes
+      become: true
 
     - name: Ensure correct permissions on the authorized_keys file
       file:

@@ -1,3 +1,4 @@
+---
 # Redis Operator and Cluster Overrides
 # Defines custom settings to override defaults in base values.yaml
 
@@ -13,7 +14,7 @@ namespace:
 # Redis Cluster Configuration Overrides
 redisCluster:
   # -- Name of the Redis cluster (optional, defaults to empty)
-  name: "redis-cluster"
+  name: redis-cluster
   # -- Number of shards in the cluster (implied by leader/follower replicas)
   clusterSize: 3
   # -- Redis version to use
@@ -29,8 +30,8 @@ redisCluster:
     # - name: Secret with Registry credentials
   # -- Redis authentication secret (optional)
   redisSecret:
-    secretName: ""
-    secretKey: ""
+    secretName: ''
+    secretKey: ''
   # -- Resource requests and limits (optional)
   resources: {}
     # requests:
@@ -43,7 +44,7 @@ redisCluster:
   minReadySeconds: 0
   # -- Some fields of statefulset are immutable, such as volumeClaimTemplates.
   # When set to true, the operator will delete the statefulset and recreate it.
-  #Default is false.
+  # Default is false.
   recreateStatefulSetOnUpdateInvalid: false
   # -- Enable pod anti-affinity between leader and follower pods by adding the
   # appropriate label.
@@ -125,7 +126,6 @@ redisCluster:
       # successThreshold: 1
       # failureThreshold: 4
       # initialDelaySeconds: 15
-
 # -- Labels and Annotations
 labels: {}
   # foo: bar
@@ -172,7 +172,6 @@ redisExporter:
     # - name: VAR_NAME
     #   value: "value1"
   securityContext: {}
-
 # -- Sidecars and Init Containers
 sidecars: {}
 initContainer:
@@ -189,37 +188,36 @@ initContainer:
   env: []
   command: []
   args: []
-
 # -- Priority and Security
-priorityClassName: ""
+priorityClassName: ''
 podSecurityContext: {}
 TLS:
   ca: {}
   cert: {}
   key: {}
   secret:
-    secretName: ""
+    secretName: ''
 acl:
   secret:
-    secretName: ""
+    secretName: ''
 env: []
   # - name: VAR_NAME
   #   value: "value1"
-serviceAccountName: ""
+serviceAccountName: ''
 
 # -- Storage Specification
 storageSpec:
   volumeClaimTemplate:
     spec:
       # storageClassName: standard
-      accessModes: ["ReadWriteOnce"]
+      accessModes: [ReadWriteOnce]
       resources:
         requests:
           storage: 1Gi
   nodeConfVolume: true
   nodeConfVolumeClaimTemplate:
     spec:
-      accessModes: ["ReadWriteOnce"]
+      accessModes: [ReadWriteOnce]
       resources:
         requests:
           storage: 1Gi

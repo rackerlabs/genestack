@@ -10,12 +10,11 @@ metadata:
     route: novnc
 spec:
   parentRefs:
-  - name: flex-gateway
-    sectionName: novnc-https
-    namespace: nginx-gateway
-  hostnames:
-  - "novnc.your.domain.tld"
+    - name: flex-gateway
+      sectionName: novnc-https
+      namespace: nginx-gateway
+  hostnames: [novnc.your.domain.tld]
   rules:
     - backendRefs:
-      - name: nova-novncproxy
-        port: 6080
+        - name: nova-novncproxy
+          port: 6080

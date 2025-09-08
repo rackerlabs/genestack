@@ -27,7 +27,7 @@ spec:
       - rabbitmq_web_stomp
   persistence:
     storageClassName: general
-    storage: "20Gi"
+    storage: 20Gi
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -35,16 +35,14 @@ spec:
           - matchExpressions:
               - key: node-role.kubernetes.io/worker
                 operator: In
-                values:
-                  - worker
+                values: [worker]
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         - labelSelector:
             matchExpressions:
               - key: app.kubernetes.io/name
                 operator: In
-                values:
-                  - rabbitmq
+                values: [rabbitmq]
           topologyKey: kubernetes.io/hostname
   override:
     service:
@@ -57,7 +55,7 @@ spec:
             containers: []
             topologySpreadConstraints:
               - maxSkew: 1
-                topologyKey: "topology.kubernetes.io/zone"
+                topologyKey: topology.kubernetes.io/zone
                 # Should be changed to DoNotSchedule for production
                 whenUnsatisfiable: ScheduleAnyway
                 labelSelector:

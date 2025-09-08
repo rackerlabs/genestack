@@ -1,22 +1,22 @@
+---
 # Default values for prometheus-pushgateway.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
 # Provide a name in place of prometheus-pushgateway for `app:` labels
-nameOverride: ""
+nameOverride: ''
 
 # Provide a name to substitute for the full names of resources
-fullnameOverride: ""
+fullnameOverride: ''
 
 # Provide a namespace to substitude for the namespace on resources
-namespaceOverride: ""
+namespaceOverride: ''
 
 image:
   repository: quay.io/prometheus/pushgateway
   # if not set appVersion field from Chart.yaml is used
-  tag: ""
+  tag: ''
   pullPolicy: IfNotPresent
-
 # Optional pod imagePullSecrets
 imagePullSecrets: []
 
@@ -28,16 +28,15 @@ service:
   portName: http
 
   # Optional - Can be used for headless if value is "None"
-  clusterIP: ""
+  clusterIP: ''
 
   ipDualStack:
     enabled: false
-    ipFamilies: ["IPv6", "IPv4"]
-    ipFamilyPolicy: "PreferDualStack"
+    ipFamilies: [IPv6, IPv4]
+    ipFamilyPolicy: PreferDualStack
 
-  loadBalancerIP: ""
+  loadBalancerIP: ''
   loadBalancerSourceRanges: []
-
 # Whether to automatically mount a service account token into the pod
 automountServiceAccountToken: true
 
@@ -103,7 +102,6 @@ resources:
   requests:
     cpu: 100m
     memory: 30Mi
-
 # -- Sets web configuration
 # To enable basic authentication, provide basicAuthUsers as a map
 webConfiguration: {}
@@ -144,7 +142,7 @@ ingress:
   ##
   enabled: false
   # AWS ALB requires path of /*
-  className: ""
+  className: ''
   path: /
   pathType: ImplementationSpecific
 
@@ -174,7 +172,6 @@ ingress:
   #   - secretName: pushgateway-tls
   #     hosts:
   #       - pushgateway.domain.com
-
 tolerations: []
   # - effect: NoSchedule
   #   operator: Exists
@@ -208,7 +205,6 @@ securityContext:
   fsGroup: 65534
   runAsUser: 65534
   runAsNonRoot: true
-
 ## Security context to be added to push-gateway containers
 ## Having a separate variable as securityContext differs for pods and containers.
 containerSecurityContext: {}
@@ -226,7 +222,7 @@ affinity: {}
 ## The value "hard" means that the scheduler is *required* to not schedule two replica pods onto the same node.
 ## The default value "" will disable pod anti-affinity so that no anti-affinity rules will be configured (unless set in `affinity`).
 ##
-podAntiAffinity: ""
+podAntiAffinity: ''
 
 ## If anti-affinity is enabled sets the topologyKey to use for anti-affinity.
 ## This can be changed to, for example, failure-domain.beta.kubernetes.io/zone
@@ -245,7 +241,7 @@ serviceMonitor:
   # telemetryPath: HTTP resource path from which to fetch metrics.
   # Telemetry path, default /metrics, has to be prefixed accordingly if pushgateway sets a route prefix at start-up.
   #
-  telemetryPath: "/metrics"
+  telemetryPath: /metrics
 
   # Fallback to the prometheus default unless specified
   # interval: 10s
@@ -285,7 +281,6 @@ serviceMonitor:
   #   targetLabel: nodename
   #   replacement: $1
   #   action: replace
-
 # The values to set in the PodDisruptionBudget spec (minAvailable/maxUnavailable)
 # If not set then a PodDisruptionBudget will not be created
 podDisruptionBudget: {}
@@ -316,7 +311,7 @@ persistentVolume:
   ## pushgateway data Persistent Volume existing claim name
   ## Requires pushgateway.persistentVolume.enabled: true
   ## If defined, PVC must be created manually before volume will be bound
-  existingClaim: ""
+  existingClaim: ''
 
   ## pushgateway data Persistent Volume mount root path
   ##
@@ -338,8 +333,7 @@ persistentVolume:
   ## Subdirectory of pushgateway data Persistent Volume to mount
   ## Useful if the volume's root directory is not empty
   ##
-  subPath: ""
-
+  subPath: ''
 extraVolumes: []
   # - name: extra
   #   emptyDir: {}

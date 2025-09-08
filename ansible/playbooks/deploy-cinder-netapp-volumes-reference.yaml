@@ -4,26 +4,23 @@
   gather_facts: true
   become: true
   vars:
-    cinder_release: "2024.1"
+    cinder_release: '2024.1'
     cinder_storage_network_interface: ansible_br_storage
     cinder_storage_network_interface_secondary: ansible_br_storage_secondary
-    cinder_backend_name: "block-ha-performance-at-rest-encrypted,block-ha-standard-at-rest-encrypted,block-ha-performance-end-to-end-encrypted,block-ha-standard-end-to-end-encrypted"
-    virtualenv_path: "/opt/cinder"
+    cinder_backend_name: block-ha-performance-at-rest-encrypted,block-ha-standard-at-rest-encrypted,block-ha-performance-end-to-end-encrypted,block-ha-standard-end-to-end-encrypted
+    virtualenv_path: /opt/cinder
     storage_network_multipath: false
     enable_netapp_ssl: false
-    netapp_cert_src_dir: "/opt/genestack/ansible/playbooks/templates/"
-    netapp_cert_filenames:
-      - "ontap-cluster-host.crt"
-      - "ontap-vserver-host.crt"
+    netapp_cert_src_dir: /opt/genestack/ansible/playbooks/templates/
+    netapp_cert_filenames: [ontap-cluster-host.crt, ontap-vserver-host.crt]
   handlers:
     - name: Restart cinder-volume-netapp systemd services
       ansible.builtin.systemd:
-        name: "{{ item }}"
+        name: '{{ item }}'
         state: restarted
         daemon_reload: true
         enabled: true
-      loop:
-        - cinder-volume-netapp
+      loop: [cinder-volume-netapp]
   tasks:
     - name: K8S Facts block
       delegate_to: "{{ groups['kube_control_plane'][0] }}"
@@ -57,7 +54,8 @@
     - name: Determine iscsi initiator name
       set_fact:
         initiator_name: >
-          {% set _iqn = "iqn.2004-10.com." + ansible_distribution |lower() + ":" + ansible_hostname -%}
+          {% set _iqn = "iqn.2004-10.com." + ansible_distribution |lower() + ":"
+          + ansible_hostname -%}
           {% if ansible_iscsi_iqn is defined -%}
           {% if (ansible_iscsi_iqn |length >= 15) -%}
           {% set _iqn = ansible_iscsi_iqn  -%}
@@ -68,87 +66,79 @@
     - name: Set iscsi initiator name if not set
       ansible.builtin.lineinfile:
         path: /etc/iscsi/initiatorname.iscsi
-        regexp: '^InitiatorName=.*|^GenerateName=.*'
-        line: "InitiatorName={{ initiator_name }}"
+        regexp: ^InitiatorName=.*|^GenerateName=.*
+        line: InitiatorName={{ initiator_name }}
 
     - name: Copy NetApp client certificates Debian
       ansible.builtin.copy:
-        src: "{{ netapp_cert_src_dir }}/{{ item }}"
-        dest: "/usr/local/share/ca-certificates/{{ item }}"
+        src: '{{ netapp_cert_src_dir }}/{{ item }}'
+        dest: /usr/local/share/ca-certificates/{{ item }}
         owner: root
         group: root
         mode: '0644'
-      when:
-        - enable_netapp_ssl | bool
-        - ansible_os_family | lower == "debian"
-      loop: "{{ netapp_cert_filenames }}"
+      when: [enable_netapp_ssl | bool, ansible_os_family | lower == "debian"]
+      loop: '{{ netapp_cert_filenames }}'
 
     - name: Copy NetApp client certificates Redhat
       ansible.builtin.copy:
-        src: "{{ netapp_cert_src_dir }}/{{ item }}"
-        dest: "/etc/pki/ca-trust/source/anchors/{{ item }}"
+        src: '{{ netapp_cert_src_dir }}/{{ item }}'
+        dest: /etc/pki/ca-trust/source/anchors/{{ item }}
         owner: root
         group: root
         mode: '0644'
-      when:
-        - enable_netapp_ssl | bool
-        - ansible_os_family | lower == "redhat"
-      loop: "{{ netapp_cert_filenames }}"
+      when: [enable_netapp_ssl | bool, ansible_os_family | lower == "redhat"]
+      loop: '{{ netapp_cert_filenames }}'
 
     - name: Update CA certificate trust Debian
       ansible.builtin.command:
         cmd: /usr/sbin/update-ca-certificates
-      when:
-        - enable_netapp_ssl | bool
-        - ansible_os_family | lower == "debian"
+      when: [enable_netapp_ssl | bool, ansible_os_family | lower == "debian"]
 
     - name: Update CA certificate trust Redhat
       ansible.builtin.command:
         cmd: /usr/sbin/update-ca-trust extract
-      when:
-        - enable_netapp_ssl | bool
-        - ansible_os_family | lower == "redhat"
+      when: [enable_netapp_ssl | bool, ansible_os_family | lower == "redhat"]
 
     - name: Upgrade pip and install required packages
       ansible.builtin.pip:
         name:
           - pip
           - pymysql
-          - "git+https://github.com/openstack/cinder@stable/{{ cinder_release }}"
-          - "git+https://github.com/rackerlabs/cinder-rxt.git"
+          - git+https://github.com/openstack/cinder@stable/{{ cinder_release }}
+          - git+https://github.com/rackerlabs/cinder-rxt.git
         state: present
-        virtualenv: "{{ virtualenv_path }}"
+        virtualenv: '{{ virtualenv_path }}'
         virtualenv_command: python3 -m venv
 
-    - name: "Get Python site-packages path from virtualenv"
+    - name: Get Python site-packages path from virtualenv
       command: "{{ virtualenv_path }}/bin/python -c 'import site; print(site.getsitepackages()[0])'"
       register: venv_site
       changed_when: false
 
-    - name: "Normalize site-packages path"
+    - name: Normalize site-packages path
       set_fact:
-        venv_site_packages: "{{ venv_site.stdout | trim }}"
+        venv_site_packages: '{{ venv_site.stdout | trim }}'
 
-    - name: "Ensure site-packages exists"
+    - name: Ensure site-packages exists
       file:
-        path: "{{ venv_site_packages }}"
+        path: '{{ venv_site_packages }}'
         state: directory
       when: venv_site_packages != ""
 
     - name: Install eventlet SSL patch
       ansible.builtin.copy:
-        src: "{{ item.src }}"
-        dest: "{{ item.dest }}"
+        src: '{{ item.src }}'
+        dest: '{{ item.dest }}'
         owner: root
         group: root
         mode: "{{ item.mode | default('0644') }}"
       loop:
-        - src: "{{ playbook_dir }}/templates/zzz_eventlet_ssl_patch.pth"
-          dest: "{{ venv_site_packages }}/zzz_eventlet_ssl_patch.pth"
-          mode: "0644"
-        - src: "{{ playbook_dir }}/templates/eventlet_ssl_patch.py"
-          dest: "{{ venv_site_packages }}/eventlet_ssl_patch.py"
-          mode: "0644"
+        - src: '{{ playbook_dir }}/templates/zzz_eventlet_ssl_patch.pth'
+          dest: '{{ venv_site_packages }}/zzz_eventlet_ssl_patch.pth'
+          mode: '0644'
+        - src: '{{ playbook_dir }}/templates/eventlet_ssl_patch.py'
+          dest: '{{ venv_site_packages }}/eventlet_ssl_patch.py'
+          mode: '0644'
 
     - name: Create the cinder system user
       ansible.builtin.user:
@@ -166,11 +156,11 @@
 
     - name: Create the cinder service directory
       ansible.builtin.file:
-        path: "{{ item }}"
+        path: '{{ item }}'
         state: directory
         owner: cinder
         group: cinder
-        mode: "0755"
+        mode: '0755'
       loop:
         - /var/lib/cinder/backup
         - /var/lib/cinder/tmp
@@ -186,74 +176,73 @@
 
     - name: Create the cinder-volume-netapp systemd service units
       ansible.builtin.copy:
-        src: "{{ item.src }}"
-        dest: "{{ item.dest }}"
+        src: '{{ item.src }}'
+        dest: '{{ item.dest }}'
         owner: root
         group: root
         mode: "{{ item.mode | default('0644') }}"
       loop:
-        - src: "{{ playbook_dir }}/templates/cinder-volume-netapp.service"
+        - src: '{{ playbook_dir }}/templates/cinder-volume-netapp.service'
           dest: /etc/systemd/system/cinder-volume-netapp.service
-        - src: "{{ playbook_dir }}/templates/sudoers"
+        - src: '{{ playbook_dir }}/templates/sudoers'
           dest: /etc/sudoers.d/cinder-volume
-          mode: "0440"
-      notify:
-        - Restart cinder-volume-netapp systemd services
+          mode: '0440'
+      notify: [Restart cinder-volume-netapp systemd services]
 
     - name: Create the cinder-volume-netapp service configuration
       ansible.builtin.copy:
-        content: "{{ _kubernetes_cinder_etc_secret.resources[0].data[item.src] | b64decode }}"
-        dest: "{{ item.dest }}"
+        content: '{{ _kubernetes_cinder_etc_secret.resources[0].data[item.src] | b64decode }}'
+        dest: '{{ item.dest }}'
         owner: root
         group: root
-        mode: "0644"
+        mode: '0644'
       loop:
-        - src: "logging.conf"
+        - src: logging.conf
           dest: /etc/cinder/logging.conf
-        - src: "volume.filters"
+        - src: volume.filters
           dest: /etc/cinder/volume.filters
-      notify:
-        - Restart cinder-volume-netapp systemd services
+      notify: [Restart cinder-volume-netapp systemd services]
 
     - name: Create the cinder-volume-netapp configuration stage file
       changed_when: false
       ansible.builtin.copy:
         content: "{{ _kubernetes_cinder_etc_secret.resources[0].data['cinder.conf'] | b64decode }}"
-        dest: "/etc/cinder/cinder.conf.stage"
+        dest: /etc/cinder/cinder.conf.stage
         owner: root
         group: root
-        mode: "0644"
+        mode: '0644'
 
-    - name: Replace the host in the cinder.conf.stage with the current Ansible FQDN in the stage file
+    - name: Replace the host in the cinder.conf.stage with the current Ansible FQDN
+        in the stage file
       changed_when: false
       community.general.ini_file:
-        path: "/etc/cinder/cinder.conf.stage"
+        path: /etc/cinder/cinder.conf.stage
         section: DEFAULT
         option: host
-        value: "{{ inventory_hostname }}"
+        value: '{{ inventory_hostname }}'
         create: true
 
     - name: Create the cinder-volume-netapp configuration stage file
       ansible.builtin.copy:
-        src: "/etc/cinder/cinder.conf.stage"
-        dest: "/etc/cinder/netapp-cinder.conf.stage"
+        src: /etc/cinder/cinder.conf.stage
+        dest: /etc/cinder/netapp-cinder.conf.stage
         owner: root
         group: root
-        mode: "0644"
+        mode: '0644'
         remote_src: true
 
     - name: Ensure the backend configuration is set to our expected value
       changed_when: false
       community.general.ini_file:
-        path: "/etc/cinder/netapp-cinder.conf.stage"
+        path: /etc/cinder/netapp-cinder.conf.stage
         section: DEFAULT
         option: enabled_backends
-        value: "{{ cinder_backend_name }}"
+        value: '{{ cinder_backend_name }}'
         create: true
 
     - name: Override host value in netapp-cinder.conf.stage
       community.general.ini_file:
-        path: "/etc/cinder/netapp-cinder.conf.stage"
+        path: /etc/cinder/netapp-cinder.conf.stage
         section: DEFAULT
         option: host
         value: cinder-volume-netapp-worker
@@ -262,14 +251,13 @@
 
     - name: Create the cinder-volume-netapp configuration
       ansible.builtin.copy:
-        src: "/etc/cinder/netapp-cinder.conf.stage"
-        dest: "/etc/cinder/netapp-cinder.conf"
+        src: /etc/cinder/netapp-cinder.conf.stage
+        dest: /etc/cinder/netapp-cinder.conf
         owner: root
         group: root
-        mode: "0644"
+        mode: '0644'
         remote_src: true
-      notify:
-        - Restart cinder-volume-netapp systemd services
+      notify: [Restart cinder-volume-netapp systemd services]
 
     - name: Set enabled backend fact
       set_fact:
@@ -283,26 +271,25 @@
 
     - name: Create the cinder-volume-netapp backend configuration
       ansible.builtin.copy:
-        content: "{{ cinder_backend | community.general.to_ini }}"
-        dest: "/etc/cinder/netapp-backends.conf"
+        content: '{{ cinder_backend | community.general.to_ini }}'
+        dest: /etc/cinder/netapp-backends.conf
         owner: root
         group: root
-        mode: "0644"
+        mode: '0644'
 
     - name: Replace exec path in rootwrap
       community.general.ini_file:
         path: /etc/cinder/rootwrap.conf
         section: DEFAULT
-        option: "{{ item.key }}"
-        value: "{{ item.value }}"
+        option: '{{ item.key }}'
+        value: '{{ item.value }}'
         create: true
       loop:
-        - key: "exec_dirs"
-          value: "/opt/cinder/bin,/sbin,/usr/sbin,/bin,/usr/bin,/usr/local/bin,/usr/local/sbin,/usr/lpp/mmfs/bin"
-        - key: "filters_path"
-          value: "/etc/cinder/rootwrap.d"
-      notify:
-        - Restart cinder-volume-netapp systemd services
+        - key: exec_dirs
+          value: /opt/cinder/bin,/sbin,/usr/sbin,/bin,/usr/bin,/usr/local/bin,/usr/local/sbin,/usr/lpp/mmfs/bin
+        - key: filters_path
+          value: /etc/cinder/rootwrap.d
+      notify: [Restart cinder-volume-netapp systemd services]
 
     - name: Remove netapp-cinder conf staging file
       ansible.builtin.file:
