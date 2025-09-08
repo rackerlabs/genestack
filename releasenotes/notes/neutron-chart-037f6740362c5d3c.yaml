@@ -1,6 +1,6 @@
 ---
 deprecations:
-  - |
+  - |-
     The neutron chart will now use the online OSH helm repository. This change
     will allow the neutron chart to be updated more frequently and will allow
     the neutron chart to be used with the OpenStack-Helm project. Upgrading to

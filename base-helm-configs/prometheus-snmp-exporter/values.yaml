@@ -1,3 +1,4 @@
+---
 restartPolicy: Always
 
 kind: Deployment
@@ -5,9 +6,8 @@ kind: Deployment
 image:
   repository: quay.io/prometheus/snmp-exporter
   # if not set appVersion field from Chart.yaml is used
-  tag: ""
+  tag: ''
   pullPolicy: IfNotPresent
-
 imagePullSecrets: []
 nodeSelector: {}
 tolerations: []
@@ -18,7 +18,7 @@ topologySpreadConstraints: []
 # priorityClassName: ""
 
 ## Provide a namespace to substitude for the namespace on resources
-namespaceOverride: ""
+namespaceOverride: ''
 
 ## Security context to be added to snmp-exporter pods
 securityContext: {}
@@ -31,17 +31,15 @@ containerSecurityContext:
   runAsNonRoot: true
   runAsUser: 1000
   readOnlyRootFilesystem: true
-
 ## Additional labels to add to all resources
 customLabels: {}
   # app: snmp-exporter
 
 # config:
-
 extraConfigmapMounts: []
   # - name: snmp-exporter-configmap
   #   mountPath: /run/secrets/snmp-exporter
-  #   subPath: snmp.yaml # (optional)
+  #   subPath: snmp.yaml  # (optional)
   #   configMap: snmp-exporter-configmap-configmap
   #   readOnly: true
   #   defaultMode: 420
@@ -80,7 +78,6 @@ serviceAccount:
   # The name of the ServiceAccount to use.
   # If not set and create is true, a name is generated using the fullname template
   name:
-
 resources: {}
   # limits:
   #   memory: 300Mi
@@ -102,8 +99,8 @@ service:
   port: 9116
   ipDualStack:
     enabled: false
-    ipFamilies: ["IPv6", "IPv4"]
-    ipFamilyPolicy: "PreferDualStack"
+    ipFamilies: [IPv6, IPv4]
+    ipFamilyPolicy: PreferDualStack
 
 ## An Ingress resource can provide name-based virtual hosting and TLS
 ## termination among other things for CouchDB deployments which are accessed
@@ -112,9 +109,9 @@ service:
 ingress:
   enabled: false
   ## Class name can be set since version 1.18.
-  className: ""
+  className: ''
   ## Path type is required since version 1.18. Default: ImplementationSpecific.
-  pathType: ""
+  pathType: ''
   hosts: []
     # - chart-example.local
   annotations: {}
@@ -125,7 +122,6 @@ ingress:
     # - secretName: chart-example-tls
     #   hosts:
     #     - chart-example.local
-
 podAnnotations: {}
 
 extraArgs: []
@@ -249,7 +245,6 @@ serviceMonitor:
     tlsConfig: {}
     interval: 30s
     scrapeTimeout: 30s
-
 # Extra manifests to deploy as an array
 extraManifests: []
   # - |

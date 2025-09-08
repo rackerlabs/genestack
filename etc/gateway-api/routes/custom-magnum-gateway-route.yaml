@@ -6,12 +6,11 @@ metadata:
   namespace: openstack
 spec:
   parentRefs:
-  - name: flex-gateway
-    sectionName: magnum-https
-    namespace: nginx-gateway
-  hostnames:
-  - "magnum.your.domain.tld"
+    - name: flex-gateway
+      sectionName: magnum-https
+      namespace: nginx-gateway
+  hostnames: [magnum.your.domain.tld]
   rules:
     - backendRefs:
-      - name: magnum-api
-        port: 9511
+        - name: magnum-api
+          port: 9511

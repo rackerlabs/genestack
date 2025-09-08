@@ -6,8 +6,8 @@ metadata:
   namespace: openstack
 spec:
   name: blazar-quorum-three-replicas
-  vhost: "blazar"
-  pattern: ".*"
+  vhost: blazar
+  pattern: .*
   applyTo: queues
   definition:
     target-group-size: 3

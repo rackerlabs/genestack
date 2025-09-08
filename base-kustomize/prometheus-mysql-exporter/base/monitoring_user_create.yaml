@@ -1,3 +1,4 @@
+---
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: User
 metadata:
@@ -10,6 +11,6 @@ spec:
     name: mariadb-monitoring
     key: password
   maxUserConnections: 15
-  host: "%"
+  host: '%'
   requeueInterval: 30s
   retryInterval: 5s

@@ -6,11 +6,11 @@
   tasks:
     - name: Clone the Genestack repository
       ansible.builtin.git:
-        repo: "https://github.com/rackerlabs/genestack"
+        repo: https://github.com/rackerlabs/genestack
         dest: /opt/genestack
-        clone: yes
-        update: yes
-        recursive: yes
+        clone: true
+        update: true
+        recursive: true
         version: main
 
     - name: botstrap cluster
@@ -78,29 +78,27 @@
 
 - name: Update package lists and install open-iscsi and cryptsetup
   hosts: all
-  become: yes
+  become: true
   tasks:
     - name: Update apt package lists
       apt:
-        update_cache: yes
+        update_cache: true
 
     - name: Install open-iscsi and cryptsetup
       apt:
-        name:
-          - open-iscsi
-          - cryptsetup
+        name: [open-iscsi, cryptsetup]
         state: present
-        force_apt_get: yes
+        force_apt_get: true
 
     - name: Load the dummy kernel module
       ansible.builtin.command:
         cmd: modprobe dummy
-      become: yes
+      become: true
 
     - name: Create a virtual interface fake1
       ansible.builtin.command:
         cmd: ip link add fake1 type dummy
-      become: yes
+      become: true
 
     - name: Install pip for Python 3
       ansible.builtin.package:
@@ -179,7 +177,8 @@
         pod-security.kubernetes.io/audit-version=latest
 
     - name: Install or upgrade Longhorn using Helm
-      command: helm upgrade --install longhorn longhorn/longhorn --namespace longhorn-system --create-namespace --version 1.7.2 -f /etc/genestack/manifests/longhorn.yaml
+      command: helm upgrade --install longhorn longhorn/longhorn --namespace longhorn-system
+        --create-namespace --version 1.7.2 -f /etc/genestack/manifests/longhorn.yaml
 
     - name: Apply the general StorageClass
       k8s:
@@ -194,11 +193,11 @@
           reclaimPolicy: Delete
           volumeBindingMode: Immediate
           parameters:
-            numberOfReplicas: "1"
-            dataLocality: "best-effort"
-            staleReplicaTimeout: "2880"
-            fromBackup: ""
-            fsType: "ext4"
+            numberOfReplicas: '1'
+            dataLocality: best-effort
+            staleReplicaTimeout: '2880'
+            fromBackup: ''
+            fsType: ext4
 
     - name: Apply the general-multi-attach StorageClass
       k8s:
@@ -213,11 +212,11 @@
           reclaimPolicy: Delete
           volumeBindingMode: Immediate
           parameters:
-            numberOfReplicas: "1"
-            dataLocality: "best-effort"
-            staleReplicaTimeout: "2880"
-            fromBackup: ""
-            fsType: "ext4"
+            numberOfReplicas: '1'
+            dataLocality: best-effort
+            staleReplicaTimeout: '2880'
+            fromBackup: ''
+            fsType: ext4
             accessMode: ReadWriteMany
 
     - name: Create Openstack namespace
@@ -266,7 +265,8 @@
         executable: /bin/bash
 
     - name: Wait mariadb operator to be ready
-      command: kubectl wait --for=condition=available -n mariadb-system deployment mariadb-operator-webhook --timeout=300s
+      command: kubectl wait --for=condition=available -n mariadb-system deployment
+        mariadb-operator-webhook --timeout=300s
       register: result
       retries: 5
       delay: 10
@@ -341,10 +341,13 @@
       command: kubectl get pods --namespace openstack
 
     - name: Get status of compute services
-      command: kubectl exec -itn openstack openstack-admin-client -- openstack compute service list
+      command: kubectl exec -itn openstack openstack-admin-client -- openstack compute
+        service list
 
     - name: Get status of network agents
-      command: kubectl exec -itn openstack openstack-admin-client -- openstack network agent list
+      command: kubectl exec -itn openstack openstack-admin-client -- openstack network
+        agent list
 
     - name: Get status of volume services
-      command: kubectl exec -itn openstack openstack-admin-client -- openstack volume service list
+      command: kubectl exec -itn openstack openstack-admin-client -- openstack volume
+        service list

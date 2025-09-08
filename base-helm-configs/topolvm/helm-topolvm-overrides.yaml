@@ -1,3 +1,4 @@
+---
 # useLegacy -- If true, the legacy plugin name and legacy custom resource group is used(topolvm.cybozu.com).
 useLegacy: false
 
@@ -98,7 +99,7 @@ scheduler:
   # scheduler.nodeSelector -- Specify nodeSelector on the Deployment or DaemonSet.
   ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
   nodeSelector:
-    node-role.kubernetes.io/control-plane: ""
+    node-role.kubernetes.io/control-plane: ''
 
   # scheduler.priorityClassName -- Specify priorityClassName on the Deployment or DaemonSet.
   priorityClassName: system-cluster-critical
@@ -113,7 +114,7 @@ scheduler:
 
   profiling:
     # scheduler.profiling.bindAddress -- Enables pprof profiling server. If empty, profiling is disabled.
-    bindAddress: ""
+    bindAddress: ''
 
   options:
     listen:
@@ -183,8 +184,8 @@ lvmd:
   additionalVolumes: []
   #  - name: custom-config-map
   #    configMap:
-  # # Provide the name of the ConfigMap containing the files you want
-  # # to add to the container
+  #  # Provide the name of the ConfigMap containing the files you want
+  #  # to add to the container
   # name: special-config
 
   # lvmd.env -- extra environment variables
@@ -220,7 +221,7 @@ lvmd:
 
   profiling:
     # lvmd.profiling.bindAddress -- Enables pprof profiling server. If empty, profiling is disabled.
-    bindAddress: ""
+    bindAddress: ''
 
   metrics:
     # lvmd.metrics.enabled -- If true, enable scraping of metrics by Prometheus.
@@ -238,13 +239,13 @@ lvmd:
       additionalLabels: {}
 
       # lvmd.prometheus.podMonitor.namespace -- Optional namespace in which to create PodMonitor.
-      namespace: ""
+      namespace: ''
 
       # lvmd.prometheus.podMonitor.interval -- Scrape interval. If not set, the Prometheus default scrape interval is used.
-      interval: ""
+      interval: ''
 
       # lvmd.prometheus.podMonitor.scrapeTimeout -- Scrape timeout. If not set, the Prometheus default scrape timeout is used.
-      scrapeTimeout: ""
+      scrapeTimeout: ''
 
       # lvmd.prometheus.podMonitor.relabelings -- RelabelConfigs to apply to samples before scraping.
       relabelings: []
@@ -297,13 +298,13 @@ node:
       additionalLabels: {}
 
       # node.prometheus.podMonitor.namespace -- Optional namespace in which to create PodMonitor.
-      namespace: ""
+      namespace: ''
 
       # node.prometheus.podMonitor.interval -- Scrape interval. If not set, the Prometheus default scrape interval is used.
-      interval: ""
+      interval: ''
 
       # node.prometheus.podMonitor.scrapeTimeout -- Scrape timeout. If not set, the Prometheus default scrape timeout is used.
-      scrapeTimeout: ""
+      scrapeTimeout: ''
 
       # node.prometheus.podMonitor.relabelings -- RelabelConfigs to apply to samples before scraping.
       relabelings: []
@@ -364,8 +365,8 @@ node:
   additionalVolumes: []
   #  - name: custom-config-map
   #    configMap:
-  # # Provide the name of the ConfigMap containing the files you want
-  # # to add to the container
+  #  # Provide the name of the ConfigMap containing the files you want
+  #  # to add to the container
   # name: special-config
 
   volumeMounts:
@@ -396,7 +397,7 @@ node:
 
   profiling:
     # node.profiling.bindAddress -- Enables pprof profiling server. if empty profiling is disabled.
-    bindAddress: ""
+    bindAddress: ''
 
   # node.initContainers -- Additional initContainers for the node service.
   initContainers: []
@@ -434,13 +435,13 @@ controller:
       additionalLabels: {}
 
       # controller.prometheus.podMonitor.namespace -- Optional namespace in which to create PodMonitor.
-      namespace: ""
+      namespace: ''
 
       # controller.prometheus.podMonitor.interval -- Scrape interval. If not set, the Prometheus default scrape interval is used.
-      interval: ""
+      interval: ''
 
       # controller.prometheus.podMonitor.scrapeTimeout -- Scrape timeout. If not set, the Prometheus default scrape timeout is used.
-      scrapeTimeout: ""
+      scrapeTimeout: ''
 
       # controller.prometheus.podMonitor.relabelings -- RelabelConfigs to apply to samples before scraping.
       relabelings: []
@@ -474,7 +475,6 @@ controller:
   # For non-leader-election mode, you can use this non-HA non-conflicting strategy:
   #  type: Recreate
 
-
   # controller.minReadySeconds -- (int) Specify minReadySeconds.
   minReadySeconds:  # 0
 
@@ -502,7 +502,7 @@ controller:
   # controller.nodeSelector -- Specify nodeSelector.
   ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
   nodeSelector:
-    node-role.kubernetes.io/control-plane: ""
+    node-role.kubernetes.io/control-plane: ''
 
   # controller.volumes -- Specify volumes.
   volumes:
@@ -520,7 +520,7 @@ controller:
 
   profiling:
     # controller.profiling.bindAddress -- Enables pprof profiling server. If empty, profiling is disabled.
-    bindAddress: ""
+    bindAddress: ''
 
   # controller.initContainers -- Additional initContainers for the controller service.
   initContainers: []
@@ -684,7 +684,7 @@ storageClasses:
       # enables CSI drivers to expand volumes. This feature is available for Kubernetes 1.16 and later releases.
       allowVolumeExpansion: true
       additionalParameters:
-        topolvm.io/device-class: "general"
+        topolvm.io/device-class: general
       # mount options
       mountOptions: []
 

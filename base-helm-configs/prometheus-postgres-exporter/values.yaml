@@ -1,10 +1,11 @@
+---
 replicaCount: 1
 
 image:
   registry: quay.io
   repository: prometheuscommunity/postgres-exporter
   # if not set appVersion field from Chart.yaml is used
-  tag: ""
+  tag: ''
   pullPolicy: IfNotPresent
 
   ## Optionally specify an array of imagePullSecrets.
@@ -13,7 +14,6 @@ image:
   ##
   # pullSecrets:
   #   - myRegistrKeySecretName
-
 command: []
 
 service:
@@ -23,7 +23,6 @@ service:
   name: http
   labels: {}
   annotations: {}
-
 automountServiceAccountToken: false
 
 serviceMonitor:
@@ -49,7 +48,7 @@ serviceMonitor:
 prometheusRule:
   enabled: false
   additionalLabels: {}
-  namespace: ""
+  namespace: ''
   rules: []
     ## These are just examples rules, please adapt them to your needs.
     ## Make sure to constraint the rules to the current prometheus-postgres-exporter service.
@@ -61,8 +60,7 @@ prometheusRule:
     #   annotations:
     #     description: replication for {{ template "prometheus-postgres-exporter.fullname" . }} PostgreSQL is lagging by {{ "{{ $value }}" }} hour(s).
   #     summary: PostgreSQL replication is lagging by {{ "{{ $value }}" }} hour(s).
-
-priorityClassName: ""
+priorityClassName: ''
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
@@ -111,11 +109,9 @@ podSecurityContext:
 securityContext:
   allowPrivilegeEscalation: false
   capabilities:
-    drop:
-      - ALL
+    drop: [ALL]
   privileged: false
   readOnlyRootFilesystem: true
-
 hostAliases: []
   # Set Host Aliases as per https://kubernetes.io/docs/tasks/network/customize-hosts-file-for-pods/
   # - ip: "127.0.0.1"
@@ -151,7 +147,7 @@ config:
     pgpassfile: ''
     # If pgpassfile is set, it is used to initialize the PGPASSFILE environment variable.
     # See https://www.postgresql.org/docs/14/libpq-pgpass.html for more info.
-    port: "5432"
+    port: '5432'
     database: ''
     sslmode: require
     extraParams: ''
@@ -168,13 +164,13 @@ config:
   disableSettingsMetrics: false
 
   # possible values debug, info, warn, error, fatal
-  logLevel: ""
+  logLevel: ''
   # possible values logfmt, json
-  logFormat: ""
+  logFormat: ''
   extraArgs: []
 
   # postgres_exporter.yml
-  postgresExporter: ""
+  postgresExporter: ''
     # auth_modules:
     #   first:
     #     type: userpass
@@ -183,7 +179,6 @@ config:
     #       password: firstpass
     #     options:
   #       sslmode: disable
-
 nodeSelector: {}
 
 tolerations: []
@@ -195,14 +190,8 @@ affinity:
         - matchExpressions:
             - key: node-role.kubernetes.io/worker
               operator: In
-              values:
-                - worker
-
-annotations: {
-  prometheus.io/scrape: "true",
-  prometheus.io/path: "/metrics",
-  prometheus.io/port: "9187",
-}
+              values: [worker]
+annotations: {prometheus.io/scrape: 'true', prometheus.io/path: /metrics, prometheus.io/port: '9187'}
 
 podLabels: {}
 
@@ -218,12 +207,7 @@ readinessProbe:
 # Labels and annotations to attach to the deployment resource
 deployment:
   labels: {}
-  annotations: {
-    prometheus.io/scrape: "true",
-    prometheus.io/path: "/metrics",
-    prometheus.io/port: "9187",
-  }
-
+  annotations: {prometheus.io/scrape: 'true', prometheus.io/path: /metrics, prometheus.io/port: '9187'}
 # ExtraEnvs
 extraEnvs: []
   # - name: EXTRA_ENV

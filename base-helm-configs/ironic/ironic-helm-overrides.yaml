@@ -1,55 +1,50 @@
-# ironic-helm-overrides.yml
-# Helm overrides for OpenStack Ironic based on openstack-helm/ironic/values.yaml
-# Integrated with Keystone, Glance, Nova, Cinder, Horizon, and Neutron configurations
-# Date: April 03, 2025
-
 ---
 images:
   tags:
-    ironic_manage_cleaning_network: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ironic_retrive_cleaning_network: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ironic_retrive_swift_config: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ironic_db_sync: "ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    rabbit_init: null
-    ironic_api: "ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest"
-    ironic_conductor: "ghcr.io/rackerlabs/genestack-images/ironic-conductor:2024.1-latest"
-    ironic_pxe: "ghcr.io/rackerlabs/genestack-images/ironic-pxe:2024.1-latest"
-    ironic_pxe_init: "ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest"
-    ironic_pxe_http: "docker.io/nginx:1.13.3" # Retained from openstack-helm default
-    ironic_inspector: "ghcr.io/rackerlabs/genestack-images/ironic-inspector:2024.1-latest"
-    ironic_inspector_db_sync: "ghcr.io/rackerlabs/genestack-images/ironic-inspector:2024.1-latest"
-    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    image_repo_sync: null
-  pull_policy: "IfNotPresent"
+    ironic_manage_cleaning_network: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ironic_retrive_cleaning_network: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ironic_retrive_swift_config: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    bootstrap: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ironic_db_sync: ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    rabbit_init:
+    ironic_api: ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest
+    ironic_conductor: ghcr.io/rackerlabs/genestack-images/ironic-conductor:2024.1-latest
+    ironic_pxe: ghcr.io/rackerlabs/genestack-images/ironic-pxe:2024.1-latest
+    ironic_pxe_init: ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest
+    ironic_pxe_http: docker.io/nginx:1.13.3  # Retained from openstack-helm default
+    ironic_inspector: ghcr.io/rackerlabs/genestack-images/ironic-inspector:2024.1-latest
+    ironic_inspector_db_sync: ghcr.io/rackerlabs/genestack-images/ironic-inspector:2024.1-latest
+    dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
+    image_repo_sync:
+  pull_policy: IfNotPresent
 
 conf:
   ironic:
     DEFAULT:
       log_config_append: /etc/ironic/logging.conf
       tempdir: /tmp
-      default_deploy_interface: "direct"
-      default_inspect_interface: "inspector"
-      default_network_interface: "neutron"
-      enabled_hardware_types: "ipmi,redfish"
-      enabled_boot_interfaces: "pxe,ipxe"
-      enabled_deploy_interfaces: "direct,ramdisk"
-      enabled_inspect_interfaces: "inspector,no-inspect"
-      enabled_management_interfaces: "ipmitool,redfish"
-      enabled_network_interfaces: "flat,neutron"
-      enabled_power_interfaces: "ipmitool,redfish"
-      enabled_raid_interfaces: "no-raid"
+      default_deploy_interface: direct
+      default_inspect_interface: inspector
+      default_network_interface: neutron
+      enabled_hardware_types: ipmi,redfish
+      enabled_boot_interfaces: pxe,ipxe
+      enabled_deploy_interfaces: direct,ramdisk
+      enabled_inspect_interfaces: inspector,no-inspect
+      enabled_management_interfaces: ipmitool,redfish
+      enabled_network_interfaces: flat,neutron
+      enabled_power_interfaces: ipmitool,redfish
+      enabled_raid_interfaces: no-raid
     database:
       connection_debug: 0
       connection_recycle_time: 600
       connection_trace: true
       idle_timeout: 3600
-      mysql_sql_mode: ""
+      mysql_sql_mode: ''
       use_db_reconnect: true
       pool_timeout: 60
       max_retries: -1
@@ -65,8 +60,8 @@ conf:
       service_type: baremetal
     neutron:
       auth_type: password
-      cleaning_network: "baremetal-cleaning-network"
-      provisioning_network: "baremetal-provisioning-network"
+      cleaning_network: baremetal-cleaning-network
+      provisioning_network: baremetal-provisioning-network
     oslo_messaging_rabbit:
       amqp_durable_queues: false
       rabbit_ha_queues: false
@@ -76,32 +71,30 @@ conf:
       rabbit_interval_max: 10
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
-      heartbeat_in_pthread: true # Note: Deprecation warning for 2024.2
+      heartbeat_in_pthread: true  # Note: Deprecation warning for 2024.2
       kombu_reconnect_delay: 0.5
     pxe:
-      pxe_append_params: "nofb nomodeset vga=normal ipa-debug=1"
+      pxe_append_params: nofb nomodeset vga=normal ipa-debug=1
       images_path: /var/lib/openstack-helm/ironic/images
       instance_master_path: /var/lib/openstack-helm/ironic/master_images
       tftp_root: /var/lib/openstack-helm/tftpboot
       tftp_master_path: /var/lib/openstack-helm/tftpboot/master_images
-      pxe_bootfile_name: "undionly.kpxe"
-      uefi_pxe_bootfile_name: "ipxe.efi"
+      pxe_bootfile_name: undionly.kpxe
+      uefi_pxe_bootfile_name: ipxe.efi
       ipxe_enabled: true
   ironic_inspector:
     DEFAULT:
-      processing_hooks: "$processing.default_hooks,ramdisk_error"
-      ramdisk_logs_dir: "/var/log/ironic-inspector/ramdisk/"
+      processing_hooks: $processing.default_hooks,ramdisk_error
+      ramdisk_logs_dir: /var/log/ironic-inspector/ramdisk/
   logging:
     logger_root:
       level: INFO
-      handlers:
-        - stdout
+      handlers: [stdout]
   rabbitmq:
     policies: []
 
 network:
-  backend:
-    - ovn
+  backend: [ovn]
   pxe:
     device: ironic-pxe
     neutron_network_name: baremetal
@@ -111,7 +104,7 @@ network:
     neutron_subnet_cidr: 172.24.6.0/24
     neutron_subnet_alloc_start: 172.24.6.100
     neutron_subnet_alloc_end: 172.24.6.200
-    neutron_subnet_dns_nameserver: 8.8.8.8 # Aligned with Neutron's OVN DNS
+    neutron_subnet_dns_nameserver: 8.8.8.8  # Aligned with Neutron's OVN DNS
 
 bootstrap:
   image:
@@ -142,10 +135,7 @@ bootstrap:
 dependencies:
   static:
     api:
-      jobs:
-        - ironic-db-sync
-        - ironic-ks-user
-        - ironic-ks-endpoints
+      jobs: [ironic-db-sync, ironic-ks-user, ironic-ks-endpoints]
       services:
         - endpoint: internal
           service: oslo_db
@@ -154,10 +144,7 @@ dependencies:
         - endpoint: internal
           service: oslo_messaging
     conductor:
-      jobs:
-        - ironic-db-sync
-        - ironic-ks-user
-        - ironic-ks-endpoints
+      jobs: [ironic-db-sync, ironic-ks-user, ironic-ks-endpoints]
       services:
         - endpoint: internal
           service: oslo_db
@@ -168,8 +155,7 @@ dependencies:
         - endpoint: internal
           service: oslo_messaging
     db_sync:
-      jobs:
-        - ironic-db-init
+      jobs: [ironic-db-init]
 
 endpoints:
   baremetal:

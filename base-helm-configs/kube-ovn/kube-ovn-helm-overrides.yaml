@@ -1,3 +1,4 @@
+---
 # Default values for kubeovn.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
@@ -15,13 +16,12 @@ global:
 
 image:
   pullPolicy: IfNotPresent
-
 replicaCount: 3
 
 namespace: kube-system
 
-MASTER_NODES: ""
-MASTER_NODES_LABEL: "kube-ovn/role=master"
+MASTER_NODES: ''
+MASTER_NODES_LABEL: kube-ovn/role=master
 
 networking:
   # NET_STACK defaults to ipv4
@@ -31,24 +31,24 @@ networking:
   NETWORK_TYPE: geneve
   # tunnel type could be geneve, vxlan or stt
   TUNNEL_TYPE: geneve
-  IFACE: "br-overlay"
-  DPDK_TUNNEL_IFACE: "br-phy"
-  EXCLUDE_IPS: ""
-  POD_NIC_TYPE: "veth-pair"
+  IFACE: br-overlay
+  DPDK_TUNNEL_IFACE: br-phy
+  EXCLUDE_IPS: ''
+  POD_NIC_TYPE: veth-pair
   vlan:
-    PROVIDER_NAME: "provider"
-    VLAN_INTERFACE_NAME: "br-overlay"
-    #VLAN_NAME: "ovn-vlan"
-    #VLAN_ID: "100"
+    PROVIDER_NAME: provider
+    VLAN_INTERFACE_NAME: br-overlay
+    # VLAN_NAME: "ovn-vlan"
+    # VLAN_ID: "100"
   EXCHANGE_LINK_NAME: false
   ENABLE_EIP_SNAT: false
-  DEFAULT_SUBNET: "ovn-default"
-  DEFAULT_VPC: "ovn-cluster"
-  NODE_SUBNET: "join" #mesh network
+  DEFAULT_SUBNET: ovn-default
+  DEFAULT_VPC: ovn-cluster
+  NODE_SUBNET: join  # mesh network
   ENABLE_ECMP: true
   ENABLE_METRICS: true
   # comma-separated string of nodelocal DNS ip addresses
-  NODE_LOCAL_DNS_IP: ""
+  NODE_LOCAL_DNS_IP: ''
   PROBE_INTERVAL: 60000
   OVN_NORTHD_PROBE_INTERVAL: 15000
   OVN_LEADER_PROBE_INTERVAL: 15
@@ -82,12 +82,12 @@ func:
   ENABLE_LIVE_MIGRATION_OPTIMIZE: true
 
 ipv4:
-  POD_CIDR: "10.236.0.0/14"
-  POD_GATEWAY: "10.236.0.1"
-  SVC_CIDR: "10.233.0.0/18"
-  JOIN_CIDR: "100.64.0.0/16"
-  PINGER_EXTERNAL_ADDRESS: "208.67.222.222"
-  PINGER_EXTERNAL_DOMAIN: "opendns.com."
+  POD_CIDR: 10.236.0.0/14
+  POD_GATEWAY: 10.236.0.1
+  SVC_CIDR: 10.233.0.0/18
+  JOIN_CIDR: 100.64.0.0/16
+  PINGER_EXTERNAL_ADDRESS: 208.67.222.222
+  PINGER_EXTERNAL_DOMAIN: opendns.com.
 
 performance:
   GC_INTERVAL: 0
@@ -96,79 +96,78 @@ performance:
 
 debug:
   ENABLE_MIRROR: false
-  MIRROR_IFACE: "mirror0"
+  MIRROR_IFACE: mirror0
 
 cni_conf:
-  CNI_CONFIG_PRIORITY: "01"
-  CNI_CONF_DIR: "/etc/cni/net.d"
-  CNI_BIN_DIR: "/opt/cni/bin"
-  CNI_CONF_FILE: "/kube-ovn/01-kube-ovn.conflist"
-  LOCAL_BIN_DIR: "/usr/local/bin"
+  CNI_CONFIG_PRIORITY: '01'
+  CNI_CONF_DIR: /etc/cni/net.d
+  CNI_BIN_DIR: /opt/cni/bin
+  CNI_CONF_FILE: /kube-ovn/01-kube-ovn.conflist
+  LOCAL_BIN_DIR: /usr/local/bin
   MOUNT_LOCAL_BIN_DIR: false
 
 kubelet_conf:
-  KUBELET_DIR: "/var/lib/kubelet"
+  KUBELET_DIR: /var/lib/kubelet
 
 log_conf:
-  LOG_DIR: "/var/log"
-
-OPENVSWITCH_DIR: "/etc/origin/openvswitch"
-OVN_DIR: "/etc/origin/ovn"
+  LOG_DIR: /var/log
+OPENVSWITCH_DIR: /etc/origin/openvswitch
+OVN_DIR: /etc/origin/ovn
 DISABLE_MODULES_MANAGEMENT: false
 
-nameOverride: ""
-fullnameOverride: ""
+nameOverride: ''
+fullnameOverride: ''
 
 # hybrid dpdk
 HYBRID_DPDK: false
-HUGEPAGE_SIZE_TYPE: hugepages-2Mi # Default
+HUGEPAGE_SIZE_TYPE: hugepages-2Mi  # Default
 HUGEPAGES: 1Gi
 
 # DPDK
 DPDK: false
-DPDK_VERSION: "19.11"
-DPDK_CPU: "1000m" # Default CPU configuration
-DPDK_MEMORY: "2Gi" # Default Memory configuration
+DPDK_VERSION: '19.11'
+DPDK_CPU: 1000m  # Default CPU configuration
+DPDK_MEMORY: 2Gi  # Default Memory configuration
 
 ovn-central:
   requests:
-    cpu: "300m"
-    memory: "200Mi"
+    cpu: 300m
+    memory: 200Mi
   limits:
-    cpu: "3"
-    memory: "4Gi"
+    cpu: '3'
+    memory: 4Gi
 ovs-ovn:
   requests:
-    cpu: "200m"
-    memory: "200Mi"
+    cpu: 200m
+    memory: 200Mi
   limits:
-    cpu: "2"
-    memory: "1000Mi"
+    cpu: '2'
+    memory: 1000Mi
 kube-ovn-controller:
   requests:
-    cpu: "200m"
-    memory: "200Mi"
+    cpu: 200m
+    memory: 200Mi
   limits:
-    cpu: "1000m"
-    memory: "1Gi"
+    cpu: 1000m
+    memory: 1Gi
 kube-ovn-cni:
   requests:
-    cpu: "100m"
-    memory: "100Mi"
+    cpu: 100m
+    memory: 100Mi
   limits:
-    cpu: "1000m"
-    memory: "1Gi"
+    cpu: 1000m
+    memory: 1Gi
 kube-ovn-pinger:
   requests:
-    cpu: "100m"
-    memory: "100Mi"
+    cpu: 100m
+    memory: 100Mi
   limits:
-    cpu: "200m"
-    memory: "400Mi"
+    cpu: 200m
+    memory: 400Mi
 kube-ovn-monitor:
   requests:
-    cpu: "200m"
-    memory: "200Mi"
+    cpu: 200m
+    memory: 200Mi
   limits:
-    cpu: "200m"
-    memory: "200Mi"
+    cpu: 200m
+    memory: 200Mi

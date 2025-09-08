@@ -1,5 +1,6 @@
+---
 global:
-  dnsService: "coredns"
+  dnsService: coredns
 minio:
   enabled: false
 loki:
@@ -15,10 +16,10 @@ loki:
     type: swift
     swift:
       auth_url: https://identity.api.rackspacecloud.com/v1.0
-      username: < USERNAME > # TODO: Update with valid username
-      password: < PASSWORD > # TODO: Update with valid password
-      container_name: < CONTAINER > # TODO: Update with valid container
-      region_name: < REGION > # TODO: Update with valid region
+      username: < USERNAME >  # TODO: Update with valid username
+      password: < PASSWORD >  # TODO: Update with valid password
+      container_name: < CONTAINER >  # TODO: Update with valid container
+      region_name: < REGION >  # TODO: Update with valid region
 monitoring:
   serviceMonitor:
     enabled: true

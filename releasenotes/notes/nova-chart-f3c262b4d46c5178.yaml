@@ -1,6 +1,6 @@
 ---
 deprecations:
-  - |
+  - |-
     The nova chart will now use the online OSH helm repository. This change
     will allow the nova chart to be updated more frequently and will allow
     the nova chart to be used with the OpenStack-Helm project. Upgrading to

@@ -1,3 +1,4 @@
+---
 #################################################################################################################
 # Define the settings for the rook-ceph cluster with common settings for a production cluster on top of cloud instances.
 # At least three nodes are required in this example. See the documentation for more details on storage settings available.
@@ -79,12 +80,10 @@ spec:
                 - matchExpressions:
                     - key: openstack-control-plane
                       operator: In
-                      values:
-                        - enabled
+                      values: [enabled]
           tolerations:
             - key: openstack-control-plane
               operator: Exists
-
 #        placement:
 #          topologySpreadConstraints:
 #            - maxSkew: 1
@@ -147,9 +146,9 @@ spec:
         #   spec:
         #     resources:
         #       requests:
-        #         # Find the right size https://docs.ceph.com/docs/master/rados/configuration/bluestore-config-ref/#sizing
+        #  # Find the right size https://docs.ceph.com/docs/master/rados/configuration/bluestore-config-ref/#sizing
         #         storage: 5Gi
-        #     # IMPORTANT: Change the storage class depending on your environment
+        #  # IMPORTANT: Change the storage class depending on your environment
         #     storageClassName: io1
         #     volumeMode: Block
         #     accessModes:
@@ -160,9 +159,9 @@ spec:
         #   spec:
         #     resources:
         #       requests:
-        #         # Find the right size https://docs.ceph.com/docs/master/rados/configuration/bluestore-config-ref/#sizing
+        #  # Find the right size https://docs.ceph.com/docs/master/rados/configuration/bluestore-config-ref/#sizing
         #         storage: 5Gi
-        #     # IMPORTANT: Change the storage class depending on your environment
+        #  # IMPORTANT: Change the storage class depending on your environment
         #     storageClassName: io1
         #     volumeMode: Block
         #     accessModes:
@@ -193,19 +192,19 @@ spec:
   # using kubernetes secrets.
   #   keyRotation:
   #     enabled: true
-  #     # The schedule, written in [cron format](https://en.wikipedia.org/wiki/Cron),
-  #     # with which key rotation [CronJob](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/)
-  #     # is created. The default value is `"@weekly"`.
+  #  # The schedule, written in [cron format](https://en.wikipedia.org/wiki/Cron),
+  #  # with which key rotation [CronJob](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/)
+  #  # is created. The default value is `"@weekly"`.
   #     schedule: "@monthly"
   # To enable the KMS configuration properly don't forget to uncomment the Secret at the end of the file
   #   kms:
-  #     # name of the config map containing all the kms connection details
+  #  # name of the config map containing all the kms connection details
   #     connectionDetails:
   #        KMS_PROVIDER: "vault"
-  #        VAULT_ADDR: VAULT_ADDR_CHANGE_ME # e,g: https://vault.my-domain.com:8200
+  #        VAULT_ADDR: VAULT_ADDR_CHANGE_ME  # e,g: https://vault.my-domain.com:8200
   #        VAULT_BACKEND_PATH: "rook"
   #        VAULT_SECRET_ENGINE: "kv"
-  #     # name of the secret containing the kms authentication token
+  #  # name of the secret containing the kms authentication token
   #     tokenSecretName: rook-vault-token
 # UNCOMMENT THIS TO ENABLE A KMS CONNECTION
 # Also, do not forget to replace both:
@@ -216,6 +215,6 @@ spec:
 # kind: Secret
 # metadata:
 #   name: rook-vault-token
-#   namespace: rook-ceph # namespace:cluster
+#   namespace: rook-ceph  # namespace:cluster
 # data:
 #   token: ROOK_TOKEN_CHANGE_ME

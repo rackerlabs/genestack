@@ -10,4 +10,4 @@ spec:
     kind: Gateway
     name: flex-gateway
   body:
-    maxSize: "120g" # sizes without a unit are bytes.
+    maxSize: 120g  # sizes without a unit are bytes.

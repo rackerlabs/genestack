@@ -1,6 +1,6 @@
 ---
 upgrade:
-  - |
+  - |-
     The metallb configuration is now consolidated and cleaned up by providing the
     metallb IP address pools:
     - `gateway-api-external` for Envoy

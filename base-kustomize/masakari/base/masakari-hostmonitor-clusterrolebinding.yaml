@@ -4,9 +4,9 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: masakari-hostmonitor
 rules:
-  - apiGroups: [""]
-    resources: ["nodes"]
-    verbs: ["list"]
+  - apiGroups: ['']
+    resources: [nodes]
+    verbs: [list]
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1

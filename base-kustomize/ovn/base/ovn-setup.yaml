@@ -11,19 +11,9 @@ metadata:
   name: neutron-default-ovn-setup
   namespace: openstack
 rules:
-  - apiGroups:
-      - ""
-      - extensions
-      - batch
-      - apps
-    verbs:
-      - get
-      - list
-      - patch
-    resources:
-      - services
-      - endpoints
-      - nodes
+  - apiGroups: ['', extensions, batch, apps]
+    verbs: [get, list, patch]
+    resources: [services, endpoints, nodes]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -96,7 +86,7 @@ data:
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: "ovn-setup"
+  name: ovn-setup
   namespace: openstack
   labels:
     release_group: neutron
@@ -120,15 +110,14 @@ spec:
                     operator: DoesNotExist
                   - key: openstack-network-node
                     operator: In
-                    values:
-                      - enabled
+                    values: [enabled]
       serviceAccountName: ovn-setup
       volumes:
         - name: pod-tmp
           emptyDir: {}
         - name: ovn-setup
           configMap:
-            name: "ovn-integration-properties"
+            name: ovn-integration-properties
             defaultMode: 0555
         - hostPath:
             path: /run
@@ -140,7 +129,7 @@ spec:
           emptyDir: {}
       initContainers:
         - name: init
-          image: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
+          image: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: true
@@ -162,19 +151,18 @@ spec:
             - name: PATH
               value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/
             - name: DEPENDENCY_SERVICE
-              value: ""
+              value: ''
             - name: DEPENDENCY_JOBS
-              value: ""
+              value: ''
             - name: DEPENDENCY_DAEMONSET
-              value: ""
+              value: ''
             - name: DEPENDENCY_CONTAINER
-              value: ""
+              value: ''
             - name: DEPENDENCY_POD_JSON
-              value: ""
+              value: ''
             - name: DEPENDENCY_CUSTOM_RESOURCE
-              value: ""
-          command:
-            - kubernetes-entrypoint
+              value: ''
+          command: [kubernetes-entrypoint]
           volumeMounts: []
         - name: get-node-annotations
           imagePullPolicy: IfNotPresent
@@ -206,19 +194,13 @@ spec:
                 echo "export OVN_BRIDGES=${OVN_BRIDGES}" >> /node/ovn
                 OVN_BRIDGE=$(jq '."ovn.openstack.org/int_bridge"' -r /node/annotations.json)
                 echo "export OVN_BRIDGE=${OVN_BRIDGE}" >> /node/ovn
-          command:
-            - /bin/ash
-            - -c
-          args:
-            - 'echo "$$SCRIPT" > /tmp/script && ash /tmp/script'
+          command: [/bin/ash, -c]
+          args: [echo "$$SCRIPT" > /tmp/script && ash /tmp/script]
       containers:
         - name: ovn-setup-exec
-          image: "ghcr.io/rackerlabs/genestack-images/ovs:v3.5.1-latest"
+          image: ghcr.io/rackerlabs/genestack-images/ovs:v3.5.1-latest
           imagePullPolicy: IfNotPresent
-          command:
-            - bash
-            - -c
-            - /tmp/run.sh
+          command: [bash, -c, /tmp/run.sh]
           volumeMounts:
             - name: pod-tmp
               mountPath: /tmp

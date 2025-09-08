@@ -1,8 +1,7 @@
+---
 sortOptions:
   order: fifo
-
-resources:
-  - all.yaml
+resources: [all.yaml]
 
 patches:
   - path: kube-ovn-nodeSelector-patch.yaml

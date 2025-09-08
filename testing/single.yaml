@@ -1,3 +1,4 @@
+---
 heat_template_version: wallaby
 
 description: Deploy a single machine and floating ip
@@ -35,29 +36,29 @@ resources:
   vm_port:
     type: OS::Neutron::Port
     properties:
-      network:  { get_param: internal }
+      network: {get_param: internal}
       security_groups:
-        -  { get_param: sec_group }
+        - {get_param: sec_group}
 
   # Allocate a floating IP on the external network and associate it with the VM's port
   vm_floating_ip:
     type: OS::Neutron::FloatingIP
     properties:
-      floating_network:  { get_param: external }
-      port_id: { get_resource: vm_port }
+      floating_network: {get_param: external}
+      port_id: {get_resource: vm_port}
 
   # Create the VM with the specified image, flavor, key, and security group
   vm:
     type: OS::Nova::Server
     properties:
-      name:  { get_param: name }
-      image:  { get_param: image }
-      flavor:  { get_param: flavor }
-      key_name:  { get_param: keys }
+      name: {get_param: name}
+      image: {get_param: image}
+      flavor: {get_param: flavor}
+      key_name: {get_param: keys}
       networks:
-        - port: { get_resource: vm_port }
+        - port: {get_resource: vm_port}
 
 outputs:
   vm_ip:
     description: Floating IP address of the VM
-    value: { get_attr: [vm_floating_ip, floating_ip_address] }
+    value: {get_attr: [vm_floating_ip, floating_ip_address]}

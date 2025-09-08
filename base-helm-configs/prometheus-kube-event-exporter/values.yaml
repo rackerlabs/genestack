@@ -1,3 +1,4 @@
+---
 # Copyright Broadcom, Inc. All Rights Reserved.
 # SPDX-License-Identifier: APACHE-2.0
 
@@ -10,7 +11,7 @@
 ## @param global.imagePullSecrets Global Docker registry secret names as an array
 ##
 global:
-  imageRegistry: ""
+  imageRegistry: ''
   ## E.g.
   ## imagePullSecrets:
   ##   - myRegistryKeySecretName
@@ -34,16 +35,16 @@ global:
 
 ## @param kubeVersion Override Kubernetes version
 ##
-kubeVersion: ""
+kubeVersion: ''
 ## @param apiVersions Override Kubernetes API versions reported by .Capabilities
 ##
 apiVersions: []
 ## @param nameOverride String to partially override kubernetes-event-exporter.fullname include (will maintain the release name)
 ##
-nameOverride: ""
+nameOverride: ''
 ## @param fullnameOverride String to fully override kubernetes-event-exporter.fullname template
 ##
-fullnameOverride: ""
+fullnameOverride: ''
 ## @param commonAnnotations Annotations to add to all deployed objects
 ##
 commonAnnotations: {}
@@ -94,7 +95,7 @@ image:
   registry: docker.io
   repository: bitnami/kubernetes-event-exporter
   tag: 1.7.0-debian-12-r42
-  digest: ""
+  digest: ''
   ## Specify a imagePullPolicy
   ## ref: https://kubernetes.io/docs/concepts/containers/images/#pre-pulled-images
   ##
@@ -128,23 +129,23 @@ config:
   kubeQPS: 100
   kubeBurst: 500
   maxEventAgeSeconds: 600
-  metricsNamePrefix: 'event_exporter_'
-  clusterName: "flex"
+  metricsNamePrefix: event_exporter_
+  clusterName: flex
   receivers:
-    - name: "dump"
+    - name: dump
       file:
-        path: "/dev/stdout"
+        path: /dev/stdout
         layout:
-          message: "{{ .Message }}"
-          reason: "{{ .Reason }}"
-          type: "{{ .Type }}"
-          count: "{{ .Count }}"
-          kind: "{{ .InvolvedObject.Kind }}"
-          name: "{{ .InvolvedObject.Name }}"
-          namespace: "{{ .Namespace }}"
-          component: "{{ .Source.Component }}"
-          host: "{{ .Source.Host }}"
-    - name: "loki"
+          message: '{{ .Message }}'
+          reason: '{{ .Reason }}'
+          type: '{{ .Type }}'
+          count: '{{ .Count }}'
+          kind: '{{ .InvolvedObject.Kind }}'
+          name: '{{ .InvolvedObject.Name }}'
+          namespace: '{{ .Namespace }}'
+          component: '{{ .Source.Component }}'
+          host: '{{ .Source.Host }}'
+    - name: loki
       loki:
         streamLabels:
           application: kube-api
@@ -155,8 +156,8 @@ config:
   route:
     routes:
       - match:
-          - receiver: "loki"
-          - receiver: "dump"
+          - receiver: loki
+          - receiver: dump
 rbac:
   ## @param rbac.create Create the RBAC roles for API accessibility
   ##
@@ -164,9 +165,9 @@ rbac:
   ## @param rbac.rules [array] List of rules for the cluster role
   ##
   rules:
-    - apiGroups: ["*"]
-      resources: ["*"]
-      verbs: ["get", "watch", "list"]
+    - apiGroups: ['*']
+      resources: ['*']
+      verbs: [get, watch, list]
 ## Pods Service Account
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
 ## @param serviceAccount.create Specifies whether a ServiceAccount should be created
@@ -176,7 +177,7 @@ rbac:
 ##
 serviceAccount:
   create: true
-  name: ""
+  name: ''
   automountServiceAccountToken: false
   annotations: {}
 ## @param podAnnotations Pod annotations
@@ -207,8 +208,8 @@ podSecurityContext:
 ##
 pdb:
   create: true
-  minAvailable: ""
-  maxUnavailable: ""
+  minAvailable: ''
+  maxUnavailable: ''
 ## @param containerSecurityContext.enabled Enabled containers' Security Context
 ## @param containerSecurityContext.seLinuxOptions [object,nullable] Set SELinux options in container
 ## @param containerSecurityContext.runAsUser Set containers' Security Context runAsUser
@@ -230,9 +231,9 @@ containerSecurityContext:
   readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false
   capabilities:
-    drop: ["ALL"]
+    drop: [ALL]
   seccompProfile:
-    type: "RuntimeDefault"
+    type: RuntimeDefault
 ## @param command Override default container command (useful when using custom images)
 ##
 command: []
@@ -251,7 +252,7 @@ lifecycleHooks: {}
 ## @param resourcesPreset Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if resources is set (resources is recommended for production).
 ## More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
 ##
-resourcesPreset: "nano"
+resourcesPreset: nano
 ## @param resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
 ## Example:
 ## resources:
@@ -383,11 +384,11 @@ nodeSelector: {}
 ## @param priorityClassName Set Priority Class Name to allow priority control over other pods
 ## ref: https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/
 ##
-priorityClassName: ""
+priorityClassName: ''
 ## @param schedulerName Name of the k8s scheduler (other than default)
 ## ref: https://kubernetes.io/docs/tasks/administer-cluster/configure-multiple-schedulers/
 ##
-schedulerName: ""
+schedulerName: ''
 ## @param topologySpreadConstraints Topology Spread Constraints for pod assignment
 ## https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/
 ## The value is evaluated as a template
@@ -400,7 +401,7 @@ tolerations: []
 ## @param podAffinityPreset Pod affinity preset. Ignored if `affinity` is set. Allowed values: `soft` or `hard`
 ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
 ##
-podAffinityPreset: ""
+podAffinityPreset: ''
 ## @param podAntiAffinityPreset Pod anti-affinity preset. Ignored if `affinity` is set. Allowed values: `soft` or `hard`
 ## Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
 ##
@@ -411,12 +412,12 @@ podAntiAffinityPreset: soft
 nodeAffinityPreset:
   ## @param nodeAffinityPreset.type Node affinity preset type. Ignored if `affinity` is set. Allowed values: `soft` or `hard`
   ##
-  type: ""
+  type: ''
   ## @param nodeAffinityPreset.key Node label key to match. Ignored if `affinity` is set.
   ## E.g.
   ## key: "kubernetes.io/e2e-az-name"
   ##
-  key: ""
+  key: ''
   ## @param nodeAffinityPreset.values Node label values to match. Ignored if `affinity` is set.
   ## E.g.
   ## values:
@@ -449,10 +450,10 @@ updateStrategy:
 extraEnvVars: []
 ## @param extraEnvVarsCM ConfigMap containing extra env vars to be added to all containers
 ##
-extraEnvVarsCM: ""
+extraEnvVarsCM: ''
 ## @param extraEnvVarsSecret Secret containing extra env vars to be added to all containers
 ##
-extraEnvVarsSecret: ""
+extraEnvVarsSecret: ''
 ## @param extraVolumeMounts Array to add extra mounts (normally used with extraVolumes)
 ##
 extraVolumeMounts: []
@@ -495,8 +496,8 @@ metrics:
     ## @param metrics.service.annotations [object] Annotations for enabling prometheus to access the metrics endpoints
     ##
     annotations:
-      prometheus.io/scrape: "true"
-      prometheus.io/port: "{{ .Values.metrics.service.ports.http }}"
+      prometheus.io/scrape: 'true'
+      prometheus.io/port: '{{ .Values.metrics.service.ports.http }}'
   ## Prometheus Operator ServiceMonitor configuration
   ##
   serviceMonitor:
@@ -512,10 +513,10 @@ metrics:
       - path: /metrics
     ## @param metrics.serviceMonitor.path Metrics service HTTP path. Deprecated: Use @param metrics.serviceMonitor.endpoints instead
     ##
-    path: ""
+    path: ''
     ## @param metrics.serviceMonitor.namespace Namespace which Prometheus is running in
     ##
-    namespace: ""
+    namespace: ''
     ## @param metrics.serviceMonitor.interval Interval at which metrics should be scraped
     ##
     interval: 30s
@@ -523,7 +524,7 @@ metrics:
     ## e.g:
     ##   scrapeTimeout: 30s
     ##
-    scrapeTimeout: ""
+    scrapeTimeout: ''
     ## @param metrics.serviceMonitor.labels Additional labels that can be used so ServiceMonitor will be discovered by Prometheus
     ##
     labels: {}
@@ -542,7 +543,7 @@ metrics:
     honorLabels: false
     ## @param metrics.serviceMonitor.jobLabel The name of the label on the target service to use as the job name in prometheus.
     ##
-    jobLabel: ""
+    jobLabel: ''
   ## Prometheus Operator alert rules configuration
   ##
   prometheusRule:
@@ -551,7 +552,7 @@ metrics:
     enabled: false
     ## @param metrics.prometheusRule.namespace Namespace which Prometheus is running in
     ##
-    namespace: ""
+    namespace: ''
     ## @param metrics.prometheusRule.labels Additional labels that can be used so PrometheusRule will be discovered by Prometheus
     ##
     labels: {}

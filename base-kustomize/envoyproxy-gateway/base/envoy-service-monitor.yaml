@@ -1,3 +1,4 @@
+---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -8,8 +9,7 @@ spec:
     - interval: 15s
       port: metrics
   namespaceSelector:
-    matchNames:
-      - envoyproxy-gateway-system
+    matchNames: [envoyproxy-gateway-system]
   selector:
     matchLabels:
       app.kubernetes.io/instance: envoyproxy-gateway

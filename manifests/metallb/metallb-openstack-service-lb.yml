@@ -16,8 +16,7 @@ metadata:
   name: openstack-external-advertisement
   namespace: metallb-system
 spec:
-  ipAddressPools:
-    - gateway-api-external
+  ipAddressPools: [gateway-api-external]
   nodeSelectors:  # Optional block to limit nodes for a given advertisement
     - matchLabels:
         node-role.kubernetes.io/worker: worker
@@ -30,8 +29,7 @@ metadata:
   name: primary
   namespace: metallb-system
 spec:
-  addresses:
-    - 10.234.0.0/24
+  addresses: [10.234.0.0/24]
   autoAssign: false
   avoidBuggyIPs: true
 ---
@@ -41,8 +39,7 @@ metadata:
   name: cluster-internal-advertisement
   namespace: metallb-system
 spec:
-  ipAddressPools:
-    - primary
+  ipAddressPools: [primary]
   nodeSelectors:  # Optional block to limit nodes for a given advertisement
     - matchLabels:
         node-role.kubernetes.io/worker: worker

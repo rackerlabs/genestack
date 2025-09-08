@@ -10,12 +10,11 @@ metadata:
     route: neutron
 spec:
   parentRefs:
-  - name: flex-gateway
-    sectionName: neutron-https
-    namespace: nginx-gateway
-  hostnames:
-  - "neutron.your.domain.tld"
+    - name: flex-gateway
+      sectionName: neutron-https
+      namespace: nginx-gateway
+  hostnames: [neutron.your.domain.tld]
   rules:
     - backendRefs:
-      - name: neutron-server
-        port: 9696
+        - name: neutron-server
+          port: 9696

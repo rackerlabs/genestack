@@ -1,15 +1,15 @@
 ---
 images:
   tags:
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    image_repo_sync: null
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    placement: "ghcr.io/rackerlabs/genestack-images/placement:2024.1-latest"
-    placement_db_sync: "ghcr.io/rackerlabs/genestack-images/placement:2024.1-latest"
+    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
+    image_repo_sync:
+    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    placement: ghcr.io/rackerlabs/genestack-images/placement:2024.1-latest
+    placement_db_sync: ghcr.io/rackerlabs/genestack-images/placement:2024.1-latest
 
 # NOTE: (brew) requests cpu/mem values based on a three node
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
@@ -33,15 +33,14 @@ pod:
     enabled: true
     api:
       requests:
-        memory: "256Mi"
-        cpu: "300m"
+        memory: 256Mi
+        cpu: 300m
       limits: {}
 
 conf:
   logging:
     logger_root:
-      handlers:
-        - stdout
+      handlers: [stdout]
       level: INFO
   placement:
     keystone_authtoken:

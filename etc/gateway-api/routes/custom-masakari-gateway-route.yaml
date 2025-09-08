@@ -13,8 +13,7 @@ spec:
     - name: flex-gateway
       sectionName: masakari-https
       namespace: nginx-gateway
-  hostnames:
-    - "masakari.your.domain.tld"
+  hostnames: [masakari.your.domain.tld]
   rules:
     - backendRefs:
         - name: masakari-api

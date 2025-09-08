@@ -6,8 +6,8 @@ metadata:
   namespace: openstack
 spec:
   name: ceilometer-quorum-three-replicas
-  vhost: "ceilometer"
-  pattern: ".*"
+  vhost: ceilometer
+  pattern: .*
   applyTo: queues
   definition:
     target-group-size: 3

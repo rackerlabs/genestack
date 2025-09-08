@@ -6,8 +6,8 @@ metadata:
   namespace: openstack
 spec:
   name: designate-quorum-three-replicas
-  vhost: "designate"
-  pattern: ".*"
+  vhost: designate
+  pattern: .*
   applyTo: queues
   definition:
     target-group-size: 3

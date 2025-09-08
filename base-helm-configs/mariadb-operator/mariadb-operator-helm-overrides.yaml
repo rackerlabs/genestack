@@ -1,11 +1,12 @@
-nameOverride: ""
-fullnameOverride: ""
+---
+nameOverride: ''
+fullnameOverride: ''
 
 image:
   repository: ghcr.io/mariadb-operator/mariadb-operator
   pullPolicy: IfNotPresent
   # -- Image tag to use. By default the chart appVersion is used
-  tag: ""
+  tag: ''
 imagePullSecrets: []
 
 # -- Controller log level
@@ -45,12 +46,11 @@ serviceAccount:
   extraLabels: {}
   # -- The name of the service account to use.
   # If not set and enabled is true, a name is generated using the fullname template
-  name: ""
+  name: ''
 
 rbac:
   # -- Specifies whether RBAC resources should be created
   enabled: true
-
 # -- Extra arguments to be passed to the controller entrypoint
 extrArgs: []
 
@@ -92,15 +92,14 @@ affinity:
         - matchExpressions:
             - key: node-role.kubernetes.io/worker
               operator: In
-              values:
-                - worker
+              values: [worker]
 
 webhook:
   image:
     repository: ghcr.io/mariadb-operator/mariadb-operator
     pullPolicy: IfNotPresent
     # -- Image tag to use. By default the chart appVersion is used
-    tag: ""
+    tag: ''
   imagePullSecrets: []
   ha:
     # -- Enable high availability
@@ -113,10 +112,10 @@ webhook:
       enabled: true
       # -- Issuer reference to be used in the Certificate resource. If not provided, a self-signed issuer will be used.
       issuerRef: {}
-       # -- Duration to be used in the Certificate resource,
-      duration: ""
-       # -- Renew before duration to be used in the Certificate resource.
-      renewBefore: ""
+      # -- Duration to be used in the Certificate resource,
+      duration: ''
+      # -- Renew before duration to be used in the Certificate resource.
+      renewBefore: ''
     # -- Annotatioms to be added to webhook TLS secret.
     secretAnnotations: {}
     # -- Labels to be added to webhook TLS secret.
@@ -150,7 +149,7 @@ webhook:
     extraLabels: {}
     # -- The name of the service account to use.
     # If not set and enabled is true, a name is generated using the fullname template
-    name: ""
+    name: ''
   # -- Annotations for webhook configurations.
   annotations: {}
   # -- Extra arguments to be passed to the webhook entrypoint
@@ -182,8 +181,7 @@ webhook:
         - matchExpressions:
             - key: node-role.kubernetes.io/worker
               operator: In
-              values:
-                - worker
+              values: [worker]
 
 certController:
   # -- Specifies whether the cert-controller should be created.
@@ -192,7 +190,7 @@ certController:
     repository: ghcr.io/mariadb-operator/mariadb-operator
     pullPolicy: IfNotPresent
     # -- Image tag to use. By default the chart appVersion is used
-    tag: ""
+    tag: ''
   imagePullSecrets: []
   ha:
     # -- Enable high availability
@@ -228,7 +226,7 @@ certController:
     extraLabels: {}
     # -- The name of the service account to use.
     # If not set and enabled is true, a name is generated using the fullname template
-    name: ""
+    name: ''
   # -- Extra arguments to be passed to the cert-controller entrypoint
   extrArgs: []
   # -- Extra volumes to pass to cert-controller Pod

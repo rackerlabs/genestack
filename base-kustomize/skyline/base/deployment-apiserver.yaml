@@ -2,7 +2,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: "skyline"
+  name: skyline
   namespace: openstack
   labels:
     release_group: skyline
@@ -37,16 +37,13 @@ spec:
                   matchExpressions:
                     - key: release_group
                       operator: In
-                      values:
-                        - skyline
+                      values: [skyline]
                     - key: application
                       operator: In
-                      values:
-                        - skyline
+                      values: [skyline]
                     - key: component
                       operator: In
-                      values:
-                        - server
+                      values: [server]
                 topologyKey: kubernetes.io/hostname
               weight: 10
       nodeSelector:
@@ -60,11 +57,11 @@ spec:
           emptyDir: {}
         - name: skyline-data
           configMap:
-            name: "skyline-integration-properties"
+            name: skyline-integration-properties
             defaultMode: 0555
       initContainers:
         - name: init
-          image: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
+          image: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: true
@@ -86,33 +83,29 @@ spec:
             - name: PATH
               value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/
             - name: DEPENDENCY_SERVICE
-              value: ""
+              value: ''
             - name: DEPENDENCY_JOBS
-              value: ""
+              value: ''
             - name: DEPENDENCY_DAEMONSET
-              value: ""
+              value: ''
             - name: DEPENDENCY_CONTAINER
-              value: ""
+              value: ''
             - name: DEPENDENCY_POD_JSON
-              value: ""
+              value: ''
             - name: DEPENDENCY_CUSTOM_RESOURCE
-              value: ""
-          command:
-            - kubernetes-entrypoint
+              value: ''
+          command: [kubernetes-entrypoint]
           volumeMounts: []
         - name: skyline-apiserver-service-init
-          image: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+          image: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
           imagePullPolicy: IfNotPresent
           resources:
             limits:
-              memory: "4096Mi"
+              memory: 4096Mi
             requests:
-              cpu: "0.25"
-              memory: "128Mi"
-          command:
-            - bash
-            - -c
-            - /tmp/run.sh
+              cpu: '0.25'
+              memory: 128Mi
+          command: [bash, -c, /tmp/run.sh]
           volumeMounts:
             - name: pod-tmp
               mountPath: /tmp
@@ -149,7 +142,7 @@ spec:
                   name: skyline-apiserver-secrets
                   key: service-project-domain
             - name: OS_IDENTITY_API_VERSION
-              value: "3"
+              value: '3'
             - name: OS_AUTH_URL
               valueFrom:
                 secretKeyRef:
@@ -201,22 +194,19 @@ spec:
                   name: keystone-keystone-admin
                   key: OS_DEFAULT_DOMAIN
             - name: OS_SERVICE_NAME
-              value: "keystone"
+              value: keystone
             - name: OS_SERVICE_TYPE
-              value: "image"
+              value: image
         - name: skyline-apiserver-config
-          image: "ghcr.io/linuxserver/yq:latest"
+          image: ghcr.io/linuxserver/yq:latest
           imagePullPolicy: IfNotPresent
           resources:
             limits:
-              memory: "1Gi"
+              memory: 1Gi
             requests:
-              cpu: "0.25"
-              memory: "64Mi"
-          command:
-            - bash
-            - -c
-            - /tmp/run.sh
+              cpu: '0.25'
+              memory: 64Mi
+          command: [bash, -c, /tmp/run.sh]
           volumeMounts:
             - name: pod-tmp
               mountPath: /tmp
@@ -335,18 +325,15 @@ spec:
                   key: prometheus_endpoint
                   optional: true
         - name: skyline-apiserver-db-migrate
-          image: "ghcr.io/rackerlabs/genestack-images/skyline:2024.2-latest"
+          image: ghcr.io/rackerlabs/genestack-images/skyline:2024.2-latest
           imagePullPolicy: IfNotPresent
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "100m"
+              memory: 256Mi
+              cpu: 100m
             limits:
-              memory: "4096Mi"
-          command:
-            - bash
-            - -c
-            - /tmp/run.sh
+              memory: 4096Mi
+          command: [bash, -c, /tmp/run.sh]
           volumeMounts:
             - name: pod-tmp
               mountPath: /tmp
@@ -358,18 +345,15 @@ spec:
               readOnly: true
       containers:
         - name: skyline-apiserver
-          image: "ghcr.io/rackerlabs/genestack-images/skyline:2024.2-latest"
+          image: ghcr.io/rackerlabs/genestack-images/skyline:2024.2-latest
           imagePullPolicy: IfNotPresent
           resources:
             requests:
-              memory: "512Mi"
-              cpu: "100m"
+              memory: 512Mi
+              cpu: 100m
             limits:
-              memory: "4096Mi"
-          command:
-            - bash
-            - -c
-            - /tmp/run.sh
+              memory: 4096Mi
+          command: [bash, -c, /tmp/run.sh]
           volumeMounts:
             - name: pod-tmp
               mountPath: /tmp

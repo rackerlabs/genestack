@@ -49,5 +49,5 @@ data:
     with open('/tmp/pod-shared/cinder-netapp.conf', 'w') as configfile:
         config.write(configfile)
     print('Updated cinder.conf')
-  ssh_known_hosts: |
+  ssh_known_hosts: |-
     # Empty SSH host file managed by cinder-volume-netapp

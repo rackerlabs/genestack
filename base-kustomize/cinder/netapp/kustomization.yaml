@@ -1,3 +1,4 @@
+---
 images:
   - name: image-kubernetes-entrypoint-init
     newName: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint

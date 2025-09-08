@@ -1,6 +1,4 @@
+---
 sortOptions:
   order: fifo
-resources:
-  - crds.yaml
-  - common.yaml
-  - operator.yaml
+resources: [crds.yaml, common.yaml, operator.yaml]

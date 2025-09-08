@@ -1,3 +1,4 @@
+---
 # This playbook ensures all subnets of a given network have the specified
 # service types, but has defaults to prevent nova instances from connecting
 # directly to a network named PUBLICNET (so that they have to use floating IPs.)
@@ -31,7 +32,8 @@
 # See comments at the end of the playbook for an example of creating network(s)
 # to test on, since you can use -e network_name and specify a test network.
 
-- name: Set service types on subnets to prevent instances from connecting directly to PUBLICNET
+- name: Set service types on subnets to prevent instances from connecting directly
+    to PUBLICNET
   hosts: localhost
   gather_facts: false
 
@@ -41,34 +43,33 @@
     revert: false
     save_copy: true
     service_types:
-      - 'network:floatingip'
-      - 'network:router_gateway'
-      - 'network:distributed'
+      - network:floatingip
+      - network:router_gateway
+      - network:distributed
 
   tasks:
 
     - name: List cloud networks
       openstack.cloud.networks_info:
-        cloud: "{{ cloud }}"
-        name: "{{ network_name }}"
+        cloud: '{{ cloud }}'
+        name: '{{ network_name }}'
       register: networks_result
 
     - name: Fail unless matching one network.
       fail:
-        msg: "Failed to match exactly one network. Try -e network_name=<network_uuid>"
-      when:
-        - networks_result.networks | length != 1
+        msg: Failed to match exactly one network. Try -e network_name=<network_uuid>
+      when: [networks_result.networks | length != 1]
 
     - name: Get subnet info
       openstack.cloud.subnets_info:
-        cloud: "{{ cloud }}"
-        name: "{{ item }}"
+        cloud: '{{ cloud }}'
+        name: '{{ item }}'
       register: subnets_result
-      loop: "{{ networks_result.networks[0].subnet_ids }}"
+      loop: '{{ networks_result.networks[0].subnet_ids }}'
 
     - name: Gather timestamp for subnet backup info
       ansible.builtin.setup:
-        filter: "ansible_date_time"
+        filter: ansible_date_time
       when:
         - save_copy | bool
 
@@ -86,10 +87,11 @@
       copy:
         content: >
           {{ item.subnets[0] }}
-        dest: "{{ item.subnets[0].id }}_{{ ansible_date_time.year }}-{{ ansible_date_time.month }}-{{ ansible_date_time.day }}-{{ ansible_date_time.hour }}-{{ ansible_date_time.minute }}-{{ ansible_date_time.second }}.json"
-      when:
-        - save_copy | bool
-      loop: "{{ subnets_result.results }}"
+        dest: '{{ item.subnets[0].id }}_{{ ansible_date_time.year }}-{{ ansible_date_time.month
+          }}-{{ ansible_date_time.day }}-{{ ansible_date_time.hour }}-{{ ansible_date_time.minute
+          }}-{{ ansible_date_time.second }}.json'
+      when: [save_copy | bool]
+      loop: '{{ subnets_result.results }}'
 
     # Unfortunately, openstack.cloud.subnet cannot modify subnets. It can only
     # create and delete them: https://docs.ansible.com/ansible/latest/collections/openstack/cloud/subnet_module.html#ansible-collections-openstack-cloud-subnet-module
@@ -105,7 +107,7 @@
     - name: Set service types on subnets.
       shell: >
         openstack subnet set {{ item.0.subnets[0].id }} --service-type {{ item.1 }}
-      loop: "{{ subnets_result.results | product(service_types) | list }}"
+      loop: '{{ subnets_result.results | product(service_types) | list }}'
       when:
         - item.1 not in item.0.subnets[0].service_types
         - not revert | bool
@@ -114,11 +116,10 @@
     - name: Unset service types on subnets.
       shell: >
         openstack subnet unset {{ item.0.subnets[0].id }} --service-type {{ item.1 }}
-      loop: "{{ subnets_result.results | product(service_types) | list }}"
+      loop: '{{ subnets_result.results | product(service_types) | list }}'
       when:
         - item.1 in item.0.subnets[0].service_types
         - revert | bool
-
 # Test network
 #
 # You can easily create a test network with a few subnets to see how this works,

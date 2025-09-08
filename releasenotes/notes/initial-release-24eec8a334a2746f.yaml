@@ -1,2 +1,3 @@
-prelude: >
-    Initial release of a genestack installer for Rackspace OpenStack environments
+---
+prelude: >-
+  Initial release of a genestack installer for Rackspace OpenStack environments

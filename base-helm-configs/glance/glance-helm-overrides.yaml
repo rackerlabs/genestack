@@ -4,33 +4,33 @@ storage: pvc
 
 images:
   tags:
-    test: null
-    glance_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
-    glance_metadefs_load: "ghcr.io/rackerlabs/genestack-images/glance:2024.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    glance_db_sync: "ghcr.io/rackerlabs/genestack-images/glance:2024.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    rabbit_init: null
-    glance_api: "ghcr.io/rackerlabs/genestack-images/glance:2024.1-latest"
+    test:
+    glance_storage_init: quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy
+    glance_metadefs_load: ghcr.io/rackerlabs/genestack-images/glance:2024.1-latest
+    db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    glance_db_sync: ghcr.io/rackerlabs/genestack-images/glance:2024.1-latest
+    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    rabbit_init:
+    glance_api: ghcr.io/rackerlabs/genestack-images/glance:2024.1-latest
     # Bootstrap image requires curl
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    image_repo_sync: null
+    bootstrap: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
+    image_repo_sync:
 
 bootstrap:
   enabled: true
   ks_user: admin
-  script: null
+  script:
   structured:
     images:
       cirros:
-        id: null
-        name: "Cirros 0.6.2 64-bit"
-        source_url: "http://download.cirros-cloud.net/0.6.2/"
-        image_file: "cirros-0.6.2-x86_64-disk.img"
+        id:
+        name: Cirros 0.6.2 64-bit
+        source_url: http://download.cirros-cloud.net/0.6.2/
+        image_file: cirros-0.6.2-x86_64-disk.img
         min_disk: 1
         image_type: qcow2
         container_format: bare
@@ -39,7 +39,7 @@ bootstrap:
           # NOTE: If you want to restrict hypervisor type for this image,
           # uncomment this and write specific hypervisor type.
           # hypervisor_type: "qemu"
-          os_distro: "cirros"
+          os_distro: cirros
 
 ceph_client:
   configmap: ceph-etc
@@ -119,16 +119,16 @@ conf:
       processes: 2
       threads: 1
   policy:
-    "admin_required": "role:admin or role:glance_admin"
-    "default": "role:admin or role:glance_admin"
-    "context_is_admin": "role:admin or role:glance_admin"
-    "publicize_image": "role:glance_admin"
-    "download_image": rule:context_is_admin or (role:member and (project_id:%(project_id)s or project_id:%(member_id)s))
+    admin_required: role:admin or role:glance_admin
+    default: role:admin or role:glance_admin
+    context_is_admin: role:admin or role:glance_admin
+    publicize_image: role:glance_admin
+    download_image: rule:context_is_admin or (role:member and (project_id:%(project_id)s
+      or project_id:%(member_id)s))
   logging:
     logger_root:
       level: INFO
-      handlers:
-        - stdout
+      handlers: [stdout]
   api_audit_map:
     DEFAULT:
       target_endpoint_type: None
@@ -139,7 +139,7 @@ conf:
       members: member
       tags: tag
     service_endpoints:
-      image: "service/storage/image"
+      image: service/storage/image
   swift_store: |
     [{{ .Values.conf.glance.glance_store.default_swift_reference }}]
     {{- if eq .Values.storage "radosgw" }}
@@ -167,22 +167,19 @@ conf:
     policies: []
 
 volume:
-  class_name: general-multi-attach # This can be changed as needed
-  size: 10Gi # This should be set to 100Gi in production
+  class_name: general-multi-attach  # This can be changed as needed
+  size: 10Gi  # This should be set to 100Gi in production
 
 dependencies:
   static:
     api:
-      jobs:
-        - glance-db-sync
-        - glance-ks-user
-        - glance-ks-endpoints
+      jobs: [glance-db-sync, glance-ks-user, glance-ks-endpoints]
     bootstrap:
-      jobs: null
+      jobs:
     clean:
-      jobs: null
+      jobs:
     db_sync:
-      jobs: null
+      jobs:
 
 endpoints:
   identity:
@@ -246,8 +243,8 @@ pod:
     enabled: true
     api:
       requests:
-        memory: "384Mi"
-        cpu: "100m"
+        memory: 384Mi
+        cpu: 100m
       limits: {}
   replicas:
     api: 1

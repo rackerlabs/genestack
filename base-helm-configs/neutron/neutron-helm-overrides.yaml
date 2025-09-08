@@ -1,65 +1,63 @@
 ---
 images:
   tags:
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    neutron_db_sync: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_dhcp: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_l3: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_l2gw: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_linuxbridge_agent: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_metadata: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_ovn_metadata: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_ovn_vpn: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_openvswitch_agent: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_server: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_rpc_server: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_bagpipe_bgp: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_netns_cleanup_cron: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    test: null
-    purge_test: "quay.io/rackspace/rackerlabs-ospurge:latest"
-    rabbit_init: null
-    netoffload: null
-    neutron_sriov_agent: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_sriov_agent_init: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_bgp_dragent: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_ironic_agent: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    image_repo_sync: null
+    bootstrap: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    neutron_db_sync: ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest
+    neutron_dhcp: ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest
+    neutron_l3: ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest
+    neutron_l2gw: ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest
+    neutron_linuxbridge_agent: ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest
+    neutron_metadata: ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest
+    neutron_ovn_metadata: ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest
+    neutron_ovn_vpn: ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest
+    neutron_openvswitch_agent: ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest
+    neutron_server: ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest
+    neutron_rpc_server: ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest
+    neutron_bagpipe_bgp: ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest
+    neutron_netns_cleanup_cron: ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest
+    test:
+    purge_test: quay.io/rackspace/rackerlabs-ospurge:latest
+    rabbit_init:
+    netoffload:
+    neutron_sriov_agent: ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest
+    neutron_sriov_agent_init: ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest
+    neutron_bgp_dragent: ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest
+    neutron_ironic_agent: ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest
+    dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
+    image_repo_sync:
 
 labels:
   ovs:
     node_selector_key: openstack-network-node
 
 network:
-  backend:
-    - ovn
+  backend: [ovn]
 
 dependencies:
   static:
     db_sync:
-      jobs: null
+      jobs:
     dhcp:
-      jobs: null
+      jobs:
     l3:
-      jobs: null
+      jobs:
     lb_agent:
-      jobs: null
+      jobs:
     metadata:
-      jobs: null
+      jobs:
     ovn_metadata:
       pod: []
     ovn_vpn_agent:
       pod: []
     ovs_agent:
-      jobs: null
-    rpc_server:
       jobs:
-        - neutron-db-sync
+    rpc_server:
+      jobs: [neutron-db-sync]
     server:
       jobs:
         - neutron-db-sync
@@ -74,18 +72,18 @@ pod:
     enabled: true
     server:
       requests:
-        memory: "1024Mi"
-        cpu: "1000m"
+        memory: 1024Mi
+        cpu: 1000m
       limits:
-        memory: "2048Mi"
-        cpu: "3000m"
+        memory: 2048Mi
+        cpu: 3000m
     rpc_server:
       requests:
-        memory: "512Mi"
-        cpu: "1000m"
+        memory: 512Mi
+        cpu: 1000m
       limits:
-        memory: "2048Mi"
-        cpu: "3000m"
+        memory: 2048Mi
+        cpu: 3000m
   use_fqdn:
     neutron_agent: false
   lifecycle:
@@ -151,8 +149,7 @@ conf:
       availability_zone: az1
   logging:
     logger_root:
-      handlers:
-        - stdout
+      handlers: [stdout]
       level: INFO
   neutron:
     DEFAULT:
@@ -170,18 +167,18 @@ conf:
       rpc_state_report_workers: 2
       rpc_workers: 2
       # NOTE(cloudnull): in 2025.1 we can add firewall_v2
-      service_plugins: "ovn-router,ovn-vpnaas,qos,metering,trunk,segments"
+      service_plugins: ovn-router,ovn-vpnaas,qos,metering,trunk,segments
     service_providers:
       service_provider:
         type: multistring
         values:
-          - "VPN:strongswan:neutron_vpnaas.services.vpn.service_drivers.ovn_ipsec.IPsecOvnVPNDriver:default"
+          - VPN:strongswan:neutron_vpnaas.services.vpn.service_drivers.ovn_ipsec.IPsecOvnVPNDriver:default
           # - "FIREWALL_V2:fwaas_db:neutron_fwaas.services.firewall.service_drivers.ovn.firewall_l3_driver.OVNFwaasDriver:default"
     fwaas:
       agent_version: v2
       driver: neutron_fwaas.services.firewall.service_drivers.ovn.firewall_l3_driver.OVNFwaasDriver
       # NOTE(cloudnull): in 2025.1 we can enable this
-      enabled: False
+      enabled: false
     agent:
       extensions: vpnaas
       availability_zone: az1
@@ -215,13 +212,13 @@ conf:
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
       kombu_reconnect_delay: 0.5
     ovn:
-      dns_servers: "8.8.8.8,1.1.1.1"
+      dns_servers: 8.8.8.8,1.1.1.1
       enable_distributed_floating_ip: true
-      neutron_sync_mode: "off"
-      ovn_l3_mode: "true"
+      neutron_sync_mode: 'off'
+      ovn_l3_mode: 'true'
       ovn_l3_scheduler: leastloaded
-      ovn_nb_connection: "tcp:127.0.0.1:6641"
-      ovn_sb_connection: "tcp:127.0.0.1:6642"
+      ovn_nb_connection: tcp:127.0.0.1:6641
+      ovn_sb_connection: tcp:127.0.0.1:6642
     metadata_rate_limiting:
       rate_limit_enabled: true
       ip_versions: 4
@@ -239,33 +236,33 @@ conf:
     DEFAULT:
       metadata_workers: 2
     ovs:
-      ovsdb_connection: "tcp:127.0.0.1:6640"
+      ovsdb_connection: tcp:127.0.0.1:6640
   ovn_vpn_agent:
     ovs:
-      ovsdb_connection: "tcp:127.0.0.1:6640"
+      ovsdb_connection: tcp:127.0.0.1:6640
   plugins:
     ml2_conf:
       agent:
         availability_zone: az1
         # NOTE(cloudnull): in 2025.1 we can add fwaas_v2
-        extensions: "fip_qos,gateway_ip_qos"
+        extensions: fip_qos,gateway_ip_qos
       fwaas:
         firewall_l2_driver: noop
       ml2:
-        extension_drivers: "port_security,qos"
+        extension_drivers: port_security,qos
         mechanism_drivers: ovn
         tenant_network_types: geneve
-        type_drivers: "flat,vlan,geneve"
+        type_drivers: flat,vlan,geneve
       ml2_type_vlan:
         network_vlan_ranges: physnet1
       ovn:
-        dns_servers: "8.8.8.8,1.1.1.1"
-        neutron_sync_mode: "off"
-        ovn_l3_mode: "true"
+        dns_servers: 8.8.8.8,1.1.1.1
+        neutron_sync_mode: 'off'
+        ovn_l3_mode: 'true'
         ovn_l3_scheduler: leastloaded
         ovn_metadata_enabled: true
-        ovn_nb_connection: "tcp:127.0.0.1:6641"
-        ovn_sb_connection: "tcp:127.0.0.1:6642"
+        ovn_nb_connection: tcp:127.0.0.1:6641
+        ovn_sb_connection: tcp:127.0.0.1:6642
     openvswitch_agent:
       agent:
         availability_zone: az1

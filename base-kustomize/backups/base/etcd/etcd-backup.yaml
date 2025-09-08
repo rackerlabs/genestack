@@ -1,9 +1,10 @@
+---
 apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: etcd-backup
 spec:
-  schedule: "0 1 * * *"
+  schedule: 0 1 * * *
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 1
   concurrencyPolicy: Allow
@@ -40,8 +41,9 @@ spec:
                     secretKeyRef:
                       name: etcd-backup-secrets
                       key: ETCDCTL_KEY
-              command: ["/bin/bash", "-c"]
-              args: ["etcdctl snapshot save /data/etcd-backup/etcd-snapshot-$(date +%Y-%m-%d).db"]
+              command: [/bin/bash, -c]
+              args:
+                - etcdctl snapshot save /data/etcd-backup/etcd-snapshot-$(date +%Y-%m-%d).db
               volumeMounts:
                 - mountPath: /etc/ssl/etcd/ssl
                   name: etcd-certs
@@ -73,8 +75,9 @@ spec:
                     secretKeyRef:
                       name: etcd-backup-secrets
                       key: S3_REGION
-              command: ["/bin/bash", "-c"]
-              args: ["python /backup.py /data/etcd-backup/etcd-snapshot-$(date +%Y-%m-%d).db"]
+              command: [/bin/bash, -c]
+              args:
+                - python /backup.py /data/etcd-backup/etcd-snapshot-$(date +%Y-%m-%d).db
               volumeMounts:
                 - mountPath: /data/etcd-backup
                   name: etcd-backup

@@ -5,15 +5,13 @@ metadata:
   name: blazar
   namespace: openstack
   labels:
-    app.kubernetes.io/managed-by: "Helm"
+    app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
-    meta.helm.sh/release-name: "blazar"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-name: blazar
+    meta.helm.sh/release-namespace: openstack
 spec:
-  tags:
-    - management
-    - policymaker
+  tags: [management, policymaker]
   rabbitmqClusterReference:
     name: rabbitmq
     namespace: openstack
@@ -26,13 +24,13 @@ metadata:
   name: blazar-vhost
   namespace: openstack
   labels:
-    app.kubernetes.io/managed-by: "Helm"
+    app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
-    meta.helm.sh/release-name: "blazar"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-name: blazar
+    meta.helm.sh/release-namespace: openstack
 spec:
-  name: "blazar"
+  name: blazar
   defaultQueueType: quorum
   rabbitmqClusterReference:
     name: rabbitmq
@@ -44,14 +42,14 @@ metadata:
   name: blazar-queue
   namespace: openstack
   labels:
-    app.kubernetes.io/managed-by: "Helm"
+    app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
-    meta.helm.sh/release-name: "blazar"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-name: blazar
+    meta.helm.sh/release-namespace: openstack
 spec:
   name: blazar-qq
-  vhost: "blazar"
+  vhost: blazar
   type: quorum
   autoDelete: false
   durable: true
@@ -65,19 +63,19 @@ metadata:
   name: blazar-permission
   namespace: openstack
   labels:
-    app.kubernetes.io/managed-by: "Helm"
+    app.kubernetes.io/managed-by: Helm
   annotations:
     helm.sh/resource-policy: keep
-    meta.helm.sh/release-name: "blazar"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-name: blazar
+    meta.helm.sh/release-namespace: openstack
 spec:
-  vhost: "blazar"
+  vhost: blazar
   userReference:
-    name: "blazar"
+    name: blazar
   permissions:
-    write: ".*"
-    configure: ".*"
-    read: ".*"
+    write: .*
+    configure: .*
+    read: .*
   rabbitmqClusterReference:
     name: rabbitmq
     namespace: openstack

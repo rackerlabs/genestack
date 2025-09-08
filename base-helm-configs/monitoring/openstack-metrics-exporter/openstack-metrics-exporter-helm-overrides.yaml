@@ -36,28 +36,27 @@ multicloud:
         - placement
         - load-balancer
         - object-store
-        #- container-infra
-        #- dns
-        #- baremetal
+        # - container-infra
+        # - dns
+        # - baremetal
         - gnocchi
-        #- database
+        # - database
         - orchestration
 
-  #  - name: cloud1
-  #    services:
-  #      - volume
-  #  - name: cloud2
-  #    services:
-  #      - volume
-  #      - image
-  #      - identity
-  #      - compute
-  #      - network
-  #      - placement # NB this needs the openstack-exporter release > 1.4.0
-
+#  - name: cloud1
+#    services:
+#      - volume
+#  - name: cloud2
+#    services:
+#      - volume
+#      - image
+#      - identity
+#      - compute
+#      - network
+#      - placement  # NB this needs the openstack-exporter release > 1.4.0
 # Add extra args to the exporter.
 # Doc: https://github.com/openstack-exporter/openstack-exporter#command-line-options
-#extraArgs:
+# extraArgs:
 #  - --disable-service.baremetal
 #  - --disable-service.container-infra
 #  - --disable-service.object-store
@@ -67,7 +66,7 @@ multicloud:
 #  "ENV_VAR": "value"
 
 # Add extra labels
-#commonLabels:
+# commonLabels:
 #  prometheus.io/scrape: "true"
 #  prometheus.io/monitor: "true"
 

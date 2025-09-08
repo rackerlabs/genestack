@@ -1,3 +1,4 @@
+---
 apiVersion: ceph.rook.io/v1
 kind: CephBlockPool
 metadata:
@@ -57,7 +58,7 @@ parameters:
    # encryptionKMSID: <kms-config-id>
 
   # RBD image format. Defaults to "2".
-  imageFormat: "2"
+  imageFormat: '2'
 
   # RBD image features
   # Available for imageFormat: "2". Older releases of CSI RBD

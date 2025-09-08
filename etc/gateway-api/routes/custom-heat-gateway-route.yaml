@@ -10,12 +10,11 @@ metadata:
     route: heat
 spec:
   parentRefs:
-  - name: flex-gateway
-    sectionName: heat-https
-    namespace: nginx-gateway
-  hostnames:
-  - "heat.your.domain.tld"
+    - name: flex-gateway
+      sectionName: heat-https
+      namespace: nginx-gateway
+  hostnames: [heat.your.domain.tld]
   rules:
     - backendRefs:
-      - name: heat-api
-        port: 8004
+        - name: heat-api
+          port: 8004

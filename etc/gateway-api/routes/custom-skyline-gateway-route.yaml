@@ -13,8 +13,7 @@ spec:
     - name: flex-gateway
       sectionName: skyline-https
       namespace: nginx-gateway
-  hostnames:
-    - "skyline.your.domain.tld"
+  hostnames: [skyline.your.domain.tld]
   rules:
     - backendRefs:
         - name: skyline-apiserver

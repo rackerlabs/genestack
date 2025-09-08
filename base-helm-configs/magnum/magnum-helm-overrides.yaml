@@ -1,18 +1,18 @@
 ---
 images:
   tags:
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    image_repo_sync: null
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    magnum_api: "ghcr.io/rackerlabs/genestack-images/magnum:2024.1-latest"
-    magnum_conductor: "ghcr.io/rackerlabs/genestack-images/magnum:2024.1-latest"
-    magnum_db_sync: "ghcr.io/rackerlabs/genestack-images/magnum:2024.1-latest"
-    rabbit_init: null
+    bootstrap: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
+    image_repo_sync:
+    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    magnum_api: ghcr.io/rackerlabs/genestack-images/magnum:2024.1-latest
+    magnum_conductor: ghcr.io/rackerlabs/genestack-images/magnum:2024.1-latest
+    magnum_db_sync: ghcr.io/rackerlabs/genestack-images/magnum:2024.1-latest
+    rabbit_init:
 
 # NOTE: (brew) requests cpu/mem values based on a three node
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
@@ -36,22 +36,21 @@ pod:
     enabled: true
     api:
       requests:
-        memory: "256Mi"
-        cpu: "300m"
+        memory: 256Mi
+        cpu: 300m
       limits: {}
     conductor:
       requests:
-        memory: "512Mi"
-        cpu: "300m"
+        memory: 512Mi
+        cpu: 300m
       limits:
-        memory: "2048Mi"
-        cpu: "2000m"
+        memory: 2048Mi
+        cpu: 2000m
 
 conf:
   logging:
     logger_root:
-      handlers:
-        - stdout
+      handlers: [stdout]
       level: INFO
   magnum:
     barbican_client:
@@ -144,7 +143,7 @@ dependencies:
         - magnum-domain-ks-user
         - magnum-ks-endpoints
     db_sync:
-      jobs: null
+      jobs:
 
 endpoints:
   fluentd:

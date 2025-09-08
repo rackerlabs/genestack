@@ -1,6 +1,6 @@
 ---
 deprecations:
-  - |
+  - |-
     The magnum chart will now use the online OSH helm repository. This change
     will allow the magnum chart to be updated more frequently and will allow
     the magnum chart to be used with the OpenStack-Helm project. Upgrading to

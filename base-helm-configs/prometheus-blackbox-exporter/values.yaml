@@ -1,18 +1,18 @@
+---
 global:
   ## Global image registry to use if it needs to be overriden for some specific use cases (e.g local registries, custom images, ...)
   ##
-  imageRegistry: ""
-
+  imageRegistry: ''
 restartPolicy: Always
 
 kind: Deployment
 
 ## Override the namespace
 ##
-namespaceOverride: ""
+namespaceOverride: ''
 
 # Override Kubernetes version if your distribution does not follow semver v2
-kubeVersionOverride: ""
+kubeVersionOverride: ''
 
 ## set to true to add the release label so scraping of the servicemonitor with kube-prometheus-stack works out of the box
 releaseLabel: false
@@ -35,7 +35,7 @@ extraEnv: {}
 ## extraEnvFromSecret:
 ##   - secretOne
 ##   - secretTwo
-extraEnvFromSecret: ""
+extraEnvFromSecret: ''
 
 extraVolumes: []
   # - name: secret-blackbox-oauth-htpasswd
@@ -104,9 +104,9 @@ image:
   registry: quay.io
   repository: prometheus/blackbox-exporter
   # Overrides the image tag whose default is {{ printf "v%s" .Chart.AppVersion }}
-  tag: ""
+  tag: ''
   pullPolicy: IfNotPresent
-  digest: ""
+  digest: ''
 
   ## Optionally specify an array of imagePullSecrets.
   ## Secrets must be manually created in the namespace.
@@ -114,7 +114,6 @@ image:
   ##
   # pullSecrets:
   #   - myRegistrKeySecretName
-
 podSecurityContext: {}
 # fsGroup: 1000
 
@@ -126,7 +125,7 @@ securityContext:
   runAsNonRoot: true
   allowPrivilegeEscalation: false
   capabilities:
-    drop: ["ALL"]
+    drop: [ALL]
 # Add NET_RAW to enable ICMP
 #    add: ["NET_RAW"]
 
@@ -143,7 +142,6 @@ readinessProbe:
 
 nodeSelector:
   openstack-control-plane: enabled
-
 tolerations: []
 affinity: {}
 
@@ -160,7 +158,7 @@ topologySpreadConstraints: []
 # if the configuration is managed as secret outside the chart, using SealedSecret for example,
 # provide the name of the secret here. If secretConfig is set to true, configExistingSecretName will be ignored
 # in favor of the config value.
-configExistingSecretName: ""
+configExistingSecretName: ''
 # Store the configuration as a `Secret` instead of a `ConfigMap`, useful in case it contains sensitive data
 secretConfig: false
 config:
@@ -169,18 +167,17 @@ config:
       prober: http
       timeout: 5s
       http:
-        valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+        valid_http_versions: [HTTP/1.1, HTTP/2.0]
         follow_redirects: true
-        preferred_ip_protocol: "ip4"
+        preferred_ip_protocol: ip4
         valid_status_codes: [200, 202, 204, 300]
-
 # Set custom config path, other than default /config/blackbox.yaml. If let empty, path will be "/config/blackbox.yaml"
 # configPath: "/foo/bar"
 
 extraConfigmapMounts: []
   # - name: certs-configmap
   #   mountPath: /etc/secrets/ssl/
-  #   subPath: certificates.crt # (optional)
+  #   subPath: certificates.crt  # (optional)
   #   configMap: certs-configmap
   #   readOnly: true
 #   defaultMode: 420
@@ -200,7 +197,7 @@ resources: {}
   # requests:
 #   memory: 50Mi
 
-priorityClassName: ""
+priorityClassName: ''
 
 service:
   annotations: {}
@@ -209,9 +206,8 @@ service:
   port: 9115
   ipDualStack:
     enabled: false
-    ipFamilies: ["IPv6", "IPv4"]
-    ipFamilyPolicy: "PreferDualStack"
-
+    ipFamilies: [IPv6, IPv4]
+    ipFamilyPolicy: PreferDualStack
 # Only changes container port. Application port can be changed with extraArgs (--web.listen-address=:9115)
 # https://github.com/prometheus/blackbox_exporter/blob/998037b5b40c1de5fee348ffdea8820509d85171/main.go#L55
 containerPort: 9115
@@ -234,7 +230,7 @@ serviceAccount:
 ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/
 ingress:
   enabled: false
-  className: ""
+  className: ''
   labels: {}
   annotations: {}
     # kubernetes.io/ingress.class: nginx
@@ -250,7 +246,6 @@ ingress:
   #  - secretName: chart-example-tls
   #    hosts:
   #      - chart-example.local
-
 podAnnotations: {}
 
 # Annotations for the Deployment
@@ -269,7 +264,6 @@ hostAliases: []
 
 pod:
   labels: {}
-
 extraArgs: []
 # - --history.limit=1000
 
@@ -308,29 +302,29 @@ serviceMonitor:
   ## scheme: HTTP scheme to use for scraping. Can be used with `tlsConfig` for example if using istio mTLS.
   scheme: http
   ## path: HTTP path. Needs to be adjusted, if web.route-prefix is set
-  path: "/probe"
+  path: /probe
   ## tlsConfig: TLS configuration to use when scraping the endpoint. For example if using istio mTLS.
   ## Of type: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#tlsconfig
   tlsConfig: {}
   bearerTokenFile:
 
   targets:
-#    - name: example                    # Human readable URL that will appear in Prometheus / AlertManager
+#    - name: example  # Human readable URL that will appear in Prometheus / AlertManager
 #      url: http://example.com/healthz  # The URL that blackbox will scrape
-#      hostname: example.com            # HTTP probes can accept an additional `hostname` parameter that will set `Host` header and TLS SNI
-#      labels: {}                       # Map of labels for ServiceMonitor. Overrides value set in `defaults`
-#      interval: 60s                    # Scraping interval. Overrides value set in `defaults`
-#      scrapeTimeout: 60s               # Scrape timeout. Overrides value set in `defaults`
-#      module: http_2xx                 # Module used for scraping. Overrides value set in `defaults`
-#      additionalMetricsRelabels: {}    # Map of metric labels and values to add
-#      additionalRelabeling: []         # List of metric relabeling actions to run
+#      hostname: example.com  # HTTP probes can accept an additional `hostname` parameter that will set `Host` header and TLS SNI
+#      labels: {}  # Map of labels for ServiceMonitor. Overrides value set in `defaults`
+#      interval: 60s  # Scraping interval. Overrides value set in `defaults`
+#      scrapeTimeout: 60s  # Scrape timeout. Overrides value set in `defaults`
+#      module: http_2xx  # Module used for scraping. Overrides value set in `defaults`
+#      additionalMetricsRelabels: {}  # Map of metric labels and values to add
+#      additionalRelabeling: []  # List of metric relabeling actions to run
 
 ## Custom PrometheusRules to be defined
 ## ref: https://github.com/coreos/prometheus-operator#customresourcedefinitions
 prometheusRule:
   enabled: false
   additionalLabels: {}
-  namespace: ""
+  namespace: ''
   rules: []
 
 podMonitoring:
@@ -361,20 +355,20 @@ podMonitoring:
   ## scheme: Protocol scheme to use to scrape.
   scheme: http
   ## path: HTTP path. Needs to be adjusted, if web.route-prefix is set
-  path: "/probe"
+  path: /probe
   ## tlsConfig: TLS configuration to use when scraping the endpoint. For example if using istio mTLS.
   ## Of type: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#tlsconfig
   tlsConfig: {}
 
   targets:
-#    - name: example                    # Human readable URL that will appear in Google Managed Prometheus / AlertManager
+#    - name: example  # Human readable URL that will appear in Google Managed Prometheus / AlertManager
 #      url: http://example.com/healthz  # The URL that blackbox will scrape
-#      hostname: example.com            # HTTP probes can accept an additional `hostname` parameter that will set `Host` header and TLS SNI
-#      labels: {}                       # Map of labels for PodMonitoring. Overrides value set in `defaults`
-#      interval: 60s                    # Scraping interval. Overrides value set in `defaults`
-#      scrapeTimeout: 60s               # Scrape timeout. Overrides value set in `defaults`
-#      module: http_2xx                 # Module used for scraping. Overrides value set in `defaults`
-#      additionalMetricsRelabels: {}    # Map of metric labels and values to add
+#      hostname: example.com  # HTTP probes can accept an additional `hostname` parameter that will set `Host` header and TLS SNI
+#      labels: {}  # Map of labels for PodMonitoring. Overrides value set in `defaults`
+#      interval: 60s  # Scraping interval. Overrides value set in `defaults`
+#      scrapeTimeout: 60s  # Scrape timeout. Overrides value set in `defaults`
+#      module: http_2xx  # Module used for scraping. Overrides value set in `defaults`
+#      additionalMetricsRelabels: {}  # Map of metric labels and values to add
 
 ## Network policy for chart
 networkPolicy:
@@ -384,12 +378,10 @@ networkPolicy:
   # Before setting this value to true, you must add the name=monitoring label to the monitoring namespace
   # Network Policy uses label filtering
   allowMonitoringNamespace: false
-
 ## dnsPolicy and dnsConfig for Deployments and Daemonsets if you want non-default settings.
 ## These will be passed directly to the PodSpec of same.
 dnsPolicy:
 dnsConfig:
-
 # Extra manifests to deploy as an array
 extraManifests: []
   # - apiVersion: v1
@@ -444,9 +436,9 @@ configReloader:
   image:
     registry: quay.io
     repository: prometheus-operator/prometheus-config-reloader
-    tag: "v0.71.2"
+    tag: v0.71.2
     pullPolicy: IfNotPresent
-    digest: ""
+    digest: ''
   securityContext:
     runAsUser: 1000
     runAsGroup: 1000
@@ -454,7 +446,7 @@ configReloader:
     runAsNonRoot: true
     allowPrivilegeEscalation: false
     capabilities:
-      drop: ["ALL"]
+      drop: [ALL]
   resources:
     limits:
       memory: 50Mi

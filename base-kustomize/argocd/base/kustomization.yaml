@@ -1,6 +1,6 @@
+---
 sortOptions:
   order: fifo
-resources:
-  - namespace.yaml
+resources: [namespace.yaml]
 
 namespace: argocd

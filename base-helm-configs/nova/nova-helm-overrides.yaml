@@ -1,37 +1,36 @@
 ---
 images:
   tags:
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    image_repo_sync: null
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    nova_api: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_archive_deleted_rows: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_cell_setup: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_cell_setup_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    nova_compute: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_compute_ironic: "docker.io/kolla/ubuntu-source-nova-compute-ironic:wallaby"
-    nova_compute_ssh: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_conductor: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_db_sync: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_novncproxy: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_novncproxy_assets: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_scheduler: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_service_cleaner: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
-    nova_spiceproxy: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_spiceproxy_assets: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
-    nova_wait_for_computes_init: "quay.io/rackspace/rackerlabs-hyperkube-amd64:v1.11.6"
-    rabbit_init: null
-    test: null
+    bootstrap: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
+    image_repo_sync:
+    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    nova_api: ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest
+    nova_archive_deleted_rows: ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest
+    nova_cell_setup: ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest
+    nova_cell_setup_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    nova_compute: ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest
+    nova_compute_ironic: docker.io/kolla/ubuntu-source-nova-compute-ironic:wallaby
+    nova_compute_ssh: ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest
+    nova_conductor: ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest
+    nova_db_sync: ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest
+    nova_novncproxy: ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest
+    nova_novncproxy_assets: ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest
+    nova_scheduler: ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest
+    nova_service_cleaner: quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy
+    nova_spiceproxy: ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest
+    nova_spiceproxy_assets: ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest
+    nova_storage_init: quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy
+    nova_wait_for_computes_init: quay.io/rackspace/rackerlabs-hyperkube-amd64:v1.11.6
+    rabbit_init:
+    test:
 
 network:
-  backend:
-    - ovn
+  backend: [ovn]
   ssh:
     enabled: true
 
@@ -43,44 +42,30 @@ dependencies:
           pod: []
   static:
     api:
-      jobs:
-        - nova-db-sync
-        - nova-ks-user
-        - nova-ks-endpoints
+      jobs: [nova-db-sync, nova-ks-user, nova-ks-endpoints]
     api_metadata:
-      jobs:
-        - nova-db-sync
-        - nova-ks-user
-        - nova-ks-endpoints
+      jobs: [nova-db-sync, nova-ks-user, nova-ks-endpoints]
     archive_deleted_rows:
-      jobs:
-        - nova-db-sync
+      jobs: [nova-db-sync]
     cell_setup:
-      jobs:
-        - nova-db-sync
+      jobs: [nova-db-sync]
     compute:
-      jobs:
-        - nova-db-sync
+      jobs: [nova-db-sync]
     compute_ironic:
-      jobs:
-        - nova-db-sync
+      jobs: [nova-db-sync]
     conductor:
-      jobs:
-        - nova-db-sync
+      jobs: [nova-db-sync]
     db_sync:
       jobs: []
     scheduler:
-      jobs:
-        - nova-db-sync
+      jobs: [nova-db-sync]
     service_cleaner:
-      jobs:
-        - nova-db-sync
+      jobs: [nova-db-sync]
 
 conf:
   logging:
     logger_root:
-      handlers:
-        - stdout
+      handlers: [stdout]
       level: INFO
   ceph:
     enabled: false
@@ -101,7 +86,7 @@ conf:
       cross_az_attach: true
       network_allocate_retries: 3
     api:
-      vendordata_providers: ['StaticJSON']
+      vendordata_providers: [StaticJSON]
       vendordata_jsonfile_path: /etc/nova/vendor_data.json
     api_database:
       connection_debug: 0
@@ -150,7 +135,7 @@ conf:
       max_queues: 8
       num_pcie_ports: 16
     os_vif_ovs:
-      ovsdb_connection: "tcp:127.0.0.1:6640"
+      ovsdb_connection: tcp:127.0.0.1:6640
     oslo_messaging_rabbit:
       amqp_durable_queues: false
       rabbit_ha_queues: false
@@ -307,38 +292,38 @@ pod:
     enabled: true
     compute:
       requests:
-        memory: "512Mi"
-        cpu: "500m"
+        memory: 512Mi
+        cpu: 500m
       limits:
-        memory: "4096Mi"
-        cpu: "4000m"
+        memory: 4096Mi
+        cpu: 4000m
     api_metadata:
       requests:
-        memory: "384Mi"
-        cpu: "300m"
+        memory: 384Mi
+        cpu: 300m
       limits: {}
     ssh:
       requests: {}
       limits: {}
     api:
       requests:
-        memory: "512Mi"
-        cpu: "500m"
+        memory: 512Mi
+        cpu: 500m
       limits: {}
     conductor:
       requests:
-        memory: "384Mi"
-        cpu: "500m"
+        memory: 384Mi
+        cpu: 500m
       limits: {}
     scheduler:
       requests:
-        memory: "256Mi"
-        cpu: "500m"
+        memory: 256Mi
+        cpu: 500m
       limits: {}
     novncproxy:
       requests:
-        memory: "256Mi"
-        cpu: "200m"
+        memory: 256Mi
+        cpu: 200m
       limits: {}
   probes:
     rpc_retries: 3
@@ -351,7 +336,7 @@ pod:
     compute: false
   mounts:
     nova_compute:
-      init_container: null
+      init_container:
       nova_compute:
         volumeMounts:
           - name: metadata-api-static-vendordata
@@ -363,7 +348,7 @@ pod:
             configMap:
               name: static-vendor-data
     nova_api_metadata:
-      init_container: null
+      init_container:
       nova_api_metadata:
         volumeMounts:
           - name: metadata-api-static-vendordata

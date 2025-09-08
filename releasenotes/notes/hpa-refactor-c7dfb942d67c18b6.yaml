@@ -18,7 +18,7 @@ features:
     of any deployment going forward.
 
 other:
-  - |
+  - |-
     Current HPA values included in this change were determined using the,
     workers=2, processes=2, and threads=1 model.  A hyper-converged lab was
     created and workers, processes,threads reduced to provide a baseline of

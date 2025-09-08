@@ -6,8 +6,8 @@ metadata:
   namespace: openstack
 spec:
   name: magnum-quorum-three-replicas
-  vhost: "magnum"
-  pattern: ".*"
+  vhost: magnum
+  pattern: .*
   applyTo: queues
   definition:
     target-group-size: 3

@@ -10,12 +10,11 @@ metadata:
     route: nova-metadata
 spec:
   parentRefs:
-  - name: flex-gateway
-    sectionName: metadata-https
-    namespace: nginx-gateway
-  hostnames:
-  - "metadata.your.domain.tld"
+    - name: flex-gateway
+      sectionName: metadata-https
+      namespace: nginx-gateway
+  hostnames: [metadata.your.domain.tld]
   rules:
     - backendRefs:
-      - name: nova-metadata
-        port: 8775
+        - name: nova-metadata
+          port: 8775

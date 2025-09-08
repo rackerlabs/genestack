@@ -10,12 +10,11 @@ metadata:
     route: glance
 spec:
   parentRefs:
-  - name: flex-gateway
-    sectionName: glance-https
-    namespace: nginx-gateway
-  hostnames:
-  - "glance.your.domain.tld"
+    - name: flex-gateway
+      sectionName: glance-https
+      namespace: nginx-gateway
+  hostnames: [glance.your.domain.tld]
   rules:
     - backendRefs:
-      - name: glance-api
-        port: 9292
+        - name: glance-api
+          port: 9292

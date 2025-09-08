@@ -1,6 +1,6 @@
 ---
 upgrade:
-  - |
+  - |-
     When upgrading from a previous release of Genestack, if SAML Federation
     was enabled, you must update the HTTP Routes for both Keystone and
     Skyline. During the development of the SAML Federation feature,

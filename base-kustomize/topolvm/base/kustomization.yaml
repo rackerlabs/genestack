@@ -1,4 +1,4 @@
+---
 sortOptions:
   order: fifo
-resources:
-  - all.yaml
+resources: [all.yaml]

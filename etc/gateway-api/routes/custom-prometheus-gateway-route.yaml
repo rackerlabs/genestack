@@ -6,12 +6,11 @@ metadata:
   namespace: prometheus
 spec:
   parentRefs:
-  - name: flex-gateway
-    sectionName: http
-    namespace: nginx-gateway
-  hostnames:
-  - "prometheus.your.domain.tld"
+    - name: flex-gateway
+      sectionName: http
+      namespace: nginx-gateway
+  hostnames: [prometheus.your.domain.tld]
   rules:
     - backendRefs:
-      - name: kube-prometheus-stack-prometheus
-        port: 9090
+        - name: kube-prometheus-stack-prometheus
+          port: 9090

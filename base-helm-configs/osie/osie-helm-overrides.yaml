@@ -1,12 +1,13 @@
+---
 global:
   ingress:
     enabled: true
-    hostname: "cloud.example.com"
-    ingressClassName: "nginx"
+    hostname: cloud.example.com
+    ingressClassName: nginx
     annotations:
       cert-manager.io/cluster-issuer: selfsigned-issuer
       # Required by Keycloak when using Nginx ingress
-      nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+      nginx.ingress.kubernetes.io/proxy-buffer-size: 128k
     tls: true
 keycloak:
   replicaCount: 3
@@ -15,22 +16,22 @@ keycloak:
   ingress:
     hostname: auth.example.com
 smtp:
-  password: "password" # smtp password
-  user: "smptuser" # smtp user
+  password: password  # smtp password
+  user: smptuser  # smtp user
   starttls: true
   auth: true
   port: 587
-  host: "smpt.example.com" # smtp server
+  host: smpt.example.com  # smtp server
   from: support@rackspace.com
   fromDisplayName: Rackspace OpenStack Flex
 ui:
- replicaCount: 3
+  replicaCount: 3
 admin:
- replicaCount: 3
+  replicaCount: 3
 api:
- replicaCount: 3
+  replicaCount: 3
 mongodb:
-   architecture: replicaset
-   replicaCount: 3
+  architecture: replicaset
+  replicaCount: 3
 redis:
-   architecture: replication
+  architecture: replication
