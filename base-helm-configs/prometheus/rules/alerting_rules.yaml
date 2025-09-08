@@ -15,7 +15,7 @@ additionalPrometheusRulesMap:
                 This indicates a major problem building compute instances.
                 View logs and take action to resolve the build failures.
           - alert: InstancesStuckInFailureState
-            expr: min_over_time(openstack_nova_server_status{status=~"BUILD|ERROR"}[1h]) > 0
+            expr: sum(count_over_time(openstack_nova_server_status{status=~"BUILD|ERROR"}[1h])) > 0
             for: 15m
             labels:
               severity: warning
@@ -38,7 +38,7 @@ additionalPrometheusRulesMap:
                 This indicates a major problem creating images.
                 View logs and take action to resolve the build failures.
           - alert: ImagesStuckInFailureState
-            expr: min_over_time(openstack_glance_image_created_at{status="failure"}[1h]) > 0
+            expr: sum(count_over_time(openstack_glance_image_created_at{status="failure"}[1h])) > 0
             for: 15m
             labels:
               severity: warning
@@ -50,7 +50,7 @@ additionalPrometheusRulesMap:
       - name: Octavia Resource Alerts
         rules:
           - alert: LoadbalancersInErrorCritical
-            expr: count(openstack_loadbalancer_loadbalancer_status) / count(openstack_loadbalancer_loadbalancer_status{provisioning_status="ERROR"}) * 100 > 50
+            expr: count(openstack_loadbalancer_loadbalancer_status{provisioning_status="ERROR"}) / count(openstack_loadbalancer_loadbalancer_status) * 100 > 50
             labels:
               severity: critical
             annotations:
@@ -58,7 +58,7 @@ additionalPrometheusRulesMap:
               description: |
                 This likely indicates a cluster wide problem either with networking, health manager operations or building amphora vm's and needs to be investigated.
           - alert: LoadbalancersInError
-            expr: min_over_time(openstack_loadbalancer_loadbalancer_status{provisioning_status="ERROR"}[1h]) > 0
+            expr: sum(count_over_time(openstack_loadbalancer_loadbalancer_status{provisioning_status="ERROR"}[1h])) > 0
             for: 15m
             labels:
               severity: warning
