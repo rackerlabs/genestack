@@ -13,9 +13,9 @@ spec:
     - name: flex-gateway
       sectionName: ironic-https
       namespace: nginx-gateway
-    hostnames:
+  hostnames:
     - "ironic.your.domain.tld"
-    rules:
-      - backendRefs:
+  rules:
+    - backendRefs:
         - name: ironic-api
           port: 6385
