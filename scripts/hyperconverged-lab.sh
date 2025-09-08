@@ -773,7 +773,7 @@ endpoints:
     host_fqdn_override:
       public:
         tls: {}
-        host: barbican.${GATEWAY_DOMAIN}
+        host: blazar.${GATEWAY_DOMAIN}
     port:
       api:
         public: 443
