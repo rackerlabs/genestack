@@ -75,7 +75,6 @@ while getopts "i:e:x" opt; do
 done
 shift $((OPTIND-1))
 
-
 for option in "${INCLUDE_LIST[@]}"; do
   yq -i ".components.$option = true" $PWD/openstack-components.yaml
 done
