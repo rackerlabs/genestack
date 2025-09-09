@@ -186,6 +186,7 @@ nav:
                             - NGINX Gateway: infrastructure-nginx-gateway-api.md
                       - MariaDB:
                             - infrastructure-mariadb.md
+                            - mariadb-backuprestore-from-tempauth.md
                       - RabbitMQ:
                             - infrastructure-rabbitmq.md
                       - Memcached: infrastructure-memcached.md
