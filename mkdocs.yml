@@ -186,7 +186,6 @@ nav:
                             - NGINX Gateway: infrastructure-nginx-gateway-api.md
                       - MariaDB:
                             - infrastructure-mariadb.md
-                            - mariadb-backuprestore-from-tempauth.md
                       - RabbitMQ:
                             - infrastructure-rabbitmq.md
                       - Memcached: infrastructure-memcached.md
@@ -273,6 +272,7 @@ nav:
                       - Updating Kube OVN to Helm: k8s-cni-kube-ovn-helm-conversion.md
                 - MariaDB:
                       - Operations: infrastructure-mariadb-ops.md
+                      - Restore with Swift Tempauth: mariadb-backuprestore-from-tempauth.md
                 - Gateway API:
                       - Custom Routes: infrastructure-nginx-gateway-api-custom.md
                       - Rackspace Example Gateway Overview: rackspace-infrastructure-nginx-gateway-api.md
