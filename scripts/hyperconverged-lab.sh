@@ -779,6 +779,16 @@ endpoints:
         public: 443
     scheme:
       public: https
+  backup:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: freezer.${GATEWAY_DOMAIN}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
   identity:
     auth:
       admin:
@@ -790,6 +800,8 @@ endpoints:
       cinder:
         region_name: *region
       ceilometer:
+        region_name: *region
+      freezer:
         region_name: *region
       glance:
         region_name: *region
@@ -955,6 +967,7 @@ components:
   barbican: true
   blazar: true
   cinder: true
+  freezer: true
   placement: true
   nova: true
   neutron: true

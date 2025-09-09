@@ -104,6 +104,11 @@ blazar_db_password=$(generate_password 32)
 blazar_admin_password=$(generate_password 32)
 blazar_keystone_test_password=$(generate_password 32)
 blazar_keystone_service_password=$(generate_password 32)
+# freezer_rabbitmq_password=$(generate_password 64)
+freezer_db_password=$(generate_password 32)
+freezer_admin_password=$(generate_password 32)
+freezer_keystone_test_password=$(generate_password 32)
+freezer_keystone_service_password=$(generate_password 32)
 
 OUTPUT_FILE="/etc/genestack/kubesecrets.yaml"
 
@@ -741,6 +746,52 @@ metadata:
 type: Opaque
 data:
   password: $(echo -n $blazar_keystone_service_password=$ | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: freezer-rabbitmq-password
+  namespace: openstack
+type: Opaque
+data:
+  username: $(echo -n "freezer" | base64)
+  password: $(echo -n $freezer_rabbitmq_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: freezer-db-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $freezer_db_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: freezer-admin
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $freezer_admin_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: freezer-keystone-test-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $freezer_keystone_test_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: freezer-keystone-service-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $freezer_keystone_service_password=$ | base64 -w0)
 EOF
 
 rm nova_ssh_key nova_ssh_key.pub
