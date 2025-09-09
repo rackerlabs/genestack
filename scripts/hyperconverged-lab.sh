@@ -11,7 +11,11 @@ EXCLUDE_LIST=()
 function installYq() {
     export VERSION=v4.2.0
     export BINARY=yq_linux_amd64
+<<<<<<< HEAD
     wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -q -O - | tar xz && sudo mv ${BINARY} /usr/local/bin/yq
+=======
+    wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -q -O - | tar xz && mv ${BINARY} /usr/local/bin/yq
+>>>>>>> 62d4e0c... fix: Update lab script with more configurability options (#1184)
 }
 
 # Install yq locally if needed...
@@ -1006,6 +1010,7 @@ echo "Creating config for setup-openstack.sh"
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
 if [ ! -f "/etc/genestack/openstack-components.yaml" ]; then
+<<<<<<< HEAD
 cat > /etc/genestack/openstack-components.yaml <<EOF
 components:
   keystone: true
@@ -1023,6 +1028,9 @@ components:
   gnocchi: false
   skyline: true
 EOF
+=======
+  echo -e "$OS_CONFIG" > /etc/genestack/openstack-components.yaml
+>>>>>>> 62d4e0c... fix: Update lab script with more configurability options (#1184)
 fi
 EOC
 
@@ -1074,6 +1082,8 @@ fi
 HERE
 EOC
 
+# Extra operations...
+install_k9s() {
 echo "Installing k9s"
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} << 'EOC'
 set -e
@@ -1088,7 +1098,9 @@ if [ ! -d ~/.kube ]; then
   sudo chown $(id -u):$(id -g) ~/.kube/config
 fi
 EOC
+}
 
+install_preconf_octavia() {
 echo "Installing Octavia preconf"
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} << 'EOC'
 set -e
@@ -1112,6 +1124,13 @@ ANSIBLE_SSH_PIPELINING=0 ansible-playbook /opt/genestack/ansible/playbooks/octav
 echo "Installing Octavia"
 sudo /opt/genestack/bin/install-octavia.sh
 EOC
+}
+
+if [[ "$RUN_EXTRAS" -eq 1 ]]; then
+  echo "Running extra operations..."
+  install_k9s
+  install_preconf_octavia
+fi
 
 { cat | tee /tmp/output.txt; } <<EOF
 The lab is now ready for use and took ${SECONDS} seconds to complete.
