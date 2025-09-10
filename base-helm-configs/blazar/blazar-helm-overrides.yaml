@@ -2,6 +2,10 @@
 endpoints:
   identity:
     auth:
+      admin:
+        region_name: RegionOne
+      blazar:
+        region_name: RegionOne
       service:
         region_name: RegionOne
       test:

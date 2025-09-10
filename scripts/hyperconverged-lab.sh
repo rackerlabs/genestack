@@ -562,12 +562,6 @@ endpoints:
         public: 443
     scheme:
       public: https
-  identity:
-    auth:
-      admin:
-        region_name: *region
-      blazar:
-        region_name: *region
 EOF
 fi
 
