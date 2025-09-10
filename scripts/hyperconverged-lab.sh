@@ -4,6 +4,84 @@
 set -o pipefail
 set -e
 SECONDS=0
+RUN_EXTRAS=0
+INCLUDE_LIST=()
+EXCLUDE_LIST=()
+
+function installYq() {
+    export VERSION=v4.2.0
+    export BINARY=yq_linux_amd64
+    wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -q -O - | tar xz && sudo mv ${BINARY} /usr/local/bin/yq
+}
+
+# Install yq locally if needed...
+if ! yq --version 2> /dev/null; then
+  echo "yq is not installed. Attempting to install yq"
+  installYq
+fi
+
+
+# Default components file
+##...needed until default config is upstream...
+OS_CONFIG="
+components:
+  keystone: true
+  glance: true
+  heat: false
+  barbican: false
+  blazar: false
+  cinder: true
+  placement: true
+  nova: true
+  neutron: true
+  magnum: false
+  octavia: false
+  masakari: false
+  ceilometer: false
+  gnocchi: false
+  skyline: true
+"
+echo -e "$OS_CONFIG" > $PWD/openstack-components.yaml
+
+while getopts "i:e:x" opt; do
+  case $opt in
+    x)
+      RUN_EXTRAS=1
+      ;;
+    i)
+      old_IFS="$IFS"
+      IFS=','
+      read -r -a INCLUDE_LIST <<< "$OPTARG"
+      IFS="$old_IFS"
+      ;;
+    e)
+      old_IFS="$IFS"
+      IFS=','
+      read -r -a EXCLUDE_LIST <<< "$OPTARG"
+      IFS="$old_IFS"
+      ;;
+    *)
+      echo "Usage: $0 [-i <list,of,services,to,include>]
+      [-e <ist,of,services,to,exclude>]
+      -x <flag only will run extra operations>\n"
+      echo "View the openstack-components.yaml for the services available to configure."
+      exit 1
+      ;;
+    \?) # Handle invalid options
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+  esac
+done
+shift $((OPTIND-1))
+
+for option in "${INCLUDE_LIST[@]}"; do
+  yq -i ".components.$option = true" $PWD/openstack-components.yaml
+done
+for option in "${EXCLUDE_LIST[@]}"; do
+    yq -i ".components.$option = false" $PWD/openstack-components.yaml
+done
+
 if [ -z "${ACME_EMAIL}" ]; then
   read -rp "Enter a valid email address for use with ACME, press enter to skip: " ACME_EMAIL
   export ACME_EMAIL="${ACME_EMAIL:-}"
