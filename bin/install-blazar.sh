@@ -23,7 +23,7 @@ HELM_CMD="helm upgrade --install blazar openstack-helm/blazar --version ${BLAZAR
     --namespace=openstack \
     --timeout 120m"
 
-HELM_CMD+=" -f ${BASE_OVERRIDES} -f ${GLOBAL_OVERRIDES=}"
+HELM_CMD+=" -f ${BASE_OVERRIDES}"
 
 # Append YAML files from the directories
 for dir in "$GLOBAL_OVERRIDES_DIR" "$SERVICE_CONFIG_DIR"; do
