@@ -536,6 +536,41 @@ conf:
 EOF
 fi
 
+if [ ! -f "/etc/genestack/helm-configs/blazar/blazar-helm-overrides.yaml" ]; then
+cat > /etc/genestack/helm-configs/blazar/blazar-helm-overrides.yaml <<EOF
+---
+pod:
+  resources:
+    enabled: false
+
+conf:
+  blazar_api_uwsgi:
+    uwsgi:
+      processes: 1
+  blazar:
+    oslo_messaging_notifications:
+      driver: noop
+
+endpoints:
+  reservation:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: blazar.${GATEWAY_DOMAIN}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  identity:
+    auth:
+      admin:
+        region_name: *region
+      blazar:
+        region_name: *region
+EOF
+fi
+
 if [ ! -f "/etc/genestack/helm-configs/cinder/cinder-helm-overrides.yaml" ]; then
 cat > /etc/genestack/helm-configs/cinder/cinder-helm-overrides.yaml <<EOF
 ---
@@ -847,23 +882,11 @@ endpoints:
         public: 443
     scheme:
       public: https
-  reservation:
-    host_fqdn_override:
-      public:
-        tls: {}
-        host: blazar.${GATEWAY_DOMAIN}
-    port:
-      api:
-        public: 443
-    scheme:
-      public: https
   identity:
     auth:
       admin:
         region_name: *region
       barbican:
-        region_name: *region
-      blazar:
         region_name: *region
       cinder:
         region_name: *region

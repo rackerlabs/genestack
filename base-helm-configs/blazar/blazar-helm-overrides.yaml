@@ -1,14 +1,4 @@
 ---
-network:
-  api:
-    node_port:
-      enabled: false
-      port: 30788
-  manager:
-    node_port:
-      enabled: false
-      port: 30789
-
 endpoints:
   identity:
     auth:
