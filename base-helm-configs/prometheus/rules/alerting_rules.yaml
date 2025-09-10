@@ -15,8 +15,8 @@ additionalPrometheusRulesMap:
                 This indicates a major problem building compute instances.
                 View logs and take action to resolve the build failures.
           - alert: InstancesStuckInFailureState
-            expr: count(openstack_nova_server_status{status=~"BUILD|ERROR"}) > 0
-            for: 90m
+            expr: sum(count_over_time(openstack_nova_server_status{status=~"BUILD|ERROR"}[1h])) > 0
+            for: 15m
             labels:
               severity: warning
             annotations:
@@ -38,8 +38,8 @@ additionalPrometheusRulesMap:
                 This indicates a major problem creating images.
                 View logs and take action to resolve the build failures.
           - alert: ImagesStuckInFailureState
-            expr: count(openstack_glance_image_created_at{status="failure"}) > 0
-            for: 90m
+            expr: sum(count_over_time(openstack_glance_image_created_at{status="failure"}[1h])) > 0
+            for: 15m
             labels:
               severity: warning
             annotations:
@@ -49,64 +49,23 @@ additionalPrometheusRulesMap:
                 that need to be cleaned up.
       - name: Octavia Resource Alerts
         rules:
+          - alert: LoadbalancersInErrorCritical
+            expr: count(openstack_loadbalancer_loadbalancer_status{provisioning_status="ERROR"}) / count(openstack_loadbalancer_loadbalancer_status) * 100 > 50
+            labels:
+              severity: critical
+            annotations:
+              summary: "More than 50% of the loadbalancers are in error state"
+              description: |
+                This likely indicates a cluster wide problem either with networking, health manager operations or building amphora vm's and needs to be investigated.
           - alert: LoadbalancersInError
-            expr: count(openstack_loadbalancer_loadbalancer_status{provisioning_status="ERROR"}) > 0
-            for: 90m
-            labels:
-              severity: critical
-            annotations:
-              summary: "Loadbalancer stuck in error state for a prolonged period"
-              description: |
-                This may indicate a potential problem with failover and/or health manager services.
-                This could also indicate other problems building load balancers in general.
-  database-alerts:
-    groups:
-      - name: Mysql Alerts
-        rules:
-          - alert: MysqlDown
-            expr: mysql_up == 0
-            for: 0m
-            labels:
-              severity: critical
-            annotations:
-              summary: "MariaDB down (instance {{ $labels.instance }})"
-              description: |
-                MariaDB instance is down on {{ $labels.instance }}
-                VALUE = {{ $value }}
-                LABELS = {{ $labels }}
-          - alert: MysqlTooManyConnections(>80%)
-            expr: max_over_time(mysql_global_status_threads_connected[1m]) / mysql_global_variables_max_connections * 100 > 90
-            for: 2m
+            expr: sum(count_over_time(openstack_loadbalancer_loadbalancer_status{provisioning_status="ERROR"}[1h])) > 0
+            for: 15m
             labels:
               severity: warning
             annotations:
-              summary: "Database too many connections (> 90%) (instance {{ $labels.instance }})"
+              summary: "Loadbalancers stuck in error state for a prolonged period"
               description: |
-                More than 90% of MySQL connections are in use on {{ $labels.instance }}
-                VALUE = {{ $value }}
-                LABELS = {{ $labels }}
-          - alert: MysqlSlowQueries
-            expr: increase(mysql_global_status_slow_queries[1m]) > 0
-            for: 2m
-            labels:
-              severity: warning
-            annotations:
-              summary: "MySQL slow queries (instance {{ $labels.instance }})"
-              description: |
-                MySQL server has some new slow queries.
-                VALUE = {{ $value }}
-                LABELS = {{ $labels }}
-          - alert: MysqlRestarted
-            expr: mysql_global_status_uptime < 60
-            for: 0m
-            labels:
-              severity: info
-            annotations:
-              summary: "MySQL restarted (instance {{ $labels.instance }})"
-              description: |
-                MySQL has just been restarted, less than one minute ago on {{ $labels.instance }}.
-                VALUE = {{ $value }}
-                LABELS = {{ $labels }}
+                This could indicate problems building load balancers and should be investigated.
   blackbox-alerts:
     groups:
       - name: Blackbox Alerts
