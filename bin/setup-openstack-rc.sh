@@ -2,7 +2,7 @@
 set -e
 
 function installYq() {
-    export VERSION=v4.2.0
+    export VERSION=v4.47.2
     export BINARY=yq_linux_amd64
     wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -q -O - | tar xz && mv ${BINARY} /usr/local/bin/yq
 }
