@@ -1025,7 +1025,25 @@ echo "Creating config for setup-openstack.sh"
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
 if [ ! -f "/etc/genestack/openstack-components.yaml" ]; then
-  echo -e "$OS_CONFIG" > /etc/genestack/openstack-components.yaml
+cat > /etc/genestack/openstack-components.yaml <<EOF
+components:
+  keystone: true
+  glance: true
+  heat: true
+  barbican: true
+  blazar: true
+  cinder: true
+  placement: true
+  nova: true
+  neutron: true
+  magnum: true
+  octavia: false
+  masakari: false
+  ceilometer: false
+  gnocchi: false
+  cloudkitty: false
+  skyline: true
+EOF
 fi
 EOC
 

@@ -60,6 +60,7 @@ EOF
     prompt_component "masakari" "Masakari (Instance High Availability)"
     prompt_component "ceilometer" "Ceilometer (Telemetry)"
     prompt_component "gnocchi" "Gnocchi (Time Series Database)"
+    prompt_component "cloudkitty" "Cloudkitty (Rating and Chargeback)"
     prompt_component "skyline" "Skyline (Dashboard)"
 fi
 
@@ -80,6 +81,7 @@ is_component_enabled "octavia" && runTrackErator /opt/genestack/bin/install-octa
 is_component_enabled "masakari" && runTrackErator /opt/genestack/bin/install-masakari.sh
 is_component_enabled "ceilometer" && runTrackErator /opt/genestack/bin/install-ceilometer.sh
 is_component_enabled "gnocchi" && runTrackErator /opt/genestack/bin/install-gnocchi.sh
+is_component_enabled "cloudkitty" && runTrackErator /opt/genestack/bin/install-cloudkitty.sh
 
 waitErator
 
