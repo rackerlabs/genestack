@@ -1,5 +1,6 @@
 charts:
   barbican: 2024.2.208+13651f45-628a320c
+  blazar: 2025.1.1+4172872b0
   ceilometer: 2024.2.115+13651f45-628a320c
   cinder: 2024.2.409+13651f45-628a320c
   envoy: v1.4.2
