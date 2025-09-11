@@ -1,13 +1,5 @@
 ---
 endpoints:
-  identity:
-    auth:
-      admin:
-        region_name: RegionOne
-      blazar:
-        region_name: RegionOne
-      test:
-        region_name: RegionOne
   reservation:
     hosts:
       public: blazar-api
