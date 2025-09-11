@@ -550,18 +550,6 @@ conf:
   blazar:
     oslo_messaging_notifications:
       driver: noop
-
-endpoints:
-  reservation:
-    host_fqdn_override:
-      public:
-        tls: {}
-        host: blazar.${GATEWAY_DOMAIN}
-    port:
-      api:
-        public: 443
-    scheme:
-      public: https
 EOF
 fi
 
@@ -876,11 +864,23 @@ endpoints:
         public: 443
     scheme:
       public: https
+  reservation:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: blazar.${GATEWAY_DOMAIN}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
   identity:
     auth:
       admin:
         region_name: *region
       barbican:
+        region_name: *region
+      blazar:
         region_name: *region
       cinder:
         region_name: *region
