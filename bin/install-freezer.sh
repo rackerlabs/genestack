@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
+GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 GLOBAL_OVERRIDES="/etc/genestack/helm-configs/global_overrides/endpoints.yaml"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/freezer"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/freezer/freezer-helm-overrides.yaml"
@@ -9,11 +9,11 @@ HELM_CMD="helm upgrade --install freezer openstack-helm/freezer \
     --namespace=openstack \
     --timeout 120m"
 
-HELM_CMD+=" -f ${BASE_OVERRIDES} -f ${GLOBAL_OVERRIDES=}"
+HELM_CMD+=" -f ${BASE_OVERRIDES}"
 
 # Append YAML files from the directories
-#for dir in "$GLOBAL_OVERRIDES_DIR" "$SERVICE_CONFIG_DIR"; do
-for dir in "$SERVICE_CONFIG_DIR"; do
+# for dir in "$SERVICE_CONFIG_DIR"; do
+for dir in "$GLOBAL_OVERRIDES_DIR" "$SERVICE_CONFIG_DIR"; do
     if compgen -G "${dir}/*.yaml" > /dev/null; then
         for yaml_file in "${dir}"/*.yaml; do
             HELM_CMD+=" -f ${yaml_file}"
