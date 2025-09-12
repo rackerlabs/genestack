@@ -4,6 +4,7 @@ charts:
   cinder: 2024.2.409+13651f45-628a320c
   envoy: v1.4.2
   fluentbit: 0.52.0
+  freezer: 2025.1.1+a4df9c709
   glance: 2024.2.396+13651f45-628a320c
   gnocchi: 2024.2.50+628a320c
   grafana: 9.2.2
