@@ -4,7 +4,7 @@ GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/octavia"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/octavia/octavia-helm-overrides.yaml"
 
-HELM_CMD="helm upgrade --install octavia openstack-helm/octavia --version 2024.2.30+13651f45-628a320c \
+HELM_CMD="helm upgrade --install octavia openstack-helm/octavia --version 2025.1.15+f17a395da \
     --namespace=openstack \
     --timeout 120m"
 
@@ -25,6 +25,7 @@ HELM_CMD+=" --set endpoints.identity.auth.admin.password=\"\$(kubectl --namespac
 HELM_CMD+=" --set endpoints.identity.auth.octavia.password=\"\$(kubectl --namespace openstack get secret octavia-admin -o jsonpath='{.data.password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_db.auth.admin.password=\"\$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_db.auth.octavia.password=\"\$(kubectl --namespace openstack get secret octavia-db-password -o jsonpath='{.data.password}' | base64 -d)\""
+HELM_CMD+=" --set endpoints.oslo_db_persistence.auth.octavia.password=\"\$(kubectl --namespace openstack get secret octavia-db-password -o jsonpath='{.data.password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_messaging.auth.admin.password=\"\$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_messaging.auth.octavia.password=\"\$(kubectl --namespace openstack get secret octavia-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_cache.auth.memcache_secret_key=\"\$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
