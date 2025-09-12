@@ -1059,24 +1059,6 @@ ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking
 set -e
 if [ ! -f "/etc/genestack/openstack-components.yaml" ]; then
     cat > /etc/genestack/openstack-components.yaml <<EOF
-components:
-  keystone: true
-  glance: true
-  heat: true
-  barbican: true
-  blazar: true
-  cinder: true
-  freezer: true
-  placement: true
-  nova: true
-  neutron: true
-  magnum: true
-  octavia: false
-  masakari: false
-  ceilometer: false
-  gnocchi: false
-  skyline: true
-EOF
 fi
 EOC
 
