@@ -740,15 +740,6 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: blazar-keystone-service-password
-  namespace: openstack
-type: Opaque
-data:
-  password: $(echo -n $blazar_keystone_service_password=$ | base64 -w0)
----
-apiVersion: v1
-kind: Secret
-metadata:
   name: freezer-db-password
   namespace: openstack
 type: Opaque
