@@ -14,7 +14,7 @@ images:
     nova_cell_setup: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
     nova_cell_setup_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     nova_compute: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_compute_ironic: "docker.io/kolla/ubuntu-source-nova-compute-ironic:wallaby"
+    nova_compute_ironic: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
     nova_compute_ssh: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
     nova_conductor: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
     nova_db_sync: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
@@ -362,6 +362,18 @@ pod:
           - name: metadata-api-static-vendordata
             configMap:
               name: static-vendor-data
+    nova_compute_ironic:
+      init_container: null
+      nova_compute_ironic:
+        volumeMounts:
+          - name: metadata-api-static-vendordata
+            mountPath: /etc/nova/vendor_data.json
+            subPath: vendor_data.json
+            readOnly: true
+        volumes:
+          - name: metadata-api-static-vendordata
+            configMap:
+              name: static-vendor-data
     nova_api_metadata:
       init_container: null
       nova_api_metadata:
@@ -391,3 +403,4 @@ manifests:
   service_ingress_osapi: false
   service_ingress_spiceproxy: false
   service_spiceproxy: false
+  statefulset_compute_ironic: false

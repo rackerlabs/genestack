@@ -222,6 +222,7 @@ nav:
                                   - PostgreSQL: infrastructure-postgresql.md
                                   - Gnocchi: openstack-gnocchi.md
                                   - Ceilometer: openstack-ceilometer.md
+                            - Blazar: openstack-blazar.md
                 - Monitoring:
                       - Monitoring Overview: prometheus-monitoring-overview.md
                       - Getting Started: monitoring-getting-started.md
@@ -244,6 +245,7 @@ nav:
                             - alertmanager-pagerduty.md
     - Operational Guide:
           - Genestack:
+                - Genestack Structure and Files: genestack-structure-and-files.md
                 - Supporting multi-region: multi-region-support.md
                 - Sync Keystone Fernet Keys: sync-fernet-keys.md
                 - Running Upgrades: genestack-upgrade.md
@@ -270,6 +272,7 @@ nav:
                       - Updating Kube OVN to Helm: k8s-cni-kube-ovn-helm-conversion.md
                 - MariaDB:
                       - Operations: infrastructure-mariadb-ops.md
+                      - Restore with Swift Tempauth: mariadb-backuprestore-from-tempauth.md
                 - Gateway API:
                       - Custom Routes: infrastructure-nginx-gateway-api-custom.md
                       - Rackspace Example Gateway Overview: rackspace-infrastructure-nginx-gateway-api.md
@@ -316,6 +319,9 @@ nav:
                 - Override Public Endpoint fqdn for service catalog: openstack-override-public-endpoint-fqdn.md
                 - Service Overrides: openstack-service-overrides.md
                 - Resource and Project Lookups: openstack-resource-lookups.md
+                - Reservation:
+                      - Blazar Reservations Creation: openstack-blazar.md
+
           - Working locally With Docs: mkdocs-howto.md
     - Cloud Onboarding:
           - Cloud Onboarding Welcome: cloud-onboarding-welcome.md

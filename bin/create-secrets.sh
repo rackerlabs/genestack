@@ -99,6 +99,10 @@ grafana_secret=$(generate_password 32)
 grafana_root_secret=$(generate_password 32)
 ironic_db_password=$(generate_password 32)
 ironic_rabbitmq_password=$(generate_password 32)
+blazar_rabbitmq_password=$(generate_password 64)
+blazar_db_password=$(generate_password 32)
+blazar_admin_password=$(generate_password 32)
+blazar_keystone_test_password=$(generate_password 32)
 
 OUTPUT_FILE="/etc/genestack/kubesecrets.yaml"
 
@@ -690,6 +694,43 @@ data:
   ETCDCTL_CACERT: $(echo -n "/etc/ssl/etcd/ssl/ca.pem" | base64 -w0)
   ETCDCTL_CERT: $(echo -n "" | base64)
   ETCDCTL_KEY: $(echo -n "" | base64)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: blazar-rabbitmq-password
+  namespace: openstack
+type: Opaque
+data:
+  username: $(echo -n "blazar" | base64)
+  password: $(echo -n $blazar_rabbitmq_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: blazar-db-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $blazar_db_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: blazar-admin
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $blazar_admin_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: blazar-keystone-test-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $blazar_keystone_test_password | base64 -w0)
 EOF
 
 rm nova_ssh_key nova_ssh_key.pub

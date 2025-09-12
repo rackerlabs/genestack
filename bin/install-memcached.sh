@@ -1,11 +1,26 @@
 #!/bin/bash
 # shellcheck disable=SC2124,SC2145,SC2294
-
 GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/memcached"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/memcached/memcached-helm-overrides.yaml"
 
+# Read memcached version from helm-chart-versions.yaml
+VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
+if [ ! -f "$VERSION_FILE" ]; then
+    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE"
+    exit 1
+fi
+
+# Extract memcached version using grep and sed
+MEMCACHED_VERSION=$(grep 'memcached:' "$VERSION_FILE" | sed 's/.*memcached: *//')
+
+if [ -z "$MEMCACHED_VERSION" ]; then
+    echo "Error: Could not extract memcached version from $VERSION_FILE"
+    exit 1
+fi
+
 HELM_CMD="helm upgrade --install memcached oci://registry-1.docker.io/bitnamicharts/memcached \
+    --version ${MEMCACHED_VERSION} \
     --namespace=openstack \
     --timeout 120m \
     --post-renderer /etc/genestack/kustomize/kustomize.sh \

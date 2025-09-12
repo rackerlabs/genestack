@@ -53,6 +53,8 @@ dependencies:
       jobs: null
     ovn_metadata:
       pod: []
+    ovn_vpn_agent:
+      pod: []
     ovs_agent:
       jobs: null
     rpc_server:
@@ -167,8 +169,21 @@ conf:
       router_scheduler_driver: neutron.scheduler.l3_agent_scheduler.AZLeastRoutersScheduler
       rpc_state_report_workers: 2
       rpc_workers: 2
-      service_plugins: "ovn-router,qos,metering,trunk,segments"
+      # NOTE(cloudnull): in 2025.1 we can add firewall_v2
+      service_plugins: "ovn-router,ovn-vpnaas,qos,metering,trunk,segments"
+    service_providers:
+      service_provider:
+        type: multistring
+        values:
+          - "VPN:strongswan:neutron_vpnaas.services.vpn.service_drivers.ovn_ipsec.IPsecOvnVPNDriver:default"
+          # - "FIREWALL_V2:fwaas_db:neutron_fwaas.services.firewall.service_drivers.ovn.firewall_l3_driver.OVNFwaasDriver:default"
+    fwaas:
+      agent_version: v2
+      driver: neutron_fwaas.services.firewall.service_drivers.ovn.firewall_l3_driver.OVNFwaasDriver
+      # NOTE(cloudnull): in 2025.1 we can enable this
+      enabled: False
     agent:
+      extensions: vpnaas
       availability_zone: az1
     database:
       connection_debug: 0
@@ -225,11 +240,17 @@ conf:
       metadata_workers: 2
     ovs:
       ovsdb_connection: "tcp:127.0.0.1:6640"
+  ovn_vpn_agent:
+    ovs:
+      ovsdb_connection: "tcp:127.0.0.1:6640"
   plugins:
     ml2_conf:
       agent:
         availability_zone: az1
+        # NOTE(cloudnull): in 2025.1 we can add fwaas_v2
         extensions: "fip_qos,gateway_ip_qos"
+      fwaas:
+        firewall_l2_driver: noop
       ml2:
         extension_drivers: "port_security,qos"
         mechanism_drivers: ovn
@@ -322,6 +343,7 @@ manifests:
   daemonset_metadata_agent: false
   daemonset_ovn_metadata_agent: true
   daemonset_ovs_agent: false
+  daemonset_ovn_vpn_agent: true
   ingress_server: false
   job_db_init: false
   job_rabbit_init: false
