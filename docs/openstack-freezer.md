@@ -1,4 +1,4 @@
-# Deploy Blazar
+# Deploy Freezer
 
 Freezer is a disaster recovery and backup-as-a-service component for OpenStack.
 It provides a way to back up various resources, such as virtual machine instances,
@@ -31,7 +31,7 @@ This document outlines the deployment of OpenStack Freezer using Genestack.
 
 ## Run the package deployment
 
-!!! example "Run the Blazar deployment Script `/opt/genestack/bin/install-freezer.sh`"
+!!! example "Run the Freezer deployment Script `/opt/genestack/bin/install-freezer.sh`"
 
     ``` shell
     --8<-- "bin/install-freezer.sh"
