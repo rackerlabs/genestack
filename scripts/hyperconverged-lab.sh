@@ -11,7 +11,7 @@ EXCLUDE_LIST=()
 function installYq() {
     export VERSION=v4.2.0
     export BINARY=yq_linux_amd64
-    wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -q -O - | tar xz && mv ${BINARY} /usr/local/bin/yq
+    wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -q -O - | tar xz && sudo mv ${BINARY} /usr/local/bin/yq
 }
 
 # Install yq locally if needed...
@@ -531,6 +531,23 @@ conf:
     uwsgi:
       processes: 1
   barbican:
+    oslo_messaging_notifications:
+      driver: noop
+EOF
+fi
+
+if [ ! -f "/etc/genestack/helm-configs/blazar/blazar-helm-overrides.yaml" ]; then
+cat > /etc/genestack/helm-configs/blazar/blazar-helm-overrides.yaml <<EOF
+---
+pod:
+  resources:
+    enabled: false
+
+conf:
+  blazar_api_uwsgi:
+    uwsgi:
+      processes: 1
+  blazar:
     oslo_messaging_notifications:
       driver: noop
 EOF

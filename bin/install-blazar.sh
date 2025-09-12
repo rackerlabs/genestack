@@ -23,7 +23,7 @@ HELM_CMD="helm upgrade --install blazar openstack-helm/blazar --version ${BLAZAR
     --namespace=openstack \
     --timeout 120m"
 
-HELM_CMD+=" -f ${BASE_OVERRIDES} -f ${GLOBAL_OVERRIDES=}"
+HELM_CMD+=" -f ${BASE_OVERRIDES}"
 
 # Append YAML files from the directories
 for dir in "$GLOBAL_OVERRIDES_DIR" "$SERVICE_CONFIG_DIR"; do
@@ -36,7 +36,6 @@ done
 
 HELM_CMD+=" --set endpoints.identity.auth.admin.password=\"$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.identity.auth.blazar.password=\"$(kubectl --namespace openstack get secret blazar-admin -o jsonpath='{.data.password}' | base64 -d)\""
-HELM_CMD+=" --set endpoints.identity.auth.service.password=\"$(kubectl --namespace openstack get secret blazar-keystone-service-password -o jsonpath='{.data.password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.identity.auth.test.password=\"$(kubectl --namespace openstack get secret blazar-keystone-test-password -o jsonpath='{.data.password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_db.auth.admin.password=\"$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_db.auth.blazar.password=\"$(kubectl --namespace openstack get secret blazar-db-password -o jsonpath='{.data.password}' | base64 -d)\""

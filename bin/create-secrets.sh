@@ -104,7 +104,6 @@ blazar_db_password=$(generate_password 32)
 blazar_admin_password=$(generate_password 32)
 blazar_keystone_test_password=$(generate_password 32)
 blazar_keystone_service_password=$(generate_password 32)
-# freezer_rabbitmq_password=$(generate_password 64)
 freezer_db_password=$(generate_password 32)
 freezer_admin_password=$(generate_password 32)
 freezer_keystone_test_password=$(generate_password 32)
@@ -746,16 +745,6 @@ metadata:
 type: Opaque
 data:
   password: $(echo -n $blazar_keystone_service_password=$ | base64 -w0)
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: freezer-rabbitmq-password
-  namespace: openstack
-type: Opaque
-data:
-  username: $(echo -n "freezer" | base64)
-  password: $(echo -n $freezer_rabbitmq_password | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret
