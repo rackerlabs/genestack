@@ -4,14 +4,14 @@ GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/freezer"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/freezer/freezer-helm-overrides.yaml"
 
-# Read blazar version from helm-chart-versions.yaml
+# Read freezer version from helm-chart-versions.yaml
 VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
 if [ ! -f "$VERSION_FILE" ]; then
     echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE"
     exit 1
 fi
 
-# Extract blazar version using grep and sed
+# Extract freezer version using grep and sed
 FREEZER_VERSION=$(grep 'freezer:' "$VERSION_FILE" | sed 's/.*freezer: *//')
 
 if [ -z "$FREEZER_VERSION" ]; then
