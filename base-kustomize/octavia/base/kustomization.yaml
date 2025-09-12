@@ -6,9 +6,6 @@ images:
   - name: image-kubernetes-entrypoint-init
     newName: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint
     newTag: latest
-  - name: image-octavia-ovn
-    newName: ghcr.io/rackerlabs/genestack-images/octavia
-    newTag: 2024.1-latest
 
 resources:
   - octavia-mariadb-database.yaml
