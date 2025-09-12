@@ -888,6 +888,10 @@ endpoints:
     auth:
       admin:
         region_name: *region
+      service:
+        region_name: RegionOne
+      test:
+        region_name: RegionOne
       barbican:
         region_name: *region
       blazar:
