@@ -1,0 +1,7 @@
+---
+sortOptions:
+  order: fifo
+resources:
+  - freezer-mariadb-database.yaml
+  - hpa-freezer-api.yaml
+  - all.yaml

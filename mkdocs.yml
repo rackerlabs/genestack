@@ -223,6 +223,7 @@ nav:
                                   - Gnocchi: openstack-gnocchi.md
                                   - Ceilometer: openstack-ceilometer.md
                             - Blazar: openstack-blazar.md
+                            - Freezer: openstack-freezer.md
                 - Monitoring:
                       - Monitoring Overview: prometheus-monitoring-overview.md
                       - Getting Started: monitoring-getting-started.md
@@ -321,6 +322,8 @@ nav:
                 - Resource and Project Lookups: openstack-resource-lookups.md
                 - Reservation:
                       - Blazar Reservations Creation: openstack-blazar.md
+                - Backup Restore:
+                      - Freezer Backup Restore Creation: openstack-freezer.md
 
           - Working locally With Docs: mkdocs-howto.md
     - Cloud Onboarding:

@@ -315,6 +315,9 @@
     - name: Install cinder
       command: /opt/genestack/bin/install-cinder.sh
 
+    - name: Install freezer
+      command: /opt/genestack/bin/install-freezer.sh
+
     - name: Install placement
       command: /opt/genestack/bin/install-placement.sh
 

@@ -874,10 +874,24 @@ endpoints:
         public: 443
     scheme:
       public: https
+  backup:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: freezer.${GATEWAY_DOMAIN}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
   identity:
     auth:
       admin:
         region_name: *region
+      service:
+        region_name: RegionOne
+      test:
+        region_name: RegionOne
       barbican:
         region_name: *region
       blazar:
@@ -885,6 +899,8 @@ endpoints:
       cinder:
         region_name: *region
       ceilometer:
+        region_name: *region
+      freezer:
         region_name: *region
       glance:
         region_name: *region
@@ -1042,7 +1058,7 @@ echo "Creating config for setup-openstack.sh"
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
 if [ ! -f "/etc/genestack/openstack-components.yaml" ]; then
-  echo -e "$OS_CONFIG" > /etc/genestack/openstack-components.yaml
+    echo -e "$OS_CONFIG" > /etc/genestack/openstack-components.yaml
 fi
 EOC
 
