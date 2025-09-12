@@ -1,17 +1,4 @@
 ---
-network:
-  api:
-    node_port:
-      enabled: false
-      port: 9090
-
-endpoints:
-  identity:
-    auth:
-      service:
-        region_name: RegionOne
-      test:
-        region_name: RegionOne
   backup:
     hosts:
       public: freezer-api
