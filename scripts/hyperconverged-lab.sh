@@ -1059,6 +1059,7 @@ ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking
 set -e
 if [ ! -f "/etc/genestack/openstack-components.yaml" ]; then
     echo -e "$OS_CONFIG" > /etc/genestack/openstack-components.yaml
+fi
 EOC
 
 # Run Genestack Infrastucture/OpenStack Setup
