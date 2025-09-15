@@ -1,4 +1,5 @@
 ---
+endpoints:
   backup:
     hosts:
       public: freezer-api
