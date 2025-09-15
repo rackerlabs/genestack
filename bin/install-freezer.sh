@@ -40,11 +40,8 @@ HELM_CMD+=" --set endpoints.identity.auth.service.password=\"$(kubectl --namespa
 HELM_CMD+=" --set endpoints.identity.auth.test.password=\"$(kubectl --namespace openstack get secret freezer-keystone-test-password -o jsonpath='{.data.password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_db.auth.admin.password=\"$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_db.auth.freezer.password=\"$(kubectl --namespace openstack get secret freezer-db-password -o jsonpath='{.data.password}' | base64 -d)\""
-# HELM_CMD+=" --set endpoints.oslo_messaging.auth.admin.password=\"$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)\""
-# HELM_CMD+=" --set endpoints.oslo_messaging.auth.freezer.password=\"$(kubectl --namespace openstack get secret freezer-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_cache.auth.memcache_secret_key=\"$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
 HELM_CMD+=" --set conf.freezer.keystone_authtoken.memcache_secret_key=\"$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
-#HELM_CMD+=" --set conf.freezer.physical_host_plugin.freezer_password=\"$(kubectl --namespace openstack get secret freezer-keystone-service-password -o jsonpath='{.data.password}' | base64 -d)\""
 
 
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
