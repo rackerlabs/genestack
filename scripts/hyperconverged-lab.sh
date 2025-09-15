@@ -31,6 +31,7 @@ components:
   barbican: false
   blazar: false
   cinder: true
+  freezer: true
   placement: true
   nova: true
   neutron: true
@@ -889,9 +890,9 @@ endpoints:
       admin:
         region_name: *region
       service:
-        region_name: RegionOne
+        region_name: *region
       test:
-        region_name: RegionOne
+        region_name: *region
       barbican:
         region_name: *region
       blazar:
@@ -1058,7 +1059,7 @@ echo "Creating config for setup-openstack.sh"
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
 if [ ! -f "/etc/genestack/openstack-components.yaml" ]; then
-    echo -e "$OS_CONFIG" > /etc/genestack/openstack-components.yaml
+  echo -e "$OS_CONFIG" > /etc/genestack/openstack-components.yaml
 fi
 EOC
 
