@@ -57,7 +57,6 @@ _host_distro_packages:
   - nvme-cli
   - open-iscsi
   - rsync
-  - software-properties-common
   - sysstat
   - systemd-timesyncd
   - time
