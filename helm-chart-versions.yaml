@@ -27,4 +27,6 @@ charts:
   placement: 2024.2.62+13651f45-628a320c
   postgres-operator: 1.12.2
   prometheus: 70.4.2
-  redis-operator: 0.21.0
+  redis-operator: 0.22.0
+  redis-replication: 0.16.8
+  redis-sentinel: 0.16.9

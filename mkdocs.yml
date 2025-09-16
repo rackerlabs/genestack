@@ -189,6 +189,7 @@ nav:
                       - RabbitMQ:
                             - infrastructure-rabbitmq.md
                       - Memcached: infrastructure-memcached.md
+                      - Redis: infrastructure-redis.md
                       - Libvirt: infrastructure-libvirt.md
                       - OVN: infrastructure-ovn-setup.md
                       - FluentBit: infrastructure-fluentbit.md
