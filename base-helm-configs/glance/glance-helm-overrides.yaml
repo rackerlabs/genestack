@@ -62,6 +62,7 @@ conf:
       # enabled_backends: rxt_swift:swift
       cinder_use_multipath: true
       cinder_enforce_multipath: false
+      show_image_direct_url: false
     oslo_middleware:
       enable_proxy_headers_parsing: true
     keystone_authtoken:
@@ -122,6 +123,9 @@ conf:
     "default": "role:admin or role:glance_admin"
     "context_is_admin": "role:admin or role:glance_admin"
     "publicize_image": "role:glance_admin"
+    "communitize_image": "role:glance_admin"
+    "download_image": "role:service or role:glance_admin or rule:context_is_admin or rule:service_api or (role:member and (project_id:%(project_id)s or project_id:%(member_id)s or 'community':%(visibility)s or 'public':%(visibility)s or 'shared':%(visibility)s))"
+    "get_image": "role:service or role:glance_admin or rule:context_is_admin or rule:service_api or (role:reader and (project_id:%(project_id)s or project_id:%(member_id)s or 'community':%(visibility)s or 'public':%(visibility)s or 'shared':%(visibility)s))"
   logging:
     logger_root:
       level: INFO

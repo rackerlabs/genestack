@@ -99,6 +99,11 @@ conf:
     rackspace:
       role_attribute: os_flex
       role_attribute_enforcement: false
+    # NOTE(cloudnull): See https://docs.openstack.org/keystone/latest/admin/configuration.html#security-compliance-and-pci-dss for more
+    security_compliance:
+      lockout_failure_attempts: 6
+      lockout_duration: 1800
+      disable_user_account_days_inactive: 90
   logging:
     logger_root:
       handlers:

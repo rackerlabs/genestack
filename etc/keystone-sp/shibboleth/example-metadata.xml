@@ -1,0 +1,172 @@
+<!--
+This is example IdP metadata for demonstration purposes. Each party
+in a Shibboleth/SAML deployment requires metadata from its opposite(s).
+Thus, your metadata describes you and is given to your partners, and your
+partners' metadata is fed into your configuration.
+
+This particular file isn't used for anything directly, it's just an example
+to help with constructing metadata for an IdP that may not supply its
+metadata to you properly.
+-->
+
+<EntityDescriptor
+    xmlns="urn:oasis:names:tc:SAML:2.0:metadata"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ds="http://www.w3.org/2000/09/xmldsig#"
+    xmlns:shibmd="urn:mace:shibboleth:metadata:1.0"
+    xsi:schemaLocation="urn:oasis:names:tc:SAML:2.0:metadata saml-schema-metadata-2.0.xsd
+                        urn:mace:shibboleth:metadata:1.0 shibboleth-metadata-1.0.xsd
+                        urn:oasis:names:tc:SAML:metadata:ui sstc-saml-metadata-ui-v1.0.xsd
+                        http://www.w3.org/2000/09/xmldsig# xmldsig-core-schema.xsd"
+    validUntil="2020-01-01T00:00:00Z"
+    entityID="https://idp.example.org/shibboleth">
+    <!--
+    The entityID above looks like a location, but it's actually just a name.
+    Each entity is assigned a URI name. By convention, it will often be a
+    URL, but it should never contain a physical machine hostname that you
+    would not otherwise publish to users of the service. For example, if your
+    installation runs on a machine named "gryphon.example.org", you would
+    generally register that machine in DNS under a second, logical name
+    (such as idp.example.org). This logical name should be used in favor
+    of the real hostname when you assign an entityID. You should use a name
+    like this even if you don't actually register the server in DNS using it.
+    The URL does not have to resolve into anything to use it as a name, although
+    it is useful if it does in fact point to your metadata. The key point is
+    for the name you choose to be stable, which is why using hostnames is
+    generally bad, since they tend to change.
+    -->
+    
+    <!-- A Shibboleth 1.x and SAML 2.0 IdP contains this element with protocol support as shown. -->
+    <IDPSSODescriptor protocolSupportEnumeration="urn:mace:shibboleth:1.0 urn:oasis:names:tc:SAML:1.1:protocol urn:oasis:names:tc:SAML:2.0:protocol">
+        <Extensions>
+            <!-- This is a Shibboleth extension to express permissible attribute scope(s). -->
+            <shibmd:Scope>example.org</shibmd:Scope>
+            
+            <!--
+            This is a recent OASIS-defined extension for user-interface material related to the IdP.
+            See http://wiki.oasis-open.org/security/SAML2MetadataUI for more details.
+            -->
+            <mdui:UIInfo xmlns:mdui="urn:oasis:names:tc:SAML:metadata:ui">
+                <mdui:DisplayName xml:lang="en">Identities 'R' Us</mdui:DisplayName>
+                <mdui:InformationURL xml:lang="en">https://idp.example.org/info/</mdui:InformationURL>
+                <mdui:Logo height="60" width="80" xml:lang="en">https://example.org/images/logo.png</mdui:Logo>
+                <mdui:Logo height="16" width="16" xml:lang="en">https://example.org/images/favico.png</mdui:Logo>
+            </mdui:UIInfo>
+        </Extensions>
+        
+        <!--
+        One or more KeyDescriptors tell your SP how the IdP will authenticate itself. A single
+        descriptor can be used for both signing and for server-TLS. You can place an X.509
+        certificate directly in this element to specify the public key to use. This only
+        reflects the public half of the keypair used by the IdP.
+        -->
+        <KeyDescriptor>
+            <ds:KeyInfo>
+                <ds:X509Data>
+                    <ds:X509Certificate>
+                    MIICkjCCAfugAwIBAgIJAK7VCxPsh8yrMA0GCSqGSIb3DQEBBAUAMDsxCzAJBgNV
+                    BAYTAlVTMRIwEAYDVQQKEwlJbnRlcm5ldDIxGDAWBgNVBAMTD2lkcC5leGFtcGxl
+                    Lm9yZzAeFw0wNTA2MjAxNTUwNDFaFw0zMjExMDUxNTUwNDFaMDsxCzAJBgNVBAYT
+                    AlVTMRIwEAYDVQQKEwlJbnRlcm5ldDIxGDAWBgNVBAMTD2lkcC5leGFtcGxlLm9y
+                    ZzCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkCgYEA2VnUvWYrNhtRUqIxAuFmV8YP
+                    Jhr+OMKJpc/RaEs2C8mk5N5qO+ysClg2cVfkws3O4Lc15AiNdQ0s3ZijYwJK2EEg
+                    4vmoTl2RrjP1b3PK2h+VbUuYny9enHwDL+Z4bjP/8nmIKlhUSq4DTGXbwdQiWjCd
+                    lQXvDtvHRwX/TaqtHbcCAwEAAaOBnTCBmjAdBgNVHQ4EFgQUlmI7WqzIDJzcfAyU
+                    v2kmk3p9sbAwawYDVR0jBGQwYoAUlmI7WqzIDJzcfAyUv2kmk3p9sbChP6Q9MDsx
+                    CzAJBgNVBAYTAlVTMRIwEAYDVQQKEwlJbnRlcm5ldDIxGDAWBgNVBAMTD2lkcC5l
+                    eGFtcGxlLm9yZ4IJAK7VCxPsh8yrMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEE
+                    BQADgYEAsatF5gh1ZBF1QuXxchKp2BKVOsK+23y+FqhuOuVi/PTMf+Li84Ih25Al
+                    Jyy3OKc0oprM6tCJaiSooy32KTW6a1xhPm2MwuXzD33SPoKItue/ndp8Bhx/PO9U
+                    w14fpgtAk2x8xD7cpHsZ073JHxEcjEetD8PTtrFdNu6GwIrv6Sk=
+                    </ds:X509Certificate>
+                </ds:X509Data>
+            </ds:KeyInfo>
+        </KeyDescriptor>
+
+        <!-- This tells the SP where/how to resolve SAML 1.x artifacts into SAML assertions. -->
+        <ArtifactResolutionService index="1"
+            Binding="urn:oasis:names:tc:SAML:1.0:bindings:SOAP-binding"
+            Location="https://idp.example.org:8443/shibboleth/profile/saml1/soap/ArtifactResolution"/>
+
+        <!-- This tells the SP where/how to resolve SAML 2.0 artifacts into SAML messages. -->
+        <ArtifactResolutionService index="2"
+            Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP"
+            Location="https://idp.example.org:8443/shibboleth/profile/saml2/soap/ArtifactResolution"/>
+
+        <!-- This is informational and communicates what kinds of SAML Subjects the IdP supports. -->
+        <NameIDFormat>urn:mace:shibboleth:1.0:nameIdentifier</NameIDFormat>
+        <NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</NameIDFormat>
+
+        <!-- This tells the SP how and where to request authentication. -->
+        <SingleSignOnService Binding="urn:mace:shibboleth:1.0:profiles:AuthnRequest"
+            Location="https://idp.example.org/shibboleth/profile/shibboleth/SSO"/>
+        <SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+            Location="https://idp.example.org/shibboleth/profile/saml2/Redirect/SSO"/>
+        <SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
+            Location="https://idp.example.org/shibboleth/profile/saml2/POST/SSO"/>
+    </IDPSSODescriptor>
+    
+    <!-- Most Shibboleth IdPs also support SAML 1.x attribute queries, so this role is also included. -->
+    <AttributeAuthorityDescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:1.1:protocol urn:oasis:names:tc:SAML:2.0:protocol">
+        <Extensions>
+            <!-- This is a Shibboleth extension to express permissible attribute scope(s). -->
+            <shibmd:Scope>example.org</shibmd:Scope>
+        </Extensions>
+        
+        <!-- The certificate has to be repeated here (or a different one specified if necessary). -->
+        <KeyDescriptor>
+            <ds:KeyInfo>
+                <ds:X509Data>
+                    <ds:X509Certificate>
+                    MIICkjCCAfugAwIBAgIJAK7VCxPsh8yrMA0GCSqGSIb3DQEBBAUAMDsxCzAJBgNV
+                    BAYTAlVTMRIwEAYDVQQKEwlJbnRlcm5ldDIxGDAWBgNVBAMTD2lkcC5leGFtcGxl
+                    Lm9yZzAeFw0wNTA2MjAxNTUwNDFaFw0zMjExMDUxNTUwNDFaMDsxCzAJBgNVBAYT
+                    AlVTMRIwEAYDVQQKEwlJbnRlcm5ldDIxGDAWBgNVBAMTD2lkcC5leGFtcGxlLm9y
+                    ZzCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkCgYEA2VnUvWYrNhtRUqIxAuFmV8YP
+                    Jhr+OMKJpc/RaEs2C8mk5N5qO+ysClg2cVfkws3O4Lc15AiNdQ0s3ZijYwJK2EEg
+                    4vmoTl2RrjP1b3PK2h+VbUuYny9enHwDL+Z4bjP/8nmIKlhUSq4DTGXbwdQiWjCd
+                    lQXvDtvHRwX/TaqtHbcCAwEAAaOBnTCBmjAdBgNVHQ4EFgQUlmI7WqzIDJzcfAyU
+                    v2kmk3p9sbAwawYDVR0jBGQwYoAUlmI7WqzIDJzcfAyUv2kmk3p9sbChP6Q9MDsx
+                    CzAJBgNVBAYTAlVTMRIwEAYDVQQKEwlJbnRlcm5ldDIxGDAWBgNVBAMTD2lkcC5l
+                    eGFtcGxlLm9yZ4IJAK7VCxPsh8yrMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEE
+                    BQADgYEAsatF5gh1ZBF1QuXxchKp2BKVOsK+23y+FqhuOuVi/PTMf+Li84Ih25Al
+                    Jyy3OKc0oprM6tCJaiSooy32KTW6a1xhPm2MwuXzD33SPoKItue/ndp8Bhx/PO9U
+                    w14fpgtAk2x8xD7cpHsZ073JHxEcjEetD8PTtrFdNu6GwIrv6Sk=
+                    </ds:X509Certificate>
+                </ds:X509Data>
+            </ds:KeyInfo>
+        </KeyDescriptor>
+
+        <!--
+        This tells the SP how and where to send queries when SAML 1.x is used.
+        The SAML 2.0 version is normally left out because attributes are pushed
+        and encrypted during SSO rather than pulled after.
+        -->
+        <AttributeService Binding="urn:oasis:names:tc:SAML:1.0:bindings:SOAP-binding"
+            Location="https://idp.example.org:8443/shibboleth/profiles/saml1/soap/AttributeQuery"/>
+        <!--
+        <AttributeService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP"
+            Location="https://idp.example.org:8443/shibboleth/profiles/saml2/soap/AttributeQuery"/>
+        -->
+        
+        <!-- This is informational and communicates what kinds of SAML Subjects the IdP supports. -->
+        <NameIDFormat>urn:mace:shibboleth:1.0:nameIdentifier</NameIDFormat>
+        <NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</NameIDFormat>
+
+    </AttributeAuthorityDescriptor>
+
+    <!--
+    This is just information about the entity in human terms.
+    For user interface needs, see the new <mdui:UIInfo> extension.
+    -->
+    <Organization>
+        <OrganizationName xml:lang="en">Example Identity Provider</OrganizationName>
+        <OrganizationDisplayName xml:lang="en">Identities 'R' Us</OrganizationDisplayName>
+        <OrganizationURL xml:lang="en">http://idp.example.org/</OrganizationURL>
+    </Organization>
+    <ContactPerson contactType="technical">
+        <SurName>Technical Support</SurName>
+        <EmailAddress>support@idp.example.org</EmailAddress>
+    </ContactPerson>
+
+</EntityDescriptor>

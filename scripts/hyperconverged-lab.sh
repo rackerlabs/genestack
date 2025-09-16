@@ -4,6 +4,85 @@
 set -o pipefail
 set -e
 SECONDS=0
+RUN_EXTRAS=0
+INCLUDE_LIST=()
+EXCLUDE_LIST=()
+
+function installYq() {
+    export VERSION=v4.2.0
+    export BINARY=yq_linux_amd64
+    wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -q -O - | tar xz && sudo mv ${BINARY} /usr/local/bin/yq
+}
+
+# Install yq locally if needed...
+if ! yq --version 2> /dev/null; then
+  echo "yq is not installed. Attempting to install yq"
+  installYq
+fi
+
+
+# Default components file
+##...needed until default config is upstream...
+OS_CONFIG="
+components:
+  keystone: true
+  glance: true
+  heat: false
+  barbican: false
+  blazar: false
+  cloudkitty: false
+  cinder: true
+  placement: true
+  nova: true
+  neutron: true
+  magnum: false
+  octavia: false
+  masakari: false
+  ceilometer: false
+  gnocchi: false
+  skyline: true
+"
+echo -e "$OS_CONFIG" > $PWD/openstack-components.yaml
+
+while getopts "i:e:x" opt; do
+  case $opt in
+    x)
+      RUN_EXTRAS=1
+      ;;
+    i)
+      old_IFS="$IFS"
+      IFS=','
+      read -r -a INCLUDE_LIST <<< "$OPTARG"
+      IFS="$old_IFS"
+      ;;
+    e)
+      old_IFS="$IFS"
+      IFS=','
+      read -r -a EXCLUDE_LIST <<< "$OPTARG"
+      IFS="$old_IFS"
+      ;;
+    *)
+      echo "Usage: $0 [-i <list,of,services,to,include>]
+      [-e <ist,of,services,to,exclude>]
+      -x <flag only will run extra operations>\n"
+      echo "View the openstack-components.yaml for the services available to configure."
+      exit 1
+      ;;
+    \?) # Handle invalid options
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+  esac
+done
+shift $((OPTIND-1))
+
+for option in "${INCLUDE_LIST[@]}"; do
+  yq -i ".components.$option = true" $PWD/openstack-components.yaml
+done
+for option in "${EXCLUDE_LIST[@]}"; do
+    yq -i ".components.$option = false" $PWD/openstack-components.yaml
+done
+
 if [ -z "${ACME_EMAIL}" ]; then
   read -rp "Enter a valid email address for use with ACME, press enter to skip: " ACME_EMAIL
   export ACME_EMAIL="${ACME_EMAIL:-}"
@@ -458,6 +537,23 @@ conf:
 EOF
 fi
 
+if [ ! -f "/etc/genestack/helm-configs/blazar/blazar-helm-overrides.yaml" ]; then
+cat > /etc/genestack/helm-configs/blazar/blazar-helm-overrides.yaml <<EOF
+---
+pod:
+  resources:
+    enabled: false
+
+conf:
+  blazar_api_uwsgi:
+    uwsgi:
+      processes: 1
+  blazar:
+    oslo_messaging_notifications:
+      driver: noop
+EOF
+fi
+
 if [ ! -f "/etc/genestack/helm-configs/cinder/cinder-helm-overrides.yaml" ]; then
 cat > /etc/genestack/helm-configs/cinder/cinder-helm-overrides.yaml <<EOF
 ---
@@ -669,6 +765,16 @@ pod:
     enabled: false
 
 endpoints:
+  baremetal:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: ironic.${GATEWAY_DOMAIN}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
   compute:
     host_fqdn_override:
       public:
@@ -759,11 +865,23 @@ endpoints:
         public: 443
     scheme:
       public: https
+  reservation:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: blazar.${GATEWAY_DOMAIN}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
   identity:
     auth:
       admin:
         region_name: *region
       barbican:
+        region_name: *region
+      blazar:
         region_name: *region
       cinder:
         region_name: *region
@@ -925,24 +1043,7 @@ echo "Creating config for setup-openstack.sh"
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
 if [ ! -f "/etc/genestack/openstack-components.yaml" ]; then
-cat > /etc/genestack/openstack-components.yaml <<EOF
-components:
-  keystone: true
-  glance: true
-  heat: true
-  barbican: true
-  cinder: true
-  placement: true
-  nova: true
-  neutron: true
-  magnum: true
-  octavia: false
-  masakari: false
-  ceilometer: false
-  gnocchi: false
-  cloudkitty: false
-  skyline: true
-EOF
+  echo -e "$OS_CONFIG" > /etc/genestack/openstack-components.yaml
 fi
 EOC
 
@@ -994,6 +1095,8 @@ fi
 HERE
 EOC
 
+# Extra operations...
+install_k9s() {
 echo "Installing k9s"
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} << 'EOC'
 set -e
@@ -1008,13 +1111,16 @@ if [ ! -d ~/.kube ]; then
   sudo chown $(id -u):$(id -g) ~/.kube/config
 fi
 EOC
+}
 
+install_preconf_octavia() {
 echo "Installing Octavia preconf"
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} << 'EOC'
 set -e
 
 if [ ! -f ~/.config/openstack ]; then
-  sudo cp -r /root/.config/openstack ~/.config/
+  sudo mkdir -p ~/.config/openstack
+  sudo cp -r /root/.config/openstack ~/.config/openstack
 fi
 
 source ~/.venvs/genestack/bin/activate
@@ -1033,6 +1139,13 @@ ANSIBLE_SSH_PIPELINING=0 ansible-playbook /opt/genestack/ansible/playbooks/octav
 echo "Installing Octavia"
 sudo /opt/genestack/bin/install-octavia.sh -f $OCTAVIA_HELM_FILE
 EOC
+}
+
+if [[ "$RUN_EXTRAS" -eq 1 ]]; then
+  echo "Running extra operations..."
+  install_k9s
+  install_preconf_octavia
+fi
 
 { cat | tee /tmp/output.txt; } <<EOF
 The lab is now ready for use and took ${SECONDS} seconds to complete.
