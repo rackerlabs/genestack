@@ -6,6 +6,9 @@ images:
   - name: image-kubernetes-entrypoint-init
     newName: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint
     newTag: latest
+  - name: image-octavia-ovn
+    newName: ghcr.io/rackerlabs/genestack-images/octavia
+    newTag: 2024.1-latest
 
 resources:
   - octavia-mariadb-database.yaml
@@ -24,17 +27,6 @@ patches:
       - op: add
         path: /data/policy.yaml
         value: LS0tCm9zX2xvYWQtYmFsYW5jZXJfYXBpOmZsYXZvci1wcm9maWxlOmdldF9vbmU6IHJ1bGU6bG9hZC1iYWxhbmNlcjpyZWFkCm9zX2xvYWQtYmFsYW5jZXJfYXBpOmZsYXZvci1wcm9maWxlOmdldF9hbGw6IHJ1bGU6bG9hZC1iYWxhbmNlcjpyZWFkCm9zX2xvYWQtYmFsYW5jZXJfYXBpOmxvYWRiYWxhbmNlcjpwdXRfZmFpbG92ZXI6ICJydWxlOmxvYWQtYmFsYW5jZXI6YWRtaW4gb3IgcnVsZTpsb2FkLWJhbGFuY2VyOm1lbWJlcl9hbmRfb3duZXIiCm9zX2xvYWQtYmFsYW5jZXJfYXBpOmFtcGhvcmE6cHV0X2ZhaWxvdmVyOiAicnVsZTpsb2FkLWJhbGFuY2VyOmFkbWluIG9yIHJ1bGU6bG9hZC1iYWxhbmNlcjptZW1iZXJfYW5kX293bmVyIgoK
-  - target:
-      kind: Deployment
-      name: octavia-api
-    patch: |-
-      - op: add
-        path: /spec/template/spec/containers/0/volumeMounts/-
-        value:
-          name: octavia-etc
-          mountPath: /etc/octavia/policy.yaml
-          subPath: policy.yaml
-          readOnly: true
   - target:
       kind: Deployment
       name: octavia-api

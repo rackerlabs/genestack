@@ -1,9 +1,9 @@
 ---
 images:
   tags:
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
     image_repo_sync: null
     ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
@@ -150,7 +150,7 @@ conf:
     service_auth:
       insecure: true
     task_flow:
-      jobboard_enabled: true
+      jobboard_enabled: false
   octavia_api_uwsgi:
     uwsgi:
       processes: 2
@@ -302,3 +302,4 @@ manifests:
   job_rabbit_init: false
   secret_ingress_tls: false
   service_ingress_api: false
+  deployment_driver_agent: false
