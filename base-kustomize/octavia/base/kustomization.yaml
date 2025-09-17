@@ -31,17 +31,6 @@ patches:
       kind: Deployment
       name: octavia-api
     patch: |-
-      - op: add
-        path: /spec/template/spec/containers/0/volumeMounts/-
-        value:
-          name: octavia-etc
-          mountPath: /etc/octavia/policy.yaml
-          subPath: policy.yaml
-          readOnly: true
-  - target:
-      kind: Deployment
-      name: octavia-api
-    patch: |-
       - op: replace
         path: /spec/template/spec/containers/0/securityContext
         value:

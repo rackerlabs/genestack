@@ -19,9 +19,37 @@ images:
     rabbit_init: null
     test: null
 
+labels:
+  api:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  driver_agent:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  worker:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  housekeeping:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  health_manager:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  job:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+
+bootstrap:
+  enabled: false
+
 dependencies:
   static:
     api:
+      jobs:
+        - octavia-db-sync
+        - octavia-ks-user
+        - octavia-ks-endpoints
+    driver_agent:
       jobs:
         - octavia-db-sync
         - octavia-ks-user
@@ -121,6 +149,8 @@ conf:
       ovn_sb_connection: "tcp:127.0.0.1:6642"
     service_auth:
       insecure: true
+    task_flow:
+      jobboard_enabled: false
   octavia_api_uwsgi:
     uwsgi:
       processes: 2
@@ -168,6 +198,12 @@ endpoints:
       default: mariadb-cluster-primary.openstack.svc.cluster.local
     hosts:
       default: mariadb-cluster-primary
+  oslo_db_persistence:
+    hosts:
+      default: mariadb-cluster-primary
+    host_fqdn_override:
+      default: mariadb-cluster-primary.openstack.svc.cluster.local
+    path: /octavia-persistence
   oslo_cache:
     host_fqdn_override:
       default: memcached.openstack.svc.cluster.local
@@ -178,6 +214,19 @@ endpoints:
       default: rabbitmq.openstack.svc.cluster.local
     hosts:
       default: rabbitmq-nodes
+
+  valkey:
+    name: valkey
+    hosts:
+      default: redis-replication-master.redis-systems.svc.cluster.local
+    # NOTE(rlin): we should only provide password when not using CA cert.
+    password: null
+    host_fqdn_override:
+      default: redis-replication-master.redis-systems.svc.cluster.local
+    port:
+      server:
+        default: 6379
+        sentinel: 6379
 
 # NOTE: (brew) requests cpu/mem values based on a three node
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
@@ -248,7 +297,9 @@ pod:
 
 manifests:
   ingress_api: false
+  job_bootstrap: false
   job_db_init: false
   job_rabbit_init: false
   secret_ingress_tls: false
   service_ingress_api: false
+  deployment_driver_agent: false

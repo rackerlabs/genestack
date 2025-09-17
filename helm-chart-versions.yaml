@@ -22,7 +22,7 @@ charts:
   metallb: v0.13.12
   neutron: 2024.2.529+13651f45-628a320c
   nova: 2024.2.555+13651f45-628a320c
-  octavia: 2024.2.30+13651f45-628a320c
+  octavia: 2025.1.15+f17a395da
   placement: 2024.2.62+13651f45-628a320c
   postgres-operator: 1.12.2
   prometheus: 70.4.2
