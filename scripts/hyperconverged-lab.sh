@@ -1087,6 +1087,7 @@ if [ ! -d ~/.kube ]; then
   sudo cp -i /etc/kubernetes/admin.conf ~/.kube/config
   sudo chown $(id -u):$(id -g) ~/.kube/config
 fi
+sudo chown $(id -u):$(id -g) ~/.config
 EOC
 
 echo "Installing Octavia preconf"
