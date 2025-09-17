@@ -1,0 +1,101 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+images:
+  tags:
+    db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    cloudkitty_api: quay.io/airshipit/cloudkitty:2025.1-ubuntu_noble
+    cloudkitty_db_sync: quay.io/airshipit/cloudkitty:2025.1-ubuntu_noble
+    cloudkitty_processor: quay.io/airshipit/cloudkitty:2025.1-ubuntu_noble
+    cloudkitty_storage_init: quay.io/airshipit/cloudkitty:2025.1-ubuntu_noble
+    rabbit_init: docker.io/rabbitmq:3.13-management
+    dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
+  pull_policy: "IfNotPresent"
+
+endpoints:
+  oslo_db:
+    hosts:
+      default: mariadb-cluster-primary
+    host_fqdn_override:
+      default: mariadb-cluster-primary.openstack.svc.cluster.local
+  oslo_messaging:
+    hosts:
+      default: rabbitmq-nodes
+    host_fqdn_override:
+      default: rabbitmq.openstack.svc.cluster.local
+  oslo_cache:
+    hosts:
+      default: memcached
+    host_fqdn_override:
+      default: memcached.openstack.svc.cluster.local
+
+dependencies:
+  static:
+    db_sync:
+      jobs: null
+
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
+pod:
+  replicas:
+    cloudkitty_processor: 3
+  lifecycle:
+    upgrades:
+      deployments:
+        revision_history: 3
+        pod_replacement_strategy: RollingUpdate
+        rolling_update:
+          max_unavailable: 20%
+          max_surge: 3
+  resources:
+    enabled: true
+    cloudkitty_api:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    cloudkitty_processor:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+conf:
+  logging:
+    logger_root:
+      level: WARNING
+      handlers:
+        - stdout
+    logger_cloudkitty:
+      level: WARNING
+      handlers:
+        - stdout
+      qualname: cloudkitty
+  cloudkitty_api_uwsgi:
+    uwsgi:
+      processes: 2
+      threads: 1
+
+manifests:
+  ingress_api: false
+  job_bootstrap: false
+  job_db_init: false
+  job_rabbit_init: false

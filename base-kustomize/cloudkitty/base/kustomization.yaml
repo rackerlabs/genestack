@@ -1,0 +1,8 @@
+---
+sortOptions:
+  order: fifo
+resources:
+  - cloudkitty-mariadb-database.yaml
+  - cloudkitty-rabbitmq-queue.yaml
+  - all.yaml
+  - hpa-cloudkitty-api.yaml

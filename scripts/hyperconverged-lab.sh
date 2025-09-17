@@ -30,6 +30,7 @@ components:
   heat: false
   barbican: false
   blazar: false
+  cloudkitty: false
   cinder: true
   placement: true
   nova: true
