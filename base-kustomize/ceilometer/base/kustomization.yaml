@@ -4,4 +4,5 @@ resources:
   - all.yaml
   - hpa-ceilometer-notification.yaml
   - ceilometer-rabbitmq-queue.yaml
+  - ceilometer-swift-rabbitmq-queue.yaml
   - policies.yaml
