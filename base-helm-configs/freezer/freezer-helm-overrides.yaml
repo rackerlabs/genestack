@@ -1,0 +1,64 @@
+---
+endpoints:
+  backup:
+    hosts:
+      public: freezer-api
+  oslo_db:
+    host_fqdn_override:
+      default: mariadb-cluster-primary.openstack.svc.cluster.local
+    hosts:
+      default: mariadb-cluster-primary
+  oslo_messaging:
+    hosts:
+      default: rabbitmq-nodes
+    host_fqdn_override:
+      default: rabbitmq.openstack.svc.cluster.local
+  oslo_cache:
+    hosts:
+      default: memcached
+    host_fqdn_override:
+      default: memcached.openstack.svc.cluster.local
+  fluentd:
+    namespace: fluentbit
+
+dependencies:
+  static:
+    api:
+      jobs:
+        - freezer-db-sync
+        - freezer-ks-user
+        - freezer-ks-endpoints
+    db_sync:
+      jobs: null
+
+conf:
+  freezer:
+    DEFAULT:
+      host_href: "http://freezer-api.openstack.svc.cluster.local:9090"
+    database:
+      connection_debug: 0
+      connection_recycle_time: 600
+      connection_trace: true
+      idle_timeout: 3600
+      mysql_sql_mode: {}
+      use_db_reconnect: true
+      pool_timeout: 60
+      max_retries: -1
+    keystone_authtoken:
+      service_token_roles: service
+      service_token_roles_required: true
+      auth_type: password
+      auth_version: v3
+      memcache_security_strategy: ENCRYPT
+      service_type: backup
+  logging:
+    logger_root:
+      handlers:
+        - stdout
+      level: INFO
+
+manifests:
+  ingress_api: false
+  job_rabbit_init: false
+  service_ingress_api: false
+  job_db_init: false
