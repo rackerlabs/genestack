@@ -1,0 +1,33 @@
+# Default values for openstack-exporter
+---
+replicaCount: 1
+
+image:
+  repository: ghcr.io/rackerlabs/genestack-images/openstack-exporter
+  tag: "sha-7951e2c"  # Will be overridden by script
+  pullPolicy: IfNotPresent
+
+service:
+  port: 49152  # Default, overridden by script
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 150m
+    memory: 200Mi
+
+probes:
+  liveness:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  readiness:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  labels:
+    release: kube-prometheus-stack
