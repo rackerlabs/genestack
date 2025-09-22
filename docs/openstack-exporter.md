@@ -17,7 +17,7 @@ First, create the Keystone authentication secret in the prometheus namespace:
 
 ```shell
 kubectl --namespace prometheus \
-        create secret generic keystone-auth \
+        create secret generic keystone-auth-openstack-exporter \
         --type Opaque \
         --from-literal=AUTH_URL="http://keystone-api.openstack.svc.cluster.local:5000/v3" \
         --from-literal=USERNAME="admin" \
