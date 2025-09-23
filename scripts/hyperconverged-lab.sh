@@ -32,6 +32,7 @@ components:
   blazar: false
   cloudkitty: false
   cinder: true
+  freezer: false
   placement: true
   nova: true
   neutron: true
@@ -875,9 +876,21 @@ endpoints:
         public: 443
     scheme:
       public: https
+  backup:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: freezer.${GATEWAY_DOMAIN}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
   identity:
     auth:
       admin:
+        region_name: *region
+      test:
         region_name: *region
       barbican:
         region_name: *region
@@ -908,6 +921,8 @@ endpoints:
       placement:
         region_name: *region
       octavia:
+        region_name: *region
+      freezer:
         region_name: *region
     host_fqdn_override:
       public:
