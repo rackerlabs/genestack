@@ -1,0 +1,113 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{.Release.Name }}-config"
+  namespace: {{.Release.Namespace}}
+data:
+  probe_target.yaml: |-
+    {{ .Files.Get "probe_target.yaml" | default "# No config provided\n" | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{.Release.Name}}
+  namespace: {{.Release.Namespace}}
+spec:
+  replicas: {{.Values.replicaCount}}
+  selector:
+    matchLabels:
+      app: openstack-exporter
+  template:
+    metadata:
+      labels:
+        app: openstack-exporter
+    spec:
+      containers:
+        - name: openstack-exporter
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: {{.Values.service.port}}
+              name: http
+          env:
+            - name: EXPORTER_PORT
+              value: "{{ .Values.service.port }}"
+            - name: AUTH_URL
+              valueFrom:
+                secretKeyRef:
+                  name: keystone-auth-openstack-exporter
+                  key: AUTH_URL
+            - name: USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: keystone-auth-openstack-exporter
+                  key: USERNAME
+            - name: PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keystone-auth-openstack-exporter
+                  key: PASSWORD
+            - name: USER_DOMAIN_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: keystone-auth-openstack-exporter
+                  key: USER_DOMAIN_NAME
+            - name: PROJECT_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: keystone-auth-openstack-exporter
+                  key: PROJECT_NAME
+            - name: PROJECT_DOMAIN_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: keystone-auth-openstack-exporter
+                  key: PROJECT_DOMAIN_NAME
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/openstack-exporter
+          livenessProbe:
+            httpGet:
+              path: {{(index (fromYaml (.Files.Get "probe_target.yaml")).probe_targets 0).path}}
+              port: {{.Values.service.port}}
+            initialDelaySeconds: {{.Values.probes.liveness.initialDelaySeconds}}
+            periodSeconds: {{.Values.probes.liveness.periodSeconds}}
+          readinessProbe:
+            httpGet:
+              path: {{(index (fromYaml (.Files.Get "probe_target.yaml")).probe_targets 0).path}}
+              port: {{.Values.service.port}}
+            initialDelaySeconds: {{.Values.probes.readiness.initialDelaySeconds}}
+            periodSeconds: {{.Values.probes.readiness.periodSeconds}}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: "{{.Release.Name}}-config"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{.Release.Name}}
+  namespace: {{.Release.Namespace}}
+  labels:
+    app: openstack-exporter
+spec:
+  ports:
+    - port: {{.Values.service.port}}
+      targetPort: {{.Values.service.port}}
+      name: http
+  selector:
+    app: openstack-exporter
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{.Release.Name}}
+  namespace: {{.Release.Namespace}}
+  labels:
+    release: {{.Values.serviceMonitor.labels.release}}
+spec:
+  selector:
+    matchLabels:
+      app: openstack-exporter
+  endpoints:
+    - port: http
+      interval: {{.Values.serviceMonitor.interval}}

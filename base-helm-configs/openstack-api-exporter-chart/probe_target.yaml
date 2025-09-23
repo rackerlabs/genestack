@@ -1,0 +1,37 @@
+# openstack-exporter-chart/probe_target.yaml
+---
+services:
+  - name: barbican-api
+    endpoint: http://barbican-api.openstack.svc.cluster.local:9311/v1/secrets
+  - name: cinder-api
+    endpoint: http://cinder-api.openstack.svc.cluster.local:8776/v3/volumes
+  - name: glance-api
+    endpoint: http://glance-api.openstack.svc.cluster.local:9292/v2/images
+  - name: heat-api
+    endpoint: http://heat-api.openstack.svc.cluster.local:8004/v1/stacks
+  - name: heat-cfn-api
+    endpoint: http://heat-cfn.openstack.svc.cluster.local:8000/v1/stacks
+  - name: keystone-api
+    endpoint: http://keystone-api.openstack.svc.cluster.local:5000/v3
+  - name: magnum-api
+    endpoint: http://magnum-api.openstack.svc.cluster.local:9511/v1/clusters
+  - name: neutron-api
+    endpoint: >
+      http://neutron-server.openstack.svc.cluster.local:9696/v2.0/networks
+  - name: nova-api
+    endpoint: http://nova-api.openstack.svc.cluster.local:8774/v2.1/servers
+  - name: octavia-api
+    endpoint: >
+      http://octavia-api.openstack.svc.cluster.local:9876/v2/lbaas/loadbalancers
+  - name: placement-api
+    endpoint: http://placement-api.openstack.svc.cluster.local:8778
+  - name: skyline-api
+    endpoint: >
+      http://skyline-apiserver.openstack.svc.cluster.local:9999/api/openstack/skyline
+  - name: nova-metadata
+    endpoint: http://nova-metadata.openstack.svc.cluster.local:8775
+  - name: nova-novncproxy
+    endpoint: http://nova-novncproxy.openstack.svc.cluster.local:6080
+probe_targets:
+  - path: /metrics
+    port: 49152

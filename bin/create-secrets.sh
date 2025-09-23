@@ -792,6 +792,20 @@ metadata:
 type: Opaque
 data:
   password: $(echo -n $freezer_keystone_test_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: keystone-auth-openstack-exporter
+  namespace: prometheus
+type: Opaque
+data:
+  AUTH_URL: $(echo -n $keystone_auth_url | base64 -w0)
+  USERNAME: $(echo -n $keystone_username | base64 -w0)
+  PASSWORD: $(kubectl get secret keystone-admin -n openstack -o jsonpath={.data.password})
+  USER_DOMAIN_NAME: $(echo -n $keystone_user_domain | base64 -w0)
+  PROJECT_NAME: $(echo -n $keystone_project_name | base64 -w0)
+  PROJECT_DOMAIN_NAME: $(echo -n $keystone_project_domain | base64 -w0)
 EOF
 
 rm nova_ssh_key nova_ssh_key.pub

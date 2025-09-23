@@ -183,3 +183,10 @@ kubectl apply -k /etc/genestack/kustomize/ovn/base
 
 # Deploy libvirt
 /opt/genestack/bin/install-libvirt.sh
+
+# Deploy Redis operator and replication cluster
+/opt/genestack/bin/install-redis-operator.sh
+
+# Deploy Redis Sentinel
+/opt/genestack/bin/install-redis-sentinel.sh
+

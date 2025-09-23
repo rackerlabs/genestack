@@ -1125,7 +1125,6 @@ if [ ! -d ~/.kube ]; then
   sudo cp -i /etc/kubernetes/admin.conf ~/.kube/config
   sudo chown $(id -u):$(id -g) ~/.kube/config
 fi
-sudo chown $(id -u):$(id -g) ~/.config
 EOC
 }
 
@@ -1136,7 +1135,8 @@ set -e
 
 if [ ! -f ~/.config/openstack ]; then
   sudo mkdir -p ~/.config/openstack
-  sudo cp -r /root/.config/openstack ~/.config/openstack
+  sudo cp /root/.config/openstack/clouds.yaml ~/.config/openstack
+  sudo chown $(id -u):$(id -g) ~/.config
 fi
 
 source ~/.venvs/genestack/bin/activate
