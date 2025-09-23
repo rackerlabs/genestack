@@ -6,8 +6,8 @@ metadata:
 spec:
   restartPolicy: Always
   containers:
-    - name: "image-ks-service-registration"
-      image: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    - name: "openstack-admin-client"
+      image: ghcr.io/rackerlabs/genestack-images/openstack-client:latest
       imagePullPolicy: IfNotPresent
       command:
         - sleep
