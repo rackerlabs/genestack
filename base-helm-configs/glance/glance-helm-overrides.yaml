@@ -122,10 +122,11 @@ conf:
     "admin_required": "role:admin or role:glance_admin"
     "default": "role:admin or role:glance_admin"
     "context_is_admin": "role:admin or role:glance_admin"
+    "service_api": "role:service"
     "publicize_image": "role:glance_admin"
     "communitize_image": "role:glance_admin"
-    "download_image": "role:service or role:glance_admin or rule:context_is_admin or rule:service_api or (role:member and (project_id:%(project_id)s or project_id:%(member_id)s or 'community':%(visibility)s or 'public':%(visibility)s or 'shared':%(visibility)s))"
-    "get_image": "role:service or role:glance_admin or rule:context_is_admin or rule:service_api or (role:reader and (project_id:%(project_id)s or project_id:%(member_id)s or 'community':%(visibility)s or 'public':%(visibility)s or 'shared':%(visibility)s))"
+    "download_image": "rule:context_is_admin or rule:service_api or (role:member and (project_id:%(project_id)s or project_id:%(member_id)s))"
+    "get_image": "rule:context_is_admin or rule:service_api or (role:reader and (project_id:%(project_id)s or project_id:%(member_id)s or 'community':%(visibility)s or 'public':%(visibility)s or 'shared':%(visibility)s))"
   logging:
     logger_root:
       level: INFO
