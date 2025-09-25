@@ -223,8 +223,10 @@ nav:
                                   - PostgreSQL: infrastructure-postgresql.md
                                   - Gnocchi: openstack-gnocchi.md
                                   - Ceilometer: openstack-ceilometer.md
+                                  - Cloudkitty: openstack-cloudkitty.md
                             - Blazar: openstack-blazar.md
                             - Freezer: openstack-freezer.md
+                            - Masakari: openstack-masakari.md
                 - Monitoring:
                       - Monitoring Overview: prometheus-monitoring-overview.md
                       - Getting Started: monitoring-getting-started.md

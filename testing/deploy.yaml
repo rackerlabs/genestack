@@ -336,6 +336,9 @@
     - name: Install magnum
       command: /opt/genestack/bin/install-magnum.sh
 
+    - name: Install masakari
+      command: /opt/genestack/bin/install-masakari.sh
+
     - name: Wait 10 minutes for things to deploy
       ansible.builtin.pause:
         seconds: 600
