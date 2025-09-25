@@ -14,15 +14,14 @@
 images:
   tags:
     db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    db_sync: docker.io/openstackhelm/masakari:2024.1-ubuntu_jammy
+    db_sync: ghcr.io/rackerlabs/genestack-images/masakari-monitors:2024.1-latest
     db_drop: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
     ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
     ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
     ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
     masakari_api: ghcr.io/rackerlabs/genestack-images/masakari:2024.1-latest
     masakari_engine: ghcr.io/rackerlabs/genestack-images/masakari:2024.1-latest
-    # TEMP HOST-MONITOR IMAGE TO FIX: https://review.opendev.org/c/openstack/masakari-monitors/+/951336
-    masakari_host_monitor: kernelpanic53/rackerlabs-masakari-monitors:zhmarvi-ubuntu_jammy_v1.0
+    masakari_host_monitor: ghcr.io/rackerlabs/genestack-images/masakari-monitors:2024.1-latest
     masakari_process_monitor: ghcr.io/rackerlabs/genestack-images/masakari-monitors:2024.1-latest
     masakari_instance_monitor: ghcr.io/rackerlabs/genestack-images/masakari-monitors:2024.1-latest
     rabbit_init: docker.io/rabbitmq:3.13-management
