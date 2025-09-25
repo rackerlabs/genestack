@@ -52,3 +52,61 @@ kubectl --namespace openstack exec -ti openstack-admin-client -- openstack coe c
 ## Create a Public ClusterTemplate
 
 User must have the admin role to create the public ClusterTemplate. For instructions on creating and using it to deploy a new Kubernetes cluster, please refer to the ClusterTemplate section in the [Magnum Kubernetes Cluster Setup Guide](https://docs.rackspacecloud.com/magnum-kubernetes-cluster-setup-guide/#clustertemplate).
+
+
+# Deploying Magnum with Cluster API (CAPI) Driver
+
+Magnum can use CAPI as the backend driver to spin up k8s clusters. Magnum CAPI Helm is one of the projects that provides an OpenStack Magnum driver which uses Helm to create the clustr with CAPI. The documentation below assume you are using magnum-capi-helm as your CAPI driver. Diver can be found [here.](https://opendev.org/openstack/magnum-capi-helm)
+
+![CAPI Architecture](assets/images/capi-architecture.png){ width="500" height=900}
+
+
+### Prerequisites
+
+Before deploying magnum with the CAPI Driver:
+
+1. Ensure your magnum image has the magnum-capi-helm driver installed. See our [Magnum Containerfile.](https://github.com/rackerlabs/genestack-images/blob/main/ContainerFiles/magnum)
+2. Ensure your magnum image has helm installed. See our [Magnum Containerfile.](https://github.com/rackerlabs/genestack-images/blob/main/ContainerFiles/magnum)
+3. Ensure you are using magnum helm version 2025.1 or above, as CAPI functionality was added on openstack-helm during this release.
+4. You will need a management cluster for CAPI. See [How CAPI Works](https://cluster-api.sigs.k8s.io) with mgt cluster to spin up worker nodes.
+5. On your management cluster make sure you install cluster-addon. It is found [here.](https://github.com/azimuth-cloud/cluster-api-addon-provider)
+
+### Magnum Helm Config
+
+In order to switch to CAPI we need to make sure that magnum has the right config passed to it. Here is an example we can use:
+
+```
+conf:
+  capi:
+    enabled: true
+    clusterName: k8s-managment-cluster
+    apiServer: https://127.0.0.1:6443
+    certificateAuthorityData: < k8s-managment-cluster CA Data > 
+    contextName: k8s-management
+    userName: admin@k8s-management
+    clientCertificateData: < k8s-managment-cluster clientCert Data > 
+    clientKeyData: < k8s-managment-cluster clientKey Data >
+  magnum:
+    capi_helm:
+      kubeconfig_file: /etc/magnum/kubeconfig.conf
+    barbican_client:
+      endpoint_type: publicURL
+      region_name: RegionOne
+    cinder_client:
+      endpoint_type: publicURL
+      region_name: RegionOne
+   ... 
+```
+
+First, make sure the capi section has the management cluster kubeconfig file content. This will be used by magnum to talk to managment cluster.
+Next, under magnum add the capi_helm config to point to where we find the kubeconfig file. This is usually at `/etc/magnum/kubeconfig.con`.
+Additionally we can make the driver point to specific helm charts. This is useful if you have made changes specific to your environment to the chart
+and would like to use that. This can be done like so:
+
+```
+magnum:
+    capi_helm:
+      kubeconfig_file: /etc/magnum/kubeconfig.conf
+      helm_chart_repo: https://rackerlabs.github.io/genestack-capi-helm-charts
+      default_helm_chart_version: 0.1.0
+```
