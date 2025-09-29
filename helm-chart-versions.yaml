@@ -3,7 +3,7 @@ charts:
   blazar: 2025.1.2+a4df9c709
   ceilometer: 2024.2.115+13651f45-628a320c
   cinder: 2024.2.409+13651f45-628a320c
-  cloudkitty: 2025.1.1+64dfa3fe4
+  cloudkitty: 2025.1.2+ebb1488dc
   envoy: v1.4.2
   fluentbit: 0.52.0
   freezer: 2025.1.2+cdd5c6c55
