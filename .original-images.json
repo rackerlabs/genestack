@@ -47,4 +47,7 @@
   "quay.io/airshipit/freezer:2025.1-ubuntu_jammy",
   "quay.io/airshipit/freezer-api:2025.1-ubuntu_jammy",
   "quay.io/airshipit/blazar:2025.1-ubuntu_jammy"
+  "quay.io/airshipit/cloudkitty:2024.1-ubuntu_jammy"
+  "docker.io/openstackhelm/masakari:2024.1-ubuntu_jammy"
+  "docker.io/openstackhelm/masakari-monitors:2024.1-ubuntu_jammy"
 ]
