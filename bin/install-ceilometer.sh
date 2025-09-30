@@ -38,9 +38,7 @@ HELM_CMD+=" --set endpoints.identity.auth.ceilometer.password=\"$(kubectl --name
 HELM_CMD+=" --set endpoints.identity.auth.test.password=\"$(kubectl --namespace openstack get secret ceilometer-keystone-test-password -o jsonpath='{.data.password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_messaging.auth.admin.username=\"$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.username}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_messaging.auth.admin.password=\"$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)\""
-HELM_CMD+=" --set endpoints.oslo_messaging.auth.ceilometer.password=\"$(kubectl --namespace openstack get secret ceil
-
-ometer-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)\""
+HELM_CMD+=" --set endpoints.oslo_messaging.auth.ceilometer.password=\"$(kubectl --namespace openstack get secret ceilometer-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)\""
 HELM_CMD+=" --set endpoints.oslo_cache.auth.memcache_secret_key=\"$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
 HELM_CMD+=" --set conf.ceilometer.keystone_authtoken.memcache_secret_key=\"$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)\""
 HELM_CMD+=" --set conf.ceilometer.oslo_messaging.transport_url=\"rabbit://ceilometer:$(kubectl --namespace openstack get secret ceilometer-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)@rabbitmq.openstack.svc.cluster.local:5672/ceilometer\""
