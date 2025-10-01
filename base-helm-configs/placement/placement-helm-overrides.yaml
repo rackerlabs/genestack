@@ -52,7 +52,7 @@ conf:
       service_token_roles_required: true
       service_type: placement
     oslo_concurrency:
-      lock_path: /tmp/octavia
+      lock_path: /tmp/placement
     oslo_messaging_notifications:
       driver: messagingv2
     oslo_messaging_rabbit:
