@@ -34,7 +34,7 @@ dependencies:
 conf:
   freezer:
     DEFAULT:
-      host_href: "http://freezer-api.openstack.svc.cluster.local:9090"
+      host_href: "http://freezer-api.openstack.svc.cluster.local:9090/v2"
     database:
       connection_debug: 0
       connection_recycle_time: 600
