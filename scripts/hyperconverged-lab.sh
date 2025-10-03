@@ -130,13 +130,15 @@ fi
 
 export LAB_NAME_PREFIX="${LAB_NAME_PREFIX:-hyperconverged}"
 
+export LAB_NETWORK_MTU="${LAB_NETWORK_MTU:-1500}"
+
 if ! openstack router show ${LAB_NAME_PREFIX}-router 2>/dev/null; then
   openstack router create ${LAB_NAME_PREFIX}-router --external-gateway PUBLICNET
 fi
 
 if ! openstack network show ${LAB_NAME_PREFIX}-net 2>/dev/null; then
   openstack network create ${LAB_NAME_PREFIX}-net \
-    --mtu 1500
+    --mtu ${LAB_NETWORK_MTU}
 fi
 
 if ! TENANT_SUB_NETWORK_ID=$(openstack subnet show ${LAB_NAME_PREFIX}-subnet -f json 2>/dev/null | jq -r '.id'); then
@@ -158,7 +160,7 @@ fi
 if ! openstack network show ${LAB_NAME_PREFIX}-compute-net 2>/dev/null; then
   openstack network create ${LAB_NAME_PREFIX}-compute-net \
     --disable-port-security \
-    --mtu 1500
+    --mtu ${LAB_NETWORK_MTU}
 fi
 
 if ! TENANT_COMPUTE_SUB_NETWORK_ID=$(openstack subnet show ${LAB_NAME_PREFIX}-compute-subnet -f json 2>/dev/null | jq -r '.id'); then
