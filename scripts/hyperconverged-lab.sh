@@ -135,7 +135,8 @@ if ! openstack router show ${LAB_NAME_PREFIX}-router 2>/dev/null; then
 fi
 
 if ! openstack network show ${LAB_NAME_PREFIX}-net 2>/dev/null; then
-  openstack network create ${LAB_NAME_PREFIX}-net
+  openstack network create ${LAB_NAME_PREFIX}-net \
+    --mtu 1500
 fi
 
 if ! TENANT_SUB_NETWORK_ID=$(openstack subnet show ${LAB_NAME_PREFIX}-subnet -f json 2>/dev/null | jq -r '.id'); then
@@ -156,7 +157,8 @@ fi
 
 if ! openstack network show ${LAB_NAME_PREFIX}-compute-net 2>/dev/null; then
   openstack network create ${LAB_NAME_PREFIX}-compute-net \
-    --disable-port-security
+    --disable-port-security \
+    --mtu 1500
 fi
 
 if ! TENANT_COMPUTE_SUB_NETWORK_ID=$(openstack subnet show ${LAB_NAME_PREFIX}-compute-subnet -f json 2>/dev/null | jq -r '.id'); then
