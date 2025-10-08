@@ -1,0 +1,155 @@
+---
+images:
+  tags:
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    zaqar_db_sync: "ghcr.io/rackerlabs/genestack-images/zaqar:2025.1-latest"
+    zaqar_api: "ghcr.io/rackerlabs/genestack-images/zaqar:2025.1-latest"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
+    image_repo_sync: null
+    test: null
+
+dependencies:
+  static:
+    api:
+      jobs:
+        - zaqar-db-sync
+        - zaqar-ks-user
+        - zaqar-ks-endpoints
+    db_sync:
+      jobs:
+        - zaqar-db-init
+    ks_endpoints:
+      jobs:
+        - zaqar-ks-service
+
+endpoints:
+  messaging:
+    name: zaqar
+    hosts:
+      default: zaqar-api
+      public: zaqar
+    port:
+      api:
+        default: 8888
+        public: 80
+        service: 8888
+  oslo_db:
+    host_fqdn_override:
+      default: mariadb-cluster-primary.openstack.svc.cluster.local
+    hosts:
+      default: mariadb-cluster-primary
+  oslo_messaging:
+    hosts:
+      default: rabbitmq-nodes
+    host_fqdn_override:
+      default: rabbitmq.openstack.svc.cluster.local
+  oslo_cache:
+    hosts:
+      default: memcached
+    host_fqdn_override:
+      default: memcached.openstack.svc.cluster.local
+
+pod:
+  probes:
+    api:
+      default:
+        liveness:
+          enabled: true
+          params:
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+        readiness:
+          enabled: true
+          params:
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+  lifecycle:
+    upgrades:
+      deployments:
+        revision_history: 3
+        pod_replacement_strategy: RollingUpdate
+        rolling_update:
+          max_unavailable: 1
+          max_surge: 3
+    disruption_budget:
+      api:
+        min_available: 0
+    termination_grace_period:
+      api:
+        timeout: 60
+  resources:
+    enabled: false
+    api:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+  security_context:
+    zaqar:
+      pod:
+        runAsUser: 42424
+      container:
+        zaqar_api:
+          runAsUser: 0
+  tolerations:
+    zaqar:
+      enabled: false
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+
+conf:
+  zaqar:
+    DEFAULT:
+      log_config_append: /etc/zaqar/logging.conf
+    drivers:
+      transport: wsgi
+      message_store: redis
+      management_store: sqlalchemy
+    keystone_authtoken:
+      service_token_roles: service
+      service_token_roles_required: true
+      auth_type: password
+      auth_version: v3
+      memcache_security_strategy: ENCRYPT
+      service_type: messaging
+    cache:
+      backend: dogpile.cache.memory
+    drivers:message_store:redis:
+      uri: redis://redis-replication-headless.redis-systems.svc.cluster.local:6379
+    drivers:transport:wsgi:
+      bind: 0.0.0.0
+      port: 8888
+    oslo_messaging_rabbit:
+      amqp_durable_queues: false
+      rabbit_ha_queues: false
+      rabbit_quorum_queue: true
+      rabbit_transient_quorum_queue: false
+      use_queue_manager: false
+      rabbit_interval_max: 10
+      heartbeat_rate: 3
+      heartbeat_timeout_threshold: 60
+      heartbeat_in_pthread: true
+      kombu_reconnect_delay: 0.5
+    logging:
+      logger_root:
+        handlers:
+          - stdout
+        level: INFO
+
+manifests:
+  certificates: false
+  job_db_drop: false
