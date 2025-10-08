@@ -1,13 +1,12 @@
 ---
 images:
   tags:
-    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    horizon_db_sync: "quay.io/rackspace/rackerlabs-horizon:2024.1-ubuntu_jammy"
-    horizon: "quay.io/rackspace/rackerlabs-horizon:2024.1-ubuntu_jammy"
-    test: "quay.io/rackspace/rackerlabs-osh-selenium:latest-ubuntu_jammy"
-    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
-    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
+    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    horizon_db_sync: "ghcr.io/rackerlabs/genestack-images/horizon:2024.1-latest"
+    horizon: "ghcr.io/rackerlabs/genestack-images/horizon:2024.1-latest"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
+    image_repo_sync: null
 
 # NOTE: (brew) requests cpu/mem values based on a three node
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).

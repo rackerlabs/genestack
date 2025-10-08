@@ -66,7 +66,7 @@ designate_admin_password=$(generate_password 32)
 neutron_rabbitmq_password=$(generate_password 64)
 neutron_db_password=$(generate_password 32)
 neutron_admin_password=$(generate_password 32)
-horizon_secret_key_password=$(generate_password 64)
+horizon_secret_key=$(generate_password 64)
 horizon_db_password=$(generate_password 32)
 skyline_service_password=$(generate_password 32)
 skyline_db_password=$(generate_password 32)
@@ -101,6 +101,14 @@ ironic_db_password=$(generate_password 32)
 ironic_rabbitmq_password=$(generate_password 32)
 
 OUTPUT_FILE="/etc/genestack/kubesecrets.yaml"
+
+if [[ -f ${OUTPUT_FILE} ]]; then
+    echo "Error: ${OUTPUT_FILE} already exists. Please remove it before running this script."
+    echo "       This will replace an existing file and will lead to mass rotation, which is"
+    echo "       likely not what you want to do. If you really want to break your system, please"
+    echo "       make sure you know what you're doing."
+    exit 99
+fi
 
 cat <<EOF > $OUTPUT_FILE
 ---
@@ -390,8 +398,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  username: $(echo -n "horizon" | base64)
-  password: $(echo -n $horizon_secret_key_password | base64 -w0)
+  horizon_secret_key: $(echo -n $horizon_secret_key | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret

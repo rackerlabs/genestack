@@ -1,28 +1,52 @@
 ---
 images:
   tags:
-    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
-    heat_api: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    heat_cfn: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    heat_cloudwatch: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    heat_db_sync: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    heat_engine: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    heat_engine_cleaner: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    heat_purge_deleted: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
-    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
-    test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
+    heat_api: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    heat_cfn: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    heat_cloudwatch: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    heat_db_sync: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    heat_engine: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    heat_engine_cleaner: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    heat_purge_deleted: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    image_repo_sync: null
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    rabbit_init: null
+    test: null
 
 # NOTE: (brew) requests cpu/mem values based on a three node
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
 # limit values based on defaults from the openstack-helm charts unless defined
 pod:
+  lifecycle:
+    upgrades:
+      deployments:
+        revision_history: 3
+        pod_replacement_strategy: RollingUpdate
+        rolling_update:
+          max_unavailable: 20%
+          max_surge: 3
+    disruption_budget:
+      api:
+        min_available: 0
+      cfn:
+        min_available: 0
+      cloudwatch:
+        min_available: 0
+    termination_grace_period:
+      api:
+        timeout: 60
+      cfn:
+        timeout: 60
+      cloudwatch:
+        timeout: 60
+      engine:
+        timeout: 60
   resources:
     enabled: true
     api:

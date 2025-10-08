@@ -1,27 +1,79 @@
 #!/usr/bin/env python3
+
+import argparse
+import copy
+import logging
 import os
-import sys
 import subprocess
+import sys
 import tempfile
 import yaml
-import copy
+from datetime import datetime
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler(
+            f"/var/log/ye_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+        ),
+        logging.StreamHandler(),
+    ],
+)
+
+DEFAULT_REPOS = [
+    "openstack-helm",
+    "openstack-helm-infra",
+    "grafana",
+    "mariadb-operator",
+    "metallb",
+    "prometheus-community",
+    "longhorn",
+    "fluent",
+    "kubeovn",
+]
 
 
 def load_yaml_file(filename):
+    """Load a YAML file and return its contents as a dictionary."""
     try:
         with open(filename, "r") as f:
             data = yaml.safe_load(f)
+            logging.info(f"Loaded YAML file: {filename}")
             return data if data is not None else {}
     except FileNotFoundError:
+        logging.warning(f"File not found: {filename}")
+        return {}
+    except yaml.YAMLError as e:
+        logging.error(f"Error parsing YAML file {filename}: {e}")
         return {}
 
 
+def load_helm_chart_versions():
+    """Load the helm-chart-versions.yaml file and return its contents."""
+    version_file = "/etc/genestack/helm-chart-versions.yaml"
+    versions = load_yaml_file(version_file)
+    if not versions or "charts" not in versions:
+        logging.error(f"Invalid or missing charts in {version_file}")
+        return {}
+    return versions["charts"]
+
+
 def save_yaml_file(data, filename):
-    with open(filename, "w") as f:
-        yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
+    """Save a dictionary to a YAML file."""
+    try:
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        with open(filename, "w") as f:
+            yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
+        logging.info(f"Saved YAML file: {filename}")
+    except Exception as e:
+        logging.error(f"Error saving YAML file {filename}: {e}")
+        sys.exit(1)
 
 
 def merge_dicts(base, overrides):
+    """Merge two dictionaries, with overrides taking precedence."""
     result = copy.deepcopy(base)
     for key, override_value in overrides.items():
         if (
@@ -36,22 +88,23 @@ def merge_dicts(base, overrides):
 
 
 def launch_editor(initial_content):
+    """Launch an editor to modify YAML content and return the edited content."""
     editor = os.environ.get("EDITOR", "vim")
     with tempfile.NamedTemporaryFile(suffix=".yaml", mode="w+", delete=False) as tf:
         temp_filename = tf.name
         tf.write(initial_content)
         tf.flush()
-
+    logging.info(f"Launching editor: {editor} {temp_filename}")
     subprocess.call([editor, temp_filename])
-
     with open(temp_filename, "r") as tf:
         edited_content = tf.read()
-
     os.unlink(temp_filename)
+    logging.info("Editor closed, temporary file deleted")
     return edited_content
 
 
 def compute_patch(base, edited):
+    """Compute the difference between base and edited data, returning the patch."""
     patch = {}
     for key, edited_value in edited.items():
         if key not in base:
@@ -60,7 +113,7 @@ def compute_patch(base, edited):
             base_value = base[key]
             if isinstance(base_value, dict) and isinstance(edited_value, dict):
                 sub_patch = compute_patch(base_value, edited_value)
-                if sub_patch:  # Only include non-empty patches.
+                if sub_patch:
                     patch[key] = sub_patch
             else:
                 if edited_value != base_value:
@@ -68,45 +121,125 @@ def compute_patch(base, edited):
     return patch
 
 
-def main():
-    if len(sys.argv) != 3:
-        print("Usage: {} <base_yaml_file> <override_yaml_file>".format(sys.argv[0]))
-        print(
-            "ye - (YamlEditor) will launch an editor to edit the values in base_yaml_file. If the override_yaml_file exists, "
-            "it will read its values in and will overlay the valies on top of base."
-            "After editing, the edited values will be saved to override_yaml_file and base will remain the same."
+def load_helm_defaults(service_name, repos, chart_versions):
+    """Load default values from the Helm chart for the given service, trying multiple repos with version."""
+    service_version = chart_versions.get(service_name)
+    if not service_version:
+        logging.warning(
+            f"No version found for {service_name} in helm-chart-versions.yaml"
         )
-        sys.exit(1)
+        return {}
 
-    base_filename = sys.argv[1]
-    override_filename = sys.argv[2]
+    for repo in repos:
+        try:
+            chart_ref = f"{repo}/{service_name}"
+            result = subprocess.run(
+                ["helm", "show", "values", chart_ref, "--version", service_version],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            defaults_str = result.stdout
+            data = yaml.safe_load(defaults_str)
+            logging.info(
+                f"Loaded Helm defaults for service: {service_name} from repo: {repo} with version: {service_version}"
+            )
+            return data if data is not None else {}
+        except subprocess.CalledProcessError:
+            logging.warning(
+                f"Chart '{chart_ref}' not found in repo '{repo}' with version '{service_version}'"
+            )
+        except yaml.YAMLError as e:
+            logging.warning(f"Error parsing Helm defaults for {chart_ref}: {e}")
+        except Exception as e:
+            logging.warning(f"Error loading Helm chart from {repo}: {e}")
+    logging.warning(
+        f"No Helm defaults found for {service_name} in any repo with version {service_version}. Proceeding without."
+    )
+    return {}
+
+
+def main():
+    """Main function to orchestrate YAML editing and patching."""
+    parser = argparse.ArgumentParser(description="YamlEditor for Helm configurations")
+    parser.add_argument(
+        "service_name", help="Name of the service (e.g., keystone, grafana)"
+    )
+    parser.add_argument(
+        "--repos",
+        default=",".join(DEFAULT_REPOS),
+        help=f"Comma-separated list of Helm repos (default: {','.join(DEFAULT_REPOS)})",
+    )
+    args = parser.parse_args()
+    repos = [r.strip() for r in args.repos.split(",")]
+    service_name = args.service_name
+
+    # Load chart versions from helm-chart-versions.yaml
+    chart_versions = load_helm_chart_versions()
+
+    base_filename = f"/opt/genestack/base-helm-configs/{service_name}/{service_name}-helm-overrides.yaml"
+    override_filename = (
+        f"/etc/genestack/helm-configs/{service_name}/{service_name}-helm-overrides.yaml"
+    )
+
+    # Load all configuration sources
+    helm_defaults = load_helm_defaults(service_name, repos, chart_versions)
     base_data = load_yaml_file(base_filename)
     if not base_data:
-        print(f"Error: Base file '{base_filename}' not found or is empty.")
-        sys.exit(1)
-
+        logging.warning(
+            f"Base file '{base_filename}' not found or is empty. Proceeding without base."
+        )
+        base_data = {}
     previous_overrides = load_yaml_file(override_filename)
     if not isinstance(previous_overrides, dict):
         previous_overrides = {}
-    effective_data = merge_dicts(base_data, previous_overrides)
+        logging.warning(
+            f"Override file '{override_filename}' is not a valid dictionary, using empty dict"
+        )
+
+    # Merge configurations: Helm defaults -> Base -> Overrides
+    base_merged = merge_dicts(helm_defaults, base_data)
+    effective_data = merge_dicts(base_merged, previous_overrides)
+
+    # Launch editor with merged configuration
     initial_yaml_str = yaml.safe_dump(
         effective_data, default_flow_style=False, sort_keys=False
     )
+    logging.info("Launching editor with merged configuration")
     print("Launching editor. Modify values as needed, then save and exit.")
     edited_yaml_str = launch_editor(initial_yaml_str)
+
+    # Parse edited content
     try:
         edited_data = yaml.safe_load(edited_yaml_str)
         if edited_data is None:
             edited_data = {}
+        logging.info("Successfully parsed edited YAML")
     except yaml.YAMLError as e:
-        print("Error parsing YAML from editor:", e)
+        logging.error(f"Error parsing YAML from editor: {e}")
         sys.exit(1)
-    patch = compute_patch(base_data, edited_data)
+
+    # Compute patch against merged base (Helm defaults + base config)
+    patch = compute_patch(base_merged, edited_data)
     print("Computed patch (overrides):")
     print(yaml.safe_dump(patch, default_flow_style=False, sort_keys=False))
+
+    # Save patch to override file
     save_yaml_file(patch, override_filename)
     print(f"Overrides saved to '{override_filename}'.")
 
 
 if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print(
+            f"Usage: {sys.argv[0]} <service_name>\n"
+            "ye - (YamlEditor) launches an editor to edit Helm configuration values for the specified service. \n"
+            "It merges Helm chart defaults from specified or default repos, \n"
+            "base overrides from /opt/genestack/base-helm-configs/<service>/<service>-helm-overrides.yaml, \n"
+            "and user overrides from /etc/genestack/helm-configs/<service>/<service>-helm-overrides.yaml. \n"
+            "If Helm defaults or base file are unavailable, it proceeds with available data. \n"
+            "Only changes not in defaults or base are saved to the user override file.\n"
+            "Created by Jake Briggs Rackspace"
+        )
+        sys.exit(1)
     main()

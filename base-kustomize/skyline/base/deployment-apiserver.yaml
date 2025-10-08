@@ -64,7 +64,7 @@ spec:
             defaultMode: 0555
       initContainers:
         - name: init
-          image: "quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy"
+          image: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: true
@@ -101,7 +101,7 @@ spec:
             - kubernetes-entrypoint
           volumeMounts: []
         - name: skyline-apiserver-service-init
-          image: "docker.io/openstackhelm/heat:2023.1-ubuntu_jammy"
+          image: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
           imagePullPolicy: IfNotPresent
           resources:
             limits:
@@ -335,11 +335,11 @@ spec:
                   key: prometheus_endpoint
                   optional: true
         - name: skyline-apiserver-db-migrate
-          image: "quay.io/rackspace/rackerlabs-skyline-rxt:master-ubuntu_jammy-1748595671"
+          image: "ghcr.io/rackerlabs/genestack-images/skyline:2024.2-latest"
           imagePullPolicy: IfNotPresent
           resources:
             requests:
-              memory: "64Mi"
+              memory: "256Mi"
               cpu: "100m"
             limits:
               memory: "4096Mi"
@@ -358,14 +358,14 @@ spec:
               readOnly: true
       containers:
         - name: skyline-apiserver
-          image: "quay.io/rackspace/rackerlabs-skyline-rxt:master-ubuntu_jammy-1748595671"
+          image: "ghcr.io/rackerlabs/genestack-images/skyline:2024.2-latest"
           imagePullPolicy: IfNotPresent
           resources:
-            limits:
-              memory: "1Gi"
             requests:
-              cpu: "0.25"
-              memory: "64Mi"
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "4096Mi"
           command:
             - bash
             - -c

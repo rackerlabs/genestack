@@ -1,20 +1,34 @@
 ---
 images:
   tags:
-    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
-    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
-    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    placement: "quay.io/rackspace/rackerlabs-placement:2024.1-ubuntu_jammy"
-    placement_db_sync: "quay.io/rackspace/rackerlabs-placement:2024.1-ubuntu_jammy"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
+    image_repo_sync: null
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    placement: "ghcr.io/rackerlabs/genestack-images/placement:2024.1-latest"
+    placement_db_sync: "ghcr.io/rackerlabs/genestack-images/placement:2024.1-latest"
 
 # NOTE: (brew) requests cpu/mem values based on a three node
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
 # limit values based on defaults from the openstack-helm charts unless defined
 pod:
+  lifecycle:
+    upgrades:
+      deployments:
+        revision_history: 3
+        pod_replacement_strategy: RollingUpdate
+        rolling_update:
+          max_unavailable: 20%
+          max_surge: 3
+    disruption_budget:
+      api:
+        min_available: 0
+    termination_grace_period:
+      api:
+        timeout: 60
   resources:
     enabled: true
     api:
@@ -38,7 +52,7 @@ conf:
       service_token_roles_required: true
       service_type: placement
     oslo_concurrency:
-      lock_path: /tmp/octavia
+      lock_path: /tmp/placement
     oslo_messaging_notifications:
       driver: messagingv2
     oslo_messaging_rabbit:

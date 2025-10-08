@@ -7,29 +7,43 @@ labels:
 
 images:
   tags:
-    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    cinder_api: "quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy"
-    cinder_backup: "quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy"
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    cinder_api: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-latest"
+    cinder_backup: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-latest"
     cinder_backup_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
-    cinder_db_sync: "quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy"
-    cinder_scheduler: "quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy"
+    cinder_db_sync: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-latest"
+    cinder_scheduler: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-latest"
     cinder_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
-    cinder_volume: "quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy"
-    cinder_volume_usage_audit: "quay.io/rackspace/rackerlabs-cinder:2024.1-ubuntu_jammy"
-    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
-    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
-    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
-    test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
+    cinder_volume: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-latest"
+    cinder_volume_usage_audit: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
+    image_repo_sync: null
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    rabbit_init: null
+    test: null
 
 # NOTE: (brew) requests cpu/mem values based on a three node
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
 # limit values based on defaults from the openstack-helm charts unless defined
 pod:
+  lifecycle:
+    upgrades:
+      deployments:
+        revision_history: 3
+        pod_replacement_strategy: RollingUpdate
+        rolling_update:
+          max_unavailable: 20%
+          max_surge: 3
+    disruption_budget:
+      api:
+        min_available: 0
+    termination_grace_period:
+      api:
+        timeout: 60
   resources:
     enabled: true
     api:
@@ -89,6 +103,8 @@ conf:
       volume_clear: zero
       volume_driver: cinder_rxt.rackspace.RXTLVM
       volume_group: cinder-volumes-1
+  policy:
+    "volume_extension:types_extra_specs:read_sensitive": "rule:xena_system_admin_or_project_reader"
   cinder:
     DEFAULT:
       allow_availability_zone_fallback: true

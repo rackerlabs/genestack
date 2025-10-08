@@ -7,7 +7,7 @@ spec:
   restartPolicy: Always
   containers:
     - name: "image-ks-service-registration"
-      image: docker.io/openstackhelm/heat:2023.1-ubuntu_jammy
+      image: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
       imagePullPolicy: IfNotPresent
       command:
         - sleep

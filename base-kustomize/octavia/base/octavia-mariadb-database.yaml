@@ -20,6 +20,26 @@ spec:
   retryInterval: 5s
 ---
 apiVersion: k8s.mariadb.com/v1alpha1
+kind: Database
+metadata:
+  name: octavia-persistence
+  namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
+  annotations:
+    helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "octavia"
+    meta.helm.sh/release-namespace: "openstack"
+spec:
+  # If you want the database to be created with a different name than the resource name
+  # name: data-custom
+  mariaDbRef:
+    name: mariadb-cluster
+  characterSet: utf8
+  collate: utf8_general_ci
+  retryInterval: 5s
+---
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: User
 metadata:
   name: octavia
@@ -60,6 +80,29 @@ spec:
   privileges:
     - "ALL"
   database: "octavia"
+  table: "*"
+  username: octavia
+  grantOption: true
+  host: "%"
+  retryInterval: 5s
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Grant
+metadata:
+  name: octavia-persistence-grant
+  namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: "Helm"
+  annotations:
+    helm.sh/resource-policy: keep
+    meta.helm.sh/release-name: "octavia"
+    meta.helm.sh/release-namespace: "openstack"
+spec:
+  mariaDbRef:
+    name: mariadb-cluster
+  privileges:
+    - "ALL"
+  database: "octavia-persistence"
   table: "*"
   username: octavia
   grantOption: true

@@ -4,6 +4,84 @@
 set -o pipefail
 set -e
 SECONDS=0
+RUN_EXTRAS=0
+INCLUDE_LIST=()
+EXCLUDE_LIST=()
+
+function installYq() {
+    export VERSION=v4.2.0
+    export BINARY=yq_linux_amd64
+    wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -q -O - | tar xz && sudo mv ${BINARY} /usr/local/bin/yq
+}
+
+# Install yq locally if needed...
+if ! yq --version 2> /dev/null; then
+  echo "yq is not installed. Attempting to install yq"
+  installYq
+fi
+
+
+# Default components file
+##...needed until default config is upstream...
+OS_CONFIG="
+components:
+  keystone: true
+  glance: true
+  heat: false
+  barbican: false
+  blazar: false
+  cinder: true
+  placement: true
+  nova: true
+  neutron: true
+  magnum: false
+  octavia: false
+  masakari: false
+  ceilometer: false
+  gnocchi: false
+  skyline: true
+"
+echo -e "$OS_CONFIG" > $PWD/openstack-components.yaml
+
+while getopts "i:e:x" opt; do
+  case $opt in
+    x)
+      RUN_EXTRAS=1
+      ;;
+    i)
+      old_IFS="$IFS"
+      IFS=','
+      read -r -a INCLUDE_LIST <<< "$OPTARG"
+      IFS="$old_IFS"
+      ;;
+    e)
+      old_IFS="$IFS"
+      IFS=','
+      read -r -a EXCLUDE_LIST <<< "$OPTARG"
+      IFS="$old_IFS"
+      ;;
+    *)
+      echo "Usage: $0 [-i <list,of,services,to,include>]
+      [-e <ist,of,services,to,exclude>]
+      -x <flag only will run extra operations>\n"
+      echo "View the openstack-components.yaml for the services available to configure."
+      exit 1
+      ;;
+    \?) # Handle invalid options
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+  esac
+done
+shift $((OPTIND-1))
+
+for option in "${INCLUDE_LIST[@]}"; do
+  yq -i ".components.$option = true" $PWD/openstack-components.yaml
+done
+for option in "${EXCLUDE_LIST[@]}"; do
+    yq -i ".components.$option = false" $PWD/openstack-components.yaml
+done
+
 if [ -z "${ACME_EMAIL}" ]; then
   read -rp "Enter a valid email address for use with ACME, press enter to skip: " ACME_EMAIL
   export ACME_EMAIL="${ACME_EMAIL:-}"
@@ -407,7 +485,7 @@ all:
         openstack_compute_nodes:
           vars:
             enable_iscsi: true
-            storage_network_multipath: false
+            custom_multipath: false
           hosts:
             ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
@@ -924,6 +1002,14 @@ pushd /opt/kube-plugins
 popd
 EOC
 
+echo "Creating config for setup-openstack.sh"
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+set -e
+if [ ! -f "/etc/genestack/openstack-components.yaml" ]; then
+  echo -e "$OS_CONFIG" > /etc/genestack/openstack-components.yaml
+fi
+EOC
+
 # Run Genestack Infrastucture/OpenStack Setup
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
@@ -971,6 +1057,59 @@ if ! openstack --os-cloud default subnet show flat_subnet; then
 fi
 HERE
 EOC
+
+# Extra operations...
+install_k9s() {
+echo "Installing k9s"
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} << 'EOC'
+set -e
+echo "Installing k9s"
+if [ ! -e "/usr/bin/k9s" ]; then
+  sudo wget https://github.com/derailed/k9s/releases/latest/download/k9s_linux_amd64.deb && mv ./k9s_linux_amd64.deb /tmp/ && sudo apt install /tmp/k9s_linux_amd64.deb && sudo rm /tmp/k9s_linux_amd64.deb
+fi
+
+if [ ! -d ~/.kube ]; then
+  mkdir ~/.kube
+  sudo cp -i /etc/kubernetes/admin.conf ~/.kube/config
+  sudo chown $(id -u):$(id -g) ~/.kube/config
+fi
+EOC
+}
+
+install_preconf_octavia() {
+echo "Installing Octavia preconf"
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} << 'EOC'
+set -e
+
+if [ ! -f ~/.config/openstack ]; then
+  sudo mkdir -p ~/.config/openstack
+  sudo cp /root/.config/openstack/clouds.yaml ~/.config/openstack
+  sudo chown $(id -u):$(id -g) ~/.config
+fi
+
+source ~/.venvs/genestack/bin/activate
+
+OCTAVIA_HELM_FILE=/tmp/octavia_helm_overrides.yaml
+
+ANSIBLE_SSH_PIPELINING=0 ansible-playbook /opt/genestack/ansible/playbooks/octavia-preconf-main.yaml \
+  -e octavia_os_password=$(/usr/local/bin/kubectl get secrets keystone-admin -n openstack -o jsonpath='{.data.password}' | base64 -d) \
+  -e octavia_os_region_name=$(sudo ~/.venvs/genestack/bin/openstack --os-cloud=default endpoint list --service keystone --interface internal -c Region -f value) \
+  -e octavia_os_auth_url=$(sudo ~/.venvs/genestack/bin/openstack --os-cloud=default endpoint list --service keystone --interface internal -c URL -f value) \
+  -e octavia_os_endpoint_type=internal \
+  -e octavia_helm_file=$OCTAVIA_HELM_FILE \
+  -e interface=internal \
+  -e endpoint_type=internal
+
+echo "Installing Octavia"
+sudo /opt/genestack/bin/install-octavia.sh -f $OCTAVIA_HELM_FILE
+EOC
+}
+
+if [[ "$RUN_EXTRAS" -eq 1 ]]; then
+  echo "Running extra operations..."
+  install_k9s
+  install_preconf_octavia
+fi
 
 { cat | tee /tmp/output.txt; } <<EOF
 The lab is now ready for use and took ${SECONDS} seconds to complete.

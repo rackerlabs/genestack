@@ -1,18 +1,18 @@
 ---
 images:
   tags:
-    barbican_api: "quay.io/rackspace/rackerlabs-barbican:2024.1-ubuntu_jammy"
-    barbican_db_sync: "quay.io/rackspace/rackerlabs-barbican:2024.1-ubuntu_jammy"
-    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
-    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
-    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
-    scripted_test: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    barbican_api: "ghcr.io/rackerlabs/genestack-images/barbican:2024.1-latest"
+    barbican_db_sync: "ghcr.io/rackerlabs/genestack-images/barbican:2024.1-latest"
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
+    image_repo_sync: null
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    rabbit_init: null
+    scripted_test: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
 
 # NOTE: (brew) CPU requests values based on a three node
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
@@ -25,6 +25,14 @@ pod:
         memory: "256Mi"
         cpu: "100m"
       limits: {}
+  lifecycle:
+    upgrades:
+      deployments:
+        revision_history: 3
+        pod_replacement_strategy: RollingUpdate
+        rolling_update:
+          max_unavailable: 20%
+          max_surge: 3
 
 dependencies:
   static:

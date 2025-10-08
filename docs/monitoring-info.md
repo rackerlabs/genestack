@@ -68,6 +68,12 @@ View the [kube-state-docs](https://github.com/kubernetes/kube-state-metrics/tree
 
 Beyond those two highly important ones installed by default are many more equally important metric exporters that we install as part of Genestack's workflow that we'll go over next.
 
+* ### Kubernetes Event Exporter
+Kubernetes clusters are constantly sending events that contain potentially important data that should be captured.
+With the [Kubernetes Event Exporter](https://github.com/resmoio/kubernetes-event-exporter) we can capture these events to gain a better view of what our cluster is doing.
+This exporter also includes built in alerting mechanisms for things like Slack and MSTeams that can be configured to send messages when specific events are seen.
+View the [Kubernetes Event Exporter Install Instructions](prometheus-kube-event-exporter.md) to get this exporter installed.
+
 * ### MariaDB/MySQL Exporter:
 Genestack uses a couple different database solutions to run OpenStack or just for general storage capabilities, the most prominent of them is MySQL or more specifically within Genestack MariaDB and Galera.
 When installing [MariaDB](infrastructure-mariadb.md) as part of Genestack's workflow it is default to enable metrics which deploys its own service monitor as part of the [mariadb-operator](https://mariadb-operator.github.io/mariadb-operator/latest/) helm charts.
@@ -110,10 +116,15 @@ Once we've ran the apply command we will have installed ServiceMonitors for Kube
     You can view more information about OVN monitoring in the [OVN Monitoring Introduction Docs](ovn-monitoring-introduction.md).
 
 * ### Nginx Gateway Monitoring:
-Genestack makes use of the Gateway API for its implementation of [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/). Genestack deploys this as part of its infrastructure, view the [Gateway Deployment Doc](infrastructure-gateway-api.md) for more information.
+Genestack can make use of the NGINX Gateway API for its implementation of [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/). Genestack deploys this as part of its infrastructure, view the [Gateway Deployment Doc](infrastructure-gateway-api.md) for more information.
 Nginx Gateway does expose important metrics for us to gather but it does not do so via a service. Instead we must make use another Prometheus CRD the [PodMonitor](https://prometheus-operator.dev/docs/getting-started/design/#podmonitor).
 The install is similar to the above OVN monitoring as you can see in the [Nginx Gateway Exporter Deployment Doc](prometheus-nginx-gateway.md). The primary difference is the need to target and match on a pod that's exposing the metrics rather than a service.
 You can view more information about the metrics exposed by the Nginx Gateway by viewing the [Nginx Gateway Fabric Docs](https://docs.nginx.com/nginx-gateway-fabric/how-to/monitoring/prometheus/).
+
+* ### Envoy Gateway Monitoring:
+Genestack makes use of the Envoy Gateway API for its implementation of [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/). Genestack deploys the Envoy Gateway as part of its infrastructure, view the [Envoy Gateway Deployment Doc](infrastructure-envoy-gateway-api.md) for more information.
+Envoy Gateway is a Kubernetes-native API Gateway and reverse proxy control plane. It simplifies deploying and operating Envoy Proxy as a data plane by using the standard Gateway API and its own extensible APIs. For more information about Envoy Gateway in general view the [Envoy Gateway Documentation](https://gateway.envoyproxy.io/docs/concepts/introduction/).
+The Envoy Gateway serves Prometheus metrics by default and list of the metrics collected can be found at [Envoy Gateway Exported Metrics](https://gateway.envoyproxy.io/docs/tasks/observability/gateway-exported-metrics/).
 
 * ### OpenStack Metrics:
 OpenStack Metrics are a bit different compared to the rest of the exporters as there's no single service, pod or deployment that exposes Prometheus metrics for collection. Instead, Genestack uses the [OpenStack Exporter](https://github.com/openstack-exporter/openstack-exporter) to gather the metrics for us.

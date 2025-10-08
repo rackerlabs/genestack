@@ -1,10 +1,24 @@
 #!/bin/bash
 # shellcheck disable=SC2124,SC2145,SC2294
-
 GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/kube-ovn"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/kube-ovn/kube-ovn-helm-overrides.yaml"
-KUBE_OVN_VERSION="v1.13.13"
+
+# Read kube-ovn version from helm-chart-versions.yaml
+VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
+if [ ! -f "$VERSION_FILE" ]; then
+    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE"
+    exit 1
+fi
+
+# Extract kube-ovn version using grep and sed
+KUBE_OVN_VERSION=$(grep 'kube-ovn:' "$VERSION_FILE" | sed 's/.*kube-ovn: *//')
+
+if [ -z "$KUBE_OVN_VERSION" ]; then
+    echo "Error: Could not extract kube-ovn version from $VERSION_FILE"
+    exit 1
+fi
+
 MASTER_NODES=$(kubectl get nodes -l kube-ovn/role=master -o json | jq -r '[.items[].status.addresses[] | select(.type == "InternalIP") | .address] | join(",")' | sed 's/,/\\,/g')
 MASTER_NODE_COUNT=$(kubectl get nodes -l kube-ovn/role=master -o json | jq -r '.items[].status.addresses[] | select(.type=="InternalIP") | .address' | wc -l)
 
@@ -39,7 +53,6 @@ done
 
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
 HELM_CMD+=" --post-renderer-args kube-ovn/overlay"
-
 HELM_CMD+=" $@"
 
 echo "Executing Helm command:"

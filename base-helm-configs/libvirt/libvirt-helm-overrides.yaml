@@ -1,9 +1,9 @@
 ---
 images:
   tags:
-    libvirt: docker.io/openstackhelm/libvirt:2024.1-ubuntu_jammy
+    libvirt: ghcr.io/rackerlabs/genestack-images/libvirt:latest
     ceph_config_helper: docker.io/openstackhelm/ceph-config-helper:ubuntu_jammy_18.2.2-1-20240312
-    dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy
+    dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
 network:
   backend:
     - ovn
@@ -18,3 +18,12 @@ dependencies:
       ovn:
         libvirt:
           pod: []  # In a hybrid deployment, we don't want to run ovn-controller on the same node as libvirt
+pod:
+  lifecycle:
+    upgrades:
+      daemonsets:
+        pod_replacement_strategy: RollingUpdate
+        libvirt:
+          enabled: true
+          min_ready_seconds: 0
+          max_unavailable: 20%

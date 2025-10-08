@@ -189,11 +189,11 @@ nav:
                       - RabbitMQ:
                             - infrastructure-rabbitmq.md
                       - Memcached: infrastructure-memcached.md
+                      - Redis: infrastructure-redis.md
                       - Libvirt: infrastructure-libvirt.md
                       - OVN: infrastructure-ovn-setup.md
                       - FluentBit: infrastructure-fluentbit.md
                       - Loki: infrastructure-loki.md
-                      - Sealed Secrets: infrastructure-sealed-secrets.md
                 - OpenStack:
                       - openstack-overview.md
                       - OpenStack Services:
@@ -245,6 +245,7 @@ nav:
                             - alertmanager-pagerduty.md
     - Operational Guide:
           - Genestack:
+                - Genestack Structure and Files: genestack-structure-and-files.md
                 - Supporting multi-region: multi-region-support.md
                 - Sync Keystone Fernet Keys: sync-fernet-keys.md
                 - Running Upgrades: genestack-upgrade.md
@@ -272,15 +273,16 @@ nav:
                 - MariaDB:
                       - Operations: infrastructure-mariadb-ops.md
                 - Gateway API:
-                      - NGINX Gateway:
-                            - Custom Routes: infrastructure-nginx-gateway-api-custom.md
-                            - Rackspace Example Gateway Overview: rackspace-infrastructure-nginx-gateway-api.md
-                            - Creating self-signed CA issuer for Gateway API: infrastructure-nginx-gateway-api-ca-issuer.md
+                      - Custom Routes: infrastructure-nginx-gateway-api-custom.md
+                      - Rackspace Example Gateway Overview: rackspace-infrastructure-nginx-gateway-api.md
+                      - Creating self-signed CA issuer for Gateway API: infrastructure-nginx-gateway-api-ca-issuer.md
+                      - Creating Security Policies: infrastructure-envoy-gateway-api-security.md
           - Observability:
                 - Observability Overview: observability-info.md
                 - Monitoring Overview: monitoring-info.md
                 - Alerting Overview: alerting-info.md
                 - Logging Overview: genestack-logging.md
+          - Upgrades: 2024.1-to-2025.1.md
           - OpenStack:
                 - CLI Access:
                       - Generating Clouds YAML: openstack-clouds.md
@@ -295,6 +297,7 @@ nav:
                       - Nova PCI Passthrough: openstack-pci-passthrough.md
                       - Host Aggregates: openstack-host-aggregates.md
                       - Instance Data Recovery: openstack-data-disk-recovery.md
+                      - Vendordata: openstack-vendordata.md
                 - Quota Management:
                       - Quota Management: openstack-quota-managment.md
                 - Images:
@@ -346,12 +349,12 @@ nav:
     - Blog: https://blog.rackspacecloud.com/blog
     - Regions:
           - Availability: api-status.md
-          - SJC3:
+          - SJC:
                 - "<img src='https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Frackerlabs%2Frs-flex-uptime%2Frefs%2Fheads%2Fmaster%2Fstatus.json'/>": https://status.api.sjc3.rackspacecloud.com
-                - "<strong>Control Panel</strong>": https://skyline.api.sjc3.rackspacecloud.com
-          - DFW3:
+                - "<strong>Control Panel</strong>": https://keystone.api.sjc3.rackspacecloud.com/v3/auth/OS-FEDERATION/websso/saml2?origin=https://skyline.api.sjc3.rackspacecloud.com/api/openstack/skyline/api/v1/websso
+          - DFW:
                 - "<img src='https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fthe2hill%2Frs-flex-uptime-dfw%2Frefs%2Fheads%2Fmaster%2Fstatus.json'/>": https://status.api.dfw3.rackspacecloud.com
-                - "<strong>Control Panel</strong>": https://skyline.api.dfw3.rackspacecloud.com
-          - IAD3:
+                - "<strong>Control Panel</strong>": https://keystone.api.dfw3.rackspacecloud.com/v3/auth/OS-FEDERATION/websso/saml2?origin=https://skyline.api.dfw3.rackspacecloud.com/api/openstack/skyline/api/v1/websso
+          - IAD:
                 - "<img src='https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fthe2hill%2Frs-flex-uptime-iad%2Frefs%2Fheads%2Fmaster%2Fstatus.json'/>": https://status.api.iad3.rackspacecloud.com
-                - "<strong>Control Panel</strong>": https://skyline.api.iad3.rackspacecloud.com
+                - "<strong>Control Panel</strong>": https://keystone.api.iad3.rackspacecloud.com/v3/auth/OS-FEDERATION/websso/saml2?origin=https://skyline.api.iad3.rackspacecloud.com/api/openstack/skyline/api/v1/websso

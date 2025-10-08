@@ -188,4 +188,14 @@ else
   message "manifests already exists in /etc/genestack, skipping copy."
 fi
 
+# Copy yaml editor to /usr/local/bin
+cp /opt/genestack/yaml-editor/ye /usr/local/bin/ye
+
+if [ ! -f "/etc/genestack/helm-chart-versions.yaml" ]; then
+  cp /opt/genestack/helm-chart-versions.yaml /etc/genestack/
+  success "Copied helm-chart-versions.yaml to /etc/genestack."
+else
+  message "helm-chart-versions.yaml already exists in /etc/genestack, skipping copy."
+fi
+
 echo

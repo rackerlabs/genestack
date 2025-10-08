@@ -7,3 +7,4 @@ resources:
   - envoy-gatewayclass.yaml
   - envoy-gateway.yaml
   - envoy-endpoint-policies.yaml
+  - envoy-service-monitor.yaml

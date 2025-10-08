@@ -30,6 +30,7 @@
   "ghcr.io/rackerlabs/genestack/glance:2024.1-ubuntu_jammy-1740121591",
   "ghcr.io/rackerlabs/genestack/gnocchi:2024.1-ubuntu_jammy-1738626728",
   "ghcr.io/rackerlabs/genestack/heat:2024.1-ubuntu_jammy-1738626724",
+  "ghcr.io/rackerlabs/genestack/magnum:2024.1-ubuntu_jammy-1742991496",
   "ghcr.io/rackerlabs/genestack/neutron-oslodb:2024.1-ubuntu_jammy-1738626982",
   "ghcr.io/rackerlabs/genestack/neutron-oslodb:2024.1-ubuntu_jammy-1739651767",
   "ghcr.io/rackerlabs/genestack/neutron-oslodb:2024.1-ubuntu_jammy-1742943886",
@@ -39,10 +40,12 @@
   "ghcr.io/rackerlabs/genestack/nova-efi:2024.1-ubuntu_jammy-1737928811",
   "ghcr.io/rackerlabs/genestack/nova-efi:2025.1-ubuntu_jammy-1750943616",
   "ghcr.io/rackerlabs/genestack/octavia-ovn:2024.1-ubuntu_jammy-1737651745",
-  "ghcr.io/rackerlabs/keystone-rxt/shibd:1747958286",
   "ghcr.io/rackerlabs/keystone-rxt:2024.1-ubuntu_jammy-1747958291",
   "ghcr.io/rackerlabs/skyline-rxt:master-ubuntu_jammy-1748595671",
   "ghcr.io/vexxhost/netoffload:v1.0.1",
   "quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_jammy",
-  "quay.io/airshipit/porthole-postgresql-utility:latest-ubuntu_bionic"
+  "quay.io/airshipit/porthole-postgresql-utility:latest-ubuntu_bionic",
+  "quay.io/airshipit/freezer:2025.1-ubuntu_jammy",
+  "quay.io/airshipit/freezer-api:2025.1-ubuntu_jammy",
+  "quay.io/airshipit/blazar:2025.1-ubuntu_jammy"
 ]

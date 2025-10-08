@@ -1,27 +1,55 @@
 ---
 images:
   tags:
-    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
-    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
-    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    octavia_api: "quay.io/rackspace/rackerlabs-octavia-ovn:2024.1-ubuntu_jammy-1737651745"
-    octavia_db_sync: "quay.io/rackspace/rackerlabs-octavia-ovn:2024.1-ubuntu_jammy-1737651745"
-    octavia_health_manager: "quay.io/rackspace/rackerlabs-octavia-ovn:2024.1-ubuntu_jammy-1737651745"
-    octavia_health_manager_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
-    octavia_housekeeping: "quay.io/rackspace/rackerlabs-octavia-ovn:2024.1-ubuntu_jammy-1737651745"
-    octavia_worker: "quay.io/rackspace/rackerlabs-octavia-ovn:2024.1-ubuntu_jammy-1737651745"
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
+    image_repo_sync: null
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    octavia_api: "ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest"
+    octavia_db_sync: "ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest"
+    octavia_health_manager: "ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest"
+    octavia_health_manager_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    octavia_housekeeping: "ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest"
+    octavia_worker: "ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest"
     openvswitch_vswitchd: "docker.io/kolla/centos-source-openvswitch-vswitchd:rocky"
-    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
-    test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
+    rabbit_init: null
+    test: null
+
+labels:
+  api:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  driver_agent:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  worker:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  housekeeping:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  health_manager:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  job:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+
+bootstrap:
+  enabled: false
 
 dependencies:
   static:
     api:
+      jobs:
+        - octavia-db-sync
+        - octavia-ks-user
+        - octavia-ks-endpoints
+    driver_agent:
       jobs:
         - octavia-db-sync
         - octavia-ks-user
@@ -75,6 +103,8 @@ conf:
       use_db_reconnect: true
       pool_timeout: 60
       max_retries: -1
+      max_overflow: 60
+      max_pool_size: 30
     driver_agent:
       enabled_provider_agents: ovn
     glance:
@@ -119,6 +149,8 @@ conf:
       ovn_sb_connection: "tcp:127.0.0.1:6642"
     service_auth:
       insecure: true
+    task_flow:
+      jobboard_enabled: false
   octavia_api_uwsgi:
     uwsgi:
       processes: 2
@@ -166,6 +198,12 @@ endpoints:
       default: mariadb-cluster-primary.openstack.svc.cluster.local
     hosts:
       default: mariadb-cluster-primary
+  oslo_db_persistence:
+    hosts:
+      default: mariadb-cluster-primary
+    host_fqdn_override:
+      default: mariadb-cluster-primary.openstack.svc.cluster.local
+    path: /octavia-persistence
   oslo_cache:
     host_fqdn_override:
       default: memcached.openstack.svc.cluster.local
@@ -177,10 +215,43 @@ endpoints:
     hosts:
       default: rabbitmq-nodes
 
+  valkey:
+    name: valkey
+    hosts:
+      default: redis-replication-master.redis-systems.svc.cluster.local
+    # NOTE(rlin): we should only provide password when not using CA cert.
+    password: null
+    host_fqdn_override:
+      default: redis-replication-master.redis-systems.svc.cluster.local
+    port:
+      server:
+        default: 6379
+        sentinel: 6379
+
 # NOTE: (brew) requests cpu/mem values based on a three node
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
 # limit values based on defaults from the openstack-helm charts unless defined
 pod:
+  lifecycle:
+    upgrades:
+      deployments:
+        revision_history: 3
+        pod_replacement_strategy: RollingUpdate
+        rolling_update:
+          max_unavailable: 20%
+          max_surge: 3
+      daemonsets:
+        pod_replacement_strategy: RollingUpdate
+        health_manager:
+          enabled: true
+          min_ready_seconds: 0
+          max_unavailable: 20%
+    disruption_budget:
+      api:
+        min_available: 0
+    termination_grace_period:
+      api:
+        timeout: 60
   resources:
     enabled: true
     api:
@@ -226,7 +297,9 @@ pod:
 
 manifests:
   ingress_api: false
+  job_bootstrap: false
   job_db_init: false
   job_rabbit_init: false
   secret_ingress_tls: false
   service_ingress_api: false
+  deployment_driver_agent: false

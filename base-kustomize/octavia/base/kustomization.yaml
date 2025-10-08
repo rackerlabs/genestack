@@ -4,11 +4,11 @@ sortOptions:
 
 images:
   - name: image-kubernetes-entrypoint-init
-    newName: quay.io/airshipit/kubernetes-entrypoint
-    newTag: v1.0.0
+    newName: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint
+    newTag: latest
   - name: image-octavia-ovn
-    newName: quay.io/rackspace/rackerlabs-octavia-ovn
-    newTag: 2024.1-ubuntu_jammy-1737651745
+    newName: ghcr.io/rackerlabs/genestack-images/octavia
+    newTag: 2024.1-latest
 
 resources:
   - octavia-mariadb-database.yaml
@@ -20,6 +20,13 @@ resources:
 
 # To run the OVN driver, the octavia-api container must have an agent container within the same pod.
 patches:
+  - target:
+      kind: Secret
+      name: octavia-etc
+    patch: |-
+      - op: add
+        path: /data/policy.yaml
+        value: LS0tCm9zX2xvYWQtYmFsYW5jZXJfYXBpOmZsYXZvci1wcm9maWxlOmdldF9vbmU6IHJ1bGU6bG9hZC1iYWxhbmNlcjpyZWFkCm9zX2xvYWQtYmFsYW5jZXJfYXBpOmZsYXZvci1wcm9maWxlOmdldF9hbGw6IHJ1bGU6bG9hZC1iYWxhbmNlcjpyZWFkCm9zX2xvYWQtYmFsYW5jZXJfYXBpOmxvYWRiYWxhbmNlcjpwdXRfZmFpbG92ZXI6ICJydWxlOmxvYWQtYmFsYW5jZXI6YWRtaW4gb3IgcnVsZTpsb2FkLWJhbGFuY2VyOm1lbWJlcl9hbmRfb3duZXIiCm9zX2xvYWQtYmFsYW5jZXJfYXBpOmFtcGhvcmE6cHV0X2ZhaWxvdmVyOiAicnVsZTpsb2FkLWJhbGFuY2VyOmFkbWluIG9yIHJ1bGU6bG9hZC1iYWxhbmNlcjptZW1iZXJfYW5kX293bmVyIgoK
   - target:
       kind: Deployment
       name: octavia-api
