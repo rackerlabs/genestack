@@ -2,6 +2,7 @@
 # shellcheck disable=SC2124,SC2145,SC2294
 GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/fluentbit"
+FLUENTBIT_CHART_VERSION="0.52.0"
 
 # Read fluentbit version from helm-chart-versions.yaml
 VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
