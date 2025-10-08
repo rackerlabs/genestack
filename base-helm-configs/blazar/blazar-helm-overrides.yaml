@@ -1,4 +1,17 @@
 ---
+images:
+  tags:
+    blazar_api: "ghcr.io/rackerlabs/genestack-images/blazar:2025.1-latest"
+    blazar_db_sync: "ghcr.io/rackerlabs/genestack-images/blazar:2025.1-latest"
+    blazar_manager: "ghcr.io/rackerlabs/genestack-images/blazar:2025.1-latest"
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+
 endpoints:
   reservation:
     hosts:
