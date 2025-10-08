@@ -66,3 +66,5 @@ _host_distro_packages:
 _hosts_package_list:
   - name: ca-certificates
     state: latest
+
+host_lvm_devices_filter_override: []

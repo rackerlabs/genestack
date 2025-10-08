@@ -67,3 +67,5 @@ _hosts_package_list:
     state: "{{ host_package_state }}"
   - name: ca-certificates
     state: latest
+
+host_lvm_devices_filter_override: []
