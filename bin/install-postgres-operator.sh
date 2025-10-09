@@ -1,7 +1,7 @@
 #!/bin/bash
 # shellcheck disable=SC2124,SC2145,SC2294
 # Directory to check for YAML files
-CONFIG_DIR="/etc/genestack/helm-configs/postgres-operator/base"
+CONFIG_DIR="/etc/genestack/helm-configs/postgres-operator"
 
 # Read postgres-operator version from helm-chart-versions.yaml
 VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
