@@ -24,6 +24,7 @@ images:
     masakari_host_monitor: ghcr.io/rackerlabs/genestack-images/masakari-monitors:2024.1-latest
     masakari_process_monitor: ghcr.io/rackerlabs/genestack-images/masakari-monitors:2024.1-latest
     masakari_instance_monitor: ghcr.io/rackerlabs/genestack-images/masakari-monitors:2024.1-latest
+    masakari_introspective_instance_monitor: ghcr.io/rackerlabs/genestack-images/masakari-monitors:2024.1-latest
     rabbit_init: docker.io/rabbitmq:3.13-management
     dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
   pull_policy: "IfNotPresent"
@@ -174,6 +175,9 @@ conf:
       disable_ipmi_checks: true
       corosync_multicast_interfaces: null
       corosync_multicast_ports: null
+    introspectiveinstancemonitor:
+      guest_monitor_interval: 20
+      guest_monitoring_failure_threshold: 5
     kubernetes:
       monitoring_node_labels: "openstack-compute-node=enabled"
   masakari_sudoers: |
@@ -202,3 +206,4 @@ manifests:
   host_monitor: true
   instance_monitor: true
   process_monitor: false
+  introspective_instance_monitor: true
