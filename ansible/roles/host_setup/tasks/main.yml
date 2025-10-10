@@ -165,5 +165,8 @@
 - name: Configure custom multipath.conf
   ansible.builtin.include_tasks: custom_multipath.yml
 
+- name: Configure custom lvm.conf
+  ansible.builtin.include_tasks: lvm_config.yml
+
 - name: Install RAID controller CLI tools
   ansible.builtin.include_tasks: raid_cli_tools.yml
