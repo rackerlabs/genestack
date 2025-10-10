@@ -150,7 +150,6 @@ conf:
       service_type: compute
     libvirt:
       cpu_mode: host-model
-      max_queues: 8
       num_pcie_ports: 16
     os_vif_ovs:
       ovsdb_connection: "tcp:127.0.0.1:6640"
