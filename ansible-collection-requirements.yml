@@ -1,3 +1,4 @@
+---
 collections:
   - name: https://opendev.org/openstack/ansible-collections-openstack
     version: 2.2.0

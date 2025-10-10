@@ -62,10 +62,6 @@ repos:
       - id: yamllint
         stages:
           - manual
-        args:
-          - >-
-            -d {extends: default, rules: {line-length: disable},
-            ignore: [submodules/]}
   - repo: https://github.com/ansible-community/ansible-lint
     rev: v24.9.2
     hooks:
