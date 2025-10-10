@@ -97,6 +97,7 @@ gnocchi_pgsql_password=$(generate_password 32)
 ceilometer_keystone_admin_password=$(generate_password 32)
 ceilometer_keystone_test_password=$(generate_password 32)
 ceilometer_rabbitmq_password=$(generate_password 32)
+swift_rabbitmq_password=$(generate_password 32)
 memcached_shared_secret=$(generate_password 32)
 grafana_secret=$(generate_password 32)
 grafana_root_secret=$(generate_password 32)
@@ -684,6 +685,16 @@ type: Opaque
 data:
   username: $(echo -n "ceilometer" | base64)
   password: $(echo -n $ceilometer_rabbitmq_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: swift-rabbitmq-password
+  namespace: openstack
+type: Opaque
+data:
+  username: $(echo -n "swift" | base64)
+  password: $(echo -n $swift_rabbitmq_password | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret
