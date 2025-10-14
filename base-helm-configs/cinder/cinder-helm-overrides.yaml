@@ -90,19 +90,25 @@ pod:
       default: rabbitmq-nodes
 
 conf:
-  backends:
-    lvmdriver-1:
-      image_volume_cache_enabled: true
-      iscsi_iotype: fileio
-      iscsi_num_targets: 100
-      lvm_type: default
-      target_helper: tgtadm
-      target_port: 3260
-      target_protocol: iscsi
-      volume_backend_name: LVM_iSCSI
-      volume_clear: zero
-      volume_driver: cinder_rxt.rackspace.RXTLVM
-      volume_group: cinder-volumes-1
+  # Below is an example for a cinder volume backend which is used when
+  # creating a cinder volume type.  Since the choice of which underlying
+  # backend storage solution you choose is cluster dependent (ceph, lvm, etc)
+  # the section is to be use as an example only.  More inforamtion on
+  # configuring a cinder backend can be found here:
+  # https://docs.rackspacecloud.com/openstack-cinder-netapp-worker/?h=cinder+backend#2-cinder-backends
+  backends: null
+  #  lvmdriver-1:
+  #    image_volume_cache_enabled: true
+  #    iscsi_iotype: fileio
+  #    iscsi_num_targets: 100
+  #    lvm_type: default
+  #    target_helper: tgtadm
+  #    target_port: 3260
+  #    target_protocol: iscsi
+  #    volume_backend_name: LVM_iSCSI
+  #    volume_clear: zero
+  #    volume_driver: cinder_rxt.rackspace.RXTLVM
+  #    volume_group: cinder-volumes-1
   policy:
     "volume_extension:types_extra_specs:read_sensitive": "rule:xena_system_admin_or_project_reader"
   cinder:
@@ -112,8 +118,8 @@ conf:
       backup_swift_auth: per_user
       backup_swift_auth_version: 3
       default_availability_zone: az1
-      default_volume_type: lvmdriver-1
-      enabled_backends: lvmdriver-1
+      default_volume_type: null
+      enabled_backends: ""
       osapi_volume_workers: 2
       rootwrap_config: /etc/cinder/rootwrap.conf
       scheduler_default_filters: "AvailabilityZoneFilter,CapacityFilter,CapabilitiesFilter"
