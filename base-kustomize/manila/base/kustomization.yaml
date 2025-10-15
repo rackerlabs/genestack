@@ -1,0 +1,12 @@
+---
+sortOptions:
+  order: fifo
+resources:
+  - manila-mariadb-database.yaml
+  - manila-rabbitmq-queue.yaml
+  - all.yaml
+  - hpa-manila-api.yaml
+  - hpa-manila-data.yaml
+  - hpa-manila-scheduler.yaml
+  - hpa-manila-share.yaml
+  - manila-rabbitmq-queue-policy.yaml
