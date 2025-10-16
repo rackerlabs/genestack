@@ -158,6 +158,7 @@ nav:
               - k8s-overview.md
               - Providers:
                   - Kubespray: k8s-kubespray.md
+                  - Talos Linux: k8s-talos.md
               - Post Deployment:
                   - Kubernetes Labels: k8s-labels.md
                   - Kubernetes Dashboard: k8s-dashboard.md
