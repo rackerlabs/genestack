@@ -3,7 +3,7 @@ redisReplication:
   name: ""
   clusterSize: 3
   image: quay.io/opstree/redis
-  tag: v7.0.15
+  tag: v8.2.2
   imagePullPolicy: IfNotPresent
   imagePullSecrets: []
     # - name:  Secret with Registry credentials
@@ -113,7 +113,8 @@ storageSpec:
   volumeClaimTemplate:
     spec:
       # storageClassName: standard
-      accessModes: ["ReadWriteOnce"]
+      accessModes:
+        - "ReadWriteOnce"
       resources:
         requests:
           storage: 1Gi
