@@ -111,6 +111,20 @@ ansible-playbook octavia-preconf-main.yaml
                         -e octavia_os_auth_url=$(openstack --os-cloud=default endpoint list --service keystone --interface public -c URL -f value)
         ```
 
+!!! tip "Dynamic values skipping tags for post deploy updates"
+
+    Use --skip-tags "post_deploy" to avoid quota, cert and keypair updates:
+
+    !!! example "Run the playbook with optional skip-tags values"
+
+        ``` shell
+        ansible-playbook /opt/genestack/ansible/playbooks/octavia-preconf-main.yaml \
+                        -e octavia_os_password=$(kubectl get secrets keystone-admin -n openstack -o jsonpath='{.data.password}' | base64 -d) \
+                        -e octavia_os_region_name=$(openstack --os-cloud=default endpoint list --service keystone --interface public -c Region -f value) \
+                        -e octavia_os_auth_url=$(openstack --os-cloud=default endpoint list --service keystone --interface public -c URL -f value) \
+                        --skip-tags "post_deploy"
+        ```
+
 Once everything is complete, a new file will be created in your home directory called `octavia_amphora_provider.yaml`, this file
 contains the necessary information to deploy Octavia via helm. Move this file into the `/etc/genestack/helm-configs/octavia`
 directory to have it automatically included when running the Octavia deployment script.
