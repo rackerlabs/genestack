@@ -159,22 +159,20 @@ conf:
           type: datetime
           fields: payload.audit_period_ending
     - event_type:
-        [
-          "volume.exists",
-          "volume.retype",
-          "volume.create.*",
-          "volume.delete.*",
-          "volume.resize.*",
-          "volume.attach.*",
-          "volume.detach.*",
-          "volume.update.*",
-          "snapshot.exists",
-          "snapshot.create.*",
-          "snapshot.delete.*",
-          "snapshot.update.*",
-          "volume.transfer.accept.end",
-          "snapshot.transfer.accept.end",
-        ]
+        - "volume.exists"
+        - "volume.retype"
+        - "volume.create.*"
+        - "volume.delete.*"
+        - "volume.resize.*"
+        - "volume.attach.*"
+        - "volume.detach.*"
+        - "volume.update.*"
+        - "snapshot.exists"
+        - "snapshot.create.*"
+        - "snapshot.delete.*"
+        - "snapshot.update.*"
+        - "volume.transfer.accept.end"
+        - "snapshot.transfer.accept.end"
       traits: &cinder_traits
         user_id:
           fields: payload.user_id
@@ -196,18 +194,16 @@ conf:
         instance_id:
           fields: payload.volume_attachment[0].instance_uuid
     - event_type:
-        [
-          "volume.transfer.*",
-          "volume.exists",
-          "volume.retype",
-          "volume.create.*",
-          "volume.delete.*",
-          "volume.resize.*",
-          "volume.attach.*",
-          "volume.detach.*",
-          "volume.update.*",
-          "snapshot.transfer.accept.end",
-        ]
+        - "volume.transfer.*"
+        - "volume.exists"
+        - "volume.retype"
+        - "volume.create.*"
+        - "volume.delete.*"
+        - "volume.resize.*"
+        - "volume.attach.*"
+        - "volume.detach.*"
+        - "volume.update.*"
+        - "snapshot.transfer.accept.end"
       traits:
         <<: *cinder_traits
         resource_id:
@@ -221,7 +217,8 @@ conf:
           fields: payload.volume_type
         replication_status:
           fields: payload.replication_status
-    - event_type: ["snapshot.transfer.accept.end"]
+    - event_type:
+        - "snapshot.transfer.accept.end"
       traits:
         <<: *cinder_traits
         resource_id:
@@ -229,7 +226,10 @@ conf:
         project_id:
           fields: payload.tenant_id
     - event_type:
-        ["share.create.*", "share.delete.*", "share.extend.*", "share.shrink.*"]
+        - "share.create.*"
+        - "share.delete.*"
+        - "share.extend.*"
+        - "share.shrink.*"
       traits: &share_traits
         share_id:
           fields: payload.share_id
@@ -262,26 +262,28 @@ conf:
         host:
           fields: payload.host
     - event_type:
-        [
-          "snapshot.exists",
-          "snapshot.create.*",
-          "snapshot.delete.*",
-          "snapshot.update.*",
-        ]
+        - "snapshot.exists"
+        - "snapshot.create.*"
+        - "snapshot.delete.*"
+        - "snapshot.update.*"
       traits:
         <<: *cinder_traits
         resource_id:
           fields: payload.snapshot_id
         volume_id:
           fields: payload.volume_id
-    - event_type: ["image_volume_cache.*"]
+    - event_type:
+        - "image_volume_cache.*"
       traits:
         image_id:
           fields: payload.image_id
         host:
           fields: payload.host
     - event_type:
-        ["image.create", "image.update", "image.upload", "image.delete"]
+        - "image.create"
+        - "image.update"
+        - "image.upload"
+        - "image.delete"
       traits: &glance_crud
         project_id:
           fields: payload.owner
@@ -322,7 +324,9 @@ conf:
         project_id:
           fields: payload.tenant_id
         user_id:
-          fields: ["ctxt.trustor_user_id", "ctxt.user_id"]
+          fields:
+            - "ctxt.trustor_user_id"
+            - "ctxt.user_id"
         resource_id:
           fields: payload.stack_identity
         name:
@@ -355,17 +359,15 @@ conf:
           type: datetime
           fields: payload.updated_at
     - event_type:
-        [
-          "identity.user.*",
-          "identity.project.*",
-          "identity.group.*",
-          "identity.role.*",
-          "identity.OS-TRUST:trust.*",
-          "identity.region.*",
-          "identity.service.*",
-          "identity.endpoint.*",
-          "identity.policy.*",
-        ]
+        - "identity.user.*"
+        - "identity.project.*"
+        - "identity.group.*"
+        - "identity.role.*"
+        - "identity.OS-TRUST:trust.*"
+        - "identity.region.*"
+        - "identity.service.*"
+        - "identity.endpoint.*"
+        - "identity.policy.*"
       traits: &identity_crud
         resource_id:
           fields: payload.resource_info
@@ -458,20 +460,18 @@ conf:
         observer_id:
           fields: payload.observer.id
     - event_type:
-        [
-          "network.*",
-          "subnet.*",
-          "port.*",
-          "router.*",
-          "floatingip.*",
-          "firewall.*",
-          "firewall_policy.*",
-          "firewall_rule.*",
-          "vpnservice.*",
-          "ipsecpolicy.*",
-          "ikepolicy.*",
-          "ipsec_site_connection.*",
-        ]
+        - "network.*"
+        - "subnet.*"
+        - "port.*"
+        - "router.*"
+        - "floatingip.*"
+        - "firewall.*"
+        - "firewall_policy.*"
+        - "firewall_rule.*"
+        - "vpnservice.*"
+        - "ipsecpolicy.*"
+        - "ikepolicy.*"
+        - "ipsec_site_connection.*"
       traits: &network_traits
         user_id:
           fields: ctxt.user_id
@@ -483,21 +483,27 @@ conf:
         name:
           fields: payload.network.name
         resource_id:
-          fields: ["payload.network.id", "payload.id"]
+          fields:
+            - "payload.network.id"
+            - "payload.id"
     - event_type: subnet.*
       traits:
         <<: *network_traits
         name:
           fields: payload.subnet.name
         resource_id:
-          fields: ["payload.subnet.id", "payload.id"]
+          fields:
+            - "payload.subnet.id"
+            - "payload.id"
     - event_type: port.*
       traits:
         <<: *network_traits
         name:
           fields: payload.port.name
         resource_id:
-          fields: ["payload.port.id", "payload.id"]
+          fields:
+            - "payload.port.id"
+            - "payload.id"
     - event_type: router.*
       traits:
         <<: *network_traits
@@ -522,47 +528,61 @@ conf:
         name:
           fields: payload.firewall.name
         resource_id:
-          fields: ["payload.firewall.id", "payload.id"]
+          fields:
+            - "payload.firewall.id"
+            - "payload.id"
     - event_type: firewall_policy.*
       traits:
         <<: *network_traits
         name:
           fields: payload.firewall_policy.name
         resource_id:
-          fields: ["payload.firewall_policy.id", "payload.id"]
+          fields:
+            - "payload.firewall_policy.id"
+            - "payload.id"
     - event_type: firewall_rule.*
       traits:
         <<: *network_traits
         name:
           fields: payload.firewall_rule.name
         resource_id:
-          fields: ["payload.firewall_rule.id", "payload.id"]
+          fields:
+            - "payload.firewall_rule.id"
+            - "payload.id"
     - event_type: vpnservice.*
       traits:
         <<: *network_traits
         name:
           fields: payload.vpnservice.name
         resource_id:
-          fields: ["payload.vpnservice.id", "payload.id"]
+          fields:
+            - "payload.vpnservice.id"
+            - "payload.id"
     - event_type: ipsecpolicy.*
       traits:
         <<: *network_traits
         name:
           fields: payload.ipsecpolicy.name
         resource_id:
-          fields: ["payload.ipsecpolicy.id", "payload.id"]
+          fields:
+            - "payload.ipsecpolicy.id"
+            - "payload.id"
     - event_type: ikepolicy.*
       traits:
         <<: *network_traits
         name:
           fields: payload.ikepolicy.name
         resource_id:
-          fields: ["payload.ikepolicy.id", "payload.id"]
+          fields:
+            - "payload.ikepolicy.id"
+            - "payload.id"
     - event_type: ipsec_site_connection.*
       traits:
         <<: *network_traits
         resource_id:
-          fields: ["payload.ipsec_site_connection.id", "payload.id"]
+          fields:
+            - "payload.ipsec_site_connection.id"
+            - "payload.id"
     - event_type: "*http.*"
       traits: &http_audit
         project_id:
@@ -606,7 +626,9 @@ conf:
         reason_code:
           fields: payload.reason.reasonCode
     - event_type:
-        ["dns.domain.create", "dns.domain.update", "dns.domain.delete"]
+        - "dns.domain.create"
+        - "dns.domain.update"
+        - "dns.domain.delete"
       traits: &dns_domain_traits
         status:
           fields: payload.status
@@ -674,12 +696,10 @@ conf:
         region:
           fields: payload.region
     - event_type:
-        [
-          "trove.instance.create",
-          "trove.instance.modify_volume",
-          "trove.instance.modify_flavor",
-          "trove.instance.delete",
-        ]
+        - "trove.instance.create"
+        - "trove.instance.modify_volume"
+        - "trove.instance.modify_flavor"
+        - "trove.instance.delete"
       traits: &trove_common_traits
         name:
           fields: payload.name
@@ -695,10 +715,14 @@ conf:
           fields: payload.nova_volume_id
     - event_type: trove.instance.create
       traits:
-        <<: [*trove_base_traits, *trove_common_traits]
+        <<:
+          - *trove_base_traits
+          - *trove_common_traits
     - event_type: trove.instance.modify_volume
       traits:
-        <<: [*trove_base_traits, *trove_common_traits]
+        <<:
+          - *trove_base_traits
+          - *trove_common_traits
         old_volume_size:
           type: int
           fields: payload.old_volume_size
@@ -707,7 +731,9 @@ conf:
           fields: payload.modify_at
     - event_type: trove.instance.modify_flavor
       traits:
-        <<: [*trove_base_traits, *trove_common_traits]
+        <<:
+          - *trove_base_traits
+          - *trove_common_traits
         old_instance_size:
           type: int
           fields: payload.old_instance_size
@@ -716,7 +742,9 @@ conf:
           fields: payload.modify_at
     - event_type: trove.instance.delete
       traits:
-        <<: [*trove_base_traits, *trove_common_traits]
+        <<:
+          - *trove_base_traits
+          - *trove_common_traits
         deleted_at:
           type: datetime
           fields: payload.deleted_at
@@ -1388,7 +1416,10 @@ conf:
         user_id: $.payload.user_id
         project_id: $.payload.project_id
         resource_id: $.payload.resource_id
-        lookup: ["name", "unit", "volume"]
+        lookup:
+          - "name"
+          - "unit"
+          - "volume"
 
       # Swift
       - name: $.payload.measurements.[*].metric.[*].name
@@ -1399,7 +1430,10 @@ conf:
         resource_id: $.payload.target.id
         user_id: $.payload.initiator.id
         project_id: $.payload.initiator.project_id
-        lookup: ["name", "unit", "volume"]
+        lookup:
+          - "name"
+          - "unit"
+          - "volume"
 
       - name: "memory"
         event_type: &instance_events compute.instance.(?!create.start|update).*
@@ -1437,7 +1471,9 @@ conf:
         type: "gauge"
         unit: "sec"
         volume:
-          fields: [$.payload.created_at, $.payload.launched_at]
+          fields:
+            - $.payload.created_at
+            - $.payload.launched_at
           plugin: "timedelta"
         project_id: $.payload.tenant_id
         resource_id: $.payload.instance_id
@@ -1615,7 +1651,8 @@ conf:
         unit: "s"
         volume:
           fields:
-            [$.payload.audit_period_beginning, $.payload.audit_period_ending]
+            - $.payload.audit_period_beginning
+            - $.payload.audit_period_ending
           plugin: "timedelta"
         project_id: $.payload.tenant_id
         resource_id: $.payload.id
@@ -1632,7 +1669,8 @@ conf:
         unit: "s"
         volume:
           fields:
-            [$.payload.audit_period_beginning, $.payload.audit_period_ending]
+            - $.payload.audit_period_beginning
+            - $.payload.audit_period_ending
           plugin: "timedelta"
         project_id: $.payload.tenant_id
         resource_id: $.payload.instance_id
