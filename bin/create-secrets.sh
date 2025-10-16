@@ -87,6 +87,11 @@ magnum_admin_password=$(generate_password 32)
 masakari_rabbitmq_password=$(generate_password 64)
 masakari_db_password=$(generate_password 32)
 masakari_admin_password=$(generate_password 32)
+manila_rabbitmq_password=$(generate_password 64)
+manila_db_password=$(generate_password 32)
+manila_admin_password=$(generate_password 32)
+manila_ssh_public_key=$(ssh-keygen -qt ed25519 -N '' -C "manila_ssh" -f manila_ssh_key && cat manila_ssh_key.pub)
+manila_ssh_private_key=$(cat manila_ssh_key)
 postgresql_identity_admin_password=$(generate_password 32)
 postgresql_db_admin_password=$(generate_password 32)
 postgresql_db_exporter_password=$(generate_password 32)
@@ -594,6 +599,44 @@ metadata:
 type: Opaque
 data:
   password: $(echo -n $masakari_admin_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: manila-rabbitmq-password
+  namespace: openstack
+type: Opaque
+data:
+  username: $(echo -n "manila" | base64)
+  password: $(echo -n $manila_rabbitmq_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: manila-db-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $manila_db_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: manila-admin
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $manila_admin_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: manila-service-keypair
+  namespace: openstack
+type: Opaque
+data:
+  public_key: $(echo -n $manila_ssh_public_key | base64 -w0)
+  private_key: $(echo -n "$manila_ssh_private_key" | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret
