@@ -74,6 +74,23 @@ For additional customization, you can review the full list of supported values i
 kubectl apply -f /etc/genestack/manifests/longhorn/longhorn-namespace.yaml
 ```
 
+### Talos Linux Deployment Preparation
+
+If you are using a Talos Linux cluster, you will need to ensure that the Machine Configurations for the Talos Cluster are configured with additional data path mounts:
+
+    ``` yaml
+    machine:
+      kubelet:
+        extraMounts:
+          - destination: /var/lib/longhorn
+            type: bind
+            source: /var/lib/longhorn
+            options:
+              - bind
+              - rshared
+              - rw
+    ```
+
 ### Run the Deployment
 
 With your values file in place, you can now deploy Longhorn using the `/opt/genestack/bin/install-longhorn.sh`
