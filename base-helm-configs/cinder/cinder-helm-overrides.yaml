@@ -1,6 +1,4 @@
 ---
-storage: lvm
-
 labels:
   volume:
     node_selector_key: openstack-storage-node

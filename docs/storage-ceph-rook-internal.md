@@ -34,6 +34,27 @@ kubectl label node ${NODE_NAME} role=storage-node
 
 Replace `${NODE_NAME}` with the name of your node. If you have multiple storage nodes, run this command against each one.
 
+## Talos Linux
+
+!!! note
+
+    If you are using Talos Linux, You will need to apply the following permissions to the rook-ceph namespace.
+
+    ``` yaml
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      labels:
+        kubernetes.io/metadata.name: rook-ceph
+        pod-security.kubernetes.io/audit: privileged
+        pod-security.kubernetes.io/audit-version: latest
+        pod-security.kubernetes.io/enforce: privileged
+        pod-security.kubernetes.io/enforce-version: latest
+        pod-security.kubernetes.io/warn: privileged
+        pod-security.kubernetes.io/warn-version: latest
+      name: rook-ceph
+    ```
+
 ## Deploy the Rook cluster
 
 !!! note

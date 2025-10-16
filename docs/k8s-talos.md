@@ -2,8 +2,6 @@
 
 
 
-
-
 #### Minimum system requirements
 
 * 2 Network Interfaces
@@ -14,6 +12,9 @@
     tagged devices, physical ethernet devices, macvlan, or anything else. Have a look at the netplan example file found
     [here](https://github.com/rackerlabs/genestack/blob/main/etc/netplan/default.yaml) for an example of how you could setup the network.
 
+!!! note
+    You will also want to update the /etc/genestack/helm-chart-versions.yaml file. You will want to set the kube-ovn version to:
+    kube-ovn: v1.14.10
 
 
 * Kernel modules
@@ -77,3 +78,8 @@ talosctl kubeconfig --nodes $CONTROL_PLANE_IP --talosconfig=./talosconfig
 talosctl kubeconfig alternative-kubeconfig --nodes $CONTROL_PLANE_IP --talosconfig=./talosconfig
 export KUBECONFIG=./alternative-kubeconfig
 
+!!! note
+
+    You will need to keep in mind that kubespray installs cert-manager as part of itsinstallation process.
+    So you will need to install it manually. Here is a helm chart that will provide it for you:
+    https://github.com/cert-manager/cert-manager

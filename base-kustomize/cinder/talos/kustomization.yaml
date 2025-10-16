@@ -1,0 +1,63 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../base
+
+patches:
+  # Single comprehensive patch to replace volumes AND add init container
+  - target:
+      kind: Deployment
+      name: cinder-volume
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/volumes
+        value:
+          - name: pod-tmp
+            emptyDir: {}
+          - name: cinder-bin
+            configMap:
+              name: cinder-bin
+              defaultMode: 0555
+          - name: cinder-etc
+            secret:
+              secretName: cinder-etc
+              defaultMode: 0444
+          - name: pod-shared
+            emptyDir: {}
+          - name: cinder-conversion
+            emptyDir:
+              {}
+          - name: etcceph
+            emptyDir: {}
+          - name: ceph-etc
+            configMap:
+              name: ceph-etc
+              defaultMode: 0444
+          - name: ceph-keyring
+            secret:
+              secretName: "cinder-volume-rbd-keyring"
+          - name: cinder-coordination
+            emptyDir: {}
+          - name: host-rootfs
+            hostPath:
+              path: /
+          - name: host-dev
+            hostPath:
+              path: /dev
+          - name: runcryptsetup
+            hostPath:
+              path: /run/cryptsetup
+          - name: runlock
+            hostPath:
+              path: /run/lock
+          - name: etciscsi
+            hostPath:
+              path: /var/etc/iscsi
+          - name: usrlocalsbin
+            emptyDir: {}
+          - name: etcmultipath
+            hostPath:
+              path: /var/etc/multipath
+          - name: sys
+            hostPath:
+              path: /sys

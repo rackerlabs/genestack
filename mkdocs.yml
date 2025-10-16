@@ -159,13 +159,13 @@ nav:
               - Providers:
                   - Kubespray: k8s-kubespray.md
                   - Talos Linux: k8s-talos.md
+              - Container Network Interface:
+                  - Kube-OVN: k8s-cni-kube-ovn.md
               - Post Deployment:
                   - Kubernetes Labels: k8s-labels.md
                   - Kubernetes Dashboard: k8s-dashboard.md
                   - Kubernetes Taint: k8s-taint.md
               - Plugins and Tools: k8s-tools.md
-              - Container Network Interface:
-                  - Kube-OVN: k8s-cni-kube-ovn.md
               - Retrieve kube config: k8s-config.md
               - Prometheus: prometheus.md
           - Storage:
