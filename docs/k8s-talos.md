@@ -80,6 +80,6 @@ export KUBECONFIG=./alternative-kubeconfig
 
 !!! note
 
-    You will need to keep in mind that kubespray installs cert-manager as part of itsinstallation process.
+    You will need to keep in mind that kubespray installs cert-manager as part of its installation process.
     So you will need to install it manually. Here is a helm chart that will provide it for you:
     https://github.com/cert-manager/cert-manager
