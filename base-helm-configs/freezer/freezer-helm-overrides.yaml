@@ -1,4 +1,17 @@
 ---
+images:
+  pull_policy: IfNotPresent
+  tags:
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    freezer_db_sync: "ghcr.io/rackerlabs/genestack-images/freezer:2025.2-latest"
+    freezer_api: "ghcr.io/rackerlabs/genestack-images/freezer:2025.2-latest"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
+
 endpoints:
   backup:
     hosts:
