@@ -10,7 +10,11 @@ patches:
     patch: |-
       - op: add
         path: /spec/galera
-        value: {"enabled": true, "replicaThreads": 4}
+        value:
+          enabled: true
+          replicaThreads: 4
+          config:
+            reuseStorageVolume: true
       - op: replace
         path: /spec/replication/enabled
         value: false

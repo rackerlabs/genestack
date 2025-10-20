@@ -19,7 +19,7 @@ charts:
   libvirt: 2024.2.92+628a320c
   longhorn: 1.8.0
   magnum: 2024.2.157+13651f45-628a320c
-  mariadb-operator: 0.36.0
+  mariadb-operator: 0.38.1
   masakari: 2024.2.17+13651f45-628a320c
   memcached: 7.8.6
   metallb: v0.13.12
