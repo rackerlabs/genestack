@@ -5,6 +5,7 @@
   import_tasks: admin_tenant_quota_setup.yml
   tags:
     - always
+    - post_deploy
 
 - name: import tasks to create lb-mgmt-net for amphora
   import_tasks: octavia_lb_net_setup.yml
@@ -30,20 +31,24 @@
   import_tasks: octavia_amphora_keypair_image_flavor.yml
   tags:
     - always
+    - post_deploy
 
 - name: import tasks to create cert directories
   import_tasks: octavia_cert_dir_setup.yml
   tags:
     - octavia_certs
+    - post_deploy
   when: octavia_create_certs
 
 - name: import tasks to create octavia certs
   import_tasks: octavia_cert.yml
   tags:
     - octavia_certs
+    - post_deploy
   when: octavia_create_certs
 
 - name: import tasks to create helm values file for amphora provider
   import_tasks: octavia_helm_amphorae_values.yml
   tags:
     - always
+    - post_deploy
