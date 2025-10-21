@@ -35,7 +35,7 @@ done
 
 HELM_CMD+=" $@"
 
-helm repo add fluent https://fluent.github.io/helm-charts
+helm repo add openstack-helm https://tarballs.opendev.org/openstack/openstack-helm
 helm repo update
 
 echo "Executing Helm command:"

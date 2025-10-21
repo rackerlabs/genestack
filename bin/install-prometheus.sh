@@ -3,9 +3,9 @@
 # Set default directories
 GENESTACK_DIR="${GENESTACK_DIR:-/opt/genestack}"
 GENESTACK_CONFIG_DIR="${GENESTACK_CONFIG_DIR:-/etc/genestack}"
-GENESTACK_PROMETHEUS_DIR="${GENESTACK_PROMETHEUS_DIR:-$GENESTACK_DIR/base-helm-configs/prometheus}"
-GENESTACK_PROMETHEUS_RULES_DIR="${GENESTACK_PROMETHEUS_RULES_DIR:-$GENESTACK_DIR/base-helm-configs/prometheus/rules}"
-GENESTACK_PROMETHEUS_CONFIG_DIR="${GENESTACK_PROMETHEUS_CONFIG_DIR:-$GENESTACK_CONFIG_DIR/helm-configs/prometheus}"
+GENESTACK_PROMETHEUS_DIR="${GENESTACK_PROMETHEUS_DIR:-$GENESTACK_DIR/base-helm-configs/kube-prometheus-stack}"
+GENESTACK_PROMETHEUS_RULES_DIR="${GENESTACK_PROMETHEUS_RULES_DIR:-$GENESTACK_DIR/base-helm-configs/kube-prometheus-stack/rules}"
+GENESTACK_PROMETHEUS_CONFIG_DIR="${GENESTACK_PROMETHEUS_CONFIG_DIR:-$GENESTACK_CONFIG_DIR/helm-configs/kube-prometheus-stack}"
 
 # Read prometheus version from helm-chart-versions.yaml
 VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
@@ -15,7 +15,7 @@ if [ ! -f "$VERSION_FILE" ]; then
 fi
 
 # Extract prometheus version using grep and sed
-PROMETHEUS_VERSION=$(grep 'prometheus:' "$VERSION_FILE" | sed 's/.*prometheus: *//')
+PROMETHEUS_VERSION=$(grep 'kube-prometheus-stack:' "$VERSION_FILE" | sed 's/.*kube-prometheus-stack: *//')
 
 if [ -z "$PROMETHEUS_VERSION" ]; then
     echo "Error: Could not extract prometheus version from $VERSION_FILE"
@@ -73,7 +73,7 @@ HELM_CMD="helm upgrade --install kube-prometheus-stack prometheus-community/kube
 
 HELM_CMD+=" ${values_args[@]}"
 HELM_CMD+=" --post-renderer $GENESTACK_CONFIG_DIR/kustomize/kustomize.sh"
-HELM_CMD+=" --post-renderer-args prometheus/overlay"
+HELM_CMD+=" --post-renderer-args kube-prometheus-stack/overlay"
 HELM_CMD+=" $@"
 
 echo "Executing Helm command:"

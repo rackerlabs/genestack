@@ -6,8 +6,24 @@ TARGET=${1:-base}
 # Directory to check for YAML files
 CONFIG_DIR="/etc/genestack/helm-configs/sealed-secrets"
 
+# Read sealed-secrets version from helm-chart-versions.yaml
+VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
+if [ ! -f "$VERSION_FILE" ]; then
+    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE"
+    exit 1
+fi
+
+# Extract sealed-secrets version using grep and sed
+SEALED_SECRETS_VERSION=$(grep 'sealed-secrets:' "$VERSION_FILE" | sed 's/.*sealed-secrets: *//')
+
+if [ -z "$SEALED_SECRETS_VERSION" ]; then
+    echo "Error: Could not extract sealed-secrets version from $VERSION_FILE"
+    exit 1
+fi
+
 # Helm command setup
-HELM_CMD="helm upgrade --install argocd oci://registry-1.docker.io/bitnamicharts/sealed-secrets \
+HELM_CMD="helm upgrade --install sealed-secrets bitnami/sealed-secrets \
+    --version ${SEALED_SECRETS_VERSION} \
     --namespace=sealed-secrets \
     --timeout 120m \
     --post-renderer /etc/genestack/kustomize/kustomize.sh \
@@ -23,6 +39,9 @@ if compgen -G "${CONFIG_DIR}/*.yaml" > /dev/null; then
 fi
 
 HELM_CMD+=" $@"
+
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
 
 # Run the helm command
 echo "Executing Helm command:"
