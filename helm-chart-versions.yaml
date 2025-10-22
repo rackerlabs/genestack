@@ -32,3 +32,4 @@ charts:
   redis-operator: 0.22.0
   redis-replication: 0.16.8
   redis-sentinel: 0.16.9
+  zaqar: 2025.2.0+2d37d445c

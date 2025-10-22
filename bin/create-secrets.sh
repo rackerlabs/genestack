@@ -111,6 +111,11 @@ freezer_db_password=$(generate_password 32)
 freezer_admin_password=$(generate_password 32)
 freezer_keystone_test_password=$(generate_password 32)
 freezer_keystone_service_password=$(generate_password 32)
+zaqar_signed_url_secret_key=$(generate_password 64)
+zaqar_rabbitmq_password=$(generate_password 64)
+zaqar_db_password=$(generate_password 32)
+zaqar_admin_password=$(generate_password 32)
+zaqar_keystone_test_password=$(generate_password 32)
 
 OUTPUT_FILE="/etc/genestack/kubesecrets.yaml"
 
@@ -827,6 +832,52 @@ data:
   USER_DOMAIN_NAME: $(echo -n $keystone_user_domain | base64 -w0)
   PROJECT_NAME: $(echo -n $keystone_project_name | base64 -w0)
   PROJECT_DOMAIN_NAME: $(echo -n $keystone_project_domain | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: zaqar-signed-url-secret-key
+  namespace: openstack
+type: Opaque
+data:
+  zaqar_signed_url_secret_key: $(echo -n $zaqar_signed_url_secret_key | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: zaqar-rabbitmq-password
+  namespace: openstack
+type: Opaque
+data:
+  username: $(echo -n "zaqar" | base64)
+  password: $(echo -n $zaqar_rabbitmq_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: zaqar-db-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $zaqar_db_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: zaqar-admin
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $zaqar_admin_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: zaqar-keystone-test-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $zaqar_keystone_test_password | base64 -w0)
 EOF
 
 rm nova_ssh_key nova_ssh_key.pub
