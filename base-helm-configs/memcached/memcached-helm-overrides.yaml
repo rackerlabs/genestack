@@ -1,3 +1,4 @@
+---
 ## Global Docker image parameters
 ## Please, note that this will override the image parameters, including dependencies, configured to use the global value
 ## Current available global Docker image parameters: imageRegistry, imagePullSecrets and storageClass
@@ -257,7 +258,8 @@ containerSecurityContext:
   readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false
   capabilities:
-    drop: ["ALL"]
+    drop:
+      - ALL
   seccompProfile:
     type: "RuntimeDefault"
 ## @param automountServiceAccountToken Mount Service Account token in pod
@@ -715,7 +717,8 @@ metrics:
     readOnlyRootFilesystem: true
     allowPrivilegeEscalation: false
     capabilities:
-      drop: ["ALL"]
+      drop:
+        - ALL
     seccompProfile:
       type: "RuntimeDefault"
   ## Configure extra options for Memcached Prometheus exporter containers' liveness, readiness and startup probes
