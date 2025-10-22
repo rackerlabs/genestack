@@ -12,7 +12,8 @@ alertmanager:
     storage:
       volumeClaimTemplate:
         spec:
-          accessModes: ["ReadWriteOnce"]
+          accessModes:
+            - "ReadWriteOnce"
           resources:
             requests:
               storage: 15Gi
@@ -49,7 +50,8 @@ prometheus:
     storageSpec:
       volumeClaimTemplate:
         spec:
-          accessModes: ["ReadWriteOnce"]
+          accessModes:
+            - "ReadWriteOnce"
           resources:
             requests:
               storage: 15Gi
