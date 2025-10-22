@@ -25,14 +25,15 @@ fi
 # Prepare an array to collect --values arguments
 values_args=()
 
-# Include only the base override file from the base directory
-base_override="$GENESTACK_PROMETHEUS_DIR/prometheus-helm-overrides.yaml"
-if [[ -e "$base_override" ]]; then
-  echo "Including base override: $base_override"
-  values_args+=("--values" "$base_override")
-else
-  echo "Warning: Base override file not found: $base_override"
-fi
+# Include base override files from the base directory
+for base_file in "$GENESTACK_PROMETHEUS_DIR/kube-prometheus-stack-helm-overrides.yaml" "$GENESTACK_PROMETHEUS_DIR/alertmanager_config.yaml"; do
+  if [[ -e "$base_file" ]]; then
+    echo "Including base override: $base_file"
+    values_args+=("--values" "$base_file")
+  else
+    echo "Warning: Base override file not found: $base_file"
+  fi
+done
 
 # Include all rules YAML files from base
 if [[ -d "$GENESTACK_PROMETHEUS_RULES_DIR" ]]; then
