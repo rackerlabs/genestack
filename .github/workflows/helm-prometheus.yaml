@@ -31,10 +31,10 @@ jobs:
           ${{ steps.helm.outputs.helm-path }} template prometheus prometheus-community/kube-prometheus-stack \
             --create-namespace \
             --namespace=prometheus \
-            -f ${{ github.workspace }}//base-helm-configs/prometheus/kube-prometheus-stack-helm-overrides.yaml \
-            -f ${{ github.workspace }}//base-helm-configs/prometheus/rules/alerting_rules.yaml \
-            -f ${{ github.workspace }}//base-helm-configs/prometheus/rules/rabbitmq_alerting_rules.yaml \
-            -f ${{ github.workspace }}//base-helm-configs/prometheus/alertmanager_config.yaml \
+            -f ${{ github.workspace }}//base-helm-configs/kube-prometheus-stack/kube-prometheus-stack-helm-overrides.yaml \
+            -f ${{ github.workspace }}//base-helm-configs/kube-prometheus-stack/rules/alerting_rules.yaml \
+            -f ${{ github.workspace }}//base-helm-configs/kube-prometheus-stack/rules/rabbitmq_alerting_rules.yaml \
+            -f ${{ github.workspace }}//base-helm-configs/kube-prometheus-stack/alertmanager_config.yaml \
             --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
             --post-renderer-args kube-prometheus-stack/${{ matrix.overlays }} > /tmp/rendered.yaml
       - name: Return helm Build
