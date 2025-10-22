@@ -36,4 +36,3 @@ charts:
   redis-sentinel: 0.16.10
   sealed-secrets: 2.17.4
   zaqar: 2025.2.0+2d37d445c
-
