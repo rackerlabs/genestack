@@ -23,7 +23,7 @@ charts:
   magnum: 2024.2.157+13651f45-628a320c
   mariadb-operator: 0.38.1
   masakari: 2024.2.17+13651f45-628a320c
-  memcached: 2024.2.66+912f85d38
+  memcached: 8.1.1
   metallb: v0.15.2
   neutron: 2024.2.529+13651f45-628a320c
   nova: 2024.2.555+13651f45-628a320c

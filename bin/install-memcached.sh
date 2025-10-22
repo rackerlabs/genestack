@@ -19,7 +19,7 @@ if [ -z "$MEMCACHED_VERSION" ]; then
     exit 1
 fi
 
-HELM_CMD="helm upgrade --install memcached openstack-helm/memcached \
+HELM_CMD="helm upgrade --install memcached bitnami/memcached \
     --version ${MEMCACHED_VERSION} \
     --namespace=openstack \
     --timeout 120m \
@@ -41,7 +41,7 @@ done
 
 HELM_CMD+=" $@"
 
-helm repo add openstack-helm https://tarballs.opendev.org/openstack/openstack-helm/
+helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo update
 
 echo "Executing Helm command:"
