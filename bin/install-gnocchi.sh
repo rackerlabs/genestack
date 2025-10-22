@@ -18,7 +18,7 @@ if [ -z "$GNOCCHI_VERSION" ]; then
     exit 1
 fi
 
-HELM_CMD="helm upgrade --install gnocchi openstack-helm-infra/gnocchi --version ${GNOCCHI_VERSION} \
+HELM_CMD="helm upgrade --install gnocchi openstack-helm/gnocchi --version ${GNOCCHI_VERSION} \
     --namespace=openstack \
     --timeout 10m"
 
@@ -44,7 +44,7 @@ HELM_CMD+=" --set endpoints.oslo_db_postgresql.auth.gnocchi.password=\"$(kubectl
 HELM_CMD+=" --post-renderer /etc/genestack/kustomize/kustomize.sh"
 HELM_CMD+=" --post-renderer-args gnocchi/overlay"
 
-helm repo add openstack-helm-infra https://tarballs.opendev.org/openstack/openstack-helm-infra
+helm repo add openstack-helm https://tarballs.opendev.org/openstack/openstack-helm
 helm repo update
 
 HELM_CMD+=" $@"

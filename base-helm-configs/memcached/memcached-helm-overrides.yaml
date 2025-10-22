@@ -1,3 +1,4 @@
+---
 ## Global Docker image parameters
 ## Please, note that this will override the image parameters, including dependencies, configured to use the global value
 ## Current available global Docker image parameters: imageRegistry, imagePullSecrets and storageClass
@@ -7,6 +8,8 @@
 ## @param global.storageClass Global StorageClass for Persistent Volume(s)
 ##
 global:
+  security:
+    allowInsecureImages: true
   imageRegistry: ""
   ## E.g.
   ## imagePullSecrets:
@@ -66,8 +69,8 @@ diagnosticMode:
 ##
 image:
   registry: docker.io
-  repository: bitnami/memcached
-  tag: 1.6.33-debian-12-r0
+  repository: bitnamilegacy/memcached
+  tag: 1.6.39-debian-12-r1
   digest: ""
   ## Specify a imagePullPolicy
   ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -255,7 +258,8 @@ containerSecurityContext:
   readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false
   capabilities:
-    drop: ["ALL"]
+    drop:
+      - ALL
   seccompProfile:
     type: "RuntimeDefault"
 ## @param automountServiceAccountToken Mount Service Account token in pod
@@ -616,7 +620,7 @@ volumePermissions:
   ##
   image:
     registry: docker.io
-    repository: bitnami/os-shell
+    repository: bitnamilegacy/os-shell
     tag: 12-debian-12-r34
     digest: ""
     pullPolicy: IfNotPresent
@@ -662,7 +666,7 @@ metrics:
   ##
   image:
     registry: docker.io
-    repository: bitnami/memcached-exporter
+    repository: bitnamilegacy/memcached-exporter
     tag: 0.15.0-debian-12-r3
     digest: ""
     pullPolicy: IfNotPresent
@@ -713,7 +717,8 @@ metrics:
     readOnlyRootFilesystem: true
     allowPrivilegeEscalation: false
     capabilities:
-      drop: ["ALL"]
+      drop:
+        - ALL
     seccompProfile:
       type: "RuntimeDefault"
   ## Configure extra options for Memcached Prometheus exporter containers' liveness, readiness and startup probes

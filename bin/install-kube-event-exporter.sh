@@ -18,7 +18,7 @@ if [ -z "$KUBE_EVENT_EXPORTER_VERSION" ]; then
     exit 1
 fi
 
-HELM_CMD="helm upgrade --install kube-event-exporter oci://registry-1.docker.io/bitnamicharts/kubernetes-event-exporter \
+HELM_CMD="helm upgrade --install kube-event-exporter bitnami/kubernetes-event-exporter \
     --version ${KUBE_EVENT_EXPORTER_VERSION} \
     --namespace=openstack \
     --timeout 120m"
@@ -37,6 +37,9 @@ for dir in "$GLOBAL_OVERRIDES_DIR"; do
 done
 
 HELM_CMD+=" $@"
+
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
 
 echo "Executing Helm command:"
 echo "${HELM_CMD}"

@@ -19,7 +19,7 @@ if [ -z "$LIBVIRT_VERSION" ]; then
     exit 1
 fi
 
-HELM_CMD="helm upgrade --install libvirt openstack-helm-infra/libvirt --version ${LIBVIRT_VERSION} \
+HELM_CMD="helm upgrade --install libvirt openstack-helm/libvirt --version ${LIBVIRT_VERSION} \
     --namespace=openstack \
     --timeout 120m"
 
@@ -38,7 +38,7 @@ HELM_CMD+=" --post-renderer-args libvirt/overlay"
 
 HELM_CMD+=" $@"
 
-helm repo add openstack-helm-infra https://tarballs.opendev.org/openstack/openstack-helm-infra
+helm repo add openstack-helm https://tarballs.opendev.org/openstack/openstack-helm
 helm repo update
 
 echo "Executing Helm command:"

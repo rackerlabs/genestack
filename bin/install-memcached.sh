@@ -19,7 +19,7 @@ if [ -z "$MEMCACHED_VERSION" ]; then
     exit 1
 fi
 
-HELM_CMD="helm upgrade --install memcached oci://registry-1.docker.io/bitnamicharts/memcached \
+HELM_CMD="helm upgrade --install memcached bitnami/memcached \
     --version ${MEMCACHED_VERSION} \
     --namespace=openstack \
     --timeout 120m \
@@ -40,6 +40,9 @@ for dir in "$GLOBAL_OVERRIDES_DIR" "$SERVICE_CONFIG_DIR"; do
 done
 
 HELM_CMD+=" $@"
+
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
 
 echo "Executing Helm command:"
 echo "${HELM_CMD}"
