@@ -6,5 +6,5 @@ sortOptions:
 resources:
   - all.yaml
 
-patchesStrategicMerge:
+patches:
   - hpa.yaml
