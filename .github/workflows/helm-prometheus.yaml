@@ -3,8 +3,8 @@ name: Helm GitHub Actions for Prometheus
 on:
   pull_request:
     paths:
-      - base-helm-configs/prometheus/**
-      - base-kustomize/prometheus/**
+      - base-helm-configs/kube-prometheus-stack/**
+      - base-kustomize/kube-prometheus-stack/**
       - .github/workflows/helm-prometheus.yaml
 jobs:
   helm:
@@ -31,12 +31,12 @@ jobs:
           ${{ steps.helm.outputs.helm-path }} template prometheus prometheus-community/kube-prometheus-stack \
             --create-namespace \
             --namespace=prometheus \
-            -f ${{ github.workspace }}//base-helm-configs/prometheus/prometheus-helm-overrides.yaml \
+            -f ${{ github.workspace }}//base-helm-configs/prometheus/kube-prometheus-stack-helm-overrides.yaml \
             -f ${{ github.workspace }}//base-helm-configs/prometheus/rules/alerting_rules.yaml \
             -f ${{ github.workspace }}//base-helm-configs/prometheus/rules/rabbitmq_alerting_rules.yaml \
             -f ${{ github.workspace }}//base-helm-configs/prometheus/alertmanager_config.yaml \
             --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
-            --post-renderer-args prometheus/${{ matrix.overlays }} > /tmp/rendered.yaml
+            --post-renderer-args kube-prometheus-stack/${{ matrix.overlays }} > /tmp/rendered.yaml
       - name: Return helm Build
         uses: actions/upload-artifact@v4
         with:
