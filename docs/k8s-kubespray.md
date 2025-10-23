@@ -2,13 +2,13 @@
 
 Currently only the k8s provider kubespray is supported and included as submodule into the code base.
 
-### Before you Deploy
+## Before you Deploy
 
 Kubespray will be using OVN for all of the network functions, as such, you will need to ensure your hosts are ready to receive the deployment at a low level.
 While the Kubespray tooling will do a lot of prep and setup work to ensure success,
 you will need to prepare your networking infrastructure and basic storage layout before running the playbooks.
 
-#### Minimum system requirements
+### Minimum system requirements
 
 * 2 Network Interfaces
 
