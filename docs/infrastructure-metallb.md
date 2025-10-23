@@ -49,6 +49,7 @@ kubectl apply -f /etc/genestack/manifests/metallb/metallb-openstack-service-lb.y
 ```
 
 ## Re-IP the advertisement pools
+
 In situations where the advertisement pools must be changed, the following disruptive procedure can be used:
 
 Update existing metallb configuration:
@@ -57,7 +58,6 @@ Update existing metallb configuration:
 kubectl -n metallb-system delete IPAddressPool/primary
 kubectl -n metallb-system delete IPAddressPool/gateway-api-external
 kubectl apply -f /etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml
-```
 ```
 
 Restart the metallb controller:
