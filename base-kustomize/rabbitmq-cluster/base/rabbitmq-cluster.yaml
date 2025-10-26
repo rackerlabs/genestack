@@ -5,7 +5,7 @@ metadata:
   name: rabbitmq
   namespace: openstack
   annotations:
-    metallb.universe.tf/address-pool: primary
+    metallb.io/address-pool: primary
 spec:
   replicas: 3
   resources:

@@ -54,7 +54,7 @@ spec:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/address-pool: primary
+        metallb.io/address-pool: primary
   connection:
     secretName: mariadb-cluster-conn
     secretTemplate:
@@ -64,7 +64,7 @@ spec:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/address-pool: primary
+        metallb.io/address-pool: primary
   primaryConnection:
     secretName: mariadb-cluster-conn-primary
     secretTemplate:
@@ -74,7 +74,7 @@ spec:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/address-pool: primary
+        metallb.io/address-pool: primary
   secondaryConnection:
     secretName: mariadb-cluster-conn-secondary
     secretTemplate:
