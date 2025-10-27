@@ -8,7 +8,7 @@ spec:
   parentRefs:
     - name: flex-gateway
       sectionName: keystone-https
-      namespace: nginx-gateway
+      namespace: envoy-gateway
   hostnames:
     - "keystone.your.domain.tld"
   rules:

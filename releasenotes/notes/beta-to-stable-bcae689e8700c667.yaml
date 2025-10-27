@@ -51,12 +51,6 @@ features:
 
     https://docs.rackspacecloud.com/infrastructure-metallb/
   - |
-    NGINX Gateway API is supported in this release. NGINX Gateway API can be deployed
-    to provide Gateway services to the Kubernetes cluster. This is used by default for
-    all internal services and external ingress into the platform services.
-
-    https://docs.rackspacecloud.com/infrastructure-gateway-api/
-  - |
     MariaDB Operator is supported in this release. MariaDB Operator can be deployed
     to provide database services to the Kubernetes cluster. This is used by default
     for OpenStack Services
@@ -179,7 +173,7 @@ features:
 
     Supported Exporters:
       * Kube-OVN
-      * NGINX Gateway Fabris
+      * Envoy Gateway
       * RabbitMQ
       * Memcached
       * MariaDB

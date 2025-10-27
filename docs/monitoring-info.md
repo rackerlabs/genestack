@@ -115,12 +115,6 @@ Once we've ran the apply command we will have installed ServiceMonitors for Kube
 
     You can view more information about OVN monitoring in the [OVN Monitoring Introduction Docs](ovn-monitoring-introduction.md).
 
-* ### Nginx Gateway Monitoring:
-Genestack can make use of the NGINX Gateway API for its implementation of [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/). Genestack deploys this as part of its infrastructure, view the [Gateway Deployment Doc](infrastructure-gateway-api.md) for more information.
-Nginx Gateway does expose important metrics for us to gather but it does not do so via a service. Instead we must make use another Prometheus CRD the [PodMonitor](https://prometheus-operator.dev/docs/getting-started/design/#podmonitor).
-The install is similar to the above OVN monitoring as you can see in the [Nginx Gateway Exporter Deployment Doc](prometheus-nginx-gateway.md). The primary difference is the need to target and match on a pod that's exposing the metrics rather than a service.
-You can view more information about the metrics exposed by the Nginx Gateway by viewing the [Nginx Gateway Fabric Docs](https://docs.nginx.com/nginx-gateway-fabric/how-to/monitoring/prometheus/).
-
 * ### Envoy Gateway Monitoring:
 Genestack makes use of the Envoy Gateway API for its implementation of [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/). Genestack deploys the Envoy Gateway as part of its infrastructure, view the [Envoy Gateway Deployment Doc](infrastructure-envoy-gateway-api.md) for more information.
 Envoy Gateway is a Kubernetes-native API Gateway and reverse proxy control plane. It simplifies deploying and operating Envoy Proxy as a data plane by using the standard Gateway API and its own extensible APIs. For more information about Envoy Gateway in general view the [Envoy Gateway Documentation](https://gateway.envoyproxy.io/docs/concepts/introduction/).
