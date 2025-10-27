@@ -20,7 +20,7 @@ images:
     ironic_api: "ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest"
     ironic_conductor: "ghcr.io/rackerlabs/genestack-images/ironic-conductor:2024.1-latest"
     ironic_pxe: "ghcr.io/rackerlabs/genestack-images/ironic-pxe:2024.1-latest"
-    ironic_pxe_init: "ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest"
+    ironic_pxe_init: "ghcr.io/rackerlabs/genestack-images/ironic-pxe:2024.1-latest"
     ironic_pxe_http: "docker.io/nginx:1.13.3" # Retained from openstack-helm default
     ironic_inspector: "ghcr.io/rackerlabs/genestack-images/ironic-inspector:2024.1-latest"
     ironic_inspector_db_sync: "ghcr.io/rackerlabs/genestack-images/ironic-inspector:2024.1-latest"
@@ -87,6 +87,8 @@ conf:
       pxe_bootfile_name: "undionly.kpxe"
       uefi_pxe_bootfile_name: "ipxe.efi"
       ipxe_enabled: true
+    service_catalog:
+      valid_interfaces: public
   ironic_inspector:
     DEFAULT:
       processing_hooks: "$processing.default_hooks,ramdisk_error"
@@ -103,10 +105,10 @@ network:
   backend:
     - ovn
   pxe:
-    device: ironic-pxe
-    neutron_network_name: baremetal
-    neutron_subnet_name: baremetal
-    neutron_provider_network: ironic
+    device: br-host
+    neutron_network_name: baremetal-provisioning-network
+    neutron_subnet_name: baremetal-provisioning-network
+    neutron_provider_network: physnet2
     neutron_subnet_gateway: 172.24.6.1/24
     neutron_subnet_cidr: 172.24.6.0/24
     neutron_subnet_alloc_start: 172.24.6.100
