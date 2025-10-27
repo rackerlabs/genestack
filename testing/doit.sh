@@ -79,4 +79,3 @@ sleep 5m
 
 # Prep all nodes
 ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i ./inventory.yaml --private-key ./key fix-root.yaml
-ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i ./inventory.yaml --private-key ./key deploy.yaml

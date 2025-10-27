@@ -1,0 +1,85 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../base
+
+patches:
+  # Single comprehensive patch to replace volumes AND add init container
+  - target:
+      kind: DaemonSet
+      name: libvirt-libvirt-default
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/volumes
+        value:
+          - name: pod-tmp
+            emptyDir: {}
+          - name: libvirt-bin
+            configMap:
+              name: libvirt-libvirt-default-bin
+              defaultMode: 365
+          - name: libvirt-etc
+            secret:
+              secretName: libvirt-libvirt-default-etc
+              defaultMode: 292
+          - name: etcceph
+            hostPath:
+              path: /var/etc/ceph
+              type: DirectoryOrCreate
+          - name: ceph-etc
+            configMap:
+              name: ceph-etc
+              defaultMode: 292
+          - name: libmodules
+            hostPath:
+              path: /lib/modules
+          - name: var-lib-libvirt
+            hostPath:
+              path: /var/lib/libvirt
+          - name: var-lib-nova
+            hostPath:
+              path: /var/lib/nova
+          - name: run
+            hostPath:
+              path: /run
+          - name: dev
+            hostPath:
+              path: /dev
+          - name: logs
+            hostPath:
+              path: /var/log/libvirt
+          - name: cgroup
+            hostPath:
+              path: /sys/fs/cgroup
+          - name: machine-id
+            hostPath:
+              path: /etc/machine-id
+              type: FileOrCreate
+          - name: etc-libvirt-qemu
+            hostPath:
+              path: /var/etc/libvirt/qemu
+              type: DirectoryOrCreate
+          - name: etc-modprobe-d
+            hostPath:
+              path: /etc/modprobe.d
+          - name: host-rootfs
+            hostPath:
+              path: /
+              type: Directory
+          - name: pod-shared
+            emptyDir: {}
+          - name: host-etc
+            hostPath:
+              path: /var/etc
+              type: DirectoryOrCreate
+
+  # Patch ConfigMaps
+  - path: libvirt-configmap-patch.yaml
+    target:
+      kind: ConfigMap
+      name: libvirt-bin
+  - path: libvirt-configmap-patch.yaml
+    target:
+      kind: ConfigMap
+      name: libvirt-libvirt-default-bin

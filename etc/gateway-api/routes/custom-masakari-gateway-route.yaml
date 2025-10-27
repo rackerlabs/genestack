@@ -12,7 +12,7 @@ spec:
   parentRefs:
     - name: flex-gateway
       sectionName: masakari-https
-      namespace: nginx-gateway
+      namespace: envoy-gateway
   hostnames:
     - "masakari.your.domain.tld"
   rules:

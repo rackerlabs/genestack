@@ -1,0 +1,9 @@
+---
+sortOptions:
+  order: fifo
+resources:
+  - zaqar-mariadb-database.yaml
+  - zaqar-rabbitmq-queue.yaml
+  - hpa-zaqar-api.yaml
+  - policies.yaml
+  - all.yaml

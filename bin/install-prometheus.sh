@@ -3,9 +3,9 @@
 # Set default directories
 GENESTACK_DIR="${GENESTACK_DIR:-/opt/genestack}"
 GENESTACK_CONFIG_DIR="${GENESTACK_CONFIG_DIR:-/etc/genestack}"
-GENESTACK_PROMETHEUS_DIR="${GENESTACK_PROMETHEUS_DIR:-$GENESTACK_DIR/base-helm-configs/prometheus}"
-GENESTACK_PROMETHEUS_RULES_DIR="${GENESTACK_PROMETHEUS_RULES_DIR:-$GENESTACK_DIR/base-helm-configs/prometheus/rules}"
-GENESTACK_PROMETHEUS_CONFIG_DIR="${GENESTACK_PROMETHEUS_CONFIG_DIR:-$GENESTACK_CONFIG_DIR/helm-configs/prometheus}"
+GENESTACK_PROMETHEUS_DIR="${GENESTACK_PROMETHEUS_DIR:-$GENESTACK_DIR/base-helm-configs/kube-prometheus-stack}"
+GENESTACK_PROMETHEUS_RULES_DIR="${GENESTACK_PROMETHEUS_RULES_DIR:-$GENESTACK_DIR/base-helm-configs/kube-prometheus-stack/rules}"
+GENESTACK_PROMETHEUS_CONFIG_DIR="${GENESTACK_PROMETHEUS_CONFIG_DIR:-$GENESTACK_CONFIG_DIR/helm-configs/kube-prometheus-stack}"
 
 # Read prometheus version from helm-chart-versions.yaml
 VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
@@ -15,7 +15,7 @@ if [ ! -f "$VERSION_FILE" ]; then
 fi
 
 # Extract prometheus version using grep and sed
-PROMETHEUS_VERSION=$(grep 'prometheus:' "$VERSION_FILE" | sed 's/.*prometheus: *//')
+PROMETHEUS_VERSION=$(grep 'kube-prometheus-stack:' "$VERSION_FILE" | sed 's/.*kube-prometheus-stack: *//')
 
 if [ -z "$PROMETHEUS_VERSION" ]; then
     echo "Error: Could not extract prometheus version from $VERSION_FILE"
@@ -25,14 +25,15 @@ fi
 # Prepare an array to collect --values arguments
 values_args=()
 
-# Include only the base override file from the base directory
-base_override="$GENESTACK_PROMETHEUS_DIR/prometheus-helm-overrides.yaml"
-if [[ -e "$base_override" ]]; then
-  echo "Including base override: $base_override"
-  values_args+=("--values" "$base_override")
-else
-  echo "Warning: Base override file not found: $base_override"
-fi
+# Include base override files from the base directory
+for base_file in "$GENESTACK_PROMETHEUS_DIR/kube-prometheus-stack-helm-overrides.yaml" "$GENESTACK_PROMETHEUS_DIR/alertmanager_config.yaml"; do
+  if [[ -e "$base_file" ]]; then
+    echo "Including base override: $base_file"
+    values_args+=("--values" "$base_file")
+  else
+    echo "Warning: Base override file not found: $base_file"
+  fi
+done
 
 # Include all rules YAML files from base
 if [[ -d "$GENESTACK_PROMETHEUS_RULES_DIR" ]]; then
@@ -73,7 +74,7 @@ HELM_CMD="helm upgrade --install kube-prometheus-stack prometheus-community/kube
 
 HELM_CMD+=" ${values_args[@]}"
 HELM_CMD+=" --post-renderer $GENESTACK_CONFIG_DIR/kustomize/kustomize.sh"
-HELM_CMD+=" --post-renderer-args prometheus/overlay"
+HELM_CMD+=" --post-renderer-args kube-prometheus-stack/overlay"
 HELM_CMD+=" $@"
 
 echo "Executing Helm command:"

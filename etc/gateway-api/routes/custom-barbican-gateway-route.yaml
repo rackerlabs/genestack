@@ -5,13 +5,13 @@ metadata:
   name: custom-barbican-gateway-route
   namespace: openstack
 spec:
-  parentRefs:
-  - name: flex-gateway
-    sectionName: barbican-https
-    namespace: nginx-gateway
   hostnames:
-  - "barbican.your.domain.tld"
+    - barbican.your.domain.tld
+  parentRefs:
+    - name: flex-gateway
+      namespace: envoy-gateway
+      sectionName: barbican-https
   rules:
     - backendRefs:
-      - name: barbican-api
-        port: 9311
+        - name: barbican-api
+          port: 9311

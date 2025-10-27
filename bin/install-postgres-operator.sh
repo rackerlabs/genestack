@@ -18,10 +18,8 @@ if [ -z "$POSTGRES_OPERATOR_VERSION" ]; then
     exit 1
 fi
 
-pushd /opt/genestack/submodules/postgres-operator/charts || exit
-
 # Base helm command setup
-HELM_CMD="helm upgrade --install postgres-operator ./postgres-operator \
+HELM_CMD="helm upgrade --install postgres-operator postgres-operator-charts/postgres-operator \
   --version ${POSTGRES_OPERATOR_VERSION} \
   --namespace=postgres-system \
   --create-namespace \
@@ -40,9 +38,10 @@ fi
 
 HELM_CMD+=" $@"
 
+helm repo add postgres-operator-charts https://opensource.zalando.com/postgres-operator/charts/postgres-operator
+helm repo update
+
 # Run the helm command
 echo "Executing Helm command:"
 echo "${HELM_CMD}"
 eval "${HELM_CMD}"
-
-popd || exit

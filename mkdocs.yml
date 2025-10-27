@@ -158,13 +158,14 @@ nav:
               - k8s-overview.md
               - Providers:
                   - Kubespray: k8s-kubespray.md
+                  - Talos Linux: k8s-talos.md
+              - Container Network Interface:
+                  - Kube-OVN: k8s-cni-kube-ovn.md
               - Post Deployment:
                   - Kubernetes Labels: k8s-labels.md
                   - Kubernetes Dashboard: k8s-dashboard.md
                   - Kubernetes Taint: k8s-taint.md
               - Plugins and Tools: k8s-tools.md
-              - Container Network Interface:
-                  - Kube-OVN: k8s-cni-kube-ovn.md
               - Retrieve kube config: k8s-config.md
               - Prometheus: prometheus.md
           - Storage:
@@ -182,7 +183,6 @@ nav:
               - Gateway API:
                   - Gateway API Overview: infrastructure-gateway-api.md
                   - Envoy Gateway: infrastructure-envoy-gateway-api.md
-                  - NGINX Gateway: infrastructure-nginx-gateway-api.md
               - MariaDB: infrastructure-mariadb.md
               - RabbitMQ: infrastructure-rabbitmq.md
               - Memcached: infrastructure-memcached.md
@@ -230,7 +230,6 @@ nav:
               - Grafana: grafana.md
               - Kube-OVN Monitoring: prometheus-kube-ovn.md
               - Kube-event Monitoring: prometheus-kube-event-exporter.md
-              - NGINX Gateway Fabric Monitoring: prometheus-nginx-gateway.md
               - RabbitMQ Exporter: prometheus-rabbitmq-exporter.md
               - Memcached Exporter: prometheus-memcached-exporter.md
               - MariaDB Exporter: prometheus-mysql-exporter.md
@@ -275,9 +274,6 @@ nav:
               - Operations: infrastructure-mariadb-ops.md
               - Restore with Swift Tempauth: mariadb-backuprestore-from-tempauth.md
           - Gateway API:
-              - Custom Routes: infrastructure-nginx-gateway-api-custom.md
-              - Rackspace Example Gateway Overview: rackspace-infrastructure-nginx-gateway-api.md
-              - Creating self-signed CA issuer for Gateway API: infrastructure-nginx-gateway-api-ca-issuer.md
               - Creating Security Policies: infrastructure-envoy-gateway-api-security.md
       - Observability:
           - Observability Overview: observability-info.md

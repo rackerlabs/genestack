@@ -1,0 +1,64 @@
+grafana:
+  enabled: false
+  sidecar:
+    dashboards:
+      enabled: false
+    datasources:
+      enabled: false
+alertmanager:
+  alertmanagerSpec:
+    image:
+      tag: v0.26.0
+    storage:
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - "ReadWriteOnce"
+          resources:
+            requests:
+              storage: 15Gi
+    nodeSelector:
+      openstack-control-plane: enabled
+    podAntiAffinity: ""
+prometheus-node-exporter:
+  extraHostVolumeMounts:
+    - name: text-file-collector
+      hostPath: /opt/node_exporter/textfile_collector
+      mountPath: /var/lib/node_exporter/textfile_collector
+      readOnly: true
+      mountPropagation: HostToContainer
+  extraArgs:
+    - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
+    - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$
+    - --collector.textfile.directory=/var/lib/node_exporter/textfile_collector
+prometheusOperator:
+  nodeSelector:
+    openstack-control-plane: enabled
+  admissionWebhooks:
+    patch:
+      nodeSelector:
+        openstack-control-plane: enabled
+  thanosImage:
+    tag: v0.34.0
+prometheus:
+  prometheusSpec:
+    image:
+      tag: v2.49.1
+    nodeSelector:
+      openstack-control-plane: enabled
+    podAntiAffinity: ""
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - "ReadWriteOnce"
+          resources:
+            requests:
+              storage: 15Gi
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+thanosRuler:
+  thanosRulerSpec:
+    image:
+      tag: v0.34.0
+    podAntiAffinity: ""

@@ -16,12 +16,30 @@ likely need to be defined is the network interface that will Kube-OVN will bind 
     are set to `br-overlay`. If you intend to enable hardware offloading, you will need to set the `IFACE` to the
     a physical interface that supports hardware offloading.
 
-    ``` yaml
-    networking:
-      IFACE: "br-overlay"
-      vlan:
-        VLAN_INTERFACE_NAME: "br-overlay"
-    ```
+    === "Default"
+
+        ``` yaml
+        networking:
+          IFACE: "br-overlay"
+          vlan:
+            VLAN_INTERFACE_NAME: "br-overlay"
+        ```
+
+    === "Talos"
+
+        ``` yaml
+        global:                          # This is needed to
+          registry:                      # Allow for pulling
+            address: docker.io/kubeovn   # Kube-OVN version 1.14.10
+            imagePullSecrets: []
+        networking:
+          IFACE: eno1
+          vlan:
+            VLAN_INTERFACE_NAME: eno1
+        OPENVSWITCH_DIR: /var/lib/openvswitch
+        OVN_DIR: /var/lib/ovn
+        DISABLE_MODULES_MANAGEMENT: true
+        ```
 
 For a full review of all the available options, see the Kube-OVN base helm overrides file.
 
@@ -50,7 +68,7 @@ For a full review of all the available options, see the Kube-OVN base helm overr
 
 To run the Kube-OVN deployment, run the following command commands or script.
 
-!!! example "Run the Kube-OVN deployment Script `/opt/genestack/bin/install-kube-ovn.sh`."
+??? example "Run the Kube-OVN deployment Script `/opt/genestack/bin/install-kube-ovn.sh`"
 
     ``` shell
     --8<-- "bin/install-kube-ovn.sh"

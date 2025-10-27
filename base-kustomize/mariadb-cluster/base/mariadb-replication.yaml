@@ -1,17 +1,10 @@
+---
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
   name: mariadb-cluster
   namespace: openstack
 spec:
-  rootPasswordSecretKeyRef:
-    name: mariadb
-    key: root-password
-    generate: false
-  username: mariadb
-  database: mariadb
-  image: docker-registry1.mariadb.com/library/mariadb:11.4.3
-
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -22,67 +15,23 @@ spec:
                 values:
                   - worker
   # NOTE: (brew) uncomment below when we update to a newer mariadb crd
-  #    podAntiAffinity:
-  #      requiredDuringSchedulingIgnoredDuringExecution:
-  #        - labelSelector:
-  #          matchExpressions:
-  #            - key: app.kubernetes.io/instance
-  #              operator: In
-  #              values:
-  #                - mariadb-cluster
-  #          topologyKey: kubernetes.io/hostname
-
-  storage:
-    size: 10Gi
-    storageClassName: general
-    resizeInUseVolumes: true
-    waitForVolumeResize: true
-    volumeClaimTemplate:
-      accessModes:
-        - ReadWriteOnce
-      resources:
-        requests:
-          storage: 10Gi
-      storageClassName: general
-
-  replicas: 3
-
-  replication:
-    enabled: true
-
-  service:
-    type: LoadBalancer
-    metadata:
-      annotations:
-        metallb.universe.tf/address-pool: primary
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/instance
+                operator: In
+                values:
+                  - mariadb-cluster
+          topologyKey: kubernetes.io/hostname
   connection:
     secretName: mariadb-cluster-conn
     secretTemplate:
       key: dsn
-
-  primaryService:
-    type: LoadBalancer
-    metadata:
-      annotations:
-        metallb.universe.tf/address-pool: primary
-  primaryConnection:
-    secretName: mariadb-cluster-conn-primary
-    secretTemplate:
-      key: dsn
-
-  secondaryService:
-    type: LoadBalancer
-    metadata:
-      annotations:
-        metallb.universe.tf/address-pool: primary
-  secondaryConnection:
-    secretName: mariadb-cluster-conn-secondary
-    secretTemplate:
-      key: dsn
-
-  updateStrategy:
-    type: RollingUpdate
-
+  database: mariadb
+  image: docker-registry1.mariadb.com/library/mariadb:11.4.3
+  metrics:
+    enabled: false
   myCnf: |
     [mariadb]
     bind-address=0.0.0.0
@@ -119,5 +68,48 @@ spec:
     table_open_cache=2048
     table_definition_cache=1024
 
-  metrics:
-    enabled: false
+  primaryConnection:
+    secretName: mariadb-cluster-conn-primary
+    secretTemplate:
+      key: dsn
+  primaryService:
+    metadata:
+      annotations:
+        metallb.universe.tf/address-pool: primary
+    type: LoadBalancer
+  replicas: 3
+  replication:
+    enabled: true
+  rootPasswordSecretKeyRef:
+    generate: false
+    key: root-password
+    name: mariadb
+  secondaryConnection:
+    secretName: mariadb-cluster-conn-secondary
+    secretTemplate:
+      key: dsn
+  secondaryService:
+    metadata:
+      annotations:
+        metallb.universe.tf/address-pool: primary
+    type: LoadBalancer
+  service:
+    metadata:
+      annotations:
+        metallb.universe.tf/address-pool: primary
+    type: LoadBalancer
+  storage:
+    resizeInUseVolumes: true
+    size: 10Gi
+    storageClassName: general
+    volumeClaimTemplate:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 10Gi
+      storageClassName: general
+    waitForVolumeResize: true
+  updateStrategy:
+    type: RollingUpdate
+  username: mariadb

@@ -33,6 +33,10 @@ metrics:
     interval: 30s
     # -- Timeout if metrics can't be retrieved in given time interval
     scrapeTimeout: 25s
+    # -- MetricRelabelConfigs to apply to samples before ingestion.
+    metricRelabelings: []
+    # -- RelabelConfigs to apply to samples before scraping.
+    relabelings: []
 
 serviceAccount:
   # -- Specifies whether a service account should be created
@@ -95,6 +99,12 @@ affinity:
               values:
                 - worker
 
+pdb:
+  # -- Enable PodDisruptionBudget for the controller.
+  enabled: false
+  # -- Maximum number of unavailable Pods. You may also give a percentage, like `50%`
+  maxUnavailable: 1
+
 webhook:
   image:
     repository: ghcr.io/mariadb-operator/mariadb-operator
@@ -113,9 +123,9 @@ webhook:
       enabled: true
       # -- Issuer reference to be used in the Certificate resource. If not provided, a self-signed issuer will be used.
       issuerRef: {}
-       # -- Duration to be used in the Certificate resource,
+      # -- Duration to be used in the Certificate resource,
       duration: ""
-       # -- Renew before duration to be used in the Certificate resource.
+      # -- Renew before duration to be used in the Certificate resource.
       renewBefore: ""
     # -- Annotatioms to be added to webhook TLS secret.
     secretAnnotations: {}
@@ -170,11 +180,11 @@ webhook:
   # requests:
   #   cpu: 10m
   #   memory: 32Mi
-  # -- Node selectors to add to controller Pod
+  # -- Node selectors to add to webhook Pod
   nodeSelector: {}
-  # -- Tolerations to add to controller Pod
+  # -- Tolerations to add to webhook Pod
   tolerations: []
-  # -- Affinity to add to controller Pod
+  # -- Affinity to add to webhook Pod
   affinity:
     nodeAffinity:
     requiredDuringSchedulingIgnoredDuringExecution:
@@ -199,12 +209,12 @@ certController:
     enabled: false
     # -- Number of replicas
     replicas: 3
-  # -- CA certificate validity. It must be greater than certValidity.
-  caValidity: 35064h
-  # -- Certificate validity.
-  certValidity: 8766h
-  # -- Duration used to verify whether a certificate is valid or not.
-  lookaheadValidity: 2160h
+  # -- CA certificate lifetime. It must be greater than certLifetime.
+  caLifetime: 35064h
+  # -- Certificate lifetime.
+  certLifetime: 8766h
+  # -- How long before the certificate expiration should the renewal process be triggered. For example, if a certificate is valid for 60 minutes, and renewBeforePercentage=25, cert-controller will begin to attempt to renew the certificate 45 minutes after it was issued (i.e. when there are 15 minutes (25%) remaining until the certificate is no longer valid).
+  renewBeforePercentage: 33
   # -- Requeue duration to ensure that certificate gets renewed.
   requeueDuration: 5m
   serviceMonitor:
@@ -246,9 +256,32 @@ certController:
   # requests:
   #   cpu: 10m
   #   memory: 32Mi
-  # -- Node selectors to add to controller Pod
+  # -- Node selectors to add to cert-controller container
   nodeSelector: {}
-  # -- Tolerations to add to controller Pod
+  # -- Tolerations to add to cert-controller container
   tolerations: []
-  # -- Affinity to add to controller Pod
+  # -- topologySpreadConstraints to add to cert-controller container
+  topologySpreadConstraints: []
+  # -- priorityClassName to add to cert-controller container
+  priorityClassName: ""
+  # -- Affinity to add to cert-controller container
   affinity: {}
+  pdb:
+    # -- Enable PodDisruptionBudget for the cert-controller.
+    enabled: false
+    # -- Maximum number of unavailable Pods. You may also give a percentage, like `50%`
+    maxUnavailable: 1
+# -- Operator configuration
+config:
+  # -- Galera library path to be used with MariaDB Galera
+  galeraLibPath: /usr/lib/galera/libgalera_smm.so
+  # -- Default MariaDB version to be used when unable to infer it via image tag
+  mariadbDefaultVersion: "11.4"
+  # -- Default MariaDB image
+  mariadbImage: docker-registry1.mariadb.com/library/mariadb:11.4.5
+  # -- Default MaxScale image
+  maxscaleImage: docker-registry2.mariadb.com/mariadb/maxscale:23.08.5
+  # -- Default MariaDB exporter image
+  exporterImage: prom/mysqld-exporter:v0.15.1
+  # -- Default MaxScale exporter image
+  exporterMaxscaleImage: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1

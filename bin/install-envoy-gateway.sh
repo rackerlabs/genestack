@@ -1,5 +1,10 @@
 #!/bin/bash
 # shellcheck disable=SC2124,SC2145,SC2294
+#
+# NOTE: This script uses OCI registry format instead of traditional helm repo
+# because Envoy Gateway only publishes charts to OCI registries (docker.io/envoyproxy).
+# Unlike other scripts that use 'helm repo add', OCI registries are accessed directly.
+#
 GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
 SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/envoyproxy-gateway"
 BASE_OVERRIDES="/opt/genestack/base-helm-configs/envoyproxy-gateway/envoy-gateway-helm-overrides.yaml"

@@ -5,13 +5,13 @@ metadata:
   name: custom-prometheus-gateway-route
   namespace: prometheus
 spec:
-  parentRefs:
-  - name: flex-gateway
-    sectionName: http
-    namespace: nginx-gateway
   hostnames:
-  - "prometheus.your.domain.tld"
+    - prometheus.your.domain.tld
+  parentRefs:
+    - name: flex-gateway
+      namespace: envoy-gateway
+      sectionName: http
   rules:
     - backendRefs:
-      - name: kube-prometheus-stack-prometheus
-        port: 9090
+        - name: kube-prometheus-stack-prometheus
+          port: 9090

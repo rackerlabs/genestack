@@ -1,0 +1,160 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: libvirt-bin
+data:
+  libvirt.sh: |
+    #!/bin/bash
+    set -ex
+
+    if [ -f /tmp/vnc.crt ]; then
+      mkdir -p /etc/pki/libvirt-vnc
+      mv /tmp/vnc.key /etc/pki/libvirt-vnc/server-key.pem
+      mv /tmp/vnc.crt /etc/pki/libvirt-vnc/server-cert.pem
+      mv /tmp/vnc-ca.crt /etc/pki/libvirt-vnc/ca-cert.pem
+    fi
+
+    if [ -n "$(cat /proc/*/comm 2>/dev/null | grep -w libvirtd)" ]; then
+      set +x
+      for proc in $(ls /proc/*/comm 2>/dev/null); do
+        if [ "x$(cat $proc 2>/dev/null | grep -w libvirtd)" == "xlibvirtd" ]; then
+          set -x
+          libvirtpid=$(echo $proc | cut -f 3 -d '/')
+          echo "WARNING: libvirtd daemon already running on host" 1>&2
+          kill -9 "$libvirtpid" || true
+          set +x
+        fi
+      done
+      set -x
+    fi
+
+    rm -f /var/run/libvirtd.pid
+
+    if [[ -c /dev/kvm ]]; then
+        chmod 660 /dev/kvm
+        chown root:kvm /dev/kvm
+    fi
+
+    echo "INFO: Running without cgroup management (Talos/container mode)"
+
+    hp_count="$(cat /proc/meminfo | grep HugePages_Total | tr -cd '[:digit:]')"
+    if [ 0"$hp_count" -gt 0 ]; then
+      echo "INFO: Detected hugepage count of '$hp_count'."
+      mkdir -p /etc/default
+      if [ -n "$(grep KVM_HUGEPAGES=0 /etc/default/qemu-kvm 2>/dev/null)" ]; then
+        sed -i 's/.*KVM_HUGEPAGES=0.*/KVM_HUGEPAGES=1/g' /etc/default/qemu-kvm
+      else
+        echo KVM_HUGEPAGES=1 >> /etc/default/qemu-kvm
+      fi
+      if [ ! -d /dev/hugepages ]; then
+        echo "ERROR: Cannot access /dev/hugepages"
+        exit 1
+      fi
+    fi
+    # Clean up stale D-Bus PID file if process not running
+    if [ -f /run/dbus/pid ]; then
+      dbus_pid=$(cat /run/dbus/pid)
+      if ! kill -0 "$dbus_pid" 2>/dev/null; then
+        rm -f /run/dbus/pid
+      fi
+    fi
+    # Start system D-Bus daemon if not already running
+    if ! pgrep -x "dbus-daemon" > /dev/null; then
+      echo "INFO: Starting dbus-daemon..."
+      dbus-daemon --system --fork
+      sleep 2  # Give it a moment to initialize
+    fi
+
+    if [ -n "${LIBVIRT_CEPH_CINDER_SECRET_UUID}" ] || [ -n "${LIBVIRT_EXTERNAL_CEPH_CINDER_SECRET_UUID}" ] ; then
+      echo "INFO: Starting libvirtd for Ceph secret configuration..."
+      libvirtd --listen &
+      LIBVIRTD_PID=$!
+      echo "INFO: libvirtd started with PID $LIBVIRTD_PID"
+
+      tmpsecret=$(mktemp --suffix .xml)
+      if [ -n "${LIBVIRT_EXTERNAL_CEPH_CINDER_SECRET_UUID}" ] ; then
+        tmpsecret2=$(mktemp --suffix .xml)
+      fi
+      function cleanup {
+        rm -f "${tmpsecret}"
+        if [ -n "${LIBVIRT_EXTERNAL_CEPH_CINDER_SECRET_UUID}" ] ; then
+          rm -f "${tmpsecret2}"
+        fi
+      }
+      trap cleanup EXIT
+
+      echo "INFO: Waiting for libvirtd PID file..."
+      TIMEOUT=60
+      while [[ ! -f /var/run/libvirtd.pid ]]; do
+        if [[ ${TIMEOUT} -gt 0 ]]; then
+          let TIMEOUT-=1
+          sleep 1
+        else
+          echo "ERROR: libvirt did not start (pid file missing)"
+          ps aux | grep libvirt || true
+          exit 1
+        fi
+      done
+      echo "INFO: Found PID file at /var/run/libvirtd.pid"
+
+      echo "INFO: Waiting for libvirtd socket..."
+      TIMEOUT=30
+      while [[ ! -e /var/run/libvirt/libvirt-sock ]]; do
+        if [[ ${TIMEOUT} -gt 0 ]]; then
+          let TIMEOUT-=1
+          sleep 1
+        else
+          echo "ERROR: libvirt did not start (socket missing)"
+          ls -la /var/run/libvirt/ || true
+          ps aux | grep libvirt || true
+          exit 1
+        fi
+      done
+      echo "INFO: Found socket at /var/run/libvirt/libvirt-sock"
+
+      echo "INFO: Testing virsh connection..."
+      if ! virsh version; then
+        echo "ERROR: virsh cannot connect to libvirtd"
+        exit 1
+      fi
+
+      function create_virsh_libvirt_secret {
+        sec_user=$1
+        sec_uuid=$2
+        sec_ceph_keyring=$3
+        cat > ${tmpsecret} <<EOFINNER
+    <secret ephemeral='no' private='no'>
+      <uuid>${sec_uuid}</uuid>
+      <usage type='ceph'>
+        <name>client.${sec_user}. secret</name>
+      </usage>
+    </secret>
+    EOFINNER
+        echo "INFO: Defining Ceph secret for user $sec_user..."
+        virsh secret-define --file ${tmpsecret}
+        echo "INFO: Setting Ceph secret value..."
+        virsh secret-set-value --secret "${sec_uuid}" --base64 "${sec_ceph_keyring}"
+      }
+
+      if [ -z "${CEPH_CINDER_KEYRING}" ] && [ -n "${CEPH_CINDER_USER}" ] ; then
+        CEPH_CINDER_KEYRING=$(awk '/key/{print $3}' /etc/ceph/ceph.client.${CEPH_CINDER_USER}.keyring)
+      fi
+      if [ -n "${CEPH_CINDER_USER}" ] ; then
+        create_virsh_libvirt_secret ${CEPH_CINDER_USER} ${LIBVIRT_CEPH_CINDER_SECRET_UUID} ${CEPH_CINDER_KEYRING}
+      fi
+
+      if [ -n "${LIBVIRT_EXTERNAL_CEPH_CINDER_SECRET_UUID}" ] ; then
+        EXTERNAL_CEPH_CINDER_KEYRING=$(cat /tmp/external-ceph-client-keyring)
+        create_virsh_libvirt_secret ${EXTERNAL_CEPH_CINDER_USER} ${LIBVIRT_EXTERNAL_CEPH_CINDER_SECRET_UUID} ${EXTERNAL_CEPH_CINDER_KEYRING}
+      fi
+
+      cleanup
+
+      echo "INFO: Stopping temporary libvirtd instance..."
+      LIBVIRTD_PID=$(cat /var/run/libvirtd.pid)
+      kill $LIBVIRTD_PID
+      tail --pid=$LIBVIRTD_PID -f /dev/null
+    fi
+
+    echo "INFO: Starting libvirtd in foreground..."
+    exec libvirtd --listen
