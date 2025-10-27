@@ -10,7 +10,7 @@ and largely deployed with Helm+Kustomize against the K8s API (v1.28 and up).
 | Kubernetes | Cert-Manager          | Included |
 | Kubernetes | MetaLB (L2/L3)        | Included |
 | Kubernetes | Core DNS              | Included |
-| Kubernetes | Nginx Gateway API     | Included |
+| Kubernetes | Nginx Gateway API     | Removed  |
 | Kubernetes | Kube-Proxy (IPVS)     | Included |
 | Kubernetes | Calico                | Optional |
 | Kubernetes | Kube-OVN              | Included |
