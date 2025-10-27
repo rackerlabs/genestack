@@ -1,3 +1,4 @@
+---
 nginxGateway:
   ## The kind of the NGINX Gateway Fabric installation - currently, only deployment is supported.
   kind: deployment
