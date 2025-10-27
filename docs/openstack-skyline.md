@@ -4,41 +4,63 @@ OpenStack Skyline is the next-generation web-based dashboard designed to provide
 
 ## Create secrets
 
-!!! note "Information about the secretes used"
+!!! note "Automated secret generation"
 
-    Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
+    Skyline secrets can be generated automatically using the `create-skyline-secrets.sh` script located in `/opt/genestack/bin`. This script integrates with the main `create-secrets.sh` workflow and handles all secret generation automatically.
 
-    ??? example "Example secret generation"
+### Automated Secret Generation
 
-        Skyline is a little different because there's no helm integration. Given this difference the deployment is far simpler, and all secrets
-        can be managed in one object.
+The recommended approach is to use the automated script:
 
-        ``` shell
-        kubectl --namespace openstack \
-                create secret generic skyline-apiserver-secrets \
-                --type Opaque \
-                --from-literal=service-username="skyline" \
-                --from-literal=service-password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)" \
-                --from-literal=service-domain="service" \
-                --from-literal=service-project="service" \
-                --from-literal=service-project-domain="service" \
-                --from-literal=db-endpoint="mariadb-cluster-primary.openstack.svc.cluster.local" \
-                --from-literal=db-name="skyline" \
-                --from-literal=db-username="skyline" \
-                --from-literal=db-password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)" \
-                --from-literal=secret-key="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)" \
-                --from-literal=keystone-endpoint="$(kubectl --namespace openstack get secret keystone-keystone-admin -o jsonpath='{.data.OS_AUTH_URL}' | base64 -d)" \
-                --from-literal=keystone-username="skyline" \
-                --from-literal=default-region="RegionOne" \
-                --from-literal=prometheus_basic_auth_password="" \
-                --from-literal=prometheus_basic_auth_user="" \
-                --from-literal=prometheus_enable_basic_auth="false" \
-                --from-literal=prometheus_endpoint="http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090"
-        ```
+``` shell
+# Generate Skyline secrets with default region (RegionOne)
+/opt/genestack/bin/create-skyline-secrets.sh
+```
 
-!!! note
+The script will:
 
-    All the configuration is in this one secret, so be sure to set your entries accordingly.
+- Generate secure random passwords for all Skyline services
+- Create `/etc/genestack/skylinesecrets.yaml` with the Skyline-specific secrets
+- Append the secrets to `/etc/genestack/kubesecrets.yaml` for integration with the main workflow
+- Perform safety checks to prevent duplicate secret generation
+- Ensure the main `kubesecrets.yaml` file exists before proceeding
+
+!!! warning "Prerequisites"
+
+    The `create-skyline-secrets.sh` script requires that `/etc/genestack/kubesecrets.yaml` already exists. Run the main `create-secrets.sh` script first if you haven't already.
+
+!!! note "Secret Management"
+
+    All Skyline configuration is managed in a single secret object (`skyline-apiserver-secrets`), making deployment simpler compared to other OpenStack services that use Helm integration.
+
+### Manual Secret Generation (Alternative)
+
+If you prefer manual control or need to customize specific values, you can still create secrets manually:
+
+??? example "Manual secret generation"
+
+    ``` shell
+    kubectl --namespace openstack \
+            create secret generic skyline-apiserver-secrets \
+            --type Opaque \
+            --from-literal=service-username="skyline" \
+            --from-literal=service-password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)" \
+            --from-literal=service-domain="service" \
+            --from-literal=service-project="service" \
+            --from-literal=service-project-domain="service" \
+            --from-literal=db-endpoint="mariadb-cluster-primary.openstack.svc.cluster.local" \
+            --from-literal=db-name="skyline" \
+            --from-literal=db-username="skyline" \
+            --from-literal=db-password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)" \
+            --from-literal=secret-key="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)" \
+            --from-literal=keystone-endpoint="http://keystone-api.openstack.svc.cluster.local:5000/v3" \
+            --from-literal=keystone-username="skyline" \
+            --from-literal=default-region="RegionOne" \
+            --from-literal=prometheus_basic_auth_password="" \
+            --from-literal=prometheus_basic_auth_user="" \
+            --from-literal=prometheus_enable_basic_auth="false" \
+            --from-literal=prometheus_endpoint="http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090"
+    ```
 
 ## Run the deployment
 
