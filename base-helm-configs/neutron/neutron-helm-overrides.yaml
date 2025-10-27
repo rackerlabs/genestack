@@ -226,9 +226,9 @@ conf:
       rate_limit_enabled: true
       ip_versions: 4
       base_window_duration: 60
-      base_query_rate_limit: 6
+      base_query_rate_limit: 60
       burst_window_duration: 10
-      burst_query_rate_limit: 2
+      burst_query_rate_limit: 30
   neutron_api_uwsgi:
     uwsgi:
       processes: 2
