@@ -5,13 +5,13 @@ metadata:
   name: custom-magnum-gateway-route
   namespace: openstack
 spec:
-  parentRefs:
-  - name: flex-gateway
-    sectionName: magnum-https
-    namespace: nginx-gateway
   hostnames:
-  - "magnum.your.domain.tld"
+    - magnum.your.domain.tld
+  parentRefs:
+    - name: flex-gateway
+      namespace: envoy-gateway
+      sectionName: magnum-https
   rules:
     - backendRefs:
-      - name: magnum-api
-        port: 9511
+        - name: magnum-api
+          port: 9511

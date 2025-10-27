@@ -12,7 +12,7 @@ spec:
   parentRefs:
     - name: flex-gateway
       sectionName: cloudkitty-https
-      namespace: nginx-gateway
+      namespace: envoy-gateway
   hostnames:
     - "cloudkitty.your.domain.tld"
   rules:

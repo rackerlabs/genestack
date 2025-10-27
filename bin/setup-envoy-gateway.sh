@@ -12,7 +12,7 @@ OPTIONS:
     -c, --challenge METHOD      ACME challenge method: http01 or dns01 (default: http01)
     -p, --dns-plugin PLUGIN     DNS01 plugin (only used with dns01)
     -h, --help [PLUGIN]         Display this help message, or detailed help for a specific plugin
-    
+
     # Generic credentials (usage depends on --dns-plugin):
     --api-key KEY               API Key (used by multiple providers)
     --api-secret SECRET         API Secret (used by multiple providers)
@@ -63,7 +63,7 @@ EOF
 # Function to display detailed help for specific plugins
 usage_plugin() {
     local plugin="$1"
-    
+
     case "$plugin" in
         godaddy)
             cat << EOF
@@ -425,17 +425,17 @@ SUPPORTED ALGORITHMS:
 HOW TO SET UP WITH BIND:
     1. Generate a TSIG key:
        tsig-keygen -a HMAC-SHA256 cert-manager > cert-manager.key
-    
+
     2. Add the key to your BIND configuration (named.conf):
        include "/etc/bind/cert-manager.key";
-    
+
     3. Allow updates in your zone configuration:
        zone "example.com" {
            type master;
            file "/etc/bind/zones/example.com";
            allow-update { key "cert-manager"; };
        };
-    
+
     4. Reload BIND:
        rndc reload
 
@@ -649,7 +649,7 @@ fi
 # Function to validate and prompt for credentials based on DNS plugin
 validate_credentials() {
     local plugin="$1"
-    
+
     case "$plugin" in
         godaddy)
             if [[ -z "$API_KEY" || -z "$API_SECRET" ]]; then
@@ -691,7 +691,7 @@ validate_credentials() {
                     echo ""
                     read -rp "Do you want to use API Token? (y/n) [y]: " USE_TOKEN
                     USE_TOKEN=${USE_TOKEN:-y}
-                    
+
                     if [[ "$USE_TOKEN" == "y" || "$USE_TOKEN" == "Y" ]]; then
                         echo "Create a token at: User Profile > API Tokens > Create Token"
                         read -rsp "Enter your Cloudflare API Token: " API_TOKEN
@@ -851,20 +851,20 @@ if [ ! -z "${ACME_EMAIL}" ]; then
         case "${DNS_PLUGIN}" in
             godaddy)
                 echo "Setting up GoDaddy Webhook for DNS01 challenge..."
-                
+
                 # Install GoDaddy webhook
                 echo "Installing GoDaddy webhook..."
                 helm repo add godaddy-webhook https://snowdrop.github.io/godaddy-webhook
                 helm repo update
                 helm install godaddy-webhook godaddy-webhook/godaddy-webhook -n cert-manager --set groupName=acme.${GATEWAY_DOMAIN}
-                
+
                 # Create secret for GoDaddy API credentials
                 echo "Creating GoDaddy API credentials secret..."
                 kubectl create secret generic godaddy-api-key \
                     --namespace cert-manager \
                     --from-literal=token="${API_KEY}:${API_SECRET}" \
                     --dry-run=client -o yaml | kubectl apply -f -
-                
+
                 # Create ClusterIssuer for DNS01 with GoDaddy
                 echo "Creating ClusterIssuer for DNS01 with GoDaddy webhook..."
                 cat <<EOF | kubectl apply -f -
@@ -896,7 +896,7 @@ EOF
                 ;;
             rackspace)
                 echo "Setting up Rackspace Webhook for DNS01 challenge..."
-                
+
                 # Clone Rackspace webhook repository if not already present
                 if [ ! -d "/opt/cert-manager-webhook-rackspace" ]; then
                     echo "Cloning Rackspace webhook repository..."
@@ -907,14 +907,14 @@ EOF
                     cd /opt/cert-manager-webhook-rackspace
                     sudo git pull
                 fi
-                
+
                 # Install Rackspace webhook from local chart
                 echo "Installing Rackspace webhook from local chart..."
                 helm install cert-manager-webhook-rackspace \
                     /opt/cert-manager-webhook-rackspace/charts/cert-manager-webhook-rackspace \
                     -n cert-manager \
                     --set groupName=acme.${GATEWAY_DOMAIN}
-                
+
                 # Create secret for Rackspace API credentials
                 echo "Creating Rackspace API credentials secret..."
                 kubectl create secret generic cert-manager-webhook-rackspace-creds \
@@ -922,7 +922,7 @@ EOF
                     --from-literal=username="${USERNAME}" \
                     --from-literal=api-key="${API_KEY}" \
                     --dry-run=client -o yaml | kubectl apply -f -
-                
+
                 # Create ClusterIssuer for DNS01 with Rackspace
                 echo "Creating ClusterIssuer for DNS01 with Rackspace webhook..."
                 cat <<EOF | kubectl apply -f -
@@ -951,19 +951,19 @@ EOF
                 ;;
             cloudflare)
                 echo "Setting up Cloudflare for DNS01 challenge..."
-                
+
                 # Determine which auth method to use
                 if [ -n "${API_TOKEN}" ]; then
                     # API Token method (recommended)
                     echo "Using Cloudflare API Token authentication..."
-                    
+
                     # Create secret for Cloudflare API token
                     echo "Creating Cloudflare API Token secret..."
                     kubectl create secret generic cloudflare-api-token-secret \
                         --namespace cert-manager \
                         --from-literal=api-token="${API_TOKEN}" \
                         --dry-run=client -o yaml | kubectl apply -f -
-                    
+
                     # Create ClusterIssuer for DNS01 with Cloudflare API Token
                     echo "Creating ClusterIssuer for DNS01 with Cloudflare API Token..."
                     cat <<EOF | kubectl apply -f -
@@ -990,14 +990,14 @@ EOF
                 else
                     # API Key method
                     echo "Using Cloudflare API Key authentication..."
-                    
+
                     # Create secret for Cloudflare API key
                     echo "Creating Cloudflare API Key secret..."
                     kubectl create secret generic cloudflare-api-key-secret \
                         --namespace cert-manager \
                         --from-literal=api-key="${API_KEY}" \
                         --dry-run=client -o yaml | kubectl apply -f -
-                    
+
                     # Create ClusterIssuer for DNS01 with Cloudflare API Key
                     echo "Creating ClusterIssuer for DNS01 with Cloudflare API Key..."
                     cat <<EOF | kubectl apply -f -
@@ -1026,11 +1026,11 @@ EOF
                 ;;
             route53)
                 echo "Setting up Route53 for DNS01 challenge..."
-                
+
                 if [ -n "${API_KEY}" ]; then
                     # Using explicit credentials
                     echo "Using explicit AWS credentials..."
-                    
+
                     # Create secret for AWS credentials
                     echo "Creating AWS credentials secret..."
                     kubectl create secret generic route53-credentials \
@@ -1038,7 +1038,7 @@ EOF
                         --from-literal=access-key-id="${API_KEY}" \
                         --from-literal=secret-access-key="${API_SECRET}" \
                         --dry-run=client -o yaml | kubectl apply -f -
-                    
+
                     # Create ClusterIssuer with explicit credentials
                     echo "Creating ClusterIssuer for DNS01 with Route53..."
                     cat <<EOF | kubectl apply -f -
@@ -1068,7 +1068,7 @@ EOF
                 else
                     # Using IAM role (no credentials needed)
                     echo "Using IAM role for authentication..."
-                    
+
                     # Create ClusterIssuer without credentials (uses IAM role)
                     echo "Creating ClusterIssuer for DNS01 with Route53..."
                     cat <<EOF | kubectl apply -f -
@@ -1095,18 +1095,18 @@ EOF
                 ;;
             azuredns)
                 echo "Setting up Azure DNS for DNS01 challenge..."
-                
+
                 if [ -n "${TENANT_ID}" ]; then
                     # Using Service Principal
                     echo "Using Azure Service Principal authentication..."
-                    
+
                     # Create secret for Azure Service Principal
                     echo "Creating Azure Service Principal secret..."
                     kubectl create secret generic azuredns-credentials \
                         --namespace cert-manager \
                         --from-literal=client-secret="${API_SECRET}" \
                         --dry-run=client -o yaml | kubectl apply -f -
-                    
+
                     # Create ClusterIssuer with Service Principal
                     echo "Creating ClusterIssuer for DNS01 with Azure DNS..."
                     cat <<EOF | kubectl apply -f -
@@ -1139,7 +1139,7 @@ EOF
                 else
                     # Using Managed Identity
                     echo "Using Azure Managed Identity authentication..."
-                    
+
                     # Create ClusterIssuer with Managed Identity
                     echo "Creating ClusterIssuer for DNS01 with Azure DNS..."
                     cat <<EOF | kubectl apply -f -
@@ -1170,18 +1170,18 @@ EOF
                 ;;
             google)
                 echo "Setting up Google Cloud DNS for DNS01 challenge..."
-                
+
                 if [ -n "${SERVICE_ACCOUNT_FILE}" ]; then
                     # Using Service Account file
                     echo "Using Google Service Account file authentication..."
-                    
+
                     # Create secret from service account file
                     echo "Creating Google Service Account secret..."
                     kubectl create secret generic clouddns-service-account \
                         --namespace cert-manager \
                         --from-file=key.json="${SERVICE_ACCOUNT_FILE}" \
                         --dry-run=client -o yaml | kubectl apply -f -
-                    
+
                     # Create ClusterIssuer with Service Account
                     echo "Creating ClusterIssuer for DNS01 with Google Cloud DNS..."
                     cat <<EOF | kubectl apply -f -
@@ -1209,7 +1209,7 @@ EOF
                 else
                     # Using Workload Identity
                     echo "Using Google Workload Identity authentication..."
-                    
+
                     # Create ClusterIssuer without credentials (uses Workload Identity)
                     echo "Creating ClusterIssuer for DNS01 with Google Cloud DNS..."
                     cat <<EOF | kubectl apply -f -
@@ -1235,14 +1235,14 @@ EOF
                 ;;
             digitalocean)
                 echo "Setting up DigitalOcean for DNS01 challenge..."
-                
+
                 # Create secret for DigitalOcean API token
                 echo "Creating DigitalOcean API Token secret..."
                 kubectl create secret generic digitalocean-dns \
                     --namespace cert-manager \
                     --from-literal=access-token="${API_TOKEN}" \
                     --dry-run=client -o yaml | kubectl apply -f -
-                
+
                 # Create ClusterIssuer for DNS01 with DigitalOcean
                 echo "Creating ClusterIssuer for DNS01 with DigitalOcean..."
                 cat <<EOF | kubectl apply -f -
@@ -1269,14 +1269,14 @@ EOF
                 ;;
             acmedns)
                 echo "Setting up ACME-DNS for DNS01 challenge..."
-                
+
                 # Create secret for ACME-DNS credentials
                 echo "Creating ACME-DNS credentials secret..."
                 kubectl create secret generic acmedns-credentials \
                     --namespace cert-manager \
                     --from-literal=acmedns.json="{\"${GATEWAY_DOMAIN}\":{\"username\":\"${USERNAME}\",\"password\":\"${PASSWORD}\",\"fulldomain\":\"${API_KEY}\",\"subdomain\":\"${API_KEY}\",\"allowfrom\":[]}}" \
                     --dry-run=client -o yaml | kubectl apply -f -
-                
+
                 # Create ClusterIssuer for DNS01 with ACME-DNS
                 echo "Creating ClusterIssuer for DNS01 with ACME-DNS..."
                 cat <<EOF | kubectl apply -f -
@@ -1304,14 +1304,14 @@ EOF
                 ;;
             rfc2136)
                 echo "Setting up RFC2136 for DNS01 challenge..."
-                
+
                 # Create secret for TSIG key
                 echo "Creating TSIG secret..."
                 kubectl create secret generic rfc2136-credentials \
                     --namespace cert-manager \
                     --from-literal=tsig-secret="${TSIG_SECRET}" \
                     --dry-run=client -o yaml | kubectl apply -f -
-                
+
                 # Create ClusterIssuer for DNS01 with RFC2136
                 echo "Creating ClusterIssuer for DNS01 with RFC2136..."
                 cat <<EOF | kubectl apply -f -
@@ -1368,7 +1368,7 @@ spec:
               namespace: envoy-gateway
 EOF
     fi
-    
+
     # Annotate the gateway with the cluster issuer
     kubectl -n envoy-gateway annotate --overwrite gateway/flex-gateway cert-manager.io/cluster-issuer=letsencrypt-prod
 else
@@ -1379,7 +1379,6 @@ fi
 sudo mkdir -p /etc/genestack/gateway-api/routes
 for route in $(ls -1 /opt/genestack/etc/gateway-api/routes); do
     sed "s/your.domain.tld/${GATEWAY_DOMAIN}/g" "/opt/genestack/etc/gateway-api/routes/${route}" > "/tmp/${route}"
-    sed -i 's/namespace: nginx-gateway/namespace: envoy-gateway/g' "/tmp/${route}"
     sudo mv -v "/tmp/${route}" "/etc/genestack/gateway-api/routes/${route}"
 done
 kubectl apply -f /etc/genestack/gateway-api/routes

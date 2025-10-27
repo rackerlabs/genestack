@@ -12,7 +12,7 @@ spec:
   parentRefs:
     - name: flex-gateway
       sectionName: zaqar-https
-      namespace: nginx-gateway
+      namespace: envoy-gateway
   hostnames:
     - "zaqar.your.domain.tld"
   rules:

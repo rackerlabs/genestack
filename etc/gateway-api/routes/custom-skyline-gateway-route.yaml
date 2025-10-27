@@ -12,7 +12,7 @@ spec:
   parentRefs:
     - name: flex-gateway
       sectionName: skyline-https
-      namespace: nginx-gateway
+      namespace: envoy-gateway
   hostnames:
     - "skyline.your.domain.tld"
   rules:
