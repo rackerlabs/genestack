@@ -68,3 +68,24 @@ kubectl rollout restart deployment metallb-controller -n metallb-system
 
 Once the metallb controller restarts it'll begin to reip the external service IP associations which typically
 requires DNS entry updates. This change including the DNS refresh (TTL) time will be disruptive.
+
+!!! tip "Node Exclusion from LoadBalancer"
+
+    To exclude specific nodes from receiving loadbalancer traffic, you can add the following
+    label to the nodes you want to exclude.
+
+    ``` shell
+    kubectl label node <node-name> node.kubernetes.io/exclude-from-external-load-balancers=true
+    ```
+
+    Replace `<node-name>` with the name of the node you want to exclude. This will prevent MetalLB
+    from assigning load balancer IPs to services on that node.
+
+    Conversely, to include a node back into loadbalancer assignments, you can remove the label.
+
+    ``` shell
+    kubectl label node <node-name> node.kubernetes.io/exclude-from-external-load-balancers-
+    ```
+
+    For more information on this well known label, refer to the
+    [Kubernetes documentation](https://kubernetes.io/docs/reference/labels-annotations-taints/#node-kubernetes-io-exclude-from-external-load-balancers).
