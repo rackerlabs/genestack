@@ -104,38 +104,12 @@ if grep -q "name: skyline-apiserver-secrets" ${OUTPUT_FILE}; then
 fi
 
 # Append to kubesecrets.yaml
-cat <<EOF >> $OUTPUT_FILE
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: skyline-apiserver-secrets
-  namespace: openstack
-type: Opaque
-data:
-  service-username: $(echo -n "skyline" | base64)
-  service-password: $(echo -n $skyline_service_password | base64 -w0)
-  service-domain: $(echo -n "service" | base64)
-  service-project: $(echo -n "service" | base64)
-  service-project-domain: $(echo -n "service" | base64)
-  db-endpoint: $(echo -n "mariadb-cluster-primary.openstack.svc.cluster.local" | base64 -w0)
-  db-name: $(echo -n "skyline" | base64)
-  db-username: $(echo -n "skyline" | base64)
-  db-password: $(echo -n $skyline_db_password | base64 -w0)
-  secret-key: $(echo -n $skyline_secret_key_password | base64 -w0)
-  keystone-endpoint: $(echo -n "http://keystone-api.openstack.svc.cluster.local:5000/v3" | base64 -w0)
-  keystone-username: $(echo -n "skyline" | base64)
-  default-region: $(echo -n "$region" | base64)
-  prometheus_basic_auth_password: $(echo -n "" | base64)
-  prometheus_basic_auth_user: $(echo -n "" | base64)
-  prometheus_enable_basic_auth: $(echo -n "false" | base64)
-  prometheus_endpoint: $(echo -n "http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090" | base64 -w0)
-EOF
+echo "$SKYLINE_SECRET_CONTENT" >> $OUTPUT_FILE
 
-echo "Skyline secrets appended to ${OUTPUT_FILE}"
+echo "Skyline secret appended to ${OUTPUT_FILE}"
 echo ""
 echo "✓ Successfully created ${SKYLINE_SECRETS_FILE}"
-echo "✓ Successfully appended skyline secrets to ${OUTPUT_FILE}"
+echo "✓ Successfully appended skyline secret to ${OUTPUT_FILE}"
 echo ""
 echo "IMPORTANT: Keep ${SKYLINE_SECRETS_FILE} safe!"
-echo "           It will be used to preserve skyline secrets when regenerating ${OUTPUT_FILE}"
+echo "           It will be used to preserve skyline secret when regenerating ${OUTPUT_FILE}"

@@ -4,13 +4,7 @@ OpenStack Skyline is the next-generation web-based dashboard designed to provide
 
 ## Create secrets
 
-!!! note "Automated secret generation"
-
-    Skyline secrets can be generated automatically using the `create-skyline-secrets.sh` script located in `/opt/genestack/bin`. This script integrates with the main `create-secrets.sh` workflow and handles all secret generation automatically.
-
-### Automated Secret Generation
-
-The recommended approach is to use the automated script:
+Skyline secret can be generated using the `create-skyline-secrets.sh` script located in `/opt/genestack/bin`. This script integrates with the `create-secrets.sh` workflow and handles all secret generation.
 
 ``` shell
 # Generate Skyline secrets with default region (RegionOne)
@@ -19,23 +13,20 @@ The recommended approach is to use the automated script:
 
 The script will:
 
-- Generate secure random passwords for all Skyline services
-- Create `/etc/genestack/skylinesecrets.yaml` with the Skyline-specific secrets
-- Append the secrets to `/etc/genestack/kubesecrets.yaml` for integration with the main workflow
+- Generate secure random passwords for the Skyline service
+- Create `/etc/genestack/skylinesecrets.yaml` with the Skyline-specific secret
+- Append the secret to `/etc/genestack/kubesecrets.yaml` for integration with the main workflow
 - Perform safety checks to prevent duplicate secret generation
-- Ensure the main `kubesecrets.yaml` file exists before proceeding
+- Ensure the `kubesecrets.yaml` file exists before proceeding
 
 !!! warning "Prerequisites"
 
-    The `create-skyline-secrets.sh` script requires that `/etc/genestack/kubesecrets.yaml` already exists. Run the main `create-secrets.sh` script first if you haven't already.
+    The `create-skyline-secrets.sh` script requires that `/etc/genestack/kubesecrets.yaml` already exists. Run the `create-secrets.sh` script first if you haven't already.
 
-!!! note "Secret Management"
-
-    All Skyline configuration is managed in a single secret object (`skyline-apiserver-secrets`), making deployment simpler compared to other OpenStack services that use Helm integration.
 
 ### Manual Secret Generation (Alternative)
 
-If you prefer manual control or need to customize specific values, you can still create secrets manually:
+Manual secret generation is only required if you haven't run the `create-skyline-secrets.sh` script located in `/opt/genestack/bin`.
 
 ??? example "Manual secret generation"
 
