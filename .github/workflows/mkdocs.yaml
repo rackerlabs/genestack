@@ -38,6 +38,7 @@ jobs:
       - run: sudo wget https://github.com/jgm/pandoc/releases/download/3.6.3/pandoc-3.6.3-1-amd64.deb && sudo apt install -y ./pandoc-3.6.3-1-amd64.deb
       - run: reno report -o /tmp/reno.rst
       - run: pandoc /tmp/reno.rst -f rst -t markdown -o docs/release-notes.md
+      - run: python scripts/generate_product_matrix.py
       - run: mkdocs build --strict
       - uses: actions/upload-pages-artifact@main
         with:
