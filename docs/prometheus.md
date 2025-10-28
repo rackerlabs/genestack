@@ -18,7 +18,7 @@ information, take a look at [Prometheus Kube Stack](https://github.com/prometheu
 !!! example "Run the Prometheus deployment"
 
     ``` shell
-    /opt/genestack/bin/install-prometheus.sh
+    /opt/genestack/bin/install-kube-prometheus-stack.sh
     ```
 
 !!! success

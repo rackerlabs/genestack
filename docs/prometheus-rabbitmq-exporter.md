@@ -11,7 +11,7 @@ RabbitMQ Exporter is used to expose metrics from a running RabbitMQ deployment.
 Install the RabbitMQ Exporter
 
 ``` shell
-bin/install-chart.sh prometheus-rabbitmq-exporter
+bin/install-prometheus-rabbitmq-exporter.sh
 ```
 
 !!! success

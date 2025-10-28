@@ -43,7 +43,7 @@ To deploy any new rules you would simply run the [Prometheus Deployment](prometh
 !!! example "Run the Prometheus deployment"
 
     ``` shell
-    /opt/genestack/bin/install-prometheus.sh
+    /opt/genestack/bin/install-kube-prometheus-stack.sh
     ```
 
 ## Alert Manager

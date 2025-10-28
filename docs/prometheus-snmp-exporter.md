@@ -13,7 +13,7 @@ into Prometheus.
 
 
 ``` shell
-bin/install-chart.sh prometheus-snmp-exporter
+bin/install-prometheus-snmp-exporter.sh
 ```
 
 !!! success

@@ -30,8 +30,8 @@ jobs:
         run: |
           ${{ steps.helm.outputs.helm-path }} template prometheus-rabbitmq-exporter prometheus-community/prometheus-rabbitmq-exporter \
             --create-namespace \
-            --namespace=openstack \
-            -f ${{ github.workspace }}//base-helm-configs/prometheus-rabbitmq-exporter/values.yaml \
+            --namespace=prometheus \
+            -f ${{ github.workspace }}//base-helm-configs/prometheus-rabbitmq-exporter/prometheus-rabbitmq-exporter-helm-overrides.yaml \
             --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
             --post-renderer-args prometheus-rabbitmq-exporter/${{ matrix.overlays }} > /tmp/rendered.yaml
       - name: Return helm Build
