@@ -1,11 +1,11 @@
-name: Helm GitHub Actions for Prometheus
+name: Helm GitHub Actions for kube-prometheus-stack
 
 on:
   pull_request:
     paths:
       - base-helm-configs/kube-prometheus-stack/**
       - base-kustomize/kube-prometheus-stack/**
-      - .github/workflows/helm-prometheus.yaml
+      - .github/workflows/helm-kube-prometheus-stack.yaml
 jobs:
   helm:
     strategy:

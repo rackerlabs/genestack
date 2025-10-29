@@ -9,7 +9,7 @@ charts:
   fluentbit: 2025.1.1+95bf0bf6e
   freezer: 2025.1.2+cdd5c6c55
   glance: 2024.2.396+13651f45-628a320c
-  gnocchi: 2024.2.52+912f85d38
+  gnocchi: 2024.2.52+22.15d38
   grafana: 10.1.0
   heat: 2024.2.294+13651f45-628a320c
   horizon: 2024.2.264+13651f45-628a320c
@@ -36,3 +36,5 @@ charts:
   redis-sentinel: 0.16.10
   sealed-secrets: 2.17.4
   zaqar: 2025.2.0+2d37d445c
+  prometheus-snmp-exporter: 9.8.1
+  prometheus-rabbitmq-exporter: 1.13.0
