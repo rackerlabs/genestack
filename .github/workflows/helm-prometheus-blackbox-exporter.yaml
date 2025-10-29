@@ -31,7 +31,7 @@ jobs:
           ${{ steps.helm.outputs.helm-path }} template prometheus-blackbox-exporter prometheus-community/prometheus-blackbox-exporter \
             --create-namespace \
             --namespace=prometheus \
-            -f ${{ github.workspace }}//base-helm-configs/prometheus-blackbox-exporter/values.yaml \
+            -f ${{ github.workspace }}//base-helm-configs/prometheus-blackbox-exporter/prometheus-blackbox-exporter-helm-overrides.yaml \
             -f ${{ github.workspace }}//base-helm-configs/prometheus-blackbox-exporter/probe_targets.yaml \
             --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
             --post-renderer-args prometheus-blackbox-exporter/${{ matrix.overlays }} > /tmp/rendered.yaml

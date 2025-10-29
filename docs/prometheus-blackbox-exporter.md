@@ -8,8 +8,7 @@ The blackbox exporter ideally would be ran outside the cluster but can still pro
 
 
 ``` shell
-source /opt/genestack/scripts/genestack.rc
-bin/install-chart.sh prometheus-blackbox-exporter
+bin/install-prometheus-rabbitmq-exporter.sh
 ```
 
 !!! success
