@@ -104,7 +104,7 @@ NOTE: In the following example, we will apply the 'ovn.openstack.org/gateway' to
 ``` shell
 kubectl annotate \
         nodes \
-        -l $(kubectl get nodes | awk '/network/ {print $1}') \
+        $(kubectl get nodes | awk '/network/ {print $1}') \
         ovn.openstack.org/gateway='enabled'
 ```
 
