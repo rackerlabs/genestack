@@ -7,7 +7,7 @@
 
 # Service
 SERVICE_NAME="prometheus-snmp-exporter"
-SERVBICE_NAMESPACE="prometheus"
+SERVICE_NAMESPACE="prometheus"
 
 # Helm
 HELM_REPO_NAME="prometheus-community"
@@ -77,7 +77,7 @@ helm repo update
 
 helm_command=(
     helm upgrade --install "$SERVICE_NAME" "$HELM_REPO_NAME"/"$SERVICE_NAME"
-    --create-namespace --namespace="$NAMESPACE" --timeout 10m
+    --create-namespace --namespace="$SERVICE_NAMESPACE" --timeout 10m
     --version "${SERVICE_VERSION}"
 
     "${values_args[@]}"
