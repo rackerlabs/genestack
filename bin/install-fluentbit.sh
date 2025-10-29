@@ -21,7 +21,7 @@ fi
 HELM_CMD="helm upgrade --install \
                        --version $FLUENTBIT_VERSION \
                        --namespace fluentbit \
-                       --create-namespace fluentbit fluent/fluent-bit"
+                       --create-namespace fluentbit openstack-helm/fluentbit"
 
 HELM_CMD+=" -f /opt/genestack/base-helm-configs/fluentbit/fluentbit-helm-overrides.yaml"
 
