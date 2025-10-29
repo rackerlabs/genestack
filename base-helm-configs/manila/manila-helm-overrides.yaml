@@ -135,7 +135,12 @@ dependencies:
         - manila-db-sync
         - manila-ks-user
         - manila-ks-endpoints
-    manager:
+    data:
+      jobs:
+        - manila-db-sync
+        - manila-ks-user
+        - manila-ks-endpoints
+    scheduler:
       jobs:
         - manila-db-sync
         - manila-ks-user
@@ -253,7 +258,7 @@ manifests:
   deployment_data: true
   deployment_share: false
   ingress_api: false
-  job_bootstrap: true
+  job_bootstrap: false
   job_db_init: false
   job_db_sync: true
   job_db_drop: false
