@@ -1,0 +1,51 @@
+---
+service:
+  port: 9187
+
+serviceMonitor:
+  enabled: true
+  namespace: openstack
+
+config:
+  datasource:
+    host: postgres-cluster
+    user: postgres
+    userSecret: {}
+    passwordSecret:
+      name: postgres.postgres-cluster.credentials.postgresql.acid.zalan.do
+      key: password
+    sslmode: require
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: node-role.kubernetes.io/worker
+              operator: In
+              values:
+                - worker
+
+annotations: {
+  prometheus.io/scrape: "true",
+  prometheus.io/path: "/metrics",
+  prometheus.io/port: "9187",
+}
+
+# Configurable health checks
+livenessProbe:
+  initialDelaySeconds: 0
+  timeoutSeconds: 3
+
+readinessProbe:
+  initialDelaySeconds: 0
+  timeoutSeconds: 1
+
+# Labels and annotations to attach to the deployment resource
+deployment:
+  labels: {}
+  annotations: {
+    prometheus.io/scrape: "true",
+    prometheus.io/path: "/metrics",
+    prometheus.io/port: "9187",
+  }

@@ -13,6 +13,55 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# Function to display help message
+show_help() {
+    cat << EOF
+Usage: $0 [OPTIONS]
+
+Bootstrap script for Genestack deployment environment.
+
+OPTIONS:
+    --no-wait-cloud-init    Skip waiting for cloud-init to complete
+    -h, --help             Show this help message and exit
+
+DESCRIPTION:
+    This script sets up the Genestack environment by:
+    - Waiting for cloud-init to complete (unless --no-wait-cloud-init is used)
+    - Installing required packages
+    - Setting up Python virtual environment
+    - Configuring Ansible and collections
+    - Creating necessary directory structures and symlinks
+
+EXAMPLES:
+    $0                      # Run with default behavior (wait for cloud-init)
+    $0 --no-wait-cloud-init # Skip cloud-init wait
+    $0 --help              # Show this help message
+
+EOF
+}
+
+# Parse command line arguments
+WAIT_CLOUD_INIT=true
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --no-wait-cloud-init)
+            WAIT_CLOUD_INIT=false
+            shift
+            ;;
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        *)
+            echo "Error: Unknown option '$1'"
+            echo "Use '$0 --help' for usage information."
+            exit 1
+            ;;
+    esac
+done
+
 export LC_ALL=C.UTF-8
 mkdir -p ~/.venvs
 
@@ -27,18 +76,22 @@ env | grep -E '^(SUDO|RPC_|ANSIBLE_|GENESTACK_|K8S|CONTAINER_|OPENSTACK_|OSH_)' 
 # Explictily do not exit script on non-zero returns
 set +e
 
-# Wait until cloud-init is finished before proceeding
-echo "Waiting for cloud-init to finish..."
-wait_for_cloud_init
+# Wait until cloud-init is finished before proceeding (unless skipped)
+if [[ "$WAIT_CLOUD_INIT" == "true" ]]; then
+    echo "Waiting for cloud-init to finish..."
+    wait_for_cloud_init
 
-if [[ $? -eq 0 ]]; then
-    echo "Cloud-init completed successfully!"
-elif [[ $? -eq 1 ]]; then
-    echo "Cloud-init crashed or experienced a serious issue."
-elif [[ $? -eq 2 ]]; then
-    echo "Cloud-init completed with errors."
+    if [[ $? -eq 0 ]]; then
+        echo "Cloud-init completed successfully!"
+    elif [[ $? -eq 1 ]]; then
+        echo "Cloud-init crashed or experienced a serious issue."
+    elif [[ $? -eq 2 ]]; then
+        echo "Cloud-init completed with errors."
+    else
+        echo "Cloud-init command not found."
+    fi
 else
-    echo "Cloud-init command not found."
+    echo "Skipping cloud-init wait (--no-wait-cloud-init flag used)."
 fi
 
 # NOTE: (brew) This function will determine wether DNF or APT should be used

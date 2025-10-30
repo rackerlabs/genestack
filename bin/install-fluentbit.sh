@@ -21,6 +21,9 @@ GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 SERVICE_BASE_OVERRIDES="${SERVICE_BASE_OVERRIDES:-$GENESTACK_BASE_DIR/base-helm-configs/$SERVICE_NAME}"
 SERVICE_CUSTOM_OVERRIDES="${SERVICE_CUSTOM_OVERRIDES:-$GENESTACK_OVERRIDES_DIR/helm-configs/$SERVICE_NAME}"
 
+# Define the Global Overrides directory
+GLOBAL_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/global_overrides"
+
 # Read the desired chart version from VERSION_FILE
 VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
 
@@ -30,7 +33,7 @@ if [ ! -f "$VERSION_FILE" ]; then
 fi
 
 # Extract version dynamically using the SERVICE_NAME variable
-SERVICE_VERSION=$(grep "${SERVICE_NAME}:" "$VERSION_FILE" | sed "s/.*${SERVICE_NAME}: *//")
+SERVICE_VERSION=$(grep "^[[:space:]]*${SERVICE_NAME}:" "$VERSION_FILE" | sed "s/.*${SERVICE_NAME}: *//")
 
 if [ -z "$SERVICE_VERSION" ]; then
     echo "Error: Could not extract version for '$SERVICE_NAME' from $VERSION_FILE" >&2
