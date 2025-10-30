@@ -21,6 +21,9 @@ GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 SERVICE_BASE_OVERRIDES="${SERVICE_BASE_OVERRIDES:-$GENESTACK_BASE_DIR/base-helm-configs/$SERVICE_NAME}"
 SERVICE_CUSTOM_OVERRIDES="${SERVICE_CUSTOM_OVERRIDES:-$GENESTACK_OVERRIDES_DIR/helm-configs/$SERVICE_NAME}"
 
+# Define the Global Overrides directory
+GLOBAL_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/global_overrides"
+
 # Read the desired chart version from VERSION_FILE
 VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
 
@@ -30,7 +33,7 @@ if [ ! -f "$VERSION_FILE" ]; then
 fi
 
 # Extract version dynamically using the SERVICE_NAME variable
-SERVICE_VERSION=$(grep "${SERVICE_NAME}:" "$VERSION_FILE" | sed "s/.*${SERVICE_NAME}: *//")
+SERVICE_VERSION=$(grep "^[[:space:]]*${SERVICE_NAME}:" "$VERSION_FILE" | sed "s/.*${SERVICE_NAME}: *//")
 
 if [ -z "$SERVICE_VERSION" ]; then
     echo "Error: Could not extract version for '$SERVICE_NAME' from $VERSION_FILE" >&2
@@ -39,8 +42,8 @@ fi
 
 echo "Found version for $SERVICE_NAME: $SERVICE_VERSION"
 
-# Prepare an array to collect --values arguments
-values_args=()
+# Prepare an array to collect -f arguments
+overrides_args=()
 
 #  Include all YAML files from the BASE configuration directory
 if [[ -d "$SERVICE_BASE_OVERRIDES" ]]; then
@@ -49,7 +52,7 @@ if [[ -d "$SERVICE_BASE_OVERRIDES" ]]; then
     # Check that there is at least one match
     if [[ -e "$file" ]]; then
       echo " - $file"
-      values_args+=("--values" "$file")
+      overrides_args+=("-f" "$file")
     fi
   done
 else
@@ -62,7 +65,7 @@ if [[ -d "$SERVICE_CUSTOM_OVERRIDES" ]]; then
   for file in "$SERVICE_CUSTOM_OVERRIDES"/*.yaml; do
     if [[ -e "$file" ]]; then
       echo " - $file"
-      values_args+=("--values" "$file")
+      overrides_args+=("-f" "$file")
     fi
   done
 else
@@ -80,7 +83,7 @@ helm_command=(
     --create-namespace --namespace="$SERVICE_NAMESPACE" --timeout 10m
     --version "${SERVICE_VERSION}"
 
-    "${values_args[@]}"
+    "${overrides_args[@]}"
 
     # Post-renderer configuration
     --post-renderer "$GENESTACK_OVERRIDES_DIR/kustomize/kustomize.sh"

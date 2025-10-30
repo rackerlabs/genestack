@@ -1,8 +1,9 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: rook-ceph-tools
-  namespace: rook-ceph # namespace:cluster
+  namespace: rook-ceph  # namespace:cluster
   labels:
     app: rook-ceph-tools
 spec:
@@ -21,10 +22,10 @@ spec:
           image: quay.io/ceph/ceph:v18.2.1
           resources:
             limits:
-              memory: "1Gi"
+              memory: 1Gi
             requests:
-              cpu: "0.5"
-              memory: "512Mi"
+              cpu: '0.5'
+              memory: 512Mi
           command:
             - /bin/bash
             - -c
@@ -98,7 +99,8 @@ spec:
             runAsUser: 2016
             runAsGroup: 2016
             capabilities:
-              drop: ["ALL"]
+              drop:
+                - ALL
           env:
             - name: ROOK_CEPH_USERNAME
               valueFrom:
@@ -130,7 +132,7 @@ spec:
         - name: ceph-config
           emptyDir: {}
       tolerations:
-        - key: "node.kubernetes.io/unreachable"
-          operator: "Exists"
-          effect: "NoExecute"
+        - key: node.kubernetes.io/unreachable
+          operator: Exists
+          effect: NoExecute
           tolerationSeconds: 5

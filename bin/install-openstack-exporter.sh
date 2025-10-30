@@ -16,7 +16,7 @@ fi
 find_unused_port() {
     local port=49152
     while :; do
-        if ! kubectl get svc --all-namespaces -o jsonpath='{range .items[*]}{.spec.ports[*].port}{"\n"}{end}' | grep -q "^${port}$"; then
+        if ! kubectl get svc --all-namespaces -o jsonpath='{range .items[*]}{.spec.ports[*].port}{"\n"}{end}' | grep -q "${port}$"; then
             echo "$port"
             return 0
         fi

@@ -16,7 +16,7 @@ This directory stores Helm configuration overrides for individual services and g
 - **Structure**:
   - `/etc/genestack/helm-configs/global_overrides`: Contains YAML files with global Helm configuration overrides applied to all services. These settings are typically used to enforce consistent configurations across the deployment.
   - `/etc/genestack/helm-configs/<service_name>`: Each service (e.g., `keystone`, `nova`, `grafana`) has its own subdirectory containing service-specific override YAML files, such as `<service_name>-helm-overrides.yaml`. These files customize Helm chart settings for the respective service.
-- **Usage**: The installation scripts (e.g., `install-<service_name>.sh`) reference these YAML files using the `--values` flag in Helm commands to customize deployments.
+- **Usage**: The installation scripts (e.g., `install-<service_name>.sh`) reference these YAML files using the `-f` flag in Helm commands to customize deployments.
 
 #### `/etc/genestack/kustomize`
 

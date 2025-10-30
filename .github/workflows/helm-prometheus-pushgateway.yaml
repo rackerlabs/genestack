@@ -31,7 +31,7 @@ jobs:
           ${{ steps.helm.outputs.helm-path }} template prometheus-pushgateway prometheus-community/prometheus-pushgateway \
             --create-namespace \
             --namespace=prometheus \
-            -f ${{ github.workspace }}//base-helm-configs/prometheus-pushgateway/values.yaml \
+            -f ${{ github.workspace }}//base-helm-configs/prometheus-pushgateway/prometheus-pushgateway-helm-overrides.yaml \
             --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
             --post-renderer-args prometheus-pushgateway/${{ matrix.overlays }} > /tmp/rendered.yaml
       - name: Return helm Build

@@ -28,9 +28,10 @@ jobs:
         run: |
           ${{ steps.helm.outputs.helm-path }} repo add grafana https://grafana.github.io/helm-charts
           ${{ steps.helm.outputs.helm-path }} repo update
-          ${{ steps.helm.outputs.helm-path }} template --values ${{ github.workspace }}/base-helm-configs/loki/loki-helm-minio-overrides-example.yaml \
+          ${{ steps.helm.outputs.helm-path }} template -f ${{ github.workspace }}/base-helm-configs/loki/loki-helm-minio-overrides-example.yaml \
                                                        --set loki.useTestSchema=true \
                                                        --namespace grafana \
+                                                       --set loki.storage.bucketNames.chunks=chunky \
                                                         loki grafana/loki > /tmp/rendered.yaml
       - name: Return helm Build
         uses: actions/upload-artifact@v4
