@@ -38,3 +38,4 @@ charts:
   zaqar: 2025.2.0+2d37d445c
   prometheus-snmp-exporter: 9.8.1
   prometheus-rabbitmq-exporter: 1.13.0
+  prometheus-blackbox-exporter: 11.4.1
