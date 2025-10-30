@@ -24,6 +24,19 @@ The script will:
     The `create-skyline-secrets.sh` script requires that `/etc/genestack/kubesecrets.yaml` already exists. Run the `create-secrets.sh` script first if you haven't already.
 
 
+### Enable Federation (use Keystone public endpoint)
+
+If you plan to enable federation in Skyline, ensure the Keystone endpoint used for secrets is the public endpoint (not the internal cluster service).
+
+!!! note
+
+    Edit `/opt/genestack/bin/create-skyline-secrets.sh` and set the `keystone-endpoint` value to your public Keystone URL (for example, `https://keystone.example.com/v3`). Then run the script:
+
+    ``` shell
+    /opt/genestack/bin/create-skyline-secrets.sh
+    ```
+
+
 ### Manual Secret Generation (Alternative)
 
 Manual secret generation is only required if you haven't run the `create-skyline-secrets.sh` script located in `/opt/genestack/bin`.
