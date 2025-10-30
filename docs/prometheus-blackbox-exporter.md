@@ -8,7 +8,7 @@ The blackbox exporter ideally would be ran outside the cluster but can still pro
 
 
 ``` shell
-bin/install-prometheus-rabbitmq-exporter.sh
+bin/install-prometheus-blackbox-exporter.sh
 ```
 
 !!! success
