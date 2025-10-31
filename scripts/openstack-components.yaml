@@ -11,6 +11,7 @@ components:
   magnum: false
   octavia: false
   masakari: false
+  manila: false
   ceilometer: false
   gnocchi: false
   skyline: true
