@@ -41,3 +41,4 @@ charts:
   prometheus-mysql-exporter: 2.11.0
   prometheus-postgres-exporter: 7.3.0
   prometheus-pushgateway: 3.4.2
+  prometheus-blackbox-exporter: 11.4.1
