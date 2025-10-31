@@ -1,0 +1,15 @@
+---
+resources:
+  limits:
+    cpu: 200m
+    memory: 50Mi
+  requests:
+    cpu: 100m
+    memory: 30Mi
+
+nodeSelector:
+  openstack-control-plane: enabled
+
+serviceMonitor:
+  enabled: true
+  namespace: prometheus

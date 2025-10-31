@@ -6,12 +6,12 @@
 # shellcheck disable=SC2124,SC2145,SC2294
 
 # Service
-SERVICE_NAME="glance"
+SERVICE_NAME="prometheus-mysql-exporter"
 SERVICE_NAMESPACE="openstack"
 
 # Helm
-HELM_REPO_NAME="openstack-helm"
-HELM_REPO_URL="https://tarballs.opendev.org/openstack/openstack-helm"
+HELM_REPO_NAME="prometheus-community"
+HELM_REPO_URL="https://prometheus-community.github.io/helm-charts"
 
 # Base directories provided by the environment
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
@@ -20,7 +20,6 @@ GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 # Define service-specific override directories based on the framework
 SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME}"
 SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME}"
-GLOBAL_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR}/helm-configs/global_overrides"
 
 # Read the desired chart version from VERSION_FILE
 VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
@@ -44,6 +43,7 @@ echo "Found version for $SERVICE_NAME: $SERVICE_VERSION"
 values_args=()
 
 # Include all YAML files from the BASE configuration directory
+# NOTE: Files in this directory are included first.
 if [[ -d "$SERVICE_BASE_OVERRIDES" ]]; then
     echo "Including base overrides from directory: $SERVICE_BASE_OVERRIDES"
     for file in "$SERVICE_BASE_OVERRIDES"/*.yaml; do
@@ -57,20 +57,8 @@ else
     echo "Warning: Base override directory not found: $SERVICE_BASE_OVERRIDES"
 fi
 
-# Include all YAML files from the GLOBAL configuration directory
-if [[ -d "$GLOBAL_OVERRIDES_DIR" ]]; then
-    echo "Including overrides from global config directory:"
-    for file in "$GLOBAL_OVERRIDES_DIR"/*.yaml; do
-        if [[ -e "$file" ]]; then
-            echo " - $file"
-            values_args+=("--values" "$file")
-        fi
-    done
-else
-    echo "Warning: Global config directory not found: $GLOBAL_OVERRIDES_DIR"
-fi
-
 # Include all YAML files from the custom SERVICE configuration directory
+# NOTE: Files here have the highest precedence.
 if [[ -d "$SERVICE_CUSTOM_OVERRIDES" ]]; then
     echo "Including overrides from service config directory:"
     for file in "$SERVICE_CUSTOM_OVERRIDES"/*.yaml; do
@@ -90,16 +78,7 @@ helm repo add "$HELM_REPO_NAME" "$HELM_REPO_URL"
 helm repo update
 
 # Collect all --set arguments, executing commands and quoting safely
-set_args=(
-    --set "endpoints.identity.auth.admin.password=$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.identity.auth.glance.password=$(kubectl --namespace openstack get secret glance-admin -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.oslo_db.auth.admin.password=$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)"
-    --set "endpoints.oslo_db.auth.glance.password=$(kubectl --namespace openstack get secret glance-db-password -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.oslo_cache.auth.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
-    --set "conf.glance.keystone_authtoken.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
-    --set "endpoints.oslo_messaging.auth.admin.password=$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.oslo_messaging.auth.glance.password=$(kubectl --namespace openstack get secret glance-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)"
-)
+set_args=()
 
 
 helm_command=(

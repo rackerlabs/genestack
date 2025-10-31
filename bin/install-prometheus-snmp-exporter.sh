@@ -30,7 +30,7 @@ if [ ! -f "$VERSION_FILE" ]; then
 fi
 
 # Extract version dynamically using the SERVICE_NAME variable
-SERVICE_VERSION=$(grep "${SERVICE_NAME}:" "$VERSION_FILE" | sed "s/.*${SERVICE_NAME}: *//")
+SERVICE_VERSION=$(grep "^[[:space:]]*${SERVICE_NAME}:" "$VERSION_FILE" | sed "s/.*${SERVICE_NAME}: *//")
 
 if [ -z "$SERVICE_VERSION" ]; then
     echo "Error: Could not extract version for '$SERVICE_NAME' from $VERSION_FILE" >&2
