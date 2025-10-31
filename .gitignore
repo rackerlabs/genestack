@@ -129,3 +129,6 @@ base-kustomize/**/charts
 
 # mkdocs
 site/
+
+# skyline secrets
+/etc/genestack/skylinesecrets.yaml
