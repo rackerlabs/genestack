@@ -1,0 +1,314 @@
+---
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+images:
+  tags:
+    db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
+    image_repo_sync: docker.io/docker:17.07.0
+    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    manila_api: ghcr.io/rackerlabs/genestack-images/manila:2024.1-1758649489
+    manila_data: ghcr.io/rackerlabs/genestack-images/manila:2024.1-1758649489
+    manila_db_sync: ghcr.io/rackerlabs/genestack-images/manila:2024.1-1758649489
+    manila_scheduler: ghcr.io/rackerlabs/genestack-images/manila:2024.1-1758649489
+    manila_share: ghcr.io/rackerlabs/genestack-images/manila:2024.1-1758649489
+    manila_processor: ghcr.io/rackerlabs/genestack-images/manila:2024.1-1758649489
+    manila_storage_init: ghcr.io/rackerlabs/genestack-images/manila:2024.1-1758649489
+    rabbit_init: docker.io/rabbitmq:3.13-management
+  pull_policy: "IfNotPresent"
+
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
+pod:
+  replicas:
+    api: 1
+    data: 1
+    scheduler: 1
+    share: 1
+  lifecycle:
+    upgrades:
+      deployments:
+        rolling_update:
+          max_unavailable: 20%
+  resources:
+    enabled: true
+    api:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    data:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    scheduler:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    share:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    jobs:
+      ks_endpoints:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      ks_service:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      ks_user:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      tests:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+      image_repo_sync:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+
+endpoints:
+  fluentd:
+    namespace: fluentbit
+  oslo_db:
+    hosts:
+      default: mariadb-cluster-primary
+    host_fqdn_override:
+      default: mariadb-cluster-primary.openstack.svc.cluster.local
+  oslo_cache:
+    hosts:
+      default: memcached
+    host_fqdn_override:
+      default: memcached.openstack.svc.cluster.local
+  oslo_messaging:
+    hosts:
+      default: rabbitmq-nodes
+    host_fqdn_override:
+      default: rabbitmq.openstack.svc.cluster.local
+  share:
+    name: manila
+    hosts:
+      default: manila-api
+      public: manila
+    host_fqdn_override:
+      default: null
+    path:
+      default: '/v1'
+    scheme:
+      default: http
+      service: http
+    port:
+      api:
+        default: 8786
+        public: 80
+        service: 8786
+  sharev2:
+    name: manilav2
+    hosts:
+      default: manila-api
+      public: manila
+    host_fqdn_override:
+      default: null
+    path:
+      default: '/v2'
+    scheme:
+      default: http
+      service: http
+    port:
+      api:
+        default: 8786
+        public: 80
+        service: 8786
+
+dependencies:
+  static:
+    api:
+      jobs:
+        - manila-db-sync
+        - manila-ks-user
+        - manila-ks-endpoints
+    data:
+      jobs:
+        - manila-db-sync
+        - manila-ks-user
+        - manila-ks-endpoints
+    scheduler:
+      jobs:
+        - manila-db-sync
+        - manila-ks-user
+        - manila-ks-endpoints
+    share:
+      jobs:
+        - manila-db-sync
+        - manila-ks-user
+        - manila-ks-endpoints
+    db_sync:
+      jobs: []
+
+conf:
+  manila:
+    DEFAULT:
+      default_share_type: default
+      default_share_group_type: default
+      share_name_template: share-%s
+      rootwrap_config: /etc/manila/rootwrap.conf
+      api_paste_config: /etc/manila/api-paste.ini
+      enabled_share_backends: generic
+      enabled_share_protocols: NFS
+    keystone_authtoken:
+      auth_type: password
+      auth_version: v3
+      memcache_security_strategy: ENCRYPT
+      endpoint_type: internalURL
+      service_type: sharev2
+    neutron:
+      auth_type: password
+      auth_version: v3
+      memcache_security_strategy: ENCRYPT
+      endpoint_type: internalURL
+    nova:
+      auth_type: password
+      auth_version: v3
+      memcache_security_strategy: ENCRYPT
+      endpoint_type: internalURL
+    cinder:
+      auth_type: password
+      auth_version: v3
+      memcache_security_strategy: ENCRYPT
+      endpoint_type: internalURL
+    glance:
+      auth_type: password
+      auth_version: v3
+      memcache_security_strategy: ENCRYPT
+      endpoint_type: internalURL
+    database:
+      max_retries: -1
+    generic:
+      share_backend_name: GENERIC
+      share_driver: manila.share.drivers.generic.GenericShareDriver
+      driver_handles_share_servers: true
+      # manila-service-flavor
+      service_instance_flavor_id: 100
+      service_image_name: manila-service-image
+      service_instance_user: manila
+      service_instance_password: manila
+      # # Module path to the Virtual Interface (VIF) driver class. This option
+      # # is used only by drivers operating in
+      # # `driver_handles_share_servers=True` mode that provision OpenStack
+      # # compute instances as share servers. This option is only supported
+      # # with Neutron networking. Drivers provided in tree work with Linux
+      # # Bridge (manila.network.linux.interface.BridgeInterfaceDriver) and
+      # # OVS (manila.network.linux.interface.OVSInterfaceDriver). If the
+      # # manila-share service is running on a host that is connected to the
+      # # administrator network, a no-op driver
+      # # (manila.network.linux.interface.NoopInterfaceDriver) may be used.
+      # # (string value)
+      # interface_driver: manila.network.linux.interface.OVSInterfaceDriver
+    oslo_policy:
+      policy_file: /etc/manila/policy.yaml
+    oslo_concurrency:
+      lock_path: /var/lib/manila/tmp
+    oslo_messaging_notifications:
+      driver: messagingv2
+    oslo_middleware:
+      enable_proxy_headers_parsing: true
+    oslo_messaging_rabbit:
+      rabbit_ha_queues: true
+  manila_api_uwsgi:
+    uwsgi:
+      add-header: "Connection: close"
+      buffer-size: 65535
+      die-on-term: true
+      enable-threads: true
+      exit-on-reload: false
+      hook-master-start: unix_signal:15 gracefully_kill_them_all
+      lazy-apps: true
+      log-x-forwarded-for: true
+      master: true
+      procname-prefix-spaced: "manila-api:"
+      route-user-agent: '^kube-probe.* donotlog:'
+      thunder-lock: true
+      worker-reload-mercy: 80
+      wsgi-file: /var/lib/openstack/bin/manila-wsgi
+  logging:
+    logger_root:
+      level: WARNING
+      handlers: 'null'
+    logger_manila:
+      level: INFO
+      handlers:
+        - stdout
+      qualname: manila
+
+manifests:
+  certificates: false
+  configmap_bin: true
+  configmap_etc: true
+  deployment_api: true
+  deployment_scheduler: true
+  deployment_data: true
+  deployment_share: false
+  ingress_api: false
+  job_bootstrap: false
+  job_db_init: false
+  job_db_sync: true
+  job_db_drop: false
+  job_image_repo_sync: true
+  job_rabbit_init: false
+  job_ks_endpoints: true
+  job_ks_service: true
+  job_ks_user: true
+  pdb_api: true
+  pod_test: false
+  secret_db: true
+  network_policy: false
+  secret_ingress_tls: false
+  secret_keystone: true
+  secret_rabbitmq: true
+  secret_registry: true
+  service_ingress_api: false
+  service_api: true
+...
