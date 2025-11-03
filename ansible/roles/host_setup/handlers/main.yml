@@ -71,3 +71,8 @@
     name: "lldpd.service"
     state: "restarted"
     enabled: true
+
+- name: Reload udev rules
+  ansible.builtin.shell: >-
+    udevadm control --reload-rules && udevadm trigger
+  failed_when: false
