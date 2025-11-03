@@ -149,6 +149,11 @@ if ! kubectl create -f /etc/genestack/kubesecrets.yaml; then
   echo "Secrets already created"
 fi
 
+/opt/genestack/bin/create-skyline-secrets.sh
+if ! kubectl create -f /etc/genestack/skylinesecrets.yaml; then
+  echo "Skyline secrets already created"
+fi
+
 # Deploy mariadb
 /opt/genestack/bin/install-mariadb-operator.sh
 echo "Waiting for the mariadb-operator-webhook to be available"
