@@ -5,6 +5,7 @@ components:
   barbican: false
   blazar: false
   cinder: true
+  freezer: false
   placement: true
   nova: true
   neutron: true
