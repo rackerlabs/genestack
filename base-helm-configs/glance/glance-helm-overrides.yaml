@@ -125,6 +125,8 @@ conf:
     "service_api": "role:service"
     "publicize_image": "role:glance_admin"
     "communitize_image": "role:glance_admin"
+    "download_image": "role:admin or role:member"
+    "get_image": "role:admin or role:member or role:reader"
   logging:
     logger_root:
       level: INFO
