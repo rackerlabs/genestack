@@ -129,7 +129,7 @@ conf:
     cache:
       backend: dogpile.cache.memory
     drivers:message_store:redis:
-      uri: redis://redis-replication-headless.redis-systems.svc.cluster.local:6379
+      uri: redis://redis-replication-master.redis-systems.svc.cluster.local:6379
     drivers:transport:wsgi:
       bind: 0.0.0.0
       port: 8888
