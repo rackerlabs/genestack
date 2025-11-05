@@ -35,7 +35,7 @@
 
 - name: Get the image for amphora
   get_url:
-    url: https://tarballs.opendev.org/openstack/octavia/test-images/test-only-amphora-x64-haproxy-ubuntu-{{ amphora_image_version }}.qcow2
+    url: "{{ amphora_image_url }}"
     dest: /tmp/test-only-amphora-x64-haproxy-ubuntu-{{ amphora_image_version }}.qcow2
   register: download_amphora_image
   until: download_amphora_image is success
