@@ -42,7 +42,7 @@ fi
 echo "Found version for $SERVICE_NAME: $SERVICE_VERSION"
 
 # Prepare an array to collect --values arguments
-values_args=()
+overrides_args=()
 
 # --- Include all YAML files from the BASE configuration directory ---
 if [[ -d "$SERVICE_BASE_OVERRIDES" ]]; then
@@ -52,8 +52,8 @@ if [[ -d "$SERVICE_BASE_OVERRIDES" ]]; then
     for file in "$SERVICE_BASE_OVERRIDES"/*.yaml; do
         # Check that there is at least one match
         if [[ -e "$file" ]]; then
-            echo " - $file"
-            values_args+=("--values" "$file")
+            echo " -f $file"
+            overrides_args+=("--values" "$file")
         fi
     done
 else
@@ -65,8 +65,8 @@ if [[ -d "$GLOBAL_OVERRIDES_DIR" ]]; then
     echo "Including overrides from global config directory:"
     for file in "$GLOBAL_OVERRIDES_DIR"/*.yaml; do
         if [[ -e "$file" ]]; then
-            echo " - $file"
-            values_args+=("--values" "$file")
+            echo " -f $file"
+            overrides_args+=("--values" "$file")
         fi
     done
 else
@@ -78,8 +78,8 @@ if [[ -d "$SERVICE_CUSTOM_OVERRIDES" ]]; then
     echo "Including overrides from service config directory:"
     for file in "$SERVICE_CUSTOM_OVERRIDES"/*.yaml; do
         if [[ -e "$file" ]]; then
-            echo " - $file"
-            values_args+=("--values" "$file")
+            echo " -f $file"
+            overrides_args+=("-f" "$file")
         fi
     done
 else
@@ -114,7 +114,7 @@ helm_command=(
     --timeout 120m
     --create-namespace
 
-    "${values_args[@]}"
+    "${overrides_args[@]}"
     "${set_args[@]}"
 
     # Post-renderer configuration
