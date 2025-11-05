@@ -57,6 +57,7 @@ EOF
     prompt_component "magnum" "Magnum (Container Orchestration)"
     prompt_component "octavia" "Octavia (Load Balancer)"
     prompt_component "masakari" "Masakari (Instance High Availability)"
+    prompt_component "manila" "Manila (Shared Filesystem)"
     prompt_component "ceilometer" "Ceilometer (Telemetry)"
     prompt_component "gnocchi" "Gnocchi (Time Series Database)"
     prompt_component "skyline" "Skyline (Dashboard)"
@@ -76,6 +77,7 @@ is_component_enabled "neutron" && runTrackErator /opt/genestack/bin/install-neut
 is_component_enabled "magnum" && runTrackErator /opt/genestack/bin/install-magnum.sh
 is_component_enabled "octavia" && runTrackErator /opt/genestack/bin/install-octavia.sh
 is_component_enabled "masakari" && runTrackErator /opt/genestack/bin/install-masakari.sh
+is_component_enabled "manila" && runTrackErator /opt/genestack/bin/install-manila.sh
 is_component_enabled "ceilometer" && runTrackErator /opt/genestack/bin/install-ceilometer.sh
 is_component_enabled "gnocchi" && runTrackErator /opt/genestack/bin/install-gnocchi.sh
 
