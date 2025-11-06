@@ -40,6 +40,7 @@ components:
   magnum: false
   octavia: false
   masakari: false
+  manila: false
   ceilometer: false
   gnocchi: false
   skyline: true
@@ -782,6 +783,21 @@ conf:
 EOF
 fi
 
+if [ ! -f "/etc/genestack/helm-configs/manila/manila-helm-overrides.yaml" ]; then
+cat > /etc/genestack/helm-configs/manila/manila-helm-overrides.yaml <<EOF
+---
+pod:
+  resources:
+    enabled: false
+bootstrap:
+  enabled: false
+conf:
+  manila:
+    oslo_messaging_notifications:
+      driver: noop
+EOF
+fi
+
 if [ ! -f "/etc/genestack/helm-configs/cloudkitty/cloudkitty-helm-overrides.yaml" ]; then
 cat > /etc/genestack/helm-configs/cloudkitty/cloudkitty-helm-overrides.yaml <<EOF
 ---
@@ -981,6 +997,8 @@ endpoints:
         region_name: *region
       masakari:
         region_name: *region
+      manila:
+        region_name: *region
       neutron:
         region_name: *region
       nova:
@@ -1050,6 +1068,26 @@ endpoints:
       public:
         tls: {}
         host: placement.${GATEWAY_DOMAIN}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  share:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: manila.${GATEWAY_DOMAIN}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  sharev2:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: manila.${GATEWAY_DOMAIN}
     port:
       api:
         public: 443

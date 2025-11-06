@@ -1,0 +1,16 @@
+## Enable pod security policy
+---
+pspEnabled: true
+
+nodeSelector:
+  openstack-control-plane: enabled
+
+config:
+  modules:
+    http_2xx:
+      http:
+        valid_status_codes:
+          - 200
+          - 202
+          - 204
+          - 300

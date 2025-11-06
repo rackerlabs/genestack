@@ -23,6 +23,7 @@ charts:
   magnum: 2024.2.157+13651f45-628a320c
   mariadb-operator: 0.38.1
   masakari: 2024.2.17+13651f45-628a320c
+  manila: 2025.1.3+e6801dcd0
   memcached: 8.1.1
   metallb: v0.15.2
   neutron: 2024.2.529+13651f45-628a320c
@@ -41,3 +42,4 @@ charts:
   prometheus-mysql-exporter: 2.11.0
   prometheus-postgres-exporter: 7.3.0
   prometheus-pushgateway: 3.4.2
+  prometheus-blackbox-exporter: 11.4.1

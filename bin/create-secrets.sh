@@ -71,9 +71,6 @@ neutron_db_password=$(generate_password 32)
 neutron_admin_password=$(generate_password 32)
 horizon_secret_key=$(generate_password 64)
 horizon_db_password=$(generate_password 32)
-skyline_service_password=$(generate_password 32)
-skyline_db_password=$(generate_password 32)
-skyline_secret_key_password=$(generate_password 32)
 octavia_rabbitmq_password=$(generate_password 64)
 octavia_db_password=$(generate_password 32)
 octavia_admin_password=$(generate_password 32)
@@ -87,6 +84,11 @@ magnum_admin_password=$(generate_password 32)
 masakari_rabbitmq_password=$(generate_password 64)
 masakari_db_password=$(generate_password 32)
 masakari_admin_password=$(generate_password 32)
+manila_rabbitmq_password=$(generate_password 64)
+manila_db_password=$(generate_password 32)
+manila_admin_password=$(generate_password 32)
+manila_ssh_public_key=$(ssh-keygen -qt ed25519 -N '' -C "manila_ssh" -f manila_ssh_key && cat manila_ssh_key.pub)
+manila_ssh_private_key=$(cat manila_ssh_key)
 postgresql_identity_admin_password=$(generate_password 32)
 postgresql_db_admin_password=$(generate_password 32)
 postgresql_db_exporter_password=$(generate_password 32)
@@ -457,31 +459,6 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: skyline-apiserver-secrets
-  namespace: openstack
-type: Opaque
-data:
-  service-username: $(echo -n "skyline" | base64)
-  service-password: $(echo -n $skyline_service_password | base64 -w0)
-  service-domain: $(echo -n "service" | base64)
-  service-project: $(echo -n "service" | base64)
-  service-project-domain: $(echo -n "service" | base64)
-  db-endpoint: $(echo -n "mariadb-cluster-primary.openstack.svc.cluster.local" | base64 -w0)
-  db-name: $(echo -n "skyline" | base64)
-  db-username: $(echo -n "skyline" | base64)
-  db-password: $(echo -n $skyline_db_password | base64 -w0)
-  secret-key: $(echo -n $skyline_secret_key_password | base64 -w0)
-  keystone-endpoint: $(echo -n "http://keystone-api.openstack.svc.cluster.local:5000/v3" | base64 -w0)
-  keystone-username: $(echo -n "skyline" | base64)
-  default-region: $(echo -n "$region" | base64)
-  prometheus_basic_auth_password: $(echo -n "" | base64)
-  prometheus_basic_auth_user: $(echo -n "" | base64)
-  prometheus_enable_basic_auth: $(echo -n "false" | base64)
-  prometheus_endpoint: $(echo -n "http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090" | base64 -w0)
----
-apiVersion: v1
-kind: Secret
-metadata:
   name: octavia-rabbitmq-password
   namespace: openstack
 type: Opaque
@@ -599,6 +576,44 @@ metadata:
 type: Opaque
 data:
   password: $(echo -n $masakari_admin_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: manila-rabbitmq-password
+  namespace: openstack
+type: Opaque
+data:
+  username: $(echo -n "manila" | base64)
+  password: $(echo -n $manila_rabbitmq_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: manila-db-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $manila_db_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: manila-admin
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $manila_admin_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: manila-service-keypair
+  namespace: openstack
+type: Opaque
+data:
+  public_key: $(echo -n $manila_ssh_public_key | base64 -w0)
+  private_key: $(echo -n "$manila_ssh_private_key" | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret
@@ -880,6 +895,18 @@ data:
   password: $(echo -n $zaqar_keystone_test_password | base64 -w0)
 EOF
 
+# Check if skylinesecrets.yaml exists and append it
+SKYLINE_SECRETS_FILE="/etc/genestack/skylinesecrets.yaml"
+if [[ -f ${SKYLINE_SECRETS_FILE} ]]; then
+    echo "Found existing ${SKYLINE_SECRETS_FILE}, appending skyline secrets..."
+    cat ${SKYLINE_SECRETS_FILE} >> ${OUTPUT_FILE}
+    echo "✓ Skyline secrets appended from ${SKYLINE_SECRETS_FILE}"
+else
+    echo "Note: ${SKYLINE_SECRETS_FILE} not found. Run create-skyline-secrets.sh to add skyline secrets."
+fi
+
 rm nova_ssh_key nova_ssh_key.pub
+rm manila_ssh_key manila_ssh_key.pub
 chmod 0640 ${OUTPUT_FILE}
-echo "Secrets YAML file created as ${OUTPUT_FILE}"
+echo ""
+echo "✓ Secrets YAML file created as ${OUTPUT_FILE}"
