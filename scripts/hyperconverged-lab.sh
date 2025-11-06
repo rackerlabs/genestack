@@ -43,6 +43,7 @@ components:
   ceilometer: false
   gnocchi: false
   skyline: true
+  zaqar: false
 "
 echo -e "$OS_CONFIG" > $PWD/openstack-components.yaml
 
@@ -806,6 +807,23 @@ conf:
 EOF
 fi
 
+if [ ! -f "/etc/genestack/helm-configs/zaqar/zaqar-helm-overrides.yaml" ]; then
+cat > /etc/genestack/helm-configs/zaqar/zaqar-helm-overrides.yaml <<EOF
+---
+pod:
+  resources:
+    enabled: false
+
+conf:
+  zaqar_api_uwsgi:
+    uwsgi:
+      processes: 1
+  zaqar:
+    oslo_messaging_notifications:
+      driver: noop
+EOF
+fi
+
 # This makes the services available from outside (thanks @busterswt for figuring this out)
 if [ ! -f "/etc/genestack/helm-configs/global_overrides/endpoints.yaml" ]; then
 cat > /etc/genestack/helm-configs/global_overrides/endpoints.yaml <<EOF
@@ -1000,6 +1018,8 @@ endpoints:
         region_name: *region
       freezer:
         region_name: *region
+      zaqar:
+        region_name: *region
     host_fqdn_override:
       public:
         tls: {}
@@ -1109,6 +1129,16 @@ endpoints:
       public:
         tls: {}
         host: cinder.${GATEWAY_DOMAIN}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  messaging:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: zaqar.${GATEWAY_DOMAIN}
     port:
       api:
         public: 443
