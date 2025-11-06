@@ -321,6 +321,8 @@ nav:
               - Blazar Reservations Creation: openstack-blazar.md
           - Backup Restore:
               - Freezer Backup Restore Creation: openstack-freezer.md
+          - Message Queue:
+              - Zaqar Message Queue Creation: openstack-zaqar.md
 
       - Working locally With Docs: mkdocs-howto.md
   - Cloud Onboarding:
