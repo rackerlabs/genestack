@@ -1,8 +1,12 @@
 #!/bin/bash
 # shellcheck disable=SC2124,SC2145,SC2294
 
+# Base directories provided by the environment
+GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
+GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
+
 # Read mariadb-operator version from helm-chart-versions.yaml
-VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
+VERSION_FILE="${GENESTACK_OVERRIDES_DIR}/helm-chart-versions.yaml"
 if [ ! -f "$VERSION_FILE" ]; then
     echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE"
     exit 1

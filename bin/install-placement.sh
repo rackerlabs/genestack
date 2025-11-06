@@ -25,7 +25,7 @@ GLOBAL_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR}/helm-configs/global_overrides"
 
 # Read the desired chart version from VERSION_FILE
 # NOTE: Ensure this file exists and contains an entry for SERVICE_NAME.
-VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
+VERSION_FILE="${GENESTACK_OVERRIDES_DIR}/helm-chart-versions.yaml"
 
 if [ ! -f "$VERSION_FILE" ]; then
     echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE" >&2

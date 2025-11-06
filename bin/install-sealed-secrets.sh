@@ -7,7 +7,7 @@ TARGET=${1:-base}
 CONFIG_DIR="/etc/genestack/helm-configs/sealed-secrets"
 
 # Read sealed-secrets version from helm-chart-versions.yaml
-VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
+VERSION_FILE="${GENESTACK_OVERRIDES_DIR}/helm-chart-versions.yaml"
 if [ ! -f "$VERSION_FILE" ]; then
     echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE"
     exit 1

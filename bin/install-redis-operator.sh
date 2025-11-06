@@ -22,7 +22,7 @@ SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/redis-operator-r
 SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/redis-operator-replication"
 
 # Read the desired chart version from VERSION_FILE
-VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
+VERSION_FILE="${GENESTACK_OVERRIDES_DIR}/helm-chart-versions.yaml"
 
 # Read the desired chart version from VERSION_FILE
 if [ ! -f "$VERSION_FILE" ]; then

@@ -25,7 +25,7 @@ SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME
 GENESTACK_PROMETHEUS_RULES_DIR="${SERVICE_BASE_OVERRIDES}/rules"
 
 # Read the desired chart version from VERSION_FILE
-VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
+VERSION_FILE="${GENESTACK_OVERRIDES_DIR}/helm-chart-versions.yaml"
 
 if [ ! -f "$VERSION_FILE" ]; then
     echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE" >&2
