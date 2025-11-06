@@ -31,7 +31,7 @@ jobs:
           ${{ steps.helm.outputs.helm-path }} template prometheus prometheus-community/prometheus-postgres-exporter \
             --create-namespace \
             --namespace=prometheus \
-            -f ${{ github.workspace }}//base-helm-configs/prometheus-postgres-exporter/values.yaml \
+            -f ${{ github.workspace }}//base-helm-configs/prometheus-postgres-exporter/prometheus-postgres-exporter-helm-overrides.yaml \
             --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
             --post-renderer-args prometheus-postgres-exporter/${{ matrix.overlays }} > /tmp/rendered.yaml
       - name: Return helm Build

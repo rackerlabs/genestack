@@ -5,7 +5,7 @@ charts:
   ceilometer: 2024.2.115+13651f45-628a320c
   cinder: 2024.2.409+13651f45-628a320c
   cloudkitty: 2025.1.2+ebb1488dc
-  envoy: v1.5.3
+  envoyproxy-gateway: v1.5.3
   fluentbit: 2025.1.1+95bf0bf6e
   freezer: 2025.1.2+cdd5c6c55
   glance: 2024.2.396+13651f45-628a320c
@@ -15,7 +15,7 @@ charts:
   horizon: 2024.2.264+13651f45-628a320c
   ironic: 2024.2.121+13651f45-628a320c
   keystone: 2024.2.386+13651f45-628a320c
-  kube-event-exporter: 3.6.3
+  kubernetes-event-exporter: 3.6.3
   kube-ovn: v1.14.11
   libvirt: 2024.2.94+912f85d38
   loki: 6.43.0
@@ -39,4 +39,7 @@ charts:
   zaqar: 2025.2.0+2d37d445c
   prometheus-snmp-exporter: 9.8.1
   prometheus-rabbitmq-exporter: 1.13.0
+  prometheus-mysql-exporter: 2.11.0
+  prometheus-postgres-exporter: 7.3.0
+  prometheus-pushgateway: 3.4.2
   prometheus-blackbox-exporter: 11.4.1

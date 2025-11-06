@@ -1,47 +1,112 @@
 #!/bin/bash
+# Description: Fetches the version for SERVICE_NAME from the specified
+# YAML file and executes a helm upgrade/install command with dynamic values files.
+
+# Disable SC2124 (unused array), SC2145 (array expansion issue), SC2294 (eval)
 # shellcheck disable=SC2124,SC2145,SC2294
-# Directory to check for YAML files
-CONFIG_DIR="/etc/genestack/helm-configs/postgres-operator"
 
-# Read postgres-operator version from helm-chart-versions.yaml
+# Service
+SERVICE_NAME="postgres-operator"
+SERVICE_NAMESPACE="postgres-system"
+
+# Helm
+HELM_REPO_NAME="postgres-operator-charts"
+HELM_REPO_URL="https://opensource.zalando.com/postgres-operator/charts/postgres-operator"
+
+# Base directories provided by the environment
+# NOTE: These are framework-specific defaults; adjust if your environment uses different paths.
+GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
+GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
+
+# Define service-specific override directories based on the framework
+SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME}"
+SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME}"
+
+# Read the desired chart version from VERSION_FILE
+# NOTE: Ensure this file exists and contains an entry for SERVICE_NAME.
 VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
+
 if [ ! -f "$VERSION_FILE" ]; then
-    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE"
+    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE" >&2
     exit 1
 fi
 
-# Extract postgres-operator version using grep and sed
-POSTGRES_OPERATOR_VERSION=$(grep 'postgres-operator:' "$VERSION_FILE" | sed 's/.*postgres-operator: *//')
+# Extract version dynamically using the SERVICE_NAME variable
+SERVICE_VERSION=$(grep "^[[:space:]]*${SERVICE_NAME}:" "$VERSION_FILE" | sed "s/.*${SERVICE_NAME}: *//")
 
-if [ -z "$POSTGRES_OPERATOR_VERSION" ]; then
-    echo "Error: Could not extract postgres-operator version from $VERSION_FILE"
+if [ -z "$SERVICE_VERSION" ]; then
+    echo "Error: Could not extract version for '$SERVICE_NAME' from $VERSION_FILE" >&2
     exit 1
 fi
 
-# Base helm command setup
-HELM_CMD="helm upgrade --install postgres-operator postgres-operator-charts/postgres-operator \
-  --version ${POSTGRES_OPERATOR_VERSION} \
-  --namespace=postgres-system \
-  --create-namespace \
-  --timeout 120m"
+echo "Found version for $SERVICE_NAME: $SERVICE_VERSION"
 
-# Add the base overrides file
-HELM_CMD+=" -f /opt/genestack/base-helm-configs/postgres-operator/postgres-operator-helm-overrides.yaml"
+# Prepare an array to collect -f arguments
+overrides_args=()
 
-# Check if YAML files exist in the specified directory
-if compgen -G "${CONFIG_DIR}/*.yaml" > /dev/null; then
-    # Append all YAML files from the directory to the helm command
-    for yaml_file in "${CONFIG_DIR}"/*.yaml; do
-        HELM_CMD+=" -f ${yaml_file}"
+# Include all YAML files from the BASE configuration directory
+# NOTE: Files in this directory are included first.
+if [[ -d "$SERVICE_BASE_OVERRIDES" ]]; then
+    echo "Including base overrides from directory: $SERVICE_BASE_OVERRIDES"
+    for file in "$SERVICE_BASE_OVERRIDES"/*.yaml; do
+        # Check that there is at least one match
+        if [[ -e "$file" ]]; then
+            echo " - $file"
+            overrides_args+=("-f" "$file")
+        fi
     done
+else
+    echo "Warning: Base override directory not found: $SERVICE_BASE_OVERRIDES"
 fi
 
-HELM_CMD+=" $@"
+# Include all YAML files from the custom SERVICE configuration directory
+# NOTE: Files here have the highest precedence.
+if [[ -d "$SERVICE_CUSTOM_OVERRIDES" ]]; then
+    echo "Including overrides from service config directory:"
+    for file in "$SERVICE_CUSTOM_OVERRIDES"/*.yaml; do
+        if [[ -e "$file" ]]; then
+            echo " - $file"
+            overrides_args+=("-f" "$file")
+        fi
+    done
+else
+    echo "Warning: Service config directory not found: $SERVICE_CUSTOM_OVERRIDES"
+fi
 
-helm repo add postgres-operator-charts https://opensource.zalando.com/postgres-operator/charts/postgres-operator
+echo
+
+# --- Helm Repository and Execution ---
+helm repo add "$HELM_REPO_NAME" "$HELM_REPO_URL"
 helm repo update
 
-# Run the helm command
-echo "Executing Helm command:"
-echo "${HELM_CMD}"
-eval "${HELM_CMD}"
+# Collect all --set arguments, executing commands and quoting safely
+# NOTE: This array contains OpenStack-specific secret retrievals and MUST be updated
+#       with the necessary --set arguments for your target SERVICE_NAME.
+#       This is empty for postgres-operator.
+set_args=()
+
+
+helm_command=(
+    helm upgrade --install "$SERVICE_NAME" "$HELM_REPO_NAME/$SERVICE_NAME"
+    --version "${SERVICE_VERSION}"
+    --namespace="$SERVICE_NAMESPACE"
+    --timeout 120m
+    --create-namespace
+
+    "${overrides_args[@]}"
+    "${set_args[@]}"
+
+    # Post-renderer configuration
+    # NOTE: Update the path and args if your service uses a different kustomization overlay.
+    --post-renderer "$GENESTACK_OVERRIDES_DIR/kustomize/kustomize.sh"
+    --post-renderer-args "$SERVICE_NAME/overlay"
+
+    "$@"
+)
+
+echo "Executing Helm command (arguments are quoted safely):"
+printf '%q ' "${helm_command[@]}"
+echo
+
+# Execute the command directly from the array
+"${helm_command[@]}"

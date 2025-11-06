@@ -1,10 +1,15 @@
+---
+# This file is used to determine which services will be installed automatically
+# via the hyperconverged lab and in a future release the genestack-installed.
 components:
   keystone: true
   glance: true
   heat: false
   barbican: false
   blazar: false
+  cloudkitty: false
   cinder: true
+  freezer: false
   placement: true
   nova: true
   neutron: true
@@ -15,5 +20,3 @@ components:
   ceilometer: false
   gnocchi: false
   skyline: true
-  cloudkitty: false
-  zaqar: false

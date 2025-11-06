@@ -5,12 +5,15 @@ metadata:
   name: general
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"
+    helm.sh/hook: "pre-install"
+    helm.sh/hook-delete-policy: "before-hook-creation"
+    helm.sh/resource-policy: "keep"
 provisioner: driver.longhorn.io
 allowVolumeExpansion: true
 reclaimPolicy: Delete
 volumeBindingMode: Immediate
 parameters:
-  numberOfReplicas: "2"  # This example uses a single replica, but you can adjust this value as needed
+  numberOfReplicas: "2"
   dataLocality: "best-effort"
   staleReplicaTimeout: "2880"
   fromBackup: ""

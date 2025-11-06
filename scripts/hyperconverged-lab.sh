@@ -21,7 +21,8 @@ if ! yq --version 2> /dev/null; then
 fi
 
 
-# Default components file
+# Default openstack components file
+# this controls which openstack service will be installed
 ##...needed until default config is upstream...
 OS_CONFIG="
 components:
@@ -523,6 +524,14 @@ all:
             ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
+EOF
+fi
+
+# Service Configurqation Section
+#
+if [ ! -f "/etc/genestack/helm-configs/envoyproxy-gateway/envoyproxy-gateway-helm-overrides.yaml" ]; then
+cat > /etc/genestack/helm-configs/envoyproxy-gateway/envoyproxy-gateway-helm-overrides.yaml <<EOF
+---
 EOF
 fi
 

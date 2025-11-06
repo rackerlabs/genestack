@@ -1,44 +1,107 @@
 #!/bin/bash
+# Description: Fetches the version for SERVICE_NAME from the specified
+# YAML file and executes a helm upgrade/install command with dynamic values files.
+
+# Disable SC2124 (unused array), SC2145 (array expansion issue), SC2294 (eval)
 # shellcheck disable=SC2124,SC2145,SC2294
-GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
-SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/metallb"
-BASE_OVERRIDES="/opt/genestack/base-helm-configs/metallb/metallb-helm-overrides.yaml"
 
-# Read metallb version from helm-chart-versions.yaml
+# Service
+SERVICE_NAME="metallb"
+SERVICE_NAMESPACE="metallb-system"
+
+# Helm
+HELM_REPO_NAME="metallb"
+HELM_REPO_URL="https://metallb.github.io/metallb"
+
+# Base directories provided by the environment
+GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
+GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
+
+# Define service-specific override directories based on the framework
+SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME}"
+SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME}"
+GLOBAL_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR}/helm-configs/global_overrides"
+
+# Read the desired chart version from VERSION_FILE
 VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
+
 if [ ! -f "$VERSION_FILE" ]; then
-    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE"
+    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE" >&2
     exit 1
 fi
 
-# Extract metallb version using grep and sed
-METALLB_VERSION=$(grep 'metallb:' "$VERSION_FILE" | sed 's/.*metallb: *//')
+# Extract version dynamically using the SERVICE_NAME variable
+SERVICE_VERSION=$(grep "^[[:space:]]*${SERVICE_NAME}:" "$VERSION_FILE" | sed "s/.*${SERVICE_NAME}: *//")
 
-if [ -z "$METALLB_VERSION" ]; then
-    echo "Error: Could not extract metallb version from $VERSION_FILE"
+if [ -z "$SERVICE_VERSION" ]; then
+    echo "Error: Could not extract version for '$SERVICE_NAME' from $VERSION_FILE" >&2
     exit 1
 fi
 
-helm repo add metallb https://metallb.github.io/metallb
+echo "Found version for $SERVICE_NAME: $SERVICE_VERSION"
+
+# Prepare an array to collect -f arguments
+overrides_args=()
+
+# Include all YAML files from the BASE configuration directory
+if [[ -d "$SERVICE_BASE_OVERRIDES" ]]; then
+    echo "Including base overrides from directory: $SERVICE_BASE_OVERRIDES"
+    for file in "$SERVICE_BASE_OVERRIDES"/*.yaml; do
+        # Check that there is at least one match
+        if [[ -e "$file" ]]; then
+            echo " - $file"
+            overrides_args+=("-f" "$file")
+        fi
+    done
+else
+    echo "Warning: Base override directory not found: $SERVICE_BASE_OVERRIDES"
+fi
+
+# Include all YAML files from the custom SERVICE configuration directory
+if [[ -d "$SERVICE_CUSTOM_OVERRIDES" ]]; then
+    echo "Including overrides from service config directory:"
+    for file in "$SERVICE_CUSTOM_OVERRIDES"/*.yaml; do
+        if [[ -e "$file" ]]; then
+            echo " - $file"
+            overrides_args+=("-f" "$file")
+        fi
+    done
+else
+    echo "Warning: Service config directory not found: $SERVICE_CUSTOM_OVERRIDES"
+fi
+
+echo
+
+# --- Helm Repository and Execution ---
+helm repo add "$HELM_REPO_NAME" "$HELM_REPO_URL"
 helm repo update
 
-HELM_CMD="helm upgrade --install --namespace metallb-system metallb metallb/metallb --version ${METALLB_VERSION}"
+# Collect all --set arguments, executing commands and quoting safely
+set_args=()
 
-HELM_CMD+=" -f ${BASE_OVERRIDES}"
 
-for dir in "$GLOBAL_OVERRIDES_DIR" "$SERVICE_CONFIG_DIR"; do
-    if compgen -G "${dir}/*.yaml" > /dev/null; then
-        for yaml_file in "${dir}"/*.yaml; do
-            # Avoid re-adding the base override file if present in the service directory
-            if [ "${yaml_file}" != "${BASE_OVERRIDES}" ]; then
-                HELM_CMD+=" -f ${yaml_file}"
-            fi
-        done
-    fi
-done
+helm_command=(
+    helm upgrade --install "$SERVICE_NAME" "$HELM_REPO_NAME/$SERVICE_NAME"
+    --version "${SERVICE_VERSION}"
+    --namespace="$SERVICE_NAMESPACE"
+    --timeout 120m
+    --create-namespace
 
-HELM_CMD+=" $@"
+    "${overrides_args[@]}"
+    "${set_args[@]}"
 
-echo "Executing Helm command:"
-echo "${HELM_CMD}"
-eval "${HELM_CMD}"
+    # Post-renderer configuration
+    # NOTE: Metallb doesn't typically require a post-renderer, but we keep it
+    # for template compliance.
+    --post-renderer "$GENESTACK_OVERRIDES_DIR/kustomize/kustomize.sh"
+    --post-renderer-args "$SERVICE_NAME/overlay"
+
+    "$@"
+)
+
+echo "Executing Helm command (arguments are quoted safely):"
+printf '%q ' "${helm_command[@]}"
+echo
+
+# Execute the command directly from the array
+"${helm_command[@]}"

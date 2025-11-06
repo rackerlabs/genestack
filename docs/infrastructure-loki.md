@@ -15,7 +15,7 @@ ou will need to make changes depending on how you want to configure loki. Exampl
 
 ``` shell
 helm upgrade --install \
-             --values /etc/genestack/helm-configs/loki/loki-helm-overrides.yaml \
+             -f /etc/genestack/helm-configs/loki/loki-helm-overrides.yaml \
              loki grafana/loki \
              --create-namespace \
              --namespace grafana \

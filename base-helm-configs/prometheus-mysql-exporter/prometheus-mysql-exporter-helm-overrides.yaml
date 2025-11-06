@@ -1,0 +1,58 @@
+---
+serviceMonitor:
+  enabled: true
+  scrapeTimeout: 10s
+  namespace: openstack
+  multipleTarget:
+    enabled: true
+    targets:
+      - endpoint: mariadb-cluster-0.mariadb-cluster-internal
+        name: maria0
+      - endpoint: mariadb-cluster-1.mariadb-cluster-internal
+        name: maria1
+      - endpoint: mariadb-cluster-2.mariadb-cluster-internal
+        name: maria2
+    sharedSecret:
+      enabled: true
+      name: "mariadb-monitor"
+
+nodeSelector:
+  openstack-control-plane: enabled
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: node-role.kubernetes.io/worker
+              operator: In
+              values:
+                - worker
+
+collectors:
+  auto_increment.columns: true
+  binlog_size: true
+  engine_innodb_status: false
+  # engine_tokudb_status: false
+  global_status: true
+  info_schema.innodb_metrics: true
+  info_schema.processlist: true
+  info_schema.query_response_time: true
+  info_schema.tablestats: true
+  info_schema.userstats: true
+  perf_schema.eventswaits: true
+  perf_schema.file_events: true
+  perf_schema.indexiowaits: true
+  perf_schema.tableiowaits: true
+  perf_schema.tablelocks: true
+
+# mysql connection params which build the my.cnf config
+mysql:
+  host: ""
+  user: "monitoring"
+  existingConfigSecret:
+    name: "mariadb-monitor"
+    key: "my.cnf"
+  existingPasswordSecret:
+    name: "mariadb-monitoring"
+    key: "password"

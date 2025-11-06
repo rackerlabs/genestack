@@ -1,58 +1,117 @@
 #!/bin/bash
+# Description: Fetches the version for SERVICE_NAME from the specified
+# YAML file and executes a helm upgrade/install command with dynamic values files.
+
+# Disable SC2124 (unused array), SC2145 (array expansion issue), SC2294 (eval)
 # shellcheck disable=SC2124,SC2145,SC2294
-#
-# NOTE: This script uses OCI registry format instead of traditional helm repo
-# because Envoy Gateway only publishes charts to OCI registries (docker.io/envoyproxy).
-# Unlike other scripts that use 'helm repo add', OCI registries are accessed directly.
-#
-GLOBAL_OVERRIDES_DIR="/etc/genestack/helm-configs/global_overrides"
-SERVICE_CONFIG_DIR="/etc/genestack/helm-configs/envoyproxy-gateway"
-BASE_OVERRIDES="/opt/genestack/base-helm-configs/envoyproxy-gateway/envoy-gateway-helm-overrides.yaml"
 
-# Read envoy version from helm-chart-versions.yaml
+# Service
+SERVICE_NAME="envoyproxy-gateway"
+SERVICE_NAMESPACE="envoyproxy-gateway-system"
+
+# Helm
+# NOTE: Using OCI registry format for the chart location.
+HELM_REPO_NAME="oci://docker.io/envoyproxy"
+HELM_REPO_URL="gateway-helm"
+
+# Base directories provided by the environment
+GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
+GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
+
+# Define service-specific override directories based on the framework
+SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME}"
+SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME}"
+
+# Read the desired chart version from VERSION_FILE
 VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
+
 if [ ! -f "$VERSION_FILE" ]; then
-    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE"
+    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE" >&2
     exit 1
 fi
 
-# Extract envoy version using grep and sed
-ENVOY_VERSION=$(grep 'envoy:' "$VERSION_FILE" | sed 's/.*envoy: *//')
+# Extract version dynamically using the SERVICE_NAME variable
+SERVICE_VERSION=$(grep "^[[:space:]]*${SERVICE_NAME}:" "$VERSION_FILE" | sed "s/.*${SERVICE_NAME}: *//")
 
-if [ -z "$ENVOY_VERSION" ]; then
-    echo "Error: Could not extract envoy version from $VERSION_FILE"
+if [ -z "$SERVICE_VERSION" ]; then
+    echo "Error: Could not extract version for 'envoy' from $VERSION_FILE" >&2
     exit 1
 fi
 
-HELM_CMD="helm upgrade --install envoyproxy-gateway oci://docker.io/envoyproxy/gateway-helm \
-                       --version ${ENVOY_VERSION} \
-                       --namespace envoyproxy-gateway-system \
-                       --create-namespace"
+echo "Found version for $SERVICE_NAME: $SERVICE_VERSION"
 
-HELM_CMD+=" -f ${BASE_OVERRIDES}"
+# Prepare an array to collect -f arguments
+overrides_args=()
 
-for dir in "$GLOBAL_OVERRIDES_DIR" "$SERVICE_CONFIG_DIR"; do
-    if compgen -G "${dir}/*.yaml" > /dev/null; then
-        for yaml_file in "${dir}"/*.yaml; do
-            # Avoid re-adding the base override file if present in the service directory
-            if [ "${yaml_file}" != "${BASE_OVERRIDES}" ]; then
-                HELM_CMD+=" -f ${yaml_file}"
-            fi
-        done
-    fi
-done
+# Include all YAML files from the BASE configuration directory
+# NOTE: Files in this directory are included first.
+if [[ -d "$SERVICE_BASE_OVERRIDES" ]]; then
+    echo "Including base overrides from directory: $SERVICE_BASE_OVERRIDES"
+    for file in "$SERVICE_BASE_OVERRIDES"/*.yaml; do
+        # Check that there is at least one match
+        if [[ -e "$file" ]]; then
+            echo " - $file"
+            overrides_args+=("-f" "$file")
+        fi
+    done
+else
+    echo "Warning: Base override directory not found: $SERVICE_BASE_OVERRIDES"
+fi
 
-HELM_CMD+=" $@"
+# Include all YAML files from the custom SERVICE configuration directory
+# NOTE: Files here have the highest precedence.
+if [[ -d "$SERVICE_CUSTOM_OVERRIDES" ]]; then
+    echo "Including overrides from service config directory:"
+    for file in "$SERVICE_CUSTOM_OVERRIDES"/*.yaml; do
+        if [[ -e "$file" ]]; then
+            echo " - $file"
+            overrides_args+=("-f" "$file")
+        fi
+    done
+else
+    echo "Warning: Service config directory not found: $SERVICE_CUSTOM_OVERRIDES"
+fi
 
-echo "Executing Helm command:"
-echo "${HELM_CMD}"
-eval "${HELM_CMD}"
+echo
+
+# --- Helm Repository and Execution ---
+# Collect all --set arguments, executing commands and quoting safely
+set_args=()
+
+
+helm_command=(
+    helm upgrade --install "$SERVICE_NAME" "$HELM_REPO_NAME/$HELM_REPO_URL"
+    --version "${SERVICE_VERSION}"
+    --namespace="$SERVICE_NAMESPACE"
+    --timeout 120m
+    --create-namespace
+
+    "${overrides_args[@]}"
+    "${set_args[@]}"
+
+    # Post-renderer configuration
+    --post-renderer "$GENESTACK_OVERRIDES_DIR/kustomize/kustomize.sh"
+    --post-renderer-args "$SERVICE_NAME/overlay"
+
+    "$@"
+)
+
+echo "Executing Helm command (arguments are quoted safely):"
+printf '%q ' "${helm_command[@]}"
+echo
+
+# Execute the command directly from the array
+"${helm_command[@]}"
+
+## Install egctl Binary (Post-Installation)
 
 # Install egctl
 if [ ! -f "/usr/local/bin/egctl" ]; then
+    echo "Installing egctl CLI..."
     sudo mkdir -p /opt/egctl-install
     pushd /opt/egctl-install || exit 1
-        sudo wget "https://github.com/envoyproxy/gateway/releases/download/${ENVOY_VERSION}/egctl_${ENVOY_VERSION}_linux_amd64.tar.gz" -O egctl.tar.gz
+        # Use the extracted version for wget
+        sudo wget "https://github.com/envoyproxy/gateway/releases/download/${SERVICE_VERSION}/egctl_${SERVICE_VERSION}_linux_amd64.tar.gz" -O egctl.tar.gz
         sudo tar -xvf egctl.tar.gz
         sudo install -o root -g root -m 0755 bin/linux/amd64/egctl /usr/local/bin/egctl
         /usr/local/bin/egctl completion bash > /tmp/egctl.bash

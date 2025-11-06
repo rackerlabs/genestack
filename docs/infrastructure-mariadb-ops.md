@@ -47,10 +47,10 @@ mysqldump --host=$(kubectl -n openstack get service mariadb-cluster -o jsonpath=
 
 Run the `/opt/genestack/bin/backup-mariadb.sh` script to dump all databases as individual files in `~/backup/mariadb/$(date +%s)`.
 
-??? example "Database Backup Script: `/opt/genestack/bin/backup-mariadb.sh`"
+??? example "Database Backup Script: `/opt/genestack/scripts/backup-mariadb.sh`"
 
     ``` shell
-    --8<-- "bin/backup-mariadb.sh"
+    --8<-- "scripts/backup-mariadb.sh"
     ```
 
 ### Automated All Database Backups

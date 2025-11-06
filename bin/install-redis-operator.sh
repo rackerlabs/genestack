@@ -1,55 +1,123 @@
 #!/bin/bash
+# Description: Fetches the version for SERVICE_NAME from the specified
+# YAML file and executes a helm upgrade/install command with dynamic values files.
+
+# Disable SC2124 (unused array), SC2145 (array expansion issue), SC2294 (eval)
 # shellcheck disable=SC2124,SC2145,SC2294
 
-CONFIG_DIR="/etc/genestack/helm-configs/redis-operator-replication"
+# Service
+SERVICE_NAME="redis-replication"
+SERVICE_NAMESPACE="redis-systems"
 
-# Read redis-operator version from helm-chart-versions.yaml
+# Helm
+HELM_REPO_NAME="ot-helm"
+HELM_REPO_URL="https://ot-container-kit.github.io/helm-charts/"
+
+# Base directories provided by the environment
+GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
+GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
+
+# Define service-specific override directories based on the framework
+SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/redis-operator-replication"
+SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/redis-operator-replication"
+
+# Read the desired chart version from VERSION_FILE
 VERSION_FILE="/etc/genestack/helm-chart-versions.yaml"
+
+# Read the desired chart version from VERSION_FILE
 if [ ! -f "$VERSION_FILE" ]; then
-    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE"
+    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE" >&2
     exit 1
 fi
 
-# Extract redis-operator version using grep and sed
+# Extract Redis Operator version
 REDIS_OPERATOR_VERSION=$(grep 'redis-operator:' "$VERSION_FILE" | sed 's/.*redis-operator: *//')
-
 if [ -z "$REDIS_OPERATOR_VERSION" ]; then
-    echo "Error: Could not extract redis-operator version from $VERSION_FILE"
+    echo "Error: Could not extract version for 'redis-operator' from $VERSION_FILE" >&2
+    exit 1
+fi
+echo "Found version for redis-operator: $REDIS_OPERATOR_VERSION"
+
+# Extract Redis Replication (main service) version
+SERVICE_VERSION=$(grep 'redis-replication:' "$VERSION_FILE" | sed 's/.*redis-replication: *//')
+
+if [ -z "$SERVICE_VERSION" ]; then
+    echo "Error: Could not extract version for '$SERVICE_NAME' from $VERSION_FILE" >&2
     exit 1
 fi
 
-# Extract redis-replication version using grep and sed
-REDIS_REPLICATION_VERSION=$(grep 'redis-replication:' "$VERSION_FILE" | sed 's/.*redis-replication: *//')
+echo "Found version for $SERVICE_NAME: $SERVICE_VERSION"
 
-if [ -z "$REDIS_REPLICATION_VERSION" ]; then
-    echo "Error: Could not extract redis-replication version from $VERSION_FILE"
-    exit 1
-fi
-
-# Add the redis-operator helm repository
-helm repo add ot-helm https://ot-container-kit.github.io/helm-charts/
+# Helm Repository and Operator/CRD Installation
+helm repo add "$HELM_REPO_NAME" "$HELM_REPO_URL"
 helm repo update
 
-# Install the Operator and CRDs that match the version defined
-helm upgrade --install --namespace=redis-systems --create-namespace redis-operator ot-helm/redis-operator --version "${REDIS_OPERATOR_VERSION}"
+echo "Installing Redis Operator (Step 1 of 2)..."
+helm upgrade --install \
+    --namespace="$SERVICE_NAMESPACE" \
+    --create-namespace \
+    redis-operator \
+    "$HELM_REPO_NAME/redis-operator" \
+    --version "${REDIS_OPERATOR_VERSION}"
 
-# Helm command setup for Redis replication cluster
-HELM_CMD="helm upgrade --install redis-replication ot-helm/redis-replication --version ${REDIS_REPLICATION_VERSION} \
-    --namespace=redis-systems \
-    --timeout 120m \
-    -f /opt/genestack/base-helm-configs/redis-operator-replication/redis-replication-helm-overrides.yaml"
+# Prepare an array to collect -f arguments
+overrides_args=()
 
-# Check if YAML files exist in the specified directory
-if compgen -G "${CONFIG_DIR}/*.yaml" > /dev/null; then
-    # Add all YAML files from the directory to the helm command
-    for yaml_file in "${CONFIG_DIR}"/*.yaml; do
-        HELM_CMD+=" -f ${yaml_file}"
+# Include all YAML files from the BASE configuration directory
+# NOTE: Files in this directory are included first.
+if [[ -d "$SERVICE_BASE_OVERRIDES" ]]; then
+    echo "Including base overrides from directory: $SERVICE_BASE_OVERRIDES"
+    for file in "$SERVICE_BASE_OVERRIDES"/*.yaml; do
+        # Check that there is at least one match
+        if [[ -e "$file" ]]; then
+            echo " - $file"
+            overrides_args+=("-f" "$file")
+        fi
     done
+else
+    echo "Warning: Base override directory not found: $SERVICE_BASE_OVERRIDES"
 fi
 
-HELM_CMD+=" $@"
+# Include all YAML files from the custom SERVICE configuration directory
+# NOTE: Files here have the highest precedence.
+if [[ -d "$SERVICE_CUSTOM_OVERRIDES" ]]; then
+    echo "Including overrides from service config directory:"
+    for file in "$SERVICE_CUSTOM_OVERRIDES"/*.yaml; do
+        if [[ -e "$file" ]]; then
+            echo " - $file"
+            overrides_args+=("-f" "$file")
+        fi
+    done
+else
+    echo "Warning: Service config directory not found: $SERVICE_CUSTOM_OVERRIDES"
+fi
 
-# Run the helm command
-echo "Executing Helm command:"
-echo "${HELM_CMD}"
-eval "${HELM_CMD}"
+echo
+
+# Collect all --set arguments, executing commands and quoting safely
+set_args=()
+
+
+helm_command=(
+    helm upgrade --install "$SERVICE_NAME" "$HELM_REPO_NAME/$SERVICE_NAME"
+    --version "${SERVICE_VERSION}"
+    --namespace="$SERVICE_NAMESPACE"
+    --timeout 120m
+    --create-namespace
+
+    "${overrides_args[@]}"
+    "${set_args[@]}"
+
+    # Post-renderer configuration
+    --post-renderer "$GENESTACK_OVERRIDES_DIR/kustomize/kustomize.sh"
+    --post-renderer-args "$SERVICE_NAME/overlay"
+
+    "$@"
+)
+
+echo "Executing Helm command (arguments are quoted safely):"
+printf '%q ' "${helm_command[@]}"
+echo
+
+# Execute the command directly from the array
+"${helm_command[@]}"

@@ -135,7 +135,7 @@ kubectl apply -k /etc/genestack/kustomize/openstack/base
 
 # Deploy envoy
 /opt/genestack/bin/install-envoy-gateway.sh
-echo "Waiting for the envoy-gateway to be available"
+echo "Waiting for the envoyproxy-gateway to be available"
 kubectl -n envoyproxy-gateway-system wait --timeout=5m deployments.apps/envoy-gateway --for=condition=available
 /opt/genestack/bin/setup-envoy-gateway.sh -e ${ACME_EMAIL} -d ${GATEWAY_DOMAIN}
 
