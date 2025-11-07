@@ -25,7 +25,7 @@
 
     - name: Generate a list of required collections excluding user overridden collections
       set_fact:
-         galaxy_collections_list: "{{ galaxy_collections_list + [ item ] }}"
+        galaxy_collections_list: "{{ galaxy_collections_list + [ item ] }}"
       when:
         - item.name not in user_collection_names
       loop: "{{ required_collections.collections }}"
@@ -111,5 +111,5 @@
     local_collections_path: "{{ lookup('env', 'LOCAL_COLLECTIONS_PATH') | default('/opt/ansible-collections', true)}}"
     use_local_collections: "{{ lookup('env', 'USE_LOCAL_COLLECTIONS') | default('true' true) | bool }}"
     ansible_collections_install_path: "{{ lookup('env', 'ANSIBLE_COLLECTIONS_PATH') | default('~/.ansible/collections', true) }}"
-    #user_collections: "{{ lookup('file', user_collections_path, errors='ignore')|default([], true) | from_yaml }}"
-    #user_collections_path: "{{ lookup('env', 'OSA_CONFIG_DIR') | default('/etc/openstack_deploy', true) ~ '/' ~ (user_collections_file|default('')) }}"
+    # user_collections: "{{ lookup('file', user_collections_path, errors='ignore')|default([], true) | from_yaml }}"
+    # user_collections_path: "{{ lookup('env', 'OSA_CONFIG_DIR') | default('/etc/openstack_deploy', true) ~ '/' ~ (user_collections_file|default('')) }}"
