@@ -107,9 +107,9 @@
       collections: "{{ galaxy_collections_list }}"
     collections_file: "/opt/genestack/ansible-collection-requirements.yml"
     required_collections: "{{ lookup('file', collections_file) | from_yaml }}"
-    # Local collection configuration
-    local_collections_path: "{{ lookup('env', 'LOCAL_COLLECTIONS_PATH') | default('/opt/ansible-collections', true)}}"
-    use_local_collections: "{{ lookup('env', 'USE_LOCAL_COLLECTIONS') | default('true' true) | bool }}"
+    # Local collection configuration (optional, only used if the user sets them)
+    local_collections_path: "{{ lookup('env', 'LOCAL_COLLECTIONS_PATH') | default(omit) }}"
+    use_local_collections: "{{ lookup('env', 'USE_LOCAL_COLLECTIONS') | default(omit) | bool }}"
     ansible_collections_install_path: "{{ lookup('env', 'ANSIBLE_COLLECTIONS_PATH') | default('~/.ansible/collections', true) }}"
     # user_collections: "{{ lookup('file', user_collections_path, errors='ignore')|default([], true) | from_yaml }}"
     # user_collections_path: "{{ lookup('env', 'OSA_CONFIG_DIR') | default('/etc/openstack_deploy', true) ~ '/' ~ (user_collections_file|default('')) }}"
