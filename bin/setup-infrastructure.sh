@@ -42,6 +42,7 @@ kubectl label node -l beta.kubernetes.io/os=linux kubernetes.io/os=linux
 kubectl label node -l node-role.kubernetes.io/control-plane kube-ovn/role=master
 kubectl label node -l ovn.kubernetes.io/ovs_dp_type!=userspace ovn.kubernetes.io/ovs_dp_type=kernel
 kubectl label node -l node-role.kubernetes.io/control-plane longhorn.io/storage-node=enabled
+kubectl label node --all node.kubernetes.io/exclude-from-external-load-balancers-
 
 if ! kubectl taint nodes -l node-role.kubernetes.io/control-plane node-role.kubernetes.io/control-plane:NoSchedule-; then
   echo "Taint already removed"
