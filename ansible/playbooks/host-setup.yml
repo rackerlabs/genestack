@@ -36,15 +36,15 @@
         url: "{{ helm_package_url }}"
         dest: "/tmp/helm-{{ helm_version }}-linux-amd64.tar.gz"
         mode: '0644'
-        force: no
+        force: false
       when: use_fileserver
 
     - name: Extract Helm binary (file-server mode)
       ansible.builtin.unarchive:
         src: "/tmp/helm-{{ helm_version }}-linux-amd64.tar.gz"
         dest: "/tmp/"
-        remote_src: yes
-      when: use_fileserver
+        remote_src: true
+      when: use_fileserver | bool
 
     - name: Move Helm binary to /usr/local/bin (file-server mode)
       ansible.builtin.command:
