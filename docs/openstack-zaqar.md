@@ -1,10 +1,14 @@
 # Deploy Zaqar
 
-Zaqar is a multi-tenant cloud messaging and notification service for web and mobile developers. It features Websocket 
-API and a REST API which developers can use to send messages between various components of their SaaS and mobile applications.
+Zaqar is a multi-tenant cloud messaging and notification service for web and mobile developers. It features a REST API 
+which developers can use to send messages between various components of their SaaS and mobile applications.
 
 OpenStack components can use Zaqar to inform events to end users and communication with guest agent that run in the 
 "over-cloud" layer. This document outlines the deployment of OpenStack Zaqar using Genestack.
+
+!!! note
+
+    Zaqar Websocket API is not supported for now in Genestack. It maybe added in a future release.
 
 ## Create secrets
 
