@@ -7,7 +7,7 @@ charts:
   cloudkitty: 2025.1.2+ebb1488dc
   envoyproxy-gateway: v1.5.3
   fluentbit: 2025.1.1+95bf0bf6e
-  freezer: 2025.1.2+cdd5c6c55
+  freezer: 2025.2.0+18607738c
   glance: 2024.2.396+13651f45-628a320c
   gnocchi: 2024.2.52+22.15d38
   grafana: 10.1.0

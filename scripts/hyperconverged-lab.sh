@@ -816,13 +816,28 @@ conf:
 EOF
 fi
 
+if [ ! -f "/etc/genestack/helm-configs/freezer/freezer-helm-overrides.yaml" ]; then
+cat > /etc/genestack/helm-configs/freezer/freezer-helm-overrides.yaml <<EOF
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  freezer_api_uwsgi:
+    uwsgi:
+      processes: 1
+  freezer:
+    oslo_messaging_notifications:
+      driver: noop
+EOF
+fi
+
 if [ ! -f "/etc/genestack/helm-configs/zaqar/zaqar-helm-overrides.yaml" ]; then
 cat > /etc/genestack/helm-configs/zaqar/zaqar-helm-overrides.yaml <<EOF
 ---
 pod:
   resources:
     enabled: false
-
 conf:
   zaqar_api_uwsgi:
     uwsgi:
