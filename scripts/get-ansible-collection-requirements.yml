@@ -67,7 +67,7 @@
             - local_install_results.results is defined
             - item is not skipped
             - item.rc == 0
-    - when:
+      when:
         - local_collections_dir.stat.exists
         - use_local_collections | default(false) | bool
 
