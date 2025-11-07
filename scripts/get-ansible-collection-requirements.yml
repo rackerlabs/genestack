@@ -25,7 +25,7 @@
 
     - name: Generate a list of required collections excluding user overridden collections
       set_fact:
-         galaxy_collections_list : "{{ galaxy_collections_list + [ item ] }}"
+        galaxy_collections_list: "{{ galaxy_collections_list + [ item ] }}"
       when:
         - item.name not in user_collection_names
       loop: "{{ required_collections.collections }}"
@@ -37,31 +37,69 @@
       when:
         - user_collections.collections is defined
 
-    - name: Create temporary file for galaxy collection requirements
-      tempfile:
-      register: collection_requirements_tmpfile
+    - name: Check if local collections directory exists
+      stat:
+        path: "{{ local_collections_path }}"
+      register: local_collections_dir
 
-    - name: Copy content into galaxy collection requirements temporary file
-      copy:
-        content: "{{ galaxy_collections | to_nice_yaml }}"
-        dest: "{{ collection_requirements_tmpfile.path }}"
+    - name: Install collections from local directory
+      when:
+        - local_collections_dir.stat.exists
+        - use_local_collections | default(false) | bool
+      block:
+        - name: Find all collection tar.gz files in local directory
+          find:
+            paths: "{{ local_collections_path }}"
+            patterns: "*.tar.gz"
+          register: local_collection_files
 
-    - name: Install collection requirements with ansible galaxy
-      command: >
-        ansible-galaxy collection install --force
-        -r "{{ collection_requirements_tmpfile.path }}"
-      register: collection_install
-      until: collection_install is success
-      retries: 5
-      delay: 2
+        - name: Install each collection from local directory
+          command: >
+            ansible-galaxy collection install --force
+            "{{ item.path }}"
+            -p "{{ ansible_collections_install_path }}"
+          loop: "{{ local_collection_files.files }}"
+          register: local_install_results
+          when: local_collection_files.files | length > 0
 
-    - name: Show collection install output
-      debug: msg="{{ collection_install.stdout.split('\n') }}"
+        - name: Show local collection install output
+          debug:
+            msg: "Installed {{ item.item.path | basename }} successfully."
+          loop: "{{ local_install_results.results }}"
+          when:
+            - local_install_results.results is defined
+            - item is not skipped
+            - item.rc == 0
 
-    - name: Clean up temporary file
-      file:
-        path: "{{ collection_requirements_tmpfile.path }}"
-        state: absent
+    - name: Install collections from Ansible Galaxy (fallback)
+      when:
+        - not local_collections_dir.stat.exists or not (use_local_collections | default(false) | bool)
+      block:
+        - name: Create temporary file for galaxy collection requirements
+          tempfile:
+          register: collection_requirements_tmpfile
+
+        - name: Copy content into galaxy collection requirements temporary file
+          copy:
+            content: "{{ galaxy_collections | to_nice_yaml }}"
+            dest: "{{ collection_requirements_tmpfile.path }}"
+
+        - name: Install collection requirements with ansible galaxy
+          command: >
+            ansible-galaxy collection install --force
+            -r "{{ collection_requirements_tmpfile.path }}"
+          register: collection_install
+          until: collection_install is success
+          retries: 5
+          delay: 2
+
+        - name: Show collection install output
+          debug: msg="{{ collection_install.stdout.split('\n') }}"
+
+        - name: Clean up temporary file
+          file:
+            path: "{{ collection_requirements_tmpfile.path }}"
+            state: absent
 
   vars:
     galaxy_collections_list: []
@@ -69,5 +107,9 @@
       collections: "{{ galaxy_collections_list }}"
     collections_file: "/opt/genestack/ansible-collection-requirements.yml"
     required_collections: "{{ lookup('file', collections_file) | from_yaml }}"
-    #user_collections: "{{ lookup('file', user_collections_path, errors='ignore')|default([], true) | from_yaml }}"
-    #user_collections_path: "{{ lookup('env', 'OSA_CONFIG_DIR') | default('/etc/openstack_deploy', true) ~ '/' ~ (user_collections_file|default('')) }}"
+    # Local collection configuration (optional, only used if the user sets them)
+    local_collections_path: "{{ lookup('env', 'LOCAL_COLLECTIONS_PATH') | default(omit) }}"
+    use_local_collections: "{{ lookup('env', 'USE_LOCAL_COLLECTIONS') | default(omit) | bool }}"
+    ansible_collections_install_path: "{{ lookup('env', 'ANSIBLE_COLLECTIONS_PATH') | default('~/.ansible/collections', true) }}"
+    # user_collections: "{{ lookup('file', user_collections_path, errors='ignore')|default([], true) | from_yaml }}"
+    # user_collections_path: "{{ lookup('env', 'OSA_CONFIG_DIR') | default('/etc/openstack_deploy', true) ~ '/' ~ (user_collections_file|default('')) }}"

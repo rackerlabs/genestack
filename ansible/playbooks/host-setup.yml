@@ -20,12 +20,47 @@
   environment: "{{ deployment_environment_variables | default({}) }}"
   vars:
     helm_version: v3.17.3 # Assume the default or set an explicit version.
+    helm_package_url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
   tasks:
+    - name: Check if USE_FILESERVER env variable is set
+      ansible.builtin.set_fact:
+        use_fileserver: "{{ lookup('env', 'USE_FILESERVER') | default('false') | bool }}"
+
+    - name: Debug - show which mode is active
+      ansible.builtin.debug:
+        msg: "Using file-server mode: {{ use_fileserver }}"
+
+    # OPTION 1: File-server installation
+    - name: Download Helm package from internal file-server
+      ansible.builtin.get_url:
+        url: "{{ helm_package_url }}"
+        dest: "/tmp/helm-{{ helm_version }}-linux-amd64.tar.gz"
+        mode: '0644'
+        force: false
+      when: use_fileserver
+
+    - name: Extract Helm binary (file-server mode)
+      ansible.builtin.unarchive:
+        src: "/tmp/helm-{{ helm_version }}-linux-amd64.tar.gz"
+        dest: "/tmp/"
+        remote_src: true
+      when: use_fileserver | bool
+
+    - name: Move Helm binary to /usr/local/bin (file-server mode)
+      ansible.builtin.command:
+        cmd: mv /tmp/linux-amd64/helm /usr/local/bin/helm
+      args:
+        creates: /usr/local/bin/helm
+      when: use_fileserver
+
+    # OPTION 2: Internet-based installation
     - name: Download Helm command line tool
       ansible.builtin.uri:
-        url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+        url: "{{ helm_package_url }}"
         return_content: true
       register: helm_installer
+      when: not use_fileserver
+
     - name: Install Helm
       ansible.builtin.command:
         cmd: bash
@@ -33,6 +68,7 @@
         creates: /usr/local/bin/helm
       environment:
         DESIRED_VERSION: "{{ helm_version }}"
+      when: not use_fileserver
 
 - hosts: all
   become: true
