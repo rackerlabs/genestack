@@ -23,8 +23,19 @@ This document outlines the deployment of OpenStack Freezer using Genestack.
                 create secret generic freezer-db-password \
                 --type Opaque \
                 --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+
         kubectl --namespace openstack \
                 create secret generic freezer-admin \
+                --type Opaque \
+                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+
+        kubectl --namespace openstack \
+                create secret generic freezer-keystone-test-password \
+                --type Opaque \
+                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+
+        kubectl --namespace openstack \
+                create secret generic freezer-keystone-service-password \
                 --type Opaque \
                 --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
         ```
