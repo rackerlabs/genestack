@@ -10,5 +10,6 @@ resources:
   - hpa-nova-conductor.yaml
   - hpa-nova-novncproxy.yaml
   - hpa-nova-scheduler.yaml
+  - hpa-nova-compute-ironic.yaml
   - policies.yaml
   - static-vendordata-configmap.yaml
