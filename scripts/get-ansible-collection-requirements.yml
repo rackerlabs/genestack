@@ -25,7 +25,7 @@
 
     - name: Generate a list of required collections excluding user overridden collections
       set_fact:
-         galaxy_collections_list : "{{ galaxy_collections_list + [ item ] }}"
+         galaxy_collections_list: "{{ galaxy_collections_list + [ item ] }}"
       when:
         - item.name not in user_collection_names
       loop: "{{ required_collections.collections }}"
@@ -43,6 +43,9 @@
       register: local_collections_dir
 
     - name: Install collections from local directory
+      when:
+        - local_collections_dir.stat.exists
+        - use_local_collections | default(false) | bool
       block:
         - name: Find all collection tar.gz files in local directory
           find:
@@ -67,11 +70,10 @@
             - local_install_results.results is defined
             - item is not skipped
             - item.rc == 0
-      when:
-        - local_collections_dir.stat.exists
-        - use_local_collections | default(false) | bool
 
     - name: Install collections from Ansible Galaxy (fallback)
+      when:
+        - not local_collections_dir.stat.exists or not (use_local_collections | default(false) | bool)
       block:
         - name: Create temporary file for galaxy collection requirements
           tempfile:
@@ -98,8 +100,6 @@
           file:
             path: "{{ collection_requirements_tmpfile.path }}"
             state: absent
-      when:
-        - not local_collections_dir.stat.exists or not (use_local_collections | default(false) | bool)
 
   vars:
     galaxy_collections_list: []
