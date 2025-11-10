@@ -100,7 +100,6 @@ set_args=(
     --set "endpoints.oslo_db.auth.ironic.password=$(kubectl --namespace openstack get secret ironic-db-password -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.oslo_cache.auth.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
     --set "conf.ironic.keystone_authtoken.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
-    --set "conf.ironic.database.slave_connection=mysql+pymysql://ironic:$(kubectl --namespace openstack get secret ironic-db-password -o jsonpath='{.data.password}' | base64 -d)@mariadb-cluster-secondary.openstack.svc.cluster.local:3306/ironic"
     --set "endpoints.oslo_messaging.auth.admin.password=$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.oslo_messaging.auth.ironic.password=$(kubectl --namespace openstack get secret ironic-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)"
 )
