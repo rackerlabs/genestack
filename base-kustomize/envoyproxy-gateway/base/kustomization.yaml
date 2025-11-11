@@ -1,11 +1,11 @@
 sortOptions:
   order: fifo
 resources:
-#  - envoy-gateway-namespace.yaml
-#  - envoy-internal-gateway-issuer.yaml
-#  - envoy-custom-proxy-config.yaml
-#  - envoy-gatewayclass.yaml
-#  - envoy-gateway.yaml
-#  - envoy-endpoint-policies.yaml
-#  - envoy-service-monitor.yaml
+  - envoy-gateway-namespace.yaml
+  - envoy-internal-gateway-issuer.yaml
+  - envoy-custom-proxy-config.yaml
+  - envoy-gatewayclass.yaml
+  - envoy-gateway.yaml
+  - envoy-endpoint-policies.yaml
+  - envoy-service-monitor.yaml
   - all.yaml
