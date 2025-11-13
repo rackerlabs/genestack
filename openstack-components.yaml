@@ -19,3 +19,4 @@ components:
   ceilometer: false
   gnocchi: false
   skyline: true
+  zaqar: false
