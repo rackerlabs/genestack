@@ -4,7 +4,7 @@
   gather_facts: true
   become: true
   vars:
-    cinder_release: "2024.1"
+    cinder_release_branch: "unmaintained/2024.1"
     cinder_storage_network_interface: ansible_br_storage
     cinder_storage_network_interface_secondary: ansible_br_storage_secondary
     cinder_backend_name: "lvmdriver-1"
@@ -82,7 +82,7 @@
         name:
           - pip
           - pymysql
-          - "git+https://github.com/openstack/cinder@stable/{{ cinder_release }}"
+          - "git+https://github.com/openstack/cinder@{{ cinder_release_branch }}"
           - "git+https://github.com/rackerlabs/cinder-rxt.git"
         state: present
         virtualenv: /opt/cinder
