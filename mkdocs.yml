@@ -225,6 +225,7 @@ nav:
                   - Blazar: openstack-blazar.md
                   - Freezer: openstack-freezer.md
                   - Masakari: openstack-masakari.md
+                  - Zaqar: openstack-zaqar.md
           - Monitoring:
               - Monitoring Overview: prometheus-monitoring-overview.md
               - Getting Started: monitoring-getting-started.md
