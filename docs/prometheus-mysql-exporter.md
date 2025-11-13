@@ -29,8 +29,10 @@ password=$(kubectl --namespace openstack get secret mariadb-monitoring -o jsonpa
 Next, install the exporter
 
 ``` shell
-bin/install-chart.sh prometheus-mysql-exporter
+bin/install-prometheus-mysql-exporter.sh
 ```
+
+!!! note "Helm chart versions are defined in (opt)/genestack/helm-chart-versions.yaml and can be overridden in (etc)/genestack/helm-chart-versions.yaml"
 
 !!! success
     If the installation is successful, you should see the exporter pod in the openstack namespace.

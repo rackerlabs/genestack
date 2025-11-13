@@ -11,8 +11,9 @@ the OVN backup _CronJob_.
 
 
 ``` shell
-bin/install-chart.sh prometheus-pushgateway
+bin/install-prometheus-pushgateway.sh
 ```
+!!! note "Helm chart versions are defined in (opt)/genestack/helm-chart-versions.yaml and can be overridden in (etc)/genestack/helm-chart-versions.yaml"
 
 !!! success
     If the installation is successful, you should see the prometheus-pushgateway pod running in the prometheus namespace.
