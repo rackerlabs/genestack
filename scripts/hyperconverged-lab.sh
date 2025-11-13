@@ -721,6 +721,10 @@ conf:
       workers: 1
     oslo_messaging_notifications:
       driver: noop
+    libvirt:
+      virt_type  = qemu
+      images_type = qcow2
+      images_path = /var/lib/nova/instances
   nova_api_uwsgi:
     uwsgi:
       processes: 1
