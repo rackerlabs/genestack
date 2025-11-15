@@ -19,13 +19,14 @@ images:
     ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
     ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
     ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    manila_api: ghcr.io/rackerlabs/genestack-images/manila:2024.1-1758649489
-    manila_data: ghcr.io/rackerlabs/genestack-images/manila:2024.1-1758649489
-    manila_db_sync: ghcr.io/rackerlabs/genestack-images/manila:2024.1-1758649489
-    manila_scheduler: ghcr.io/rackerlabs/genestack-images/manila:2024.1-1758649489
-    manila_share: ghcr.io/rackerlabs/genestack-images/manila:2024.1-1758649489
-    manila_processor: ghcr.io/rackerlabs/genestack-images/manila:2024.1-1758649489
-    manila_storage_init: ghcr.io/rackerlabs/genestack-images/manila:2024.1-1758649489
+    manila: ghcr.io/rackerlabs/genestack-images/manila:2024.1-1763166117
+    manila_api: ghcr.io/rackerlabs/genestack-images/manila-api:2024.1-1763166117
+    manila_data: ghcr.io/rackerlabs/genestack-images/manila-data:2024.1-1763166117
+    manila_db_sync: ghcr.io/rackerlabs/genestack-images/manila:2024.1-1763166117
+    manila_scheduler: ghcr.io/rackerlabs/genestack-images/manila-scheduler:2024.1-1763166117
+    manila_share: ghcr.io/rackerlabs/genestack-images/manila-share:2024.1-1763166117
+    manila_processor: ghcr.io/rackerlabs/genestack-images/manila:2024.1-1763166117
+    manila_storage_init: ghcr.io/rackerlabs/genestack-images/manila:2024.1-1763166117
     rabbit_init: docker.io/rabbitmq:3.13-management
   pull_policy: "IfNotPresent"
 
