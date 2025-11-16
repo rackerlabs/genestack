@@ -114,7 +114,7 @@ set_args=()
 helm_command=(
     helm upgrade --install "$SERVICE_NAME_DEFAULT" "$HELM_CHART_PATH"
     --version "${SERVICE_VERSION}"
-    --namespace="$SERVICE_NAMESPACE"
+    --namespace "${SERVICE_NAMESPACE}"
     --timeout 120m
     --create-namespace
 
