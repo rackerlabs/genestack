@@ -1,25 +1,25 @@
 #!/bin/bash
-# Description: Fetches the version for SERVICE_NAME from the specified
+# Description: Fetches the version for SERVICE_NAME_DEFAULT from the specified
 # YAML file and executes a helm upgrade/install command with dynamic values files.
 
 # Disable SC2124 (unused array), SC2145 (array expansion issue), SC2294 (eval)
 # shellcheck disable=SC2124,SC2145,SC2294
 
 # Service
-SERVICE_NAME="redis-replication"
+SERVICE_NAME_DEFAULT="redis-replication"
 SERVICE_NAMESPACE="redis-systems"
 
 # Helm
-HELM_REPO_NAME="ot-helm"
-HELM_REPO_URL="https://ot-container-kit.github.io/helm-charts/"
+HELM_REPO_NAME_DEFAULT="ot-helm"
+HELM_REPO_URL_DEFAULT="https://ot-container-kit.github.io/helm-charts/"
 
 # Base directories provided by the environment
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
 GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 
 # Define service-specific override directories based on the framework
-SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/redis-operator-replication"
-SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/redis-operator-replication"
+SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME_DEFAULT}"
+SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME_DEFAULT}"
 
 # Read the desired chart version from VERSION_FILE
 VERSION_FILE="${GENESTACK_OVERRIDES_DIR}/helm-chart-versions.yaml"
@@ -42,7 +42,7 @@ echo "Found version for redis-operator: $REDIS_OPERATOR_VERSION"
 SERVICE_VERSION=$(grep 'redis-replication:' "$VERSION_FILE" | sed 's/.*redis-replication: *//')
 
 if [ -z "$SERVICE_VERSION" ]; then
-    echo "Error: Could not extract version for '$SERVICE_NAME' from $VERSION_FILE" >&2
+    echo "Error: Could not extract version for '$SERVICE_NAME_DEFAULT' from $VERSION_FILE" >&2
     exit 1
 fi
 
