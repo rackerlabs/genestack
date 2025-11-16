@@ -42,18 +42,6 @@ fi
 
 echo "Found version for $SERVICE_NAME_DEFAULT: $SERVICE_VERSION"
 
-# --- Kube-OVN specific logic to determine masters and replica count ---
-MASTER_NODES=$(kubectl get nodes -l kube-ovn/role=master -o json | jq -r '[.items[].status.addresses[] | select(.type == "InternalIP") | .address] | join(",")' | sed 's/,/\\,/g')
-MASTER_NODE_COUNT=$(kubectl get nodes -l kube-ovn/role=master -o json | jq -r '.items[].status.addresses[] | select(.type=="InternalIP") | .address' | wc -l)
-
-if [ "${MASTER_NODE_COUNT}" -eq 0 ]; then
-    echo "Error: No master nodes found labeled with 'kube-ovn/role=master'" >&2
-    echo "Be sure to label your master nodes with 'kube-ovn/role=master' before running this script." >&2
-    exit 1
-fi
-echo "Found $MASTER_NODE_COUNT master node(s) with IPs: ${MASTER_NODES//\\,/ }."
-# --------------------------------------------------------------------
-
 # Load chart metadata from custom override YAML if defined
 for yaml_file in "${SERVICE_CUSTOM_OVERRIDES}"/*.yaml; do
     if [ -f "$yaml_file" ]; then
@@ -94,7 +82,6 @@ overrides_args=()
 # NOTE: Files in this directory are included first.
 if [[ -d "$SERVICE_BASE_OVERRIDES" ]]; then
     echo "Including base overrides from directory: $SERVICE_BASE_OVERRIDES"
-    # Include YAML files directly in the base directory (e.g., specific overrides)
     for file in "$SERVICE_BASE_OVERRIDES"/*.yaml; do
         # Check that there is at least one match
         if [[ -e "$file" ]]; then
@@ -135,7 +122,7 @@ fi
 
 echo
 
-# Collect all --set arguments (none in the original script)
+# Collect all --set arguments, executing commands and quoting safely
 set_args=()
 
 
