@@ -122,8 +122,6 @@ helm_command=(
     "${set_args[@]}"
 
     # Post-renderer configuration
-    # NOTE: Metallb doesn't typically require a post-renderer, but we keep it
-    # for template compliance.
     --post-renderer "$GENESTACK_OVERRIDES_DIR/kustomize/kustomize.sh"
     --post-renderer-args "$SERVICE_NAME_DEFAULT/overlay"
 
