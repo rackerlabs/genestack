@@ -240,6 +240,7 @@ nav:
               - Blackbox Exporter: prometheus-blackbox-exporter.md
               - Pushgateway: prometheus-pushgateway.md
               - SNMP Exporter: prometheus-snmp-exporter.md
+              - Barbican Exporter: openstack-barbican-exporter.md
               - Custom Node Metrics: prometheus-custom-node-metrics.md
               - Alert Manager Examples:
                   - alertmanager-slack.md

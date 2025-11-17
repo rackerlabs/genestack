@@ -1,0 +1,92 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: barbican-exporter
+  namespace: openstack
+  labels:
+    app.kubernetes.io/name: barbican-exporter
+    app.kubernetes.io/instance: barbican-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: barbican-exporter
+      app.kubernetes.io/instance: barbican-exporter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: barbican-exporter
+        app.kubernetes.io/instance: barbican-exporter
+    spec:
+      nodeSelector:
+        openstack-control-plane: enabled
+      containers:
+        - name: barbican-exporter
+          image: quay.io/rackspace/barbican-exporter:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: OS_AUTH_URL
+              valueFrom:
+                secretKeyRef:
+                  name: keystone-keystone-admin
+                  key: OS_AUTH_URL
+            - name: OS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: keystone-keystone-admin
+                  key: OS_USERNAME
+            - name: OS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keystone-keystone-admin
+                  key: OS_PASSWORD
+            - name: OS_PROJECT_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: keystone-keystone-admin
+                  key: OS_PROJECT_NAME
+            - name: OS_PROJECT_DOMAIN_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: keystone-keystone-admin
+                  key: OS_PROJECT_DOMAIN_NAME
+            - name: OS_USER_DOMAIN_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: keystone-keystone-admin
+                  key: OS_USER_DOMAIN_NAME
+            - name: OS_REGION_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: keystone-keystone-admin
+                  key: OS_REGION_NAME
+            - name: OS_INTERFACE
+              valueFrom:
+                secretKeyRef:
+                  name: keystone-keystone-admin
+                  key: OS_INTERFACE
+            - name: BARBICAN_API_URL
+              value: "http://barbican-api.openstack.svc.cluster.local:9311"
+          ports:
+            - name: metrics
+              containerPort: 9100
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

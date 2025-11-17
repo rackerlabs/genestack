@@ -1,0 +1,19 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: barbican-exporter
+  namespace: openstack
+spec:
+  endpoints:
+    - interval: 30s
+      scrapeTimeout: 10s
+      path: /metrics
+      port: metrics
+  namespaceSelector:
+    matchNames:
+      - openstack
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: barbican-exporter
+      app.kubernetes.io/instance: barbican-exporter

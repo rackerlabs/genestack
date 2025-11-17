@@ -1,0 +1,17 @@
+---
+# Helm overrides for Barbican Prometheus exporter
+image:
+  repository: ghcr.io/rackerlabs/genestack-images/barbican-exporter
+  tag: "sha-6c19bf7"
+  pullPolicy: IfNotPresent
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  namespace: openstack
+  labels: {}
+nodeSelector:
+  openstack-control-plane: enabled
+env:
+  - name: BARBICAN_API_URL
+    value: "http://barbican-api.openstack.svc.cluster.local:9311"

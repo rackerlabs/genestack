@@ -1,0 +1,8 @@
+---
+sortOptions:
+  order: fifo
+resources:
+  - barbican-exporter-deployment.yaml
+  - barbican-exporter-service.yaml
+  - barbican-exporter-servicemonitor.yaml
+  - all.yaml
