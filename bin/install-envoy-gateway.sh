@@ -11,8 +11,8 @@ SERVICE_NAMESPACE="envoyproxy-gateway-system"
 
 # Helm
 # NOTE: Using OCI registry format for the chart location.
-HELM_REPO_NAME_DEFAULT="oci://docker.io/envoyproxy"
-HELM_REPO_URL_DEFAULT="gateway-helm"
+HELM_REPO_NAME_DEFAULT="gateway-helm"
+HELM_REPO_URL_DEFAULT="oci://docker.io/envoyproxy"
 
 # Base directories provided by the environment
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
