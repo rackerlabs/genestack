@@ -19,9 +19,9 @@ metrics:
     enabled: true
 ```
 
-Once the changes have been made, apply the changes to the memcached deployment with the `/opt/genestack/bin/install-memcached.sh` script:
+Once the changes have been made, apply the changes to the memcached deployment with the `/opt/genestack/bin/install-memcached.sh` script
 
-!!! example "`/opt/genestack/bin/install-memcached.sh`"
+??? example "`/opt/genestack/bin/install-memcached.sh`"
 
     ``` shell
     --8<-- "bin/install-memcached.sh"

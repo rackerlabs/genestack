@@ -10,9 +10,10 @@ PostgresSQL Exporter is used to expose metrics from a running PostgresSQL deploy
 
 Install the PostgresSQL Exporter
 
-``` shell
-bin/install-prometheus-postgres-exporter.sh
-```
-!!! note "Helm chart versions are defined in (opt)/genestack/helm-chart-versions.yaml and can be overridden in (etc)/genestack/helm-chart-versions.yaml"
-!!! success
-    If the installation is successful, you should see the exporter pod in the openstack namespace.
+??? example "`/opt/genestack/bin/install-prometheus-postgres-exporter.sh`"
+
+    ``` shell
+    --8<-- "bin/install-prometheus-postgres-exporter.sh"
+    ```
+
+If the installation is successful, you should see the exporter pod in the openstack namespace.

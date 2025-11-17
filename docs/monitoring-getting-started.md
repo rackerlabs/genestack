@@ -1,56 +1,91 @@
-# Getting started with genestack monitoring
+# Getting Started with Genestack Monitoring
 
-In order to begin monitoring your genestack deployment we first need to deploy the core prometheus components
+This guide walks you through setting up a complete monitoring stack for your Genestack deployment. The monitoring system consists of three main layers: metrics collection, visualization, and alerting.
 
-## Install the Prometheus stack
+## Overview
 
-Install [Prometheus](prometheus.md) which is part of the kube-prometheus-stack and includes:
+The Genestack monitoring stack includes:
 
-* Prometheus and the Prometheus operator to manage the Prometheus cluster deployment
-* AlertManager which allows for alerting configurations to be set in order to notify various services like email or PagerDuty for specified alerting thresholds
+- **Prometheus** - Time-series database and metrics collection engine
+- **Grafana** - Visualization and dashboards
+- **AlertManager** - Alert routing and notification management
+- **Metric Exporters** - Service-specific metrics collection for OpenStack components
 
-The [Prometheus](prometheus.md) kube-prometheus-stack will also deploy a couple core metric exporters as part of the stack, those include:
+## Prerequisites
 
-* Node Exporter(Hardware metrics)
-* Kube State Exporter(Kubernetes cluster metrics)
+Before proceeding, ensure you have:
 
-## Install Grafana
+- A running Genestack deployment
+- Helm 3.x installed
+- Access to your Kubernetes cluster with appropriate permissions
 
-We can then deploy our visualization dashboard Grafana
+## Step 1: Install the Prometheus Stack
 
-* [Install Grafana](grafana.md)
+The kube-prometheus-stack is the foundation of your monitoring infrastructure. It deploys and manages the core monitoring components.
 
-Grafana is used to visualize various metrics provided by the monitoring system as well as alerts and logs, take a look at the [Grafana](https://grafana.com/) documentation for more information
+Install Prometheus, which includes:
 
-## Install the metric exporters and pushgateway
+- **Prometheus Operator** - Manages the Prometheus cluster deployment lifecycle
+- **Prometheus Server** - Collects and stores metrics from configured targets
+- **AlertManager** - Handles alerts sent by Prometheus and routes them to notification channels (email, PagerDuty, Slack, etc.)
+- **Node Exporter** - Collects hardware and OS-level metrics from cluster nodes
+- **Kube State Metrics** - Exposes Kubernetes cluster state metrics
 
-Now let's deploy our exporters and pushgateway!
+See the [Prometheus installation guide](prometheus.md) for detailed setup instructions.
 
-* [Mysql Exporter](prometheus-mysql-exporter.md)
-* [RabbitMQ Exporter](prometheus-rabbitmq-exporter.md)
-* [Postgres Exporter](prometheus-postgres-exporter.md)
-* [Memcached Exporter](prometheus-memcached-exporter.md)
-* [Openstack Exporter](prometheus-openstack-metrics-exporter.md)
-* [Pushgateway](prometheus-pushgateway.md)
+## Step 2: Install Grafana
 
-## Next steps
+Grafana provides visualization dashboards for your metrics, alerts, and logs.
 
-### Configure alert manager
+Install Grafana to:
 
-Configure the alert manager to send the specified alerts to slack as an example, see: [Slack Alerts](alertmanager-slack.md)
+- Create custom dashboards for monitoring OpenStack services
+- Visualize metrics collected by Prometheus
+- Set up alert notifications and integrations
+- Analyze logs and trace data
 
-... and more ...
+For more information about Grafana's capabilities, visit the [Grafana](grafana.md).
 
-### Update alerting rules
+## Step 3: Deploy Service-Specific Metric Exporters
 
-Within the genestack repo we can update our custom alerting rules via the alerting_rules.yaml to fit our needs
+With the core monitoring stack in place, deploy exporters to collect metrics from your OpenStack services and infrastructure components. All exporters are available for easy deployment.
 
-View alerting_rules.yaml in:
+## Step 4: Configure AlertManager
 
-``` shell
+Configure AlertManager to send notifications when alerts are triggered. Available integrations include:
+
+- [Slack Alerts](alertmanager-slack.md) - Send alerts to Slack channels
+- Email notifications
+- PagerDuty integration
+- Webhook receivers
+
+## Step 5: Customize Alerting Rules
+
+### Custom Alerting Rules
+
+Genestack includes default alerting rules that can be customized for your environment. To view or modify the custom rules:
+
+```shell
 less /etc/genestack/helm-configs/prometheus/alerting_rules.yaml
 ```
 
-However, many opreators comes with ServiceMonitor and PodMonitor services. These services expose, scrape endpoints
-out of the box. These operators will also provide alerting rules curated for the specific service. See specific
-service install for any monitoring rules. Example: [RabbitMQ Operator Monitoring](infrastructure-rabbitmq.md#rabbitmq-operator-monitoring)
+Edit this file to add, modify, or remove alerting rules based on your operational requirements.
+
+### Operator-Provided Alerting Rules
+
+Many Genestack operators come with built-in ServiceMonitor and PodMonitor resources that automatically:
+
+- Expose scrape endpoints for metrics collection
+- Provide pre-configured alerting rules tailored to the specific service
+
+These operator-managed rules are curated for best practices and don't require manual configuration. For service-specific monitoring details, refer to the individual service documentation. For example: [RabbitMQ Operator Monitoring](infrastructure-rabbitmq.md#rabbitmq-operator-monitoring).
+
+## Next Steps
+
+Once your monitoring stack is deployed:
+
+1. **Access Grafana** - Log in to Grafana and explore the pre-built dashboards
+2. **Verify Metrics Collection** - Check that Prometheus is successfully scraping all targets
+3. **Test Alerting** - Trigger a test alert to verify AlertManager configuration
+4. **Create Custom Dashboards** - Build dashboards specific to your operational needs
+5. **Tune Alert Thresholds** - Adjust alerting rules based on your environment's baseline behavior
