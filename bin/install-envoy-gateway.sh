@@ -59,7 +59,7 @@ done
 # Determine Helm chart path
 if [[ "$HELM_REPO_URL" == oci://* ]]; then
     # OCI registry path
-    HELM_CHART_PATH="$HELM_REPO_URL/$HELM_REPO_NAME/$SERVICE_NAME"
+    HELM_CHART_PATH="$HELM_REPO_URL/$HELM_REPO_NAME"
 else
     # --- Helm Repository and Execution ---
     helm repo add "$HELM_REPO_NAME" "$HELM_REPO_URL"   # uncomment if needed
