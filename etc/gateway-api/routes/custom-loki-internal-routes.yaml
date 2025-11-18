@@ -6,7 +6,7 @@ metadata:
   namespace: grafana
 spec:
   hostnames:
-    - internal.loki-gateway.your.domain.tld
+    - loki-gateway.your.domain.tld
   parentRefs:
     - name: flex-gateway
       namespace: envoy-gateway
