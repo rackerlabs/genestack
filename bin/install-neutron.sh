@@ -143,10 +143,13 @@ set_args=(
     --set "conf.neutron.keystone_authtoken.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
     --set "endpoints.oslo_messaging.auth.admin.password=$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.oslo_messaging.auth.neutron.password=$(kubectl --namespace openstack get secret neutron-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)"
-    --set "conf.neutron.ovn.ovn_nb_connection=tcp:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
-    --set "conf.neutron.ovn.ovn_sb_connection=tcp:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
-    --set "conf.plugins.ml2_conf.ovn.ovn_nb_connection=tcp:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
-    --set "conf.plugins.ml2_conf.ovn.ovn_sb_connection=tcp:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
+    --set "conf.neutron.ovn.ovn_nb_connection=ssl:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
+    --set "conf.neutron.ovn.ovn_sb_connection=ssl:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
+    --set "conf.plugins.ml2_conf.ovn.ovn_nb_connection=ssl:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
+    --set "conf.plugins.ml2_conf.ovn.ovn_sb_connection=ssl:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
+    --set "conf.ovn_metadata_agent.ovn.ovn_nb_connection=ssl:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
+    --set "conf.ovn_metadata_agent.ovn.ovn_sb_connection=ssl:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
+
 )
 
 
