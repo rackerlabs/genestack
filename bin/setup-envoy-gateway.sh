@@ -7,10 +7,11 @@ usage() {
 Usage: $0 [OPTIONS]
 
 OPTIONS:
-    -e, --email EMAIL           Email address for ACME (required for ACME setup)
-    -d, --domain DOMAIN         Gateway domain name (default: cluster.local)
-    -c, --challenge METHOD      ACME challenge method: http01 or dns01 (default: http01)
-    -p, --dns-plugin PLUGIN     DNS01 plugin (only used with dns01)
+    -c, --config FILE           Configuration file for gateway setup (YAML format)
+    -e, --email EMAIL           Email address for ACME (required for ACME setup, single gateway mode)
+    -d, --domain DOMAIN         Gateway domain name (default: cluster.local, single gateway mode)
+    --challenge METHOD          ACME challenge method: http01 or dns01 (default: http01, single gateway mode)
+    -p, --dns-plugin PLUGIN     DNS01 plugin (only used with dns01, single gateway mode)
     -h, --help [PLUGIN]         Display this help message, or detailed help for a specific plugin
 
     # Generic credentials (usage depends on --dns-plugin):
@@ -46,16 +47,19 @@ For detailed help on a specific plugin, use: $0 --help PLUGIN
 Example: $0 --help cloudflare
 
 EXAMPLES:
-    # Basic setup with HTTP01 challenge
+    # Using configuration file (recommended for multiple gateways)
+    $0 --config /path/to/gateway-config.yaml
+
+    # Basic setup with HTTP01 challenge (single gateway mode)
     $0 --email user@example.com --domain example.com
 
-    # Setup without ACME (no SSL certificates)
+    # Setup without ACME (no SSL certificates, single gateway mode)
     $0 --domain example.com
 
     # Get detailed help for Cloudflare
     $0 --help cloudflare
 
-    # Interactive mode
+    # Interactive mode (single gateway)
     $0
 EOF
 }
@@ -465,10 +469,12 @@ EOF
 }
 
 # Initialize variables
+CONFIG_FILE=""
 ACME_EMAIL=""
 GATEWAY_DOMAIN=""
 CHALLENGE_METHOD="http01"
 DNS_PLUGIN="godaddy"
+LEGACY_MODE=false
 
 # Generic credential variables
 API_KEY=""
@@ -493,24 +499,33 @@ INTERACTIVE_MODE=true
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
+        -c|--config)
+            CONFIG_FILE="$2"
+            INTERACTIVE_MODE=false
+            shift 2
+            ;;
         -e|--email)
             ACME_EMAIL="$2"
             INTERACTIVE_MODE=false
+            LEGACY_MODE=true
             shift 2
             ;;
         -d|--domain)
             GATEWAY_DOMAIN="$2"
             INTERACTIVE_MODE=false
+            LEGACY_MODE=true
             shift 2
             ;;
-        -c|--challenge)
+        --challenge)
             CHALLENGE_METHOD="$2"
             INTERACTIVE_MODE=false
+            LEGACY_MODE=true
             shift 2
             ;;
         -p|--dns-plugin)
             DNS_PLUGIN="$2"
             INTERACTIVE_MODE=false
+            LEGACY_MODE=true
             shift 2
             ;;
         --api-key)
@@ -645,6 +660,406 @@ fi
 if [ -z "${GATEWAY_DOMAIN}" ]; then
     GATEWAY_DOMAIN="cluster.local"
 fi
+
+# Function to parse YAML config file
+parse_config() {
+    local config_file="$1"
+    if [[ ! -f "$config_file" ]]; then
+        echo "Error: Configuration file '$config_file' not found"
+        exit 1
+    fi
+    
+    # Validate YAML syntax
+    if ! python3 -c "import yaml; yaml.safe_load(open('$config_file'))" 2>/dev/null; then
+        echo "Error: Invalid YAML syntax in configuration file"
+        exit 1
+    fi
+}
+
+# Function to create namespace if it doesn't exist
+create_namespace() {
+    local namespace="$1"
+    
+    if ! kubectl get namespace "$namespace" &>/dev/null; then
+        echo "Creating namespace: $namespace"
+        kubectl create namespace "$namespace"
+        
+        # Label the namespace for gateway usage
+        kubectl label namespace "$namespace" name="$namespace" --overwrite
+        kubectl label namespace "$namespace" app.kubernetes.io/name="envoy-gateway" --overwrite
+    else
+        echo "Namespace $namespace already exists"
+    fi
+}
+
+# Function to create cluster issuer for multi-gateway
+create_multi_cluster_issuer() {
+    local gateway_name="$1"
+    local issuer_type="$2"
+    local email="$3"
+    local challenge="$4"
+    local dns_plugin="$5"
+    local domain="$6"
+    
+    local issuer_name="${gateway_name}-issuer"
+    
+    if [[ "$issuer_type" == "selfsigned" ]]; then
+        echo "Creating self-signed cluster issuer for $gateway_name..."
+        cat <<EOF | kubectl apply -f -
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: ${issuer_name}
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ${gateway_name}-ca-cert
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: ${gateway_name}-ca
+  secretName: ${gateway_name}-ca-secret
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: ${issuer_name}
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: ${gateway_name}-ca-issuer
+spec:
+  ca:
+    secretName: ${gateway_name}-ca-secret
+EOF
+    elif [[ "$issuer_type" == "letsencrypt" ]]; then
+        if [[ -z "$email" ]]; then
+            echo "Error: Email is required for Let's Encrypt issuer"
+            exit 1
+        fi
+        
+        if [[ "$challenge" == "dns01" ]]; then
+            create_dns_issuer "$gateway_name" "$dns_plugin" "$domain" "$email"
+        else
+            # HTTP01 challenge - Note: This will reference the first external gateway instance
+            cat <<EOF | kubectl apply -f -
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: ${issuer_name}
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: ${email}
+    privateKeySecretRef:
+      name: ${issuer_name}-account-key
+    solvers:
+      - http01:
+          gatewayHTTPRoute:
+            parentRefs:
+            - group: gateway.networking.k8s.io
+              kind: Gateway
+              name: ${gateway_name}-external
+              namespace: ${gateway_name}
+EOF
+        fi
+    else
+        echo "Error: Invalid issuer type. Must be 'letsencrypt' or 'selfsigned'"
+        exit 1
+    fi
+}
+
+# Function to create DNS issuer based on plugin
+create_dns_issuer() {
+    local gateway_name="$1"
+    local dns_plugin="$2"
+    local domain="$3"
+    local email="$4"
+    local issuer_name="${gateway_name}-issuer"
+    
+    case "$dns_plugin" in
+        cloudflare)
+            if [[ -n "$API_TOKEN" ]]; then
+                kubectl create secret generic ${gateway_name}-cloudflare-api-token \
+                    --namespace cert-manager \
+                    --from-literal=api-token="${API_TOKEN}" \
+                    --dry-run=client -o yaml | kubectl apply -f -
+                
+                cat <<EOF | kubectl apply -f -
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: ${issuer_name}
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: ${email}
+    privateKeySecretRef:
+      name: ${issuer_name}-account-key
+    solvers:
+    - dns01:
+        cloudflare:
+          apiTokenSecretRef:
+            name: ${gateway_name}-cloudflare-api-token
+            key: api-token
+      selector:
+        dnsZones:
+        - ${domain}
+EOF
+            else
+                kubectl create secret generic ${gateway_name}-cloudflare-api-key \
+                    --namespace cert-manager \
+                    --from-literal=api-key="${API_KEY}" \
+                    --dry-run=client -o yaml | kubectl apply -f -
+                
+                cat <<EOF | kubectl apply -f -
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: ${issuer_name}
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: ${email}
+    privateKeySecretRef:
+      name: ${issuer_name}-account-key
+    solvers:
+    - dns01:
+        cloudflare:
+          email: ${email}
+          apiKeySecretRef:
+            name: ${gateway_name}-cloudflare-api-key
+            key: api-key
+      selector:
+        dnsZones:
+        - ${domain}
+EOF
+            fi
+            ;;
+        # Add other DNS providers as needed
+        *)
+            echo "Error: DNS plugin $dns_plugin not yet supported in multi-gateway mode"
+            echo "Please use the single gateway mode for this DNS provider"
+            exit 1
+            ;;
+    esac
+}
+
+# Function to create a GatewayClass for each gateway
+create_gateway_class() {
+    local gateway_name="$1"
+    local namespace="$2"
+    
+    local gateway_class_name="${gateway_name}-class"
+    
+    echo "Creating GatewayClass: $gateway_class_name"
+    
+    cat <<EOF | kubectl apply -f -
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: ${gateway_class_name}
+  namespace: ${namespace}
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+  parametersRef:
+    group: gateway.envoyproxy.io
+    kind: EnvoyProxy
+    name: custom-proxy-config
+    namespace: envoy-gateway
+EOF
+}
+
+# Function to create gateway
+create_gateway() {
+    local gateway_name="$1"
+    local namespace="$2"
+    local domain="$3"
+    local gateway_types="$4"  # Space-separated list of types
+    local external_pool="$5"
+    local internal_pool="$6"
+    local issuer_name="${gateway_name}-issuer"
+    local gateway_class_name="${gateway_name}-class"
+    
+    echo "Creating gateway: $gateway_name in namespace: $namespace"
+    
+    # Create namespace first
+    create_namespace "$namespace"
+    
+    # Create GatewayClass for this gateway
+    create_gateway_class "$gateway_name" "$namespace"
+    
+    # Build listeners based on gateway types
+    local port_offset=0
+    
+    for gw_type in $gateway_types; do
+        if [[ "$gw_type" == "external" ]]; then
+            local pool="$external_pool"
+            local http_port=$((80 + port_offset))
+            local https_port=$((443 + port_offset))
+        elif [[ "$gw_type" == "internal" ]]; then
+            local pool="$internal_pool"
+            local http_port=$((80 + port_offset))
+            local https_port=$((443 + port_offset))
+        else
+            echo "Warning: Unknown gateway type: $gw_type"
+            continue
+        fi
+        
+        if [[ -z "$pool" ]]; then
+            echo "Warning: No MetalLB pool specified for $gw_type type, skipping"
+            continue
+        fi
+        
+        # Create a separate gateway for each type to allow different MetalLB pools
+        local gw_instance_name="${gateway_name}-${gw_type}"
+        
+        cat <<EOF | kubectl apply -f -
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: ${gw_instance_name}
+  namespace: ${namespace}
+  annotations:
+    cert-manager.io/cluster-issuer: ${issuer_name}
+    acme.cert-manager.io/http01-edit-in-place: "true"
+  labels:
+    gateway.genestack.io/type: ${gw_type}
+    gateway.genestack.io/parent: ${gateway_name}
+spec:
+  gatewayClassName: ${gateway_class_name}
+  infrastructure:
+    annotations:
+      metallb.universe.tf/address-pool: ${pool}
+  listeners:
+    - name: ${gw_type}-http
+      port: ${http_port}
+      protocol: HTTP
+      hostname: "*.${domain}"
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: ${gw_type}-tls
+      port: ${https_port}
+      protocol: HTTPS
+      hostname: "*.${domain}"
+      allowedRoutes:
+        namespaces:
+          from: All
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: wildcard-${gateway_name}-${gw_type}-tls-secret
+EOF
+        
+        echo "  - Created ${gw_type} gateway instance: ${gw_instance_name}"
+        port_offset=$((port_offset + 100))
+    done
+}
+
+# Function to process routes for a specific gateway
+process_gateway_routes() {
+    local gateway_name="$1"
+    local namespace="$2"
+    local domain="$3"
+    local gateway_types="$4"
+    local routes_list="$5"
+    
+    echo "Processing routes for gateway: $gateway_name"
+    
+    # Create gateway-specific routes directory
+    sudo mkdir -p "/etc/genestack/gateway-api/routes/${gateway_name}"
+    
+    # Process each route in the list
+    for route in $routes_list; do
+        # Try multiple naming patterns for route files
+        local route_file=""
+        if [[ -f "/opt/genestack/etc/gateway-api/routes/custom-${route}-gateway-route.yaml" ]]; then
+            route_file="/opt/genestack/etc/gateway-api/routes/custom-${route}-gateway-route.yaml"
+        elif [[ -f "/opt/genestack/etc/gateway-api/routes/custom-${route}-routes.yaml" ]]; then
+            route_file="/opt/genestack/etc/gateway-api/routes/custom-${route}-routes.yaml"
+        elif [[ -f "/opt/genestack/etc/gateway-api/routes/custom-${route}-internal-routes.yaml" ]]; then
+            route_file="/opt/genestack/etc/gateway-api/routes/custom-${route}-internal-routes.yaml"
+        fi
+        
+        if [[ -n "$route_file" ]]; then
+            # Create routes for each gateway type
+            for gw_type in $gateway_types; do
+                local gw_instance_name="${gateway_name}-${gw_type}"
+                local output_file="/etc/genestack/gateway-api/routes/${gateway_name}/custom-${route}-${gw_type}-gateway-route.yaml"
+                
+                sed "s/your.domain.tld/${domain}/g" "$route_file" > "/tmp/${route}-${gateway_name}-${gw_type}.yaml"
+                sed -i "s/namespace: nginx-gateway/namespace: ${namespace}/g" "/tmp/${route}-${gateway_name}-${gw_type}.yaml"
+                sed -i "s/name: flex-gateway/name: ${gw_instance_name}/g" "/tmp/${route}-${gateway_name}-${gw_type}.yaml"
+                
+                # Update parentRefs namespace to match the gateway namespace
+                sed -i "s/namespace: envoy-gateway/namespace: ${namespace}/g" "/tmp/${route}-${gateway_name}-${gw_type}.yaml"
+                sed -i "s/namespace: external-gateway/namespace: ${namespace}/g" "/tmp/${route}-${gateway_name}-${gw_type}.yaml"
+                
+                # Update the HTTPRoute metadata name to be unique for this gateway type
+                # This handles various naming patterns in the route files
+                sed -i "0,/^  name: /{s/^  name: \(.*\)$/  name: \1-${gw_type}/}" "/tmp/${route}-${gateway_name}-${gw_type}.yaml"
+                
+                sudo mv "/tmp/${route}-${gateway_name}-${gw_type}.yaml" "$output_file"
+                echo "  - Processed route: $route for $gw_type gateway"
+            done
+        else
+            echo "  - Warning: Route file not found for $route"
+        fi
+    done
+    
+    # Apply the routes
+    if [[ -d "/etc/genestack/gateway-api/routes/${gateway_name}" ]]; then
+        kubectl apply -f "/etc/genestack/gateway-api/routes/${gateway_name}/"
+    fi
+}
+
+# Function to process listeners for a specific gateway
+process_gateway_listeners() {
+    local gateway_name="$1"
+    local namespace="$2"
+    local domain="$3"
+    local gateway_types="$4"
+    local routes_list="$5"
+    
+    echo "Processing listeners for gateway: $gateway_name"
+    
+    # Create gateway-specific listeners directory
+    sudo mkdir -p "/etc/genestack/gateway-api/listeners/${gateway_name}"
+    
+    # Process each listener in the list for each gateway type
+    for gw_type in $gateway_types; do
+        local gw_instance_name="${gateway_name}-${gw_type}"
+        
+        # Process all available listener files (not just those matching routes)
+        # This matches the legacy behavior where all listeners are applied
+        for listener_file in /opt/genestack/etc/gateway-api/listeners/*-https.json; do
+            if [[ -f "$listener_file" ]]; then
+                local listener_name=$(basename "$listener_file")
+                local output_file="/etc/genestack/gateway-api/listeners/${gateway_name}/${listener_name%.*}-${gw_type}.json"
+                local temp_file="/tmp/${listener_name%.*}-${gateway_name}-${gw_type}.json"
+                sed "s/your.domain.tld/${domain}/g" "$listener_file" > "$temp_file"
+                sudo mv "$temp_file" "$output_file"
+                echo "  - Processed listener: $listener_name for $gw_type gateway"
+            fi
+        done
+        
+        # Apply the listeners for this gateway instance if any exist
+        if [[ -d "/etc/genestack/gateway-api/listeners/${gateway_name}" ]] && [[ -n "$(ls -A /etc/genestack/gateway-api/listeners/${gateway_name}/*-${gw_type}.json 2>/dev/null)" ]]; then
+            kubectl patch -n "$namespace" gateway "$gw_instance_name" \
+                          --type='json' \
+                          --patch="$(jq -s 'flatten | .' /etc/genestack/gateway-api/listeners/${gateway_name}/*-${gw_type}.json)"
+            echo "  - Applied listeners to $gw_instance_name"
+        fi
+    done
+}
 
 # Function to validate and prompt for credentials based on DNS plugin
 validate_credentials() {
@@ -825,25 +1240,151 @@ validate_credentials() {
     esac
 }
 
-# Validate credentials if using DNS01
-if [[ "$CHALLENGE_METHOD" == "dns01" ]]; then
-    validate_credentials "$DNS_PLUGIN"
-fi
+# Main execution logic
+if [[ -n "$CONFIG_FILE" ]]; then
+    # Configuration file mode
+    echo "Using configuration file: $CONFIG_FILE"
+    parse_config "$CONFIG_FILE"
+    
+    # Apply only the base infrastructure (not the default flex-gateway)
+    echo "Applying base Envoy Gateway infrastructure..."
+    kubectl apply -f /opt/genestack/base-kustomize/envoyproxy-gateway/base/envoy-gateway-namespace.yaml
+    kubectl apply -f /opt/genestack/base-kustomize/envoyproxy-gateway/base/envoy-internal-gateway-issuer.yaml
+    kubectl apply -f /opt/genestack/base-kustomize/envoyproxy-gateway/base/envoy-custom-proxy-config.yaml
+    kubectl apply -f /opt/genestack/base-kustomize/envoyproxy-gateway/base/envoy-gatewayclass.yaml
+    kubectl apply -f /opt/genestack/base-kustomize/envoyproxy-gateway/base/envoy-endpoint-policies.yaml
+    kubectl apply -f /opt/genestack/base-kustomize/envoyproxy-gateway/base/envoy-service-monitor.yaml
+    echo "Skipping default flex-gateway creation (using config file gateways instead)"
+    
+    # Read the Python output and process each gateway
+    python3 > /tmp/gateway_configs.txt << EOF
+import yaml
+import sys
 
-# Display configuration
-echo "Configuration:"
-echo "  Email: ${ACME_EMAIL:-"(not provided - ACME setup will be skipped)"}"
-echo "  Domain: ${GATEWAY_DOMAIN}"
-echo "  Challenge Method: ${CHALLENGE_METHOD}"
-if [[ "$CHALLENGE_METHOD" == "dns01" ]]; then
-    echo "  DNS Plugin: ${DNS_PLUGIN}"
-fi
-echo
+with open('${CONFIG_FILE}', 'r') as f:
+    config = yaml.safe_load(f)
 
-# Apply the gateway configuration
-kubectl apply -k /etc/genestack/kustomize/envoyproxy-gateway/overlay
-echo "Waiting for the gateway to be programmed"
-kubectl -n envoy-gateway wait --timeout=5m gateways.gateway.networking.k8s.io flex-gateway --for=condition=Programmed
+if 'gateways' not in config:
+    print("Error: No 'gateways' section found in configuration file", file=sys.stderr)
+    sys.exit(1)
+
+for gateway in config['gateways']:
+    name = gateway.get('name', '')
+    namespace = gateway.get('namespace', name)  # Default namespace to gateway name
+    domain = gateway.get('domain', 'cluster.local')
+    
+    # Handle both old format (string) and new format (list) for type
+    gateway_type = gateway.get('type', ['external'])
+    if isinstance(gateway_type, str):
+        gateway_type = [gateway_type]
+    gateway_types_str = ' '.join(gateway_type)
+    
+    # Handle both old format (single pool) and new format (pools dict)
+    metallb_pools = gateway.get('metallb_pools', gateway.get('metallb_pool', {}))
+    if isinstance(metallb_pools, str):
+        # Old format - single pool, assume it's external
+        external_pool = metallb_pools
+        internal_pool = ''
+    else:
+        # New format - dict with external/internal keys
+        external_pool = metallb_pools.get('external', '')
+        internal_pool = metallb_pools.get('internal', '')
+    
+    issuer = gateway.get('issuer', {})
+    issuer_type = issuer.get('type', 'selfsigned')
+    email = issuer.get('email', '')
+    challenge = issuer.get('challenge', 'http01')
+    dns_plugin = issuer.get('dns_plugin', 'cloudflare')
+    
+    # Get DNS provider credentials from issuer config
+    api_token = issuer.get('api_token', '')
+    api_key = issuer.get('api_key', '')
+    
+    routes = gateway.get('routes', [])
+    routes_str = ' '.join(routes)
+    
+    if not name:
+        print("Error: Gateway name is required", file=sys.stderr)
+        sys.exit(1)
+    
+    print(f"{name}|{namespace}|{domain}|{gateway_types_str}|{external_pool}|{internal_pool}|{issuer_type}|{email}|{challenge}|{dns_plugin}|{api_token}|{api_key}|{routes_str}")
+EOF
+    
+    # Process each gateway configuration
+    while IFS='|' read -r gw_name gw_namespace gw_domain gw_types external_pool internal_pool issuer_type issuer_email challenge dns_plugin api_token api_key routes; do
+        if [[ -n "$gw_name" ]]; then
+            echo "Processing gateway: $gw_name in namespace: $gw_namespace"
+            echo "  Types: $gw_types"
+            echo "  Domain: $gw_domain"
+            echo "  External pool: ${external_pool:-"(none)"}"
+            echo "  Internal pool: ${internal_pool:-"(none)"}"
+            
+            # Set credentials for this gateway
+            API_TOKEN="$api_token"
+            API_KEY="$api_key"
+            
+            # Create cluster issuer
+            create_multi_cluster_issuer "$gw_name" "$issuer_type" "$issuer_email" "$challenge" "$dns_plugin" "$gw_domain"
+            
+            # Create gateway instances
+            create_gateway "$gw_name" "$gw_namespace" "$gw_domain" "$gw_types" "$external_pool" "$internal_pool"
+            
+            # Wait for gateway instances to be programmed
+            for gw_type in $gw_types; do
+                gw_instance_name="${gw_name}-${gw_type}"
+                echo "Waiting for gateway $gw_instance_name to be programmed..."
+                kubectl -n "$gw_namespace" wait --timeout=5m "gateways.gateway.networking.k8s.io/$gw_instance_name" --for=condition=Programmed || {
+                    echo "Warning: Gateway $gw_instance_name failed to become ready within timeout"
+                }
+            done
+            
+            # Process routes and listeners
+            if [[ -n "$routes" ]]; then
+                process_gateway_routes "$gw_name" "$gw_namespace" "$gw_domain" "$gw_types" "$routes"
+                process_gateway_listeners "$gw_name" "$gw_namespace" "$gw_domain" "$gw_types" "$routes"
+            fi
+            
+            echo "Gateway $gw_name setup complete"
+            echo
+        fi
+    done < /tmp/gateway_configs.txt
+    
+    rm -f /tmp/gateway_configs.txt
+
+elif [[ "$LEGACY_MODE" == "true" ]] || [[ "$INTERACTIVE_MODE" == "true" ]]; then
+    # Legacy single gateway mode or interactive mode
+    
+    # Validate credentials if using DNS01
+    if [[ "$CHALLENGE_METHOD" == "dns01" ]]; then
+        validate_credentials "$DNS_PLUGIN"
+    fi
+
+    # Display configuration
+    echo "Legacy Mode Configuration:"
+    echo "  Email: ${ACME_EMAIL:-"(not provided - ACME setup will be skipped)"}"
+    echo "  Domain: ${GATEWAY_DOMAIN}"
+    echo "  Challenge Method: ${CHALLENGE_METHOD}"
+    if [[ "$CHALLENGE_METHOD" == "dns01" ]]; then
+        echo "  DNS Plugin: ${DNS_PLUGIN}"
+    fi
+    echo
+
+    # Apply the gateway configuration
+    echo "Applying gateway configuration from kustomize..."
+    kubectl apply -k /etc/genestack/kustomize/envoyproxy-gateway/base
+    
+    # Give the gateway a moment to be created
+    sleep 2
+    
+    echo "Waiting for the gateway to be created and programmed"
+    # Check if gateway exists
+    if kubectl -n envoy-gateway get gateway flex-gateway &>/dev/null; then
+        # Wait for it to be programmed
+        kubectl -n envoy-gateway wait --timeout=5m gateways.gateway.networking.k8s.io flex-gateway --for=condition=Programmed 2>/dev/null || true
+    else
+        echo "Warning: flex-gateway was not created by kustomize overlay. Checking what was created..."
+        kubectl -n envoy-gateway get gateways 2>/dev/null || echo "No gateways found in envoy-gateway namespace"
+    fi
 
 # Configure ACME if email is provided
 if [ ! -z "${ACME_EMAIL}" ]; then
@@ -1375,22 +1916,39 @@ else
     echo "Skipping ACME configuration (no email provided)"
 fi
 
-# Process routes
+# Process routes (legacy behavior - all routes)
 sudo mkdir -p /etc/genestack/gateway-api/routes
 for route in $(ls -1 /opt/genestack/etc/gateway-api/routes); do
     sed "s/your.domain.tld/${GATEWAY_DOMAIN}/g" "/opt/genestack/etc/gateway-api/routes/${route}" > "/tmp/${route}"
+    # Update parentRefs namespace to envoy-gateway for legacy mode
+    sed -i "s/namespace: external-gateway/namespace: envoy-gateway/g" "/tmp/${route}"
+    sed -i "s/namespace: external-gateway/namespace: envoy-gateway/g" "/tmp/${route}"
     sudo mv -v "/tmp/${route}" "/etc/genestack/gateway-api/routes/${route}"
 done
 kubectl apply -f /etc/genestack/gateway-api/routes
 
-# Process listeners
+# Process listeners (legacy behavior - all listeners)
 sudo mkdir -p /etc/genestack/gateway-api/listeners
 for listener in $(ls -1 /opt/genestack/etc/gateway-api/listeners); do
     sed "s/your.domain.tld/${GATEWAY_DOMAIN}/g" "/opt/genestack/etc/gateway-api/listeners/${listener}" > "/tmp/${listener}"
     sudo mv -v "/tmp/${listener}" "/etc/genestack/gateway-api/listeners/${listener}"
 done
-kubectl patch -n envoy-gateway gateway flex-gateway \
-              --type='json' \
-              --patch="$(jq -s 'flatten | .' /etc/genestack/gateway-api/listeners/*)"
+# Only patch if gateway exists and there are listener files
+if kubectl -n envoy-gateway get gateway flex-gateway &>/dev/null; then
+    if [ -n "$(ls -A /etc/genestack/gateway-api/listeners/*.json 2>/dev/null)" ]; then
+        echo "Patching flex-gateway with listeners..."
+        kubectl patch -n envoy-gateway gateway flex-gateway \
+                      --type='json' \
+                      --patch="$(jq -s 'flatten | .' /etc/genestack/gateway-api/listeners/*.json)" || true
+    fi
+else
+    echo "Warning: flex-gateway does not exist, skipping listener patch"
+fi
+
+else
+    echo "Error: No configuration provided. Use --config, provide legacy options, or run interactively."
+    echo "Use --help for usage information."
+    exit 1
+fi
 
 echo "Setup Complete"
