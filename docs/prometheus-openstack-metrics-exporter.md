@@ -11,7 +11,7 @@ For more information see: [Prometheus docs](https://prometheus.io) and [Openstac
 
 ### Create clouds-yaml secret
 
-Modify genestack/helm-configs/monitoring/openstack-metrics-exporter/clouds-yaml with the appropriate settings and create the secret.
+Modify `/etc/genestack/helm-configs/monitoring/openstack-metrics-exporter/clouds-yaml` with the appropriate settings and create the secret.
 
 !!! tip
 
@@ -21,9 +21,8 @@ From your generated `clouds.yaml` file, create a new manifest for your cloud con
 
 ``` shell
 printf -v m "$(cat ~/.config/openstack/clouds.yaml)"; \
-	t=$(echo "$m" | yq '.[] |= pick(["clouds", "default"])' | yq 'del(.cache)'); \
-		 t="$t" yq -I6 -n '."clouds.yaml" = strenv(t)' | \
-			 tee /tmp/generated-clouds-yaml
+  t=$(echo "$m" | yq '.[] |= pick(["clouds", "default"])' | yq 'del(.cache)'); \
+  t="$t" yq -I6 -n '."clouds.yaml" = strenv(t)' | tee /tmp/generated-clouds-yaml
 ```
 
 !!! example "generated file will look similar to this"
@@ -36,47 +35,45 @@ If you're using self-signed certs then you may need to add keystone certificates
 
 ``` shell
 ks_cert="$(kubectl get secret -n openstack keystone-tls-public -o json | jq -r '.data."tls.crt"' | base64 -d)" \
-        yq -I6 '."clouds.yaml" |= (from_yaml | .clouds.default.cacert = strenv(ks_cert) | to_yaml)' \
-        </tmp/generated-clouds-yaml | tee /tmp/generated-clouds-certs-yaml
+  yq -I6 '."clouds.yaml" |= (from_yaml | .clouds.default.cacert = strenv(ks_cert) | to_yaml)' \
+  </tmp/generated-clouds-yaml | tee /tmp/generated-clouds-certs-yaml
 ```
 
-Now create a secret from your manifest:
+=== "Create a secret from your manifest"
 
-``` shell
-kubectl --namespace openstack create secret generic clouds-yaml-secret \
-        --from-file /tmp/generated-clouds-yaml
-```
+    ``` shell
+    kubectl --namespace openstack create secret generic clouds-yaml-secret \
+            --from-file /tmp/generated-clouds-yaml
+    ```
 
-If using self-signed certs then use:
+=== "Create secrets for self-signed certs"
 
-``` shell
-kubectl --namespace openstack create secret generic clouds-yaml-secret \
-        --from-file /tmp/generated-clouds-certs-yaml
-```
+    ``` shell
+    kubectl --namespace openstack create secret generic clouds-yaml-secret \
+            --from-file /tmp/generated-clouds-certs-yaml
+    ```
 
-## Install openstack-metrics-exporter helm chart
+With the secret created you can now deploy the **openstack-metrics-exporter** helm chart.
 
-``` shell
-cd /opt/genestack/submodules/openstack-exporter/charts
+=== "Install openstack-metrics-exporter helm chart"
 
-helm upgrade --install os-metrics ./prometheus-openstack-exporter \
-  --namespace=openstack \
-    --timeout 15m \
-    -f /opt/genestack/base-helm-configs/monitoring/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml \
-    --set clouds_yaml_config="$(kubectl --namespace openstack get secret clouds-yaml-secret -o jsonpath='{.data.generated-clouds-yaml}' | base64 -d)"
-```
+    ``` shell
+    helm upgrade --install os-metrics /opt/genestack/submodules/openstack-exporter/charts/prometheus-openstack-exporter \
+                --namespace=openstack \
+                --timeout 15m \
+                -f /opt/genestack/base-helm-configs/monitoring/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml \
+                --set clouds_yaml_config="$(kubectl --namespace openstack get secret clouds-yaml-secret -o jsonpath='{.data.generated-clouds-yaml}' | base64 -d)"
+    ```
 
-If you're using self-signed certs run:
+=== "Install openstack-metrics-exporter helm chart with self-signed certs"
 
-``` shell
-cd /opt/genestack/submodules/openstack-exporter/charts
-
-helm upgrade --install os-metrics ./prometheus-openstack-exporter \
-  --namespace=openstack \
-    --timeout 15m \
-    -f /opt/genestack/base-helm-configs/monitoring/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml \
-    --set clouds_yaml_config="$(kubectl --namespace openstack get secret clouds-yaml-secret -o jsonpath='{.data.generated-clouds-certs-yaml}' | base64 -d)"
-```
+    ``` shell
+    helm upgrade --install os-metrics /opt/genestack/submodules/openstack-exporter/charts/prometheus-openstack-exporter \
+                --namespace=openstack \
+                --timeout 15m \
+                -f /opt/genestack/base-helm-configs/monitoring/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml \
+                --set clouds_yaml_config="$(kubectl --namespace openstack get secret clouds-yaml-secret -o jsonpath='{.data.generated-clouds-certs-yaml}' | base64 -d)"
+    ```
 
 !!! success
 
