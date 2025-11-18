@@ -905,6 +905,24 @@ else
     echo "Note: ${SKYLINE_SECRETS_FILE} not found. Run create-skyline-secrets.sh to add skyline secrets."
 fi
 
+# Check if kube-ovn-tls secret exists, and copy to openstack namespace if it does
+if kubectl -n kube-system get secret kube-ovn-tls >/dev/null 2>&1
+then
+    cat <<EOF >> $OUTPUT_FILE
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ovn-client-tls
+  namespace: openstack
+type: Opaque
+data:
+  cacert: $(kubectl -n kube-system get secret kube-ovn-tls -o jsonpath='{.data.cacert}')
+  cert: $(kubectl -n kube-system get secret kube-ovn-tls -o jsonpath='{.data.cert}')
+  key: $(kubectl -n kube-system get secret kube-ovn-tls -o jsonpath='{.data.key}')
+EOF
+fi
+
 rm nova_ssh_key nova_ssh_key.pub
 rm manila_ssh_key manila_ssh_key.pub
 chmod 0640 ${OUTPUT_FILE}
