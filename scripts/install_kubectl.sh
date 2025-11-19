@@ -14,7 +14,7 @@ if [[ "$1" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     shift
 fi
 
-if [[ "$1" == "--dry-run" ]] || [[ "$1" == "-n" ]]; then
+if [[ "$1" == "--dry-run" ]]; then
     DRY_RUN=true
     echo "--- DRY-RUN MODE ACTIVATED ---"
 fi
