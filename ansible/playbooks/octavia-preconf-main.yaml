@@ -14,7 +14,7 @@
     octavia_os_identity_api_version: 3
     octavia_os_auth_version: 3
     octavia_nova_endpoint_type: "{{ octavia_os_endpoint_type }}"
-    octavia_helm_values_file: "{{ octavia_helm_file }}"
+    octavia_helm_values_file: "{{ octavia_helm_file | default(lookup('env', 'HOME') ~ '/octavia_amphora_provider.yaml') }}"
     interface: "{{ interface }}"
     endpoint_type: "{{ endpoint_type }}"
   environment:
