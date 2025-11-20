@@ -7,6 +7,10 @@ on:
       - .github/workflows/helm-loki.yaml
 jobs:
   helm:
+    strategy:
+      matrix:
+        overlays:
+          - base
     name: Helm
     runs-on: ubuntu-latest
     steps:
@@ -17,22 +21,19 @@ jobs:
           version: latest
           token: "${{ secrets.GITHUB_TOKEN }}"
         id: helm
-      - name: Kubectl Install
-        working-directory: /usr/local/bin/
-        run: |
-            if [ ! -f /usr/local/bin/kubectl ]; then
-              curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-              chmod +x ./kubectl
-            fi
-      - name: Run Helm Template
-        run: |
+      - name: Add grafana repo to helm
           ${{ steps.helm.outputs.helm-path }} repo add grafana https://grafana.github.io/helm-charts
           ${{ steps.helm.outputs.helm-path }} repo update
-          ${{ steps.helm.outputs.helm-path }} template -f ${{ github.workspace }}/base-helm-configs/loki/loki-helm-minio-overrides-example.yaml \
-                                                       --set loki.useTestSchema=true \
-                                                       --namespace grafana \
-                                                       --set loki.storage.bucketNames.chunks=chunky \
-                                                        loki grafana/loki > /tmp/rendered.yaml
+
+      - name: Run Helm Template
+        run: |
+          ${{ steps.helm.outputs.helm-path }} template grafana grafana/loki \
+            --create-namespace \
+            --namespace=prometheus \
+            --timeout 120m \
+            -f ${{ github.workspace }}//base-helm-configs/loki/loki-helm-minio-overrides-example.yaml \
+            --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
+            --post-renderer-args loki/${{ matrix.overlays }} > /tmp/rendered.yaml
       - name: Return helm Build
         uses: actions/upload-artifact@v4
         with:
