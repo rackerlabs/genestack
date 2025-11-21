@@ -163,6 +163,9 @@ use of it, so you do not need to install it unless you plan to do additional
 configuration beyond Genestack defaults and specifically plan to monitor some
 SNMP-enabled devices.
 
+* ### Barbican Exporter:
+The Barbican exporter is used for monitoring of OpenStack's Key Management Service (Barbican) by exposing metrics to Prometheus. It collects metrics about secrets, containers, and other Barbican-specific resources.
+
 * ### Textfile Collector:
 It's possible to gather node/host metrics that aren't exposed by any of the above exporters by utilizing the [Node Exporter Textfile Collector](https://github.com/prometheus/node_exporter?tab=readme-ov-file#textfile-collector).
 Currently, in Genestack the textfile-collector is used to collect kernel-taint stats. To view more information about the textfile-collector and how to deploy your own custom exporter view the [Custom Metrics Deployment Doc](prometheus-custom-node-metrics.md).
