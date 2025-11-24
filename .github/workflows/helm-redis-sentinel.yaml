@@ -1,3 +1,4 @@
+---
 name: Helm GitHub Actions for redis-sentinel
 
 on:
@@ -19,13 +20,13 @@ jobs:
         uses: actions/checkout@v4
       - uses: azure/setup-helm@v3
         with:
-          version: latest
-          token: "${{ secrets.GITHUB_TOKEN }}"
+          version: v3.14.3
+          token: ${{ secrets.GITHUB_TOKEN }}
         id: helm
       - name: Add ot-helm (redis) to helm
         run: |
-            ${{ steps.helm.outputs.helm-path }} repo add ot-helm https://ot-container-kit.github.io/helm-charts/
-            ${{ steps.helm.outputs.helm-path }} repo update
+          ${{ steps.helm.outputs.helm-path }} repo add ot-helm https://ot-container-kit.github.io/helm-charts/
+          ${{ steps.helm.outputs.helm-path }} repo update
       - name: Run Helm Template
         run: |
           ${{ steps.helm.outputs.helm-path }} template redis-sentinel ot-helm/redis-sentinel \

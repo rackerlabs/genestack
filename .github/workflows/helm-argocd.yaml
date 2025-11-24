@@ -1,3 +1,4 @@
+---
 name: Helm GitHub Actions for argocd
 
 on:
@@ -19,16 +20,16 @@ jobs:
         uses: actions/checkout@v4
       - uses: azure/setup-helm@v3
         with:
-          version: latest
-          token: "${{ secrets.GITHUB_TOKEN }}"
+          version: v3.14.3
+          token: ${{ secrets.GITHUB_TOKEN }}
         id: helm
       - name: Kubectl Install
         working-directory: /usr/local/bin/
         run: |
-            if [ ! -f /usr/local/bin/kubectl ]; then
-              curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-              chmod +x ./kubectl
-            fi
+          if [ ! -f /usr/local/bin/kubectl ]; then
+            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+            chmod +x ./kubectl
+          fi
       - name: Run Helm Template
         run: |
           ${{ steps.helm.outputs.helm-path }} template argocd oci://registry-1.docker.io/bitnamicharts/argo-cd \
