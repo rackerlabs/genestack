@@ -148,8 +148,8 @@ set_args=(
     --set "conf.octavia.certificates.ca_private_key_passphrase=$(kubectl --namespace openstack get secret octavia-certificates -o jsonpath='{.data.password}' | base64 -d)"
 
     # OVN connections (dynamic clusterIP lookup)
-    --set "conf.octavia.ovn.ovn_nb_connection=tcp:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
-    --set "conf.octavia.ovn.ovn_sb_connection=tcp:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
+    --set "conf.octavia.ovn.ovn_nb_connection=ssl:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
+    --set "conf.octavia.ovn.ovn_sb_connection=ssl:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
 )
 
 
