@@ -24,7 +24,7 @@ jobs:
         id: helm
       - name: Add barbican-exporter repo to helm
         run: |
-            ${{ steps.helm.outputs.helm-path }} repo add genestack-barbician-exporter-helm-chart https://github.com/rackerlabs/genestack-barbician-exporter-helm-chart
+            ${{ steps.helm.outputs.helm-path }} repo add genestack-barbician-exporter-helm-chart https://rackerlabs.github.io/genestack-barbician-exporter-helm-chart
             ${{ steps.helm.outputs.helm-path }} repo update
       - name: Kubectl Install
         working-directory: /usr/local/bin/
