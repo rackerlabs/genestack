@@ -1,0 +1,48 @@
+name: Helm GitHub Actions for Barbican Exporter
+
+on:
+  pull_request:
+    paths:
+      - base-helm-configs/barbican-exporter/**
+      - base-kustomize/barbican-exporter/**
+      - .github/workflows/helm-barbican-exporter.yaml
+jobs:
+  helm:
+    strategy:
+      matrix:
+        overlays:
+          - base
+    name: Helm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: azure/setup-helm@v3
+        with:
+          version: v3.14.3
+          token: "${{ secrets.GITHUB_TOKEN }}"
+        id: helm
+      - name: Add barbican-exporter repo to helm
+        run: |
+            ${{ steps.helm.outputs.helm-path }} repo add genestack-barbician-exporter-helm-chart https://rackerlabs.github.io/genestack-barbician-exporter-helm-chart
+            ${{ steps.helm.outputs.helm-path }} repo update
+      - name: Kubectl Install
+        working-directory: /usr/local/bin/
+        run: |
+            if [ ! -f /usr/local/bin/kubectl ]; then
+              curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+              chmod +x ./kubectl
+            fi
+      - name: Run Helm Template
+        run: |
+          ${{ steps.helm.outputs.helm-path }} template barbican-exporter genestack-barbician-exporter-helm-chart/barbican-exporter \
+            --create-namespace \
+            --namespace=openstack \
+            --wait \
+            --timeout 120m \
+            -f ${{ github.workspace }}/base-helm-configs/barbican-exporter/barbican-exporter-helm-overrides.yaml > /tmp/rendered.yaml
+      - name: Return helm Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-barbican-exporter-artifact-${{ matrix.overlays }}
+          path: /tmp/rendered.yaml
