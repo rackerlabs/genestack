@@ -7,10 +7,6 @@ metadata:
 spec:
   hostnames:
     - grafana.your.domain.tld
-    - grafana.cluster.local
-    - grafana
-    - grafana.grafana
-    - grafana.grafana.svc.cluster.local
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
