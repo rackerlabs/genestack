@@ -124,6 +124,28 @@ fi
 
 echo
 
+# Set connection string based on whether we use Kube-OVN TLS
+# Hyperconverged build tries to execute the install script without yq in the
+# path
+function installYq() {
+    export VERSION=v4.47.2
+    export BINARY=yq_linux_amd64
+    wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -q -O - | tar xz && mv ${BINARY} /usr/local/bin/yq
+}
+
+if ! yq --version 2> /dev/null; then
+  echo "yq is not installed. Attempting to install yq"
+  installYq
+fi
+
+if helm -n kube-system get values kube-ovn \
+  | yq -e '.networking.ENABLE_SSL == true' >/dev/null 2>&1
+then
+    CONNECTION_STRING="ssl"
+else
+    CONNECTION_STRING="tcp"
+fi
+
 # Collect all --set arguments, executing commands and quoting safely
 # NOTE: This array contains OpenStack-specific secret retrievals and MUST be updated
 #       with the necessary --set arguments for your target SERVICE_NAME_DEFAULT.
@@ -143,12 +165,12 @@ set_args=(
     --set "conf.neutron.keystone_authtoken.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
     --set "endpoints.oslo_messaging.auth.admin.password=$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.oslo_messaging.auth.neutron.password=$(kubectl --namespace openstack get secret neutron-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)"
-    --set "conf.neutron.ovn.ovn_nb_connection=ssl:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
-    --set "conf.neutron.ovn.ovn_sb_connection=ssl:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
-    --set "conf.plugins.ml2_conf.ovn.ovn_nb_connection=ssl:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
-    --set "conf.plugins.ml2_conf.ovn.ovn_sb_connection=ssl:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
-    --set "conf.ovn_metadata_agent.ovn.ovn_nb_connection=ssl:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
-    --set "conf.ovn_metadata_agent.ovn.ovn_sb_connection=ssl:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
+    --set "conf.neutron.ovn.ovn_nb_connection=$CONNECTION_STRING:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
+    --set "conf.neutron.ovn.ovn_sb_connection=$CONNECTION_STRING:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
+    --set "conf.plugins.ml2_conf.ovn.ovn_nb_connection=$CONNECTION_STRING:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
+    --set "conf.plugins.ml2_conf.ovn.ovn_sb_connection=$CONNECTION_STRING:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
+    --set "conf.ovn_metadata_agent.ovn.ovn_nb_connection=$CONNECTION_STRING:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
+    --set "conf.ovn_metadata_agent.ovn.ovn_sb_connection=$CONNECTION_STRING:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
 
 )
 

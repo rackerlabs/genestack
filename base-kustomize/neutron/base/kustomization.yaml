@@ -8,6 +8,7 @@ resources:
   - policies.yaml
 
 patches:
+  - path: patch-ovn-tls-optional.yaml
   - target:
       kind: ConfigMap
       name: neutron-bin
