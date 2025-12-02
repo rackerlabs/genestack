@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The oslo policies for cinder and glance are reverted to standard
+    OpenStack policies. If the previous behavior is needed, please add them
+    into your local `/etc/genestack/helm-configs` overrides files.
