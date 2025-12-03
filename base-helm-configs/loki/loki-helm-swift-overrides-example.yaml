@@ -1,24 +1,88 @@
+---
 global:
-  dnsService: "coredns"
+  dnsService: coredns
 minio:
   enabled: false
 loki:
+  persistence:
+    enabled: true
+    size: 100Gi
   auth_enabled: false
   configStorageType: Secret
   ingester:
     autoforget_unhealthy: true
   storage:
     bucketNames:
-      chunks: chunks
-      ruler: ruler
-      admin: admin
+      chunks: LOKI_CHUNKS_BUCKET_NAME
+      ruler: LOKI_RULER_BUCKET_NAME
+      admin: LOKI_ADMIN_BUCKET_NAME
     type: swift
     swift:
-      auth_url: https://identity.api.rackspacecloud.com/v1.0
-      username: < USERNAME > # TODO: Update with valid username
-      password: < PASSWORD > # TODO: Update with valid password
-      container_name: < CONTAINER > # TODO: Update with valid container
-      region_name: < REGION > # TODO: Update with valid region
-monitoring:
+      auth_url: YOUR_SWIFT_AUTH_URL
+      password: YOUR_SWIFT_PASSWORD
+      username: YOUR_SWIFT_USERNAME
+      container_name: YOUR_SWIFT_CONTAINER_NAME
+      region_name: YOUR_SWIFT_REGION
+  schemaConfig:
+    configs:
+      - from: 2020-01-01
+        store: tsdb
+        object_store: swift
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+  limits_config:
+    ingestion_rate_mb: 10
+    ingestion_burst_size_mb: 40
+    per_stream_rate_limit: 10MB
+    per_stream_rate_limit_burst: 40MB
+
+  write:
+    replicas: 5
+    podDisruptionBudget:
+      enabled: true
+      maxUnavailable: 40%
+    nodeSelector:
+      openstack-control-plane: enabled
+    serviceMonitor:
+      enabled: true
+
+  read:
+    podDisruptionBudget:
+      enabled: true
+      maxUnavailable: 40%
+    nodeSelector:
+      openstack-control-plane: enabled
+    serviceMonitor:
+      enabled: true
+
+  canary:
+    enabled: true
+    podDisruptionBudget:
+      enabled: true
+      maxUnavailable: 50%
+    serviceMonitor:
+      enabled: true
+
+  backend:
+    serviceMonitor:
+      enabled: true
+
+gateway:
+  service:
+    type: NodePort
+    nodePort: 31776
+  podDisruptionBudget:
+    enabled: true
+    maxUnavailable: 1
+  nodeSelector:
+    openstack-control-plane: enabled
   serviceMonitor:
     enabled: true
+
+lokiCanary:
+  kind: Deployment
+  replicas: 1
+  nodeSelector:
+    openstack-control-plane: enabled
