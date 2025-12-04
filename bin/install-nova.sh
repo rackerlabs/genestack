@@ -144,8 +144,8 @@ set_args=(
     --set "conf.nova.keystone_authtoken.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
     --set "endpoints.oslo_messaging.auth.admin.password=$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.oslo_messaging.auth.nova.password=$(kubectl --namespace openstack get secret nova-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)"
-    --set "network.ssh.public_key=$(kubectl -n openstack get secret nova-ssh-keypair -o jsonpath='{.data.public_key}' | base64 -d)"
-    --set "network.ssh.private_key=$(kubectl -n openstack get secret nova-ssh-keypair -o jsonpath='{.data.private_key}' | base64 -d)"
+    --set "network.ssh.public_key=$(kubectl -n openstack get secret nova-ssh -o jsonpath='{.data.public-key}' | base64 -d)"
+    --set "network.ssh.private_key=$(kubectl -n openstack get secret nova-ssh -o jsonpath='{.data.private-key}' | base64 -d)"
 )
 
 
