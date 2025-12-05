@@ -1,0 +1,27 @@
+# I don't believe the OpenStack helm Neutron chart offers the ability to use
+# optional volume mounts, and this secret may not exist on installations not
+# using Kube-OVN's "control plane" TLS
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: octavia-worker-default
+spec:
+  template:
+    spec:
+      volumes:
+        - name: ovn-tls
+          secret:
+            optional: true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: octavia-api
+spec:
+  template:
+    spec:
+      volumes:
+        - name: ovn-tls
+          secret:
+            optional: true
