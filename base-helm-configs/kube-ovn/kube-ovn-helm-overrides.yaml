@@ -1,6 +1,7 @@
 # Default values for kubeovn.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+---
 global:
   registry:
     address: ghcr.io/rackerlabs/genestack-images
@@ -38,13 +39,13 @@ networking:
   vlan:
     PROVIDER_NAME: "provider"
     VLAN_INTERFACE_NAME: "br-overlay"
-    #VLAN_NAME: "ovn-vlan"
-    #VLAN_ID: "100"
+    # VLAN_NAME: "ovn-vlan"
+    # VLAN_ID: "100"
   EXCHANGE_LINK_NAME: false
   ENABLE_EIP_SNAT: false
   DEFAULT_SUBNET: "ovn-default"
   DEFAULT_VPC: "ovn-cluster"
-  NODE_SUBNET: "join" #mesh network
+  NODE_SUBNET: "join" # mesh network
   ENABLE_ECMP: true
   ENABLE_METRICS: true
   # comma-separated string of nodelocal DNS ip addresses
