@@ -205,7 +205,7 @@ conf:
       agent_version: v2
       driver: neutron_fwaas.services.firewall.service_drivers.ovn.firewall_l3_driver.OVNFwaasDriver
       # NOTE(cloudnull): in 2025.1 we can enable this
-      enabled: False
+      enabled: false
     agent:
       extensions: vpnaas,metadata
       availability_zone: az1
@@ -267,10 +267,10 @@ conf:
     ovn:
       ovn_nb_private_key: /etc/neutron/ovn/key
       ovn_nb_certificate: /etc/neutron/ovn/cert
-      ovn_nb_ca_cert:     /etc/neutron/ovn/cacert
+      ovn_nb_ca_cert: /etc/neutron/ovn/cacert
       ovn_sb_private_key: /etc/neutron/ovn/key
       ovn_sb_certificate: /etc/neutron/ovn/cert
-      ovn_sb_ca_cert:     /etc/neutron/ovn/cacert
+      ovn_sb_ca_cert: /etc/neutron/ovn/cacert
   ovn_vpn_agent:
     ovs:
       ovsdb_connection: "tcp:127.0.0.1:6640"
