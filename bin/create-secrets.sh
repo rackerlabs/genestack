@@ -612,8 +612,8 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  public_key: $(echo -n $manila_ssh_public_key | base64 -w0)
-  private_key: $(echo -n "$manila_ssh_private_key" | base64 -w0)
+  public_key: $(echo $manila_ssh_public_key | base64 -w0)
+  private_key: $(echo "$manila_ssh_private_key" | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret
