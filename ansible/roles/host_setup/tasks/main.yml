@@ -170,3 +170,6 @@
 
 - name: Install RAID controller CLI tools
   ansible.builtin.include_tasks: raid_cli_tools.yml
+  
+-name: Disable ICMP Redirects
+  ansible.builtin.include_tasks: disable_icmp_redirect.yml
