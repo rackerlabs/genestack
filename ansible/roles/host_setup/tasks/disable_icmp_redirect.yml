@@ -17,29 +17,29 @@
   ansible.posix.sysctl:
     name: net.ipv4.conf.all.accept_redirects
     value: 0
-    sysctl_set: yes
-  become: yes
+    sysctl_set: true
+  become: true
 
 - name: Set net.ipv4.conf.default.accept_redirects to 0
   ansible.posix.sysctl:
     name: net.ipv4.conf.default.accept_redirects
     value: 0
-    sysctl_set: yes
-  become: yes
+    sysctl_set: true
+  become: true
 
 - name: Set net.ipv4.conf.all.secure_redirects to 0
   ansible.posix.sysctl:
     name: net.ipv4.conf.all.secure_redirects
     value: 0
-    sysctl_set: yes
-  become: yes
+    sysctl_set: true
+  become: true
 
 - name: Set net.ipv4.conf.default.secure_redirects to 0
   ansible.posix.sysctl:
     name: net.ipv4.conf.default.secure_redirects
     value: 0
-    sysctl_set: yes
-  become: yes
+    sysctl_set: true
+  become: true
 
 - name: Update /etc/sysctl.conf
   ansible.builtin.lineinfile:
@@ -55,4 +55,4 @@
 
 - name: Apply changes to /etc/sysctl.conf
   ansible.builtin.command: sysctl -p /etc/sysctl.conf
-  become: yes
+  become: true
