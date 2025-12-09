@@ -48,11 +48,12 @@
     line: "{{ item.line }}"
     state: present
   with_items:
-    - { regexp: '^net.ipv4.conf.all.accept_redirects', line: 'net.ipv4.conf.all.accept_redirects = 0' }
-    - { regexp: '^net.ipv4.conf.default.accept_redirects', line: 'net.ipv4.conf.default.accept_redirects = 0' }
-    - { regexp: '^net.ipv4.conf.all.secure_redirects', line: 'net.ipv4.conf.all.secure_redirects = 0' }
-    - { regexp: '^net.ipv4.conf.default.secure_redirects', line: 'net.ipv4.conf.default.secure_redirects = 0' }
+    - {regexp: '^net.ipv4.conf.all.accept_redirects', line: 'net.ipv4.conf.all.accept_redirects = 0'}
+    - {regexp: '^net.ipv4.conf.default.accept_redirects', line: 'net.ipv4.conf.default.accept_redirects = 0'}
+    - {regexp: '^net.ipv4.conf.all.secure_redirects', line: 'net.ipv4.conf.all.secure_redirects = 0'}
+    - {regexp: '^net.ipv4.conf.default.secure_redirects', line: 'net.ipv4.conf.default.secure_redirects = 0'}
 
 - name: Apply changes to /etc/sysctl.conf
   ansible.builtin.command: sysctl -p /etc/sysctl.conf
   become: true
+
