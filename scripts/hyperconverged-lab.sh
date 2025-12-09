@@ -10,16 +10,26 @@ EXCLUDE_LIST=()
 
 export TEST_LEVEL="${TEST_LEVEL:-off}"
 
+# yq installation constants
+YQ_VERSION="v4.2.0"
+YQ_BINARY="yq_linux_amd64"
+
 function installYq() {
-    export VERSION=v4.2.0
-    export BINARY=yq_linux_amd64
-    wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -q -O - | tar xz && sudo mv ${BINARY} /usr/local/bin/yq
+    if wget https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_BINARY}.tar.gz -O - | tar xz && sudo mv ${YQ_BINARY} /usr/local/bin/yq; then
+        echo "Successfully installed yq version ${YQ_VERSION}"
+        return 0
+    else
+        echo "Failed to install yq"
+        return 1
+    fi
 }
 
 # Install yq locally if needed...
 if ! yq --version 2> /dev/null; then
   echo "yq is not installed. Attempting to install yq"
-  installYq
+  if ! installYq; then
+    echo "[WARNING] Failed to install yq locally"
+  fi
 fi
 
 
@@ -428,6 +438,19 @@ fi
 if [ ! -d "/etc/genestack" ]; then
   sudo /opt/genestack/bootstrap.sh
   sudo chown \${USER}:\${USER} -R /etc/genestack
+fi
+
+# Install yq on the remote host if not already present
+if ! command -v yq &> /dev/null; then
+  echo "Installing yq on remote host..."
+  if wget https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_BINARY}.tar.gz -O - | tar xz && sudo mv ${YQ_BINARY} /usr/local/bin/yq; then
+    echo "Successfully installed yq version ${YQ_VERSION} on remote host"
+  else
+    echo "Failed to install yq on remote host"
+    exit 1
+  fi
+else
+  echo "yq already available on remote host: \$(yq --version)"
 fi
 
 # We need to clobber the sample or else we get a bogus LB vip
