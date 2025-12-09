@@ -56,4 +56,3 @@
 - name: Apply changes to /etc/sysctl.conf
   ansible.builtin.command: sysctl -p /etc/sysctl.conf
   become: true
-
