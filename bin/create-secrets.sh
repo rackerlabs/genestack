@@ -368,6 +368,11 @@ kind: Secret
 metadata:
   name: nova-ssh
   namespace: openstack
+  annotations:
+    meta.helm.sh/release-name: nova
+    meta.helm.sh/release-namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: Helm
 type: Opaque
 data:
   public-key: $(echo $nova_ssh_public_key | base64 -w0)
