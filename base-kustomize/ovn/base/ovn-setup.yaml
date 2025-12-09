@@ -24,6 +24,16 @@ rules:
       - services
       - endpoints
       - nodes
+  - apiGroups:
+      - ""
+    verbs:
+      - get
+      - list
+      - create
+      - update
+      - patch
+    resources:
+      - configmaps
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -49,25 +59,224 @@ data:
     #!/bin/bash
     set -exo pipefail
 
+    CONFIGMAP_NAME="ovn-state-${NODENAME}"
+    NAMESPACE="openstack"
+
+    # Function to get previous state from ConfigMap
+    get_previous_state() {
+      local state
+      state=$(kubectl get configmap "${CONFIGMAP_NAME}" -n "${NAMESPACE}" -o jsonpath='{.data.state}' 2>/dev/null)
+      if [[ $? -eq 0 && -n "${state}" ]]; then
+        echo "${state}"
+      else
+        echo '{}'
+      fi
+    }
+
+    # Function to save current state to ConfigMap
+    save_state() {
+      local state_data="$1"
+      cat <<EOF | kubectl apply -f -
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: ${CONFIGMAP_NAME}
+      namespace: ${NAMESPACE}
+      labels:
+        app: ovn-setup
+        node: ${NODENAME}
+    data:
+      state: |
+        ${state_data}
+    EOF
+    }
+
+    # Load configuration from node annotations
     source /node/ovn
 
+    # Validation
     if [[ "${OVN_BRIDGES}" == "null" ]]; then
       echo "No OVN_BRIDGES defined, exiting"
       exit 99
     fi
-    IFS=',' read -r -a array <<< "$OVN_BRIDGES"
-    for i in ${array[@]}; do
-      ovs-vsctl --no-wait --may-exist add-br $i
-    done
-    if [[ "${OVN_PORT_MAPPINGS}" == "null" ]]; then
-      echo "No OVN_PORT_MAPPINGS defined, exiting"
-      exit 99
+
+    # Get previous state
+    PREVIOUS_STATE=$(get_previous_state)
+    if [[ "${PREVIOUS_STATE}" == "{}" ]]; then
+      echo "First run detected - no previous state found"
+      FIRST_RUN=true
+    else
+      echo "Previous state found: ${PREVIOUS_STATE}"
+      FIRST_RUN=false
     fi
-    IFS=',' read -r -a outerarray <<< "$OVN_PORT_MAPPINGS"
-    for i in ${outerarray[@]}; do
-      IFS=':' read -r -a innerarray <<< "$i"
-      ovs-vsctl --no-wait --may-exist add-port ${innerarray[0]} ${innerarray[1]}
+
+    # Create bridges
+    IFS=',' read -r -a bridges_array <<< "$OVN_BRIDGES"
+    for bridge in ${bridges_array[@]}; do
+      ovs-vsctl --no-wait --may-exist add-br $bridge
     done
+
+    # Parse bond options into associative array
+    declare -A BOND_OPTIONS_MAP
+    if [[ "${OVN_BOND_OPTIONS:-null}" != "null" ]]; then
+      IFS=',' read -r -a bond_options_array <<< "$OVN_BOND_OPTIONS"
+      for bond_option in ${bond_options_array[@]}; do
+        # Format: bondname:option1=value1,option2=value2
+        IFS=':' read -r -a option_parts <<< "$bond_option"
+        OPTION_BOND_NAME="${option_parts[0]}"
+        OPTION_VALUES="${option_parts[1]}"
+        BOND_OPTIONS_MAP["${OPTION_BOND_NAME}"]="${OPTION_VALUES}"
+      done
+    fi
+
+    # Handle bonds if configured
+    declare -A NEW_BONDS
+    if [[ "${OVN_BONDS:-null}" != "null" ]]; then
+      IFS=',' read -r -a bonds_array <<< "$OVN_BONDS"
+      for bond_config in ${bonds_array[@]}; do
+        # Format: bridge:bondname:member1+member2+member3:mode[:lacp]
+        IFS=':' read -r -a bond_parts <<< "$bond_config"
+        BOND_BRIDGE="${bond_parts[0]}"
+        BOND_NAME="${bond_parts[1]}"
+        BOND_MEMBERS="${bond_parts[2]}"
+        BOND_MODE="${bond_parts[3]:-balance-slb}"
+        BOND_LACP="${bond_parts[4]:-off}"
+
+        NEW_BONDS["${BOND_BRIDGE}:${BOND_NAME}"]="${BOND_MEMBERS}:${BOND_MODE}:${BOND_LACP}"
+      done
+    fi
+
+    # Clean up old bonds that are no longer configured
+    if [[ "${FIRST_RUN}" == "false" ]]; then
+      PREV_BONDS=$(echo "${PREVIOUS_STATE}" | jq -r '.bonds // {}' 2>/dev/null || echo '{}')
+      if [[ "${PREV_BONDS}" != "{}" ]]; then
+        echo "${PREV_BONDS}" | jq -r 'to_entries[] | "\(.key):\(.value.bridge)"' | while IFS=: read -r old_bond old_bridge; do
+          if [[ -z "${NEW_BONDS[${old_bridge}:${old_bond}]}" ]]; then
+            echo "Removing old bond: ${old_bond} from bridge ${old_bridge}"
+            ovs-vsctl --if-exists del-port "${old_bridge}" "${old_bond}"
+          fi
+        done
+      fi
+    fi
+
+    # Create/update bonds
+    for bond_key in "${!NEW_BONDS[@]}"; do
+      IFS=':' read -r -a key_parts <<< "$bond_key"
+      BOND_BRIDGE="${key_parts[0]}"
+      BOND_NAME="${key_parts[1]}"
+      IFS=':' read -r -a value_parts <<< "${NEW_BONDS[$bond_key]}"
+      BOND_MEMBERS="${value_parts[0]}"
+      BOND_MODE="${value_parts[1]}"
+      BOND_LACP="${value_parts[2]}"
+
+      # Replace + with space for members list
+      MEMBERS_LIST="${BOND_MEMBERS//+/ }"
+
+      # Check if bond already exists
+      if ovs-vsctl port-to-br "${BOND_NAME}" &>/dev/null; then
+        echo "Bond ${BOND_NAME} exists, checking if update needed"
+        # For now, recreate if exists (could be smarter and check if members changed)
+        ovs-vsctl del-port "${BOND_BRIDGE}" "${BOND_NAME}"
+      fi
+
+      echo "Creating bond ${BOND_NAME} on bridge ${BOND_BRIDGE} with members: ${MEMBERS_LIST}"
+      ovs-vsctl --no-wait add-bond "${BOND_BRIDGE}" "${BOND_NAME}" ${MEMBERS_LIST} \
+        bond_mode="${BOND_MODE}" lacp="${BOND_LACP}"
+
+      # Apply additional bond options if configured
+      if [[ -n "${BOND_OPTIONS_MAP[${BOND_NAME}]}" ]]; then
+        echo "Applying additional options to bond ${BOND_NAME}: ${BOND_OPTIONS_MAP[${BOND_NAME}]}"
+        IFS=',' read -r -a options_array <<< "${BOND_OPTIONS_MAP[${BOND_NAME}]}"
+        for option in ${options_array[@]}; do
+          IFS='=' read -r -a option_kv <<< "$option"
+          OPTION_KEY="${option_kv[0]}"
+          OPTION_VALUE="${option_kv[1]}"
+
+          # Determine if this is a bond_ parameter or other_config parameter
+          case "${OPTION_KEY}" in
+            bond-updelay|bond_updelay|updelay)
+              ovs-vsctl set port "${BOND_NAME}" bond_updelay="${OPTION_VALUE}"
+              ;;
+            bond-downdelay|bond_downdelay|downdelay)
+              ovs-vsctl set port "${BOND_NAME}" bond_downdelay="${OPTION_VALUE}"
+              ;;
+            lacp-time|lacp_time)
+              ovs-vsctl set port "${BOND_NAME}" other_config:lacp-time="${OPTION_VALUE}"
+              ;;
+            lacp-fallback-ab|lacp_fallback_ab)
+              ovs-vsctl set port "${BOND_NAME}" other_config:lacp-fallback-ab="${OPTION_VALUE}"
+              ;;
+            bond-detect-mode|bond_detect_mode)
+              ovs-vsctl set port "${BOND_NAME}" other_config:bond-detect-mode="${OPTION_VALUE}"
+              ;;
+            bond-miimon-interval|bond_miimon_interval|mii-monitor-interval|miimon-interval)
+              ovs-vsctl set port "${BOND_NAME}" other_config:bond-miimon-interval="${OPTION_VALUE}"
+              ;;
+            bond-rebalance-interval|bond_rebalance_interval|rebalance-interval)
+              ovs-vsctl set port "${BOND_NAME}" other_config:bond-rebalance-interval="${OPTION_VALUE}"
+              ;;
+            transmit-hash-policy|bond-hash-basis|hash-basis)
+              # Note: OVS uses hash-basis, not transmit-hash-policy like Linux bonding
+              # The hash algorithm is determined by bond_mode
+              ovs-vsctl set port "${BOND_NAME}" other_config:bond-hash-basis="${OPTION_VALUE}"
+              ;;
+            *)
+              # Generic other_config parameter
+              ovs-vsctl set port "${BOND_NAME}" other_config:${OPTION_KEY}="${OPTION_VALUE}"
+              ;;
+          esac
+        done
+      fi
+    done
+
+    # Handle regular port mappings
+    declare -A NEW_PORTS
+    if [[ "${OVN_PORT_MAPPINGS:-null}" != "null" ]]; then
+      IFS=',' read -r -a ports_array <<< "$OVN_PORT_MAPPINGS"
+      for port_mapping in ${ports_array[@]}; do
+        IFS=':' read -r -a port_parts <<< "$port_mapping"
+        PORT_BRIDGE="${port_parts[0]}"
+        PORT_NAME="${port_parts[1]}"
+        NEW_PORTS["${PORT_BRIDGE}:${PORT_NAME}"]=1
+      done
+
+      # Clean up old ports that are no longer configured
+      if [[ "${FIRST_RUN}" == "false" ]]; then
+        PREV_PORTS=$(echo "${PREVIOUS_STATE}" | jq -r '.ports // {}' 2>/dev/null || echo '{}')
+        if [[ "${PREV_PORTS}" != "{}" ]]; then
+          echo "${PREV_PORTS}" | jq -r 'to_entries[] | .key as $bridge | .value[] | "\($bridge):\(.)"' | while IFS=: read -r old_bridge old_port; do
+            if [[ -z "${NEW_PORTS[${old_bridge}:${old_port}]}" ]]; then
+              echo "Removing old port: ${old_port} from bridge ${old_bridge}"
+              # Verify it's not a bond or internal port before removing
+              PORT_TYPE=$(ovs-vsctl get Interface "${old_port}" type 2>/dev/null || echo "")
+              if [[ "${PORT_TYPE}" == '""' || "${PORT_TYPE}" == "" ]]; then
+                ovs-vsctl --if-exists del-port "${old_bridge}" "${old_port}"
+              else
+                echo "Skipping removal of ${old_port} - not a physical port (type: ${PORT_TYPE})"
+              fi
+            fi
+          done
+        fi
+      fi
+
+      # Add new ports
+      for port_key in "${!NEW_PORTS[@]}"; do
+        IFS=':' read -r -a port_parts <<< "$port_key"
+        PORT_BRIDGE="${port_parts[0]}"
+        PORT_NAME="${port_parts[1]}"
+
+        # Check if port is already on a different bridge
+        CURRENT_BRIDGE=$(ovs-vsctl port-to-br "${PORT_NAME}" 2>/dev/null || echo "")
+        if [[ -n "$CURRENT_BRIDGE" ]] && [[ "$CURRENT_BRIDGE" != "$PORT_BRIDGE" ]]; then
+          echo "Port ${PORT_NAME} is on bridge ${CURRENT_BRIDGE}, moving to ${PORT_BRIDGE}"
+          ovs-vsctl --if-exists del-port "${CURRENT_BRIDGE}" "${PORT_NAME}"
+        fi
+
+        ovs-vsctl --no-wait --may-exist add-port "${PORT_BRIDGE}" "${PORT_NAME}"
+      done
+    fi
+
+    # Configure OVN settings
     if [[ "${OVN_BRIDGE}" != "null" ]]; then
       ovs-vsctl set Open_vSwitch . external-ids:ovn-bridge="${OVN_BRIDGE}"
     fi
@@ -91,6 +300,59 @@ data:
     if [[ -z $(ovs-vsctl get-manager) ]]; then
       ovs-vsctl --id @manager create Manager 'target="ptcp:6640:127.0.0.1"' -- add Open_vSwitch . manager_options @manager
     fi
+
+    # Build current state JSON
+    BONDS_JSON="{}"
+    if [[ ${#NEW_BONDS[@]} -gt 0 ]]; then
+      BONDS_JSON="{"
+      for bond_key in "${!NEW_BONDS[@]}"; do
+        IFS=':' read -r -a key_parts <<< "$bond_key"
+        BOND_BRIDGE="${key_parts[0]}"
+        BOND_NAME="${key_parts[1]}"
+        IFS=':' read -r -a value_parts <<< "${NEW_BONDS[$bond_key]}"
+        BOND_MEMBERS="${value_parts[0]//+/\",\"}"
+        BOND_MODE="${value_parts[1]}"
+        BOND_LACP="${value_parts[2]}"
+        BONDS_JSON="${BONDS_JSON}\"${BOND_NAME}\":{\"bridge\":\"${BOND_BRIDGE}\",\"members\":[\"${BOND_MEMBERS}\"],\"mode\":\"${BOND_MODE}\",\"lacp\":\"${BOND_LACP}\"},"
+      done
+      BONDS_JSON="${BONDS_JSON%,}}"
+    fi
+
+    PORTS_JSON="{}"
+    if [[ ${#NEW_PORTS[@]} -gt 0 ]]; then
+      declare -A PORTS_BY_BRIDGE
+      for port_key in "${!NEW_PORTS[@]}"; do
+        IFS=':' read -r -a port_parts <<< "$port_key"
+        PORT_BRIDGE="${port_parts[0]}"
+        PORT_NAME="${port_parts[1]}"
+        if [[ -z "${PORTS_BY_BRIDGE[$PORT_BRIDGE]}" ]]; then
+          PORTS_BY_BRIDGE[$PORT_BRIDGE]="\"${PORT_NAME}\""
+        else
+          PORTS_BY_BRIDGE[$PORT_BRIDGE]="${PORTS_BY_BRIDGE[$PORT_BRIDGE]},\"${PORT_NAME}\""
+        fi
+      done
+      PORTS_JSON="{"
+      for bridge in "${!PORTS_BY_BRIDGE[@]}"; do
+        PORTS_JSON="${PORTS_JSON}\"${bridge}\":[${PORTS_BY_BRIDGE[$bridge]}],"
+      done
+      PORTS_JSON="${PORTS_JSON%,}}"
+    fi
+
+    STATE_JSON=$(cat <<EOF
+    {
+      "lastUpdated": "$(date -Iseconds)",
+      "bridges": [$(echo "$OVN_BRIDGES" | sed 's/,/","/g' | sed 's/^/"/' | sed 's/$/"/')]
+      "ports": ${PORTS_JSON},
+      "bonds": ${BONDS_JSON},
+      "bridgeMappings": "${OVN_BRIDGE_MAPPINGS}",
+      "firstRun": ${FIRST_RUN}
+    }
+    EOF
+    )
+
+    # Save state
+    save_state "${STATE_JSON}"
+
     touch /node/ovn-setup-completed
 ---
 apiVersion: apps/v1
@@ -206,6 +468,10 @@ spec:
                 echo "export OVN_BRIDGES=${OVN_BRIDGES}" >> /node/ovn
                 OVN_BRIDGE=$(jq '."ovn.openstack.org/int_bridge"' -r /node/annotations.json)
                 echo "export OVN_BRIDGE=${OVN_BRIDGE}" >> /node/ovn
+                OVN_BONDS=$(jq '."ovn.openstack.org/bonds"' -r /node/annotations.json)
+                echo "export OVN_BONDS=${OVN_BONDS}" >> /node/ovn
+                OVN_BOND_OPTIONS=$(jq '."ovn.openstack.org/bond-options"' -r /node/annotations.json)
+                echo "export OVN_BOND_OPTIONS=${OVN_BOND_OPTIONS}" >> /node/ovn
           command:
             - /bin/ash
             - -c
