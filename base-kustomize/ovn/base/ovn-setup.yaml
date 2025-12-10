@@ -357,7 +357,7 @@ data:
     cat > /node/current-state.json <<EOF
     {
       "lastUpdated": "$(date -Iseconds)",
-      "bridges": [$(echo "$OVN_BRIDGES" | sed 's/,/","/g' | sed 's/^/"/' | sed 's/$/"/')]
+      "bridges": [$(echo "$OVN_BRIDGES" | sed 's/,/","/g' | sed 's/^/"/' | sed 's/$/"/')],
       "ports": ${PORTS_JSON},
       "bonds": ${BONDS_JSON},
       "bridgeMappings": "${OVN_BRIDGE_MAPPINGS}",
