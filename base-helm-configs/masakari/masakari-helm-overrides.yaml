@@ -123,6 +123,7 @@ conf:
       service_down_time: 30
       wait_period_after_service_update: 30
     host_failure:
+      evacuate_all_instances: false
       ignore_instances_in_error_state: true
       add_reserved_host_to_aggregate: true
     instance_failure:

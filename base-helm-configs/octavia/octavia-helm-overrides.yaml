@@ -148,6 +148,14 @@ conf:
     ovn:
       ovn_nb_connection: "tcp:127.0.0.1:6641"
       ovn_sb_connection: "tcp:127.0.0.1:6642"
+
+      ovn_nb_private_key: /etc/octavia/ovn/key
+      ovn_nb_certificate: /etc/octavia/ovn/cert
+      ovn_nb_ca_cert: /etc/octavia/ovn/cacert
+
+      ovn_sb_private_key: /etc/octavia/ovn/key
+      ovn_sb_certificate: /etc/octavia/ovn/cert
+      ovn_sb_ca_cert: /etc/octavia/ovn/cacert
     service_auth:
       insecure: true
     task_flow:
@@ -276,18 +284,30 @@ pod:
       init_container: null
       octavia_api:
         volumeMounts:
+          - name: ovn-tls
+            mountPath: /etc/octavia/ovn
+            readOnly: true
           - name: pod-run-octavia
             mountPath: /var/run/octavia
         volumes:
+          - name: ovn-tls
+            secret:
+              secretName: ovn-client-tls
           - name: pod-run-octavia
             emptyDir: {}
     octavia_worker:
       init_container: null
       octavia_worker:
         volumeMounts:
+          - name: ovn-tls
+            mountPath: /etc/octavia/ovn
+            readOnly: true
           - name: pod-run-octavia
             mountPath: /var/run/octavia
         volumes:
+          - name: ovn-tls
+            secret:
+              secretName: ovn-client-tls
           - name: pod-run-octavia
             emptyDir: {}
     octavia_driver_agent:

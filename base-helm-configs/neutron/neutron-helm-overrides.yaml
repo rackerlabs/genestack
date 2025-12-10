@@ -147,6 +147,27 @@ pod:
         timeout: 60
       ironic_agent:
         timeout: 60
+  mounts:
+    neutron_server:
+      neutron_server:
+        volumes:
+          - name: ovn-tls
+            secret:
+              secretName: ovn-client-tls
+        volumeMounts:
+          - name: ovn-tls
+            mountPath: /etc/neutron/ovn
+            readOnly: true
+    neutron_ovn_metadata_agent:
+      neutron_ovn_metadata_agent:
+        volumes:
+          - name: ovn-tls
+            secret:
+              secretName: ovn-client-tls
+        volumeMounts:
+          - name: ovn-tls
+            mountPath: /etc/neutron/ovn
+            readOnly: true
 
 conf:
   dhcp_agent:
@@ -184,7 +205,7 @@ conf:
       agent_version: v2
       driver: neutron_fwaas.services.firewall.service_drivers.ovn.firewall_l3_driver.OVNFwaasDriver
       # NOTE(cloudnull): in 2025.1 we can enable this
-      enabled: False
+      enabled: false
     agent:
       extensions: vpnaas,metadata
       availability_zone: az1
@@ -243,6 +264,13 @@ conf:
       metadata_workers: 2
     ovs:
       ovsdb_connection: "tcp:127.0.0.1:6640"
+    ovn:
+      ovn_nb_private_key: /etc/neutron/ovn/key
+      ovn_nb_certificate: /etc/neutron/ovn/cert
+      ovn_nb_ca_cert: /etc/neutron/ovn/cacert
+      ovn_sb_private_key: /etc/neutron/ovn/key
+      ovn_sb_certificate: /etc/neutron/ovn/cert
+      ovn_sb_ca_cert: /etc/neutron/ovn/cacert
   ovn_vpn_agent:
     ovs:
       ovsdb_connection: "tcp:127.0.0.1:6640"
@@ -269,6 +297,13 @@ conf:
         ovn_metadata_enabled: true
         ovn_nb_connection: "tcp:127.0.0.1:6641"
         ovn_sb_connection: "tcp:127.0.0.1:6642"
+        ovn_nb_private_key: "/etc/neutron/ovn/key"
+        ovn_nb_certificate: "/etc/neutron/ovn/cert"
+        ovn_nb_ca_cert: "/etc/neutron/ovn/cacert"
+        ovn_sb_private_key: "/etc/neutron/ovn/key"
+        ovn_sb_certificate: "/etc/neutron/ovn/cert"
+        ovn_sb_ca_cert: "/etc/neutron/ovn/cacert"
+
     openvswitch_agent:
       agent:
         availability_zone: az1

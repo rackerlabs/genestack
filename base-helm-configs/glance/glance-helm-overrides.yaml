@@ -122,7 +122,6 @@ conf:
     "admin_required": "role:admin or role:glance_admin"
     "default": "role:admin or role:glance_admin"
     "context_is_admin": "role:admin or role:glance_admin"
-    "service_api": "role:service"
     "publicize_image": "role:glance_admin"
     "communitize_image": "role:glance_admin"
   logging:
