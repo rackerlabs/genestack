@@ -323,6 +323,122 @@ UNINSTALL:
 
 For more information, see the Genestack documentation.
 EOF
+
+fi
+EOC
+
+# Run host and K8S setup
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+set -e
+if [ ! -f "/usr/local/bin/queue_max.sh" ]; then
+  python3 -m venv ~/.venvs/genestack
+  ~/.venvs/genestack/bin/pip install -r /opt/genestack/requirements.txt
+  source /opt/genestack/scripts/genestack.rc
+  ANSIBLE_SSH_PIPELINING=0 ansible-playbook /opt/genestack/ansible/playbooks/host-setup.yml --become -e host_required_kernel=\$(uname -r)
+fi
+if [ ! -d "/var/lib/kubelet" ]; then
+  source /opt/genestack/scripts/genestack.rc
+  cd /opt/genestack/submodules/kubespray
+  ANSIBLE_SSH_PIPELINING=0 ansible-playbook cluster.yml --become
+fi
+sudo mkdir -p /opt/kube-plugins
+sudo chown \${USER}:\${USER} /opt/kube-plugins
+pushd /opt/kube-plugins
+  if [ ! -f "/usr/local/bin/kubectl" ]; then
+    curl -LO "https://dl.k8s.io/release/\$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+  fi
+  if [ ! -f "/usr/local/bin/kubectl-convert" ]; then
+    curl -LO "https://dl.k8s.io/release/\$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl-convert"
+    sudo install -o root -g root -m 0755 kubectl-convert /usr/local/bin/kubectl-convert
+  fi
+  if [ ! -f "/usr/local/bin/kubectl-ko" ]; then
+    curl -LO https://raw.githubusercontent.com/kubeovn/kube-ovn/refs/heads/release-1.12/dist/images/kubectl-ko
+    sudo install -o root -g root -m 0755 kubectl-ko /usr/local/bin/kubectl-ko
+  fi
+popd
+EOC
+
+echo "Creating config for setup-openstack.sh"
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+set -e
+if [ ! -f "/etc/genestack/openstack-components.yaml" ]; then
+  echo -e "$OS_CONFIG" > /etc/genestack/openstack-components.yaml
+fi
+EOC
+
+# Run Genestack Infrastucture/OpenStack Setup
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+set -e
+echo "Installing OpenStack Infrastructure"
+sudo LONGHORN_STORAGE_REPLICAS=1 \
+     GATEWAY_DOMAIN="${GATEWAY_DOMAIN}" \
+     ACME_EMAIL="${ACME_EMAIL}" \
+     HYPERCONVERGED=true \
+     /opt/genestack/bin/setup-infrastructure.sh
+echo "Installing OpenStack"
+sudo /opt/genestack/bin/setup-openstack.sh
+EOC
+
+# Run Genestack post setup
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+set -e
+sudo bash <<HERE
+sudo /opt/genestack/bin/setup-openstack-rc.sh
+source /opt/genestack/scripts/genestack.rc
+
+# Function to retry openstack commands with backoff
+retry_openstack_command() {
+  local cmd="\\\$1"
+  local description="\\\$2"
+  local retry_count=0
+  local max_retries=12  # 12 retries * 10 seconds = 2 minutes
+
+  while [ \\\$retry_count -lt \\\$max_retries ]; do
+    echo "Attempting: \\\$description"
+    if eval "\\\$cmd"; then
+      echo "\\\$description succeeded"
+      return 0
+    else
+      retry_count=\\\$((retry_count + 1))
+      echo "\\\$description failed (attempt \\\$retry_count/\\\$max_retries). Retrying in 10 seconds..."
+      if [ \\\$retry_count -eq \\\$max_retries ]; then
+        echo "\\\$description failed after \\\$max_retries attempts. Continuing anyway..."
+        return 1
+      fi
+      sleep 10
+    fi
+  done
+}
+
+# Create flavor with retry
+retry_openstack_command "if ! openstack --os-cloud default flavor show ${LAB_NAME_PREFIX}-test; then openstack --os-cloud default flavor create ${LAB_NAME_PREFIX}-test --public --ram 2048 --disk 10 --vcpus 2; fi" "Flavor setup"
+
+# Create network with retry
+retry_openstack_command "if ! openstack --os-cloud default network show flat; then openstack --os-cloud default network create --share --availability-zone-hint az1 --external --provider-network-type flat --provider-physical-network physnet1 flat; fi" "Network setup"
+
+# Create subnet with retry
+retry_openstack_command "if ! openstack --os-cloud default subnet show flat_subnet; then openstack --os-cloud default subnet create --subnet-range 192.168.102.0/24 --gateway 192.168.102.1 --dns-nameserver 1.1.1.1 --allocation-pool start=192.168.102.100,end=192.168.102.109 --dhcp --network flat flat_subnet; fi" "Subnet setup"
+HERE
+EOC
+
+# Extra operations...
+install_k9s() {
+echo "Installing k9s"
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} << 'EOC'
+set -e
+echo "Installing k9s"
+if [ ! -e "/usr/bin/k9s" ]; then
+  sudo wget https://github.com/derailed/k9s/releases/latest/download/k9s_linux_amd64.deb && mv ./k9s_linux_amd64.deb /tmp/ && sudo apt install /tmp/k9s_linux_amd64.deb && sudo rm /tmp/k9s_linux_amd64.deb
+fi
+
+if [ ! -d ~/.kube ]; then
+  mkdir ~/.kube
+  sudo cp -i /etc/kubernetes/admin.conf ~/.kube/config
+  sudo chown $(id -u):$(id -g) ~/.kube/config
+fi
+EOC
+
 }
 
 function prompt_for_platform() {
