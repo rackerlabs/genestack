@@ -59,55 +59,24 @@ data:
     #!/bin/bash
     set -exo pipefail
 
-    CONFIGMAP_NAME="ovn-state-${NODENAME}"
-    NAMESPACE="openstack"
-
-    # Function to get previous state from ConfigMap
-    get_previous_state() {
-      local state
-      state=$(kubectl get configmap "${CONFIGMAP_NAME}" -n "${NAMESPACE}" -o jsonpath='{.data.state}' 2>/dev/null)
-      if [[ $? -eq 0 && -n "${state}" ]]; then
-        echo "${state}"
-      else
-        echo '{}'
-      fi
-    }
-
-    # Function to save current state to ConfigMap
-    save_state() {
-      local state_data="$1"
-      cat <<EOF | kubectl apply -f -
-    apiVersion: v1
-    kind: ConfigMap
-    metadata:
-      name: ${CONFIGMAP_NAME}
-      namespace: ${NAMESPACE}
-      labels:
-        app: ovn-setup
-        node: ${NODENAME}
-    data:
-      state: |
-        ${state_data}
-    EOF
-    }
-
     # Load configuration from node annotations
     source /node/ovn
+
+    # Read previous state if it exists (written by init container)
+    if [[ -f /node/previous-state.json ]]; then
+      PREVIOUS_STATE=$(cat /node/previous-state.json)
+      FIRST_RUN=false
+      echo "Previous state found: ${PREVIOUS_STATE}"
+    else
+      PREVIOUS_STATE='{}'
+      FIRST_RUN=true
+      echo "First run detected - no previous state found"
+    fi
 
     # Validation
     if [[ "${OVN_BRIDGES}" == "null" ]]; then
       echo "No OVN_BRIDGES defined, exiting"
       exit 99
-    fi
-
-    # Get previous state
-    PREVIOUS_STATE=$(get_previous_state)
-    if [[ "${PREVIOUS_STATE}" == "{}" ]]; then
-      echo "First run detected - no previous state found"
-      FIRST_RUN=true
-    else
-      echo "Previous state found: ${PREVIOUS_STATE}"
-      FIRST_RUN=false
     fi
 
     # Create bridges
@@ -150,12 +119,13 @@ data:
     if [[ "${FIRST_RUN}" == "false" ]]; then
       PREV_BONDS=$(echo "${PREVIOUS_STATE}" | jq -r '.bonds // {}' 2>/dev/null || echo '{}')
       if [[ "${PREV_BONDS}" != "{}" ]]; then
-        echo "${PREV_BONDS}" | jq -r 'to_entries[] | "\(.key):\(.value.bridge)"' | while IFS=: read -r old_bond old_bridge; do
+        # Use process substitution instead of pipe to avoid subshell
+        while IFS=: read -r old_bond old_bridge; do
           if [[ -z "${NEW_BONDS[${old_bridge}:${old_bond}]}" ]]; then
             echo "Removing old bond: ${old_bond} from bridge ${old_bridge}"
             ovs-vsctl --if-exists del-port "${old_bridge}" "${old_bond}"
           fi
-        done
+        done < <(echo "${PREV_BONDS}" | jq -r 'to_entries[] | "\(.key):\(.value.bridge)"')
       fi
     fi
 
@@ -178,6 +148,16 @@ data:
         # For now, recreate if exists (could be smarter and check if members changed)
         ovs-vsctl del-port "${BOND_BRIDGE}" "${BOND_NAME}"
       fi
+
+      # Remove any member interfaces that are already attached as regular ports
+      # This prevents "port named X already exists on bridge" errors
+      for member in ${MEMBERS_LIST}; do
+        if ovs-vsctl port-to-br "${member}" &>/dev/null; then
+          CURRENT_BRIDGE=$(ovs-vsctl port-to-br "${member}")
+          echo "Removing ${member} from bridge ${CURRENT_BRIDGE} (needed for bond ${BOND_NAME})"
+          ovs-vsctl --if-exists del-port "${CURRENT_BRIDGE}" "${member}"
+        fi
+      done
 
       echo "Creating bond ${BOND_NAME} on bridge ${BOND_BRIDGE} with members: ${MEMBERS_LIST}"
       ovs-vsctl --no-wait add-bond "${BOND_BRIDGE}" "${BOND_NAME}" ${MEMBERS_LIST} \
@@ -244,7 +224,8 @@ data:
       if [[ "${FIRST_RUN}" == "false" ]]; then
         PREV_PORTS=$(echo "${PREVIOUS_STATE}" | jq -r '.ports // {}' 2>/dev/null || echo '{}')
         if [[ "${PREV_PORTS}" != "{}" ]]; then
-          echo "${PREV_PORTS}" | jq -r 'to_entries[] | .key as $bridge | .value[] | "\($bridge):\(.)"' | while IFS=: read -r old_bridge old_port; do
+          # Use process substitution instead of pipe to avoid subshell
+          while IFS=: read -r old_bridge old_port; do
             if [[ -z "${NEW_PORTS[${old_bridge}:${old_port}]}" ]]; then
               echo "Removing old port: ${old_port} from bridge ${old_bridge}"
               # Verify it's not a bond or internal port before removing
@@ -255,15 +236,49 @@ data:
                 echo "Skipping removal of ${old_port} - not a physical port (type: ${PORT_TYPE})"
               fi
             fi
-          done
+          done < <(echo "${PREV_PORTS}" | jq -r 'to_entries[] | .key as $bridge | .value[] | "\($bridge):\(.)"')
         fi
       fi
+    fi
 
-      # Add new ports
+    # Clean up orphaned ports on managed bridges (ports not in new config and not system ports)
+    # This runs regardless of whether OVN_PORT_MAPPINGS is set
+    IFS=',' read -r -a bridges_array <<< "$OVN_BRIDGES"
+    for bridge in ${bridges_array[@]}; do
+      # Get all ports on this bridge
+      EXISTING_PORTS=$(ovs-vsctl list-ports "${bridge}" 2>/dev/null || echo "")
+      if [[ -n "${EXISTING_PORTS}" ]]; then
+        while read -r existing_port; do
+          [[ -z "${existing_port}" ]] && continue
+
+          # Check if this port is in our new configuration
+          if [[ -z "${NEW_PORTS[${bridge}:${existing_port}]}" ]] && [[ -z "${NEW_BONDS[${bridge}:${existing_port}]}" ]]; then
+            # Check if it's a system port (patch, internal, tunnel, etc.)
+            PORT_TYPE=$(ovs-vsctl get Interface "${existing_port}" type 2>/dev/null || echo "")
+            if [[ "${PORT_TYPE}" == '""' || "${PORT_TYPE}" == "" ]]; then
+              # It's a physical port not in our config - remove it
+              echo "Found orphaned port ${existing_port} on bridge ${bridge}, removing"
+              ovs-vsctl --if-exists del-port "${bridge}" "${existing_port}"
+            else
+              echo "Skipping system port ${existing_port} (type: ${PORT_TYPE})"
+            fi
+          fi
+        done <<< "${EXISTING_PORTS}"
+      fi
+    done
+
+    # Add new ports
+    if [[ "${OVN_PORT_MAPPINGS:-null}" != "null" ]]; then
       for port_key in "${!NEW_PORTS[@]}"; do
         IFS=':' read -r -a port_parts <<< "$port_key"
         PORT_BRIDGE="${port_parts[0]}"
         PORT_NAME="${port_parts[1]}"
+
+        # Skip if this port is actually a bond that was already created
+        if [[ -n "${NEW_BONDS[${PORT_BRIDGE}:${PORT_NAME}]}" ]]; then
+          echo "Skipping ${PORT_NAME} - already created as a bond"
+          continue
+        fi
 
         # Check if port is already on a different bridge
         CURRENT_BRIDGE=$(ovs-vsctl port-to-br "${PORT_NAME}" 2>/dev/null || echo "")
@@ -338,7 +353,8 @@ data:
       PORTS_JSON="${PORTS_JSON%,}}"
     fi
 
-    STATE_JSON=$(cat <<EOF
+    # Build current state JSON and write to file
+    cat > /node/current-state.json <<EOF
     {
       "lastUpdated": "$(date -Iseconds)",
       "bridges": [$(echo "$OVN_BRIDGES" | sed 's/,/","/g' | sed 's/^/"/' | sed 's/$/"/')]
@@ -348,10 +364,6 @@ data:
       "firstRun": ${FIRST_RUN}
     }
     EOF
-    )
-
-    # Save state
-    save_state "${STATE_JSON}"
 
     touch /node/ovn-setup-completed
 ---
@@ -401,6 +413,35 @@ spec:
         - name: node-info
           emptyDir: {}
       initContainers:
+        - name: get-previous-state
+          image: alpine/k8s:1.26.11
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            readOnlyRootFilesystem: false
+            runAsUser: 0
+          volumeMounts:
+            - mountPath: /node
+              name: node-info
+          env:
+            - name: NODENAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: NAMESPACE
+              value: "openstack"
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              CONFIGMAP_NAME="ovn-state-${NODENAME}"
+              # Try to get previous state from ConfigMap
+              if kubectl get configmap "${CONFIGMAP_NAME}" -n "${NAMESPACE}" >/dev/null 2>&1; then
+                kubectl get configmap "${CONFIGMAP_NAME}" -n "${NAMESPACE}" -o jsonpath='{.data.state}' > /node/previous-state.json
+                echo "Retrieved previous state from ConfigMap ${CONFIGMAP_NAME}"
+              else
+                echo "No previous state ConfigMap found - this is a first run"
+              fi
         - name: init
           image: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
           imagePullPolicy: IfNotPresent
@@ -509,15 +550,38 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: NAMESPACE
+              value: "openstack"
           command:
             - sh
             - -c
             - |
               set -xe
+              CONFIGMAP_NAME="ovn-state-${NODENAME}"
+
               if [[ -f /node/ovn-setup-completed ]]; then
-                kubectl label node "$NODENAME" ovn.openstack.org/configured=$(date +%s)
+                # Save current state to ConfigMap
+                if [[ -f /node/current-state.json ]]; then
+                  STATE_DATA=$(cat /node/current-state.json)
+                  cat <<EOF | kubectl apply -f -
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: ${CONFIGMAP_NAME}
+                namespace: ${NAMESPACE}
+                labels:
+                  app: ovn-setup
+                  node: ${NODENAME}
+              data:
+                state: |
+              $(echo "$STATE_DATA" | sed 's/^/    /')
+              EOF
+                  echo "Saved state to ConfigMap ${CONFIGMAP_NAME}"
+                fi
+
+                # Label the node as configured
+                kubectl label node "$NODENAME" ovn.openstack.org/configured=$(date +%s) --overwrite
               fi
-              sleep 200
           securityContext:
             runAsUser: 0
             privileged: true
