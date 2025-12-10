@@ -1,6 +1,7 @@
+---
 name: Running hyperconverged smoke tests
 
-on:
+"on":
   workflow_dispatch:
     inputs:
       acmeEmail:
@@ -39,6 +40,20 @@ on:
           - "test"
           - "deploy"
           - "cleanup"
+      run_tests:
+        description: Run post-deployment tests
+        required: false
+        default: true
+        type: boolean
+      test_level:
+        description: Test level to run
+        required: false
+        default: "quick"
+        type: choice
+        options:
+          - "quick"
+          - "standard"
+          - "full"
   pull_request:
     paths:
       - ansible/**
@@ -54,6 +69,7 @@ env:
   ACME_EMAIL: cloud@example.local
   OS_IMAGE: "Ubuntu 24.04"
   SSH_USERNAME: "ubuntu"
+  TEST_LEVEL: "quick"
 
 jobs:
   smoke-deploy:
@@ -81,6 +97,7 @@ jobs:
         if: ${{ github.event_name == 'pull_request' || contains(fromJSON('["deploy", "test"]'), github.event.inputs.mode) }}
         run: |
           eval "$(ssh-agent -s)"
+          export TEST_LEVEL="${{ github.event.inputs.test_level }}"
           scripts/hyperconverged-lab.sh
 
       - name: Retrieve Keys
@@ -104,6 +121,71 @@ jobs:
             {
               cat access-output.txt
             } >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload Test Results
+        if: ${{ always() && (github.event_name == 'pull_request' || (github.event.inputs.run_tests == 'true' && contains(fromJSON('["deploy", "test"]'), github.event.inputs.mode))) }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.run_number }}
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Publish Test Summary
+        if: ${{ always() && (github.event_name == 'pull_request' || (github.event.inputs.run_tests == 'true' && contains(fromJSON('["deploy", "test"]'), github.event.inputs.mode))) }}
+        run: |
+          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f test-results/aggregate-results.txt ]; then
+            echo "### Test Suite Summary" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
+            echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+
+            while IFS=: read -r suite status; do
+              status=$(echo "$status" | xargs)
+              if [ "$status" = "PASSED" ]; then
+                echo "| $suite | :white_check_mark: PASSED |" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "| $suite | :x: FAILED |" >> $GITHUB_STEP_SUMMARY
+              fi
+            done < test-results/aggregate-results.txt
+
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Parse XML results if available
+          if ls test-results/*.xml >/dev/null 2>&1; then
+            echo "### Detailed Test Results" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            for xml_file in test-results/*.xml; do
+              if [ -f "$xml_file" ]; then
+                suite_name=$(grep -o 'name="[^"]*"' "$xml_file" | head -1 | sed 's/name="//;s/"//')
+                echo "#### $suite_name" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+                echo "| Test | Status |" >> $GITHUB_STEP_SUMMARY
+                echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+
+                grep -o '<testcase name="[^"]*"' "$xml_file" | sed 's/<testcase name="//;s/"$//' | while read test; do
+                  if grep -q "name=\"${test}\".*<failure" "$xml_file"; then
+                    echo "| $test | :x: Failed |" >> $GITHUB_STEP_SUMMARY
+                  elif grep -q "name=\"${test}\".*<skipped" "$xml_file"; then
+                    echo "| $test | :warning: Skipped |" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo "| $test | :white_check_mark: Passed |" >> $GITHUB_STEP_SUMMARY
+                  fi
+                done
+
+                echo "" >> $GITHUB_STEP_SUMMARY
+              fi
+            done
+          fi
+
+          if [ ! -f test-results/aggregate-results.txt ] && ! ls test-results/*.xml >/dev/null 2>&1; then
+            echo "_No test results available_" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Cleanup the lab
