@@ -23,4 +23,9 @@ export ANSIBLE_KEEP_REMOTE_FILES=False
 export ANSIBLE_PIPELINING=True
 export ANSIBLE_HOST_KEY_CHECKING=False
 
-test -f ~/.venvs/genestack/bin/activate 2>/dev/null && source ~/.venvs/genestack/bin/activate
+# need to use $HOME instead of ~ because ~ was not dereferencing when source command was used
+if [ -f "${HOME}/.venvs/genestack/bin/activate" ]; then
+    source ${HOME}/.venvs/genestack/bin/activate
+else
+    echo "WARNING: genestack virtual environment not defined"
+fi

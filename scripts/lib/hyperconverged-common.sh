@@ -33,7 +33,7 @@ function parseCommonArgs() {
 
     RUN_EXTRAS=0
 
-    INCLUDE_LIST=("keystone" "glance" "cinder" "nova" "neutron" "placement")
+    INCLUDE_LIST=("keystone" "glance" "cinder" "nova" "neutron" "placement" "trove")
     EXCLUDE_LIST=()
 
     while getopts "i:e:x" opt; do
@@ -155,7 +155,7 @@ function createNetworks() {
     export TENANT_SUB_NETWORK_ID
 
     # Add subnet to router
-    if ! openstack router show ${LAB_NAME_PREFIX}-router -f json 2>/dev/null | jq -r '.interfaces_info.[].subnet_id' | grep -q ${TENANT_SUB_NETWORK_ID}; then
+    if ! openstack router show ${LAB_NAME_PREFIX}-router -f json 2>/dev/null | jq -r '.interfaces_info[].subnet_id' | grep -q ${TENANT_SUB_NETWORK_ID}; then
         openstack router add subnet ${LAB_NAME_PREFIX}-router ${LAB_NAME_PREFIX}-subnet
     fi
 
@@ -179,7 +179,7 @@ function createNetworks() {
     export TENANT_COMPUTE_SUB_NETWORK_ID
 
     # Add compute subnet to router
-    if ! openstack router show ${LAB_NAME_PREFIX}-router -f json | jq -r '.interfaces_info.[].subnet_id' | grep -q ${TENANT_COMPUTE_SUB_NETWORK_ID} 2>/dev/null; then
+    if ! openstack router show ${LAB_NAME_PREFIX}-router -f json | jq -r '.interfaces_info[].subnet_id' | grep -q ${TENANT_COMPUTE_SUB_NETWORK_ID} 2>/dev/null; then
         openstack router add subnet ${LAB_NAME_PREFIX}-router ${LAB_NAME_PREFIX}-compute-subnet
     fi
 }
@@ -190,7 +190,7 @@ function createCommonSecurityGroups() {
         openstack security group create ${LAB_NAME_PREFIX}-http-secgroup
     fi
 
-    if ! openstack security group show ${LAB_NAME_PREFIX}-http-secgroup -f json 2>/dev/null | jq -r '.rules.[].port_range_max' | grep -q 443; then
+    if ! openstack security group show ${LAB_NAME_PREFIX}-http-secgroup -f json 2>/dev/null | jq -r '.rules[].port_range_max' | grep -q 443; then
         openstack security group rule create ${LAB_NAME_PREFIX}-http-secgroup \
             --protocol tcp \
             --ingress \
@@ -198,7 +198,7 @@ function createCommonSecurityGroups() {
             --dst-port 443 \
             --description "https"
     fi
-    if ! openstack security group show ${LAB_NAME_PREFIX}-http-secgroup -f json 2>/dev/null | jq -r '.rules.[].port_range_max' | grep -q 80; then
+    if ! openstack security group show ${LAB_NAME_PREFIX}-http-secgroup -f json 2>/dev/null | jq -r '.rules[].port_range_max' | grep -q 80; then
         openstack security group rule create ${LAB_NAME_PREFIX}-http-secgroup \
             --protocol tcp \
             --ingress \
@@ -212,7 +212,7 @@ function createCommonSecurityGroups() {
         openstack security group create ${LAB_NAME_PREFIX}-secgroup
     fi
 
-    if ! openstack security group show ${LAB_NAME_PREFIX}-secgroup -f json 2>/dev/null | jq -r '.rules.[].description' | grep -q "all internal traffic"; then
+    if ! openstack security group show ${LAB_NAME_PREFIX}-secgroup -f json 2>/dev/null | jq -r '.rules[].description' | grep -q "all internal traffic"; then
         openstack security group rule create ${LAB_NAME_PREFIX}-secgroup \
             --protocol any \
             --ingress \
@@ -312,11 +312,11 @@ function prepareJumpHostSource() {
         echo "Copying the development source code to the jump host"
         rsync -avz \
             -e "ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" \
-            --rsync-path="sudo rsync" \
+            --rsync-path="sudo rsync" --chown=":ubuntu" \
             ${DEV_PATH} ${SSH_USERNAME}@${JUMP_HOST_VIP}:/opt/
+    else
+        cloneGenestackOnJumpHost
     fi
-
-    cloneGenestackOnJumpHost
 }
 
 function writeMetalLBConfig() {
@@ -407,6 +407,25 @@ conf:
     oslo_messaging_notifications:
       driver: noop
   cinder_api_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1
+EOF
+    fi
+
+    if [ ! -f "${config_base}/trove/trove-helm-overrides.yaml" ]; then
+        cat > "${config_base}/trove/trove-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  trove:
+    DEFAULT:
+      trove_api_workers: 1
+    oslo_messaging_notifications:
+      driver: noop
+  trove_api_uwsgi:
     uwsgi:
       processes: 1
       threads: 1
@@ -844,6 +863,8 @@ endpoints:
         region_name: *region
       cinder:
         region_name: *region
+      trove:
+        region_name: *region
       ceilometer:
         region_name: *region
       cloudkitty:
@@ -987,6 +1008,16 @@ endpoints:
       public:
         tls: {}
         host: cinder.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  database:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: trove.${gateway_domain}
     port:
       api:
         public: 443

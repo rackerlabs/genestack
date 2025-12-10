@@ -9,6 +9,7 @@ components:
   blazar: false
   cloudkitty: false
   cinder: true
+  trove: true
   freezer: false
   placement: true
   nova: true
