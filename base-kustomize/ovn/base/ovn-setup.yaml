@@ -142,26 +142,71 @@ data:
       # Replace + with space for members list
       MEMBERS_LIST="${BOND_MEMBERS//+/ }"
 
-      # Check if bond already exists
+      # Check if bond already exists and if it needs to be updated
+      NEEDS_RECREATE=false
       if ovs-vsctl port-to-br "${BOND_NAME}" &>/dev/null; then
         echo "Bond ${BOND_NAME} exists, checking if update needed"
-        # For now, recreate if exists (could be smarter and check if members changed)
-        ovs-vsctl del-port "${BOND_BRIDGE}" "${BOND_NAME}"
+
+        # Get current bond configuration
+        CURRENT_BRIDGE=$(ovs-vsctl port-to-br "${BOND_NAME}")
+        CURRENT_MODE=$(ovs-vsctl get port "${BOND_NAME}" bond_mode | tr -d '"')
+        CURRENT_LACP=$(ovs-vsctl get port "${BOND_NAME}" lacp | tr -d '"')
+
+        # Get current members (interfaces in the bond)
+        CURRENT_MEMBERS=$(ovs-vsctl list-ifaces "${BOND_NAME}" | sort | tr '\n' ' ' | sed 's/ $//')
+        DESIRED_MEMBERS=$(echo ${MEMBERS_LIST} | tr ' ' '\n' | sort | tr '\n' ' ' | sed 's/ $//')
+
+        # Check if bridge changed
+        if [[ "${CURRENT_BRIDGE}" != "${BOND_BRIDGE}" ]]; then
+          echo "Bond ${BOND_NAME} bridge changed from ${CURRENT_BRIDGE} to ${BOND_BRIDGE}"
+          NEEDS_RECREATE=true
+        fi
+
+        # Check if members changed
+        if [[ "${CURRENT_MEMBERS}" != "${DESIRED_MEMBERS}" ]]; then
+          echo "Bond ${BOND_NAME} members changed from [${CURRENT_MEMBERS}] to [${DESIRED_MEMBERS}]"
+          NEEDS_RECREATE=true
+        fi
+
+        # Check if bond mode changed
+        if [[ "${CURRENT_MODE}" != "${BOND_MODE}" ]]; then
+          echo "Bond ${BOND_NAME} mode changed from ${CURRENT_MODE} to ${BOND_MODE}"
+          NEEDS_RECREATE=true
+        fi
+
+        # Check if LACP setting changed
+        if [[ "${CURRENT_LACP}" != "${BOND_LACP}" ]]; then
+          echo "Bond ${BOND_NAME} LACP changed from ${CURRENT_LACP} to ${BOND_LACP}"
+          NEEDS_RECREATE=true
+        fi
+
+        if [[ "${NEEDS_RECREATE}" == "true" ]]; then
+          echo "Recreating bond ${BOND_NAME} due to configuration changes"
+          ovs-vsctl del-port "${CURRENT_BRIDGE}" "${BOND_NAME}"
+        else
+          echo "Bond ${BOND_NAME} configuration unchanged, skipping recreate"
+        fi
+      else
+        # Bond doesn't exist, needs to be created
+        NEEDS_RECREATE=true
       fi
 
-      # Remove any member interfaces that are already attached as regular ports
-      # This prevents "port named X already exists on bridge" errors
-      for member in ${MEMBERS_LIST}; do
-        if ovs-vsctl port-to-br "${member}" &>/dev/null; then
-          CURRENT_BRIDGE=$(ovs-vsctl port-to-br "${member}")
-          echo "Removing ${member} from bridge ${CURRENT_BRIDGE} (needed for bond ${BOND_NAME})"
-          ovs-vsctl --if-exists del-port "${CURRENT_BRIDGE}" "${member}"
-        fi
-      done
+      # Only recreate/create the bond if needed
+      if [[ "${NEEDS_RECREATE}" == "true" ]]; then
+        # Remove any member interfaces that are already attached as regular ports
+        # This prevents "port named X already exists on bridge" errors
+        for member in ${MEMBERS_LIST}; do
+          if ovs-vsctl port-to-br "${member}" &>/dev/null; then
+            CURRENT_BRIDGE=$(ovs-vsctl port-to-br "${member}")
+            echo "Removing ${member} from bridge ${CURRENT_BRIDGE} (needed for bond ${BOND_NAME})"
+            ovs-vsctl --if-exists del-port "${CURRENT_BRIDGE}" "${member}"
+          fi
+        done
 
-      echo "Creating bond ${BOND_NAME} on bridge ${BOND_BRIDGE} with members: ${MEMBERS_LIST}"
-      ovs-vsctl --no-wait add-bond "${BOND_BRIDGE}" "${BOND_NAME}" ${MEMBERS_LIST} \
-        bond_mode="${BOND_MODE}" lacp="${BOND_LACP}"
+        echo "Creating bond ${BOND_NAME} on bridge ${BOND_BRIDGE} with members: ${MEMBERS_LIST}"
+        ovs-vsctl --no-wait add-bond "${BOND_BRIDGE}" "${BOND_NAME}" ${MEMBERS_LIST} \
+          bond_mode="${BOND_MODE}" lacp="${BOND_LACP}"
+      fi
 
       # Apply additional bond options if configured
       if [[ -n "${BOND_OPTIONS_MAP[${BOND_NAME}]}" ]]; then
