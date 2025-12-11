@@ -1,16 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
-function installYq() {
-    export VERSION=v4.47.2
-    export BINARY=yq_linux_amd64
-    wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -q -O - | tar xz && mv ${BINARY} /usr/local/bin/yq
-}
+# Base directories provided by the environment
+GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
 
-if ! yq --version 2> /dev/null; then
-  echo "yq is not installed. Attempting to install yq"
-  installYq
-fi
+# Source functions library for ensureYq
+source "${GENESTACK_BASE_DIR}/scripts/lib/functions.sh"
 
 USER_NAME="$(whoami)"
 USER_PATH="$(getent passwd ${USER_NAME} | awk -F':' '{print $6}')"
@@ -18,6 +13,8 @@ CONFIG_PATH="${USER_PATH}/.config/openstack"
 CONFIG_FILE="${CONFIG_PATH}/genestack-clouds.yaml"
 
 mkdir -p "${CONFIG_PATH}"
+
+echo "Generating OpenStack RC file at: ${CONFIG_FILE}"
 
 cat > "${CONFIG_FILE}" <<EOF
 cache:
@@ -39,6 +36,7 @@ clouds:
 EOF
 
 if [ -f "${CONFIG_PATH}/clouds.yaml" ]; then
+    ensureYq
     /usr/local/bin/yq eval-all 'select(filename == "'"${CONFIG_PATH}/clouds.yaml"'") * select(filename == "'"${CONFIG_FILE}"'")' \
     "${CONFIG_FILE}" \
     "${CONFIG_PATH}/clouds.yaml" | tee "${CONFIG_PATH}/clouds.yaml.tmp"

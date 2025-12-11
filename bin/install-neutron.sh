@@ -125,18 +125,9 @@ fi
 echo
 
 # Set connection string based on whether we use Kube-OVN TLS
-# Hyperconverged build tries to execute the install script without yq in the
-# path
-function installYq() {
-    export VERSION=v4.47.2
-    export BINARY=yq_linux_amd64
-    wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -q -O - | tar xz && mv ${BINARY} /usr/local/bin/yq
-}
-
-if ! yq --version 2> /dev/null; then
-  echo "yq is not installed. Attempting to install yq"
-  installYq
-fi
+# Source functions library for ensureYq
+source "${GENESTACK_BASE_DIR}/scripts/lib/functions.sh"
+ensureYq
 
 if helm -n kube-system get values kube-ovn \
   | yq -e '.networking.ENABLE_SSL == true' >/dev/null 2>&1
