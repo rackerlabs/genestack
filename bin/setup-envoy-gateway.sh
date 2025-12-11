@@ -1371,7 +1371,7 @@ elif [[ "$LEGACY_MODE" == "true" ]] || [[ "$INTERACTIVE_MODE" == "true" ]]; then
 
     # Apply the gateway configuration
     echo "Applying gateway configuration from kustomize..."
-    kubectl apply -k /etc/genestack/kustomize/envoyproxy-gateway/base
+    kubectl apply -k /etc/genestack/kustomize/envoyproxy-gateway/base 2>&1 | grep -v "missing the kubectl.kubernetes.io/last-applied-configuration annotation" || true
     
     # Give the gateway a moment to be created
     sleep 2

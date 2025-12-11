@@ -1,6 +1,7 @@
 # Default values for kubeovn.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+---
 global:
   registry:
     address: ghcr.io/rackerlabs/genestack-images
@@ -9,7 +10,7 @@ global:
     kubeovn:
       repository: kube-ovn
       vpcRepository: vpc-nat-gateway
-      tag: v1.14.10
+      tag: v1.13.14
       support_arm: true
       thirdparty: true
 
@@ -26,7 +27,7 @@ MASTER_NODES_LABEL: "kube-ovn/role=master"
 networking:
   # NET_STACK defaults to ipv4
   NET_STACK: ipv4
-  ENABLE_SSL: false
+  ENABLE_SSL: true
   # network type could be geneve or vlan
   NETWORK_TYPE: geneve
   # tunnel type could be geneve, vxlan or stt
@@ -38,13 +39,13 @@ networking:
   vlan:
     PROVIDER_NAME: "provider"
     VLAN_INTERFACE_NAME: "br-overlay"
-    #VLAN_NAME: "ovn-vlan"
-    #VLAN_ID: "100"
+    # VLAN_NAME: "ovn-vlan"
+    # VLAN_ID: "100"
   EXCHANGE_LINK_NAME: false
   ENABLE_EIP_SNAT: false
   DEFAULT_SUBNET: "ovn-default"
   DEFAULT_VPC: "ovn-cluster"
-  NODE_SUBNET: "join" #mesh network
+  NODE_SUBNET: "join" # mesh network
   ENABLE_ECMP: true
   ENABLE_METRICS: true
   # comma-separated string of nodelocal DNS ip addresses

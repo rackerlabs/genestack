@@ -1,7 +1,6 @@
 # Prometheus Monitoring Overview
 
-Genestack utilizes Prometheus for monitoring, alerting and metrics collection. To read more about Prometheus
-please take a look at the [upstream docs](https://prometheus.io).
+Genestack utilizes Prometheus for monitoring, alerting and metrics collection. To read more about Prometheus [Prometheus](prometheus.md)
 
 Components used to monitor and provide alerting and visualization mechanisms for genestack include:
 

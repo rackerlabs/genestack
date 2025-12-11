@@ -52,14 +52,14 @@ Before you can deploy octavia, it requires a few things to be setup ahead of tim
 In order to automate these tasks, we have provided an ansible role and a playbook. The playbook, `octavia-preconf-main.yaml`,
 is located in the ansible/playbook directory. You will need to update the variables in the playbook to match your deployment.
 
-Make sure to udpate the octavia-preconf-main.yaml with the correct region, auth url, and password.
+Make sure to udpate the `octavia-preconf-main.yaml` with the correct region, auth url, and password.
 
 !!! tip
 
     The playbook requires a few pip packages to run properly. While the dependencies for this playbook should be installed by
     default, the playbook runtime can be isolated in a virtualenv if needed.
 
-    !!! example
+    ??? example "Create a virtualenv for running the Octavia pre-deployment playbook"
 
         ``` shell
         apt-get install python3-venv python3-pip
@@ -79,26 +79,13 @@ Review the settings and adjust as necessary. Depending on the size of your clust
 
 ### Run the playbook
 
-You can get the Keystone url and region with the following command.
-
-``` shell
-openstack --os-cloud=default endpoint list --service keystone --interface public -c Region -c URL -f value
-```
-
-You can get the admin password by using kubectl.
-
-``` shell
-kubectl get secrets keystone-admin -n openstack -o jsonpath='{.data.password}' | base64 -d
-```
-
-Run the playbook
+Change to the playbook directory.
 
 ``` shell
 cd /opt/genestack/ansible/playbooks
-ansible-playbook octavia-preconf-main.yaml
 ```
 
-!!! tip "Dynamic values"
+=== "Dynamic values"
 
     Running the playbook can be fully dynamic by using the following command:
 
@@ -108,45 +95,60 @@ ansible-playbook octavia-preconf-main.yaml
         ansible-playbook /opt/genestack/ansible/playbooks/octavia-preconf-main.yaml \
                         -e octavia_os_password=$(kubectl get secrets keystone-admin -n openstack -o jsonpath='{.data.password}' | base64 -d) \
                         -e octavia_os_region_name=$(openstack --os-cloud=default endpoint list --service keystone --interface public -c Region -f value) \
-                        -e octavia_os_auth_url=$(openstack --os-cloud=default endpoint list --service keystone --interface public -c URL -f value)
+                        -e octavia_os_auth_url=$(openstack --os-cloud=default endpoint list --service keystone --interface public -c URL -f value) \
+                        -e octavia_helm_file=/tmp/octavia_amphora_provider.yaml
         ```
 
-!!! tip "Dynamic values skipping tags for post deploy updates"
+=== "Static values skipping tags for post deploy updates"
 
-    Use --skip-tags "post_deploy" to avoid quota, cert and keypair updates:
+    You can get the Keystone url and region with the following command.
+
+    ``` shell
+    openstack --os-cloud=default endpoint list --service keystone --interface public -c Region -c URL -f value
+    ```
+
+    You can get the admin password by using kubectl.
+
+    ``` shell
+    kubectl get secrets keystone-admin -n openstack -o jsonpath='{.data.password}' | base64 -d
+    ```
 
     !!! example "Run the playbook with optional skip-tags values"
 
         ``` shell
         ansible-playbook /opt/genestack/ansible/playbooks/octavia-preconf-main.yaml \
-                        -e octavia_os_password=$(kubectl get secrets keystone-admin -n openstack -o jsonpath='{.data.password}' | base64 -d) \
-                        -e octavia_os_region_name=$(openstack --os-cloud=default endpoint list --service keystone --interface public -c Region -f value) \
-                        -e octavia_os_auth_url=$(openstack --os-cloud=default endpoint list --service keystone --interface public -c URL -f value) \
-                        --skip-tags "post_deploy"
+                        -e octavia_os_password=$PASSWORD \
+                        -e octavia_os_region_name=$REGION_NAME \
+                        -e octavia_os_auth_url=$AUTH_URL \
+                        -e octavia_helm_file=/tmp/octavia_amphora_provider.yaml
         ```
 
-Once everything is complete, a new file will be created in your home directory called `octavia_amphora_provider.yaml`, this file
+=== "Skipping tags for pre deploy setup"
+
+    If you have already run the pre-deployment steps and need to re-generate the helm values file, you can skip the
+    pre-deployment steps by using the `--skip-tags "pre_deploy"` option.
+
+    !!! example "Run the playbook with optional skip-tags values"
+
+        ``` shell
+        ansible-playbook /opt/genestack/ansible/playbooks/octavia-preconf-main.yaml \
+                        --skip-tags "pre_deploy"
+        ```
+
+Once everything is complete, a new file will be created in your TMP directory called `/tmp/octavia_amphora_provider.yaml`, this file
 contains the necessary information to deploy Octavia via helm. Move this file into the `/etc/genestack/helm-configs/octavia`
 directory to have it automatically included when running the Octavia deployment script.
 
 ``` shell
-mv ~/octavia_amphora_provider.yaml /etc/genestack/helm-configs/octavia/
+mv /tmp/octavia_amphora_provider.yaml /etc/genestack/helm-configs/octavia/
 ```
 
 ## Run the Helm deployment
 
-!!! example "Run the Octavia deployment Script `/opt/genestack/bin/install-octavia.sh`"
+??? example "Run the Octavia deployment Script `/opt/genestack/bin/install-octavia.sh`"
 
     ``` shell
     --8<-- "bin/install-octavia.sh"
-    ```
-
-**Make sure to include the file when you run the script by adding a `-f /<HOME_DIRECTORY>/octavia_amphora_provider.yaml`**
-
-!!! example
-
-    ``` shell
-    /opt/genestack/bin/install-octavia.sh
     ```
 
 !!! tip

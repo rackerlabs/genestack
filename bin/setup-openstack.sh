@@ -2,23 +2,63 @@
 set -e
 
 # Track the PIDs of the services deploying in parallel
-pids=()
+declare -A pids
+declare -A pid_commands
 
 function runTrackErator() {
-    exec "${1}" &
-    pids+=($!)
+    "${1}" &
+    local pid=$!
+    pids[$pid]=1
+    pid_commands[$pid]="${1}"
+    echo "Started ${1} with PID ${pid}"
 }
 
 function waitErator() {
-    for pid in ${pids[*]}; do
-        if ! timeout --preserve-status --verbose 30m tail --pid=${pid} -f /dev/null; then
+    local start_time
+    start_time=$(date +%s)
+    local timeout_seconds=$((30 * 60))  # 30 minutes
+    
+    while [ ${#pids[@]} -gt 0 ]; do
+        # Check for timeout
+        local current_time
+        current_time=$(date +%s)
+        local elapsed=$((current_time - start_time))
+        if [ $elapsed -ge $timeout_seconds ]; then
             echo "==== PROCESS TIMEOUT ====================================="
-            cat /proc/${pid}/cmdline | xargs -0 echo
+            echo "Timeout after 30 minutes. Remaining processes:"
+            for pid in "${!pids[@]}"; do
+                echo "  PID ${pid}: ${pid_commands[$pid]}"
+                kill ${pid} 2>/dev/null || true
+            done
             echo "==== PROCESS TIMEOUT ====================================="
-            echo "Timeout after 30 minutes waiting for process ${pid} to finish. Exiting."
             exit 1
         fi
+        
+        for pid in "${!pids[@]}"; do
+            # Check if process is still running
+            if ! kill -0 ${pid} 2>/dev/null; then
+                # Process finished, check exit status
+                # Use || to prevent set -e from killing the script before we can log the failure
+                wait ${pid} || local exit_code=$?
+                exit_code=${exit_code:-0}
+                
+                if [ $exit_code -ne 0 ]; then
+                    echo "==== PROCESS FAILED ====================================="
+                    echo "Command: ${pid_commands[$pid]}"
+                    echo "PID: ${pid}"
+                    echo "Exit Code: ${exit_code}"
+                    echo "==== PROCESS FAILED ====================================="
+                    exit 1
+                else
+                    echo "Successfully completed ${pid_commands[$pid]} (PID ${pid})"
+                fi
+                unset "pids[$pid]"
+            fi
+        done
+        sleep 1
     done
+    
+    echo "All processes completed successfully."
 }
 
 # Function to prompt user for component installation

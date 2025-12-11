@@ -1,25 +1,89 @@
+---
 global:
-  dnsService: "coredns"
+  dnsService: coredns
 minio:
   enabled: false
 loki:
+  persistence:
+    enabled: true
+    size: 100Gi
   auth_enabled: false
   configStorageType: Secret
   ingester:
     autoforget_unhealthy: true
   storage:
     bucketNames:
-      chunks: < CHUNKS BUCKET NAME > # TODO: Update with relevant bucket name for chunks
-      ruler: < RULER BUCKET NAME > # TODO: Update with relevant bucket name for ruler
-      admin: < ADMIN BUCKET NAME > # TODO: Update with relevant bucket name for admin
+      chunks: loki-chunks-bucket-name
+      ruler: loki-ruler-bucket-name
+      admin: loki-admin-bucket-name
     type: s3
     s3:
-      endpoint: < ENDPOINT URL > # TODO: Update with valid enpoint URL
-      region: < REGION > # TODO: Update with valid region
-      secretAccessKey: < SECRET ACCESS KEY > # TODO: Update with valid secret access key
-      accessKeyId: < ACCESS KEY ID > # TODO: Update with access key id
-      s3ForcePathStyle: false
-      insecure: [ true | false ] # TODO: True if valid cert or false if not
-monitoring:
+      endpoint: YOUR_S3_ENDPOINT_URL
+      region: YOUR_S3_REGION
+      access_key_id: YOUR_S3_ACCESS_KEY_ID
+      secret_access_key: YOUR_S3_SECRET_ACCESS_KEY
+      s3forcepathstyle: true
+      insecure: false
+  schemaConfig:
+    configs:
+      - from: 2020-01-01
+        store: tsdb
+        object_store: s3
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+  limits_config:
+    ingestion_rate_mb: 10
+    ingestion_burst_size_mb: 40
+    per_stream_rate_limit: 10MB
+    per_stream_rate_limit_burst: 40MB
+
+  write:
+    replicas: 5
+    podDisruptionBudget:
+      enabled: true
+      maxUnavailable: 40%
+    nodeSelector:
+      openstack-control-plane: enabled
+    serviceMonitor:
+      enabled: true
+
+  read:
+    podDisruptionBudget:
+      enabled: true
+      maxUnavailable: 40%
+    nodeSelector:
+      openstack-control-plane: enabled
+    serviceMonitor:
+      enabled: true
+
+  canary:
+    enabled: true
+    podDisruptionBudget:
+      enabled: true
+      maxUnavailable: 50%
+    serviceMonitor:
+      enabled: true
+
+  backend:
+    serviceMonitor:
+      enabled: true
+
+gateway:
+  service:
+    type: NodePort
+    nodePort: 31776
+  podDisruptionBudget:
+    enabled: true
+    maxUnavailable: 1
+  nodeSelector:
+    openstack-control-plane: enabled
   serviceMonitor:
     enabled: true
+
+lokiCanary:
+  kind: Deployment
+  replicas: 1
+  nodeSelector:
+    openstack-control-plane: enabled

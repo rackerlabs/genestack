@@ -8,10 +8,15 @@ RUN_EXTRAS=0
 INCLUDE_LIST=()
 EXCLUDE_LIST=()
 
+export TEST_LEVEL="${TEST_LEVEL:-off}"
+
 function installYq() {
     export VERSION=v4.2.0
     export BINARY=yq_linux_amd64
     wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -q -O - | tar xz && sudo mv ${BINARY} /usr/local/bin/yq
+    if ! yq --version 2> /dev/null; then
+      echo "yq failed to install"
+    fi
 }
 
 # Install yq locally if needed...
@@ -414,6 +419,16 @@ fi
 
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
+if ! yq --version 2> /dev/null; then
+  echo "yq is not installed. Attempting to install yq"
+  export VERSION=v4.2.0
+  export BINARY=yq_linux_amd64
+  wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -q -O - | tar xz && sudo mv ${BINARY} /usr/local/bin/yq
+  if ! yq --version 2> /dev/null; then
+    echo "yq failed to install"
+  fi
+fi
+
 if [ ! -d "/opt/genestack" ]; then
   sudo git clone --recurse-submodules -j4 https://github.com/rackerlabs/genestack /opt/genestack
 else
@@ -1232,41 +1247,6 @@ echo "Installing OpenStack"
 sudo /opt/genestack/bin/setup-openstack.sh
 EOC
 
-# Run Genestack post setup
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
-set -e
-sudo bash <<HERE
-sudo /opt/genestack/bin/setup-openstack-rc.sh
-source /opt/genestack/scripts/genestack.rc
-if ! openstack --os-cloud default flavor show ${LAB_NAME_PREFIX}-test; then
-  openstack --os-cloud default flavor create ${LAB_NAME_PREFIX}-test \
-            --public \
-            --ram 2048 \
-            --disk 10 \
-            --vcpus 2
-fi
-if ! openstack --os-cloud default network show flat; then
-  openstack --os-cloud default network create \
-            --share \
-            --availability-zone-hint az1 \
-            --external \
-            --provider-network-type flat \
-            --provider-physical-network physnet1 \
-            flat
-fi
-if ! openstack --os-cloud default subnet show flat_subnet; then
-  openstack --os-cloud default subnet create \
-            --subnet-range 192.168.102.0/24 \
-            --gateway 192.168.102.1 \
-            --dns-nameserver 1.1.1.1 \
-            --allocation-pool start=192.168.102.100,end=192.168.102.109 \
-            --dhcp \
-            --network flat \
-            flat_subnet
-fi
-HERE
-EOC
-
 # Extra operations...
 install_k9s() {
 echo "Installing k9s"
@@ -1318,6 +1298,53 @@ if [[ "$RUN_EXTRAS" -eq 1 ]]; then
   echo "Running extra operations..."
   install_k9s
   install_preconf_octavia
+fi
+
+if [[ ! "${TEST_LEVEL}" == "off" ]]; then
+  echo "Running tests at level: ${TEST_LEVEL}"
+
+  ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} \
+    "sudo TEST_RESULTS_DIR=/tmp/test-results /opt/genestack/scripts/tests/run-all-tests.sh ${TEST_LEVEL}"
+
+  mkdir -p test-results
+  scp -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${SSH_USERNAME}@${JUMP_HOST_VIP}:/tmp/test-results/*.xml ./test-results/ 2>/dev/null || echo "No test result XML files found"
+  scp -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${SSH_USERNAME}@${JUMP_HOST_VIP}:/tmp/test-results/*.txt ./test-results/ 2>/dev/null || echo "No test result text files found"
+else
+  echo "Skipping tests as TEST_LEVEL is set to 'off'"
+  echo "Run Generic Genestack post setup"
+  ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+set -e
+sudo bash <<HERE
+sudo /opt/genestack/bin/setup-openstack-rc.sh
+source /opt/genestack/scripts/genestack.rc
+if ! openstack --os-cloud default flavor show ${LAB_NAME_PREFIX}-test; then
+  openstack --os-cloud default flavor create ${LAB_NAME_PREFIX}-test \
+            --public \
+            --ram 2048 \
+            --disk 10 \
+            --vcpus 2
+fi
+if ! openstack --os-cloud default network show flat; then
+  openstack --os-cloud default network create \
+            --share \
+            --availability-zone-hint az1 \
+            --external \
+            --provider-network-type flat \
+            --provider-physical-network physnet1 \
+            flat
+fi
+if ! openstack --os-cloud default subnet show flat_subnet; then
+  openstack --os-cloud default subnet create \
+            --subnet-range 192.168.102.0/24 \
+            --gateway 192.168.102.1 \
+            --dns-nameserver 1.1.1.1 \
+            --allocation-pool start=192.168.102.100,end=192.168.102.109 \
+            --dhcp \
+            --network flat \
+            flat_subnet
+fi
+HERE
+EOC
 fi
 
 { cat | tee /tmp/output.txt; } <<EOF

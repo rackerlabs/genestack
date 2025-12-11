@@ -9,12 +9,14 @@ applicable snmp.conf
 Use the Prometheus SNMP exporter for getting metrics from monitoring with SNMP
 into Prometheus.
 
-#### Install the Prometheus SNMP Exporter Helm Chart
+## Installation
 
+Install the SNMP Exporter
 
-``` shell
-bin/install-prometheus-snmp-exporter.sh
-```
+??? example "`/opt/genestack/bin/install-prometheus-snmp-exporter.sh`"
 
-!!! success
-    If the installation is successful, you should see the prometheus-snmp-exporter pod running in the prometheus namespace.
+    ``` shell
+    --8<-- "bin/install-prometheus-snmp-exporter.sh"
+    ```
+
+If the installation is successful, you should see the prometheus-snmp-exporter pod running in the prometheus namespace.

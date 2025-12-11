@@ -1,3 +1,4 @@
+---
 name: Helm GitHub Actions for Prometheus Pushgateway
 
 on:
@@ -19,13 +20,13 @@ jobs:
         uses: actions/checkout@v4
       - uses: azure/setup-helm@v3
         with:
-          version: latest
-          token: "${{ secrets.GITHUB_TOKEN }}"
+          version: v3.14.3
+          token: ${{ secrets.GITHUB_TOKEN }}
         id: helm
       - name: Add prometheus-community repo to helm
         run: |
-            ${{ steps.helm.outputs.helm-path }} repo add prometheus-community https://prometheus-community.github.io/helm-charts
-            ${{ steps.helm.outputs.helm-path }} repo update
+          ${{ steps.helm.outputs.helm-path }} repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          ${{ steps.helm.outputs.helm-path }} repo update
       - name: Run Helm Template
         run: |
           ${{ steps.helm.outputs.helm-path }} template prometheus-pushgateway prometheus-community/prometheus-pushgateway \

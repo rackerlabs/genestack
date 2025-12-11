@@ -1,12 +1,83 @@
+---
 global:
-  dnsService: "coredns"
+  dnsService: coredns
 minio:
   enabled: true
 loki:
+  persistence:
+    enabled: true
+    size: 100Gi
   auth_enabled: false
   configStorageType: Secret
   ingester:
     autoforget_unhealthy: true
-monitoring:
+  storage:
+    bucketNames:
+      chunks: LOKI_CHUNKS_BUCKET_NAME
+      ruler: LOKI_RULER_BUCKET_NAME
+      admin: LOKI_ADMIN_BUCKET_NAME
+    # Storage type and connection details are handled implicitly by the chart
+    # when MinIO is enabled, connecting via S3 protocol to the internal MinIO service.
+  schemaConfig:
+    configs:
+      - from: 2020-01-01
+        store: tsdb
+        object_store: s3  # MinIO is S3-compatible
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+  limits_config:
+    ingestion_rate_mb: 10
+    ingestion_burst_size_mb: 40
+    per_stream_rate_limit: 10MB
+    per_stream_rate_limit_burst: 40MB
+
+  write:
+    replicas: 5
+    podDisruptionBudget:
+      enabled: true
+      maxUnavailable: 40%
+    nodeSelector:
+      openstack-control-plane: enabled
+    serviceMonitor:
+      enabled: true
+
+  read:
+    podDisruptionBudget:
+      enabled: true
+      maxUnavailable: 40%
+    nodeSelector:
+      openstack-control-plane: enabled
+    serviceMonitor:
+      enabled: true
+
+  canary:
+    enabled: true
+    podDisruptionBudget:
+      enabled: true
+      maxUnavailable: 50%
+    serviceMonitor:
+      enabled: true
+
+  backend:
+    serviceMonitor:
+      enabled: true
+
+gateway:
+  service:
+    type: NodePort
+    nodePort: 31776
+  podDisruptionBudget:
+    enabled: true
+    maxUnavailable: 1
+  nodeSelector:
+    openstack-control-plane: enabled
   serviceMonitor:
     enabled: true
+
+lokiCanary:
+  kind: Deployment
+  replicas: 1
+  nodeSelector:
+    openstack-control-plane: enabled
