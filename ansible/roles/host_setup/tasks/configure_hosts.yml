@@ -78,3 +78,22 @@
     dest: /etc/systemd/system/queue_max.service
     mode: "0644"
   notify: Load and start queue_max service
+
+- name: KVM Host Specific Setup
+  when:
+    - ('openstack_compute_nodes' in group_names)
+  block:
+    - name: Ensure kvm group has correct GID
+      ansible.builtin.group:
+        name: kvm
+        gid: 929292
+        state: present
+
+    - name: Ensure udev rule for kvm device
+      ansible.builtin.copy:
+        content: |
+          KERNEL=="kvm", GROUP="929292", MODE="0660"
+        dest: /etc/udev/rules.d/99-genestack-kvm.rules
+        mode: "0644"
+      notify:
+        - Reload udev rules
