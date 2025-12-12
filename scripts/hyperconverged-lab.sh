@@ -10,16 +10,26 @@ EXCLUDE_LIST=()
 
 export TEST_LEVEL="${TEST_LEVEL:-off}"
 
+# yq installation constants
+YQ_VERSION="v4.2.0"
+YQ_BINARY="yq_linux_amd64"
+
 function installYq() {
-    export VERSION=v4.2.0
-    export BINARY=yq_linux_amd64
-    wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -q -O - | tar xz && sudo mv ${BINARY} /usr/local/bin/yq
+    if wget https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_BINARY}.tar.gz -O - | tar xz && sudo mv ${YQ_BINARY} /usr/local/bin/yq; then
+        echo "Successfully installed yq version ${YQ_VERSION}"
+        return 0
+    else
+        echo "Failed to install yq"
+        return 1
+    fi
 }
 
 # Install yq locally if needed...
 if ! yq --version 2> /dev/null; then
   echo "yq is not installed. Attempting to install yq"
-  installYq
+  if ! installYq; then
+    echo "[WARNING] Failed to install yq locally"
+  fi
 fi
 
 
@@ -428,6 +438,19 @@ fi
 if [ ! -d "/etc/genestack" ]; then
   sudo /opt/genestack/bootstrap.sh
   sudo chown \${USER}:\${USER} -R /etc/genestack
+fi
+
+# Install yq on the remote host if not already present
+if ! command -v yq &> /dev/null; then
+  echo "Installing yq on remote host..."
+  if wget https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_BINARY}.tar.gz -O - | tar xz && sudo mv ${YQ_BINARY} /usr/local/bin/yq; then
+    echo "Successfully installed yq version ${YQ_VERSION} on remote host"
+  else
+    echo "Failed to install yq on remote host"
+    exit 1
+  fi
+else
+  echo "yq already available on remote host: \$(yq --version)"
 fi
 
 # We need to clobber the sample or else we get a bogus LB vip
@@ -1232,6 +1255,48 @@ sudo LONGHORN_STORAGE_REPLICAS=1 \
      /opt/genestack/bin/setup-infrastructure.sh
 echo "Installing OpenStack"
 sudo /opt/genestack/bin/setup-openstack.sh
+EOC
+
+# Run Genestack post setup
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+set -e
+sudo bash <<HERE
+sudo /opt/genestack/bin/setup-openstack-rc.sh
+source /opt/genestack/scripts/genestack.rc
+
+# Function to retry openstack commands with backoff
+retry_openstack_command() {
+  local cmd="\\\$1"
+  local description="\\\$2"
+  local retry_count=0
+  local max_retries=12  # 12 retries * 10 seconds = 2 minutes
+
+  while [ \\\$retry_count -lt \\\$max_retries ]; do
+    echo "Attempting: \\\$description"
+    if eval "\\\$cmd"; then
+      echo "\\\$description succeeded"
+      return 0
+    else
+      retry_count=\\\$((retry_count + 1))
+      echo "\\\$description failed (attempt \\\$retry_count/\\\$max_retries). Retrying in 10 seconds..."
+      if [ \\\$retry_count -eq \\\$max_retries ]; then
+        echo "\\\$description failed after \\\$max_retries attempts. Continuing anyway..."
+        return 1
+      fi
+      sleep 10
+    fi
+  done
+}
+
+# Create flavor with retry
+retry_openstack_command "if ! openstack --os-cloud default flavor show ${LAB_NAME_PREFIX}-test; then openstack --os-cloud default flavor create ${LAB_NAME_PREFIX}-test --public --ram 2048 --disk 10 --vcpus 2; fi" "Flavor setup"
+
+# Create network with retry
+retry_openstack_command "if ! openstack --os-cloud default network show flat; then openstack --os-cloud default network create --share --availability-zone-hint az1 --external --provider-network-type flat --provider-physical-network physnet1 flat; fi" "Network setup"
+
+# Create subnet with retry
+retry_openstack_command "if ! openstack --os-cloud default subnet show flat_subnet; then openstack --os-cloud default subnet create --subnet-range 192.168.102.0/24 --gateway 192.168.102.1 --dns-nameserver 1.1.1.1 --allocation-pool start=192.168.102.100,end=192.168.102.109 --dhcp --network flat flat_subnet; fi" "Subnet setup"
+HERE
 EOC
 
 # Extra operations...
