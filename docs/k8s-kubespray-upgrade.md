@@ -28,38 +28,14 @@ Once the group variables are set, you can proceed with the upgrade execution.
 
 Running an upgrade with Kubespray is fairly simple and executed via `ansible-playbook`.
 
-Before running the playbook be sure to source your environment variables.
+* We recoommend running the upgrade from a control node that is not part of the cluster being upgraded. This helps to ensure that the upgrade process is not competing for resources with the cluster being upgraded.
+
+* We also recommend running the upgrade within a `screen` or `tmux` session to help ensure that the upgrade process is not interrupted by network issues.
+
+The script to run the upgrade can be found within the `scripts/kubespray-major-upgrade.sh` file; however, the process is fairly straightforward.
 
 ``` shell
-source /opt/genestack/scripts/genestack.rc
-```
-
-Change to the `kubespary` directory.
-
-``` shell
-cd /opt/genestack/submodules/kubespray
-```
-
-!!! note
-
-    When running an upgrade be sure to set the `kube_version` variable to the desired version number.
-
-Now run the upgrade.
-
-``` shell
-ansible-playbook upgrade-cluster.yml -e kube_version=${VERSION_NUMBER}
-```
-
-!!! note
-
-    While the basic command could work, be sure to include any and all flags needed for your environment before running the upgrade.
-
-### Running an unsafe upgrade
-
-When running an upgrade, it is possible to force the upgrade by running the cluster playbook with the `upgrade_cluster_setup` flag set to **true**. This option is a lot faster, though does introduce the possibility of service disruption during the upgrade operation.
-
-``` shell
-ansible-playbook cluster.yml -e upgrade_cluster_setup=true -e kube_version=${VERSION_NUMBER}
+--8<-- "scripts/kubespray-major-upgrade.sh"
 ```
 
 ### Upgrade Hangs
