@@ -4,15 +4,28 @@ set -e
 
 set -o pipefail
 
-if [ -z "${ACME_EMAIL}" ]; then
-  read -rp "Enter a valid email address for use with ACME, press enter to skip: " ACME_EMAIL
-  export ACME_EMAIL="${ACME_EMAIL:-}"
-fi
+# Gateway configuration - supports both legacy mode and config file mode
+GATEWAY_CONFIG_FILE="${GATEWAY_CONFIG_FILE:-}"
 
-if [ -z "${GATEWAY_DOMAIN}" ]; then
-  echo "The domain name for the gateway is required, if you do not have a domain name press enter to use the default"
-  read -rp "Enter the domain name for the gateway [cluster.local]: " GATEWAY_DOMAIN
-  export GATEWAY_DOMAIN="${GATEWAY_DOMAIN:-cluster.local}"
+if [ -z "${GATEWAY_CONFIG_FILE}" ]; then
+  # Legacy mode - prompt for email and domain
+  if [ -z "${ACME_EMAIL}" ]; then
+    read -rp "Enter a valid email address for use with ACME, press enter to skip: " ACME_EMAIL
+    export ACME_EMAIL="${ACME_EMAIL:-}"
+  fi
+
+  if [ -z "${GATEWAY_DOMAIN}" ]; then
+    echo "The domain name for the gateway is required, if you do not have a domain name press enter to use the default"
+    read -rp "Enter the domain name for the gateway [cluster.local]: " GATEWAY_DOMAIN
+    export GATEWAY_DOMAIN="${GATEWAY_DOMAIN:-cluster.local}"
+  fi
+else
+  # Config file mode - check if file exists
+  if [ ! -f "${GATEWAY_CONFIG_FILE}" ]; then
+    echo "Error: Gateway configuration file not found: ${GATEWAY_CONFIG_FILE}"
+    exit 1
+  fi
+  echo "Using gateway configuration file: ${GATEWAY_CONFIG_FILE}"
 fi
 
 if [ "${HYPERCONVERGED:-false}" = "true" ]; then
@@ -112,7 +125,7 @@ EOF
 fi
 /opt/genestack/bin/install-kube-ovn.sh
 echo "Waiting for the kube-ovn-controller to be available"
-kubectl -n kube-system wait --timeout=5m deployments.app/kube-ovn-controller --for=condition=available
+kubectl -n kube-system wait --timeout=5m deployments.apps/kube-ovn-controller --for=condition=available
 
 # Setup shared pod storage
 kubectl apply -f /etc/genestack/manifests/longhorn/longhorn-namespace.yaml
@@ -136,9 +149,44 @@ kubectl apply -k /etc/genestack/kustomize/openstack/base
 
 # Deploy envoy
 /opt/genestack/bin/install-envoy-gateway.sh
+
+# Setup gateway - supports both legacy and config file modes
+# This must run before waiting for deployments since it creates the gateway resources
+if [ -n "${GATEWAY_CONFIG_FILE}" ]; then
+  # Config file mode
+  /opt/genestack/bin/setup-envoy-gateway.sh --config "${GATEWAY_CONFIG_FILE}"
+else
+  # Legacy mode
+  /opt/genestack/bin/setup-envoy-gateway.sh -e ${ACME_EMAIL} -d ${GATEWAY_DOMAIN}
+fi
+
 echo "Waiting for the envoyproxy-gateway to be available"
-kubectl -n envoyproxy-gateway-system wait --timeout=5m deployments.apps/envoy-gateway --for=condition=available
-/opt/genestack/bin/setup-envoy-gateway.sh -e ${ACME_EMAIL} -d ${GATEWAY_DOMAIN}
+
+# Wait for gateway deployments - they may be in different namespaces depending on config
+# In legacy mode, they're in envoy-gateway; in config mode, they're in their respective namespaces
+
+# First, try to find deployments in envoyproxy-gateway-system (controller)
+echo "[DEBUG] Checking for deployments in envoyproxy-gateway-system namespace..."
+CONTROLLER_DEPLOYMENT=$(kubectl -n envoyproxy-gateway-system get deployments -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+if [ -n "$CONTROLLER_DEPLOYMENT" ]; then
+    echo "Waiting for controller deployment: $CONTROLLER_DEPLOYMENT"
+    kubectl -n envoyproxy-gateway-system wait --timeout=5m "deployments.apps/$CONTROLLER_DEPLOYMENT" --for=condition=available
+fi
+
+# Then, check for gateway deployments in envoy-gateway namespace (legacy mode)
+echo "[DEBUG] Checking for deployments in envoy-gateway namespace..."
+GATEWAY_DEPLOYMENT=$(kubectl -n envoy-gateway get deployments -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+if [ -n "$GATEWAY_DEPLOYMENT" ]; then
+    echo "Waiting for gateway deployment: $GATEWAY_DEPLOYMENT"
+    kubectl -n envoy-gateway wait --timeout=5m "deployments.apps/$GATEWAY_DEPLOYMENT" --for=condition=available
+else
+    echo "[DEBUG] No deployments found in envoy-gateway namespace yet"
+    echo "[DEBUG] Listing all resources in envoy-gateway:"
+    kubectl -n envoy-gateway get all 2>/dev/null || true
+    echo "[DEBUG] Checking gateway status:"
+    kubectl -n envoy-gateway describe gateway flex-gateway 2>/dev/null || true
+    echo "[INFO] Gateway deployments may take time to be created by the controller. Continuing..."
+fi
 
 # Run a rollout for cert-manager
 echo "Waiting for the cert-manager to be available"

@@ -5,13 +5,51 @@
 # Disable SC2124 (unused array), SC2145 (array expansion issue), SC2294 (eval)
 # shellcheck disable=SC2124,SC2145,SC2294
 
+# Function to check and install yq if not present
+check_and_install_yq() {
+    if ! command -v yq &> /dev/null; then
+        echo "yq is not installed. Installing yq..."
+        
+        # Detect OS and architecture
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        ARCH=$(uname -m)
+        
+        # Map architecture names
+        case "$ARCH" in
+            x86_64)
+                ARCH="amd64"
+                ;;
+            aarch64)
+                ARCH="arm64"
+                ;;
+        esac
+        
+        # Download and install yq
+        YQ_VERSION=$(curl -s https://api.github.com/repos/mikefarah/yq/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
+        YQ_URL="https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_${OS}_${ARCH}"
+        
+        if curl -sL "$YQ_URL" -o /tmp/yq; then
+            sudo install -o root -g root -m 0755 /tmp/yq /usr/local/bin/yq
+            rm /tmp/yq
+            echo "yq installed successfully"
+        else
+            echo "Error: Failed to download yq from $YQ_URL" >&2
+            exit 1
+        fi
+    fi
+}
+
+# Check for yq before proceeding
+check_and_install_yq
+
 # Service
 SERVICE_NAME_DEFAULT="envoyproxy-gateway"
 SERVICE_NAMESPACE="envoyproxy-gateway-system"
 
 # Helm
 # NOTE: Using OCI registry format for the chart location.
-HELM_REPO_NAME_DEFAULT="gateway-helm"
+# The correct chart is 'gateway' from the envoyproxy registry
+HELM_REPO_NAME_DEFAULT="gateway"
 HELM_REPO_URL_DEFAULT="oci://docker.io/envoyproxy"
 
 # Base directories provided by the environment
@@ -76,6 +114,23 @@ echo "[DEBUG] HELM_CHART_PATH=$HELM_CHART_PATH"
 # Prepare an array to collect -f arguments
 overrides_args=()
 
+# Create a temporary values file to ensure controller is deployed
+TEMP_VALUES=$(mktemp)
+cat > "$TEMP_VALUES" <<'EOF'
+# Ensure the controller is deployed
+deployment:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 1000m
+      memory: 1024Mi
+EOF
+
+overrides_args+=("-f" "$TEMP_VALUES")
+
 # Include all YAML files from the BASE configuration directory
 # NOTE: Files in this directory are included first.
 if [[ -d "$SERVICE_BASE_OVERRIDES" ]]; then
@@ -135,6 +190,22 @@ echo
 # Execute the command directly from the array
 "${helm_command[@]}"
 
+# Cleanup temp values file
+rm -f "$TEMP_VALUES"
+
+# Debug: Check what was actually installed
+echo ""
+echo "[DEBUG] Checking what was installed by helm..."
+echo "Deployments in envoyproxy-gateway-system:"
+kubectl get deployments -n envoyproxy-gateway-system -o wide 2>/dev/null || echo "No deployments found"
+echo ""
+echo "All resources in envoyproxy-gateway-system:"
+kubectl get all -n envoyproxy-gateway-system 2>/dev/null || echo "No resources found"
+echo ""
+echo "Helm manifest (first 50 lines):"
+helm get manifest envoyproxy-gateway -n envoyproxy-gateway-system 2>/dev/null | head -50 || echo "Could not get manifest"
+echo ""
+
 ## Install egctl Binary (Post-Installation)
 
 # Install egctl
@@ -143,7 +214,7 @@ if [ ! -f "/usr/local/bin/egctl" ]; then
     sudo mkdir -p /opt/egctl-install
     pushd /opt/egctl-install || exit 1
         # Use the extracted version for wget
-        sudo wget "https://github.com/envoyproxy/gateway/releases/download/${SERVICE_VERSION}/egctl_${SERVICE_VERSION}_linux_amd64.tar.gz" -O egctl.tar.gz
+        sudo wget -nv "https://github.com/envoyproxy/gateway/releases/download/${SERVICE_VERSION}/egctl_${SERVICE_VERSION}_linux_amd64.tar.gz" -O egctl.tar.gz
         sudo tar -xvf egctl.tar.gz
         sudo install -o root -g root -m 0755 bin/linux/amd64/egctl /usr/local/bin/egctl
         /usr/local/bin/egctl completion bash > /tmp/egctl.bash

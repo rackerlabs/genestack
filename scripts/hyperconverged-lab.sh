@@ -14,6 +14,9 @@ function installYq() {
     export VERSION=v4.2.0
     export BINARY=yq_linux_amd64
     wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -q -O - | tar xz && sudo mv ${BINARY} /usr/local/bin/yq
+    if ! yq --version 2> /dev/null; then
+      echo "yq failed to install"
+    fi
 }
 
 # Install yq locally if needed...
@@ -416,6 +419,16 @@ fi
 
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
 set -e
+if ! yq --version 2> /dev/null; then
+  echo "yq is not installed. Attempting to install yq"
+  export VERSION=v4.2.0
+  export BINARY=yq_linux_amd64
+  wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -q -O - | tar xz && sudo mv ${BINARY} /usr/local/bin/yq
+  if ! yq --version 2> /dev/null; then
+    echo "yq failed to install"
+  fi
+fi
+
 if [ ! -d "/opt/genestack" ]; then
   sudo git clone --recurse-submodules -j4 https://github.com/rackerlabs/genestack /opt/genestack
 else
