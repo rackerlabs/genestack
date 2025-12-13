@@ -16,10 +16,9 @@
 
 # Globals
 BASEDIR=${BASEDIR:-/opt/genestack}
-source ${BASEDIR}/scripts/genestack.rc
-
-export SUDO_CMD=""
-sudo -l |grep -q NOPASSWD && SUDO_CMD="/usr/bin/sudo -n "
+if [ -f "${BASEDIR}/scripts/genestack.rc" ]; then
+    source "${BASEDIR}/scripts/genestack.rc"
+fi
 
 test -f ~/.rackspace/datacenter && export RAX_DC="$(cat ~/.rackspace/datacenter |tr '[:upper:]' '[:lower:]')"
 test -f /etc/openstack_deploy/openstack_inventory.json && export RPC_CONFIG_IN_PLACE=true || export RPC_CONFIG_IN_PLACE=false
@@ -95,4 +94,56 @@ function error {
 
 function message {
   echo -n -e "\n\x1B[32m$1\x1B[39m"
+}
+
+# Install yq binary
+# Supports Linux (amd64/arm64) and macOS (Intel/Apple Silicon)
+# Usage: installYq
+function installYq() {
+    echo "Installing yq..."
+    local version=${YQ_VERSION:-v4.47.2}
+    local os arch binary
+
+    # Detect OS
+    case "$(uname -s)" in
+        Linux)  os="linux" ;;
+        Darwin) os="darwin" ;;
+        *)
+            echo "Error: Unsupported operating system: $(uname -s)" >&2
+            return 1
+            ;;
+    esac
+
+    # Detect architecture
+    case "$(uname -m)" in
+        x86_64)  arch="amd64" ;;
+        amd64)   arch="amd64" ;;
+        aarch64) arch="arm64" ;;
+        arm64)   arch="arm64" ;;
+        *)
+            echo "Error: Unsupported architecture: $(uname -m)" >&2
+            return 1
+            ;;
+    esac
+
+    binary="yq_${os}_${arch}"
+    echo "Detected platform: ${os}/${arch}"
+
+    export SUDO_CMD=""
+    if sudo -l 2>/dev/null | grep -q NOPASSWD; then
+        SUDO_CMD="/usr/bin/sudo -n "
+    fi
+
+    wget "https://github.com/mikefarah/yq/releases/download/${version}/${binary}.tar.gz" -q -O - | tar xz
+    ${SUDO_CMD} mv "${binary}" /usr/local/bin/yq
+    ${SUDO_CMD} chmod +x /usr/local/bin/yq
+}
+
+# Ensure yq is installed, install if missing
+# Usage: ensureYq
+function ensureYq() {
+    if ! yq --version &> /dev/null; then
+        echo "yq is not installed. Attempting to install yq"
+        installYq
+    fi
 }
