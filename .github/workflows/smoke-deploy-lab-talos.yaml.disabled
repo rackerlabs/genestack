@@ -14,15 +14,6 @@ name: Running hyperconverged smoke tests
         required: true
         default: cloud.local
         type: string
-      osImage:
-        description: Set OS image
-        required: true
-        default: "Ubuntu 24.04"
-        type: choice
-        options:
-          - "Ubuntu 24.04"
-          - "Ubuntu 22.04"
-          - "Debian 12"
       sshUsername:
         description: Set SSH username
         required: true
@@ -66,9 +57,9 @@ name: Running hyperconverged smoke tests
 env:
   HYPERCONVERGED_DEV: "true"
   GATEWAY_DOMAIN: cloud.local
-  ACME_EMAIL: cloud@example.local
-  OS_IMAGE: "Ubuntu 24.04"
   OS_FLAVOR: gp.5.8.16
+  JUMP_HOST_FLAVOR: gp.5.2.2
+  ACME_EMAIL: cloud@example.local
   SSH_USERNAME: "ubuntu"
   TEST_LEVEL: "quick"
 
@@ -91,7 +82,6 @@ jobs:
           echo "LAB_NAME_PREFIX=$(echo '${{ github.event.inputs.gatewayDomain }}' | tr '.' '-')" >> $GITHUB_ENV
           echo "GATEWAY_DOMAIN=${{ github.event.inputs.gatewayDomain }}" >> $GITHUB_ENV
           echo "ACME_EMAIL=${{ github.event.inputs.acmeEmail }}" >> $GITHUB_ENV
-          echo "OS_IMAGE=${{ github.event.inputs.osImage }}" >> $GITHUB_ENV
           echo "SSH_USERNAME=${{ github.event.inputs.sshUsername }}" >> $GITHUB_ENV
 
       - name: Run deployment script
@@ -99,7 +89,7 @@ jobs:
         run: |
           eval "$(ssh-agent -s)"
           export TEST_LEVEL="${{ github.event.inputs.test_level }}"
-          scripts/hyperconverged-lab.sh kubespray
+          scripts/hyperconverged-lab.sh talos
 
       - name: Retrieve Keys
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'deploy' }}
@@ -191,4 +181,4 @@ jobs:
 
       - name: Cleanup the lab
         if: ${{ always() && (github.event_name == 'pull_request' || contains(fromJSON('["cleanup", "test"]'), github.event.inputs.mode)) }}
-        run: scripts/hyperconverged-lab-uninstall.sh kubespray
+        run: scripts/hyperconverged-lab-uninstall.sh talos
