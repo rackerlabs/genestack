@@ -295,6 +295,30 @@ function createComputePorts() {
 # Genestack Configuration Functions
 #############################################################################
 
+function prepareJumpHostSource() {
+    # Prepare the jump host with the Genestack source code
+    # Usage: cloneGenestackOnJumpHost
+
+    local DEV_PATH="$(readlink -fn ${SCRIPT_DIR}/../../)"
+
+    if [ "${HYPERCONVERGED_DEV:-false}" = "true" ]; then
+        if [ ! -d "${DEV_PATH}" ]; then
+            echo "HYPERCONVERGED_DEV is true, but we've failed to determine the base genestack directory"
+            exit 1
+        fi
+        # NOTE: we are assuming an Ubuntu (apt) based instance here
+        ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} \
+            "while sudo fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do echo 'Waiting for apt locks to be released...'; sleep 5; done && sudo apt-get update && sudo apt install -y rsync git"
+        echo "Copying the development source code to the jump host"
+        rsync -avz \
+            -e "ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" \
+            --rsync-path="sudo rsync" \
+            ${DEV_PATH} ${SSH_USERNAME}@${JUMP_HOST_VIP}:/opt/
+    fi
+
+    cloneGenestackOnJumpHost
+}
+
 function writeMetalLBConfig() {
     # Write MetalLB configuration
     # Usage: writeMetalLBConfig <metal_lb_ip> [config_path]
@@ -1287,4 +1311,20 @@ set -e
 installK9s
 EOF
     } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${ssh_user}@${jump_host} bash
+}
+
+function cloneGenestackOnJumpHost() {
+    # Clone the Genestack repository on the jump host
+    # Usage: cloneGenestackOnJumpHost
+    ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+    set -e
+    if [ ! -d "/opt/genestack" ]; then
+        sudo git clone --recurse-submodules -j4 https://github.com/rackerlabs/genestack /opt/genestack
+    fi
+    echo "Updating Genestack repository on jump host and initializing submodules..."
+    sudo git config --global --add safe.directory /opt/genestack
+    pushd /opt/genestack
+        sudo git submodule update --init --recursive
+    popd
+EOC
 }

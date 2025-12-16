@@ -667,37 +667,15 @@ EOFTALOS
 # Talos-Specific: Development Mode Source Copy
 #############################################################################
 
-if [ "${HYPERCONVERGED_DEV:-false}" = "true" ]; then
-    if [ ! -d "${SCRIPT_DIR}" ]; then
-        echo "HYPERCONVERGED_DEV is true, but we've failed to determine the base genestack directory"
-        exit 1
-    fi
-    # NOTE: we are assuming an Ubuntu (apt) based instance here
-    ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} \
-        "while sudo fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do echo 'Waiting for apt locks to be released...'; sleep 5; done && sudo apt-get update && sudo apt install -y rsync git"
-    echo "Copying the development source code to the jump host"
-    rsync -az \
-        -e "ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" \
-        --rsync-path="sudo rsync" \
-        $(readlink -fn ${SCRIPT_DIR}/../) ${SSH_USERNAME}@${JUMP_HOST_VIP}:/opt/
-fi
+prepareJumpHostSource
 
 #############################################################################
-# Install cert-manager and Clone Genestack (on jump host)
+# Bootstrap and Install cert-manager
 #############################################################################
 
 echo "Installing cert-manager and setting up Genestack on jump host..."
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOFCERT
 set -e
-if [ ! -d "/opt/genestack" ]; then
-    sudo git clone --recurse-submodules -j4 https://github.com/rackerlabs/genestack /opt/genestack
-else
-    sudo git config --global --add safe.directory /opt/genestack
-    pushd /opt/genestack
-        sudo git submodule update --init --recursive
-    popd
-fi
-
 if [ ! -d "/etc/genestack" ]; then
     sudo /opt/genestack/bootstrap.sh
     sudo chown \${USER}:\${USER} -R /etc/genestack

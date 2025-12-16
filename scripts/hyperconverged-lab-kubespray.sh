@@ -212,39 +212,16 @@ while ! ssh -o ConnectTimeout=2 -o ConnectionAttempts=3 -o UserKnownHostsFile=/d
 done
 
 #############################################################################
-# Kubespray-Specific: Development Mode Source Copy
+# Kubespray-Specific: Bootstrap and deploy codebase on Jump Host
 #############################################################################
 
-if [ "${HYPERCONVERGED_DEV:-false}" = "true" ]; then
-    if [ ! -d "${SCRIPT_DIR}" ]; then
-        echo "HYPERCONVERGED_DEV is true, but we've failed to determine the base genestack directory"
-        exit 1
-    fi
-    # NOTE: we are assuming an Ubuntu (apt) based instance here
-    ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} \
-        "while sudo fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do echo 'Waiting for apt locks to be released...'; sleep 5; done && sudo apt-get update && sudo apt install -y rsync git"
-    echo "Copying the development source code to the jump host"
-    rsync -az \
-        -e "ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" \
-        --rsync-path="sudo rsync" \
-        $(readlink -fn ${SCRIPT_DIR}/../) ${SSH_USERNAME}@${JUMP_HOST_VIP}:/opt/
-fi
+prepareJumpHostSource
 
 #############################################################################
 # Kubespray-Specific: Remote Configuration via SSH
 #############################################################################
 
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
-set -e
-if [ ! -d "/opt/genestack" ]; then
-    sudo git clone --recurse-submodules -j4 https://github.com/rackerlabs/genestack /opt/genestack
-else
-    sudo git config --global --add safe.directory /opt/genestack
-    pushd /opt/genestack
-        sudo git submodule update --init --recursive
-    popd
-fi
-
 if [ ! -d "/etc/genestack" ]; then
     sudo /opt/genestack/bootstrap.sh
     sudo chown \${USER}:\${USER} -R /etc/genestack
