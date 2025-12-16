@@ -135,6 +135,19 @@ echo
 # Execute the command directly from the array
 "${helm_command[@]}"
 
+# Debug: Check what was actually installed
+echo ""
+echo "[DEBUG] Checking what was installed by helm..."
+echo "Deployments in envoyproxy-gateway-system:"
+kubectl get deployments -n envoyproxy-gateway-system -o wide 2>/dev/null || echo "No deployments found"
+echo ""
+echo "All resources in envoyproxy-gateway-system:"
+kubectl get all -n envoyproxy-gateway-system 2>/dev/null || echo "No resources found"
+echo ""
+echo "Helm manifest (first 50 lines):"
+helm get manifest envoyproxy-gateway -n envoyproxy-gateway-system 2>/dev/null | head -50 || echo "Could not get manifest"
+echo ""
+
 ## Install egctl Binary (Post-Installation)
 
 # Install egctl
@@ -143,7 +156,7 @@ if [ ! -f "/usr/local/bin/egctl" ]; then
     sudo mkdir -p /opt/egctl-install
     pushd /opt/egctl-install || exit 1
         # Use the extracted version for wget
-        sudo wget "https://github.com/envoyproxy/gateway/releases/download/${SERVICE_VERSION}/egctl_${SERVICE_VERSION}_linux_amd64.tar.gz" -O egctl.tar.gz
+        sudo wget -nv "https://github.com/envoyproxy/gateway/releases/download/${SERVICE_VERSION}/egctl_${SERVICE_VERSION}_linux_amd64.tar.gz" -O egctl.tar.gz
         sudo tar -xvf egctl.tar.gz
         sudo install -o root -g root -m 0755 bin/linux/amd64/egctl /usr/local/bin/egctl
         /usr/local/bin/egctl completion bash > /tmp/egctl.bash
