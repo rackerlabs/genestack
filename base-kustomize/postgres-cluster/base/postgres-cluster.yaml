@@ -4,11 +4,10 @@ metadata:
   name: postgres-cluster
   namespace: openstack
 spec:
-  dockerImage: ghcr.io/zalando/spilo-16:3.2-p3
   teamId: "acid"
   numberOfInstances: 3
   postgresql:
-    version: "16"
+    version: "17"
     parameters:
       shared_buffers: "2GB"
       max_connections: "1024"
@@ -19,7 +18,7 @@ spec:
     requiredDuringSchedulingIgnoredDuringExecution:
       nodeSelectorTerms:
         - matchExpressions:
-          - key: node-role.kubernetes.io/worker
-            operator: In
-            values:
-            - worker
+            - key: node-role.kubernetes.io/worker
+              operator: In
+              values:
+                - worker
