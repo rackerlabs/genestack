@@ -21,7 +21,8 @@ Create the secret:
 
 !!! note "Information about the secrets used"
 
-    Manual secret generation is only required if you haven't run the create-secrets.sh script located in /opt/genestack/bin. However, you still need to add data to a couple of empty keys that are region-specific.
+    Manual secret generation is only required if you haven't run the create-secrets.sh script located in /opt/genestack/bin.
+    However, you still need to add data to a couple of empty keys that are region-specific.
 
     ??? example "Example secret generation"
 
@@ -42,10 +43,17 @@ Create the secret:
 
 !!! note
 
-    Make sure to use the correct values for your region.
+    Ensure that the correct ETCD and S3 connection information is patched into the secret
+    ```shell
+       kubectl -n openstack patch secret etcd-backup-secrets \
+       --patch='{"stringData": {"ETCDCTL_CERT":"/etc/ssl/etcd/ssl/member-etcd01.your.domain.tld.pem",
+                                "ETCDCTL_KEY":"/etc/ssl/etcd/ssl/member-etcd01.your.domain.tld-key.pem",
+                                "ACCESS_KEY": "<ACCESS KEY>", "SECRET_KEY": "<SECRET KEY>",
+                                "S3_HOST": "<S3 ENDPOINT>", "S3_REGION": "<S3 REGION>"}}'
+    ```
 
-Next, Deploy the backup job:
+Next, deploy the backup job:
 
-```
-kubectl apply -k /etc/genestack/kustomize/backups/base/etcd --namespace openstack
+```shell
+kubectl apply -k /etc/genestack/kustomize/backups/overlay --namespace openstack
 ```
