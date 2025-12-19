@@ -124,6 +124,9 @@ kubectl apply -f /etc/genestack/manifests/longhorn/longhorn-general-storageclass
 # Deploy prometheus
 /opt/genestack/bin/install-kube-prometheus-stack.sh
 
+# Deploy cert-manager
+/opt/genestack/bin/install-cert-manager.sh
+
 # Deploy metallb
 kubectl apply -f /etc/genestack/manifests/metallb/metallb-namespace.yaml
 /opt/genestack/bin/install-metallb.sh
@@ -140,9 +143,9 @@ echo "Waiting for the envoyproxy-gateway to be available"
 kubectl -n envoyproxy-gateway-system wait --timeout=5m deployments.apps/envoy-gateway --for=condition=available
 /opt/genestack/bin/setup-envoy-gateway.sh -e ${ACME_EMAIL} -d ${GATEWAY_DOMAIN}
 
-# Run a rollout for cert-manager
+# Run check of cert-manager to be in "Running/Ready" state
 echo "Waiting for the cert-manager to be available"
-kubectl -n cert-manager wait --timeout=5m deployments.apps cert-manager --for=condition=available
+kubectl -n cert-manager wait --timeout=5m deployments.apps/cert-manager --for=condition=available
 
 # Deploy the Genestack secrets
 /opt/genestack/bin/create-secrets.sh
