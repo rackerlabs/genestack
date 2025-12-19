@@ -30,7 +30,7 @@ charts:
   nova: 2024.2.555+13651f45-628a320c
   octavia: 2025.1.15+b1e463122
   placement: 2024.2.62+13651f45-628a320c
-  postgres-operator: 1.12.2
+  postgres-operator: 1.15.1
   kube-prometheus-stack: 78.3.0
   redis-operator: 0.22.1
   redis-replication: 0.16.9

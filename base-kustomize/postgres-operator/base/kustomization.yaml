@@ -1,38 +1,4 @@
 sortOptions:
   order: fifo
 resources:
-  - ns-postgres.yaml
-
-helmCharts:
-  - name: postgres-operator
-    repo: https://opensource.zalando.com/postgres-operator/charts/postgres-operator/
-    releaseName: postgres-operator
-    valuesInline:
-      clusterName: cluster.local
-      webhook:
-        cert:
-          certManager:
-            enabled: true
-        affinity:
-          nodeAffinity:
-            requiredDuringSchedulingIgnoredDuringExecution:
-              nodeSelectorTerms:
-                - matchExpressions:
-                    - key: node-role.kubernetes.io/worker
-                      operator: In
-                      values:
-                        - worker
-      metrics:
-        enabled: true
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: node-role.kubernetes.io/worker
-                    operator: In
-                    values:
-                      - worker
-    includeCRDs: true
-    version: 1.12.2
-    namespace: postgres-system
+  - all.yaml
