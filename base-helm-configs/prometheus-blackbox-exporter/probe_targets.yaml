@@ -1,30 +1,35 @@
 serviceMonitor:
-  targets:
+  enabled: true
 
+  targets:
     # Baseline external probe...
     - name: google-probe
       url: https://google.com
 
     # Openstack services
     - name: nova-probe
-      url: https://nova.api.sjc3.rackspacecloud.com
+      url: https://nova.api.example.com
     - name: neutron-probe
-      url: https://neutron.api.sjc3.rackspacecloud.com
+      url: https://neutron.api.example.com
     - name: keystone-probe
-      url: https://keystone.api.sjc3.rackspacecloud.com
+      url: https://keystone.api.example.com
     - name: octavia-probe
-      url: https://octavia.api.sjc3.rackspacecloud.com
+      url: https://octavia.api.example.com
     - name: glance-probe
-      url: https://glance.api.sjc3.rackspacecloud.com
+      url: https://glance.api.example.com
     - name: heat-probe
-      url: https://heat.api.sjc3.rackspacecloud.com
+      url: https://heat.api.example.com
     - name: cinder-probe
-      url: https://cinder.api.sjc3.rackspacecloud.com
+      url: https://cinder.api.example.com
     - name: cloudformation-probe
-      url: https://cloudformation.api.sjc3.rackspacecloud.com
+      url: https://cloudformation.api.example.com
     - name: placement-probe
-      url: https://placement.api.sjc3.rackspacecloud.com
+      url: https://placement.api.example.com
     - name: barbican-probe
-      url: https://barbican.api.sjc3.rackspacecloud.com
+      url: https://barbican.api.example.com
     - name: magnum-probe
-      url: https://magnum.api.sjc3.rackspacecloud.com
+      url: https://magnum.api.example.com
+    - name: masakari-probe
+      url: https://masakari.api.example.com
+    - name: novavnc-probe
+      url: https://novnc.api.example.com/vnc_auto.html
