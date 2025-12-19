@@ -179,6 +179,7 @@ nav:
               - Longhorn: storage-longhorn.md
           - Infrastructure:
               - infrastructure-overview.md
+              - Cert-Manager: infrastructure-cert-manager.md
               - Namespace: infrastructure-namespace.md
               - MetalLB: infrastructure-metallb.md
               - Gateway API:
