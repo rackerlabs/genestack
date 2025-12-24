@@ -31,7 +31,7 @@ source "${SCRIPT_DIR}/lib/hyperconverged-common.sh"
 # Talos-Specific Configuration
 #############################################################################
 
-export TALOS_VERSION="${TALOS_VERSION:-v1.11.5}"
+export TALOS_VERSION="${TALOS_VERSION:-v1.12.0}"
 export TALOS_ARCH="${TALOS_ARCH:-amd64}"
 # Talos Factory schematic ID with iscsi-tools and util-linux-tools extensions for Longhorn
 # This schematic includes: siderolabs/iscsi-tools, siderolabs/util-linux-tools siderolabs/qemu-guest-agent
