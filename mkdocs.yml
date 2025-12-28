@@ -214,7 +214,7 @@ nav:
                       - Neutron: openstack-compute-kit-neutron.md
                   - Dashboards:
                       - Horizon: openstack-horizon.md
-                      - skyline: openstack-skyline.md
+                      - Skyline: openstack-skyline.md
                   - Octavia: openstack-octavia.md
                   - Magnum: openstack-magnum.md
                   - Metering:
@@ -319,6 +319,7 @@ nav:
           - Override Public Endpoint fqdn for service catalog: openstack-override-public-endpoint-fqdn.md
           - Service Overrides: openstack-service-overrides.md
           - Resource and Project Lookups: openstack-resource-lookups.md
+          - Service Password Rotation: openstack-service-password-rotation.md
       - Working locally With Docs: mkdocs-howto.md
   - Cloud Onboarding:
       - Cloud Onboarding Welcome: cloud-onboarding-welcome.md

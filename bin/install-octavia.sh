@@ -1,191 +1,123 @@
 #!/bin/bash
-# Description: Fetches the version for SERVICE_NAME_DEFAULT from the specified
-# YAML file and executes a helm upgrade/install command with dynamic values files.
-
-# Disable SC2124 (unused array), SC2145 (array expansion issue), SC2294 (eval)
+# Description: Fetches the version for SERVICE_NAME_DEFAULT and executes helm upgrade.
 # shellcheck disable=SC2124,SC2145,SC2294
 
-# Service
+# Service Configuration
 SERVICE_NAME_DEFAULT="octavia"
 SERVICE_NAMESPACE="openstack"
 
-# Helm
+# Helm Defaults
 HELM_REPO_NAME_DEFAULT="openstack-helm"
 HELM_REPO_URL_DEFAULT="https://tarballs.opendev.org/openstack/openstack-helm"
 
-# Base directories provided by the environment
+# Directory Paths
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
 GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
-
-# Define service-specific override directories based on the framework
 SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME_DEFAULT}"
 SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME_DEFAULT}"
-
-# Define the Global Overrides directory used in the original script
 GLOBAL_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR}/helm-configs/global_overrides"
 
-# Read the desired chart version from VERSION_FILE
-VERSION_FILE="${GENESTACK_OVERRIDES_DIR}/helm-chart-versions.yaml"
-
-if [ ! -f "$VERSION_FILE" ]; then
-    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE" >&2
+# Import Shared Library
+LIB_PATH="${GENESTACK_BASE_DIR}/scripts/common-functions.sh"
+if [[ -f "$LIB_PATH" ]]; then
+    source "$LIB_PATH"
+else
+    echo "Error: Shared library not found at $LIB_PATH" >&2
     exit 1
 fi
 
-# Extract version dynamically using the SERVICE_NAME_DEFAULT variable
-SERVICE_VERSION=$(grep "^[[:space:]]*${SERVICE_NAME_DEFAULT}:" "$VERSION_FILE" | sed "s/.*${SERVICE_NAME_DEFAULT}: *//")
+# Pre-flight Checks
+check_dependencies "kubectl" "helm" "yq" "base64" "sed" "grep"
+check_cluster_connection
 
-if [ -z "$SERVICE_VERSION" ]; then
-    echo "Error: Could not extract version for '$SERVICE_NAME_DEFAULT' from $VERSION_FILE" >&2
-    exit 1
-fi
-
-echo "Found version for $SERVICE_NAME_DEFAULT: $SERVICE_VERSION"
-
-# Load chart metadata from custom override YAML if defined
-for yaml_file in "${SERVICE_CUSTOM_OVERRIDES}"/*.yaml; do
-    if [ -f "$yaml_file" ]; then
-        HELM_REPO_URL=$(yq eval '.chart.repo_url // ""' "$yaml_file")
-        HELM_REPO_NAME=$(yq eval '.chart.repo_name // ""' "$yaml_file")
-        SERVICE_NAME=$(yq eval '.chart.service_name // ""' "$yaml_file")
-        break  # use the first match and stop
-    fi
+# Argument Parsing
+ROTATE_SECRETS=false
+HELM_PASS_THROUGH=()
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --rotate-secrets) ROTATE_SECRETS=true; shift ;;
+        *) HELM_PASS_THROUGH+=("$1"); shift ;;
+    esac
 done
 
-# Fallback to defaults if variables not set
-: "${HELM_REPO_URL:=$HELM_REPO_URL_DEFAULT}"
-: "${HELM_REPO_NAME:=$HELM_REPO_NAME_DEFAULT}"
-: "${SERVICE_NAME:=$SERVICE_NAME_DEFAULT}"
+# Version Management
+SERVICE_VERSION=$(get_chart_version "$SERVICE_NAME_DEFAULT")
 
+# Helm Repository Setup
+HELM_REPO_URL="${HELM_REPO_URL:-$HELM_REPO_URL_DEFAULT}"
+HELM_REPO_NAME="${HELM_REPO_NAME:-$HELM_REPO_NAME_DEFAULT}"
+SERVICE_NAME="${SERVICE_NAME:-$SERVICE_NAME_DEFAULT}"
 
-# Determine Helm chart path
 if [[ "$HELM_REPO_URL" == oci://* ]]; then
-    # OCI registry path
     HELM_CHART_PATH="$HELM_REPO_URL/$HELM_REPO_NAME/$SERVICE_NAME"
 else
-    # --- Helm Repository and Execution ---
-    helm repo add "$HELM_REPO_NAME" "$HELM_REPO_URL"   # uncomment if needed
-    helm repo update
+    update_helm_repo "$HELM_REPO_NAME" "$HELM_REPO_URL"
     HELM_CHART_PATH="$HELM_REPO_NAME/$SERVICE_NAME"
 fi
 
-# Debug output
-echo "[DEBUG] HELM_REPO_URL=$HELM_REPO_URL"
-echo "[DEBUG] HELM_REPO_NAME=$HELM_REPO_NAME"
-echo "[DEBUG] SERVICE_NAME=$SERVICE_NAME"
-echo "[DEBUG] HELM_CHART_PATH=$HELM_CHART_PATH"
-
-# Prepare an array to collect -f arguments
+# Overrides Collection
 overrides_args=()
+process_overrides "$SERVICE_BASE_OVERRIDES" overrides_args "base overrides"
+process_overrides "$GLOBAL_OVERRIDES_DIR" overrides_args "global overrides"
+process_overrides "$SERVICE_CUSTOM_OVERRIDES" overrides_args "service config overrides"
 
-# Include all YAML files from the BASE configuration directory
-# NOTE: Files in this directory are included first.
-if [[ -d "$SERVICE_BASE_OVERRIDES" ]]; then
-    echo "Including base overrides from directory: $SERVICE_BASE_OVERRIDES"
-    for file in "$SERVICE_BASE_OVERRIDES"/*.yaml; do
-        # Check that there is at least one match
-        if [[ -e "$file" ]]; then
-            echo " - $file"
-            overrides_args+=("-f" "$file")
-        fi
-    done
-else
-    echo "Warning: Base override directory not found: $SERVICE_BASE_OVERRIDES"
-fi
+# OVN Endpoints retrieval
+OVN_NB_EP=$(kubectl -n openstack get svc ovn-nb -o jsonpath='{.spec.clusterIP}')
+OVN_SB_EP=$(kubectl -n openstack get svc ovn-sb -o jsonpath='{.spec.clusterIP}')
 
-# Include all YAML files from the GLOBAL configuration directory
-# NOTE: Files here override base settings and are applied before service-specific ones.
-if [[ -d "$GLOBAL_OVERRIDES_DIR" ]]; then
-    echo "Including global overrides from directory: $GLOBAL_OVERRIDES_DIR"
-    for file in "$GLOBAL_OVERRIDES_DIR"/*.yaml; do
-        if [[ -e "$file" ]]; then
-            echo " - $file"
-            overrides_args+=("-f" "$file")
-        fi
-    done
-else
-    echo "Warning: Global override directory not found: $GLOBAL_OVERRIDES_DIR"
-fi
+# Lazy Secret Retrieval
+echo "Validating secrets for $SERVICE_NAME_DEFAULT..."
+S_KEYSTONE_ADMIN=$(get_or_create_secret "$SERVICE_NAMESPACE" "keystone-admin" "password" 32 "$ROTATE_SECRETS")
+S_OCTAVIA_ADMIN=$(get_or_create_secret "$SERVICE_NAMESPACE" "octavia-admin-password" "password" 32 "$ROTATE_SECRETS")
+S_DB_ROOT=$(get_or_create_secret "$SERVICE_NAMESPACE" "mariadb" "root-password" 32 "$ROTATE_SECRETS")
+S_OCTAVIA_DB=$(get_or_create_secret "$SERVICE_NAMESPACE" "octavia-db-password" "password" 32 "$ROTATE_SECRETS")
+S_RABBIT_ADMIN=$(get_or_create_secret "$SERVICE_NAMESPACE" "rabbitmq-admin-password" "password" 64 "$ROTATE_SECRETS")
+S_OCTAVIA_RABBIT=$(get_or_create_secret "$SERVICE_NAMESPACE" "octavia-rabbitmq-password" "password" 64 "$ROTATE_SECRETS")
+S_MEMCACHE=$(get_or_create_secret "$SERVICE_NAMESPACE" "os-memcached" "memcache_secret_key" 32 "$ROTATE_SECRETS")
+S_CERT_PASS=$(get_or_create_secret "$SERVICE_NAMESPACE" "octavia-ca-password" "password" 32 "$ROTATE_SECRETS")
 
-# Include all YAML files from the custom SERVICE configuration directory
-# NOTE: Files here have the highest precedence.
-if [[ -d "$SERVICE_CUSTOM_OVERRIDES" ]]; then
-    echo "Including overrides from service config directory:"
-    for file in "$SERVICE_CUSTOM_OVERRIDES"/*.yaml; do
-        if [[ -e "$file" ]]; then
-            echo " - $file"
-            overrides_args+=("-f" "$file")
-        fi
-    done
-else
-    echo "Warning: Service config directory not found: $SERVICE_CUSTOM_OVERRIDES"
-fi
-
-echo
-
-# Set connection string based on whether we use Kube-OVN TLS
-# Source functions library for ensureYq
-source "${GENESTACK_BASE_DIR}/scripts/lib/functions.sh"
-ensureYq
-
-if helm -n kube-system get values kube-ovn \
-  | yq -e '.networking.ENABLE_SSL == true' >/dev/null 2>&1
-then
-    CONNECTION_STRING="ssl"
-else
-    CONNECTION_STRING="tcp"
-fi
-
-# Collect all --set arguments, executing commands and quoting safely
-# NOTE: This array contains OpenStack-specific secret retrievals and MUST be updated
-#       with the necessary --set arguments for your target SERVICE_NAME_DEFAULT.
 set_args=(
-    # Keystone endpoint passwords
-    --set "endpoints.identity.auth.admin.password=$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.identity.auth.octavia.password=$(kubectl --namespace openstack get secret octavia-admin -o jsonpath='{.data.password}' | base64 -d)"
-
-    # DB passwords
-    --set "endpoints.oslo_db.auth.admin.password=$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)"
-    --set "endpoints.oslo_db.auth.octavia.password=$(kubectl --namespace openstack get secret octavia-db-password -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.oslo_db_persistence.auth.octavia.password=$(kubectl --namespace openstack get secret octavia-db-password -o jsonpath='{.data.password}' | base64 -d)"
-
-    # Messaging passwords
-    --set "endpoints.oslo_messaging.auth.admin.password=$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.oslo_messaging.auth.octavia.password=$(kubectl --namespace openstack get secret octavia-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)"
-
-    # Memcache secrets
-    --set "endpoints.oslo_cache.auth.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
-    --set "conf.octavia.keystone_authtoken.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
-
-    # Certificate passphrase
-    --set "conf.octavia.certificates.ca_private_key_passphrase=$(kubectl --namespace openstack get secret octavia-certificates -o jsonpath='{.data.password}' | base64 -d)"
-
-    # OVN connections (dynamic clusterIP lookup)
-    --set "conf.octavia.ovn.ovn_nb_connection=$CONNECTION_STRING:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
-    --set "conf.octavia.ovn.ovn_sb_connection=$CONNECTION_STRING:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
+    --set "endpoints.identity.auth.admin.password=$S_KEYSTONE_ADMIN"
+    --set "endpoints.identity.auth.octavia.password=$S_OCTAVIA_ADMIN"
+    --set "endpoints.oslo_db.auth.admin.password=$S_DB_ROOT"
+    --set "endpoints.oslo_db.auth.octavia.password=$S_OCTAVIA_DB"
+    --set "endpoints.oslo_db_persistence.auth.octavia.password=$S_OCTAVIA_DB"
+    --set "endpoints.oslo_cache.auth.memcache_secret_key=$S_MEMCACHE"
+    --set "conf.octavia.keystone_authtoken.memcache_secret_key=$S_MEMCACHE"
+    --set "endpoints.oslo_messaging.auth.admin.password=$S_RABBIT_ADMIN"
+    --set "endpoints.oslo_messaging.auth.octavia.password=$S_OCTAVIA_RABBIT"
+    --set "conf.octavia.certificates.ca_private_key_passphrase=$S_CERT_PASS"
+    --set "conf.octavia.ovn.ovn_nb_connection=$OVN_NB_EP"
+    --set "conf.octavia.ovn.ovn_sb_connection=$OVN_SB_EP"
 )
 
-
+# Command Execution
 helm_command=(
     helm upgrade --install "$SERVICE_NAME_DEFAULT" "$HELM_CHART_PATH"
     --version "${SERVICE_VERSION}"
     --namespace="$SERVICE_NAMESPACE"
-    --timeout 120m
+    --timeout "${HELM_TIMEOUT:-$HELM_TIMEOUT_DEFAULT}"
     --create-namespace
-
+    --atomic
+    --cleanup-on-fail
     "${overrides_args[@]}"
     "${set_args[@]}"
-
-    # Post-renderer configuration
     --post-renderer "$GENESTACK_OVERRIDES_DIR/kustomize/kustomize.sh"
     --post-renderer-args "$SERVICE_NAME_DEFAULT/overlay"
-
-    "$@"
 )
 
-echo "Executing Helm command (arguments are quoted safely):"
-printf '%q ' "${helm_command[@]}"
+echo "Executing Helm command:"
+printf '%q ' "${helm_command[@]}" "${HELM_PASS_THROUGH[@]}"
 echo
 
-# Execute the command directly from the array
-"${helm_command[@]}"
+if "${helm_command[@]}" "${HELM_PASS_THROUGH[@]}"; then
+    echo "Helm upgrade successful. Waiting for Octavia deployments..."
+    kubectl -n "$SERVICE_NAMESPACE" wait --for=condition=available --timeout=300s \
+        deployment/octavia-api \
+        deployment/octavia-worker \
+        deployment/octavia-health-manager \
+        deployment/octavia-housekeeping
+else
+    echo "Error: Helm upgrade failed for $SERVICE_NAME_DEFAULT" >&2
+    exit 1
+fi

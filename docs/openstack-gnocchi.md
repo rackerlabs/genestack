@@ -10,23 +10,7 @@ gnocchi-metricd).
 
 ## Create Secrets
 
-!!! note "Information about the secretes used"
-
-    Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
-
-    ??? example "Example secret generation"
-
-        ``` shell
-        kubectl --namespace openstack create secret generic gnocchi-admin \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        kubectl --namespace openstack create secret generic gnocchi-db-password \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        kubectl --namespace openstack create secret generic gnocchi-pgsql-password \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        ```
+!!! note "Secret generation has been moved to the install-gnocchi.sh script"
 
 ## Object Storage Options
 
