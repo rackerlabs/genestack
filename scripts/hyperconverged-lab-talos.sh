@@ -33,6 +33,7 @@ source "${SCRIPT_DIR}/lib/hyperconverged-common.sh"
 
 export TALOS_VERSION="${TALOS_VERSION:-v1.11.5}"
 export TALOS_ARCH="${TALOS_ARCH:-amd64}"
+export TALOS_BINARY=talosctl-linux-${TALOS_ARCH}
 # Talos Factory schematic ID with iscsi-tools and util-linux-tools extensions for Longhorn
 # This schematic includes: siderolabs/iscsi-tools, siderolabs/util-linux-tools siderolabs/qemu-guest-agent
 export TALOS_SCHEMATIC_ID="${TALOS_SCHEMATIC_ID:-88d1f7a5c4f1d3aba7df787c448c1d3d008ed29cfb34af53fa0df4336a56040b}"
@@ -47,8 +48,9 @@ export JUMP_HOST_IMAGE="${JUMP_HOST_IMAGE:-Ubuntu 24.04}"
 #############################################################################
 
 function installTalosctl() {
-    echo "Installing talosctl..."
-    curl -sL https://talos.dev/install | sh
+    echo "Installing talosctl version ${TALOS_VERSION}..."
+    wget https://github.com/siderolabs/talos/releases/download/${TALOS_VERSION}/${TALOS_BINARY} -O talosctl
+    sudo install -o root -g root -m 0755 talosctl /usr/local/bin/talosctl
 }
 
 function selectJumpHostFlavor() {
@@ -500,7 +502,8 @@ echo "Jump host is reachable at ${JUMP_HOST_VIP}"
 #############################################################################
 
 echo "Installing prerequisites on jump host..."
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<'EOFPREREQ'
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} \
+    "TALOS_VERSION='${TALOS_VERSION}' TALOS_BINARY='${TALOS_BINARY}' bash -s" <<'EOFPREREQ'
 set -e
 # Wait for apt locks to be released
 while sudo fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do
@@ -523,8 +526,10 @@ fi
 
 # Install talosctl
 if ! talosctl version --client 2>/dev/null; then
-    echo "Installing talosctl..."
-    curl -sL https://talos.dev/install | sh
+    echo "Installing talosctl version ${TALOS_VERSION}..."
+    wget https://github.com/siderolabs/talos/releases/download/${TALOS_VERSION}/${TALOS_BINARY} -q -O ${TALOS_BINARY}
+    sudo install -o root -g root -m 0755 ${TALOS_BINARY} /usr/local/bin/talosctl
+    rm ${TALOS_BINARY}
 fi
 
 # Install kubectl
