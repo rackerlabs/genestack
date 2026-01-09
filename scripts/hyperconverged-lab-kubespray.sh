@@ -68,7 +68,7 @@ if ! openstack security group show ${LAB_NAME_PREFIX}-jump-secgroup 2>/dev/null;
     openstack security group create ${LAB_NAME_PREFIX}-jump-secgroup
 fi
 
-if ! openstack security group show ${LAB_NAME_PREFIX}-jump-secgroup -f json 2>/dev/null | jq -r '.rules.[].port_range_max' | grep -q 22; then
+if ! openstack security group show ${LAB_NAME_PREFIX}-jump-secgroup -f json 2>/dev/null | jq -r '.rules[].port_range_max' | grep -q 22; then
     openstack security group rule create ${LAB_NAME_PREFIX}-jump-secgroup \
         --protocol tcp \
         --ingress \
@@ -76,7 +76,7 @@ if ! openstack security group show ${LAB_NAME_PREFIX}-jump-secgroup -f json 2>/d
         --dst-port 22 \
         --description "ssh"
 fi
-if ! openstack security group show ${LAB_NAME_PREFIX}-jump-secgroup -f json 2>/dev/null | jq -r '.rules.[].protocol' | grep -q icmp; then
+if ! openstack security group show ${LAB_NAME_PREFIX}-jump-secgroup -f json 2>/dev/null | jq -r '.rules[].protocol' | grep -q icmp; then
     openstack security group rule create ${LAB_NAME_PREFIX}-jump-secgroup \
         --protocol icmp \
         --ingress \

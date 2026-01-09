@@ -226,6 +226,9 @@ nav:
                   - Freezer: openstack-freezer.md
                   - Masakari: openstack-masakari.md
                   - Zaqar: openstack-zaqar.md
+                  - Trove:
+                      - Deployment: openstack-trove.md
+                      - MySQL Images: openstack-trove-mysql-images.md
           - Monitoring:
               - Monitoring Overview: prometheus-monitoring-overview.md
               - Getting Started: monitoring-getting-started.md
@@ -319,6 +322,15 @@ nav:
           - Override Public Endpoint fqdn for service catalog: openstack-override-public-endpoint-fqdn.md
           - Service Overrides: openstack-service-overrides.md
           - Resource and Project Lookups: openstack-resource-lookups.md
+          - Reservation:
+              - Blazar Reservations Creation: openstack-blazar.md
+          - Backup Restore:
+              - Freezer Backup Restore Creation: openstack-freezer.md
+          - Databases:
+              - Trove:
+                  - Deployment: openstack-trove.md
+                  - MySQL Images: openstack-trove-mysql-images.md
+
       - Working locally With Docs: mkdocs-howto.md
   - Cloud Onboarding:
       - Cloud Onboarding Welcome: cloud-onboarding-welcome.md
