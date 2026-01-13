@@ -1897,7 +1897,7 @@ conf:
     channels:
       - name: blazar
         sources:
-        - blazar_source
+          - blazar_source
   event_pipeline:
     sinks:
       - name: event_sink
