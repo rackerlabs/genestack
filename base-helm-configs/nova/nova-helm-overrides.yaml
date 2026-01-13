@@ -134,9 +134,6 @@ conf:
       use_db_reconnect: true
       pool_timeout: 60
       max_retries: -1
-    filter_scheduler:
-      available_filters: blazarnova.scheduler.filters.blazar_filter.BlazarFilter
-      enabled_filters: BlazarFilter
     glance:
       num_retries: 8
     key_manager:
