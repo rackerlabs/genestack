@@ -11,7 +11,7 @@ SERVICE_NAMESPACE="openstack"
 
 # Helm
 HELM_REPO_NAME="genestack-barbician-exporter-helm-chart"
-HELM_REPO_URL="https://github.com/rackerlabs/genestack-barbician-exporter-helm-chart"
+HELM_REPO_URL="https://rackerlabs.github.io/genestack-barbician-exporter-helm-chart"
 
 # Base directories provided by the environment
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
