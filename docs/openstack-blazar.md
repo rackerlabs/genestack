@@ -56,7 +56,17 @@ This document outlines the deployment of OpenStack Blazar using Genestack.
           rabbitmqClusterReference:
             name: rabbitmq
         ```
+## add blazar filters
+  To add blazar filters via an override file, create or update:
+  /etc/genestack/helm-configs/nova/nova-helm-overrides.yaml
+  With this content:
 
+    conf:
+      nova:
+        filter_scheduler:
+          available_filters: blazarnova.scheduler.filters.blazar_filter.BlazarFilter
+          enabled_filters: BlazarFilter
+      
 ## Run the package deployment
 
 !!! example "Run the Blazar deployment Script `/opt/genestack/bin/install-blazar.sh`"
