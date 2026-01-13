@@ -60,6 +60,7 @@ conf:
           - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/neutron
           - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/heat
           - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/swift
+          - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/blazar
     oslo_messaging_notifications:
       driver: messagingv2
       topics:
@@ -839,6 +840,58 @@ conf:
           fields: payload.detail
         type:
           fields: payload.type
+    # Blazar events and metrics
+    - event_type:
+        - "start_lease"
+        - "end_lease"
+        - "before_end_lease"
+        - "lease.create"
+        - "lease.update"
+        - "lease.delete"
+        - "lease.start"
+        - "lease.end"
+      traits: &reservation_traits
+        # Lease identification
+        lease_id:
+          fields:
+            - payload.lease_id
+        name:
+          fields:
+            - payload.name
+
+        # User and project
+        project_id:
+          fields:
+            - payload.project_id
+        user_id:
+          fields:
+            - payload.user_id
+        trust_id:
+          fields:
+            - payload.trust_id
+
+        # Lease timing
+        start_date:
+          fields:
+            - payload.start_date
+        end_date:
+          fields:
+            - payload.end_date
+        created_at:
+          fields:
+            - payload.created_at
+        updated_at:
+          fields:
+            - payload.updated_at
+
+        # Lease status
+        status:
+          fields:
+            - payload.status
+        degraded:
+          fields:
+            - payload.degraded
+
   gnocchi_resources:
     archive_policy_default: ceilometer-low
     archive_policies:
@@ -884,6 +937,37 @@ conf:
             timespan: 365 days
 
     resources:
+      - resource_type: reservation
+        metrics:
+          # Lease lifecycle events (time-series)
+          - "blazar.lease.create"
+          - "blazar.lease.start"
+          - "blazar.lease.before_end"
+          - "blazar.lease.end"
+          - "blazar.lease.delete"
+        attributes:
+          name: resource_metadata.name
+          status: resource_metadata.status
+          start_date: resource_metadata.start_date
+          end_date: resource_metadata.end_date
+        event_create:
+          - start_lease
+          - lease.create
+        event_update:
+          - before_end_lease
+          - start_lease
+          - end_lease
+          - lease.end
+          - lease.update
+        event_delete:
+          - lease.delete
+        event_attributes:
+          id: lease_id
+          name: name
+          start_date: start_date
+          end_date: end_date
+          status: status
+
       - resource_type: identity
         metrics:
           identity.authenticate.success:
@@ -1244,6 +1328,82 @@ conf:
 
   meters:
     metric:
+      # Blazar lease lifecycle and reservation metrics
+      - name: "blazar.lease.create"
+        event_type:
+          - "lease.create"
+        type: "delta"
+        unit: "lease"
+        volume: 1
+        resource_id: $.payload.lease_id
+        project_id: $.payload.project_id
+        user_id: $.payload.user_id
+        metadata:
+          name: $.payload.name
+          status: $.payload.status
+          start_date: $.payload.start_date
+          end_date: $.payload.end_date
+
+      - name: "blazar.lease.start"
+        event_type:
+          - "start_lease"
+        type: "delta"
+        unit: "lease"
+        volume: 1
+        resource_id: $.payload.lease_id
+        project_id: $.payload.project_id
+        user_id: $.payload.user_id
+        metadata:
+          name: $.payload.name
+          status: $.payload.status
+          start_date: $.payload.start_date
+          end_date: $.payload.end_date
+
+      - name: "blazar.lease.before_end"
+        event_type:
+          - "before_end_lease"
+        type: "delta"
+        unit: "lease"
+        volume: 1
+        resource_id: $.payload.lease_id
+        project_id: $.payload.project_id
+        user_id: $.payload.user_id
+        metadata:
+          name: $.payload.name
+          status: $.payload.status
+          start_date: $.payload.start_date
+          end_date: $.payload.end_date
+
+      - name: "blazar.lease.end"
+        event_type:
+          - "end_lease"
+        type: "delta"
+        unit: "lease"
+        volume: 1
+        resource_id: $.payload.lease_id
+        project_id: $.payload.project_id
+        user_id: $.payload.user_id
+        metadata:
+          name: $.payload.name
+          status: $.payload.status
+          start_date: $.payload.start_date
+          end_date: $.payload.end_date
+
+      - name: "blazar.lease.delete"
+        event_type:
+          - "lease.delete"
+        type: "delta"
+        unit: "lease"
+        volume: 1
+        resource_id: $.payload.lease_id
+        project_id: $.payload.project_id
+        user_id: $.payload.user_id
+        metadata:
+          name: $.payload.name
+          status: $.payload.status
+          start_date: $.payload.start_date
+          end_date: $.payload.end_date
+
       # Image
       - name: "image.size"
         event_type:
@@ -1715,10 +1875,29 @@ conf:
           - "*"
         sinks:
           - meter_sink
+      - name: blazar_source
+        channels:
+          - blazar
+        meters:
+          - "*"
+        events:
+          - start_lease
+          - end_lease
+          - before_end_lease
+          - lease.*
+        sinks:
+          - blazar_sink
     sinks:
       - name: meter_sink
         publishers:
           - gnocchi
+      - name: blazar_sink
+        publishers:
+          - gnocchi
+    channels:
+      - name: blazar
+        sources:
+        - blazar_source
   event_pipeline:
     sinks:
       - name: event_sink
