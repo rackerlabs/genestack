@@ -246,6 +246,12 @@ conf:
       ovn_l3_scheduler: leastloaded
       ovn_nb_connection: "tcp:127.0.0.1:6641"
       ovn_sb_connection: "tcp:127.0.0.1:6642"
+
+      # Fix disabled port security on provider network
+      # https://review.opendev.org/c/openstack/neutron/+/877675
+      localnet_learn_fdb: true
+      fdb_age_threshold: 900
+      fdb_removal_limit: 2048
     metadata_rate_limiting:
       rate_limit_enabled: true
       ip_versions: 4

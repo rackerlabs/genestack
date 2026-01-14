@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Neutron OVN setting `localnet_learn_fdb` is now enabled to avoid flodding
+    on provider networks once port security is disabled.
+    See https://launchpad.net/bugs/2012069
