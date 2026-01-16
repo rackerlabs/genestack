@@ -2,11 +2,19 @@
 set -e
 KUSTOMIZE_DIR=${1:-$GENESTACK_KUSTOMIZE_ARG}
 pushd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null
-    cat <&0 > "${KUSTOMIZE_DIR}"/../base/all.yaml
+    # Save helm output to a temporary file
+    HELM_OUTPUT=$(mktemp)
+    cat <&0 > "$HELM_OUTPUT"
     
-    # Also copy it to the overlay directory so kustomize can reference it
-    # This is needed because kustomize has security restrictions on file paths
-    cp "${KUSTOMIZE_DIR}"/../base/all.yaml "${KUSTOMIZE_DIR}"/all.yaml
+    # Run kustomize on the overlay
+    KUSTOMIZE_OUTPUT=$(kubectl kustomize "${KUSTOMIZE_DIR}")
     
-    kubectl kustomize "${KUSTOMIZE_DIR}"
+    # Combine helm output and kustomize output
+    # This ensures both the helm-generated resources and kustomize-processed resources are applied
+    cat "$HELM_OUTPUT"
+    echo "---"
+    echo "$KUSTOMIZE_OUTPUT"
+    
+    # Cleanup
+    rm -f "$HELM_OUTPUT"
 popd &>/dev/null
