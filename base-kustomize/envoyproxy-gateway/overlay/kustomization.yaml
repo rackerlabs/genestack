@@ -3,6 +3,8 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 # Include the base kustomization which has all the static gateway resources
+# and the helm output (all.yaml)
 resources:
   - ../base
+
 

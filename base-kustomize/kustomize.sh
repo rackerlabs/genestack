@@ -2,19 +2,25 @@
 set -e
 KUSTOMIZE_DIR=${1:-$GENESTACK_KUSTOMIZE_ARG}
 pushd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null
-    # Save helm output to a temporary file
-    HELM_OUTPUT=$(mktemp)
-    cat <&0 > "$HELM_OUTPUT"
+    # Read helm output from stdin
+    HELM_OUTPUT=$(cat)
     
-    # Run kustomize on the overlay
-    KUSTOMIZE_OUTPUT=$(kubectl kustomize "${KUSTOMIZE_DIR}")
-    
-    # Combine helm output and kustomize output
-    # This ensures both the helm-generated resources and kustomize-processed resources are applied
-    cat "$HELM_OUTPUT"
-    echo "---"
-    echo "$KUSTOMIZE_OUTPUT"
-    
-    # Cleanup
-    rm -f "$HELM_OUTPUT"
+    # Check if the overlay directory exists
+    if [ -d "${KUSTOMIZE_DIR}" ]; then
+        # Run kustomize on the overlay
+        KUSTOMIZE_OUTPUT=$(kubectl kustomize "${KUSTOMIZE_DIR}" 2>/dev/null || true)
+        
+        # If kustomize produced output, combine it with helm output
+        if [ -n "$KUSTOMIZE_OUTPUT" ]; then
+            echo "$HELM_OUTPUT"
+            echo "---"
+            echo "$KUSTOMIZE_OUTPUT"
+        else
+            # If kustomize failed or produced no output, just output helm
+            echo "$HELM_OUTPUT"
+        fi
+    else
+        # If overlay doesn't exist, just output helm
+        echo "$HELM_OUTPUT"
+    fi
 popd &>/dev/null
