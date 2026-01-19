@@ -11,34 +11,7 @@ This document outlines the deployment of OpenStack Freezer using Genestack.
 
 ## Create secrets
 
-!!! note "Information about the secrets used"
-
-    Manual secret generation is only required if you haven't run the
-    `create-secrets.sh` script located in `/opt/genestack/bin`.
-
-    ??? example "Example secret generation"
-
-        ``` shell
-        kubectl --namespace openstack \
-                create secret generic freezer-db-password \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-
-        kubectl --namespace openstack \
-                create secret generic freezer-admin \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-
-        kubectl --namespace openstack \
-                create secret generic freezer-keystone-test-password \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-
-        kubectl --namespace openstack \
-                create secret generic freezer-keystone-service-password \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        ```
+!!! note "Secret generation has been moved to the install-freezer.sh script"
 
 ## Run the package deployment
 

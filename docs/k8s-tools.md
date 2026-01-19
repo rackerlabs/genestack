@@ -4,11 +4,13 @@ Once the environment is online, proceed to login to the environment and begin th
 
 ## Install `kubectl`
 
-Install the `kubectl` tool.
+Install the `kubectl` tool.  In this example, genestack has been installed to /opt.  The
+directory where genestack is installed will be referenced by (opt).  If you did not
+install genestack to /opt, replace (opt) with the base directory of where you installed
+genestack.
 
 ``` shell
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+(opt)/genestack/scriptgs/install-kubectl.sh
 ```
 
 ### Install the `convert` plugin

@@ -17,7 +17,7 @@ kubectl apply -f /etc/genestack/manifests/metallb/metallb-namespace.yaml
 
 ## Install MetalLB
 
-!!! example "Run the MetalLB deployment Script `/opt/genestack/bin/install-metallb.sh` You can include paramaters to deploy aio or base-monitoring. No paramaters deploys base"
+!!! example "Run the MetalLB deployment Script `/opt/genestack/bin/install-metallb.sh`"
 
     ``` shell
     --8<-- "bin/install-metallb.sh"

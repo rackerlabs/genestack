@@ -14,28 +14,7 @@ OpenStack components can use Zaqar to inform events to end users and communicati
 
 ## Create secrets
 
-!!! note "Information about the secrets used"
-
-    Manual secret generation is only required if you haven't run the
-    `create-secrets.sh` script located in `/opt/genestack/bin`.
-
-    ??? example "Example secret generation"
-
-        ``` shell
-        kubectl --namespace openstack \
-                create secret generic zaqar-rabbitmq-password \
-                --type Opaque \
-                --from-literal=username="zaqar" \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
-        kubectl --namespace openstack \
-                create secret generic zaqar-db-password \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        kubectl --namespace openstack \
-                create secret generic zaqar-admin \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        ```
+!!! note "Secret generation has been moved to the install-zaqar.sh script"
 
 ## Run the package deployment
 
