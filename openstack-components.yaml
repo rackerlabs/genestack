@@ -2,22 +2,23 @@
 # This file is used to determine which services will be installed automatically
 # via the hyperconverged lab and in a future release the genestack-installed.
 components:
-  keystone: true
-  glance: true
-  heat: false
   barbican: false
   blazar: false
-  cloudkitty: false
-  cinder: true
-  freezer: false
-  placement: true
-  nova: true
-  neutron: true
-  magnum: false
-  octavia: false
-  masakari: false
-  manila: false
   ceilometer: false
+  cinder: true
+  cloudkitty: false
+  freezer: false
+  glance: true
   gnocchi: false
+  heat: false
+  keystone: true
+  magnum: false
+  manila: false
+  masakari: false
+  neutron: true
+  nova: true
+  octavia: false
+  placement: true
   skyline: true
+  trove: true
   zaqar: false
