@@ -101,7 +101,8 @@ conf:
       cross_az_attach: true
       network_allocate_retries: 3
     api:
-      vendordata_providers: ['StaticJSON']
+      vendordata_providers:
+        - 'StaticJSON'
       vendordata_jsonfile_path: /etc/nova/vendor_data.json
     api_database:
       connection_debug: 0
@@ -136,6 +137,8 @@ conf:
       max_retries: -1
     glance:
       num_retries: 8
+    barbican:
+      barbican_endpoint_type: internal
     key_manager:
       backend: barbican
     keystone_authtoken:
