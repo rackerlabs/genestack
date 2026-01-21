@@ -79,14 +79,20 @@ conf:
       filesystem_store_datadir: /var/lib/glance/images
       swift_auth_address: https://swift.cluster.local
       swift_auth_version: 3
-      swift_user: glance:glance-store
+      swift_user: service:glance
       swift_password: override_from_your_secrets_files
     rxt_swift:
       swift_store_auth_address: http://keystone-api.openstack.svc.cluster.local:5000/v3
       swift_store_create_container_on_put: true
-      swift_store_multi_tenant: true
+      swift_store_multi_tenant: false
       swift_store_container: glance
-      swift_store_admin_tenants: admin,image-services
+      swift_store_admin_tenants: service,admin,image-services
+      swift_store_user: service:glance
+      swift_store_key: override_from_your_secrets_files
+      swift_store_project_name: service
+      swift_store_user_domain_name: service
+      swift_store_project_domain_name: Default
+      swift_store_auth_version: 3
     database:
       connection_debug: 0
       connection_recycle_time: 600
