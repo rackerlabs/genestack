@@ -39,6 +39,7 @@ amphora_image_url: "https://tarballs.opendev.org/openstack/octavia/test-images/t
 # these are the defaults for certs
 octavia_create_certs: true
 octavia_certs_dir: "{{ lookup('env', 'HOME') }}/octavia_certs"
+octavia_tmp_dir: "{{ lookup('env', 'HOME') }}/octavia"
 octavia_cert_key_bits: 4096
 octavia_key_type: "RSA"
 octavia_key_passwd: 'not-secure-passphrase'
