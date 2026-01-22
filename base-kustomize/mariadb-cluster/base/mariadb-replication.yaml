@@ -29,7 +29,7 @@ spec:
     secretTemplate:
       key: dsn
   database: mariadb
-  image: docker-registry1.mariadb.com/library/mariadb:11.4.3
+  image: docker-registry1.mariadb.com/library/mariadb:11.4.5
   metrics:
     enabled: false
   myCnf: |
