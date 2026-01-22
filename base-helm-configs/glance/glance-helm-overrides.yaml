@@ -169,6 +169,8 @@ conf:
 volume:
   class_name: general-multi-attach # This can be changed as needed
   size: 10Gi # This should be set to 100Gi in production
+  accessModes:
+    - ReadWriteMany
 
 dependencies:
   static:
