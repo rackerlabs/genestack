@@ -4,9 +4,15 @@
 # optional; amphora image uploaded is suitable for
 # test environments; the flavor specs are currently set
 # to 2 vcpus, 1024 MB ram and 5 GB of disk
+- name: Create the base directory for octavia key/image
+  file:
+    path: "{{ octavia_tmp_dir }}"
+    state: directory
+    mode: '0700'
+
 - name: Create ssh keypair for amphorae
   community.crypto.openssh_keypair:
-    path: /tmp/amphora_ssh_key
+    path: "{{ octavia_tmp_dir }}/amphora_ssh_key"
     size: 2048
     comment: "amphora ssh key"
   when: amphora_ssh_enabled
@@ -14,7 +20,7 @@
 - name: Create ssh keypair in nova for amphora
   openstack.cloud.keypair:
     name: "{{ amphora_ssh_key_name }}"
-    public_key: "{{ lookup('file', '/tmp/amphora_ssh_key.pub') }}"
+    public_key: "{{ lookup('file', octavia_tmp_dir + '/amphora_ssh_key.pub') }}"
     state: present
     interface: public
   when: amphora_ssh_enabled
@@ -36,7 +42,7 @@
 - name: Get the image for amphora
   get_url:
     url: "{{ amphora_image_url }}"
-    dest: /tmp/test-only-amphora-x64-haproxy-ubuntu-{{ amphora_image_version }}.qcow2
+    dest: "{{ octavia_tmp_dir }}/test-only-amphora-x64-haproxy-ubuntu-{{ amphora_image_version }}.qcow2"
   register: download_amphora_image
   until: download_amphora_image is success
   retries: 5
@@ -46,7 +52,7 @@
   openstack.cloud.image:
     name: "{{ amphora_image_name }}"
     state: present
-    filename: /tmp/test-only-amphora-x64-haproxy-ubuntu-{{ amphora_image_version }}.qcow2
+    filename: "{{ octavia_tmp_dir }}/test-only-amphora-x64-haproxy-ubuntu-{{ amphora_image_version }}.qcow2"
     container_format: bare
     disk_format: qcow2
     visibility: private
