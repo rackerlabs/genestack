@@ -1,6 +1,0 @@
-sortOptions:
-  order: fifo
-resources:
-  - namespace.yaml
-
-namespace: argocd

@@ -1,6 +1,5 @@
 ---
 charts:
-  argocd: 11.0.0
   barbican: 2024.2.208+13651f45-628a320c
   barbican-exporter: 0.1.0
   blazar: 2025.1.3+95bf0bf6e
