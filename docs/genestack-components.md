@@ -16,7 +16,6 @@ and largely deployed with Helm+Kustomize against the K8s API (v1.28 and up).
 | Kubernetes | Kube-OVN              | Included |
 | Kubernetes | Helm                  | Included |
 | Kubernetes | Kustomize             | Included |
-| Kubernetes | ArgoCD                | Optional |
 | OpenStack  | openVswitch (Helm)    | Optional |
 | OpenStack  | mariaDB (Operator)    | Included |
 | OpenStack  | rabbitMQ (Operator)   | Included |
