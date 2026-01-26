@@ -307,6 +307,7 @@ nav:
           - Images:
               - Glance Images Creation: openstack-glance-images.md
               - Glance External Swift Image Store: openstack-glance-swift-store.md
+              - Glance External Ceph Image Store: openstack-glance-ceph-store.md
           - Identity:
               - Keystone Federation to Rackspace: openstack-keystone-federation.md
               - Keystone Readonly Users: openstack-keystone-readonly.md
