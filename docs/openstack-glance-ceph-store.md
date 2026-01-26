@@ -81,7 +81,7 @@ On a Ceph node, locate the `ceph.conf` file at `/etc/ceph/ceph.conf` and copy it
 
 On your OpenStack deploy node, create a file at `/etc/genestack/manifests/ceph/ceph-etc.yaml` containing the following ConfigMap with your respective `ceph.conf` output:
 
-```bash:
+```bash
 apiVersion: v1
 kind: ConfigMap
 metadata:
