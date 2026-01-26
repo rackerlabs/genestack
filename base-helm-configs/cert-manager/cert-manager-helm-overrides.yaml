@@ -1,0 +1,14 @@
+---
+global:
+  nodeSelector:
+    openstack-control-plane: enabled
+
+crds:
+  enabled: true
+  keep: true
+
+config:
+  enableGatewayAPI: true
+
+dns01RecursiveNameservers: "8.8.8.8:53, 1.1.1.1:53"
+dns01RecursiveNameserversOnly: true
