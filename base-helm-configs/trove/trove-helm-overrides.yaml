@@ -1,0 +1,215 @@
+---
+labels:
+  api:
+    node_selector_key: openstack-control-plane
+  conductor:
+    node_selector_key: openstack-control-plane
+  taskmanager:
+    node_selector_key: openstack-control-plane
+
+images:
+  tags:
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    trove_api: "ghcr.io/rackerlabs/genestack-images/trove:2025.1-latest"
+    trove_conductor: "ghcr.io/rackerlabs/genestack-images/trove:2025.1-latest"
+    trove_taskmanager: "ghcr.io/rackerlabs/genestack-images/trove:2025.1-latest"
+    trove_db_sync: "ghcr.io/rackerlabs/genestack-images/trove:2025.1-latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
+    image_repo_sync: null
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    rabbit_init: null
+    test: null
+
+pod:
+  lifecycle:
+    upgrades:
+      deployments:
+        revision_history: 3
+        pod_replacement_strategy: RollingUpdate
+        rolling_update:
+          max_unavailable: 20%
+          max_surge: 3
+    disruption_budget:
+      api:
+        min_available: 0
+    termination_grace_period:
+      api:
+        timeout: 60
+  resources:
+    enabled: true
+    api:
+      requests:
+        memory: "384Mi"
+        cpu: "100m"
+      limits: {}
+    conductor:
+      requests:
+        memory: "192Mi"
+        cpu: "100m"
+      limits: {}
+    taskmanager:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits: {}
+  oslo_db:
+    host_fqdn_override:
+      default: mariadb-cluster-primary.openstack.svc.cluster.local
+    hosts:
+      default: mariadb-cluster-primary
+  oslo_cache:
+    host_fqdn_override:
+      default: memcached.openstack.svc.cluster.local
+    hosts:
+      default: memcached
+  oslo_messaging:
+    host_fqdn_override:
+      default: rabbitmq.openstack.svc.cluster.local
+    hosts:
+      default: rabbitmq-nodes
+
+conf:
+  trove:
+    DEFAULT:
+      debug: false
+      default_datastore: mysql
+      management_networks: ""
+      network_driver: trove.network.neutron.NeutronDriver
+      taskmanager_manager: trove.taskmanager.manager.Manager
+      trove_api_workers: 2
+      trove_volume_support: true
+      volume_support: true
+      volume_fstype: ext4
+      cinder_volume_type: Standard
+      enable_volume_az: true
+      max_accepted_volume_size: 1024
+    # exists_notification_transformer: null
+      backup_segment_max_size: "2147483648"
+      # dns_auth_url: null
+      # trove_auth_url: null
+      # auth_url: null
+      # nova_compute_url: null
+      nova_compute_service_type: compute
+      nova_compute_endpoint_type: internalURL
+      # neutron_url: null
+      neutron_service_type: network
+      neutron_endpoint_type: internalURL
+      # cinder_url: null
+      cinder_service_type: volumev3
+      cinder_endpoint_type: internalURL
+      # swift_url: null
+      swift_service_type: object-store
+      swift_endpoint_type: internalURL
+      # glance_url: null
+      glance_service_type: image
+      glance_endpoint_type: internalURL
+      # heat_url: null
+    mysql:
+      volume_support: true
+    database:
+      connection_debug: 0
+      connection_recycle_time: 600
+      connection_trace: true
+      idle_timeout: 3600
+      mysql_sql_mode: {}
+      use_db_reconnect: true
+      pool_timeout: 60
+      max_retries: -1
+    keystone_authtoken:
+      auth_type: password
+      auth_version: v3
+      memcache_security_strategy: ENCRYPT
+      service_token_roles: service
+      service_token_roles_required: true
+      endpoint_type: internalURL
+      service_type: database
+    oslo_messaging_rabbit:
+      amqp_durable_queues: false
+      rabbit_ha_queues: false
+      rabbit_quorum_queue: true
+      rabbit_transient_quorum_queue: false
+      use_queue_manager: false
+      rabbit_interval_max: 10
+      heartbeat_rate: 3
+      heartbeat_timeout_threshold: 60
+      heartbeat_in_pthread: true
+      kombu_reconnect_delay: 0.5
+  trove_api_uwsgi:
+    uwsgi:
+      processes: 2
+      threads: 1
+  logging:
+    logger_root:
+      handlers:
+        - stdout
+      level: INFO
+  rabbitmq:
+    policies: []
+
+dependencies:
+  static:
+    api:
+      jobs:
+        - trove-db-sync
+        - trove-ks-user
+        - trove-ks-endpoints
+    conductor:
+      jobs:
+        - trove-db-sync
+        - trove-ks-user
+        - trove-ks-endpoints
+    taskmanager:
+      jobs:
+        - trove-db-sync
+        - trove-ks-user
+        - trove-ks-endpoints
+    db_sync:
+      jobs: null
+
+endpoints:
+  fluentd:
+    namespace: fluentbit
+  identity:
+    port:
+      api:
+        default: 5000
+        internal: 5000
+        public: 80
+        service: 5000
+  oslo_db:
+    host_fqdn_override:
+      default: mariadb-cluster-primary.openstack.svc.cluster.local
+    hosts:
+      default: mariadb-cluster-primary
+  oslo_cache:
+    host_fqdn_override:
+      default: memcached.openstack.svc.cluster.local
+    hosts:
+      default: memcached
+  oslo_messaging:
+    host_fqdn_override:
+      default: rabbitmq.openstack.svc.cluster.local
+    hosts:
+      default: rabbitmq-nodes
+  database:
+    port:
+      api:
+        default: 8779
+        internal: 8779
+        public: 80
+        service: 8779
+
+manifests:
+  ingress_api: false
+  job_bootstrap: false
+  job_db_init: false
+  job_rabbit_init: false
+  pod_rally_test: false
+  secret_db: false
+  secret_ingress_tls: false
+  secret_rabbitmq: false
+  service_ingress_api: false

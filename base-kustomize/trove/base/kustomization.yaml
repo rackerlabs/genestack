@@ -1,0 +1,11 @@
+---
+sortOptions:
+  order: fifo
+resources:
+  - trove-mariadb-database.yaml
+  - trove-rabbitmq-queue.yaml
+  - all.yaml
+  - hpa-trove-api.yaml
+  - hpa-trove-conductor.yaml
+  - hpa-trove-taskmanager.yaml
+  - policies.yaml

@@ -1,13 +1,14 @@
+---
 charts:
-  argocd: 11.0.0
   barbican: 2024.2.208+13651f45-628a320c
   barbican-exporter: 0.1.0
   blazar: 2025.1.3+95bf0bf6e
   ceilometer: 2024.2.115+13651f45-628a320c
+  cert-manager: v1.19.2
   cinder: 2024.2.409+13651f45-628a320c
   cloudkitty: 2025.1.2+ebb1488dc
   envoyproxy-gateway: v1.5.3
-  fluentbit: 2025.1.1+95bf0bf6e
+  fluent-bit: 0.48.6
   freezer: 2025.2.0+18607738c
   glance: 2024.2.396+13651f45-628a320c
   gnocchi: 2024.2.52+22.15d38
@@ -18,6 +19,7 @@ charts:
   keystone: 2024.2.386+13651f45-628a320c
   kubernetes-event-exporter: 3.6.3
   kube-ovn: v1.13.14
+  kube-prometheus-stack: 78.3.0
   libvirt: 2024.2.94+912f85d38
   loki: 6.43.0
   longhorn: 1.9.2
@@ -31,16 +33,16 @@ charts:
   nova: 2024.2.555+13651f45-628a320c
   octavia: 2025.1.15+b1e463122
   placement: 2024.2.62+13651f45-628a320c
-  postgres-operator: 1.12.2
-  kube-prometheus-stack: 78.3.0
+  postgres-operator: 1.15.1
+  prometheus-blackbox-exporter: 11.6.1
+  prometheus-mysql-exporter: 2.11.0
+  prometheus-postgres-exporter: 7.3.0
+  prometheus-pushgateway: 3.4.2
+  prometheus-rabbitmq-exporter: 1.13.0
+  prometheus-snmp-exporter: 9.8.1
   redis-operator: 0.22.1
   redis-replication: 0.16.9
   redis-sentinel: 0.16.10
   sealed-secrets: 2.17.4
+  trove: 2024.2.50+13651f45-628a320c
   zaqar: 2025.2.0+2d37d445c
-  prometheus-snmp-exporter: 9.8.1
-  prometheus-rabbitmq-exporter: 1.13.0
-  prometheus-mysql-exporter: 2.11.0
-  prometheus-postgres-exporter: 7.3.0
-  prometheus-pushgateway: 3.4.2
-  prometheus-blackbox-exporter: 11.4.1
