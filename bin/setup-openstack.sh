@@ -17,7 +17,7 @@ function waitErator() {
     local start_time
     start_time=$(date +%s)
     local timeout_seconds=$((30 * 60))  # 30 minutes
-    
+
     while [ ${#pids[@]} -gt 0 ]; do
         # Check for timeout
         local current_time
@@ -33,7 +33,7 @@ function waitErator() {
             echo "==== PROCESS TIMEOUT ====================================="
             exit 1
         fi
-        
+
         for pid in "${!pids[@]}"; do
             # Check if process is still running
             if ! kill -0 ${pid} 2>/dev/null; then
@@ -41,7 +41,7 @@ function waitErator() {
                 # Use || to prevent set -e from killing the script before we can log the failure
                 wait ${pid} || local exit_code=$?
                 exit_code=${exit_code:-0}
-                
+
                 if [ $exit_code -ne 0 ]; then
                     echo "==== PROCESS FAILED ====================================="
                     echo "Command: ${pid_commands[$pid]}"
@@ -57,7 +57,7 @@ function waitErator() {
         done
         sleep 1
     done
-    
+
     echo "All processes completed successfully."
 }
 
