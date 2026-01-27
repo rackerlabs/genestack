@@ -105,6 +105,14 @@ else
   success "Local base OS packages installed."
 fi
 
+# Install yq
+install_yq
+if [ $? -ne 0 ]; then
+  error "Failed to install yq"
+else
+  success "yq installed successfully."
+fi
+
 # Set script to exit on any non-zero error code
 set -e
 

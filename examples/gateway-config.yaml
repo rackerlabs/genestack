@@ -1,0 +1,103 @@
+---
+# Example Gateway Configuration for Genestack
+# This file demonstrates how to configure multiple gateways with different
+# certificate issuers, route configurations, and namespace isolation
+
+gateways:
+  # External-only gateway with Let's Encrypt certificates
+  - name: external-gateway
+    namespace: external-gateway  # Each gateway gets its own namespace
+    domain: cloud.example.com
+    type:
+      - external
+    metallb_pools:
+      external: gateway-api-external
+    issuer:
+      type: letsencrypt
+      email: admin@example.com
+      challenge: http01  # or dns01
+      # For DNS01 challenge with Cloudflare (example):
+      # challenge: dns01
+      # dns_plugin: cloudflare
+      # api_token: "your-cloudflare-api-token"
+    routes:
+      - keystone
+      - nova
+      - neutron
+      - cinder
+      - glance
+      - horizon
+      - heat
+      - octavia
+      - placement
+
+  # Internal-only gateway with self-signed certificates for monitoring/admin tools
+  - name: internal-gateway
+    namespace: internal-gateway
+    domain: internal.cluster.local
+    type:
+      - internal
+    metallb_pools:
+      internal: gateway-api-internal
+    issuer:
+      type: selfsigned
+    routes:
+      - grafana
+      - prometheus
+      - alertmanager
+      - loki
+
+  # Hybrid gateway - both external and internal access
+  - name: hybrid-gateway
+    namespace: hybrid-gateway
+    domain: hybrid.example.com
+    type:
+      - external
+      - internal
+    metallb_pools:
+      external: gateway-api-external
+      internal: gateway-api-internal
+    issuer:
+      type: letsencrypt
+      email: admin@example.com
+      challenge: http01
+    routes:
+      - keystone  # Available on both external and internal
+      - grafana   # Available on both external and internal
+
+  # Development gateway with self-signed certificates
+  - name: dev-gateway
+    namespace: dev-gateway
+    domain: dev.example.com
+    type:
+      - external
+    metallb_pools:
+      external: gateway-api-dev
+    issuer:
+      type: selfsigned
+    routes:
+      - keystone
+      - nova
+      - neutron
+      - skyline
+
+  # Staging gateway with Let's Encrypt DNS01 challenge
+  - name: staging-gateway
+    namespace: staging-gateway
+    domain: staging.example.com
+    type:
+      - external
+    metallb_pools:
+      external: gateway-api-staging
+    issuer:
+      type: letsencrypt
+      email: staging@example.com
+      challenge: dns01
+      dns_plugin: cloudflare
+      api_token: "your-staging-cloudflare-token"
+    routes:
+      - keystone
+      - nova
+      - neutron
+      - cinder
+      - glance
