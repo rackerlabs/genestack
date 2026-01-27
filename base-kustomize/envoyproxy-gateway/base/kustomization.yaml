@@ -9,3 +9,5 @@ resources:
   - envoy-gateway.yaml
   - envoy-endpoint-policies.yaml
   - envoy-service-monitor.yaml
+  - all.yaml
+
