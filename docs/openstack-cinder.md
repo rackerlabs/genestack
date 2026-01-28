@@ -41,6 +41,12 @@ OpenStack Cinder is a core component of the OpenStack cloud computing platform, 
     You may need to provide custom values to configure your openstack services, for a simple single region or lab deployment you can supply an additional overrides flag using the example found at `base-helm-configs/aio-example-openstack-overrides.yaml`.
     In other cases such as a multi-region deployment you may want to view the [Multi-Region Support](multi-region-support.md) guide to for a workflow solution.
 
+!!! genestack "External Ceph Storage Backend"
+
+    If Cinder will be deployed with an external Ceph storage backend, review the
+    [OpenStack Cinder Ceph Store](openstack-cinder-ceph-store.md) operator
+    documentation for additional steps and setup.
+
 ## Demo
 
 [![asciicast](https://asciinema.org/a/629808.svg)](https://asciinema.org/a/629808)
