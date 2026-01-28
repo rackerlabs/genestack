@@ -296,10 +296,12 @@ nav:
               - Cinder Volume QoS Policies: openstack-cinder-volume-qos-policies.md
               - Cinder Volume Type Specs: openstack-cinder-volume-type-specs.md
               - Decommission a Cinder Block Node: openstack-cinder-block-node-decommission-process.md
+              - Cinder External Ceph Storage: openstack-cinder-ceph-store.md
           - Compute:
               - Nova Flavor Creation: openstack-flavors.md
               - Nova CPU Allocation Ratio: openstack-cpu-allocation-ratio.md
               - Nova PCI Passthrough: openstack-pci-passthrough.md
+              - Nova External Ceph Storage: openstack-compute-ceph-store.md
               - Host Aggregates: openstack-host-aggregates.md
               - Instance Data Recovery: openstack-data-disk-recovery.md
               - Vendordata: openstack-vendordata.md
