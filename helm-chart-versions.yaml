@@ -44,5 +44,5 @@ charts:
   redis-replication: 0.16.9
   redis-sentinel: 0.16.10
   sealed-secrets: 2.17.4
-  trove: 2024.2.50+13651f45-628a320c
+  trove: 2025.2.3+01091eeab
   zaqar: 2025.2.0+2d37d445c

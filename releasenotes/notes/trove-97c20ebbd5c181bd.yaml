@@ -2,6 +2,5 @@
 features:
   - |
     Added Openstack Trove support.
-    A local helm chart for Trove will be used until the upstream helm chart is approved and merged,
-    at which point, modifications will need to be made to pull the trove chart from the upstream
-    helm repository.
+    Migrated Trove to use the official upstream OpenStack-Helm chart now that
+    it has been merged and is available in the upstream repository.
