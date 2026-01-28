@@ -37,7 +37,7 @@ jobs:
           helm repo update
       - name: Run Helm Template
         run: |
-          ${{ steps.helm.outputs.helm-path }} template trove ${{ github.workspace }}/helm-charts/trove \
+          ${{ steps.helm.outputs.helm-path }} template trove openstack-helm/trove \
             --namespace=openstack \
             --wait \
             --timeout 120m \
