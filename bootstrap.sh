@@ -68,6 +68,12 @@ mkdir -p ~/.venvs
 BASEDIR="$(dirname "$0")"
 cd "${BASEDIR}" || error "Could not change to ${BASEDIR}"
 
+# Initialize git submodules if not already initialized
+if [ -d ".git" ]; then
+    echo "Initializing git submodules..."
+    git submodule update --init --recursive
+fi
+
 source scripts/lib/functions.sh
 
 success "Environment variables:"
