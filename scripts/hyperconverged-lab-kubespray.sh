@@ -18,6 +18,16 @@ SECONDS=0
 
 # Source common library
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+
+# Initialize git submodules if not already initialized
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+if [ -d "${REPO_ROOT}/.git" ]; then
+    echo "Initializing git submodules..."
+    cd "${REPO_ROOT}"
+    git submodule update --init --recursive
+    cd - > /dev/null
+fi
+
 source "${SCRIPT_DIR}/lib/hyperconverged-common.sh"
 
 #############################################################################
