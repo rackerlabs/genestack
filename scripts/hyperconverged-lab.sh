@@ -64,6 +64,8 @@ ENVIRONMENT VARIABLES:
     HYPERCONVERGED_DEV  If set to "true", enables development mode which transports
                         the local environment checkout into the hyperconverged lab
                         for easier testing and debugging.
+    HYPERCONVERGED_CINDER_VOLUME
+                        If set to "true", enables iSCSI cinder volume support.
 
 EXAMPLES:
     # Interactive mode - will prompt for platform choice

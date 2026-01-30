@@ -20,5 +20,5 @@ components:
   octavia: false
   placement: true
   skyline: true
-  trove: true
+  trove: false
   zaqar: false
