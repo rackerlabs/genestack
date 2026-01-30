@@ -24,6 +24,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 if [ -d "${REPO_ROOT}/.git" ]; then
     echo "Initializing git submodules..."
     cd "${REPO_ROOT}"
+    git config --global --add safe.directory "${REPO_ROOT}"
     git submodule update --init --recursive
     cd - > /dev/null
 fi
