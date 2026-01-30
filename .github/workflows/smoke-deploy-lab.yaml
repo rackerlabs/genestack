@@ -96,6 +96,9 @@ jobs:
           echo "OS_IMAGE=${{ github.event.inputs.osImage }}" >> $GITHUB_ENV
           echo "SSH_USERNAME=${{ github.event.inputs.sshUsername }}" >> $GITHUB_ENV
 
+      - name: Configure git safe directory
+        run: git config --global --add safe.directory "$(pwd)"
+
       - name: Run deployment script
         if: ${{ github.event_name == 'pull_request' || contains(fromJSON('["deploy", "test"]'), github.event.inputs.mode) }}
         run: |
