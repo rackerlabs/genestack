@@ -5,6 +5,8 @@ services:
     endpoint: http://barbican-api.openstack.svc.cluster.local:9311/v1/secrets
   - name: cinder-api
     endpoint: http://cinder-api.openstack.svc.cluster.local:8776/v3/volumes
+  - name: designate-api
+    endpoint: http://designate-api.openstack.svc.cluster.local:9001/v2
   - name: glance-api
     endpoint: http://glance-api.openstack.svc.cluster.local:9292/v2/images
   - name: heat-api

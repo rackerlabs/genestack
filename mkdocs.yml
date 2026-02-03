@@ -224,6 +224,10 @@ nav:
                       - Ceilometer: openstack-ceilometer.md
                       - Cloudkitty: openstack-cloudkitty.md
                   - Blazar: openstack-blazar.md
+                  - DNSaaS:
+                      - Designate Prep: openstack-designate-prep.md
+                      - Deployment: openstack-designate.md
+                      - Neutron Plugin: openstack-designate-neutron.md
                   - Freezer: openstack-freezer.md
                   - Masakari: openstack-masakari.md
                   - Zaqar: openstack-zaqar.md
@@ -245,6 +249,7 @@ nav:
               - Pushgateway: prometheus-pushgateway.md
               - SNMP Exporter: prometheus-snmp-exporter.md
               - Barbican Exporter: openstack-barbican-exporter.md
+              - Designate Exporter: openstack-designate-exporter.md
               - Custom Node Metrics: prometheus-custom-node-metrics.md
               - Alert Manager Examples:
                   - alertmanager-slack.md
