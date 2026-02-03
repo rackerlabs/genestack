@@ -46,7 +46,6 @@ images:
     bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    rabbit_init: null
     ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
     ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
@@ -58,7 +57,10 @@ images:
     designate_worker: "ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest"
     designate_producer: "ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest"
     designate_sink: "ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest"
+    designate_service_cleaner: "kernelpanic53/rackerlabs-designate:2026-master" ## TEMP FIX USING MASTER BRANCH AS OF 02-2026
     image_repo_sync: null
+    rabbit_init: null
+    test: null
   pull_policy: "IfNotPresent"
   local_registry:
     active: false
@@ -145,11 +147,9 @@ pod:
     enabled: true
     api:
       requests:
-        memory: {}
-        cpu: {}
-      limits:
-        memory: {}
-        cpu: {}
+        memory: "384Mi"
+        cpu: "100m"
+      limits: {}
 
 network:
   api:
