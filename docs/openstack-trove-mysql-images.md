@@ -24,7 +24,6 @@ sudo apt-get update
 sudo apt-get install -y \
     qemu-utils \
     libguestfs-tools \
-    wget \
     curl \
     python3-openstackclient
 ```
@@ -75,7 +74,7 @@ mkdir -p /tmp/trove-build
 cd /tmp/trove-build
 
 # Download base image
-wget https://cloud-images.ubuntu.com/releases/22.04/release/ubuntu-22.04-server-cloudimg-amd64.img
+curl -L https://cloud-images.ubuntu.com/releases/22.04/release/ubuntu-22.04-server-cloudimg-amd64.img -o ubuntu-22.04-server-cloudimg-amd64.img
 
 # Copy and resize
 cp ubuntu-22.04-server-cloudimg-amd64.img mysql-8.4-base.qcow2
