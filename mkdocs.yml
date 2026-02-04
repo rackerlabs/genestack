@@ -224,6 +224,7 @@ nav:
                       - Ceilometer: openstack-ceilometer.md
                       - Cloudkitty: openstack-cloudkitty.md
                   - Blazar: openstack-blazar.md
+                  - Designate: openstack-designate.md
                   - Freezer: openstack-freezer.md
                   - Masakari: openstack-masakari.md
                   - Zaqar: openstack-zaqar.md
