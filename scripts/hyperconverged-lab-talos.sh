@@ -49,7 +49,8 @@ export JUMP_HOST_IMAGE="${JUMP_HOST_IMAGE:-Ubuntu 24.04}"
 
 function installTalosctl() {
     echo "Installing talosctl version ${TALOS_VERSION}..."
-    wget https://github.com/siderolabs/talos/releases/download/${TALOS_VERSION}/${TALOS_BINARY} -O talosctl
+    curl -L https://github.com/siderolabs/talos/releases/download/${TALOS_VERSION}/${TALOS_BINARY} -o talosctl
+
     sudo install -o root -g root -m 0755 talosctl /usr/local/bin/talosctl
 }
 
@@ -513,21 +514,21 @@ done
 
 # Install required packages
 sudo apt-get update
-sudo apt-get install -y curl wget git jq netcat-openbsd xz-utils
+sudo apt-get install -y curl git jq netcat-openbsd xz-utils
 
 # Install yq
 if ! yq --version 2>/dev/null; then
     echo "Installing yq..."
     export VERSION=v4.2.0
     export BINARY=yq_linux_amd64
-    wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -q -O - | tar xz
+    curl -L https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -q -o - | tar xz
     sudo mv ${BINARY} /usr/local/bin/yq
 fi
 
 # Install talosctl
 if ! talosctl version --client 2>/dev/null; then
     echo "Installing talosctl version ${TALOS_VERSION}..."
-    wget https://github.com/siderolabs/talos/releases/download/${TALOS_VERSION}/${TALOS_BINARY} -q -O ${TALOS_BINARY}
+    curl -L https://github.com/siderolabs/talos/releases/download/${TALOS_VERSION}/${TALOS_BINARY} -q -o ${TALOS_BINARY}
     sudo install -o root -g root -m 0755 ${TALOS_BINARY} /usr/local/bin/talosctl
     rm ${TALOS_BINARY}
 fi

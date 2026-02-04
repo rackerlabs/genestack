@@ -142,8 +142,8 @@ if [ ! -f "/usr/local/bin/egctl" ]; then
     echo "Installing egctl CLI..."
     sudo mkdir -p /opt/egctl-install
     pushd /opt/egctl-install || exit 1
-        # Use the extracted version for wget
-        sudo wget "https://github.com/envoyproxy/gateway/releases/download/${SERVICE_VERSION}/egctl_${SERVICE_VERSION}_linux_amd64.tar.gz" -O egctl.tar.gz
+        # Use the extracted version
+        sudo curl -L "https://github.com/envoyproxy/gateway/releases/download/${SERVICE_VERSION}/egctl_${SERVICE_VERSION}_linux_amd64.tar.gz" -o egctl.tar.gz
         sudo tar -xvf egctl.tar.gz
         sudo install -o root -g root -m 0755 bin/linux/amd64/egctl /usr/local/bin/egctl
         /usr/local/bin/egctl completion bash > /tmp/egctl.bash
