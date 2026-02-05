@@ -1,0 +1,31 @@
+---
+# Patch to fix OVN central pod TLS certificate mounting
+# The kube-ovn-tls secret is mounted at /var/run/tls/ but the OVN startup script
+# expects the certificates at /etc/ovn/. This patch adds an init container to copy
+# the certificates to the expected location.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ovn-central
+  namespace: kube-system
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: copy-tls-certs
+          image: busybox:latest
+          command:
+            - sh
+            - -c
+            - |
+              if [ -f /var/run/tls/key ] && [ -f /var/run/tls/cert ] && [ -f /var/run/tls/cacert ]; then
+                cp /var/run/tls/key /etc/ovn/key
+                cp /var/run/tls/cert /etc/ovn/cert
+                cp /var/run/tls/cacert /etc/ovn/cacert
+                chmod 600 /etc/ovn/key /etc/ovn/cert /etc/ovn/cacert
+              fi
+          volumeMounts:
+            - mountPath: /var/run/tls
+              name: kube-ovn-tls
+            - mountPath: /etc/ovn
+              name: host-config-ovn
