@@ -19,7 +19,7 @@ ingress:
   enabled: false
 
 image:
-  tag: "10.3.3"
+  tag: "12.2.0"
 
 grafana.ini:
   paths:
@@ -202,6 +202,7 @@ alerting:
 
 plugins:
   - camptocamp-prometheus-alertmanager-datasource
+  - yesoreyeram-infinity-datasource
 
 extraSecretMounts:
   - name: grafana-db-secret-mount
