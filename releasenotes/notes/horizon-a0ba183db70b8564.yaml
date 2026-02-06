@@ -1,0 +1,8 @@
+---
+issues:
+  - |
+    Horizon extra panels are stil broken, will need updates from upstream chart
+fixes:
+  - |
+    added updated Genestack assets for logo,favicon,and logo_splash in base64 format to reduce lines in file.
+    added multidomain support for horizon and dropdown box.

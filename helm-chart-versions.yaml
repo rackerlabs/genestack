@@ -14,7 +14,7 @@ charts:
   gnocchi: 2024.2.52+22.15d38
   grafana: 10.1.0
   heat: 2024.2.294+13651f45-628a320c
-  horizon: 2024.2.264+13651f45-628a320c
+  horizon: 2025.2.6+5bf7cf019
   ironic: 2024.2.121+13651f45-628a320c
   keystone: 2024.2.386+13651f45-628a320c
   kubernetes-event-exporter: 3.6.3
