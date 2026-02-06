@@ -8,6 +8,12 @@ The Compute Kit in OpenStack encompasses critical services that power the comput
 
 Together, Nova, Neutron, and Placement form the backbone of the OpenStack Compute Kit, enabling the efficient and scalable operation of cloud instances. In this document, we will explore how these services can be deployed using Genestack.
 
+!!! genestack "External Ceph Storage Backend"
+
+    If Nova will be deployed with an external Ceph storage backend, review the
+    [OpenStack Compute Ceph Store](openstack-compute-ceph-store.md) operator
+    documentation for additional steps and setup.
+
 ## Demo
 
 [![asciicast](https://asciinema.org/a/629813.svg)](https://asciinema.org/a/629813)
