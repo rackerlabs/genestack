@@ -313,6 +313,7 @@ nav:
               - Glance External Ceph Image Store: openstack-glance-ceph-store.md
           - Identity:
               - Keystone Federation to Rackspace: openstack-keystone-federation.md
+              - Keystone LDAP/AD Integration: openstack-keystone-ldap.md
               - Keystone Readonly Users: openstack-keystone-readonly.md
           - Networking:
               - Creating Networks: openstack-neutron-networks.md
