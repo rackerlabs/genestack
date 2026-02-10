@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Add LDAP/AD Integration into Keystone config via genestack overrides file
