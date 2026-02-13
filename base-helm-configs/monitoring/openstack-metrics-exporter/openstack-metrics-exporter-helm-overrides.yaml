@@ -37,7 +37,7 @@ multicloud:
         - load-balancer
         - object-store
         #- container-infra
-        #- dns
+        - dns
         #- baremetal
         - gnocchi
         #- database
