@@ -24,7 +24,7 @@ set -o pipefail
 
 BACKUP_DIR="${HOME}/backup/mariadb/$(date +%s)"
 MYSQL_PASSWORD="$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)"
-MYSQL_HOST=$(kubectl -n openstack get service mariadb-cluster -o jsonpath='{.spec.clusterIP}')
+MYSQL_HOST=$(kubectl -n openstack get service mariadb-cluster-primary -o jsonpath='{.spec.clusterIP}')
 
 if mysqldump --help | grep -q column-statistics; then
     MYSQL_DUMP_COLLUMN_STATISTICS="--column-statistics=0"
