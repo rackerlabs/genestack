@@ -23,7 +23,7 @@ charts:
   kube-ovn: v1.15.4
   kube-prometheus-stack: 78.3.0
   libvirt: 2024.2.94+912f85d38
-  loki: 6.43.0
+  loki: 6.52.0
   longhorn: 1.11.0
   magnum: 2025.1.4+4d4d4e25c
   mariadb-operator: 0.38.1
@@ -34,6 +34,7 @@ charts:
   neutron: 2024.2.529+13651f45-628a320c
   nova: 2024.2.555+13651f45-628a320c
   octavia: 2025.1.15+b1e463122
+  opentelemetry-kube-stack: 0.13.1
   placement: 2025.1.2+0cd784591
   postgres-operator: 1.15.1
   prometheus-blackbox-exporter: 11.6.1
