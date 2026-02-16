@@ -16,7 +16,7 @@ clusterName: cluster.local
 
 ha:
   # -- Enable high availability
-  enabled: false
+  enabled: true
   # -- Number of replicas
   replicas: 3
 
@@ -101,9 +101,9 @@ affinity:
 
 pdb:
   # -- Enable PodDisruptionBudget for the controller.
-  enabled: false
+  enabled: true
   # -- Maximum number of unavailable Pods. You may also give a percentage, like `50%`
-  maxUnavailable: 1
+  maxUnavailable: 50%
 
 webhook:
   image:
@@ -114,7 +114,7 @@ webhook:
   imagePullSecrets: []
   ha:
     # -- Enable high availability
-    enabled: false
+    enabled: true
     # -- Number of replicas
     replicas: 3
   cert:
@@ -206,7 +206,7 @@ certController:
   imagePullSecrets: []
   ha:
     # -- Enable high availability
-    enabled: false
+    enabled: true
     # -- Number of replicas
     replicas: 3
   # -- CA certificate lifetime. It must be greater than certLifetime.
@@ -268,9 +268,9 @@ certController:
   affinity: {}
   pdb:
     # -- Enable PodDisruptionBudget for the cert-controller.
-    enabled: false
+    enabled: true
     # -- Maximum number of unavailable Pods. You may also give a percentage, like `50%`
-    maxUnavailable: 1
+    maxUnavailable: 50%
 # -- Operator configuration
 config:
   # -- Galera library path to be used with MariaDB Galera

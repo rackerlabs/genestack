@@ -19,8 +19,8 @@ Set the following environment variables before running the script:
 
 ## Usage
 ```bash
-# python import_dashboard.py -h
-usage: import_dashboard.py [-h] -d DIR [-ds DATASOURCE]
+# python import-grafana-dashboard.py -h
+usage: import-grafana-dashboard.py [-h] -d DIR [-ds DATASOURCE]
 
 Import Grafana dashboards from a local directory.
 

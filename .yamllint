@@ -11,3 +11,4 @@ rules:
   new-line-at-end-of-file: enable
 ignore:
   - submodules/
+  - helm-charts/

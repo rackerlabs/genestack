@@ -1,7 +1,4 @@
-## Enable pod security policy
 ---
-pspEnabled: true
-
 nodeSelector:
   openstack-control-plane: enabled
 

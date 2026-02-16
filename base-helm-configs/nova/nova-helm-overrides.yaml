@@ -101,7 +101,8 @@ conf:
       cross_az_attach: true
       network_allocate_retries: 3
     api:
-      vendordata_providers: ['StaticJSON']
+      vendordata_providers:
+        - 'StaticJSON'
       vendordata_jsonfile_path: /etc/nova/vendor_data.json
     api_database:
       connection_debug: 0
@@ -134,11 +135,10 @@ conf:
       use_db_reconnect: true
       pool_timeout: 60
       max_retries: -1
-    filter_scheduler:
-      available_filters: blazarnova.scheduler.filters.blazar_filter.BlazarFilter
-      enabled_filters: BlazarFilter
     glance:
       num_retries: 8
+    barbican:
+      barbican_endpoint_type: internal
     key_manager:
       backend: barbican
     keystone_authtoken:

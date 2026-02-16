@@ -23,7 +23,25 @@ if [ ! -f "$CONFIG_FILE" ]; then
 components:
   keystone: true
 EOF
-    # Optional: User could add logic here to prompt for components via a helper function
+    prompt_component "glance" "Glance (Image Service)"
+    prompt_component "heat" "Heat (Orchestration)"
+    prompt_component "barbican" "Barbican (Key Manager)"
+    prompt_component "blazar" "Blazar (Reservation)"
+    prompt_component "cinder" "Cinder (Block Storage)"
+    prompt_component "trove" "Trove (Databases)"
+    prompt_component "placement" "Placement"
+    prompt_component "nova" "Nova (Compute)"
+    prompt_component "neutron" "Neutron (Networking)"
+    prompt_component "magnum" "Magnum (Container Orchestration)"
+    prompt_component "octavia" "Octavia (Load Balancer)"
+    prompt_component "masakari" "Masakari (Instance High Availability)"
+    prompt_component "manila" "Manila (Shared Filesystem)"
+    prompt_component "ceilometer" "Ceilometer (Telemetry)"
+    prompt_component "gnocchi" "Gnocchi (Time Series Database)"
+    prompt_component "cloudkitty" "Cloudkitty (Rating and Chargeback)"
+    prompt_component "skyline" "Skyline (Dashboard)"
+    prompt_component "freezer" "Freezer (Backup Restore)"
+    prompt_component "zaqar" "Zaqar (Messaging)"
 fi
 
 # --- PHASE 1: KEYSTONE ---
@@ -61,8 +79,25 @@ is_enabled "cloudkitty" && run_parallel "/opt/genestack/bin/install-cloudkitty.s
 is_enabled "freezer"    && run_parallel "/opt/genestack/bin/install-freezer.sh $ROTATE_FLAG"
 is_enabled "zaqar"      && run_parallel "/opt/genestack/bin/install-zaqar.sh $ROTATE_FLAG"
 
-# Wait for Phase 3 to finish (defaulting to a 45-minute cluster timeout)
-wait_parallel 45
+# Run selected services in parallel
+is_component_enabled "glance" && runTrackErator /opt/genestack/bin/install-glance.sh
+is_component_enabled "heat" && runTrackErator /opt/genestack/bin/install-heat.sh
+is_component_enabled "barbican" && runTrackErator /opt/genestack/bin/install-barbican.sh
+is_component_enabled "blazar" && runTrackErator /opt/genestack/bin/install-blazar.sh
+is_component_enabled "cinder" && runTrackErator /opt/genestack/bin/install-cinder.sh
+is_component_enabled "trove" && runTrackErator /opt/genestack/bin/install-trove.sh
+is_component_enabled "placement" && runTrackErator /opt/genestack/bin/install-placement.sh
+is_component_enabled "nova" && runTrackErator /opt/genestack/bin/install-nova.sh
+is_component_enabled "neutron" && runTrackErator /opt/genestack/bin/install-neutron.sh
+is_component_enabled "magnum" && runTrackErator /opt/genestack/bin/install-magnum.sh
+is_component_enabled "octavia" && runTrackErator /opt/genestack/bin/install-octavia.sh
+is_component_enabled "masakari" && runTrackErator /opt/genestack/bin/install-masakari.sh
+is_component_enabled "manila" && runTrackErator /opt/genestack/bin/install-manila.sh
+is_component_enabled "ceilometer" && runTrackErator /opt/genestack/bin/install-ceilometer.sh
+is_component_enabled "gnocchi" && runTrackErator /opt/genestack/bin/install-gnocchi.sh
+is_component_enabled "cloudkitty" && runTrackErator /opt/genestack/bin/install-cloudkitty.sh
+is_component_enabled "freezer" && runTrackErator /opt/genestack/bin/install-freezer.sh
+is_component_enabled "zaqar" && runTrackErator /opt/genestack/bin/install-zaqar.sh
 
 # --- PHASE 4: DASHBOARD ---
 # Skyline is usually installed last once APIs are responsive.

@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Allow other kubernetes deployment models including Talos k8s stack to include a
+    managed cert-manager helm chart. Decouple the cert-manager installation from the
+    base kubespray ansible roles and allow the official upstream charts to provide
+    chart and CRD updates including patched image rollouts. This includes envoy
+    gateway-api support and custom DNS server forwarders.

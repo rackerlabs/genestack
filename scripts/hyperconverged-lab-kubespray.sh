@@ -68,7 +68,7 @@ if ! openstack security group show ${LAB_NAME_PREFIX}-jump-secgroup 2>/dev/null;
     openstack security group create ${LAB_NAME_PREFIX}-jump-secgroup
 fi
 
-if ! openstack security group show ${LAB_NAME_PREFIX}-jump-secgroup -f json 2>/dev/null | jq -r '.rules.[].port_range_max' | grep -q 22; then
+if ! openstack security group show ${LAB_NAME_PREFIX}-jump-secgroup -f json 2>/dev/null | jq -r '.rules[].port_range_max' | grep -q 22; then
     openstack security group rule create ${LAB_NAME_PREFIX}-jump-secgroup \
         --protocol tcp \
         --ingress \
@@ -76,7 +76,7 @@ if ! openstack security group show ${LAB_NAME_PREFIX}-jump-secgroup -f json 2>/d
         --dst-port 22 \
         --description "ssh"
 fi
-if ! openstack security group show ${LAB_NAME_PREFIX}-jump-secgroup -f json 2>/dev/null | jq -r '.rules.[].protocol' | grep -q icmp; then
+if ! openstack security group show ${LAB_NAME_PREFIX}-jump-secgroup -f json 2>/dev/null | jq -r '.rules[].protocol' | grep -q icmp; then
     openstack security group rule create ${LAB_NAME_PREFIX}-jump-secgroup \
         --protocol icmp \
         --ingress \
@@ -212,6 +212,130 @@ while ! ssh -o ConnectTimeout=2 -o ConnectionAttempts=3 -o UserKnownHostsFile=/d
 done
 
 #############################################################################
+# Create and Attach Lab Volumes
+#############################################################################
+
+if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+    READY_COUNT=0
+    while [ $(openstack server show ${LAB_NAME_PREFIX}-0 -f yaml | yq '.status') != 'ACTIVE' ]; do
+      echo "Server instance 0 is not ready, waiting..."
+      READY_COUNT=$((READY_COUNT + 1))
+      if [ $READY_COUNT -gt 200 ]; then
+        echo "VM: ${LAB_NAME_PREFIX}-0 never built"
+        exit 1
+      fi
+    done
+
+    READY_COUNT=0
+    while [ $(openstack server show ${LAB_NAME_PREFIX}-1 -f yaml | yq '.status') != 'ACTIVE' ]; do
+      echo "Server instance 1 is not ready, waiting..."
+      READY_COUNT=$((READY_COUNT + 1))
+      if [ $READY_COUNT -gt 200 ]; then
+        echo "VM: ${LAB_NAME_PREFIX}-1 never built"
+        exit 1
+      fi
+    done
+
+    READY_COUNT=0
+    while [ $(openstack server show ${LAB_NAME_PREFIX}-2 -f yaml | yq '.status') != 'ACTIVE' ]; do
+      echo "Server instance 2 is not ready, waiting..."
+      READY_COUNT=$((READY_COUNT + 1))
+      if [ $READY_COUNT -gt 200 ]; then
+        echo "VM: ${LAB_NAME_PREFIX}-2 never built"
+        exit 1
+      fi
+    done
+
+    if ! openstack volume show ${LAB_NAME_PREFIX}-0-cv1 2>/dev/null; then
+      openstack volume create \
+        --size 150 \
+        --type Performance \
+        --description "cinder-volumes-1 on ${LAB_NAME_PREFIX}-0" \
+        ${LAB_NAME_PREFIX}-0-cv1
+    fi
+
+    if ! openstack volume show ${LAB_NAME_PREFIX}-1-cv1 2>/dev/null; then
+      openstack volume create \
+        --size 150 \
+        --type Performance \
+        --description "cinder-volumes-1 on ${LAB_NAME_PREFIX}-1" \
+        ${LAB_NAME_PREFIX}-1-cv1
+    fi
+
+    if ! openstack volume show ${LAB_NAME_PREFIX}-2-cv1 2>/dev/null; then
+      openstack volume create \
+        --size 150 \
+        --type Performance \
+        --description "cinder-volumes-1 on ${LAB_NAME_PREFIX}-2" \
+        ${LAB_NAME_PREFIX}-2-cv1
+    fi
+
+    sleep 2
+
+    READY_COUNT=0
+    while [[ ! $(openstack volume show ${LAB_NAME_PREFIX}-0-cv1 -f yaml | yq '.status') =~ ^(available|in-use)$ ]]; do
+      sleep 0.2
+      echo "Data volume 0 is not ready, Trying again..."
+      READY_COUNT=$((READY_COUNT + 1))
+      if [ $READY_COUNT -gt 200 ]; then
+        echo "Volume: ${LAB_NAME_PREFIX}-0-cv1 not built"
+        exit 1
+      fi
+    done
+
+    READY_COUNT=0
+    while [[ ! $(openstack volume show ${LAB_NAME_PREFIX}-1-cv1 -f yaml | yq '.status') =~ ^(available|in-use)$ ]]; do
+      sleep 0.2
+      echo "Data volume 1 is not ready, Trying again..."
+      READY_COUNT=$((READY_COUNT + 1))
+      if [ $READY_COUNT -gt 200 ]; then
+        echo "Volume: ${LAB_NAME_PREFIX}-1-cv1 not built"
+        exit 1
+      fi
+    done
+
+    READY_COUNT=0
+    while [[ ! $(openstack volume show ${LAB_NAME_PREFIX}-2-cv1 -f yaml | yq '.status') =~ ^(available|in-use)$ ]]; do
+      sleep 0.2
+      echo "Data volume 2 is not ready, Trying again..."
+      READY_COUNT=$((READY_COUNT + 1))
+      if [ $READY_COUNT -gt 200 ]; then
+        echo "Volume: ${LAB_NAME_PREFIX}-2-cv1 not built"
+        exit 1
+      fi
+    done
+
+    if [ $(openstack volume show ${LAB_NAME_PREFIX}-0-cv1 -f yaml | yq '.status') == 'available' ]; then
+      openstack server add volume \
+        --enable-delete-on-termination \
+        ${LAB_NAME_PREFIX}-0 \
+        ${LAB_NAME_PREFIX}-0-cv1
+    else
+        echo "Data volume 0 is not available"
+    fi
+
+    if [ $(openstack volume show ${LAB_NAME_PREFIX}-1-cv1 -f yaml | yq '.status') == 'available' ]; then
+      openstack server add volume \
+        --enable-delete-on-termination \
+        ${LAB_NAME_PREFIX}-1 \
+        ${LAB_NAME_PREFIX}-1-cv1
+    else
+        echo "Data volume 1 is not available"
+    fi
+
+    if [ $(openstack volume show ${LAB_NAME_PREFIX}-2-cv1 -f yaml | yq '.status') == 'available' ]; then
+      openstack server add volume \
+        --enable-delete-on-termination \
+        ${LAB_NAME_PREFIX}-2 \
+        ${LAB_NAME_PREFIX}-2-cv1
+    else
+        echo "Data volume 2 is not available"
+    fi
+
+    sleep 2
+fi
+
+#############################################################################
 # Kubespray-Specific: Bootstrap and deploy codebase on Jump Host
 #############################################################################
 
@@ -252,7 +376,89 @@ EOF
 
 # Create Kubespray inventory
 if [ ! -f "/etc/genestack/inventory/inventory.yaml" ]; then
-cat > /etc/genestack/inventory/inventory.yaml <<EOF
+    if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+        cat > /etc/genestack/inventory/inventory.yaml <<EOF
+---
+all:
+  vars:
+    cloud_name: "${LAB_NAME_PREFIX}-lab-0"
+    ansible_python_interpreter: "/usr/bin/python3"
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+  hosts:
+    ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}:
+      ansible_host: $(openstack port show ${WORKER_0_PORT} -f json | jq -r '.fixed_ips[0].ip_address')
+    ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}:
+      ansible_host: $(openstack port show ${WORKER_1_PORT} -f json | jq -r '.fixed_ips[0].ip_address')
+    ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}:
+      ansible_host: $(openstack port show ${WORKER_2_PORT} -f json | jq -r '.fixed_ips[0].ip_address')
+  children:
+    k8s_cluster:
+      vars:
+        cluster_name: cluster.local
+        kube_ovn_central_hosts: '{{ groups["ovn_network_nodes"] }}'
+        kube_ovn_default_interface_name: br-mgmt
+        kube_ovn_iface: br-mgmt
+      children:
+        broken_etcd:
+          children: null
+        broken_kube_control_plane:
+          children: null
+        # OpenStack Controllers
+        openstack_control_plane:
+          hosts:
+            ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
+        # Edge Nodes
+        ovn_network_nodes:
+          hosts:
+            ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
+        # Tenant Prod Nodes
+        openstack_compute_nodes:
+          vars:
+            enable_iscsi: true
+            custom_multipath: false
+          hosts:
+            ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
+        # Block Nodes
+        storage_nodes:
+          vars:
+            enable_iscsi: true
+            storage_network_multipath: false
+          children:
+            cinder_storage_nodes:
+              hosts:
+                ${LAB_NAME_PREFIX}-0.cluster.local: null
+                ${LAB_NAME_PREFIX}-1.cluster.local: null
+                ${LAB_NAME_PREFIX}-2.cluster.local: null
+          hosts:
+            ${LAB_NAME_PREFIX}-0.cluster.local: null
+            ${LAB_NAME_PREFIX}-1.cluster.local: null
+            ${LAB_NAME_PREFIX}-2.cluster.local: null
+        # ETCD Nodes
+        etcd:
+          hosts:
+            ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
+        # Kubernetes Nodes
+        kube_control_plane:
+          hosts:
+            ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
+        kube_node:
+          hosts:
+            ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
+            ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
+EOF
+    else
+        cat > /etc/genestack/inventory/inventory.yaml <<EOF
 ---
 all:
   vars:
@@ -329,6 +535,7 @@ all:
             ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
 EOF
+    fi
 fi
 
 EOC
@@ -379,6 +586,13 @@ EOC
 #############################################################################
 
 runGenestackSetupRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}" "${GATEWAY_DOMAIN}" "${ACME_EMAIL}"
+
+#############################################################################
+# Cinder Volume Setup
+#############################################################################
+if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+  cinderVolumeSetup
+fi
 
 #############################################################################
 # Extra Operations

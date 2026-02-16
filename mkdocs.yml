@@ -179,6 +179,7 @@ nav:
               - Longhorn: storage-longhorn.md
           - Infrastructure:
               - infrastructure-overview.md
+              - Cert-Manager: infrastructure-cert-manager.md
               - Namespace: infrastructure-namespace.md
               - MetalLB: infrastructure-metallb.md
               - Gateway API:
@@ -226,6 +227,9 @@ nav:
                   - Freezer: openstack-freezer.md
                   - Masakari: openstack-masakari.md
                   - Zaqar: openstack-zaqar.md
+                  - Trove:
+                      - Deployment: openstack-trove.md
+                      - MySQL Images: openstack-trove-mysql-images.md
           - Monitoring:
               - Monitoring Overview: prometheus-monitoring-overview.md
               - Getting Started: monitoring-getting-started.md
@@ -292,10 +296,12 @@ nav:
               - Cinder Volume QoS Policies: openstack-cinder-volume-qos-policies.md
               - Cinder Volume Type Specs: openstack-cinder-volume-type-specs.md
               - Decommission a Cinder Block Node: openstack-cinder-block-node-decommission-process.md
+              - Cinder External Ceph Storage: openstack-cinder-ceph-store.md
           - Compute:
               - Nova Flavor Creation: openstack-flavors.md
               - Nova CPU Allocation Ratio: openstack-cpu-allocation-ratio.md
               - Nova PCI Passthrough: openstack-pci-passthrough.md
+              - Nova External Ceph Storage: openstack-compute-ceph-store.md
               - Host Aggregates: openstack-host-aggregates.md
               - Instance Data Recovery: openstack-data-disk-recovery.md
               - Vendordata: openstack-vendordata.md
@@ -304,6 +310,7 @@ nav:
           - Images:
               - Glance Images Creation: openstack-glance-images.md
               - Glance External Swift Image Store: openstack-glance-swift-store.md
+              - Glance External Ceph Image Store: openstack-glance-ceph-store.md
           - Identity:
               - Keystone Federation to Rackspace: openstack-keystone-federation.md
               - Keystone Readonly Users: openstack-keystone-readonly.md

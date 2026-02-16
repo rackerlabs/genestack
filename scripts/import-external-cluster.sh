@@ -1,3 +1,13 @@
+# -----------------------------------------------
+#                             _             _
+#                            | |           | |
+#   __ _  ___ _ __   ___  ___| |_ __ _  ___| | __
+#  / _` |/ _ \ '_ \ / _ \/ __| __/ _` |/ __| |/ /
+# | (_| |  __/ | | |  __/\__ \ || (_| | (__|   <
+#  \__, |\___|_| |_|\___||___/\__\__,_|\___|_|\_\
+#   __/ |           ops scripts
+#  |___/
+# -----------------------------------------------
 #!/usr/bin/env -S bash
 set -e
 
@@ -18,8 +28,8 @@ ROOK_EXTERNAL_CLUSTER_NAME=$NAMESPACE
 ROOK_RBD_FEATURES=${ROOK_RBD_FEATURES:-"layering"}
 ROOK_EXTERNAL_MAX_MON_ID=2
 ROOK_EXTERNAL_MAPPING={}
-RBD_STORAGE_CLASS_NAME=general
-CEPHFS_STORAGE_CLASS_NAME=general-multi-attach
+RBD_STORAGE_CLASS_NAME=${RBD_STORAGE_CLASS_NAME:-"general"}
+CEPHFS_STORAGE_CLASS_NAME=${CEPHFS_STORAGE_CLASS_NAME:-"general-multi-attach"}
 ROOK_EXTERNAL_MONITOR_SECRET=mon-secret
 OPERATOR_NAMESPACE=rook-ceph                                 # default set to rook-ceph
 CSI_DRIVER_NAME_PREFIX=${CSI_DRIVER_NAME_PREFIX:-$OPERATOR_NAMESPACE}

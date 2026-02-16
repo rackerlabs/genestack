@@ -33,8 +33,15 @@ function parseCommonArgs() {
 
     RUN_EXTRAS=0
 
-    INCLUDE_LIST=("keystone" "glance" "cinder" "nova" "neutron" "placement")
-    EXCLUDE_LIST=()
+    if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+        # barbican is needed for iSCSI encrypted volumes and cinder install has to be
+        #  done much later during the cinder volume setup
+        INCLUDE_LIST=("keystone" "barbican" "glance" "nova" "neutron" "placement")
+        EXCLUDE_LIST=("cinder")
+    else
+        INCLUDE_LIST=("keystone" "glance" "cinder" "nova" "neutron" "placement")
+        EXCLUDE_LIST=()
+    fi
 
     while getopts "i:e:x" opt; do
         case $opt in
@@ -81,14 +88,21 @@ function writeOpenstackComponentsConfig() {
     local os_config="${2}"
 
     echo "Writing OpenStack components configuration to ${output_path}"
+
+    INCLUDE_LIST=($INCLUDE_LIST)
+    EXCLUDE_LIST=($EXCLUDE_LIST)
+
     echo -e "${os_config}" | tee "${output_path}"
 
     for option in "${INCLUDE_LIST[@]}"; do
+        echo "include option: ${option}"
         yq -i ".components.$option = true" "${output_path}"
     done
     for option in "${EXCLUDE_LIST[@]}"; do
+        echo "exclude option: ${option}"
         yq -i ".components.$option = false" "${output_path}"
     done
+    cat ${output_path}
 }
 
 function promptForCommonInputs() {
@@ -155,7 +169,7 @@ function createNetworks() {
     export TENANT_SUB_NETWORK_ID
 
     # Add subnet to router
-    if ! openstack router show ${LAB_NAME_PREFIX}-router -f json 2>/dev/null | jq -r '.interfaces_info.[].subnet_id' | grep -q ${TENANT_SUB_NETWORK_ID}; then
+    if ! openstack router show ${LAB_NAME_PREFIX}-router -f json 2>/dev/null | jq -r '.interfaces_info[].subnet_id' | grep -q ${TENANT_SUB_NETWORK_ID}; then
         openstack router add subnet ${LAB_NAME_PREFIX}-router ${LAB_NAME_PREFIX}-subnet
     fi
 
@@ -179,7 +193,7 @@ function createNetworks() {
     export TENANT_COMPUTE_SUB_NETWORK_ID
 
     # Add compute subnet to router
-    if ! openstack router show ${LAB_NAME_PREFIX}-router -f json | jq -r '.interfaces_info.[].subnet_id' | grep -q ${TENANT_COMPUTE_SUB_NETWORK_ID} 2>/dev/null; then
+    if ! openstack router show ${LAB_NAME_PREFIX}-router -f json | jq -r '.interfaces_info[].subnet_id' | grep -q ${TENANT_COMPUTE_SUB_NETWORK_ID} 2>/dev/null; then
         openstack router add subnet ${LAB_NAME_PREFIX}-router ${LAB_NAME_PREFIX}-compute-subnet
     fi
 }
@@ -190,7 +204,7 @@ function createCommonSecurityGroups() {
         openstack security group create ${LAB_NAME_PREFIX}-http-secgroup
     fi
 
-    if ! openstack security group show ${LAB_NAME_PREFIX}-http-secgroup -f json 2>/dev/null | jq -r '.rules.[].port_range_max' | grep -q 443; then
+    if ! openstack security group show ${LAB_NAME_PREFIX}-http-secgroup -f json 2>/dev/null | jq -r '.rules[].port_range_max' | grep -q 443; then
         openstack security group rule create ${LAB_NAME_PREFIX}-http-secgroup \
             --protocol tcp \
             --ingress \
@@ -198,7 +212,7 @@ function createCommonSecurityGroups() {
             --dst-port 443 \
             --description "https"
     fi
-    if ! openstack security group show ${LAB_NAME_PREFIX}-http-secgroup -f json 2>/dev/null | jq -r '.rules.[].port_range_max' | grep -q 80; then
+    if ! openstack security group show ${LAB_NAME_PREFIX}-http-secgroup -f json 2>/dev/null | jq -r '.rules[].port_range_max' | grep -q 80; then
         openstack security group rule create ${LAB_NAME_PREFIX}-http-secgroup \
             --protocol tcp \
             --ingress \
@@ -212,7 +226,7 @@ function createCommonSecurityGroups() {
         openstack security group create ${LAB_NAME_PREFIX}-secgroup
     fi
 
-    if ! openstack security group show ${LAB_NAME_PREFIX}-secgroup -f json 2>/dev/null | jq -r '.rules.[].description' | grep -q "all internal traffic"; then
+    if ! openstack security group show ${LAB_NAME_PREFIX}-secgroup -f json 2>/dev/null | jq -r '.rules[].description' | grep -q "all internal traffic"; then
         openstack security group rule create ${LAB_NAME_PREFIX}-secgroup \
             --protocol any \
             --ingress \
@@ -312,11 +326,11 @@ function prepareJumpHostSource() {
         echo "Copying the development source code to the jump host"
         rsync -avz \
             -e "ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" \
-            --rsync-path="sudo rsync" \
+            --rsync-path="sudo rsync" --chown=":ubuntu" \
             ${DEV_PATH} ${SSH_USERNAME}@${JUMP_HOST_VIP}:/opt/
+    else
+        cloneGenestackOnJumpHost
     fi
-
-    cloneGenestackOnJumpHost
 }
 
 function writeMetalLBConfig() {
@@ -361,7 +375,23 @@ EOF
     fi
 
     if [ ! -f "${config_base}/barbican/barbican-helm-overrides.yaml" ]; then
-        cat > "${config_base}/barbican/barbican-helm-overrides.yaml" <<EOF
+        if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+            cat > "${config_base}/barbican/barbican-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+
+conf:
+  barbican_api_uwsgi:
+    uwsgi:
+      processes: 4
+  barbican:
+    oslo_messaging_notifications:
+      driver: noop
+EOF
+        else
+            cat > "${config_base}/barbican/barbican-helm-overrides.yaml" <<EOF
 ---
 pod:
   resources:
@@ -375,6 +405,7 @@ conf:
     oslo_messaging_notifications:
       driver: noop
 EOF
+        fi
     fi
 
     if [ ! -f "${config_base}/blazar/blazar-helm-overrides.yaml" ]; then
@@ -395,7 +426,79 @@ EOF
     fi
 
     if [ ! -f "${config_base}/cinder/cinder-helm-overrides.yaml" ]; then
-        cat > "${config_base}/cinder/cinder-helm-overrides.yaml" <<EOF
+        if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+            cat > "${config_base}/cinder/cinder-helm-overrides.yaml" <<EOF
+---
+images:
+  tags:
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
+    cinder_api: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
+    cinder_backup: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
+    cinder_backup_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
+    cinder_db_sync: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
+    cinder_scheduler: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
+    cinder_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
+    cinder_volume: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
+    cinder_volume_usage_audit: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
+    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
+pod:
+  resources:
+    enabled: true
+    api:
+      requests:
+        cpu: "1"
+        memory: "1Gi"
+      limits:
+        cpu: "2"
+        memory: "2Gi"
+    scheduler:
+      requests:
+        cpu: "1"
+        memory: "1Gi"
+      limits:
+        cpu: "2"
+        memory: "2Gi"
+conf:
+# NOTE: (brew) uncomment to change default log level from INFO
+#  logging:
+#    logger_cinder:
+#      level: DEBUG
+#      handlers: stdout
+  policy:
+    "volume_extension:types_extra_specs:read_sensitive": "rule:xena_system_admin_or_project_reader"
+  cinder:
+    DEFAULT:
+      osapi_volume_workers: 2
+      rpc_response_timeout: 300
+      enabled_backends: "lvmdriver-1"
+      default_volume_type: "Standard"
+      default_availability_zone: "az1"
+  backends:
+    lvmdriver-1:
+      image_volume_cache_enabled: true
+      iscsi_iotype: fileio
+      iscsi_num_targets: 100
+      lvm_type: default
+      target_helper: tgtadm
+      target_port: 3260
+      target_protocol: iscsi
+      volume_backend_name: LVM_iSCSI
+      volume_clear: zero
+      volume_driver: cinder_rxt.rackspace.RXTLVM
+      volume_group: cinder-volumes-1
+      volume_clear_size: 128
+  cinder_api_uwsgi:
+    uwsgi:
+      processes: 2
+      threads: 1
+EOF
+        else
+            cat > "${config_base}/cinder/cinder-helm-overrides.yaml" <<EOF
 ---
 pod:
   resources:
@@ -407,6 +510,26 @@ conf:
     oslo_messaging_notifications:
       driver: noop
   cinder_api_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1
+EOF
+        fi
+    fi
+
+    if [ ! -f "${config_base}/trove/trove-helm-overrides.yaml" ]; then
+        cat > "${config_base}/trove/trove-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  trove:
+    DEFAULT:
+      trove_api_workers: 1
+    oslo_messaging_notifications:
+      driver: noop
+  trove_api_uwsgi:
     uwsgi:
       processes: 1
       threads: 1
@@ -529,12 +652,14 @@ EOF
     fi
 
     if [ ! -f "${config_base}/nova/nova-helm-overrides.yaml" ]; then
-        cat > "${config_base}/nova/nova-helm-overrides.yaml" <<EOF
+        if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+            cat > "${config_base}/nova/nova-helm-overrides.yaml" <<EOF
 ---
 pod:
   resources:
     enabled: false
 conf:
+  enable_iscsi: true
   nova:
     DEFAULT:
       osapi_compute_workers: 1
@@ -558,6 +683,38 @@ conf:
       processes: 1
       threads: 1
 EOF
+        else
+            cat > "${config_base}/nova/nova-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  enable_iscsi: false
+  nova:
+    DEFAULT:
+      osapi_compute_workers: 1
+      metadata_workers: 1
+    conductor:
+      workers: 1
+    schedule:
+      workers: 1
+    oslo_messaging_notifications:
+      driver: noop
+    libvirt:
+      virt_type: qemu
+      images_type: qcow2
+      images_path: /var/lib/nova/instances
+  nova_api_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1
+  nova_metadata_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1
+EOF
+        fi
     fi
 
     if [ ! -f "${config_base}/octavia/octavia-helm-overrides.yaml" ]; then
@@ -844,6 +1001,8 @@ endpoints:
         region_name: *region
       cinder:
         region_name: *region
+      trove:
+        region_name: *region
       ceilometer:
         region_name: *region
       cloudkitty:
@@ -992,6 +1151,16 @@ endpoints:
         public: 443
     scheme:
       public: https
+  database:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: trove.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
   messaging:
     host_fqdn_override:
       public:
@@ -1122,6 +1291,9 @@ function configureGenestackRemote() {
         declare -f installYq
 
         cat <<EOF
+export HYPERCONVERGED_CINDER_VOLUME=$HYPERCONVERGED_CINDER_VOLUME
+export INCLUDE_LIST=("${INCLUDE_LIST[@]}")
+export EXCLUDE_LIST=("${EXCLUDE_LIST[@]}")
 set -e
 ensureYq
 writeMetalLBConfig '${metal_lb_ip}' '/etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml'
@@ -1327,4 +1499,132 @@ function cloneGenestackOnJumpHost() {
         sudo git submodule update --init --recursive
     popd
 EOC
+}
+
+function cinderVolumeSetup() {
+    local net_name="${LAB_NAME_PREFIX}-net"
+
+    # capture IPs (not VIP) for each server
+    IP_0=$(openstack server show ${LAB_NAME_PREFIX}-0 -f json | jq -r '.addresses' | jq --arg net_name "${net_name}" -r '.[$net_name][0]')
+    IP_1=$(openstack server show ${LAB_NAME_PREFIX}-1 -f json | jq -r '.addresses' | jq --arg net_name "${net_name}" -r '.[$net_name][0]')
+    IP_2=$(openstack server show ${LAB_NAME_PREFIX}-2 -f json | jq -r '.addresses' | jq --arg net_name "${net_name}" -r '.[$net_name][0]')
+    JUMP_HOST_IP=$(openstack server show ${LAB_NAME_PREFIX}-0 -f json | jq -r '.addresses' | jq --arg net_name "${net_name}" -r '.[$net_name][1]')
+
+    # VM specific setup
+    echo "[VM] Updating ~/.ssh/config"
+    cat >> ~/.ssh/config << SSH_CONFIG_EOF
+Host *
+    User ubuntu
+    ForwardAgent yes
+    ForwardX11Trusted yes
+    AddKeysToAgent yes
+    IdentityFile /home/ubuntu/.ssh/${LAB_NAME_PREFIX}-key.pem
+    ProxyCommand none
+    TCPKeepAlive yes
+    ServerAliveInterval 300
+    Ciphers aes128-ctr,aes192-ctr,aes256-ctr,aes128-cbc,3des-cbc
+    MACs hmac-sha2-512,hmac-sha2-256,hmac-md5,hmac-sha1,umac-64@openssh.com
+    KexAlgorithms +diffie-hellman-group1-sha1
+SSH_CONFIG_EOF
+
+    echo "[VM] Removing ~/.ssh/known_hosts"
+    rm -f ~/.ssh/known_hosts
+
+    # Jump Host setup
+    PEM_CONTENT=$(cat ~/.ssh/${LAB_NAME_PREFIX}-key.pem)
+    PUB_CONTENT=$(cat ~/.ssh/${LAB_NAME_PREFIX}-key.pub)
+
+    {
+        cat << JUMP_HOST_EOF
+source /opt/genestack/scripts/genestack.rc
+
+echo "[JUMP_HOST] Setup for admin operations"
+sudo mkdir -p ~/.config/openstack
+sudo cp /root/.config/openstack/clouds.yaml ~/.config/openstack/
+sudo chown -R $(id -u):$(id -g) ~/.config
+
+echo "[JUMP_HOST] Updating ~/.ssh/config"
+cat >> ~/.ssh/config << SSH_CONFIG_EOF
+Host *
+    User ubuntu
+    ForwardAgent yes
+    ForwardX11Trusted yes
+    AddKeysToAgent yes
+    IdentityFile /home/ubuntu/.ssh/${LAB_NAME_PREFIX}-key.pem
+    ProxyCommand none
+    TCPKeepAlive yes
+    ServerAliveInterval 300
+    Ciphers aes128-ctr,aes192-ctr,aes256-ctr,aes128-cbc,3des-cbc
+    MACs hmac-sha2-512,hmac-sha2-256,hmac-md5,hmac-sha1,umac-64@openssh.com
+    KexAlgorithms +diffie-hellman-group1-sha1
+SSH_CONFIG_EOF
+
+echo "[JUMP_HOST] Creating ssh key"
+echo "${PEM_CONTENT}" >> ~/.ssh/${LAB_NAME_PREFIX}-key.pem
+echo "${PUB_CONTENT}" >> ~/.ssh/${LAB_NAME_PREFIX}-key.pub
+chmod 600 ~/.ssh/${LAB_NAME_PREFIX}-key.pem
+chmod 644 ~/.ssh/${LAB_NAME_PREFIX}-key.pub
+
+echo "[JUMP_HOST] Updating /etc/hosts"
+sudo sh -c 'cat >> /etc/hosts' << ETC_HOSTS_EOF
+${IP_0} ${LAB_NAME_PREFIX}-0.cluster.local ${LAB_NAME_PREFIX}-0
+${IP_1} ${LAB_NAME_PREFIX}-1.cluster.local ${LAB_NAME_PREFIX}-1
+${IP_2} ${LAB_NAME_PREFIX}-2.cluster.local ${LAB_NAME_PREFIX}-2
+ETC_HOSTS_EOF
+
+echo "[JUMP_HOST] Creating PV/VG"
+sudo pvcreate /dev/vdd
+sudo vgcreate cinder-volumes-1 /dev/vdd
+JUMP_HOST_EOF
+    } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t "ubuntu@${JUMP_HOST_IP}" bash
+
+    # Secondary Kube node setup
+    {
+        cat << NODE_1_EOF
+echo "[Node 1] Creating PV/VG"
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ubuntu@${LAB_NAME_PREFIX}-1 "sudo pvcreate /dev/vdd && sudo vgcreate cinder-volumes-1 /dev/vdd"
+NODE_1_EOF
+    } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t "ubuntu@${JUMP_HOST_IP}" bash
+    {
+        cat << NODE_2_EOF
+echo "[Node 2] Creating PV/VG"
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ubuntu@${LAB_NAME_PREFIX}-2 "sudo pvcreate /dev/vdd && sudo vgcreate cinder-volumes-1 /dev/vdd"
+NODE_2_EOF
+    } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t "ubuntu@${JUMP_HOST_IP}" bash
+
+    # Ansible playbook time
+    {
+        cat << ANSIBLE_EOF
+source /opt/genestack/scripts/genestack.rc
+
+echo "[JUMP_HOST] Running cinder install script"
+sudo /opt/genestack/bin/install-cinder.sh
+
+echo "[JUMP_HOST] Running cinder volumes playbook (2 times in case of failed steps in first run)"
+ansible-playbook -i /etc/genestack/inventory/inventory.yaml \
+    -e "cinder_storage_network_interface=ansible_enp3s0 cinder_storage_network_interface_secondary=ansible_enp3s0" \
+    /opt/genestack/ansible/playbooks/deploy-cinder-volumes-reference.yaml -f15
+ansible-playbook -i /etc/genestack/inventory/inventory.yaml \
+    -e "cinder_storage_network_interface=ansible_enp3s0 cinder_storage_network_interface_secondary=ansible_enp3s0" \
+    /opt/genestack/ansible/playbooks/deploy-cinder-volumes-reference.yaml -f15
+
+echo "[JUMP_HOST] Creating volume type and qos"
+openstack volume type create \
+    --description 'Standard with LUKS encryption' \
+    --encryption-provider luks \
+    --encryption-cipher aes-xts-plain64 \
+    --encryption-key-size 256 \
+    --encryption-control-location front-end \
+    --property volume_backend_name=LVM_iSCSI \
+    --property provisioning:max_vol_size='199' \
+    --property provisioning:min_vol_size='1' \
+    Standard
+openstack volume qos create \
+    --property read_iops_sec_per_gb='20' \
+    --property write_iops_sec_per_gb='20' \
+    Standard-Block
+openstack volume qos associate Standard-Block Standard
+openstack volume type set --private __DEFAULT__
+ANSIBLE_EOF
+    } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t "ubuntu@${JUMP_HOST_IP}" bash
 }

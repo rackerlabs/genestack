@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added Openstack Trove support.
+    Migrated Trove to use the official upstream OpenStack-Helm chart now that
+    it has been merged and is available in the upstream repository.

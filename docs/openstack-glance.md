@@ -73,8 +73,9 @@ kubectl --namespace openstack exec -ti openstack-admin-client -- openstack image
 !!! genestack "External Image Store"
 
     If glance will be deployed with an external swift storage backend, review the
-    [OpenStack Glance Swift Store](openstack-glance-swift-store.md) operator documentation
-    for additional steps and setup.
+    [OpenStack Glance Swift Store](openstack-glance-swift-store.md) or the
+    [OpenStack Glance External Ceph Store](openstack-glance-ceph-store.md) operator
+    documentation for additional steps and setup.
 
 ## Demo
 

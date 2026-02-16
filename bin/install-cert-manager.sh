@@ -6,12 +6,13 @@
 # shellcheck disable=SC2124,SC2145,SC2294
 
 # Service
-SERVICE_NAME_DEFAULT="argocd"
-SERVICE_NAMESPACE="argocd"
+SERVICE_NAME_DEFAULT="cert-manager"
+SERVICE_NAMESPACE="cert-manager"
 
 # Helm
-HELM_REPO_NAME_DEFAULT="bitnami"
-HELM_REPO_URL_DEFAULT="https://charts.bitnami.com/bitnami"
+HELM_REPO_NAME_DEFAULT="cert-manager"
+HELM_REPO_URL_DEFAULT="https://charts.jetstack.io"
+
 
 # Base directories provided by the environment
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
@@ -20,6 +21,9 @@ GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 # Define service-specific override directories based on the framework
 SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME_DEFAULT}"
 SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME_DEFAULT}"
+
+# Define the Global Overrides directory used in the original script
+GLOBAL_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR}/helm-configs/global_overrides"
 
 # Read the desired chart version from VERSION_FILE
 VERSION_FILE="${GENESTACK_OVERRIDES_DIR}/helm-chart-versions.yaml"
@@ -121,8 +125,11 @@ helm_command=(
     "${set_args[@]}"
 
     # Post-renderer configuration
+    # NOTE: Cert-Manager doesn't typically require a post-renderer, but we keep it
+    # for template compliance.
     --post-renderer "$GENESTACK_OVERRIDES_DIR/kustomize/kustomize.sh"
-    --post-renderer-args "$SERVICE_NAME/$TARGET"
+    --post-renderer-args "$SERVICE_NAME_DEFAULT/overlay"
+
     "$@"
 )
 

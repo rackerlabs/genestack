@@ -10,3 +10,11 @@ resources:
   - hpa-manila-scheduler.yaml
   - hpa-manila-share.yaml
   - manila-rabbitmq-queue-policy.yaml
+
+patches:
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: manila-share
+    path: patch-manila-share-anti-affinity.yaml

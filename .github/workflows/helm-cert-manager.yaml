@@ -1,0 +1,42 @@
+---
+name: Helm GitHub Actions for cert-manager
+
+on:
+  pull_request:
+    paths:
+      - base-kustomize/cert-manager/**
+      - base-helm-configs/cert-manager/**
+      - .github/workflows/helm-cert-manager.yaml
+jobs:
+  helm:
+    strategy:
+      matrix:
+        overlays:
+          - base
+    name: Helm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: azure/setup-helm@v3
+        with:
+          version: v3.14.3
+          token: ${{ secrets.GITHUB_TOKEN }}
+        id: helm
+      - name: Add jetstack repo to helm
+        run: |
+          ${{ steps.helm.outputs.helm-path }} repo add cert-manager https://charts.jetstack.io
+          ${{ steps.helm.outputs.helm-path }} repo update
+      - name: Run Helm Template
+        run: |
+          ${{ steps.helm.outputs.helm-path }} template cert-manager cert-manager/cert-manager \
+          --create-namespace \
+          --namespace=cert-manager \
+          -f ${{ github.workspace }}//base-helm-configs/cert-manager/cert-manager-helm-overrides.yaml \
+          --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
+          --post-renderer-args cert-manager/${{ matrix.overlays }} > /tmp/rendered.yaml
+      - name: Return helm Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-cert-manager-artifact-${{ matrix.overlays }}
+          path: /tmp/rendered.yaml

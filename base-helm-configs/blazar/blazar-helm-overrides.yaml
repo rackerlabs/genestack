@@ -53,6 +53,8 @@ conf:
   blazar:
     DEFAULT:
       host_href: "http://blazar-api.openstack.svc.cluster.local:1234"
+      enable_notification_events: true
+      notification_format: versioned
     database:
       connection_debug: 0
       connection_recycle_time: 600
@@ -82,6 +84,12 @@ conf:
       heartbeat_timeout_threshold: 60
       heartbeat_in_pthread: true
       kombu_reconnect_delay: 0.5
+    oslo_messaging_notifications:
+      driver: messagingv2
+      topics:
+        - notifications
+    manager:
+      plugins: physical.host.plugin,flavor.instance.plugin,virtual.floatingip.plugin # Overriding the plugins to remove "virtual.instance.plugin" for disabling virtual instance based reservation.
   logging:
     logger_root:
       handlers:

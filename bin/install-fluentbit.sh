@@ -2,19 +2,24 @@
 # Description: Fetches the version for SERVICE_NAME_DEFAULT and executes helm upgrade.
 # shellcheck disable=SC2124,SC2145,SC2294
 
-# Service Configuration
-SERVICE_NAME_DEFAULT="fluentbit"
+# Service
+SERVICE_NAME="fluentbit"
+SERVICE_NAME_DEFAULT="fluent-bit"
 SERVICE_NAMESPACE="fluentbit"
 
-# Helm Defaults
-HELM_REPO_NAME_DEFAULT="openstack-helm"
-HELM_REPO_URL_DEFAULT="https://tarballs.opendev.org/openstack/openstack-helm"
+# Helm
+HELM_REPO_NAME_DEFAULT="fluent"
+HELM_REPO_URL_DEFAULT="https://fluent.github.io/helm-charts"
 
 # Directory Paths
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
 GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
-SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME_DEFAULT}"
-SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME_DEFAULT}"
+
+# Define service-specific override directories based on the framework
+SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME}"
+SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME}"
+
+# Define the Global Overrides directory used in the original script
 GLOBAL_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR}/helm-configs/global_overrides"
 
 # Import Shared Library
@@ -58,8 +63,8 @@ for yaml_file in "${SERVICE_CUSTOM_OVERRIDES}"/*.yaml; do
     if [ -f "$yaml_file" ]; then
         HELM_REPO_URL=$(yq eval '.chart.repo_url // ""' "$yaml_file")
         HELM_REPO_NAME=$(yq eval '.chart.repo_name // ""' "$yaml_file")
-        SERVICE_NAME=$(yq eval '.chart.service_name // ""' "$yaml_file")
-        break
+        #SERVICE_NAME=$(yq eval '.chart.service_name // ""' "$yaml_file")
+        break  # use the first match and stop
     fi
 done
 
@@ -69,10 +74,13 @@ done
 
 # Helm Repository Setup
 if [[ "$HELM_REPO_URL" == oci://* ]]; then
-    HELM_CHART_PATH="$HELM_REPO_URL/$HELM_REPO_NAME/$SERVICE_NAME"
+    # OCI registry path
+    HELM_CHART_PATH="$HELM_REPO_URL/$HELM_REPO_NAME/$SERVICE_NAME_DEFAULT"
 else
-    update_helm_repo "$HELM_REPO_NAME" "$HELM_REPO_URL"
-    HELM_CHART_PATH="$HELM_REPO_NAME/$SERVICE_NAME"
+    # --- Helm Repository and Execution ---
+    helm repo add "$HELM_REPO_NAME" "$HELM_REPO_URL"   # uncomment if needed
+    helm repo update
+    HELM_CHART_PATH="$HELM_REPO_NAME/$SERVICE_NAME_DEFAULT"
 fi
 
 # Overrides Collection
@@ -85,7 +93,7 @@ set_args=()
 
 # Command Execution
 helm_command=(
-    helm upgrade --install "$SERVICE_NAME_DEFAULT" "$HELM_CHART_PATH"
+    helm upgrade --install "$SERVICE_NAME" "$HELM_CHART_PATH"
     --version "${SERVICE_VERSION}"
     --namespace="$SERVICE_NAMESPACE"
     --timeout "${HELM_TIMEOUT:-$HELM_TIMEOUT_DEFAULT}"
@@ -95,7 +103,9 @@ helm_command=(
     "${overrides_args[@]}"
     "${set_args[@]}"
     --post-renderer "$GENESTACK_OVERRIDES_DIR/kustomize/kustomize.sh"
-    --post-renderer-args "$SERVICE_NAME_DEFAULT/overlay"
+    --post-renderer-args "$SERVICE_NAME/overlay"
+
+    "$@"
 )
 
 echo "Executing Helm command:"
