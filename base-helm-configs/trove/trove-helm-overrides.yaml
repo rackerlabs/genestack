@@ -81,6 +81,7 @@ conf:
       network_driver: trove.network.neutron.NeutronDriver
       taskmanager_manager: trove.taskmanager.manager.Manager
       trove_api_workers: 2
+      trove_security_groups_support: false
       trove_volume_support: true
       volume_support: true
       volume_fstype: ext4
@@ -95,6 +96,7 @@ conf:
       # nova_compute_url: null
       nova_compute_service_type: compute
       nova_compute_endpoint_type: internalURL
+      nova_keypair: trove-access-keypair
       # neutron_url: null
       neutron_service_type: network
       neutron_endpoint_type: internalURL

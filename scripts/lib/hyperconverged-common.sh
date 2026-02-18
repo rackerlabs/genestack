@@ -527,6 +527,8 @@ conf:
   trove:
     DEFAULT:
       trove_api_workers: 1
+      management_networks:
+      management_security_groups:
     oslo_messaging_notifications:
       driver: noop
   trove_api_uwsgi:
