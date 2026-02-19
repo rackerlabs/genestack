@@ -104,6 +104,7 @@ EOF
     prompt_component "ceilometer" "Ceilometer (Telemetry)"
     prompt_component "gnocchi" "Gnocchi (Time Series Database)"
     prompt_component "cloudkitty" "Cloudkitty (Rating and Chargeback)"
+    prompt_component "horizon" "Horizon (Classic Dashboard)"
     prompt_component "skyline" "Skyline (Dashboard)"
     prompt_component "freezer" "Freezer (Backup Restore)"
     prompt_component "zaqar" "Zaqar (Messaging)"
@@ -115,6 +116,7 @@ fi
 # Run selected services in parallel
 is_component_enabled "glance" && runTrackErator /opt/genestack/bin/install-glance.sh
 is_component_enabled "heat" && runTrackErator /opt/genestack/bin/install-heat.sh
+is_component_enabled "horizon" && runTrackErator /opt/genestack/bin/install-horizon.sh
 is_component_enabled "barbican" && runTrackErator /opt/genestack/bin/install-barbican.sh
 is_component_enabled "blazar" && runTrackErator /opt/genestack/bin/install-blazar.sh
 is_component_enabled "cinder" && runTrackErator /opt/genestack/bin/install-cinder.sh

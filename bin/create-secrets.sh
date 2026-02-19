@@ -498,7 +498,7 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: horizon-secrete-key
+  name: horizon-secret-key
   namespace: openstack
 type: Opaque
 data:
