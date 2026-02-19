@@ -4,25 +4,7 @@ OpenStack Skyline is the next-generation web-based dashboard designed to provide
 
 ## Create secrets
 
-Skyline secret can be generated using the `create-skyline-secrets.sh` script located in `/opt/genestack/bin`. This script integrates with the `create-secrets.sh` workflow and handles all secret generation.
-
-``` shell
-# Generate Skyline secrets with default region (RegionOne)
-/opt/genestack/bin/create-skyline-secrets.sh
-```
-
-The script will:
-
-- Generate secure random passwords for the Skyline service
-- Create `/etc/genestack/skylinesecrets.yaml` with the Skyline-specific secret
-- Append the secret to `/etc/genestack/kubesecrets.yaml` for integration with the main workflow
-- Perform safety checks to prevent duplicate secret generation
-- Ensure the `kubesecrets.yaml` file exists before proceeding
-
-!!! warning "Prerequisites"
-
-    The `create-skyline-secrets.sh` script requires that `/etc/genestack/kubesecrets.yaml` already exists. Run the `create-secrets.sh` script first if you haven't already.
-
+!!! note "Secret generation has been moved to the install-skyline.sh script"
 
 ### Enable Federation (use Keystone public endpoint)
 

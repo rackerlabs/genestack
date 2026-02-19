@@ -1,88 +1,24 @@
 #!/usr/bin/env bash
 set -e
 
-# Track the PIDs of the services deploying in parallel
-declare -A pids
-declare -A pid_commands
+# Import Orchestration Framework
+LIB_PATH="/opt/genestack/scripts/common-functions.sh"
+if [[ -f "$LIB_PATH" ]]; then
+    source "$LIB_PATH"
+else
+    echo "Error: Shared library not found at $LIB_PATH" >&2
+    exit 1
+fi
 
-function runTrackErator() {
-    "${1}" &
-    local pid=$!
-    pids[$pid]=1
-    pid_commands[$pid]="${1}"
-    echo "Started ${1} with PID ${pid}"
-}
+# Parse global flags
+ROTATE_FLAG=""
+[[ "$*" == *"--rotate-secrets"* ]] && ROTATE_FLAG="--rotate-secret"
 
-function waitErator() {
-    local start_time
-    start_time=$(date +%s)
-    local timeout_seconds=$((30 * 60))  # 30 minutes
-    
-    while [ ${#pids[@]} -gt 0 ]; do
-        # Check for timeout
-        local current_time
-        current_time=$(date +%s)
-        local elapsed=$((current_time - start_time))
-        if [ $elapsed -ge $timeout_seconds ]; then
-            echo "==== PROCESS TIMEOUT ====================================="
-            echo "Timeout after 30 minutes. Remaining processes:"
-            for pid in "${!pids[@]}"; do
-                echo "  PID ${pid}: ${pid_commands[$pid]}"
-                kill ${pid} 2>/dev/null || true
-            done
-            echo "==== PROCESS TIMEOUT ====================================="
-            exit 1
-        fi
-        
-        for pid in "${!pids[@]}"; do
-            # Check if process is still running
-            if ! kill -0 ${pid} 2>/dev/null; then
-                # Process finished, check exit status
-                # Use || to prevent set -e from killing the script before we can log the failure
-                wait ${pid} || local exit_code=$?
-                exit_code=${exit_code:-0}
-                
-                if [ $exit_code -ne 0 ]; then
-                    echo "==== PROCESS FAILED ====================================="
-                    echo "Command: ${pid_commands[$pid]}"
-                    echo "PID: ${pid}"
-                    echo "Exit Code: ${exit_code}"
-                    echo "==== PROCESS FAILED ====================================="
-                    exit 1
-                else
-                    echo "Successfully completed ${pid_commands[$pid]} (PID ${pid})"
-                fi
-                unset "pids[$pid]"
-            fi
-        done
-        sleep 1
-    done
-    
-    echo "All processes completed successfully."
-}
-
-# Function to prompt user for component installation
-prompt_component() {
-    local component=$1
-    local prompt=$2
-    read -p "Install ${prompt}? (y/n): " answer
-    if [[ "$answer" =~ ^[Yy]$ ]]; then
-        echo "  ${component}: true" >> /etc/genestack/openstack-components.yaml
-    else
-        echo "  ${component}: false" >> /etc/genestack/openstack-components.yaml
-    fi
-}
-
-# Function to check if a component is set to true in the YAML file
-is_component_enabled() {
-    local component=$1
-    grep -qi "^[[:space:]]*${component}:[[:space:]]*true" "$CONFIG_FILE"
-}
-
-# Check for YAML file and create if it doesn't exist
-CONFIG_FILE="/etc/genestack/openstack-components.yaml"
+# Check for component config and create if it doesn't exist
+CONFIG_FILE="${GENESTACK_OVERRIDES_DIR}/openstack-components.yaml"
 if [ ! -f "$CONFIG_FILE" ]; then
-    echo "Configuration file $CONFIG_FILE not found. Creating it..."
+    echo "Configuration file $CONFIG_FILE not found. Initializing..."
+    mkdir -p "$(dirname "$CONFIG_FILE")"
     cat > "$CONFIG_FILE" << EOF
 components:
   keystone: true
@@ -109,8 +45,40 @@ EOF
     prompt_component "zaqar" "Zaqar (Messaging)"
 fi
 
-# Block on Keystone
-/opt/genestack/bin/install-keystone.sh
+# --- PHASE 1: KEYSTONE ---
+# Everything depends on Keystone; it must be ready first.
+echo "Deploying Keystone Identity Service..."
+/opt/genestack/bin/install-keystone.sh $ROTATE_FLAG
+
+# --- PHASE 2: PRE-SEED SHARED SECRETS ---
+# We generate these now so the parallel processes don't race to create the same Kubernetes Secret.
+echo "Pre-seeding infrastructure secrets..."
+IS_ROTATE=$([[ -n "$ROTATE_FLAG" ]] && echo "true" || echo "false")
+
+get_or_create_secret "openstack" "mariadb" "root-password" 32 "$IS_ROTATE"
+get_or_create_secret "openstack" "rabbitmq-default-user" "password" 32 "false"
+get_or_create_secret "openstack" "os-memcached" "memcache_secret_key" 64 "false"
+
+# --- PHASE 3: PARALLEL BURST ---
+echo "Starting parallel deployment of enabled services..."
+
+is_enabled "glance"     && run_parallel "/opt/genestack/bin/install-glance.sh $ROTATE_FLAG"
+is_enabled "heat"       && run_parallel "/opt/genestack/bin/install-heat.sh $ROTATE_FLAG"
+is_enabled "barbican"   && run_parallel "/opt/genestack/bin/install-barbican.sh $ROTATE_FLAG"
+is_enabled "blazar"     && run_parallel "/opt/genestack/bin/install-blazar.sh $ROTATE_FLAG"
+is_enabled "cinder"     && run_parallel "/opt/genestack/bin/install-cinder.sh $ROTATE_FLAG"
+is_enabled "placement"  && run_parallel "/opt/genestack/bin/install-placement.sh $ROTATE_FLAG"
+is_enabled "nova"       && run_parallel "/opt/genestack/bin/install-nova.sh $ROTATE_FLAG"
+is_enabled "neutron"    && run_parallel "/opt/genestack/bin/install-neutron.sh $ROTATE_FLAG"
+is_enabled "magnum"     && run_parallel "/opt/genestack/bin/install-magnum.sh $ROTATE_FLAG"
+is_enabled "octavia"    && run_parallel "/opt/genestack/bin/install-octavia.sh $ROTATE_FLAG"
+is_enabled "masakari"   && run_parallel "/opt/genestack/bin/install-masakari.sh $ROTATE_FLAG"
+is_enabled "manila"     && run_parallel "/opt/genestack/bin/install-manila.sh $ROTATE_FLAG"
+is_enabled "ceilometer" && run_parallel "/opt/genestack/bin/install-ceilometer.sh $ROTATE_FLAG"
+is_enabled "gnocchi"    && run_parallel "/opt/genestack/bin/install-gnocchi.sh $ROTATE_FLAG"
+is_enabled "cloudkitty" && run_parallel "/opt/genestack/bin/install-cloudkitty.sh $ROTATE_FLAG"
+is_enabled "freezer"    && run_parallel "/opt/genestack/bin/install-freezer.sh $ROTATE_FLAG"
+is_enabled "zaqar"      && run_parallel "/opt/genestack/bin/install-zaqar.sh $ROTATE_FLAG"
 
 # Run selected services in parallel
 is_component_enabled "glance" && runTrackErator /opt/genestack/bin/install-glance.sh
@@ -133,7 +101,8 @@ is_component_enabled "cloudkitty" && runTrackErator /opt/genestack/bin/install-c
 is_component_enabled "freezer" && runTrackErator /opt/genestack/bin/install-freezer.sh
 is_component_enabled "zaqar" && runTrackErator /opt/genestack/bin/install-zaqar.sh
 
-waitErator
+# --- PHASE 4: DASHBOARD ---
+# Skyline is usually installed last once APIs are responsive.
+is_enabled "skyline" && /opt/genestack/bin/install-skyline.sh $ROTATE_FLAG
 
-# Install skyline after all services are up
-is_component_enabled "skyline" && /opt/genestack/bin/install-skyline.sh
+echo "==== OpenStack Deployment Complete ===="

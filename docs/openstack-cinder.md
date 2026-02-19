@@ -6,27 +6,7 @@ OpenStack Cinder is a core component of the OpenStack cloud computing platform, 
 
 ## Create secrets
 
-!!! note "Information about the secretes used"
-
-    Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
-
-    ??? example "Example secret generation"
-
-        ``` shell
-        kubectl --namespace openstack \
-                create secret generic cinder-rabbitmq-password \
-                --type Opaque \
-                --from-literal=username="cinder" \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
-        kubectl --namespace openstack \
-                create secret generic cinder-db-password \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        kubectl --namespace openstack \
-                create secret generic cinder-admin \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        ```
+!!! note "Secret generation has been moved to the install-cinder.sh script"
 
 ## Run the package deployment
 
