@@ -2,7 +2,7 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: custom-prometheus-gateway-route
+  name: prometheus-gateway-route
   namespace: prometheus
 spec:
   hostnames:
@@ -10,7 +10,7 @@ spec:
   parentRefs:
     - name: flex-gateway
       namespace: envoy-gateway
-      sectionName: http
+      sectionName: prometheus-https
   rules:
     - backendRefs:
         - name: kube-prometheus-stack-prometheus

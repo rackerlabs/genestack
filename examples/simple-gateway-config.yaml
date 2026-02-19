@@ -1,0 +1,58 @@
+---
+# Simple Gateway Configuration
+# Basic setup with external gateway using Let's Encrypt and internal gateway for monitoring
+
+gateways:
+  # Main external gateway for OpenStack services
+  - name: external-gateway
+    namespace: external-gateway
+    domain: cloud.example.com
+    type:
+      - external
+    metallb_pools:
+      external: gateway-api-external
+    issuer:
+      type: letsencrypt
+      email: admin@example.com
+      challenge: http01
+    routes:
+      - keystone
+      - nova
+      - neutron
+      - cinder
+      - glance
+      - heat
+      - octavia
+      - placement
+
+  # Internal gateway for monitoring and admin tools
+  - name: internal-gateway
+    namespace: internal-gateway
+    domain: internal.cluster.local
+    type:
+      - internal
+    metallb_pools:
+      internal: gateway-api-internal
+    issuer:
+      type: selfsigned
+    routes:
+      - grafana
+      - prometheus
+
+  # Hybrid gateway example - accessible both externally and internally
+  - name: admin-gateway
+    namespace: admin-gateway
+    domain: admin.example.com
+    type:
+      - external
+      - internal
+    metallb_pools:
+      external: gateway-api-external
+      internal: gateway-api-internal
+    issuer:
+      type: letsencrypt
+      email: admin@example.com
+      challenge: http01
+    routes:
+      - keystone
+      - grafana

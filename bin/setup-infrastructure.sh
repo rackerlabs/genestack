@@ -4,15 +4,28 @@ set -e
 
 set -o pipefail
 
-if [ -z "${ACME_EMAIL}" ]; then
-  read -rp "Enter a valid email address for use with ACME, press enter to skip: " ACME_EMAIL
-  export ACME_EMAIL="${ACME_EMAIL:-}"
-fi
+# Gateway configuration - supports both legacy mode and config file mode
+GATEWAY_CONFIG_FILE="${GATEWAY_CONFIG_FILE:-}"
 
-if [ -z "${GATEWAY_DOMAIN}" ]; then
-  echo "The domain name for the gateway is required, if you do not have a domain name press enter to use the default"
-  read -rp "Enter the domain name for the gateway [cluster.local]: " GATEWAY_DOMAIN
-  export GATEWAY_DOMAIN="${GATEWAY_DOMAIN:-cluster.local}"
+if [ -z "${GATEWAY_CONFIG_FILE}" ]; then
+  # Legacy mode - prompt for email and domain
+  if [ -z "${ACME_EMAIL}" ]; then
+    read -rp "Enter a valid email address for use with ACME, press enter to skip: " ACME_EMAIL
+    export ACME_EMAIL="${ACME_EMAIL:-}"
+  fi
+
+  if [ -z "${GATEWAY_DOMAIN}" ]; then
+    echo "The domain name for the gateway is required, if you do not have a domain name press enter to use the default"
+    read -rp "Enter the domain name for the gateway [cluster.local]: " GATEWAY_DOMAIN
+    export GATEWAY_DOMAIN="${GATEWAY_DOMAIN:-cluster.local}"
+  fi
+else
+  # Config file mode - check if file exists
+  if [ ! -f "${GATEWAY_CONFIG_FILE}" ]; then
+    echo "Error: Gateway configuration file not found: ${GATEWAY_CONFIG_FILE}"
+    exit 1
+  fi
+  echo "Using gateway configuration file: ${GATEWAY_CONFIG_FILE}"
 fi
 
 if [ "${HYPERCONVERGED:-false}" = "true" ]; then
@@ -141,7 +154,15 @@ kubectl apply -k /etc/genestack/kustomize/openstack/base
 /opt/genestack/bin/install-envoy-gateway.sh
 echo "Waiting for the envoyproxy-gateway to be available"
 kubectl -n envoyproxy-gateway-system wait --timeout=5m deployments.apps/envoy-gateway --for=condition=available
-/opt/genestack/bin/setup-envoy-gateway.sh -e ${ACME_EMAIL} -d ${GATEWAY_DOMAIN}
+
+# Setup gateway - supports both legacy and config file modes
+if [ -n "${GATEWAY_CONFIG_FILE}" ]; then
+  # Config file mode
+  /opt/genestack/bin/setup-envoy-gateway.sh --config "${GATEWAY_CONFIG_FILE}"
+else
+  # Legacy mode
+  /opt/genestack/bin/setup-envoy-gateway.sh -e ${ACME_EMAIL} -d ${GATEWAY_DOMAIN}
+fi
 
 # Run check of cert-manager to be in "Running/Ready" state
 echo "Waiting for the cert-manager to be available"

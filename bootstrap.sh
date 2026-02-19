@@ -68,6 +68,13 @@ mkdir -p ~/.venvs
 BASEDIR="$(dirname "$0")"
 cd "${BASEDIR}" || error "Could not change to ${BASEDIR}"
 
+# Initialize git submodules if not already initialized
+if [ -d ".git" ]; then
+    echo "Initializing git submodules..."
+    git config --global --add safe.directory "$(pwd)"
+    git submodule update --init --recursive
+fi
+
 source scripts/lib/functions.sh
 
 success "Environment variables:"
@@ -103,6 +110,14 @@ if [ $? -gt 1 ]; then
   error "Check for ansible errors at ~/genestack-base-package-install.log"
 else
   success "Local base OS packages installed."
+fi
+
+# Install yq
+install_yq
+if [ $? -ne 0 ]; then
+  error "Failed to install yq"
+else
+  success "yq installed successfully."
 fi
 
 # Set script to exit on any non-zero error code

@@ -93,6 +93,21 @@ wait_and_install_packages() {
     echo "Package installation complete."
 }
 
+# Function to install yq if not already installed
+install_yq() {
+    if ! yq --version 2> /dev/null; then
+        echo "yq is not installed. Attempting to install yq"
+        export VERSION=v4.2.0
+        export BINARY=yq_linux_amd64
+        wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -q -O - | tar xz && sudo mv ${BINARY} /usr/local/bin/yq
+        if ! yq --version 2> /dev/null; then
+            echo "yq failed to install"
+            return 1
+        fi
+    fi
+    return 0
+}
+
 function success {
   echo -e "\n\n\x1B[32m>> $1\x1B[39m"
 }
