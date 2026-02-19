@@ -1232,7 +1232,7 @@ function installK9s() {
     # Install k9s locally
     echo "Installing k9s..."
     if [ ! -e "/usr/bin/k9s" ]; then
-        sudo wget -q https://github.com/derailed/k9s/releases/latest/download/k9s_linux_amd64.deb -O /tmp/k9s_linux_amd64.deb
+        sudo curl -L -q https://github.com/derailed/k9s/releases/latest/download/k9s_linux_amd64.deb -o /tmp/k9s_linux_amd64.deb
         sudo apt install -y /tmp/k9s_linux_amd64.deb
         sudo rm /tmp/k9s_linux_amd64.deb
     fi

@@ -144,7 +144,7 @@ function installYq() {
         SUDO_CMD="/usr/bin/sudo -n "
     fi
 
-    wget "https://github.com/mikefarah/yq/releases/download/${version}/${binary}.tar.gz" -q -O - | tar xz
+    curl -L "https://github.com/mikefarah/yq/releases/download/${version}/${binary}.tar.gz" -q -o - | tar xz
     ${SUDO_CMD} mv "${binary}" /usr/local/bin/yq
     ${SUDO_CMD} chmod +x /usr/local/bin/yq
 }

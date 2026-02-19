@@ -60,7 +60,6 @@ _host_distro_packages:
   - systemd-timesyncd
   - time
   - vlan
-  - wget
 
 _hosts_package_list:
   - name: ubuntu-cloud-keyring
