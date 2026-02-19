@@ -116,6 +116,9 @@ conf:
     DEFAULT:
       auth_strategy: keystone
       log_config_append: /etc/zaqar/logging.conf
+    cache:
+      enabled: true
+      backend: dogpile.cache.memcached
     drivers:
       transport: wsgi
       message_store: redis
@@ -128,8 +131,6 @@ conf:
       auth_version: v3
       memcache_security_strategy: ENCRYPT
       service_type: messaging
-    cache:
-      backend: dogpile.cache.memory
     drivers:message_store:redis:
       uri: redis://redis-replication-master.redis-systems.svc.cluster.local:6379
     drivers:transport:wsgi:

@@ -100,6 +100,9 @@ conf:
       vif_plugging_timeout: 300
       cross_az_attach: true
       network_allocate_retries: 3
+    cache:
+      enabled: true
+      backend: dogpile.cache.memcached
     api:
       vendordata_providers:
         - 'StaticJSON'

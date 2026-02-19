@@ -55,6 +55,9 @@ conf:
       host_href: "http://blazar-api.openstack.svc.cluster.local:1234"
       enable_notification_events: true
       notification_format: versioned
+    cache:
+      enabled: true
+      backend: dogpile.cache.memcached
     database:
       connection_debug: 0
       connection_recycle_time: 600
