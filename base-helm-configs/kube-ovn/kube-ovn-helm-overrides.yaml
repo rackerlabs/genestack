@@ -59,6 +59,7 @@ networking:
   ENABLE_COMPACT: true
 
 func:
+  ENABLE_OVN_IPSEC: true
   ENABLE_LB: true
   ENABLE_NP: true
   ENABLE_EXTERNAL_VPC: true
@@ -75,7 +76,6 @@ func:
   ENABLE_TPROXY: false
   ENABLE_IC: false
   ENABLE_NAT_GW: true
-  ENABLE_OVN_IPSEC: false
   ENABLE_ANP: false
   SET_VXLAN_TX_OFF: false
   OVSDB_CON_TIMEOUT: 5
