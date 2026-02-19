@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Added Designate is the DNS-as-a-Service (DNSaaS) component of Genestack.
+    It provides API-driven management of DNS zones and records, so tenants
+    and services can automatically create and update DNS entries as infrastructure changes.
+issues:
+  - |
+    The designate service cleaner is not functional at the moment as of Feb 2026, possibly fixed in 2026.2.
+    Added custom image in base helm overrides file to fix.

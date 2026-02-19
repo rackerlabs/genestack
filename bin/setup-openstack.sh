@@ -92,6 +92,7 @@ EOF
     prompt_component "barbican" "Barbican (Key Manager)"
     prompt_component "blazar" "Blazar (Reservation)"
     prompt_component "cinder" "Cinder (Block Storage)"
+    prompt_component "designate" "Designate (DNS)"
     prompt_component "trove" "Trove (Databases)"
     prompt_component "placement" "Placement"
     prompt_component "nova" "Nova (Compute)"
@@ -117,6 +118,7 @@ is_component_enabled "heat" && runTrackErator /opt/genestack/bin/install-heat.sh
 is_component_enabled "barbican" && runTrackErator /opt/genestack/bin/install-barbican.sh
 is_component_enabled "blazar" && runTrackErator /opt/genestack/bin/install-blazar.sh
 is_component_enabled "cinder" && runTrackErator /opt/genestack/bin/install-cinder.sh
+is_component_enabled "designate" && runTrackErator /opt/genestack/bin/install-designate.sh
 is_component_enabled "trove" && runTrackErator /opt/genestack/bin/install-trove.sh
 is_component_enabled "placement" && runTrackErator /opt/genestack/bin/install-placement.sh
 is_component_enabled "nova" && runTrackErator /opt/genestack/bin/install-nova.sh
