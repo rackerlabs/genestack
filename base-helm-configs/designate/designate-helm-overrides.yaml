@@ -395,6 +395,9 @@ conf:
       enable_api_admin: true
       enabled_extensions_v2: quotas,reports
       workers: 2
+    cache:
+      enabled: true
+      backend: dogpile.cache.memcached
     service:worker:
       enabled: true
       notify: false
