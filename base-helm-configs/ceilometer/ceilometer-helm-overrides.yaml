@@ -842,14 +842,12 @@ conf:
           fields: payload.type
     # Blazar events and metrics
     - event_type:
-        - "start_lease"
-        - "end_lease"
-        - "before_end_lease"
         - "lease.create"
         - "lease.update"
         - "lease.delete"
-        - "lease.start"
-        - "lease.end"
+        - "lease.event.start_lease"
+        - "lease.event.before_end_lease"
+        - "lease.event.end_lease"
       traits: &reservation_traits
         # Lease identification
         lease_id:
@@ -858,7 +856,6 @@ conf:
         name:
           fields:
             - payload.name
-
         # User and project
         project_id:
           fields:
@@ -869,7 +866,6 @@ conf:
         trust_id:
           fields:
             - payload.trust_id
-
         # Lease timing
         start_date:
           fields:
@@ -883,7 +879,6 @@ conf:
         updated_at:
           fields:
             - payload.updated_at
-
         # Lease status
         status:
           fields:
@@ -951,12 +946,12 @@ conf:
           start_date: resource_metadata.start_date
           end_date: resource_metadata.end_date
         event_create:
-          - start_lease
+          - lease.event.start_lease
           - lease.create
         event_update:
-          - before_end_lease
-          - start_lease
-          - end_lease
+          - lease.event.start_lease
+          - lease.event.before_end_lease
+          - lease.event.end_lease"
           - lease.end
           - lease.update
         event_delete:
@@ -1346,7 +1341,7 @@ conf:
 
       - name: "blazar.lease.start"
         event_type:
-          - "start_lease"
+          - "lease.event.start_lease"
         type: "delta"
         unit: "lease"
         volume: 1
@@ -1361,7 +1356,7 @@ conf:
 
       - name: "blazar.lease.before_end"
         event_type:
-          - "before_end_lease"
+          - "lease.event.before_end_lease"
         type: "delta"
         unit: "lease"
         volume: 1
@@ -1376,7 +1371,7 @@ conf:
 
       - name: "blazar.lease.end"
         event_type:
-          - "end_lease"
+          - "lease.event.end_lease"
         type: "delta"
         unit: "lease"
         volume: 1
@@ -1881,9 +1876,9 @@ conf:
         meters:
           - "*"
         events:
-          - start_lease
-          - end_lease
-          - before_end_lease
+          - lease.event.start_lease
+          - lease.event.end_lease
+          - lease.event.before_end_lease
           - lease.*
         sinks:
           - blazar_sink
