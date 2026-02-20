@@ -554,7 +554,9 @@ ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking
 set -e
 if [ ! -f "/usr/local/bin/queue_max.sh" ]; then
     python3 -m venv ~/.venvs/genestack
-    ~/.venvs/genestack/bin/pip install -r /opt/genestack/requirements.txt
+    ~/.venvs/genestack/bin/pip install --upgrade pip poetry
+    source ~/.venvs/genestack/bin/activate
+    POETRY_VIRTUALENVS_CREATE=false poetry install --only main --no-root --directory /opt/genestack
     source /opt/genestack/scripts/genestack.rc
     ANSIBLE_SSH_PIPELINING=0 ansible-playbook /opt/genestack/ansible/playbooks/host-setup.yml --become -e host_required_kernel=\$(uname -r)
 fi
