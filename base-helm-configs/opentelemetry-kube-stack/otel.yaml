@@ -26,15 +26,21 @@ opentelemetry-operator:
     failurePolicy: "Ignore"
   crds:
     create: false
-  nodeSelector:
-    openstack-control-plane: enabled
 
 defaultCRConfig:
   enabled: true
-  hostNetwork: true
+  hostNetwork: false
   shareProcessNamespace: false
   priorityClassName: ""
   terminationGracePeriodSeconds: 30
+
+  resources:
+    requests:
+      memory: "2048Mi"
+      cpu: "2048m"
+    limits:
+      memory: "4096Mi"
+      cpu: "4096m"
 
   nodeSelector: {}
   args: {}
@@ -80,9 +86,6 @@ defaultCRConfig:
   additionalContainers: []
   topologySpreadConstraints: []
   configmaps: []
-  # Environment variables for the collector pods
-  # K8S_NODE_NAME is required for kubeletstats to identify its node
-  envFrom: []
 
   presets:
     logsCollection:
@@ -91,22 +94,22 @@ defaultCRConfig:
       storeCheckpoints: false
       maxRecombineLogSize: 102400
     hostMetrics:
-      enabled: false
+      enabled: true
     kubernetesAttributes:
       enabled: true
       extractAllPodLabels: true
       extractAllPodAnnotations: true
     kubeletMetrics:
-      enabled: false
+      enabled: true
     kubernetesEvents:
       enabled: true
     clusterMetrics:
-      enabled: false
+      enabled: true
     annotationDiscovery:
       logs:
         enabled: false
       metrics:
-        enabled: false
+        enabled: true
 
 collectors:
   daemon:
@@ -115,32 +118,43 @@ collectors:
     enabled: true
     resources:
       limits:
-        cpu: 4096m
-        memory: 4096Mi
+        cpu: 2046m
+        memory: 2046Mi
       requests:
-        cpu: 2048m
-        memory: 2048Mi
+        cpu: 1024m
+        memory: 1024Mi
     scrape_configs_file: "daemon_scrape_configs.yaml"
     presets:
       logsCollection:
         enabled: true
       kubeletMetrics:
-        enabled: false
+        enabled: true
       hostMetrics:
-        enabled: false
+        enabled: true
       kubernetesAttributes:
         enabled: true
       kubernetesEvents:
         enabled: true
       clusterMetrics:
-        enabled: false
+        enabled: true
       annotationDiscovery:
         logs:
           enabled: false
         metrics:
-          enabled: false
+          enabled: true
 
     config:
+      extensions:
+        k8s_observer:
+          auth_type: serviceAccount
+
+        k8s_leader_elector:
+          lease_name: otel-collector-leader
+          lease_namespace: opentelemetry
+          lease_duration: 15s
+          renew_deadline: 10s
+          retry_period: 2s
+
       receivers:
         otlp:
           protocols:
@@ -161,22 +175,9 @@ collectors:
         zipkin:
           endpoint: 0.0.0.0:9411
 
-        hostmetrics:
-          collection_interval: 30s
-          scrapers:
-            cpu: {}
-            load: {}
-            memory: {}
-            disk: {}
-            filesystem:
-              exclude_mount_points:
-                mount_points: ["/dev/*", "/proc/*", "/sys/*", "/run/*"]
-                match_type: regexp
-              exclude_fs_types:
-                fs_types: ["autofs", "cgroup", "cgroup2", "debugfs", "devpts", "devtmpfs", "overlay", "proc", "sysfs", "tmpfs"]
-                match_type: strict
-            network: {}
-            paging: {}
+        k8s_cluster:
+          k8s_leader_elector: k8s_leader_elector
+          collection_interval: 60s
 
         filelog/k8s_containers:
           include:
@@ -232,7 +233,15 @@ collectors:
               value: EXPR(attributes.restart_count)
               if: 'attributes.restart_count != nil'
 
+        # ══════════════════════════════════════════════════════════════════════
         # CONSOLIDATED OPENSTACK LOG RECEIVER
+        # ══════════════════════════════════════════════════════════════════════
+        # Replaces 17 individual receivers with one unified receiver that:
+        # - Captures all OpenStack service logs (both /var/log/* and pod logs)
+        # - Extracts service name dynamically from file path
+        # - Applies uniform parsing for all services
+        # - Handles both standard OpenStack format and Horizon's Apache logs
+        # ══════════════════════════════════════════════════════════════════════
         filelog/openstack:
           include:
             # Direct log files from nodes
@@ -276,22 +285,9 @@ collectors:
             - /var/log/*/*.gz
           start_at: beginning
           include_file_path: true
-          # Multiline pattern must match AFTER CRI unwrapping
-          # CRI format: 2026-02-19T22:35:59.398699658Z stdout F <actual log line>
-          # We need to look for the OpenStack timestamp AFTER "F "
           multiline:
-            # Match OpenStack timestamp OR Apache/Horizon logs OR CRI wrapper with OpenStack inside
-            line_start_pattern: '^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z stdout [FP] )?\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}|^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z stdout [FP] )?[\d\.]+ -'
+            line_start_pattern: '^(\d{4}-\d{2}-\d{2}T|\d{4}-\d{2}-\d{2} |^[\d\.]+)'
           operators:
-            # ── Recombine multiline logs BEFORE CRI unwrapping ──────────────────
-            - type: recombine
-              id: recombine-multiline
-              combine_field: body
-              is_first_entry: 'body matches "^(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z stdout [FP] )?\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}|^(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z stdout [FP] )?[\\d\\.]+ -"'
-              combine_with: "\n"
-              source_identifier: attributes["log.file.path"]
-              max_log_size: 102400
-
             # ── Extract service name from file path ─────────────────────────────
             - type: regex_parser
               id: extract-service-from-path
@@ -303,10 +299,8 @@ collectors:
             - type: regex_parser
               id: parser-cri-wrapper
               regex: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) (?P<log>.*)$'
-              parse_from: body
               on_error: send
 
-            # Replace body with unwrapped log content
             - type: move
               from: attributes.log
               to: body
@@ -401,18 +395,6 @@ collectors:
               if: 'attributes.request_id != nil'
 
       processors:
-        attributes/add-node-labels:  # ← Revert to this
-          actions:
-            - key: k8s.node.name
-              value: ${env:K8S_NODE_NAME}
-              action: insert
-            - key: host.name
-              value: ${env:K8S_NODE_NAME}
-              action: insert
-            - key: service.instance.id
-              value: ${env:K8S_NODE_NAME}
-              action: insert
-
         resourcedetection/env:
           detectors: [env, k8snode, system]
           timeout: 5s
@@ -426,7 +408,7 @@ collectors:
 
         memory_limiter:
           check_interval: 1s
-          limit_percentage: 90
+          limit_percentage: 80
           spike_limit_percentage: 25
 
         batch:
@@ -567,17 +549,23 @@ collectors:
 
       exporters:
         debug:
-          verbosity: normal
-          sampling_initial: 2
-          sampling_thereafter: 1000
+          verbosity: detailed
+          sampling_initial: 5
+          sampling_thereafter: 200
+
+        prometheus:
+          endpoint: "0.0.0.0:8889"
+          namespace: "prometheus"
+          const_labels:
+            cluster: "genestack"
 
         prometheusremotewrite:
-          endpoint: "http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090/api/v1/write"
+          endpoint: "http://prometheus-server.grafana.svc.cluster.local/api/v1/write"
           tls:
             insecure: true
 
         otlp/tempo:
-          endpoint: "tempo.grafana.svc.cluster.local:4317"
+          endpoint: "tempo-distributor.grafana.svc.cluster.local:4317"
           tls:
             insecure: true
 
@@ -585,23 +573,7 @@ collectors:
           endpoint: "http://loki-gateway.grafana.svc.cluster.local/otlp"
 
       service:
-        # Telemetry configuration for the collector's own logs
-        telemetry:
-          logs:
-            level: info  # Options: debug, info, warn, error
-            development: false
-            encoding: console  # or json
-            disable_caller: false
-            disable_stacktrace: false
-            output_paths:
-              - stderr
-            error_output_paths:
-              - stderr
-            initial_fields:
-              service: otel-collector
-          metrics:
-            level: detailed
-
+        extensions: [k8s_observer, k8s_leader_elector]
         pipelines:
           traces:
             receivers:
@@ -621,9 +593,11 @@ collectors:
           metrics:
             receivers:
               - otlp
+              - prometheus
               - hostmetrics
+              - kubeletstats
+              - k8s_cluster
             processors:
-              - attributes/add-node-labels
               - resourcedetection/env
               - k8sattributes
               - resource/hostname
@@ -631,6 +605,7 @@ collectors:
               - batch
             exporters:
               - prometheusremotewrite
+              - prometheus
               - debug
 
           logs/k8s:
@@ -662,6 +637,9 @@ collectors:
               - debug
               - otlphttp/loki
 
+          # ══════════════════════════════════════════════════════════════════════
+          # SIMPLIFIED OPENSTACK PIPELINE - now uses single receiver
+          # ══════════════════════════════════════════════════════════════════════
           logs/openstack:
             receivers:
               - filelog/openstack  # Single consolidated receiver
@@ -742,7 +720,7 @@ kubeApiServer:
     additionalLabels: {}
 
 kubelet:
-  enabled: false
+  enabled: true
   namespace: kube-system
   serviceMonitor:
     interval: ""
@@ -891,8 +869,6 @@ kube-state-metrics:
   rbac:
     create: true
   releaseLabel: true
-  nodeSelector:
-    openstack-control-plane: enabled
   prometheus:
     monitor:
       enabled: true

@@ -20,17 +20,6 @@ alertmanager:
     nodeSelector:
       openstack-control-plane: enabled
     podAntiAffinity: ""
-prometheus-node-exporter:
-  extraHostVolumeMounts:
-    - name: text-file-collector
-      hostPath: /opt/node_exporter/textfile_collector
-      mountPath: /var/lib/node_exporter/textfile_collector
-      readOnly: true
-      mountPropagation: HostToContainer
-  extraArgs:
-    - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
-    - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$
-    - --collector.textfile.directory=/var/lib/node_exporter/textfile_collector
 prometheusOperator:
   nodeSelector:
     openstack-control-plane: enabled
@@ -44,7 +33,13 @@ prometheusOperator:
     ## If true, the operator will create and maintain a service for scraping kubelets
     ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/helm/prometheus-operator/README.md
     ##
-    enabled: false
+    enabled: true
+kubelet:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    ## Enable scraping /metrics from kubelet's service
+    kubelet: true
 prometheus:
   prometheusSpec:
     image:
@@ -62,6 +57,7 @@ prometheus:
               storage: 15Gi
     serviceMonitorSelectorNilUsesHelmValues: false
     podMonitorSelectorNilUsesHelmValues: false
+    enableRemoteWriteReceiver: true
 thanosRuler:
   thanosRulerSpec:
     image:
@@ -69,7 +65,7 @@ thanosRuler:
     podAntiAffinity: ""
 
 defaultRules:
-  create: false
+  create: true
 nodeExporter:
   enabled: false
 kubeStateMetrics:
