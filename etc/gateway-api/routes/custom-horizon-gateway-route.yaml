@@ -1,0 +1,27 @@
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: custom-horizon-gateway-route
+  namespace: openstack
+  labels:
+    application: gateway-api
+    service: HTTPRoute
+    route: horizon
+spec:
+  parentRefs:
+    - name: flex-gateway
+      sectionName: horizon-https
+      namespace: envoy-gateway
+  hostnames:
+    - "horizon.your.domain.tld"
+  rules:
+    - backendRefs:
+        - name: horizon-int
+          port: 80
+      sessionPersistence:
+        sessionName: HorizonSession
+        type: Cookie
+        absoluteTimeout: 300s
+        cookieConfig:
+          lifetimeType: Permanent
