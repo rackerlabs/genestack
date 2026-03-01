@@ -642,6 +642,11 @@ waitForOpenStackAPIsReadyRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}"
 
 if [[ "${TEST_LEVEL}" == "off" ]]; then
     createPostSetupResourcesRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}" "${LAB_NAME_PREFIX}"
+
+    # Trove Setup & Installation
+    # Must be run after the flat network has been created
+    setupTrove
+
 else
     echo "Running tests at level: ${TEST_LEVEL}"
 
