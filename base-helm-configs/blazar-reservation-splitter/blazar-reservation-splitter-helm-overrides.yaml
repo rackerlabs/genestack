@@ -1,0 +1,106 @@
+---
+# Blazar Reservation Splitter Helm Overrides for Genestack
+
+image:
+  repository: ghcr.io/rackerlabs/genestack-images/blazar-reservation-splitter
+  pullPolicy: Always
+  tag: "main"
+
+replicaCount: 1
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# OpenStack endpoints configuration
+endpoints:
+  oslo_messaging:
+    auth:
+      user: blazar-reservation-splitter
+      # Password will be read from the secret created by bin/create-secrets.sh
+      # The Helm chart will construct the RABBITMQ_CONNECTION URL using this
+    statefulset: null
+    hosts:
+      default: rabbitmq-nodes
+    host_fqdn_override:
+      default: rabbitmq.openstack.svc.cluster.local
+    path: blazar
+    scheme: rabbit
+    port:
+      amqp:
+        default: 5672
+      http:
+        default: 15672
+
+# RabbitMQ Configuration
+rabbitmq:
+  exchange: "openstack"
+  queue: "blazar_reservation_splitter-qq"
+
+# Manifests
+manifests:
+  secret_rabbitmq: false  # Disabled - using RabbitMQ Operator with importCredentialsSecret
+
+targetEvents:
+  - lease.event.start_lease
+
+# Service is disabled - this is a message processor, not an HTTP service
+service:
+  enabled: false
+
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Enable for production
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+# Enable for production
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+# Monitoring is disabled
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
