@@ -40,9 +40,7 @@ jobs:
             --namespace=openstack \
             --wait \
             --timeout 120m \
-            -f ${{ github.workspace }}/base-helm-configs/blazar-reservation-splitter/blazar-reservation-splitter-helm-overrides.yaml
-            --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
-            --post-renderer-args blazar-reservation-splitter/${{ matrix.overlays }} > /tmp/rendered.yaml
+            -f ${{ github.workspace }}/base-helm-configs/blazar-reservation-splitter/blazar-reservation-splitter-helm-overrides.yaml > /tmp/rendered.yaml
       - name: Return helm Build
         uses: actions/upload-artifact@v4
         with:
