@@ -146,7 +146,7 @@ Note that the values for both `secret_uuid` and `rbd_secret_uuid` should be the 
 ``` yaml
 images:
   tags:
-    cinder_volume: "quay.io/airshipit/cinder:2024.1-ubuntu_jammy"
+    cinder_volume: "ghcr.io/rackerlabs/genestack-images/cinder:2025.1-latest"
 
 ceph_client:
   enable_external_ceph_backend: true
@@ -186,7 +186,8 @@ manifests:
   deployment_volume: true
 ```
 
-Please note the upstream container images are required for Ceph support at this time.
+Use the current Genestack Cinder image stream for Epoxy (`2025.1`) unless your
+environment requires a backend-specific upstream image for troubleshooting.
 
 ### Step 5: Apply the Configuration
 

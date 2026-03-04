@@ -6,7 +6,7 @@ charts:
   blazar-reservation-splitter: 0.1.0
   ceilometer: 2024.2.115+13651f45-628a320c
   cert-manager: v1.19.2
-  cinder: 2024.2.409+13651f45-628a320c
+  cinder: 2025.1.13+4d4d4e25c
   cloudkitty: 2025.1.2+ebb1488dc
   designate: 2025.2.6+f3906fe15
   envoyproxy-gateway: v1.5.3
