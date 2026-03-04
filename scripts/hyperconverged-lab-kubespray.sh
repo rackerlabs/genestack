@@ -231,7 +231,7 @@ done
 
 COUNT=0
 JUMP_HOST_SSH_MAX_RETRIES=${JUMP_HOST_SSH_MAX_RETRIES:-180}
-while ! ssh -i ~/.ssh/${LAB_NAME_PREFIX}-key.pem \
+while ! ssh -i ${KEY_PEM} \
     -o BatchMode=yes \
     -o IdentitiesOnly=yes \
     -o PreferredAuthentications=publickey \

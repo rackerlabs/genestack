@@ -1372,16 +1372,18 @@ function waitForOpenStackAPIsReady() {
     fi
 
     # Wait for Neutron API to be ready
+    # NOTE: Do not gate on "network agent alive=true" because OVN-based
+    # deployments may not report classic Neutron agents in that format.
     echo "  Checking Neutron API..."
     elapsed=0
     while [[ $elapsed -lt $timeout ]]; do
-        if openstack --os-cloud default network agent list >/dev/null 2>&1; then
-            # Verify at least one network agent is alive
-            local neutron_alive=$(openstack --os-cloud default network agent list -f value -c Alive 2>/dev/null | grep -ci "true" || echo "0")
-            if [[ $neutron_alive -gt 0 ]]; then
-                echo "  Neutron API is ready (${neutron_alive} agent(s) alive)"
-                break
-            fi
+        # Primary readiness signal: Neutron API can answer list queries.
+        if openstack --os-cloud default network list -f value -c ID >/dev/null 2>&1; then
+            # Optional telemetry: try to print agent count when available.
+            local neutron_agents
+            neutron_agents=$(openstack --os-cloud default network agent list -f value -c Alive 2>/dev/null | wc -l || echo "0")
+            echo "  Neutron API is ready (${neutron_agents} agent row(s) reported)"
+            break
         fi
         echo "  Neutron API not ready yet, waiting ${interval}s... (${elapsed}s/${timeout}s)"
         sleep $interval
