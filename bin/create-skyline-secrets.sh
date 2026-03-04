@@ -108,8 +108,8 @@ echo "$SKYLINE_SECRET_CONTENT" >> $OUTPUT_FILE
 
 echo "Skyline secret appended to ${OUTPUT_FILE}"
 echo ""
-echo "✓ Successfully created ${SKYLINE_SECRETS_FILE}"
-echo "✓ Successfully appended skyline secret to ${OUTPUT_FILE}"
+echo "SUCCESS: Successfully created ${SKYLINE_SECRETS_FILE}"
+echo "SUCCESS: Successfully appended skyline secret to ${OUTPUT_FILE}"
 echo ""
 echo "IMPORTANT: Keep ${SKYLINE_SECRETS_FILE} safe!"
 echo "           It will be used to preserve skyline secret when regenerating ${OUTPUT_FILE}"

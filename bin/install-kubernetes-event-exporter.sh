@@ -27,8 +27,7 @@ else
 fi
 
 # Pre-flight Checks
-check_dependencies "kubectl" "helm" "yq" "sed" "grep"
-check_cluster_connection
+perform_preflight_checks
 
 # Argument Parsing
 HELM_PASS_THROUGH=()
@@ -74,33 +73,16 @@ else
 fi
 
 # Overrides Collection
-overrides_args=()
-process_overrides "$SERVICE_BASE_OVERRIDES" overrides_args "base overrides"
-process_overrides "$GLOBAL_OVERRIDES_DIR" overrides_args "global overrides"
-process_overrides "$SERVICE_CUSTOM_OVERRIDES" overrides_args "service config overrides"
+collect_service_overrides "$SERVICE_NAME_DEFAULT" overrides_args
 
 # Command Execution
-helm_command=(
-    helm upgrade --install "$SERVICE_NAME_DEFAULT" "$HELM_CHART_PATH"
-    --version "${SERVICE_VERSION}"
-    --namespace="$SERVICE_NAMESPACE"
-    --timeout "${HELM_TIMEOUT:-$HELM_TIMEOUT_DEFAULT}"
-    --create-namespace
-    --atomic
-    --cleanup-on-fail
-    "${overrides_args[@]}"
-    --post-renderer "$GENESTACK_OVERRIDES_DIR/kustomize/kustomize.sh"
-    --post-renderer-args "$SERVICE_NAME_DEFAULT/overlay"
-)
+build_helm_command "$SERVICE_NAME_DEFAULT" "$HELM_CHART_PATH" "$SERVICE_VERSION" \
+    "$SERVICE_NAMESPACE" set_args overrides_args helm_command
 
-echo "Executing Helm command:"
-printf '%q ' "${helm_command[@]}" "${HELM_PASS_THROUGH[@]}"
-echo
-
-if "${helm_command[@]}" "${HELM_PASS_THROUGH[@]}"; then
+if execute_helm_upgrade helm_command HELM_PASS_THROUGH; then
     echo "Helm upgrade successful. Waiting for event-exporter deployment..."
     kubectl -n "$SERVICE_NAMESPACE" rollout status deployment/"$SERVICE_NAME_DEFAULT"
-    echo "✓ $SERVICE_NAME_DEFAULT is ready."
+    echo "SUCCESS: $SERVICE_NAME_DEFAULT is ready."
 else
     echo "Error: Helm upgrade failed." >&2
     exit 1

@@ -936,7 +936,7 @@ SKYLINE_SECRETS_FILE="/etc/genestack/skylinesecrets.yaml"
 if [[ -f ${SKYLINE_SECRETS_FILE} ]]; then
     echo "Found existing ${SKYLINE_SECRETS_FILE}, appending skyline secrets..."
     cat ${SKYLINE_SECRETS_FILE} >> ${OUTPUT_FILE}
-    echo "✓ Skyline secrets appended from ${SKYLINE_SECRETS_FILE}"
+    echo "SUCCESS: Skyline secrets appended from ${SKYLINE_SECRETS_FILE}"
 else
     echo "Note: ${SKYLINE_SECRETS_FILE} not found. Run create-skyline-secrets.sh to add skyline secrets."
 fi
@@ -963,4 +963,4 @@ rm nova_ssh_key nova_ssh_key.pub
 rm manila_ssh_key manila_ssh_key.pub
 chmod 0640 ${OUTPUT_FILE}
 echo ""
-echo "✓ Secrets YAML file created as ${OUTPUT_FILE}"
+echo "SUCCESS: Secrets YAML file created as ${OUTPUT_FILE}"

@@ -26,9 +26,8 @@ else
     exit 1
 fi
 
-# Pre-flight Checks (Updated with base64)
-check_dependencies "kubectl" "helm" "yq" "jq" "base64" "sed" "grep"
-check_cluster_connection
+# Pre-flight Checks
+perform_preflight_checks
 
 # Node Discovery for OVN Central
 MASTER_NODES=$(kubectl get nodes -l node-role.kubernetes.io/control-plane -o json | jq -r '.items[].metadata.name' | tr '\n' ',' | sed 's/,$//')
@@ -51,11 +50,16 @@ if [ -z "$SERVICE_VERSION" ]; then
     exit 1
 fi
 
+# Helm Repository Setup
+if [[ "$HELM_REPO_URL_DEFAULT" == oci://* ]]; then
+    HELM_CHART_PATH="$HELM_REPO_URL_DEFAULT/$HELM_REPO_NAME_DEFAULT/$SERVICE_NAME_DEFAULT"
+else
+    update_helm_repo "$HELM_REPO_NAME_DEFAULT" "$HELM_REPO_URL_DEFAULT"
+    HELM_CHART_PATH="$HELM_REPO_NAME_DEFAULT/$SERVICE_NAME_DEFAULT"
+fi
+
 # Overrides Collection
-overrides_args=()
-process_overrides "$SERVICE_BASE_OVERRIDES" overrides_args "base overrides"
-process_overrides "$GLOBAL_OVERRIDES_DIR" overrides_args "global overrides"
-process_overrides "$SERVICE_CUSTOM_OVERRIDES" overrides_args "service config overrides"
+collect_service_overrides "$SERVICE_NAME_DEFAULT" overrides_args
 
 set_args=(
     --set "MASTER_NODES=${MASTER_NODES}"
@@ -63,28 +67,13 @@ set_args=(
 )
 
 # Command Execution
-helm_command=(
-    helm upgrade --install "$SERVICE_NAME_DEFAULT" "${HELM_REPO_NAME_DEFAULT}/${SERVICE_NAME_DEFAULT}"
-    --version "${SERVICE_VERSION}"
-    --namespace="$SERVICE_NAMESPACE"
-    --timeout "${HELM_TIMEOUT:-$HELM_TIMEOUT_DEFAULT}"
-    --create-namespace
-    --atomic
-    --cleanup-on-fail
-    "${overrides_args[@]}"
-    "${set_args[@]}"
-    --post-renderer "$GENESTACK_OVERRIDES_DIR/kustomize/kustomize.sh"
-    --post-renderer-args "$SERVICE_NAME_DEFAULT/overlay"
-)
+build_helm_command "$SERVICE_NAME_DEFAULT" "$HELM_CHART_PATH" "$SERVICE_VERSION" \
+    "$SERVICE_NAMESPACE" set_args overrides_args helm_command
 
-echo "Executing Helm command:"
-printf '%q ' "${helm_command[@]}"
-echo
-
-if "${helm_command[@]}"; then
+if execute_helm_upgrade helm_command HELM_PASS_THROUGH; then
     echo "Helm upgrade successful. Waiting for Kube-OVN components..."
-    kubectl -n "$SERVICE_NAMESPACE" rollout status deployment/kube-ovn-controller
-    echo "✓ $SERVICE_NAME_DEFAULT is ready."
+    wait_for_resource_ready "$SERVICE_NAMESPACE" deployment 300 kube-ovn-controller
+    echo "SUCCESS: $SERVICE_NAME_DEFAULT is ready."
 else
     echo "Error: Helm upgrade failed." >&2
     exit 1

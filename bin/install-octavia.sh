@@ -27,18 +27,10 @@ else
 fi
 
 # Pre-flight Checks
-check_dependencies "kubectl" "helm" "yq" "base64" "sed" "grep"
-check_cluster_connection
+perform_preflight_checks
 
 # Argument Parsing
-ROTATE_SECRETS=false
-HELM_PASS_THROUGH=()
-while [[ "$#" -gt 0 ]]; do
-    case $1 in
-        --rotate-secrets) ROTATE_SECRETS=true; shift ;;
-        *) HELM_PASS_THROUGH+=("$1"); shift ;;
-    esac
-done
+parse_install_args ROTATE_SECRETS HELM_PASS_THROUGH "$@"
 
 # Version Management
 SERVICE_VERSION=$(get_chart_version "$SERVICE_NAME_DEFAULT")
@@ -56,10 +48,7 @@ else
 fi
 
 # Overrides Collection
-overrides_args=()
-process_overrides "$SERVICE_BASE_OVERRIDES" overrides_args "base overrides"
-process_overrides "$GLOBAL_OVERRIDES_DIR" overrides_args "global overrides"
-process_overrides "$SERVICE_CUSTOM_OVERRIDES" overrides_args "service config overrides"
+collect_service_overrides "$SERVICE_NAME_DEFAULT" overrides_args
 
 # OVN Endpoints retrieval
 OVN_NB_EP=$(kubectl -n openstack get svc ovn-nb -o jsonpath='{.spec.clusterIP}')
@@ -92,25 +81,10 @@ set_args=(
 )
 
 # Command Execution
-helm_command=(
-    helm upgrade --install "$SERVICE_NAME_DEFAULT" "$HELM_CHART_PATH"
-    --version "${SERVICE_VERSION}"
-    --namespace="$SERVICE_NAMESPACE"
-    --timeout "${HELM_TIMEOUT:-$HELM_TIMEOUT_DEFAULT}"
-    --create-namespace
-    --atomic
-    --cleanup-on-fail
-    "${overrides_args[@]}"
-    "${set_args[@]}"
-    --post-renderer "$GENESTACK_OVERRIDES_DIR/kustomize/kustomize.sh"
-    --post-renderer-args "$SERVICE_NAME_DEFAULT/overlay"
-)
+build_helm_command "$SERVICE_NAME_DEFAULT" "$HELM_CHART_PATH" "$SERVICE_VERSION" \
+    "$SERVICE_NAMESPACE" set_args overrides_args helm_command
 
-echo "Executing Helm command:"
-printf '%q ' "${helm_command[@]}" "${HELM_PASS_THROUGH[@]}"
-echo
-
-if "${helm_command[@]}" "${HELM_PASS_THROUGH[@]}"; then
+if execute_helm_upgrade helm_command HELM_PASS_THROUGH; then
     echo "Helm upgrade successful. Waiting for Octavia deployments..."
     kubectl -n "$SERVICE_NAMESPACE" wait --for=condition=available --timeout=300s \
         deployment/octavia-api \

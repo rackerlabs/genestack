@@ -27,18 +27,10 @@ else
 fi
 
 # Pre-flight Checks
-check_dependencies "kubectl" "helm" "yq" "base64" "sed" "grep"
-check_cluster_connection
+perform_preflight_checks
 
 # Argument Parsing
-ROTATE_SECRETS=false
-HELM_PASS_THROUGH=()
-while [[ "$#" -gt 0 ]]; do
-    case $1 in
-        --rotate-secret) ROTATE_SECRETS=true; shift ;;
-        *) HELM_PASS_THROUGH+=("$1"); shift ;;
-    esac
-done
+parse_install_args ROTATE_SECRETS HELM_PASS_THROUGH "$@"
 
 # Version Extraction
 VERSION_FILE="${GENESTACK_OVERRIDES_DIR}/helm-chart-versions.yaml"
@@ -53,15 +45,12 @@ if [ -z "$SERVICE_VERSION" ]; then
 fi
 
 # Overrides Collection
-overrides_args=()
-process_overrides "$SERVICE_BASE_OVERRIDES" overrides_args "base overrides"
-process_overrides "$GLOBAL_OVERRIDES_DIR" overrides_args "global overrides"
-process_overrides "$SERVICE_CUSTOM_OVERRIDES" overrides_args "service config overrides"
+collect_service_overrides "$SERVICE_NAME_DEFAULT" overrides_args
 
 # Lazy Secret Retrieval
 echo "Validating secrets for $SERVICE_NAME_DEFAULT..."
 S_KEYSTONE=$(get_or_create_secret "$SERVICE_NAMESPACE" "keystone-admin" "password" 32 "$ROTATE_SECRETS")
-S_MEMCACHE=$(get_or_create_secret "$SERVICE_NAMESPACE" "os-memcached" "memcache_secret_key" 64 "$ROTATE_SECRETS")
+S_MEMCACHE=$(get_or_create_secret "$SERVICE_NAMESPACE" "os-memcached" "memcache_secret_key" 32 "$ROTATE_SECRETS")
 S_HORIZON_KEY=$(get_or_create_secret "$SERVICE_NAMESPACE" "horizon-secret-key" "horizon_secret_key" 64 "$ROTATE_SECRETS")
 S_DB_ROOT=$(get_or_create_secret "$SERVICE_NAMESPACE" "mariadb" "root-password" 32 "$ROTATE_SECRETS")
 S_HORIZON_DB=$(get_or_create_secret "$SERVICE_NAMESPACE" "horizon-db-password" "password" 32 "$ROTATE_SECRETS")
@@ -75,28 +64,13 @@ set_args=(
 )
 
 # Command Execution
-helm_command=(
-    helm upgrade --install "$SERVICE_NAME_DEFAULT" "${HELM_REPO_NAME_DEFAULT}/${SERVICE_NAME_DEFAULT}"
-    --version "${SERVICE_VERSION}"
-    --namespace="$SERVICE_NAMESPACE"
-    --timeout "${HELM_TIMEOUT:-$HELM_TIMEOUT_DEFAULT}"
-    --create-namespace
-    --atomic
-    --cleanup-on-fail
-    "${overrides_args[@]}"
-    "${set_args[@]}"
-    --post-renderer "$GENESTACK_OVERRIDES_DIR/kustomize/kustomize.sh"
-    --post-renderer-args "$SERVICE_NAME_DEFAULT/overlay"
-)
+build_helm_command "$SERVICE_NAME_DEFAULT" "$HELM_CHART_PATH" "$SERVICE_VERSION" \
+    "$SERVICE_NAMESPACE" set_args overrides_args helm_command
 
-echo "Executing Helm command:"
-printf '%q ' "${helm_command[@]}" "${HELM_PASS_THROUGH[@]}"
-echo
-
-if "${helm_command[@]}" "${HELM_PASS_THROUGH[@]}"; then
+if execute_helm_upgrade helm_command HELM_PASS_THROUGH; then
     echo "Helm upgrade successful. Waiting for Horizon..."
-    kubectl -n "$SERVICE_NAMESPACE" rollout status deployment/horizon
-    echo "✓ $SERVICE_NAME_DEFAULT is ready."
+    wait_for_resource_ready "$SERVICE_NAMESPACE" deployment 300 horizon
+    echo "SUCCESS: $SERVICE_NAME_DEFAULT is ready."
 else
     echo "Error: Helm upgrade failed." >&2
     exit 1
