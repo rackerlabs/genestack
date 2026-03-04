@@ -150,19 +150,33 @@ if [ ! -d "~/.ssh" ]; then
     mkdir -p ~/.ssh
     chmod 700 ~/.ssh
 fi
-if ! openstack keypair show ${LAB_NAME_PREFIX}-key 2>/dev/null; then
-    if [ ! -f ~/.ssh/${LAB_NAME_PREFIX}-key.pem ]; then
-        openstack keypair create ${LAB_NAME_PREFIX}-key >~/.ssh/${LAB_NAME_PREFIX}-key.pem
-        chmod 600 ~/.ssh/${LAB_NAME_PREFIX}-key.pem
-        openstack keypair show ${LAB_NAME_PREFIX}-key --public-key >~/.ssh/${LAB_NAME_PREFIX}-key.pub
-    else
-        if [ -f ~/.ssh/${LAB_NAME_PREFIX}-key.pub ]; then
-            openstack keypair create ${LAB_NAME_PREFIX}-key --public-key ~/.ssh/${LAB_NAME_PREFIX}-key.pub
-        fi
+
+KEY_NAME="${LAB_NAME_PREFIX}-key"
+KEY_PEM="${HOME}/.ssh/${KEY_NAME}.pem"
+KEY_PUB="${HOME}/.ssh/${KEY_NAME}.pub"
+
+if [ ! -f "${KEY_PEM}" ]; then
+    # Create a new keypair in OpenStack and persist the private/public keys locally.
+    openstack keypair delete "${KEY_NAME}" >/dev/null 2>&1 || true
+    openstack keypair create "${KEY_NAME}" >"${KEY_PEM}"
+    chmod 600 "${KEY_PEM}"
+    openstack keypair show "${KEY_NAME}" --public-key >"${KEY_PUB}"
+else
+    # Ensure a matching local .pub exists and reconcile OpenStack keypair if needed.
+    if [ ! -f "${KEY_PUB}" ]; then
+        ssh-keygen -y -f "${KEY_PEM}" >"${KEY_PUB}"
+    fi
+
+    LOCAL_PUB=$(tr -d '\n' <"${KEY_PUB}")
+    REMOTE_PUB=$(openstack keypair show "${KEY_NAME}" -f value -c public_key 2>/dev/null || true)
+    if [ -z "${REMOTE_PUB}" ] || [ "${LOCAL_PUB}" != "${REMOTE_PUB}" ]; then
+        echo "Reconciling keypair ${KEY_NAME} in OpenStack to match local key."
+        openstack keypair delete "${KEY_NAME}" >/dev/null 2>&1 || true
+        openstack keypair create "${KEY_NAME}" --public-key "${KEY_PUB}"
     fi
 fi
 
-ssh-add ~/.ssh/${LAB_NAME_PREFIX}-key.pem
+ssh-add "${KEY_PEM}"
 
 #############################################################################
 # Create Lab Instances
@@ -200,13 +214,38 @@ fi
 #############################################################################
 
 echo "Waiting for the jump host to be ready"
+
+# Wait until the jump host is fully ACTIVE before probing SSH readiness.
+ACTIVE_COUNT=0
+JUMP_HOST_ACTIVE_MAX_RETRIES=${JUMP_HOST_ACTIVE_MAX_RETRIES:-120}
+while [ "$(openstack server show ${LAB_NAME_PREFIX}-0 -f value -c status 2>/dev/null)" != "ACTIVE" ]; do
+    sleep 2
+    ACTIVE_COUNT=$((ACTIVE_COUNT + 1))
+    echo "Jump host VM is not ACTIVE yet, trying again..."
+    if [ ${ACTIVE_COUNT} -gt ${JUMP_HOST_ACTIVE_MAX_RETRIES} ]; then
+        echo "Failed waiting for jump host VM to reach ACTIVE state"
+        openstack server show ${LAB_NAME_PREFIX}-0 -f yaml || true
+        exit 1
+    fi
+done
+
 COUNT=0
-while ! ssh -o ConnectTimeout=2 -o ConnectionAttempts=3 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q ${SSH_USERNAME}@${JUMP_HOST_VIP} exit; do
+JUMP_HOST_SSH_MAX_RETRIES=${JUMP_HOST_SSH_MAX_RETRIES:-180}
+while ! ssh -i ~/.ssh/${LAB_NAME_PREFIX}-key.pem \
+    -o BatchMode=yes \
+    -o IdentitiesOnly=yes \
+    -o PreferredAuthentications=publickey \
+    -o ConnectTimeout=3 \
+    -o ConnectionAttempts=2 \
+    -o UserKnownHostsFile=/dev/null \
+    -o StrictHostKeyChecking=no \
+    -q ${SSH_USERNAME}@${JUMP_HOST_VIP} exit; do
     sleep 2
     echo "SSH is not ready, Trying again..."
     COUNT=$((COUNT + 1))
-    if [ $COUNT -gt 60 ]; then
-        echo "Failed to ssh into the jump host"
+    if [ ${COUNT} -gt ${JUMP_HOST_SSH_MAX_RETRIES} ]; then
+        echo "Failed to ssh into the jump host after ${JUMP_HOST_SSH_MAX_RETRIES} retries"
+        openstack server show ${LAB_NAME_PREFIX}-0 -f yaml || true
         exit 1
     fi
 done
@@ -560,8 +599,31 @@ if [ ! -f "/usr/local/bin/queue_max.sh" ]; then
 fi
 if [ ! -d "/var/lib/kubelet" ]; then
     source /opt/genestack/scripts/genestack.rc
-    cd /opt/genestack/submodules/kubespray
-    ANSIBLE_SSH_PIPELINING=0 ansible-playbook cluster.yml --become
+    KUBESPRAY_DIR=/opt/genestack/submodules/kubespray
+    if [ ! -f "\${KUBESPRAY_DIR}/cluster.yml" ] && [ ! -f "\${KUBESPRAY_DIR}/playbooks/cluster.yml" ]; then
+        echo "Kubespray checkout missing, initializing submodule..."
+        pushd /opt/genestack >/dev/null
+            sudo git config --global --add safe.directory /opt/genestack
+            sudo git submodule sync --recursive
+            sudo git submodule update --init --recursive submodules/kubespray
+        popd >/dev/null
+    fi
+    KUBESPRAY_PLAYBOOK=
+    if [ -f "\${KUBESPRAY_DIR}/cluster.yml" ]; then
+        KUBESPRAY_PLAYBOOK="\${KUBESPRAY_DIR}/cluster.yml"
+    elif [ -f "\${KUBESPRAY_DIR}/playbooks/cluster.yml" ]; then
+        KUBESPRAY_PLAYBOOK="\${KUBESPRAY_DIR}/playbooks/cluster.yml"
+    fi
+
+    if [ -z "\${KUBESPRAY_PLAYBOOK}" ]; then
+        echo "ERROR: Kubespray cluster playbook not found in \${KUBESPRAY_DIR}"
+        ls -la "\${KUBESPRAY_DIR}" || true
+        ls -la "\${KUBESPRAY_DIR}/playbooks" || true
+        exit 1
+    fi
+
+    cd "\${KUBESPRAY_DIR}"
+    ANSIBLE_SSH_PIPELINING=0 ansible-playbook "\${KUBESPRAY_PLAYBOOK}" --become
 fi
 sudo mkdir -p /opt/kube-plugins
 sudo chown \${USER}:\${USER} /opt/kube-plugins

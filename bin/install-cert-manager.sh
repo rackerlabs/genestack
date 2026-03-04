@@ -137,5 +137,22 @@ echo "Executing Helm command (arguments are quoted safely):"
 printf '%q ' "${helm_command[@]}"
 echo
 
-# Execute the command directly from the array
-"${helm_command[@]}"
+# Execute with retries to handle transient chart download/network failures.
+HELM_INSTALL_RETRIES="${HELM_INSTALL_RETRIES:-4}"
+HELM_RETRY_DELAY_SECONDS="${HELM_RETRY_DELAY_SECONDS:-20}"
+attempt=1
+while true; do
+    if "${helm_command[@]}"; then
+        break
+    fi
+    rc=$?
+    if [ "${attempt}" -ge "${HELM_INSTALL_RETRIES}" ]; then
+        echo "ERROR: Helm install failed after ${attempt} attempts."
+        exit "${rc}"
+    fi
+    echo "WARN: Helm install attempt ${attempt}/${HELM_INSTALL_RETRIES} failed."
+    echo "      Retrying in ${HELM_RETRY_DELAY_SECONDS}s after refreshing repo metadata..."
+    helm repo update || true
+    sleep "${HELM_RETRY_DELAY_SECONDS}"
+    attempt=$((attempt + 1))
+done

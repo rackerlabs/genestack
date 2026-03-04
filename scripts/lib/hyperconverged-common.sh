@@ -367,6 +367,27 @@ function writeServiceHelmOverrides() {
     # These are minimal resource configurations suitable for lab deployments
 
     local config_base="${1:-/etc/genestack/helm-configs}"
+    # Ensure per-service override directories exist before writing files.
+    mkdir -p \
+      "${config_base}/envoyproxy-gateway" \
+      "${config_base}/barbican" \
+      "${config_base}/blazar" \
+      "${config_base}/cinder" \
+      "${config_base}/cloudkitty" \
+      "${config_base}/freezer" \
+      "${config_base}/glance" \
+      "${config_base}/gnocchi" \
+      "${config_base}/heat" \
+      "${config_base}/keystone" \
+      "${config_base}/magnum" \
+      "${config_base}/manila" \
+      "${config_base}/masakari" \
+      "${config_base}/neutron" \
+      "${config_base}/nova" \
+      "${config_base}/octavia" \
+      "${config_base}/placement" \
+      "${config_base}/trove" \
+      "${config_base}/zaqar"
 
     if [ ! -f "${config_base}/envoyproxy-gateway/envoyproxy-gateway-helm-overrides.yaml" ]; then
         cat > "${config_base}/envoyproxy-gateway/envoyproxy-gateway-helm-overrides.yaml" <<EOF
@@ -839,6 +860,7 @@ function writeEndpointsConfig() {
     # Usage: writeEndpointsConfig <gateway_domain> [config_path]
     local gateway_domain="$1"
     local config_path="${2:-/etc/genestack/helm-configs/global_overrides/endpoints.yaml}"
+    mkdir -p "$(dirname "${config_path}")"
 
     if [ ! -f "${config_path}" ]; then
         cat > "${config_path}" <<EOF
@@ -990,53 +1012,6 @@ endpoints:
     scheme:
       public: https
   identity:
-    auth:
-      admin:
-        region_name: *region
-      test:
-        region_name: *region
-      barbican:
-        region_name: *region
-      blazar:
-        region_name: *region
-      cinder:
-        region_name: *region
-      trove:
-        region_name: *region
-      ceilometer:
-        region_name: *region
-      cloudkitty:
-        region_name: *region
-      glance:
-        region_name: *region
-      gnocchi:
-        region_name: *region
-      heat:
-        region_name: *region
-      heat_trustee:
-        region_name: *region
-      heat_stack_user:
-        region_name: *region
-      ironic:
-        region_name: *region
-      magnum:
-        region_name: *region
-      masakari:
-        region_name: *region
-      manila:
-        region_name: *region
-      neutron:
-        region_name: *region
-      nova:
-        region_name: *region
-      placement:
-        region_name: *region
-      octavia:
-        region_name: *region
-      freezer:
-        region_name: *region
-      zaqar:
-        region_name: *region
     host_fqdn_override:
       public:
         tls: {}

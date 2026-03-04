@@ -125,11 +125,9 @@ zaqar_keystone_test_password=$(generate_password 32)
 OUTPUT_FILE="/etc/genestack/kubesecrets.yaml"
 
 if [[ -f ${OUTPUT_FILE} ]]; then
-    echo "Error: ${OUTPUT_FILE} already exists. Please remove it before running this script."
-    echo "       This will replace an existing file and will lead to mass rotation, which is"
-    echo "       likely not what you want to do. If you really want to break your system, please"
-    echo "       make sure you know what you're doing."
-    exit 99
+    echo "Notice: ${OUTPUT_FILE} already exists."
+    echo "        Reusing existing secrets file to avoid mass rotation."
+    exit 0
 fi
 
 cat <<EOF > $OUTPUT_FILE
