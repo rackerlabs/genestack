@@ -6,17 +6,17 @@ images:
   tags:
     test: null
     glance_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
-    glance_metadefs_load: "ghcr.io/rackerlabs/genestack-images/glance:2024.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    glance_db_sync: "ghcr.io/rackerlabs/genestack-images/glance:2024.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    glance_metadefs_load: "ghcr.io/rackerlabs/genestack-images/glance:2025.1-latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    glance_db_sync: "ghcr.io/rackerlabs/genestack-images/glance:2025.1-latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     rabbit_init: null
-    glance_api: "ghcr.io/rackerlabs/genestack-images/glance:2024.1-latest"
+    glance_api: "ghcr.io/rackerlabs/genestack-images/glance:2025.1-latest"
     # Bootstrap image requires curl
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
     image_repo_sync: null
 
@@ -108,8 +108,6 @@ conf:
       # https://opendev.org/openstack/oslo.messaging/commit/36fb5bceabe08a982ebd52e4a8f005cd26fdf6b8
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
-      # DEPRECIATION:  (warning) heartbeat_in_pthread will be deprecated in 2024.2
-      heartbeat_in_pthread: true
       # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
