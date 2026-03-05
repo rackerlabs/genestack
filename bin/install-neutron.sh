@@ -146,6 +146,7 @@ set_args=(
     --set "conf.ovn_metadata_agent.DEFAULT.metadata_proxy_shared_secret=$(kubectl --namespace openstack get secret metadata-shared-secret -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.identity.auth.admin.password=$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.identity.auth.neutron.password=$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)"
+    --set "endpoints.identity.auth.test.password=$(kubectl --namespace openstack get secret neutron-keystone-test-password -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.identity.auth.nova.password=$(kubectl --namespace openstack get secret nova-admin -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.identity.auth.placement.password=$(kubectl --namespace openstack get secret placement-admin -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.identity.auth.designate.password=$(kubectl --namespace openstack get secret designate-admin -o jsonpath='{.data.password}' | base64 -d)"
