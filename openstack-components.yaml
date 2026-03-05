@@ -5,7 +5,7 @@ components:
   barbican: true
   blazar: false
   ceilometer: false
-  cinder: true
+  cinder: false
   cloudkitty: false
   freezer: false
   glance: true
