@@ -43,11 +43,9 @@ SKYLINE_SECRETS_FILE="/etc/genestack/skylinesecrets.yaml"
 
 # Check if skylinesecrets.yaml already exists
 if [[ -f ${SKYLINE_SECRETS_FILE} ]]; then
-    echo "Error: ${SKYLINE_SECRETS_FILE} already exists."
-    echo "       Skyline secrets have already been generated."
-    echo "       If you want to regenerate skyline secrets, please delete ${SKYLINE_SECRETS_FILE} first."
-    echo "       WARNING: This will generate NEW passwords and break existing Skyline installations!"
-    exit 1
+    echo "Notice: ${SKYLINE_SECRETS_FILE} already exists."
+    echo "        Reusing existing Skyline secrets file."
+    exit 0
 fi
 
 # Check if kubesecrets.yaml exists
