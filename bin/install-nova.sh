@@ -64,7 +64,7 @@ if [[ "$HELM_REPO_URL" == oci://* ]]; then
     HELM_CHART_PATH="$HELM_REPO_URL/$HELM_REPO_NAME/$SERVICE_NAME"
 else
     # --- Helm Repository and Execution ---
-    helm repo add "$HELM_REPO_NAME" "$HELM_REPO_URL"   # uncomment if needed
+    helm repo add "$HELM_REPO_NAME" "$HELM_REPO_URL"
     helm repo update
     HELM_CHART_PATH="$HELM_REPO_NAME/$SERVICE_NAME"
 fi
@@ -123,6 +123,18 @@ fi
 
 echo
 
+# Retrieve the Nova SSH public key
+pub_key="$(kubectl -n openstack get secret nova-ssh -o jsonpath='{.data.public-key}' | base64 -d)"
+
+# Create a temporary file to securely store the private key
+tmp_priv="$(mktemp)"
+
+# Ensure the temporary private key file is automatically deleted when the script exits or fails
+trap 'rm -f "$tmp_priv"' EXIT
+
+# Extract, decode, and save the Nova SSH private key to temp file
+kubectl -n openstack get secret nova-ssh -o jsonpath='{.data.private-key}' | base64 -d > "$tmp_priv"
+
 # Collect all --set arguments, executing commands and quoting safely
 # NOTE: This array contains OpenStack-specific secret retrievals and MUST be updated
 #       with the necessary --set arguments for your target SERVICE_NAME_DEFAULT.
@@ -130,6 +142,8 @@ set_args=(
     --set "conf.nova.neutron.metadata_proxy_shared_secret=$(kubectl --namespace openstack get secret metadata-shared-secret -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.identity.auth.admin.password=$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.identity.auth.nova.password=$(kubectl --namespace openstack get secret nova-admin -o jsonpath='{.data.password}' | base64 -d)"
+    --set "endpoints.identity.auth.service.password=$(kubectl --namespace openstack get secret nova-keystone-service-password -o jsonpath='{.data.password}' | base64 -d)"
+    --set "endpoints.identity.auth.test.password=$(kubectl --namespace openstack get secret nova-keystone-test-password -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.identity.auth.neutron.password=$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.identity.auth.ironic.password=$(kubectl --namespace openstack get secret ironic-admin -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.identity.auth.placement.password=$(kubectl --namespace openstack get secret placement-admin -o jsonpath='{.data.password}' | base64 -d)"
@@ -144,8 +158,8 @@ set_args=(
     --set "conf.nova.keystone_authtoken.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
     --set "endpoints.oslo_messaging.auth.admin.password=$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.oslo_messaging.auth.nova.password=$(kubectl --namespace openstack get secret nova-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)"
-    --set "network.ssh.public_key=$(kubectl -n openstack get secret nova-ssh -o jsonpath='{.data.public-key}' | base64 -d)"
-    --set "network.ssh.private_key=$(kubectl -n openstack get secret nova-ssh -o jsonpath='{.data.private-key}' | base64 -d)"
+    --set-string "network.ssh.public_key=${pub_key}"
+    --set-file   "network.ssh.private_key=${tmp_priv}"
 )
 
 
