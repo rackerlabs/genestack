@@ -61,6 +61,8 @@ placement_db_password=$(generate_password 32)
 placement_admin_password=$(generate_password 32)
 nova_db_password=$(generate_password 32)
 nova_admin_password=$(generate_password 32)
+nova_keystone_service_password=$(generate_password 32)
+nova_keystone_test_password=$(generate_password 32)
 nova_rabbitmq_password=$(generate_password 64)
 nova_ssh_public_key=$(ssh-keygen -qt ed25519 -N '' -C "nova_ssh" -f nova_ssh_key && cat nova_ssh_key.pub)
 nova_ssh_private_key=$(cat nova_ssh_key)
@@ -69,6 +71,7 @@ designate_admin_password=$(generate_password 32)
 neutron_rabbitmq_password=$(generate_password 64)
 neutron_db_password=$(generate_password 32)
 neutron_admin_password=$(generate_password 32)
+neutron_keystone_test_password=$(generate_password 32)
 horizon_secret_key=$(generate_password 64)
 horizon_db_password=$(generate_password 32)
 octavia_rabbitmq_password=$(generate_password 64)
@@ -356,6 +359,24 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
+  name: nova-keystone-service-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $nova-keystone-service-password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nova-keystone-test-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $nova-keystone-test-password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
   name: nova-rabbitmq-password
   namespace: openstack
 type: Opaque
@@ -437,6 +458,15 @@ metadata:
 type: Opaque
 data:
   password: $(echo -n $neutron_admin_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: neutron-keystone-test-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $neutron_keystone_test_password | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret
@@ -900,7 +930,7 @@ SKYLINE_SECRETS_FILE="/etc/genestack/skylinesecrets.yaml"
 if [[ -f ${SKYLINE_SECRETS_FILE} ]]; then
     echo "Found existing ${SKYLINE_SECRETS_FILE}, appending skyline secrets..."
     cat ${SKYLINE_SECRETS_FILE} >> ${OUTPUT_FILE}
-    echo "✓ Skyline secrets appended from ${SKYLINE_SECRETS_FILE}"
+    echo "Skyline secrets appended from ${SKYLINE_SECRETS_FILE}"
 else
     echo "Note: ${SKYLINE_SECRETS_FILE} not found. Run create-skyline-secrets.sh to add skyline secrets."
 fi
@@ -909,4 +939,4 @@ rm nova_ssh_key nova_ssh_key.pub
 rm manila_ssh_key manila_ssh_key.pub
 chmod 0640 ${OUTPUT_FILE}
 echo ""
-echo "✓ Secrets YAML file created as ${OUTPUT_FILE}"
+echo "Secrets YAML file created as ${OUTPUT_FILE}"
