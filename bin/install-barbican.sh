@@ -131,6 +131,7 @@ set_args=(
     --set "endpoints.identity.auth.barbican.password=$(kubectl --namespace openstack get secret barbican-admin -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.oslo_db.auth.admin.password=$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)"
     --set "endpoints.oslo_db.auth.barbican.password=$(kubectl --namespace openstack get secret barbican-db-password -o jsonpath='{.data.password}' | base64 -d)"
+    --set "conf.barbican.database.connection=mysql+pymysql://barbican:$(kubectl --namespace openstack get secret barbican-db-password -o jsonpath='{.data.password}' | base64 -d)@mariadb-cluster-primary:3306/barbican?charset=utf8"
     --set "endpoints.oslo_messaging.auth.admin.password=$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.oslo_messaging.auth.barbican.password=$(kubectl --namespace openstack get secret barbican-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.oslo_cache.auth.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
