@@ -4,7 +4,7 @@ attrs==23.2.0
 black==24.3.0
 bracex==2.4
 click==8.1.7
-filelock==3.13.1
+filelock==3.20.3
 jsonschema==4.21.1
 jsonschema-specifications==2023.12.1
 markdown-it-py==3.0.0
