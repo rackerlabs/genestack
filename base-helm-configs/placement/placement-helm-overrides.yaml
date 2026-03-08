@@ -51,6 +51,9 @@ conf:
       service_token_roles: service
       service_token_roles_required: true
       service_type: placement
+    cache:
+      enabled: true
+      backend: dogpile.cache.memcached
     oslo_concurrency:
       lock_path: /tmp/placement
     placement:

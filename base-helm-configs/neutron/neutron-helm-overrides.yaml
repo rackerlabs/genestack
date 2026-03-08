@@ -195,6 +195,9 @@ conf:
       rpc_workers: 2
       # NOTE(cloudnull): in 2025.1 we can add firewall_v2
       service_plugins: "ovn-router,ovn-vpnaas,qos,metering,trunk,segments"
+    cache:
+      enabled: true
+      backend: dogpile.cache.memcached
     service_providers:
       service_provider:
         type: multistring
@@ -268,6 +271,9 @@ conf:
   ovn_metadata_agent:
     DEFAULT:
       metadata_workers: 2
+    cache:
+      enabled: true
+      backend: dogpile.cache.memcached
     ovs:
       ovsdb_connection: "tcp:127.0.0.1:6640"
     ovn:
@@ -278,6 +284,9 @@ conf:
       ovn_sb_certificate: /etc/neutron/ovn/cert
       ovn_sb_ca_cert: /etc/neutron/ovn/cacert
   ovn_vpn_agent:
+    cache:
+      enabled: true
+      backend: dogpile.cache.memcached
     ovs:
       ovsdb_connection: "tcp:127.0.0.1:6640"
   plugins:
