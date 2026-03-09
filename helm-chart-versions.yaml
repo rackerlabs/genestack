@@ -9,7 +9,7 @@ charts:
   cinder: 2024.2.409+13651f45-628a320c
   cloudkitty: 2025.1.2+ebb1488dc
   designate: 2025.2.6+f3906fe15
-  envoyproxy-gateway: v1.5.3
+  envoyproxy-gateway: v1.7.0
   fluent-bit: 0.48.6
   freezer: 2025.2.0+18607738c
   glance: 2025.1.4+ed289c1cd
