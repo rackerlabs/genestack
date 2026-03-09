@@ -24,7 +24,7 @@ charts:
   kube-prometheus-stack: 78.3.0
   libvirt: 2024.2.94+912f85d38
   loki: 6.43.0
-  longhorn: 1.9.2
+  longhorn: 1.11.0
   magnum: 2025.1.4+4d4d4e25c
   mariadb-operator: 0.38.1
   masakari: 2025.2.0+eaefa0173
