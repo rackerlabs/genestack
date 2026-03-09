@@ -1,0 +1,57 @@
+---
+prelude: >
+  Barbican Epoxy enablement and validation has been completed for Genestack
+  using the OpenStack 2025.1 stream (Barbican 20.x). Deployment behavior,
+  database connectivity requirements, and post-deploy secret workflows were
+  verified in a hyperconverged lab environment.
+features:
+  - |
+    Barbican API deployment for the 2025.1 image stream was validated in the
+    hyperconverged lab and confirmed operational for service endpoint access.
+  - |
+    Basic Barbican secret lifecycle validation was completed successfully,
+    including secret store, metadata retrieval, payload retrieval, and delete.
+issues:
+  - |
+    Barbican client operations fail when Keystone key-manager endpoints point to
+    non-resolvable hostnames. Endpoint host/scheme values must match reachable
+    in-cluster service DNS and network paths.
+upgrade:
+  - |
+    Barbican DB sync requires a resolvable MariaDB service hostname (for example
+    `mariadb-cluster-primary`) and valid DB credentials to complete migration.
+  - |
+    During Epoxy validation, DB credential handling was confirmed through
+    Kubernetes secret injection via install workflow
+    (`endpoints.oslo_db.auth.*.password`) rather than static plaintext values.
+  - |
+    Upstream Barbican 2025.1 release impacts were reviewed; runtime baseline
+    changes include removal of Python 3.8 support (minimum supported is 3.9).
+deprecations:
+  - |
+    Hardcoded plaintext database connection strings in Barbican Helm overrides
+    are deprecated for Genestack deployment workflows and should be replaced
+    with secret-driven credential injection.
+  - |
+    Removed deprecated `heartbeat_in_pthread` override from Barbican chart
+    values to align with upstream deprecation guidance.
+  - |
+    Upstream deprecation of `[p11_crypto_plugin] hmac_keywrap_mechanism`
+    (renamed to `hmac_mechanism`) was reviewed; this is currently not applicable
+    in this environment because HMAC/PKCS#11 flow is not enabled.
+critical: []
+security:
+  - |
+    Secret-based DB credential handling was reinforced by using Kubernetes
+    secrets at deploy time instead of committing DB passwords in override YAML.
+fixes:
+  - |
+    Fixed `barbican-db-sync` failures caused by invalid or unresolved database
+    endpoint/connection configuration during Epoxy deployment.
+  - |
+    Fixed endpoint usage path for Barbican client operations so secret API calls
+    succeed without discovery/connection errors in the validated lab setup.
+other:
+  - |
+    No additional critical release-specific risks were identified for this
+    Barbican Epoxy validation scope.

@@ -34,6 +34,11 @@ file contains the necessary configuration values for Barbican, including databas
 service-specific settings. By providing these values, you can customize the deployment of Barbican to meet your specific requirements
 and ensure that the service operates correctly within your OpenStack environment.
 
+!!! note "Epoxy (2026.1) / OpenStack 2025.1"
+
+    Barbican is validated here against the OpenStack `2025.1` stream.
+    This update does not include direct changes to `barbican-helm-overrides.yaml`.
+
 !!! tip "Set the `host_href` value"
 
     The `host_href` value should be set to the public endpoint of the Barbican service. This value is used by other OpenStack services and public consumers to communicate with Barbican and should be accessible from all OpenStack services.
@@ -52,6 +57,12 @@ and ensure that the service operates correctly within your OpenStack environment
     ``` shell
     --8<-- "bin/install-barbican.sh"
     ```
+
+!!! note
+
+    For Epoxy validation, DB credentials are injected at install time from Kubernetes secrets in
+    `bin/install-barbican.sh` (for example `endpoints.oslo_db.auth.admin.password` and
+    `endpoints.oslo_db.auth.barbican.password`).
 
 !!! tip
 
