@@ -6,11 +6,13 @@ Cert Manager integrates with the Envoy Gateway API to automate the issuance, ren
 
 View the upstream chart Documentation [cert-manager helm](https://github.com/cert-manager/cert-manager/blob/master/deploy/charts/cert-manager/values.yaml) to configure custom-values.
 
-!!! Edit /etc/genestack/helm-configs/cert-manager/cert-manager/cert-manager-helm-overrides.yaml
+### Edit the upstream DNS servers
 
-   ```bash
+!!! example "Edit the config file `/etc/genestack/helm-configs/cert-manager/cert-manager/cert-manager-helm-overrides.yaml` and update the variable `dns01RecursiveNameservers`"
+
+   ``` yaml
    ---
-   dns01RecursiveNameservers: "8.8.8.8:53, 1.1.1.1:53" <-----CHANGE
+   dns01RecursiveNameservers: "8.8.8.8:53, 1.1.1.1:53"
    dns01RecursiveNameserversOnly: true
    ```
 
@@ -25,5 +27,5 @@ View the upstream chart Documentation [cert-manager helm](https://github.com/cer
 ## Verify readiness with the following command
 
 ``` shell
-kubectl -n cert-manager deployments.apps/cert-manager -w
+kubectl -n cert-manager wait deployments.apps/cert-manager --for=condition=Available
 ```
