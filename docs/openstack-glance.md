@@ -35,13 +35,11 @@ OpenStack Glance is the image service within the OpenStack ecosystem, responsibl
 
 !!! note "Information about the default policy rules used"
 
-    The default policy allows only the glance_admin role to publicize images.
-    The default policy allows only the glance_admin role or owner role to download images.
-    These default policy roles are found in genestack/base-helm-configs/glance/glance-helm-overrides.yaml.
-    To modify these policies, follow the policy allow concepts in the 
-    "Policy change to allow admin or owner to publicize image" example.
+    The default policy allows only the **glance_admin** role to publicize images. The default policy allows only the **glance_admin** role or
+    **owner** role to download images. These default policy roles are found in genestack/base-helm-configs/glance/glance-helm-overrides.yaml.
+    To modify these policies, follow the policy allow concepts in the "Policy change to allow admin or owner to publicize image" example.
 
-    ??? example "Default policy rules"
+    !!! example "Default policy rules"
 
         ``` yaml
         conf:
@@ -67,6 +65,11 @@ OpenStack Glance is the image service within the OpenStack ecosystem, responsibl
             "download_image": "rule:is_owner or rule:context_is_admin"
         ```
 
+    To assign the **glance_admin** role to a user, you can use the OpenStack CLI or dashboard. For example, using the OpenStack CLI:
+
+    ``` shell
+    openstack role add --project <project_name> --user <user_name> glance_admin
+    ```
 
 ## Run the package deployment
 
