@@ -16,6 +16,8 @@
 
 export TEST_LEVEL="${TEST_LEVEL:-off}"
 export LAB_NETWORK_MTU="${LAB_NETWORK_MTU:-1500}"
+# enable or disable the deployment of openstack services within the lab environment.
+export DISABLE_OPENSTACK=${DISABLE_OPENSTACK:-false}
 
 #############################################################################
 # Common Utility Functions
@@ -1225,6 +1227,7 @@ function runGenestackSetup() {
 
     local gateway_domain="$1"
     local acme_email="$2"
+    local disable_openstack="${3:-false}"
 
     echo "Installing OpenStack Infrastructure"
     sudo LONGHORN_STORAGE_REPLICAS=1 \
@@ -1233,9 +1236,11 @@ function runGenestackSetup() {
          HYPERCONVERGED=true \
          /opt/genestack/bin/setup-infrastructure.sh
 
-    echo "Installing OpenStack"
-    sudo /opt/genestack/bin/setup-openstack.sh
-    sudo /opt/genestack/bin/setup-openstack-rc.sh
+    if [ ${disable_openstack} = false ]; then
+      echo "Installing OpenStack"
+      sudo /opt/genestack/bin/setup-openstack.sh
+      sudo /opt/genestack/bin/setup-openstack-rc.sh
+    fi
 }
 
 #############################################################################
@@ -1288,6 +1293,7 @@ function runGenestackSetupRemote() {
     local jump_host="$2"
     local gateway_domain="$3"
     local acme_email="$4"
+    local disable_openstack="${5:-false}"
 
     echo "Installing OpenStack Infrastructure on jump host..."
 
@@ -1299,7 +1305,7 @@ function runGenestackSetupRemote() {
         cat <<EOF
 set -e
 ensureYq
-runGenestackSetup "${gateway_domain}" "${acme_email}"
+runGenestackSetup "${gateway_domain}" "${acme_email}" ${disable_openstack}
 EOF
     } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${ssh_user}@${jump_host} bash
 }
@@ -1604,4 +1610,33 @@ openstack volume qos associate Standard-Block Standard
 openstack volume type set --private __DEFAULT__
 ANSIBLE_EOF
     } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t "ubuntu@${JUMP_HOST_IP}" bash
+}
+
+function install_preconf_octavia() {
+    echo "Installing Octavia preconf"
+    ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} << 'EOC'
+set -e
+
+if [ ! -f ~/.config/openstack ]; then
+    sudo mkdir -p ~/.config/openstack
+    sudo cp /root/.config/openstack/clouds.yaml ~/.config/openstack
+    sudo chown $(id -u):$(id -g) ~/.config
+fi
+
+source ~/.venvs/genestack/bin/activate
+
+OCTAVIA_HELM_FILE=/tmp/octavia_helm_overrides.yaml
+
+ANSIBLE_SSH_PIPELINING=0 ansible-playbook /opt/genestack/ansible/playbooks/octavia-preconf-main.yaml \
+    -e octavia_os_password=$(/usr/local/bin/kubectl get secrets keystone-admin -n openstack -o jsonpath='{.data.password}' | base64 -d) \
+    -e octavia_os_region_name=$(sudo ~/.venvs/genestack/bin/openstack --os-cloud=default endpoint list --service keystone --interface internal -c Region -f value) \
+    -e octavia_os_auth_url=$(sudo ~/.venvs/genestack/bin/openstack --os-cloud=default endpoint list --service keystone --interface internal -c URL -f value) \
+    -e octavia_os_endpoint_type=internal \
+    -e octavia_helm_file=$OCTAVIA_HELM_FILE \
+    -e interface=internal \
+    -e endpoint_type=internal
+
+echo "Installing Octavia"
+sudo /opt/genestack/bin/install-octavia.sh -f $OCTAVIA_HELM_FILE
+EOC
 }

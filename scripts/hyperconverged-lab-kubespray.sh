@@ -647,74 +647,53 @@ EOC
 # Run Genestack Infrastructure Setup (common function)
 #############################################################################
 
-runGenestackSetupRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}" "${GATEWAY_DOMAIN}" "${ACME_EMAIL}"
+runGenestackSetupRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}" "${GATEWAY_DOMAIN}" "${ACME_EMAIL}" "${DISABLE_OPENSTACK}"
 
 #############################################################################
 # Cinder Volume Setup
 #############################################################################
-if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ] && [ ${DISABLE_OPENSTACK} = "false" ]; then
   cinderVolumeSetup
+fi
+
+#############################################################################
+# Octavia per-configuration
+#############################################################################
+if [ "${RUN_EXTRAS}" -eq 1 ] && [ ${DISABLE_OPENSTACK} = "false" ]; then
+  install_preconf_octavia
 fi
 
 #############################################################################
 # Extra Operations
 #############################################################################
 
-install_preconf_octavia() {
-    echo "Installing Octavia preconf"
-    ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} << 'EOC'
-set -e
-
-if [ ! -f ~/.config/openstack ]; then
-    sudo mkdir -p ~/.config/openstack
-    sudo cp /root/.config/openstack/clouds.yaml ~/.config/openstack
-    sudo chown $(id -u):$(id -g) ~/.config
-fi
-
-source ~/.venvs/genestack/bin/activate
-
-OCTAVIA_HELM_FILE=/tmp/octavia_helm_overrides.yaml
-
-ANSIBLE_SSH_PIPELINING=0 ansible-playbook /opt/genestack/ansible/playbooks/octavia-preconf-main.yaml \
-    -e octavia_os_password=$(/usr/local/bin/kubectl get secrets keystone-admin -n openstack -o jsonpath='{.data.password}' | base64 -d) \
-    -e octavia_os_region_name=$(sudo ~/.venvs/genestack/bin/openstack --os-cloud=default endpoint list --service keystone --interface internal -c Region -f value) \
-    -e octavia_os_auth_url=$(sudo ~/.venvs/genestack/bin/openstack --os-cloud=default endpoint list --service keystone --interface internal -c URL -f value) \
-    -e octavia_os_endpoint_type=internal \
-    -e octavia_helm_file=$OCTAVIA_HELM_FILE \
-    -e interface=internal \
-    -e endpoint_type=internal
-
-echo "Installing Octavia"
-sudo /opt/genestack/bin/install-octavia.sh -f $OCTAVIA_HELM_FILE
-EOC
-}
-
 if [[ "$RUN_EXTRAS" -eq 1 ]]; then
     echo "Running extra operations..."
     installK9sRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}"
-    install_preconf_octavia
 fi
 
 #############################################################################
 # Post-Setup and Tests
 #############################################################################
 
-# Wait for Nova and Neutron APIs to be ready before proceeding
-waitForOpenStackAPIsReadyRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}"
 
-if [[ "${TEST_LEVEL}" == "off" ]]; then
+if [ "${TEST_LEVEL}" = "off" ]; then
     createPostSetupResourcesRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}" "${LAB_NAME_PREFIX}"
 else
-    echo "Running tests at level: ${TEST_LEVEL}"
+    # Wait for Nova and Neutron APIs to be ready before proceeding
+    if [ ${DISABLE_OPENSTACK} = "false" ]; then
+        waitForOpenStackAPIsReadyRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}"
 
-    ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} \
-        "sudo TEST_RESULTS_DIR=/tmp/test-results /opt/genestack/scripts/tests/run-all-tests.sh ${TEST_LEVEL}"
+        echo "Running tests at level: ${TEST_LEVEL}"
 
-    mkdir -p test-results
-    scp -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${SSH_USERNAME}@${JUMP_HOST_VIP}:/tmp/test-results/*.xml ./test-results/ 2>/dev/null || echo "No test result XML files found"
-    scp -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${SSH_USERNAME}@${JUMP_HOST_VIP}:/tmp/test-results/*.txt ./test-results/ 2>/dev/null || echo "No test result text files found"
+        ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} \
+            "sudo TEST_RESULTS_DIR=/tmp/test-results /opt/genestack/scripts/tests/run-all-tests.sh ${TEST_LEVEL}"
+
+        mkdir -p test-results
+        scp -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${SSH_USERNAME}@${JUMP_HOST_VIP}:/tmp/test-results/*.xml ./test-results/ 2>/dev/null || echo "No test result XML files found"
+        scp -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${SSH_USERNAME}@${JUMP_HOST_VIP}:/tmp/test-results/*.txt ./test-results/ 2>/dev/null || echo "No test result text files found"
+    fi
 fi
-
 #############################################################################
 # Output Summary
 #############################################################################
