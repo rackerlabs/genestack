@@ -843,7 +843,7 @@ echo
 # Apply the gateway configuration
 kubectl apply -k /etc/genestack/kustomize/envoyproxy-gateway/overlay
 echo "Waiting for the gateway to be programmed"
-kubectl -n envoy-gateway wait --timeout=5m gateways.gateway.networking.k8s.io flex-gateway --for=condition=Programmed
+kubectl -n envoy-gateway wait --timeout=5m gateways.gateway.networking.k8s.io flex-gateway --for=condition=Accepted
 
 # Configure ACME if email is provided
 if [ ! -z "${ACME_EMAIL}" ]; then
