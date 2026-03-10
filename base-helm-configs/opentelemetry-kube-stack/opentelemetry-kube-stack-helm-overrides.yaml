@@ -179,6 +179,10 @@ collectors:
             paging: {}
 
         filelog/k8s_containers:
+          max_concurrent_files: 1024
+          fingerprint_size: 1024
+          max_batches: 0
+          encoding: utf-8
           include:
             - /var/log/pods/*/*/*.log
           exclude:
@@ -201,7 +205,7 @@ collectors:
             - /var/log/pods/*/gnocchi-*/*.log
             - /var/log/pods/*/skyline-*/*.log
             - /var/log/pods/*/trove-*/*.log
-          start_at: beginning
+          start_at: end
           include_file_path: true
           operators:
             - id: container-parser
@@ -234,6 +238,9 @@ collectors:
 
         # CONSOLIDATED OPENSTACK LOG RECEIVER
         filelog/openstack:
+          max_concurrent_files: 1024
+          fingerprint_size: 1024
+          encoding: utf-8
           include:
             # Direct log files from nodes
             - /var/log/nova/*.log
@@ -274,7 +281,7 @@ collectors:
             - /var/log/pods/*/trove-*/*.log
           exclude:
             - /var/log/*/*.gz
-          start_at: beginning
+          start_at: end
           include_file_path: true
           # Multiline pattern must match AFTER CRI unwrapping
           # CRI format: 2026-02-19T22:35:59.398699658Z stdout F <actual log line>
@@ -290,7 +297,7 @@ collectors:
               is_first_entry: 'body matches "^(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z stdout [FP] )?\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}|^(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z stdout [FP] )?[\\d\\.]+ -"'
               combine_with: "\n"
               source_identifier: attributes["log.file.path"]
-              max_log_size: 102400
+              max_log_size: 1048576
 
             # ── Extract service name from file path ─────────────────────────────
             - type: regex_parser
@@ -430,9 +437,9 @@ collectors:
           spike_limit_percentage: 25
 
         batch:
-          send_batch_size: 1000
-          timeout: 10s
-          send_batch_max_size: 1500
+          send_batch_size: 2000
+          timeout: 15s
+          send_batch_max_size: 3000
 
         attributes:
           actions:
@@ -497,6 +504,9 @@ collectors:
               from_attribute: app
               action: upsert
             - key: application
+              from_attribute: service.name
+              action: insert # fallback if application doesn't exist...
+            - key: application
               from_attribute: app.kubernetes.io/name
               action: upsert
             - key: component
@@ -514,7 +524,7 @@ collectors:
 
         k8sattributes:
           auth_type: "serviceAccount"
-          passthrough: false
+          passthrough: true
           extract:
             metadata:
               - k8s.namespace.name
