@@ -122,6 +122,9 @@ conf:
       nova_catalog_admin_info: compute:nova:adminURL
       service_down_time: 30
       wait_period_after_service_update: 30
+    cache:
+      enabled: true
+      backend: dogpile.cache.memcached
     host_failure:
       evacuate_all_instances: false
       ignore_instances_in_error_state: true
@@ -167,6 +170,9 @@ conf:
   masakarimonitors:
     DEFAULT:
       debug: false
+    cache:
+      enabled: true
+      backend: dogpile.cache.memcached
     api:
       api_interface: internal
     host:

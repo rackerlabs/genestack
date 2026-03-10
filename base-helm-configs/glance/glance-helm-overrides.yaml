@@ -63,6 +63,9 @@ conf:
       cinder_use_multipath: true
       cinder_enforce_multipath: false
       show_image_direct_url: false
+    cache:
+      enabled: true
+      backend: dogpile.cache.memcached
     oslo_middleware:
       enable_proxy_headers_parsing: true
     keystone_authtoken:
