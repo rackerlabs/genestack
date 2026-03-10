@@ -12,7 +12,7 @@ charts:
   envoyproxy-gateway: v1.5.3
   fluent-bit: 0.48.6
   freezer: 2025.2.0+18607738c
-  glance: 2024.2.396+13651f45-628a320c
+  glance: 2025.1.4+ed289c1cd
   gnocchi: 2024.2.52+22.15d38
   grafana: 10.1.0
   heat: 2024.2.294+13651f45-628a320c
