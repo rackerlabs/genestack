@@ -2,6 +2,10 @@
 
 The following page highlights how to retrieve various images and upload them into Glance.
 
+!!! note
+
+    Glance validates uploaded/imported image content against the declared `disk_format` by default. Always pass the correct `--disk-format` value for the source file type (for example, `qcow2` for `.qcow2` images, `raw` for raw images).
+
 ## Image Properties Breakdown
 
 Throughout the various examples you'll notice the images have a number of properties defined.
