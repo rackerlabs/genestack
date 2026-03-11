@@ -3,7 +3,6 @@
 fullnameOverride: ""
 namespaceOverride: ""
 clusterName: ""
-extraEnvs: []
 
 cleanupJob:
   enabled: true
@@ -36,27 +35,9 @@ defaultCRConfig:
   priorityClassName: ""
   terminationGracePeriodSeconds: 30
 
-  nodeSelector: {}
-  args: {}
-  autoscaler: {}
-  podDisruptionBudget: {}
-  securityContext: {}
-  podSecurityContext: {}
-  podAnnotations: {}
-  targetAllocator: {}
-  affinity: {}
-  lifecycle: {}
-  livenessProbe: {}
-
   observability:
     metrics:
       enableMetrics: true
-
-  updateStrategy: {}
-  daemonSetUpdateStrategy: {}
-  deploymentUpdateStrategy: {}
-  persistentVolumeClaimRetentionPolicy: {}
-  volumeMounts: []
 
   ports:
     - name: otlp-grpc
@@ -71,18 +52,6 @@ defaultCRConfig:
       protocol: TCP
       port: 8888
       targetPort: 8888
-
-  env: []
-  volumeClaimTemplates: []
-  tolerations: []
-  volumes: []
-  initContainers: []
-  additionalContainers: []
-  topologySpreadConstraints: []
-  configmaps: []
-  # Environment variables for the collector pods
-  # K8S_NODE_NAME is required for kubeletstats to identify its node
-  envFrom: []
 
   presets:
     logsCollection:
@@ -108,6 +77,163 @@ defaultCRConfig:
       metrics:
         enabled: false
 
+  config:
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 90
+        spike_limit_percentage: 25
+
+      batch:
+        send_batch_size: 1000
+        timeout: 10s
+        send_batch_max_size: 1500
+
+      resourcedetection/env:
+        detectors: [env, system]
+        timeout: 5s
+        override: false
+
+      attributes:
+        actions:
+          - key: deployment.environment
+            value: "genestack"
+            action: insert
+          - key: k8s.cluster.name
+            value: "openstack-genestack-k8s-cluster"
+            action: insert
+
+      resource/openstack:
+        attributes:
+          - key: service.namespace
+            value: "openstack"
+            action: upsert
+
+      resource/k8s:
+        attributes:
+          - key: service.namespace
+            value: "kube-system"
+            action: upsert
+
+      resource/k8s-events:
+        attributes:
+          - key: log_type
+            value: "k8s-event"
+            action: insert
+
+      resource/loki-labels:
+        attributes:
+          - key: namespace
+            from_attribute: k8s.namespace.name
+            action: upsert
+          - key: pod
+            from_attribute: k8s.pod.name
+            action: upsert
+          - key: container
+            from_attribute: k8s.container.name
+            action: upsert
+          - key: node
+            from_attribute: k8s.node.name
+            action: upsert
+          - key: cluster
+            from_attribute: k8s.cluster.name
+            action: upsert
+          - key: deployment
+            from_attribute: k8s.deployment.name
+            action: upsert
+          - key: statefulset
+            from_attribute: k8s.statefulset.name
+            action: upsert
+          - key: daemonset
+            from_attribute: k8s.daemonset.name
+            action: upsert
+          - key: job
+            from_attribute: k8s.job.name
+            action: upsert
+          - key: cronjob
+            from_attribute: k8s.cronjob.name
+            action: upsert
+          - key: service_name
+            from_attribute: service.name
+            action: upsert
+          - key: service_namespace
+            from_attribute: service.namespace
+            action: upsert
+          - key: severity
+            from_attribute: severity
+            action: upsert
+          - key: application
+            from_attribute: service.name
+            action: upsert
+          - key: component
+            from_attribute: component
+            action: upsert
+          - key: log_type
+            from_attribute: log_type
+            action: upsert
+
+      resource/hostname:
+        attributes:
+          - key: host.name
+            from_attribute: k8s.node.name
+            action: insert
+
+      k8sattributes:
+        auth_type: "serviceAccount"
+        passthrough: false
+        extract:
+          metadata:
+            - k8s.namespace.name
+            - k8s.pod.name
+            - k8s.pod.uid
+            - k8s.deployment.name
+            - k8s.statefulset.name
+            - k8s.daemonset.name
+            - k8s.job.name
+            - k8s.cronjob.name
+            - k8s.node.name
+            - k8s.pod.start_time
+            - k8s.container.name
+          labels:
+            - tag_name: app
+              key: app
+              from: pod
+            - tag_name: app_kubernetes_io_name
+              key: app.kubernetes.io/name
+              from: pod
+            - tag_name: app_kubernetes_io_component
+              key: app.kubernetes.io/component
+              from: pod
+            - tag_name: app_kubernetes_io_instance
+              key: app.kubernetes.io/instance
+              from: pod
+            - tag_name: app_kubernetes_io_version
+              key: app.kubernetes.io/version
+              from: pod
+          annotations:
+            - tag_name: openstack_service
+              key: openstack.service
+              from: pod
+
+    exporters:
+      prometheusremotewrite:
+        endpoint: "http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090/api/v1/write"
+        tls:
+          insecure: true
+
+      otlp/tempo:
+        endpoint: "tempo.grafana.svc.cluster.local:4317"
+        tls:
+          insecure: true
+
+      otlphttp/loki:
+        endpoint: "http://loki-gateway.grafana.svc.cluster.local/otlp"
+
+      debug:
+        verbosity: normal
+        sampling_initial: 2
+        sampling_thereafter: 1000
+
 collectors:
   daemon:
     suffix: daemon
@@ -121,24 +247,6 @@ collectors:
         cpu: 2048m
         memory: 2048Mi
     scrape_configs_file: "daemon_scrape_configs.yaml"
-    presets:
-      logsCollection:
-        enabled: true
-      kubeletMetrics:
-        enabled: false
-      hostMetrics:
-        enabled: false
-      kubernetesAttributes:
-        enabled: true
-      kubernetesEvents:
-        enabled: true
-      clusterMetrics:
-        enabled: false
-      annotationDiscovery:
-        logs:
-          enabled: false
-        metrics:
-          enabled: false
 
     config:
       receivers:
@@ -408,7 +516,7 @@ collectors:
               if: 'attributes.request_id != nil'
 
       processors:
-        attributes/add-node-labels:  # ← Revert to this
+        attributes/add-node-labels:
           actions:
             - key: k8s.node.name
               value: ${env:K8S_NODE_NAME}
@@ -419,27 +527,6 @@ collectors:
             - key: service.instance.id
               value: ${env:K8S_NODE_NAME}
               action: insert
-
-        resourcedetection/env:
-          detectors: [env, k8snode, system]
-          timeout: 5s
-          override: false
-
-        resource/hostname:
-          attributes:
-            - key: host.name
-              from_attribute: k8s.node.name
-              action: insert
-
-        memory_limiter:
-          check_interval: 1s
-          limit_percentage: 90
-          spike_limit_percentage: 25
-
-        batch:
-          send_batch_size: 2000
-          timeout: 15s
-          send_batch_max_size: 3000
 
         attributes:
           actions:
@@ -575,32 +662,13 @@ collectors:
             - sources:
                 - from: connection
 
-      exporters:
-        debug:
-          verbosity: normal
-          sampling_initial: 2
-          sampling_thereafter: 1000
-
-        prometheusremotewrite:
-          endpoint: "http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090/api/v1/write"
-          tls:
-            insecure: true
-
-        otlp/tempo:
-          endpoint: "tempo.grafana.svc.cluster.local:4317"
-          tls:
-            insecure: true
-
-        otlphttp/loki:
-          endpoint: "http://loki-gateway.grafana.svc.cluster.local/otlp"
-
       service:
         # Telemetry configuration for the collector's own logs
         telemetry:
           logs:
-            level: info  # Options: debug, info, warn, error
+            level: info
             development: false
-            encoding: console  # or json
+            encoding: console
             disable_caller: false
             disable_stacktrace: false
             output_paths:
@@ -674,10 +742,10 @@ collectors:
 
           logs/openstack:
             receivers:
-              - filelog/openstack  # Single consolidated receiver
+              - filelog/openstack
             processors:
               - memory_limiter
-              - k8sattributes      # Enriches with K8s metadata if from pod
+              - k8sattributes
               - batch
               - attributes
               - resource/openstack
@@ -686,10 +754,173 @@ collectors:
               - debug
               - otlphttp/loki
 
+  deployment:
+    suffix: deployment
+    mode: deployment
+    enabled: true
+    replicas: 2
+
+    nodeSelector:
+      openstack-control-plane: enabled
+
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+      requests:
+        cpu: 500m
+        memory: 512Mi
+
+    env:
+      - name: MYSQL_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: mariadb-monitoring
+            key: password
+
+      - name: POSTGRESQL_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: postgres.postgres-cluster.credentials.postgresql.acid.zalan.do
+            key: password
+
+      - name: RABBITMQ_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: rabbitmq-default-user
+            key: password
+
+    config:
+      receivers:
+        mysql:
+          endpoint: mariadb-cluster-internal.openstack.svc.cluster.local:3306
+          username: monitoring
+          password: ${env:MYSQL_PASSWORD}
+          collection_interval: 30s
+          metrics:
+            mysql.connection.count:
+              enabled: true
+            mysql.connection.errors:
+              enabled: true
+            mysql.commands:
+              enabled: true
+            mysql.buffer_pool.usage:
+              enabled: true
+            mysql.threads:
+              enabled: true
+            mysql.locks:
+              enabled: true
+
+        postgresql:
+          endpoint: postgresql-cluster.openstack.svc.cluster.local:5432
+          username: postgres
+          password: ${env:POSTGRESQL_PASSWORD}
+          collection_interval: 30s
+          metrics:
+            postgresql.backends:
+              enabled: true
+            postgresql.commits:
+              enabled: true
+            postgresql.rollbacks:
+              enabled: true
+            postgresql.db_size:
+              enabled: true
+            postgresql.deadlocks:
+              enabled: true
+            postgresql.blocks_read:
+              enabled: true
+
+        rabbitmq:
+          endpoint: http://rabbitmq.openstack.svc.cluster.local:15672
+          username: rabbitmq
+          password: ${env:RABBITMQ_PASSWORD}
+          collection_interval: 30s
+          metrics:
+            rabbitmq.node.disk_free:
+              enabled: true
+            rabbitmq.node.disk_free_limit:
+              enabled: true
+            rabbitmq.node.disk_free_alarm:
+              enabled: true
+            rabbitmq.node.mem_used:
+              enabled: true
+            rabbitmq.node.mem_limit:
+              enabled: true
+            rabbitmq.node.mem_alarm:
+              enabled: true
+            rabbitmq.node.fd_used:
+              enabled: true
+            rabbitmq.node.fd_total:
+              enabled: true
+            rabbitmq.node.sockets_used:
+              enabled: true
+            rabbitmq.node.sockets_total:
+              enabled: true
+            rabbitmq.node.proc_used:
+              enabled: true
+            rabbitmq.node.proc_total:
+              enabled: true
+            rabbitmq.node.disk_free_details.rate:
+              enabled: true
+            rabbitmq.node.fd_used_details.rate:
+              enabled: true
+            rabbitmq.node.mem_used_details.rate:
+              enabled: true
+            rabbitmq.node.proc_used_details.rate:
+              enabled: true
+            rabbitmq.node.sockets_used_details.rate:
+              enabled: true
+
+        memcached:
+          endpoint: memcached.openstack.svc.cluster.local:11211
+          collection_interval: 30s
+          transport: tcp
+          metrics:
+            memcached.operation_hit_ratio:
+              enabled: true
+            memcached.current_items:
+              enabled: true
+            memcached.evictions:
+              enabled: true
+            memcached.bytes:
+              enabled: true
+
+      processors:
+        # Add service identification
+        resource/service-metrics:
+          attributes:
+            - key: service.namespace
+              value: "openstack"
+              action: upsert
+            - key: deployment.environment
+              value: "genestack"
+              action: upsert
+
+      service:
+        telemetry:
+          logs:
+            level: info
+          metrics:
+            level: detailed
+
+        pipelines:
+          metrics:
+            receivers:
+              - mysql
+              - postgresql
+              - rabbitmq
+              - memcached
+            processors:
+              - resource/service-metrics
+              - resourcedetection/env
+              - memory_limiter
+              - batch
+            exporters:
+              - prometheusremotewrite
+              - debug
+
 clusterRole:
   enabled: true
-  annotations: {}
-  rules: []
 
 instrumentation:
   enabled: true
@@ -711,14 +942,6 @@ instrumentation:
   sampler:
     type: parentbased_traceidratio
     argument: "0.1"
-  env: []
-  java: {}
-  nodejs: {}
-  python: {}
-  dotnet: {}
-  go: {}
-  apacheHttpd: {}
-  nginx: {}
 
 kubernetesServiceMonitors:
   enabled: true
@@ -730,13 +953,6 @@ kubeApiServer:
     serverName: kubernetes
     insecureSkipVerify: false
   serviceMonitor:
-    interval: ""
-    sampleLimit: 0
-    targetLimit: 0
-    labelLimit: 0
-    labelNameLengthLimit: 0
-    labelValueLengthLimit: 0
-    proxyUrl: ""
     jobLabel: component
     selector:
       matchLabels:
@@ -748,14 +964,11 @@ kubeApiServer:
         sourceLabels:
           - __name__
           - le
-    relabelings: []
-    additionalLabels: {}
 
 kubelet:
   enabled: false
   namespace: kube-system
   serviceMonitor:
-    interval: ""
     honorLabels: true
     honorTimestamps: true
     https: true
@@ -764,134 +977,65 @@ kubelet:
 
 kubeControllerManager:
   enabled: true
-  endpoints: []
   service:
     enabled: true
     port: null
     targetPort: null
   serviceMonitor:
     enabled: true
-    interval: ""
-    sampleLimit: 0
-    targetLimit: 0
-    labelLimit: 0
-    labelNameLengthLimit: 0
-    labelValueLengthLimit: 0
-    proxyUrl: ""
     port: http-metrics
     jobLabel: jobLabel
-    selector: {}
-    https: null
-    insecureSkipVerify: null
-    serverName: null
-    metricRelabelings: []
-    relabelings: []
-    additionalLabels: {}
 
 coreDns:
   enabled: true
-  endpoints: []
   service:
     enabled: true
     port: 9153
     targetPort: 9153
   serviceMonitor:
     enabled: true
-    interval: ""
-    sampleLimit: 0
-    targetLimit: 0
-    labelLimit: 0
-    labelNameLengthLimit: 0
-    labelValueLengthLimit: 0
-    proxyUrl: ""
     port: http-metrics
     jobLabel: jobLabel
-    selector: {}
-    metricRelabelings: []
-    relabelings: []
-    additionalLabels: {}
 
 kubeDns:
   enabled: false
 
 kubeEtcd:
   enabled: true
-  endpoints: []
   service:
     enabled: true
     port: 2381
     targetPort: 2381
   serviceMonitor:
     enabled: true
-    interval: ""
-    sampleLimit: 0
-    targetLimit: 0
-    labelLimit: 0
-    labelNameLengthLimit: 0
-    labelValueLengthLimit: 0
-    proxyUrl: ""
     scheme: http
     insecureSkipVerify: false
-    serverName: ""
-    caFile: ""
-    certFile: ""
-    keyFile: ""
     port: http-metrics
     jobLabel: jobLabel
-    selector: {}
-    metricRelabelings: []
-    relabelings: []
     additionalLabels: {}
 
 kubeScheduler:
   enabled: true
-  endpoints: []
   service:
     enabled: true
-    port: null
-    targetPort: null
   serviceMonitor:
     enabled: true
-    interval: ""
-    sampleLimit: 0
-    targetLimit: 0
-    labelLimit: 0
-    labelNameLengthLimit: 0
-    labelValueLengthLimit: 0
-    proxyUrl: ""
     https: null
     port: http-metrics
     jobLabel: jobLabel
-    selector: {}
-    insecureSkipVerify: null
-    serverName: null
-    metricRelabelings: []
-    relabelings: []
-    additionalLabels: {}
 
 kubeProxy:
   enabled: true
-  endpoints: []
   service:
     enabled: true
     port: 10249
     targetPort: 10249
   serviceMonitor:
     enabled: true
-    interval: ""
-    sampleLimit: 0
-    targetLimit: 0
-    labelLimit: 0
-    labelNameLengthLimit: 0
-    labelValueLengthLimit: 0
-    proxyUrl: ""
     port: http-metrics
     jobLabel: jobLabel
     selector: {}
     https: false
-    metricRelabelings: []
-    relabelings: []
-    additionalLabels: {}
 
 kubeStateMetrics:
   enabled: true
@@ -906,17 +1050,7 @@ kube-state-metrics:
   prometheus:
     monitor:
       enabled: true
-      interval: ""
-      sampleLimit: 0
-      targetLimit: 0
-      labelLimit: 0
-      labelNameLengthLimit: 0
-      labelValueLengthLimit: 0
-      scrapeTimeout: ""
-      proxyUrl: ""
       honorLabels: true
-      metricRelabelings: []
-      relabelings: []
   selfMonitor:
     enabled: false
 
@@ -946,17 +1080,5 @@ prometheus-node-exporter:
     monitor:
       enabled: true
       jobLabel: jobLabel
-      interval: ""
-      sampleLimit: 0
-      targetLimit: 0
-      labelLimit: 0
-      labelNameLengthLimit: 0
-      labelValueLengthLimit: 0
-      scrapeTimeout: ""
-      proxyUrl: ""
-      metricRelabelings: []
-      relabelings: []
   rbac:
     pspEnabled: false
-
-extraObjects: []

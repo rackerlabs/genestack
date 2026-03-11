@@ -1,0 +1,15 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: User
+metadata:
+  name: monitoring
+spec:
+  name: monitoring
+  mariaDbRef:
+    name: mariadb-cluster
+  passwordSecretKeyRef:
+    name: mariadb-monitoring
+    key: password
+  maxUserConnections: 15
+  host: "%"
+  requeueInterval: 30s
+  retryInterval: 5s
