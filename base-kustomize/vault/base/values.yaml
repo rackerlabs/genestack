@@ -1,8 +1,8 @@
+---
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
 # Available parameters and their default values for the Vault chart.
-
 global:
   # enabled is the master enabled switch. Setting this to true or false
   # will enable or disable all the components within this chart by default.
@@ -279,7 +279,7 @@ injector:
   # extraEnvironmentVars is a list of extra environment variables to set in the
   # injector deployment.
   extraEnvironmentVars: {}
-    # KUBERNETES_SERVICE_HOST: kubernetes.default.svc
+  # KUBERNETES_SERVICE_HOST: kubernetes.default.svc
 
   # Affinity Settings for injector pods
   # This can either be a multi-line string or YAML matching the PodSpec's affinity field.
@@ -410,7 +410,7 @@ server:
   ingress:
     enabled: false
     labels: {}
-      # traffic: external
+    # traffic: external
     annotations:
       nginx.ingress.kubernetes.io/backend-protocol: HTTPS
       # |
@@ -444,9 +444,9 @@ server:
     #       port:
     #         number: use-annotation
     tls:
-     - secretName: vault-tls-public
-       hosts:
-         - vault.your.domain.tld
+      - secretName: vault-tls-public
+        hosts:
+          - vault.your.domain.tld
 
   # hostAliases is a list of aliases to be added to /etc/hosts. Specified as a YAML list.
   hostAliases: []
@@ -482,20 +482,20 @@ server:
   # This is useful if you need to run a script to provision TLS certificates or
   # write out configuration files in a dynamic way.
   extraInitContainers: null
-    # # This example installs a plugin pulled from github into the /usr/local/libexec/vault/oauthapp folder,
-    # # which is defined in the volumes value.
-    # - name: oauthapp
-    #   image: "alpine"
-    #   command: [sh, -c]
-    #   args:
-    #     - cd /tmp &&
-    #       wget https://github.com/puppetlabs/vault-plugin-secrets-oauthapp/releases/download/v1.2.0/vault-plugin-secrets-oauthapp-v1.2.0-linux-amd64.tar.xz -O oauthapp.xz &&
-    #       tar -xf oauthapp.xz &&
-    #       mv vault-plugin-secrets-oauthapp-v1.2.0-linux-amd64 /usr/local/libexec/vault/oauthapp &&
-    #       chmod +x /usr/local/libexec/vault/oauthapp
-    #   volumeMounts:
-    #     - name: plugins
-    #       mountPath: /usr/local/libexec/vault
+  # # This example installs a plugin pulled from github into the /usr/local/libexec/vault/oauthapp folder,
+  # # which is defined in the volumes value.
+  # - name: oauthapp
+  #   image: "alpine"
+  #   command: [sh, -c]
+  #   args:
+  #     - cd /tmp &&
+  #       curl -L https://github.com/puppetlabs/vault-plugin-secrets-oauthapp/releases/download/v1.2.0/vault-plugin-secrets-oauthapp-v1.2.0-linux-amd64.tar.xz -o oauthapp.xz &&
+  #       tar -xf oauthapp.xz &&
+  #       mv vault-plugin-secrets-oauthapp-v1.2.0-linux-amd64 /usr/local/libexec/vault/oauthapp &&
+  #       chmod +x /usr/local/libexec/vault/oauthapp
+  #   volumeMounts:
+  #     - name: plugins
+  #       mountPath: /usr/local/libexec/vault
 
   # extraContainers is a list of sidecar containers. Specified as a YAML list.
   extraContainers: null
@@ -510,8 +510,8 @@ server:
   # extraPorts is a list of extra ports. Specified as a YAML list.
   # This is useful if you need to add additional ports to the statefulset in dynamic way.
   extraPorts: null
-    # - containerPort: 8300
-    #   name: http-monitoring
+  # - containerPort: 8300
+  #   name: http-monitoring
 
   # Used to define custom readinessProbe settings
   readinessProbe:
@@ -583,18 +583,18 @@ server:
   # extraSecretEnvironmentVars is a list of extra environment variables to set with the stateful set.
   # These variables take value from existing Secret objects.
   extraSecretEnvironmentVars: []
-    # - envName: AWS_SECRET_ACCESS_KEY
-    #   secretName: vault
-    #   secretKey: AWS_SECRET_ACCESS_KEY
+  # - envName: AWS_SECRET_ACCESS_KEY
+  #   secretName: vault
+  #   secretKey: AWS_SECRET_ACCESS_KEY
 
   # Deprecated: please use 'volumes' instead.
   # extraVolumes is a list of extra volumes to mount. These will be exposed
   # to Vault in the path `/vault/userconfig/<name>/`. The value below is
   # an array of objects, examples are shown below.
   extraVolumes: []
-    # - type: secret (or "configMap")
-    #   name: my-secret
-    #   path: null # default is `/vault/userconfig`
+  # - type: secret (or "configMap")
+  #   name: my-secret
+  #   path: null # default is `/vault/userconfig`
 
   # volumes is a list of volumes made available to all containers. These are rendered
   # via toYaml rather than pre-processed like the extraVolumes value.
@@ -665,12 +665,12 @@ server:
     #     port: 443
     ingress:
       - from:
-        - namespaceSelector: {}
+          - namespaceSelector: {}
         ports:
-        - port: 8200
-          protocol: TCP
-        - port: 8201
-          protocol: TCP
+          - port: 8200
+            protocol: TCP
+          - port: 8201
+            protocol: TCP
 
   # Priority class for server pods
   priorityClassName: ""
@@ -718,7 +718,7 @@ server:
 
     # Configures the service type for the main Vault service.  Can be ClusterIP
     # or NodePort.
-    #type: ClusterIP
+    # type: ClusterIP
 
     # The IP family and IP families options are to set the behaviour in a dual-stack environment.
     # Omitting these values will let the service fall back to whatever the CNI dictates the defaults
@@ -748,17 +748,17 @@ server:
 
     # If type is set to "NodePort", a specific nodePort value can be configured,
     # will be random if left blank.
-    #nodePort: 30000
+    # nodePort: 30000
 
     # When HA mode is enabled
     # If type is set to "NodePort", a specific nodePort value can be configured,
     # will be random if left blank.
-    #activeNodePort: 30001
+    # activeNodePort: 30001
 
     # When HA mode is enabled
     # If type is set to "NodePort", a specific nodePort value can be configured,
     # will be random if left blank.
-    #standbyNodePort: 30002
+    # standbyNodePort: 30002
 
     # Port on which Vault server is listening
     port: 8200
@@ -980,8 +980,8 @@ server:
     disruptionBudget:
       enabled: true
 
-    # maxUnavailable will default to (n/2)-1 where n is the number of
-    # replicas. If you'd like a custom value, you can specify an override here.
+      # maxUnavailable will default to (n/2)-1 where n is the number of
+      # replicas. If you'd like a custom value, you can specify an override here.
       maxUnavailable: null
 
   # Definition of the serviceAccount used to run Vault.
@@ -1076,7 +1076,7 @@ ui:
   # ref: https://kubernetes.io/docs/concepts/services-networking/service/#external-traffic-policy
   externalTrafficPolicy: Cluster
 
-  #loadBalancerSourceRanges:
+  # loadBalancerSourceRanges:
   #   - 10.0.0.0/16
   #   - 1.78.23.3/32
 
@@ -1299,32 +1299,32 @@ serverTelemetry:
     scrapeTimeout: 10s
 
   prometheusRules:
-      # The Prometheus operator *must* be installed before enabling this feature,
-      # if not the chart will fail to install due to missing CustomResourceDefinitions
-      # provided by the operator.
+    # The Prometheus operator *must* be installed before enabling this feature,
+    # if not the chart will fail to install due to missing CustomResourceDefinitions
+    # provided by the operator.
 
-      # Deploy the PrometheusRule custom resource for AlertManager based alerts.
-      # Requires that AlertManager is properly deployed.
-      enabled: false
+    # Deploy the PrometheusRule custom resource for AlertManager based alerts.
+    # Requires that AlertManager is properly deployed.
+    enabled: false
 
-      # Selector labels to add to the PrometheusRules.
-      # When empty, defaults to:
-      #  release: prometheus
-      selectors: {}
+    # Selector labels to add to the PrometheusRules.
+    # When empty, defaults to:
+    #  release: prometheus
+    selectors: {}
 
-      # Some example rules.
-      rules: []
-      #  - alert: vault-HighResponseTime
-      #    annotations:
-      #      message: The response time of Vault is over 500ms on average over the last 5 minutes.
-      #    expr: vault_core_handle_request{quantile="0.5", namespace="mynamespace"} > 500
-      #    for: 5m
-      #    labels:
-      #      severity: warning
-      #  - alert: vault-HighResponseTime
-      #    annotations:
-      #      message: The response time of Vault is over 1s on average over the last 5 minutes.
-      #    expr: vault_core_handle_request{quantile="0.5", namespace="mynamespace"} > 1000
-      #    for: 5m
-      #    labels:
-      #      severity: critical
+    # Some example rules.
+    rules: []
+    #  - alert: vault-HighResponseTime
+    #    annotations:
+    #      message: The response time of Vault is over 500ms on average over the last 5 minutes.
+    #    expr: vault_core_handle_request{quantile="0.5", namespace="mynamespace"} > 500
+    #    for: 5m
+    #    labels:
+    #      severity: warning
+    #  - alert: vault-HighResponseTime
+    #    annotations:
+    #      message: The response time of Vault is over 1s on average over the last 5 minutes.
+    #    expr: vault_core_handle_request{quantile="0.5", namespace="mynamespace"} > 1000
+    #    for: 5m
+    #    labels:
+    #      severity: critical
