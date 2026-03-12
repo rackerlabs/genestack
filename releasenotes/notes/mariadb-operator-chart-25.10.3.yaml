@@ -1,16 +1,15 @@
 ---
-prelude:
-  - |
-    MariaDB operator charts have been upgraded from 0.38.1 to 25.10.3. The 
-    existing environment should follow the recommended intermediate upgrade
-    path through 25.8.4.
+prelude: |
+  MariaDB operator charts have been upgraded from 0.38.1 to 25.10.3. The 
+  existing environment should follow the recommended intermediate upgrade
+  path through 25.8.4.
 
-    This upgrade introduces improvements to replication failover behaviour,
-    backup and restore capabilities, operator stability, and compatibility
-    with newer Kubernetes versions.
+  This upgrade introduces improvements to replication failover behaviour,
+  backup and restore capabilities, operator stability, and compatibility
+  with newer Kubernetes versions.
 
-    This supports both Galera clusters and replication clusters,
-    and the improvements in the 25.x release line benefit both topologies.
+  This supports both Galera clusters and replication clusters,
+  and the improvements in the 25.x release line benefit both topologies.
 
 features:
   - |
