@@ -4,7 +4,7 @@ charts:
   barbican-exporter: 0.1.0
   blazar: 2025.1.3+95bf0bf6e
   blazar-reservation-splitter: 0.1.0
-  ceilometer: 2024.2.115+13651f45-628a320c
+  ceilometer: 2025.1.10+4d4d4e25c
   cert-manager: v1.19.2
   cinder: 2025.1.13+4d4d4e25c
   cloudkitty: 2025.1.2+ebb1488dc
