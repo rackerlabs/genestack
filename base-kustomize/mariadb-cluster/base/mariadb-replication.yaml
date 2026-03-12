@@ -14,7 +14,7 @@ spec:
                 operator: In
                 values:
                   - worker
-  # NOTE: (brew) uncomment below when we update to a newer mariadb crd
+    # -- Pod anti-affinity to ensure pods are scheduled on different nodes.
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         - labelSelector:
@@ -29,7 +29,7 @@ spec:
     secretTemplate:
       key: dsn
   database: mariadb
-  image: docker-registry1.mariadb.com/library/mariadb:11.4.5
+  image: docker-registry1.mariadb.com/library/mariadb:11.8.5
   metrics:
     enabled: false
   myCnf: |
