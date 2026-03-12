@@ -14,7 +14,7 @@ spec:
                 operator: In
                 values:
                   - worker
-  # -- Pod anti-affinity to ensure pods are scheduled on different nodes.
+    # -- Pod anti-affinity to ensure pods are scheduled on different nodes.
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         - labelSelector:

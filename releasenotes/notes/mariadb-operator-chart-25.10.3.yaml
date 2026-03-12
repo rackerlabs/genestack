@@ -1,6 +1,6 @@
 ---
 prelude: |
-  MariaDB operator charts have been upgraded from 0.38.1 to 25.10.3. The 
+  MariaDB operator charts have been upgraded from 0.38.1 to 25.10.3. The
   existing environment should follow the recommended intermediate upgrade
   path through 25.8.4.
 
