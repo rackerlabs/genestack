@@ -1,0 +1,102 @@
+---
+prelude:
+  - |
+    MariaDB operator charts have been upgraded from 0.38.1 to 25.10.3. The 
+    existing environment should follow the recommended intermediate upgrade
+    path through 25.8.4.
+
+    This upgrade introduces improvements to replication failover behaviour,
+    backup and restore capabilities, operator stability, and compatibility
+    with newer Kubernetes versions.
+
+    This supports both Galera clusters and replication clusters,
+    and the improvements in the 25.x release line benefit both topologies.
+
+features:
+  - |
+    Physical backups introduced in the 25.8 release series via the PhysicalBackup CR.
+    This supports two backup mechanisms:
+      * MariaDB-native backups using mariadb-backup
+      * Kubernetes VolumeSnapshots for storage-level backup and restore.
+
+    These backups enable faster recovery compared to logical backups and allow
+    cluster bootstrapping from backups using spec.bootstrapFrom.
+
+  - |
+    Replication cluster improvements across the 25.x series provide more stable
+    failover handling, improved replica lifecycle management, and improved
+    reconciliation logic within the operator.
+
+  - |
+    Backup and restore improvements in the 25.10 series improve backup job
+    generation, restore reliability, and compatibility with object storage
+    backends.
+
+    Replication clusters can now configure backup targets to run on replicas
+    instead of the primary using:
+      target: Replica
+      target: PreferReplica
+  - |
+    Introduced the new `mariadb-cluster` Helm chart for managing MariaDB
+    clusters and related resources in a single Helm release. This provides
+    an alternative deployment method to Kustomize-based installations.
+
+issues:
+  - |
+    Replication auto-failover relies on Kubernetes detecting primary pod failure.
+    In node shutdown scenarios failover timing may depend on Kubernetes node
+    failure detection behaviour.
+
+upgrade:
+  - |
+    Upgrade path followed:
+
+        0.38.1 → 25.8.4 → 25.10.3
+
+    This path is required because the 25.x release line introduces changes
+    to replication configuration and backup features.
+
+    Replication configuration change:
+      syncBinlog changed from boolean to integer
+
+      Old configuration:
+        syncBinlog: true
+
+      New configuration:
+        syncBinlog: 1
+
+    This is default configuration by CRDs in the 25.x release line, so no manual
+    changes are required as this is not hardcoded in mariadb-replication.yaml.
+
+deprecations:
+  - |
+    Legacy behaviour related to boolean replication configuration parameters
+    has been removed in the 25.x release line. Replication settings now expect
+    integer values where previously boolean values were accepted.
+
+critical: []
+
+security: []
+
+fixes:
+  - |
+    Fixes introduced between 25.8.1 and 25.8.4 include:
+      * Galera failover fix.
+      * PhysicalBackup VolumeSnapshot consistency improvements.
+      * Reduced Grant reconciliation time.
+      * VolumeSnapshot locking optimizations.
+      * Restore volume mutability improvements.
+      * PhysicalBackup storage mount subPath fix.
+      * Grant finalizer fixes for users with custom names.
+      * appProtocol added to MariaDB service ports.
+      * panic fix in GetAutomaticFailoverDelay.
+      * support updates for Go 1.25 and Kubernetes 1.34.
+
+  - |
+    Improvements in the 25.10 release series include:
+      * Improved replication failover and replica recovery handling.
+      * Improved backup job generation and restore workflows.
+      * Improved S3 backup handling and support for SSE-C encryption.
+      * Improved Helm chart argument handling.
+      * Removal of legacy MaxScale components from the operator.
+      * Operator runtime dependency updates and Kubernetes 1.35 support.
