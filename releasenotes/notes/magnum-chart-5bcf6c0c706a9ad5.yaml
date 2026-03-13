@@ -1,4 +1,75 @@
 ---
+features:
+  - |
+    Added comprehensive Cluster API (CAPI) support for Magnum, enabling modern
+    Kubernetes cluster lifecycle management with the following capabilities:
+
+    Management Cluster Installation:
+
+    - Kubespray-based management cluster deployment with HA configuration
+    - multi-node control plane with stacked etcd for high availability
+    - Kubernetes 1.32.0 support with containerd runtime
+    - Automated deployment via Ansible playbooks
+
+    Cluster API Components:
+
+    - CAPI core controller for cluster lifecycle operations
+    - OpenStack Provider (CAPO) for infrastructure provisioning
+    - Kubeadm bootstrap and control plane providers
+    - Cert-manager for TLS certificate management
+    - OpenStack Resource Controller (ORC) for declarative resource management
+    - Cluster API addon provider for extensions
+
+    Workload Cluster Provisioning:
+
+    - CAPI-based cluster templates with flexible configuration
+    - Support for multiple Kubernetes versions (example: v1.28.1, v1.32.0)
+    - Flatcar Container Linux and other Kubernetes-ready images
+    - Configurable node flavors for control plane and workers
+    - Automatic load balancer provisioning for control plane HA
+    - Floating IP support for external connectivity
+    - Calico network driver and Cinder volume driver integration
+
+    Cluster Management Operations:
+
+    - Dynamic cluster scaling (scale up/down worker nodes)
+    - Kubernetes version upgrades via CAPI
+    - Auto-healing for automatic node replacement on failure
+    - Auto-scaling with configurable min/max node counts
+    - Cluster deletion with automatic resource cleanup
+
+    Image Building:
+
+    - Kubernetes Image Builder integration for custom images
+    - QEMU-based image building with Packer
+    - Flatcar Container Linux with OpenStack OEM support
+    - Pre-installed Kubernetes components (kubeadm, kubelet, kubectl)
+    - Containerd runtime and CNI plugins
+    - Customizable Kubernetes versions in images
+
+    Monitoring and Verification:
+
+    - Comprehensive health checks for management cluster
+    - MariaDB Galera cluster status verification
+    - RabbitMQ cluster health monitoring
+    - Load balancer backend health verification
+    - DNS resolution testing
+    - Cluster API component status checks
+
+upgrade:
+  - |
+    Magnum has been upgraded to version 2025.1.4 with native Cluster API driver
+    support. This is a breaking change that transitions from Heat-based cluster
+    provisioning to CAPI-based provisioning.
+
+    Key changes:
+
+    - Driver mechanism changed from Heat stacks to CAPI resources
+    - Faster cluster provisioning and better integration with CAPI ecosystem
+    - Native Kubernetes version upgrades through CAPI
+    - Enhanced security and compliance features
+    - Improved cluster lifecycle management
+
 deprecations:
   - |
     The magnum chart will now use the online OSH helm repository. This change
