@@ -1,21 +1,20 @@
 ---
 images:
   tags:
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    heat_api: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    heat_cfn: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    heat_cloudwatch: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    heat_db_sync: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    heat_engine: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    heat_engine_cleaner: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    heat_purge_deleted: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    heat_api: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    heat_cfn: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    heat_db_sync: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    heat_engine: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    heat_engine_cleaner: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
+    heat_purge_deleted: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
     image_repo_sync: null
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     rabbit_init: null
     test: null
 
@@ -36,14 +35,10 @@ pod:
         min_available: 0
       cfn:
         min_available: 0
-      cloudwatch:
-        min_available: 0
     termination_grace_period:
       api:
         timeout: 60
       cfn:
-        timeout: 60
-      cloudwatch:
         timeout: 60
       engine:
         timeout: 60
@@ -87,8 +82,6 @@ conf:
     heat_api:
       workers: 2
     heat_api_cfn:
-      workers: 2
-    heat_api_cloudwatch:
       workers: 2
     keystone_authtoken:
       auth_type: password
@@ -140,7 +133,6 @@ dependencies:
       jobs:
         - heat-db-sync
         - heat-ks-user
-        - heat-trustee-ks-user
         - heat-domain-ks-user
         - heat-ks-endpoints
         - heat-bootstrap
@@ -148,15 +140,6 @@ dependencies:
       jobs:
         - heat-db-sync
         - heat-ks-user
-        - heat-trustee-ks-user
-        - heat-domain-ks-user
-        - heat-ks-endpoints
-        - heat-bootstrap
-    cloudwatch:
-      jobs:
-        - heat-db-sync
-        - heat-ks-user
-        - heat-trustee-ks-user
         - heat-domain-ks-user
         - heat-ks-endpoints
         - heat-bootstrap
@@ -166,7 +149,6 @@ dependencies:
       jobs:
         - heat-db-sync
         - heat-ks-user
-        - heat-trustee-ks-user
         - heat-domain-ks-user
         - heat-ks-endpoints
         - heat-bootstrap
@@ -179,13 +161,6 @@ endpoints:
         internal: 8000
         public: 80
         service: 8000
-  cloudwatch:
-    port:
-      api:
-        default: 8003
-        internal: 8003
-        public: 80
-        service: 8003
   fluentd:
     namespace: fluentbit
   identity:
@@ -227,4 +202,3 @@ manifests:
   secret_ingress_tls: false
   service_ingress_api: false
   service_ingress_cfn: false
-  service_ingress_cloudwatch: false
