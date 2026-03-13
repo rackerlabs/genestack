@@ -69,3 +69,5 @@ _hosts_package_list:
     state: latest
 
 host_lvm_devices_filter_override: []
+
+force_proxy_settings: false
