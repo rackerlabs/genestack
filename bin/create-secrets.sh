@@ -412,7 +412,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $nova-keystone-service-password | base64 -w0)
+  password: $(echo -n $nova_keystone_service_password | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret
@@ -421,7 +421,7 @@ metadata:
   namespace: openstack
 type: Opaque
 data:
-  password: $(echo -n $nova-keystone-test-password | base64 -w0)
+  password: $(echo -n $nova_keystone_test_password | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret

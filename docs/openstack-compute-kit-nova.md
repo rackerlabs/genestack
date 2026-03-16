@@ -15,6 +15,13 @@
 
     The above command is setting the ceph as disabled. While the K8S infrastructure has Ceph, we're not exposing ceph to our openstack environment.
 
+!!! info
+
+    As of Epoxy, Nova chart now loads additional config snippets from
+    `/etc/nova/nova.conf.d`. If you need out-of-band Nova configuration, place
+    projected config or secret sources under the relevant
+    `pod.etcSources.nova_*` override.
+
 If running in an environment that doesn't have hardware virtualization extensions add the following two `set` switches to the install command.
 
 ``` shell
