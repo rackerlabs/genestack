@@ -851,13 +851,13 @@ metadata:
   labels:
     kubernetes.io/metadata.name: grafana
     name: grafana
-  name: grafana
+  name: monitoring
 ---
 apiVersion: v1
 kind: Secret
 metadata:
   name: grafana-db
-  namespace: grafana
+  namespace: monitoring
 type: Opaque
 data:
   password: $(echo -n $grafana_secret | base64 -w0)
@@ -968,7 +968,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: keystone-auth-openstack-exporter
-  namespace: prometheus
+  namespace: monitoring
 type: Opaque
 data:
   AUTH_URL: $(echo -n $keystone_auth_url | base64 -w0)

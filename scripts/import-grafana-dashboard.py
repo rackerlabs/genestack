@@ -96,7 +96,7 @@ def main():
     required_vars = ["GRAFANA_PASSWORD"]
     optional_vars = {
         "GRAFANA_USERNAME": "admin",
-        "GRAFANA_URL": "http://grafana.grafana.svc.cluster.local:80",
+        "GRAFANA_URL": "http://grafana.monitoring.svc.cluster.local:80",
     }
 
     missing = [var for var in required_vars if var not in os.environ]
