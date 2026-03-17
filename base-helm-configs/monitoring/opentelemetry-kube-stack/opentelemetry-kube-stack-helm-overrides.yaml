@@ -203,6 +203,20 @@ defaultCRConfig:
         tls:
           insecure: true
 
+        timeout: 30s
+
+        resource_to_telemetry_conversion:
+          enabled: true
+
+        target_info:
+          enabled: false
+
+        retry_on_failure:
+          enabled: true
+          initial_interval: 5s
+          max_interval: 30s
+          max_elapsed_time: 300s
+
       otlp/tempo:
         endpoint: "tempo.grafana.svc.cluster.local:4317"
         tls:
@@ -980,8 +994,11 @@ collectors:
             - key: service.namespace
               value: "openstack"
               action: upsert
-            - key: deployment.environment
-              value: "genestack"
+            - key: job
+              value: "opentelemetry-deployment"
+              action: upsert
+            - key: instance
+              value: "deployment-collector"
               action: upsert
 
       service:
