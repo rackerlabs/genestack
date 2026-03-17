@@ -17,7 +17,7 @@ apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
   name: mariadb-cluster
-  namespace: grafana
+  namespace: monitoring
   annotations:
     helm.sh/resource-policy: keep
     meta.helm.sh/release-name: "grafana"
@@ -137,7 +137,7 @@ apiVersion: k8s.mariadb.com/v1alpha1
 kind: Backup
 metadata:
   name: mariadb-backup
-  namespace: grafana
+  namespace: monitoring
   annotations:
     helm.sh/resource-policy: keep
     meta.helm.sh/release-name: "grafana"
@@ -147,7 +147,7 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb-cluster
-    namespace: grafana
+    namespace: monitoring
   schedule:
     cron: "0 0 * * *"
   serviceAccountName: backup
@@ -177,7 +177,7 @@ apiVersion: k8s.mariadb.com/v1alpha1
 kind: Database
 metadata:
   name: grafana
-  namespace: grafana
+  namespace: monitoring
   annotations:
     helm.sh/resource-policy: keep
     meta.helm.sh/release-name: "grafana"
@@ -198,7 +198,7 @@ apiVersion: k8s.mariadb.com/v1alpha1
 kind: User
 metadata:
   name: grafana
-  namespace: grafana
+  namespace: monitoring
   annotations:
     helm.sh/resource-policy: keep
     meta.helm.sh/release-name: "grafana"
@@ -223,7 +223,7 @@ apiVersion: k8s.mariadb.com/v1alpha1
 kind: Grant
 metadata:
   name: grafana-grant
-  namespace: grafana
+  namespace: monitoring
   annotations:
     helm.sh/resource-policy: keep
     meta.helm.sh/release-name: "grafana"

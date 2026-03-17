@@ -38,7 +38,7 @@ grafana.ini:
     root_url: "https://{{ .Values.custom_host }}"  # Ref: custom_host variable above
   database:
     type: mysql
-    host: mariadb-cluster.grafana.svc:3306
+    host: mariadb-cluster.monitoring.svc:3306
     user: $__file{/etc/secrets/grafana-db/username}
     password: $__file{/etc/secrets/grafana-db/password}
     name: grafana
@@ -50,7 +50,7 @@ datasources:
       - name: Prometheus
         type: prometheus
         access: proxy
-        url: http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090
+        url: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
         isdefault: true
       - name: Loki
         type: loki
@@ -188,7 +188,7 @@ alerting:
             - uid: ed4884f5-6e37-4a11-af5e-63f83bd26e94
               type: prometheus-alertmanager
               settings:
-                url: http://alertmanager-operated.prometheus.svc.cluster.local:9093
+                url: http://alertmanager-operated.monitoring.svc.cluster.local:9093
               disableResolveMessage: false
   notification_policies.yaml:
     apiVersion: 1
