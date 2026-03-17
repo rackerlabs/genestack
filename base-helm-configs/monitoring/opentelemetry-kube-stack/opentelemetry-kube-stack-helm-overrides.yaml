@@ -199,7 +199,7 @@ defaultCRConfig:
 
     exporters:
       prometheusremotewrite:
-        endpoint: "http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090/api/v1/write"
+        endpoint: "http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
         tls:
           insecure: true
 
@@ -218,12 +218,12 @@ defaultCRConfig:
           max_elapsed_time: 300s
 
       otlp/tempo:
-        endpoint: "tempo.grafana.svc.cluster.local:4317"
+        endpoint: "tempo.monitoring.svc.cluster.local:4317"
         tls:
           insecure: true
 
       otlphttp/loki:
-        endpoint: "http://loki-gateway.grafana.svc.cluster.local/otlp"
+        endpoint: "http://loki-gateway.monitoring.svc.cluster.local/otlp"
 
       debug:
         verbosity: normal
