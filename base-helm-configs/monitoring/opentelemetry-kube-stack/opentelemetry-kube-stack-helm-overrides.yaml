@@ -825,7 +825,7 @@ collectors:
         requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:
               matchLabels:
-                app.kubernetes.io/instance: opentelemetry.opentelemetry-kube-stack-deployment
+                app.kubernetes.io/instance: monintoring.opentelemetry-kube-stack-deployment
                 app.kubernetes.io/name: opentelemetry-kube-stack-deployment-collector
             topologyKey: kubernetes.io/hostname
 
