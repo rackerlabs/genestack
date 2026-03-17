@@ -2,7 +2,7 @@
 
 Part of running Nova is also running placement. Setup all credentials now so we can use them across the nova and placement services.
 
-!!! note "Information about the secretes used"
+!!! note "Information about the secrets used"
 
     Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
 
@@ -42,16 +42,24 @@ Part of running Nova is also running placement. Setup all credentials now so we 
                 --type Opaque \
                 --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
         kubectl --namespace openstack \
+                create secret generic nova-keystone-service-password \
+                --type Opaque \
+                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+        kubectl --namespace openstack \
+                create secret generic nova-keystone-test-password \
+                --type Opaque \
+                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
+        kubectl --namespace openstack \
                 create secret generic nova-rabbitmq-password \
                 --type Opaque \
                 --from-literal=username="nova" \
                 --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
         ssh-keygen -qt ed25519 -N '' -C "nova_ssh" -f nova_ssh_key && \
         kubectl --namespace openstack \
-                create secret generic nova-ssh-keypair \
+                create secret generic nova-ssh \
                 --type Opaque \
-                --from-literal=public_key="$(cat nova_ssh_key.pub)" \
-                --from-literal=private_key="$(cat nova_ssh_key)"
+                --from-literal=public-key="$(cat nova_ssh_key.pub)" \
+                --from-literal=private-key="$(cat nova_ssh_key)"
         rm nova_ssh_key nova_ssh_key.pub
         ```
 
