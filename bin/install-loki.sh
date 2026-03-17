@@ -7,7 +7,7 @@
 
 # Service
 SERVICE_NAME_DEFAULT="loki"
-SERVICE_NAMESPACE="loki"
+SERVICE_NAMESPACE="monitoring"
 
 # Helm
 HELM_REPO_NAME_DEFAULT="grafana"
