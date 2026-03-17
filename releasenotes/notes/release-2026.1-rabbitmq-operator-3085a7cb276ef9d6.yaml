@@ -1,0 +1,32 @@
+---
+prelude: >
+  Genestack aligns RabbitMQ for the 2026.1 Epoxy release by pinning the managed
+  RabbitMQ image explicitly to the 4.1 series for predictable upgrades.
+
+features:
+  - |
+    The base RabbitmqCluster manifest now pins `spec.image` to
+    `rabbitmq:4.1.4-management` so upgraded and fresh environments converge on
+    the same RabbitMQ server version.
+
+upgrade:
+  - |
+    OpenStack Epoxy supports RabbitMQ 4.0 and 4.1, and Kolla-Ansible
+    recommends RabbitMQ 4.1 before or during Epoxy upgrades. Genestack now targets
+    RabbitMQ 4.1.4 for this release.
+  - |
+    Upgrading the RabbitMQ Cluster Operator can trigger a rolling update of the
+    managed RabbitMQ StatefulSet. If rollout timing must be controlled, pause
+    reconciliation on the `RabbitmqCluster`, upgrade the operators, re-apply
+    the cluster manifest, and then resume reconciliation.
+deprecations:
+  - |
+    Genestack no longer relies on the operator default RabbitMQ image for the
+    Epoxy release path. The RabbitMQ server image is now pinned explicitly to
+    avoid unintended version drift and preserve idempotent upgrades.
+
+other:
+  - |
+    Validation in lab confirmed the RabbitMQ cluster upgraded successfully to
+    4.1.4 and passed basic health checks including cluster status, local alarm
+    checks, StatefulSet readiness, PVC binding, and operator log review.
