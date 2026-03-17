@@ -236,6 +236,8 @@ collectors:
     mode: daemonset
     enabled: true
 
+    scrape_configs_file: "daemon_scrape_configs.yaml"
+
     # It's ignoring presets in the default.. override them in the collector
     presets:
       logsCollection:
