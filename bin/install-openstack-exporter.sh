@@ -2,8 +2,8 @@
 set -e  # Exit on error
 
 # Variables
-CHART_DIR="/opt/genestack/base-helm-configs/openstack-api-exporter-chart"
-NAMESPACE="prometheus"
+CHART_DIR="/opt/genestack/base-helm-configs/monitoring/openstack-api-exporter-chart"
+NAMESPACE="monitoring"
 RELEASE_NAME="openstack-exporter"
 
 # Check if chart directory exists

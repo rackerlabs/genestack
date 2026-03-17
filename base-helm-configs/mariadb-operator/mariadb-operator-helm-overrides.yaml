@@ -25,7 +25,7 @@ metrics:
   enabled: false
   serviceMonitor:
     # -- Enable controller ServiceMonitor
-    enabled: true
+    enabled: false
     # -- Labels to be added to the controller ServiceMonitor
     additionalLabels: {}
     # release: kube-prometheus-stack

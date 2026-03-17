@@ -39,36 +39,18 @@ defaultCRConfig:
     metrics:
       enableMetrics: true
 
-  ports:
-    - name: otlp-grpc
-      protocol: TCP
-      port: 4317
-      targetPort: 4317
-    - name: otlp-http
-      protocol: TCP
-      port: 4318
-      targetPort: 4318
-    - name: metrics
-      protocol: TCP
-      port: 8888
-      targetPort: 8888
-
+  # It's ignoring presets in the default.. override them in the collector
   presets:
     logsCollection:
-      enabled: true
-      includeCollectorLogs: true
-      storeCheckpoints: false
-      maxRecombineLogSize: 102400
+      enabled: false
     hostMetrics:
       enabled: false
     kubernetesAttributes:
-      enabled: true
-      extractAllPodLabels: true
-      extractAllPodAnnotations: true
+      enabled: false
     kubeletMetrics:
       enabled: false
     kubernetesEvents:
-      enabled: true
+      enabled: false
     clusterMetrics:
       enabled: false
     annotationDiscovery:
@@ -239,6 +221,25 @@ collectors:
     suffix: daemon
     mode: daemonset
     enabled: true
+
+    # It's ignoring presets in the default.. override them in the collector
+    presets:
+      logsCollection:
+        enabled: false
+      hostMetrics:
+        enabled: false
+      kubernetesAttributes:
+        enabled: false
+      kubeletMetrics:
+        enabled: false
+      kubernetesEvents:
+        enabled: false
+      clusterMetrics:
+        enabled: false
+
+    serviceMonitor:
+      enabled: true
+
     resources:
       limits:
         cpu: 4096m
@@ -246,7 +247,16 @@ collectors:
       requests:
         cpu: 2048m
         memory: 2048Mi
-    scrape_configs_file: "daemon_scrape_configs.yaml"
+
+    ports:
+      - name: otlp-grpc
+        protocol: TCP
+        port: 4317
+        targetPort: 4317
+      - name: otlp-http
+        protocol: TCP
+        port: 4318
+        targetPort: 4318
 
     config:
       receivers:
@@ -344,7 +354,6 @@ collectors:
               value: EXPR(attributes.restart_count)
               if: 'attributes.restart_count != nil'
 
-        # CONSOLIDATED OPENSTACK LOG RECEIVER
         filelog/openstack:
           max_concurrent_files: 1024
           fingerprint_size: 1024
@@ -515,6 +524,13 @@ collectors:
               value: EXPR(attributes.request_id)
               if: 'attributes.request_id != nil'
 
+        k8sobjects:
+          auth_type: serviceAccount
+          objects:
+            - name: events
+              mode: watch
+              namespaces: [openstack, kube-system, monitoring]
+
       processors:
         attributes/add-node-labels:
           actions:
@@ -683,7 +699,6 @@ collectors:
         pipelines:
           traces:
             receivers:
-              - otlp
               - jaeger
               - zipkin
             processors:
@@ -698,7 +713,6 @@ collectors:
 
           metrics:
             receivers:
-              - otlp
               - hostmetrics
             processors:
               - attributes/add-node-labels
@@ -760,8 +774,46 @@ collectors:
     enabled: true
     replicas: 2
 
+    # It's ignoring presets in the default.. override them in the collector
+    presets:
+      logsCollection:
+        enabled: false
+      hostMetrics:
+        enabled: false
+      kubernetesAttributes:
+        enabled: false
+      kubeletMetrics:
+        enabled: false
+      kubernetesEvents:
+        enabled: false
+      clusterMetrics:
+        enabled: false
+
+    service:
+      enabled: false
+
+    hostNetwork: false
+
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+
     nodeSelector:
       openstack-control-plane: enabled
+
+    tolerations:
+      - key: openstack-control-plane
+        operator: Exists
+        effect: NoSchedule
+
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/instance: opentelemetry.opentelemetry-kube-stack-deployment
+                app.kubernetes.io/name: opentelemetry-kube-stack-deployment-collector
+            topologyKey: kubernetes.io/hostname
 
     resources:
       limits:
@@ -790,6 +842,12 @@ collectors:
             name: rabbitmq-default-user
             key: password
 
+      - name: RABBITMQ_USERNAME
+        valueFrom:
+          secretKeyRef:
+            name: rabbitmq-default-user
+            key: username
+
     config:
       receivers:
         mysql:
@@ -812,7 +870,7 @@ collectors:
               enabled: true
 
         postgresql:
-          endpoint: postgresql-cluster.openstack.svc.cluster.local:5432
+          endpoint: postgres-cluster.openstack.svc.cluster.local:5432
           username: postgres
           password: ${env:POSTGRESQL_PASSWORD}
           collection_interval: 30s
@@ -832,7 +890,7 @@ collectors:
 
         rabbitmq:
           endpoint: http://rabbitmq.openstack.svc.cluster.local:15672
-          username: rabbitmq
+          username: ${env:RABBITMQ_USERNAME}
           password: ${env:RABBITMQ_PASSWORD}
           collection_interval: 30s
           metrics:
@@ -885,6 +943,36 @@ collectors:
             memcached.bytes:
               enabled: true
 
+        httpcheck:
+          targets:
+            - endpoint: https://nova.api.example.com
+              method: GET
+            - endpoint: https://neutron.api.example.com
+              method: GET
+            - endpoint: https://keystone.api.example.com
+              method: GET
+            - endpoint: https://octavia.api.example.com
+              method: GET
+            - endpoint: https://glance.api.example.com
+              method: GET
+            - endpoint: https://heat.api.example.com
+              method: GET
+            - endpoint: https://cinder.api.example.com
+              method: GET
+            - endpoint: https://cloudformation.api.example.com
+              method: GET
+            - endpoint: https://placement.api.example.com
+              method: GET
+            - endpoint: https://barbican.api.example.com
+              method: GET
+            - endpoint: https://magnum.api.example.com
+              method: GET
+            - endpoint: https://masakari.api.example.com
+              method: GET
+            - endpoint: https://novnc.api.example.com/vnc_auto.html
+              method: GET
+          collection_interval: 30s
+
       processors:
         # Add service identification
         resource/service-metrics:
@@ -910,6 +998,7 @@ collectors:
               - postgresql
               - rabbitmq
               - memcached
+#              - httpcheck # uncomment to add endpoint checking metrics with above endpoint config...
             processors:
               - resource/service-metrics
               - resourcedetection/env

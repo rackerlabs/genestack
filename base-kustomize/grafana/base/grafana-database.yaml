@@ -6,7 +6,7 @@ metadata:
   annotations:
     helm.sh/resource-policy: keep
     meta.helm.sh/release-name: "grafana"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-namespace: "monitoring"
   labels:
     app.kubernetes.io/managed-by: Helm
 data:
@@ -21,7 +21,7 @@ metadata:
   annotations:
     helm.sh/resource-policy: keep
     meta.helm.sh/release-name: "grafana"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-namespace: "monitoring"
   labels:
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -141,7 +141,7 @@ metadata:
   annotations:
     helm.sh/resource-policy: keep
     meta.helm.sh/release-name: "grafana"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-namespace: "monitoring"
   labels:
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -181,7 +181,7 @@ metadata:
   annotations:
     helm.sh/resource-policy: keep
     meta.helm.sh/release-name: "grafana"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-namespace: "monitoring"
   labels:
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -202,7 +202,7 @@ metadata:
   annotations:
     helm.sh/resource-policy: keep
     meta.helm.sh/release-name: "grafana"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-namespace: "monitoring"
   labels:
     app.kubernetes.io/managed-by: Helm
 spec:
@@ -227,7 +227,7 @@ metadata:
   annotations:
     helm.sh/resource-policy: keep
     meta.helm.sh/release-name: "grafana"
-    meta.helm.sh/release-namespace: "openstack"
+    meta.helm.sh/release-namespace: "monitoring"
   labels:
     app.kubernetes.io/managed-by: Helm
 spec:
