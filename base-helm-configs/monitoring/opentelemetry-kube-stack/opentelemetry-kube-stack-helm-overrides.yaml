@@ -42,7 +42,7 @@ defaultCRConfig:
   # It's ignoring presets in the default.. override them in the collector
   presets:
     logsCollection:
-      enabled: false
+      enabled: true
     hostMetrics:
       enabled: false
     kubernetesAttributes:
@@ -241,7 +241,7 @@ collectors:
     # It's ignoring presets in the default.. override them in the collector
     presets:
       logsCollection:
-        enabled: false
+        enabled: true
       hostMetrics:
         enabled: false
       kubernetesAttributes:
@@ -793,7 +793,7 @@ collectors:
     # It's ignoring presets in the default.. override them in the collector
     presets:
       logsCollection:
-        enabled: false
+        enabled: true
       hostMetrics:
         enabled: false
       kubernetesAttributes:

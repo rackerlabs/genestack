@@ -55,8 +55,11 @@ datasources:
       - name: Loki
         type: loki
         access: proxy
-        url: http://loki-gateway.{{ $.Release.Namespace }}.svc.cluster.local:80
+        url: http://loki-gateway.monitoring.svc.cluster.local:80
         editable: false
+      - name: Tempo
+        type: tempo
+        url: http://tempo.monitoring.svc.cluster.local:3100
 
 alerting:
   rules.yaml:
