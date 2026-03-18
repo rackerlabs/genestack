@@ -8,6 +8,7 @@ metadata:
     metallb.universe.tf/address-pool: primary
 spec:
   replicas: 3
+  image: rabbitmq:4.1.4-management
   resources:
     requests:
       cpu: 500m
