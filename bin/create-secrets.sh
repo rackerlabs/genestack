@@ -64,6 +64,8 @@ cinder_admin_password=$(generate_password 32)
 trove_rabbitmq_password=$(generate_password 64)
 trove_db_password=$(generate_password 32)
 trove_admin_password=$(generate_password 32)
+trove_ssh_public_key=$(ssh-keygen -qt ed25519 -N '' -C "trove_ssh" -f trove_ssh_key && cat trove_ssh_key.pub)
+trove_ssh_private_key=$(cat trove_ssh_key)
 cloudkitty_rabbitmq_password=$(generate_password 64)
 cloudkitty_db_password=$(generate_password 32)
 cloudkitty_admin_password=$(generate_password 32)
@@ -331,6 +333,21 @@ metadata:
 type: Opaque
 data:
   password: $(echo -n $trove_admin_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: trove-ssh
+  namespace: openstack
+  annotations:
+    meta.helm.sh/release-name: trove
+    meta.helm.sh/release-namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: Helm
+type: Opaque
+data:
+  public-key: $(echo $trove_ssh_public_key | base64 -w0)
+  private-key: $(echo "$trove_ssh_private_key" | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret
