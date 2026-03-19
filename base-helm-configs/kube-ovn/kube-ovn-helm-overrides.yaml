@@ -9,7 +9,6 @@ global:
   images:
     kubeovn:
       repository: kube-ovn
-      vpcRepository: vpc-nat-gateway
       tag: v1.15.4
       support_arm: true
       thirdparty: true
