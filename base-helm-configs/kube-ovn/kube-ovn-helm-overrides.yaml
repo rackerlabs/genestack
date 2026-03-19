@@ -57,8 +57,6 @@ performance:
 kubelet_conf:
   KUBELET_DIR: "/var/lib/kubelet"
 
-log_conf:
-  LOG_DIR: "/var/log"
 
 OPENVSWITCH_DIR: "/etc/origin/openvswitch"
 OVN_DIR: "/etc/origin/ovn"
