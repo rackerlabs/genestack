@@ -1,0 +1,107 @@
+---
+prelude: |
+  Blazar has been upgraded to OpenStack 2025.1 (Epoxy) release. This upgrade
+  brings important security fixes, policy enhancements with new RBAC roles,
+  and improved WSGI deployment capabilities. The Epoxy release focuses on
+  strengthening OpenStack's position as a VMware alternative while enhancing
+  security and operational capabilities.
+
+features:
+  - |
+    **New WSGI Module**: A new module ``blazar.wsgi`` has been added to provide
+    a consistent location for WSGI application objects. This simplifies deployment
+    with modern WSGI servers like gunicorn and uWSGI by allowing module path
+    references (e.g., ``blazar.wsgi.api:application``) instead of file paths.
+
+  - |
+    **Enhanced RBAC Policies**: Blazar now implements scope-based policies with
+    new default roles (admin, member, and reader) provided by Keystone. All
+    policies now support ``scope_type`` capabilities with project-level scoping,
+    providing more granular access control while maintaining backward compatibility
+    with legacy admin roles.
+
+  - |
+    **Instance Reservation Updates**: Fixed the ability to update the number of
+    instances in an instance reservation while the lease is active, improving
+    operational flexibility.
+
+security:
+  - |
+    **Critical Lease Security Fix**: Resolved a security vulnerability (LP#2120655)
+    where any user could update or delete a lease from any project if they had
+    the lease ID. With default policy configuration, regular users cannot see
+    lease IDs from other projects. However, operators running the Resource
+    Availability Calendar with overridden policies may have been vulnerable
+    without this fix.
+
+upgrade:
+  - |
+    **WSGI Script Removal**: The ``blazar-api-wsgi`` script has been removed.
+    Deployment configurations must be updated to reference the Python module
+    path ``blazar.wsgi.api:application`` for WSGI servers that support module
+    paths (gunicorn, uWSGI), or implement a custom ``.wsgi`` script for
+    servers like mod_wsgi.
+
+    Example uWSGI configuration change:
+
+    .. code-block:: ini
+
+      # Old configuration
+      [uwsgi]
+      wsgi-file = /bin/blazar-api-wsgi
+
+      # New configuration
+      [uwsgi]
+      module = blazar.wsgi.api:application
+
+  - |
+    **Policy Migration**: While old policy rules remain supported for backward
+    compatibility, operators should plan to migrate to the new scope-aware
+    policies. The legacy ``admin_or_owner`` rule is deprecated in favor of
+    new role-based rules like ``project_member_api``, ``project_reader_api``,
+    ``project_member_or_admin``, and ``project_reader_or_admin``.
+
+  - |
+    **Image Updates**: Blazar container images have been updated to version
+    ``2025.1-latest``. Ensure your helm overrides reference the correct image
+    tags as shown in ``base-helm-configs/blazar/blazar-helm-overrides.yaml``.
+
+deprecations:
+  - |
+    **WSGI Script Deprecated and Removed**: The ``blazar-api-wsgi`` script
+    has been removed in Epoxy (15.0.0). Use the module path
+    ``blazar.wsgi.api:application`` instead.
+
+  - |
+    **Legacy Policy Rules**: The following policy rules are deprecated and will
+    be silently ignored in future releases:
+
+    - ``admin_or_owner`` - Use ``project_member_api`` or ``project_reader_api``
+    - Legacy ``rule:admin_or_owner`` references - Use new role-based rules
+
+    JSON-formatted policy files have been deprecated since Blazar 7.0.0 (Wallaby).
+    Use the ``oslopolicy-convert-json-to-yaml`` tool to migrate to YAML format.
+
+fixes:
+  - |
+    Fixed host randomization feature functionality (LP#2099927).
+
+  - |
+    Fixed an issue preventing updates to the instance count in active instance
+    reservations (LP#2138386).
+
+  - |
+    Resolved security vulnerability allowing unauthorized lease modifications
+    across projects (LP#2120655).
+
+other:
+  - |
+    **Genestack Configuration**: The current Genestack configuration already
+    uses the ``2025.1-latest`` image tags and includes proper RabbitMQ quorum
+    queue configuration with notification routing to Ceilometer for billing
+    integration.
+
+  - |
+    **Python Version**: OpenStack Epoxy requires Python 3.9 as the minimum
+    supported version. Python 3.8 support has been removed across OpenStack
+    projects.

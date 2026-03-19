@@ -1,15 +1,15 @@
 ---
 images:
   tags:
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
     image_repo_sync: null
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    placement: "ghcr.io/rackerlabs/genestack-images/placement:2024.1-latest"
-    placement_db_sync: "ghcr.io/rackerlabs/genestack-images/placement:2024.1-latest"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    placement: "ghcr.io/rackerlabs/genestack-images/placement:2025.1-latest"
+    placement_db_sync: "ghcr.io/rackerlabs/genestack-images/placement:2025.1-latest"
 
 # NOTE: (brew) requests cpu/mem values based on a three node
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
@@ -51,10 +51,14 @@ conf:
       service_token_roles: service
       service_token_roles_required: true
       service_type: placement
+    cache:
+      enabled: true
+      backend: dogpile.cache.memcached
     oslo_concurrency:
       lock_path: /tmp/placement
     placement:
       randomize_allocation_candidates: true
+      allocation_candidates_generation_strategy: depth-first
     placement_database:
       connection_debug: 0
       connection_recycle_time: 600
@@ -64,6 +68,8 @@ conf:
       use_db_reconnect: true
       pool_timeout: 60
       max_retries: -1
+    workarounds:
+      optimize_for_wide_provider_trees: true
   placement_api_uwsgi:
     uwsgi:
       processes: 2

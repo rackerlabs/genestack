@@ -75,7 +75,7 @@ if [[ "$HELM_REPO_URL" == oci://* ]]; then
     
 else
     # --- Helm Repository and Execution ---
-    helm repo add "$HELM_REPO_NAME" "$HELM_REPO_URL"   # uncomment if needed
+    helm repo add "$HELM_REPO_NAME" "$HELM_REPO_URL"
     helm repo update
     OPERATOR_CHART_PATH="$HELM_REPO_NAME/$OPERATOR_NAME"
     REPLICATION_CHART_PATH="$HELM_REPO_NAME/$SERVICE_NAME"

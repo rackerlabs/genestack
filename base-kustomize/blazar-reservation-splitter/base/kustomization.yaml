@@ -1,0 +1,6 @@
+---
+sortOptions:
+  order: fifo
+resources:
+  - blazar-reservation-splitter-rabbitmq-queue.yaml
+  - all.yaml

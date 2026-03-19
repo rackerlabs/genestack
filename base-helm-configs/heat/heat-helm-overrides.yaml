@@ -70,6 +70,9 @@ conf:
     DEFAULT:
       num_engine_workers: 2
       server_keystone_endpoint_type: public
+    cache:
+      enabled: true
+      backend: dogpile.cache.memcached
     clients_keystone:
       endpoint_type: publicURL
     database:

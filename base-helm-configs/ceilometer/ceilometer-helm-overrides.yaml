@@ -886,6 +886,106 @@ conf:
         degraded:
           fields:
             - payload.degraded
+    - event_type: "blazar.reservation.physical_host"
+      traits: &physical_host_reservation_traits
+        lease_id:
+          fields: payload.lease_id
+        lease_name:
+          fields: payload.lease_name
+        reservation_id:
+          fields: payload.reservation_id
+        resource_id:
+          fields: payload.resource_id
+        resource_type:
+          fields: payload.resource_type
+        user_id:
+          fields: payload.user_id
+        project_id:
+          fields: payload.project_id
+        reservation_status:
+          fields: payload.reservation_status
+        min:
+          type: int
+          fields: payload.min
+        max:
+          type: int
+          fields: payload.max
+        hypervisor_properties:
+          fields: payload.hypervisor_properties
+        resource_properties:
+          fields: payload.resource_properties
+        before_end:
+          fields: payload.before_end
+        start_date:
+          fields: payload.start_date
+        end_date:
+          fields: payload.end_date
+    - event_type: "blazar.reservation.flavor_instance"
+      traits: &flavor_instance_reservation_traits
+        lease_id:
+          fields: payload.lease_id
+        name:
+          fields: payload.lease_name
+        reservation_id:
+          fields: payload.reservation_id
+        resource_id:
+          fields: payload.resource_id
+        resource_type:
+          fields: payload.resource_type
+        user_id:
+          fields: payload.user_id
+        project_id:
+          fields: payload.project_id
+        reservation_status:
+          fields: payload.reservation_status
+        vcpus:
+          type: int
+          fields: payload.vcpus
+        memory_mb:
+          type: int
+          fields: payload.memory_mb
+        disk_gb:
+          type: int
+          fields: payload.disk_gb
+        amount:
+          type: int
+          fields: payload.amount
+        flavor_id:
+          fields: payload.flavor_id
+        aggregate_id:
+          type: int
+          fields: payload.aggregate_id
+        start_date:
+          fields: payload.start_date
+        end_date:
+          fields: payload.end_date
+    - event_type: "blazar.reservation.virtual_floatingip"
+      traits: &virtual_floatingip_reservation_traits
+        lease_id:
+          fields: payload.lease_id
+        name:
+          fields: payload.lease_name
+        reservation_id:
+          fields: payload.reservation_id
+        resource_id:
+          fields: payload.resource_id
+        resource_type:
+          fields: payload.resource_type
+        user_id:
+          fields: payload.user_id
+        project_id:
+          fields: payload.project_id
+        reservation_status:
+          fields: payload.reservation_status
+        network_id:
+          fields: payload.network_id
+        amount:
+          type: int
+          fields: payload.amount
+        start_date:
+          fields: payload.start_date
+        end_date:
+          fields: payload.end_date
 
   gnocchi_resources:
     archive_policy_default: ceilometer-low
@@ -958,6 +1058,67 @@ conf:
           - lease.delete
         event_attributes:
           id: lease_id
+          name: name
+          start_date: start_date
+          end_date: end_date
+          status: status
+
+      - resource_type: blazar_physical_host_reservation
+        metrics:
+          - "blazar.reservation.host.min"
+          - "blazar.reservation.host.max"
+        attributes:
+          lease_id: resource_metadata.lease_id
+          lease_name: resource_metadata.lease_name
+          resource_type: resource_metadata.resource_type
+          hypervisor_properties: resource_metadata.hypervisor_properties
+          resource_properties: resource_metadata.resource_properties
+          status: resource_metadata.status
+          before_end: resource_metadata.before_end
+        event_create:
+          - blazar.reservation.physical_host
+        event_attributes:
+          id: reservation_id
+          name: name
+          start_date: start_date
+          end_date: end_date
+          status: status
+
+      - resource_type: blazar_flavor_instance_reservation
+        metrics:
+          - "blazar.reservation.flavor.vcpus"
+          - "blazar.reservation.flavor.memory"
+          - "blazar.reservation.flavor.disk"
+          - "blazar.reservation.flavor.amount"
+        attributes:
+          lease_id: resource_metadata.lease_id
+          lease_name: resource_metadata.lease_name
+          resource_type: resource_metadata.resource_type
+          flavor_id: resource_metadata.flavor_id
+          status: resource_metadata.status
+          aggregate_id: resource_metadata.aggregate_id
+        event_create:
+          - blazar.reservation.flavor_instance
+        event_attributes:
+          id: reservation_id
+          name: name
+          start_date: start_date
+          end_date: end_date
+          status: status
+
+      - resource_type: blazar_virtual_floatingip_reservation
+        metrics:
+          - "blazar.reservation.floatingip.amount"
+        attributes:
+          lease_id: resource_metadata.lease_id
+          lease_name: resource_metadata.lease_name
+          resource_type: resource_metadata.resource_type
+          network_id: resource_metadata.flavor_id
+          status: resource_metadata.status
+        event_create:
+          - blazar.reservation.virtual_floatingip
+        event_attributes:
+          id: reservation_id
           name: name
           start_date: start_date
           end_date: end_date
@@ -1396,6 +1557,157 @@ conf:
         metadata:
           name: $.payload.name
           status: $.payload.status
+          start_date: $.payload.start_date
+          end_date: $.payload.end_date
+
+      # Physical Host Reservation Metrics
+      - name: "blazar.reservation.host.min"
+        event_type:
+          - "blazar.reservation.physical_host"
+        type: "gauge"
+        unit: "host"
+        volume: $.payload.min
+        resource_id: $.payload.reservation_id
+        project_id: $.payload.project_id
+        user_id: $.payload.user_id
+        metadata:
+          lease_id: $.payload.lease_id
+          lease_name: $.payload.lease_name
+          resource_type: $.payload.resource_type
+          max: $.payload.max
+          hypervisor_properties: $.payload.hypervisor_properties
+          resource_properties: $.payload.resource_properties
+          reservation_status: $.payload.reservation_status
+          before_end: $.payload.before_end
+          start_date: $.payload.start_date
+          end_date: $.payload.end_date
+
+      - name: "blazar.reservation.host.max"
+        event_type:
+          - "blazar.reservation.physical_host"
+        type: "gauge"
+        unit: "host"
+        volume: $.payload.max
+        resource_id: $.payload.reservation_id
+        project_id: $.payload.project_id
+        user_id: $.payload.user_id
+        metadata:
+          lease_id: $.payload.lease_id
+          lease_name: $.payload.lease_name
+          resource_type: $.payload.resource_type
+          min: $.payload.min
+          hypervisor_properties: $.payload.hypervisor_properties
+          resource_properties: $.payload.resource_properties
+          reservation_status: $.payload.reservation_status
+          before_end: $.payload.before_end
+          start_date: $.payload.start_date
+          end_date: $.payload.end_date
+
+      # Virtual Flavor Reservation Metrics
+      - name: "blazar.reservation.flavor.vcpus"
+        event_type:
+          - "blazar.reservation.flavor_instance"
+        type: "gauge"
+        unit: "vcpu"
+        volume: $.payload.vcpus
+        resource_id: $.payload.reservation_id
+        project_id: $.payload.project_id
+        user_id: $.payload.user_id
+        metadata:
+          lease_id: $.payload.lease_id
+          lease_name: $.payload.lease_name
+          resource_type: $.payload.resource_type
+          flavor_id: $.payload.flavor_id
+          memory_mb: $.payload.memory_mb
+          disk_gb: $.payload.disk_gb
+          amount: $.payload.amount
+          reservation_status: $.payload.reservation_status
+          aggregate_id: $.payload.aggregate_id
+          start_date: $.payload.start_date
+          end_date: $.payload.end_date
+
+      - name: "blazar.reservation.flavor.memory"
+        event_type:
+          - "blazar.reservation.flavor_instance"
+        type: "gauge"
+        unit: "MB"
+        volume: $.payload.memory_mb
+        resource_id: $.payload.reservation_id
+        project_id: $.payload.project_id
+        user_id: $.payload.user_id
+        metadata:
+          lease_id: $.payload.lease_id
+          lease_name: $.payload.lease_name
+          resource_type: $.payload.resource_type
+          flavor_id: $.payload.flavor_id
+          vcpus: $.payload.vcpus
+          disk_gb: $.payload.disk_gb
+          amount: $.payload.amount
+          reservation_status: $.payload.reservation_status
+          aggregate_id: $.payload.aggregate_id
+          start_date: $.payload.start_date
+          end_date: $.payload.end_date
+
+      - name: "blazar.reservation.flavor.disk"
+        event_type:
+          - "blazar.reservation.flavor_instance"
+        type: "gauge"
+        unit: "GB"
+        volume: $.payload.disk_gb
+        resource_id: $.payload.reservation_id
+        project_id: $.payload.project_id
+        user_id: $.payload.user_id
+        metadata:
+          lease_id: $.payload.lease_id
+          lease_name: $.payload.lease_name
+          resource_type: $.payload.resource_type
+          flavor_id: $.payload.flavor_id
+          vcpus: $.payload.vcpus
+          memory_mb: $.payload.memory_mb
+          amount: $.payload.amount
+          reservation_status: $.payload.reservation_status
+          aggregate_id: $.payload.aggregate_id
+          start_date: $.payload.start_date
+          end_date: $.payload.end_date
+
+      - name: "blazar.reservation.flavor.amount"
+        event_type:
+          - "blazar.reservation.flavor_instance"
+        type: "gauge"
+        unit: "instance"
+        volume: $.payload.amount
+        resource_id: $.payload.reservation_id
+        project_id: $.payload.project_id
+        user_id: $.payload.user_id
+        metadata:
+          lease_id: $.payload.lease_id
+          lease_name: $.payload.lease_name
+          resource_type: $.payload.resource_type
+          flavor_id: $.payload.flavor_id
+          vcpus: $.payload.vcpus
+          memory_mb: $.payload.memory_mb
+          disk_gb: $.payload.disk_gb
+          reservation_status: $.payload.reservation_status
+          aggregate_id: $.payload.aggregate_id
+          start_date: $.payload.start_date
+          end_date: $.payload.end_date
+
+      # Virtual FloatingIP Reservation Metrics
+      - name: "blazar.reservation.floatingip.amount"
+        event_type:
+          - "blazar.reservation.virtual_floatingip"
+        type: "gauge"
+        unit: "floatingip"
+        volume: $.payload.amount
+        resource_id: $.payload.reservation_id
+        project_id: $.payload.project_id
+        user_id: $.payload.user_id
+        metadata:
+          lease_id: $.payload.lease_id
+          lease_name: $.payload.lease_name
+          resource_type: $.payload.resource_type
+          network_id: $.payload.network_id
+          reservation_status: $.payload.reservation_status
           start_date: $.payload.start_date
           end_date: $.payload.end_date
 

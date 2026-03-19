@@ -1,0 +1,52 @@
+---
+prelude: |
+  Glance Epoxy (2025.1) focuses on safer image handling, predictable multi-store
+  download behavior, and stability fixes for policy initialization and RBD-backed
+  deployments. The release introduces stricter upload/import validation while
+  retaining operator controls for compatibility tuning.
+
+features:
+  - |
+    Added image content inspection during upload/import to validate declared
+    `disk_format` against uploaded data.
+  - |
+    Added configuration controls:
+    `[image_format]/require_image_format_match` and
+    `[image_format]/gpt_safety_checks_nonfatal`.
+  - |
+    Updated `GET images` behavior to sort image locations by configured store
+    weight, affecting which backend location is preferred for download.
+  - |
+    Extended stores detail API output for RBD backends to include `fsid`.
+
+issues:
+  - |
+    No explicit unresolved known issues were identified in the reviewed Epoxy
+    Glance note fragments; operators should still validate upload/import behavior
+    with real image sets due to stricter format checks.
+
+upgrade:
+  - |
+    Support for running Glance services on Windows operating systems has been
+    removed.
+  - |
+    Upload/import now checks content against `disk_format` by default; operators
+    should review current image pipelines and user workflows for format mismatch
+    failures and tune related image_format options as needed.
+
+deprecations:
+  - |
+    No new deprecations were explicitly called out in the reviewed Epoxy
+    Glance fragments.
+
+critical: []
+
+security: []
+
+fixes:
+  - |
+    LP #2081009: Fixed `oslo_config.cfg.NotInitializedError` when switching the
+    default `policy_file` in oslo.policy.
+  - |
+    LP #2086675: Fixed suspected performance regression for RBD backends linked
+    to image location sorting behavior.
