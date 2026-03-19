@@ -680,7 +680,7 @@ fi
 if [ "${TEST_LEVEL}" = "off" ]; then
     # Wait for Nova and Neutron APIs to be ready before proceeding
     waitForOpenStackAPIsReadyRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}"
-
+    
     createPostSetupResourcesRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}" "${LAB_NAME_PREFIX}"
 
     # Trove Setup & Installation
