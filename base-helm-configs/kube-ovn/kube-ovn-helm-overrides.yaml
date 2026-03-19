@@ -51,8 +51,6 @@ performance:
   INSPECT_INTERVAL: 300
   OVS_VSCTL_CONCURRENCY: 150
 
-kubelet_conf:
-  KUBELET_DIR: "/var/lib/kubelet"
 
 
 OPENVSWITCH_DIR: "/etc/origin/openvswitch"
