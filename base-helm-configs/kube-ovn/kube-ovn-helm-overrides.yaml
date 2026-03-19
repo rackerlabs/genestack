@@ -18,9 +18,6 @@ replicaCount: 3
 
 namespace: kube-system
 
-MASTER_NODES: ""
-MASTER_NODES_LABEL: "kube-ovn/role=master"
-
 networking:
   # NET_STACK defaults to ipv4
   NET_STACK: ipv4
