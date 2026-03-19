@@ -92,9 +92,6 @@ performance:
   INSPECT_INTERVAL: 300
   OVS_VSCTL_CONCURRENCY: 150
 
-debug:
-  ENABLE_MIRROR: false
-  MIRROR_IFACE: "mirror0"
 
 cni_conf:
   CNI_CONFIG_PRIORITY: "01"
