@@ -1,196 +1,587 @@
-# Genestack Monitoring
+# Monitoring And Observability Stack Overview
 
-Genestack is made up of a vast array of components working away to provide a Kubernetes and OpenStack cloud infrastructure
-to serve our needs. Here we'll discuss in a bit more detail about how we're monitoring these components and what that
-looks like.
+Complete overview of the monitoring and observability stack for Rackspace Genestack, providing telemetry collection, storage, visualization, and alerting across the entire infrastructure.
 
-## Overview
+---
 
-In this document we'll dive a bit deeper into the components and how they're being used, for a quick overview take a look
-at the [Monitoring Overview](prometheus-monitoring-overview.md) documentation.
+## Table of Contents
 
-The following tooling are what was chosen as part of Genestack's default monitoring workflow primarily for their open-sourced nature and ease of integration.
-These tools are not an absolute requirement and can easily be replaced by tooling of the end users choice as they see fit.
+1. [Architecture Overview](#architecture-overview)
+2. [Technology Stack](#technology-stack)
+3. [Data Flow](#data-flow)
+4. [Components](#components)
+5. [What Gets Monitored](#what-gets-monitored)
+6. [Access Points](#access-points)
+7. [Key Features](#key-features)
 
-## Prometheus
+---
 
-Prometheus is the heavy lifter in Genestack when it comes to monitoring. We rely on Prometheus to monitor and collect metrics
-for everything from the node/host health itself to Kubernetes stats and even OpenStack service metrics and operations.
+## Architecture Overview
 
-Prometheus is an open-source systems monitoring and alerting toolkit built in 2012. It joined the Cloud Native Computing Foundation in 2016 as the second hosted project, after Kubernetes.
+The observability stack is deployed in the `monitoring` namespace and provides comprehensive telemetry collection for:
+- **Kubernetes cluster** (nodes, pods, containers, resources)
+- **OpenStack services** (Nova, Neutron, Keystone, etc.)
+- **Infrastructure services** (MySQL, PostgreSQL, RabbitMQ, Memcached)
+- **Application traces** and **distributed tracing**
 
-Prometheus is a powerful system that collects and stores its metrics as time series data, i.e. metrics information is stored with the timestamp at which it was recorded, alongside optional key-value pairs called labels.
+### High-Level Architecture
 
-To read more about Prometheus from the official source take a look at [Prometheus Docs](https://prometheus.io).
+```
+┌────────────────────────────────────────────────────────────────────────────┐
+│                          Monitoring Namespace                              │
+├────────────────────────────────────────────────────────────────────────────┤
+│                                                                            │
+│  ┌────────────────────────────────────────────────────────────────────┐    │
+│  │                    OpenTelemetry Collectors                        │    │
+│  │                                                                    │    │
+│  │  ┌───────────────────┐              ┌──────────────────────┐       │    │
+│  │  │ Daemon Collectors │              │ Deployment Collector │       │    │
+│  │  │  (DaemonSet)      │              │    (Deployment)      │       │    │
+│  │  │                   │              │                      │       │    │
+│  │  │ • Metrics (OTLP)  │              │ • MySQL Metrics      │       │    │
+│  │  │ • Traces (OTLP)   │              │ • PostgreSQL Metrics │       │    │
+│  │  │ • Logs (filelog)  │              │ • RabbitMQ Metrics   │       │    │
+│  │  │ • Host Metrics    │              │ • Memcached Metrics  │       │    │
+│  │  │ • K8s Events      │              │ • HTTP Checks        │       │    │
+│  │  └─────────┬─────────┘              └──────────┬───────────┘       │    │
+│  └────────────┼───────────────────────────────────┼───────────────────┘    │
+│               │                                   │                        │
+│               ├──────────────┬────────────────────┼──────────┐             │
+│               │              │                    │          │             │
+│               ▼              ▼                    ▼          ▼             │
+│      ┌────────────┐  ┌────────────┐     ┌────────────┐  ┌──────────┐       │
+│      │ Prometheus │  │    Loki    │     │   Tempo    │  │AlertMgr  │       │
+│      │            │  │            │     │            │  │          │       │
+│      │ • Metrics  │  │ • Logs     │     │ • Traces   │  │• Alerts  │       │
+│      │ • Alerts   │  │ • Search   │     │ • Storage  │  │• Routes  │       │
+│      │ • Rules    │  │ • Storage  │     │            │  │          │       │
+│      └─────┬──────┘  └─────┬──────┘     └─────┬──────┘  └────┬─────┘       │
+│            │               │                  │              │             │
+│            └───────────────┴──────────────────┴──────────────┘             │
+│                                     │                                      │
+│                                     ▼                                      │
+│                            ┌─────────────────┐                             │
+│                            │    Grafana      │                             │
+│                            │                 │                             │
+│                            │ • Dashboards    │                             │
+│                            │ • Visualization │                             │
+│                            │  • Explore      │                             │
+│                            │                 │                             │
+│                            └─────────────────┘                             │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
 
-To install Prometheus within the Genestack workflow we make use of the helm charts found in the kube-prometheus-stack.
+---
 
-## The Kube Prometheus Stack
+## Technology Stack
 
-Genestack takes full advantage of [Helm](https://helm.sh/) and [Kustomize maninfests](https://kustomize.io/) to build a production grade Kubernetes and OpenStack Cloud.
-When it comes to monitoring Genestack this is no different, Genestack makes use of the [Prometheus Community's](https://github.com/prometheus-community) [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack).
+### Core Components
 
-The kube-prometheus-stack provides an easy to operate end-to-end Kubernetes cluster monitoring system with Prometheus using the [Prometheus Operator](https://github.com/prometheus-operator/prometheus-operator).
+| Component | Purpose | Technology | Storage |
+|-----------|---------|------------|---------|
+| **OpenTelemetry** | Telemetry collection & processing | OTel Collector Contrib | Stateless |
+| **Prometheus** | Metrics storage & querying | Prometheus 2.x | Local TSDB (15d retention) |
+| **Loki** | Log aggregation & querying | Grafana Loki 2.x | S3/Filesystem |
+| **Tempo** | Distributed tracing | Grafana Tempo 2.x | S3/Filesystem |
+| **Grafana** | Visualization & dashboards | Grafana 10.x | MariaDB |
+| **Alertmanager** | Alert routing & notification | Prometheus Alertmanager | Stateless |
 
-The kube-prometheus-stack offers many components that make monitoring fairly straight forward, scalable and easy to maintain.
-In Genestack we have opted to make use of a subset of the components. As our needs change we may make further use of more of the components that the kube-prometheus-stack provides.
-At the time of writing the primary components Genestack is not making use of as part of the kube-prometheus-stack are [Thanos](https://thanos.io/), a HA, long term storage Prometheus setup and [Grafana](https://grafana.com/), a metrics and alerting visualization platform.
+### Supporting Components
 
-Thanos hasn't been a need or priority to setup by default in Genestack but is available to anyone utilizing Genestack by configuring the ThanosService section found in the [prometheus-helm-overrides.yaml](https://github.com/rackerlabs/genestack/blob/main/base-helm-configs/prometheus/prometheus-helm-overrides.yaml) in the Genestack repo.
-For configuration documentation of Thanos view the [Thanos Docs](https://thanos.io/tip/thanos/getting-started.md/).
+| Component | Purpose | Details |
+|-----------|---------|---------|
+| **kube-state-metrics** | Kubernetes cluster state metrics | Exports cluster-level metrics (deployments, pods, nodes) |
+| **node-exporter** | Node-level system metrics | CPU, memory, disk, network per node |
+| **MariaDB** | Grafana persistent storage | Stores dashboards, users, datasources |
+| **ServiceMonitors** | Prometheus target discovery | Auto-discovers scrape targets via CRDs |
 
-As for Grafana, we install this separately to fit our needs with datasources, custom routes, auth and certs. To see more information about how we're installing Grafana as part of the Genestack workflow see: [Grafana README](https://github.com/rackerlabs/genestack/blob/main/base-helm-configs/grafana/README.md) and the installation documentation found at [Install Grafana](grafana.md).
+---
 
-Some of the components that we do take advantage of are the [Prometheus Operator](https://github.com/prometheus-operator/prometheus-operator), [AlertManager](https://prometheus.io/docs/alerting/latest/alertmanager/)
-and various custom resource definitions(CRD). These CRD's include the AlertManagerConfig, PrometheusRule and things like the ServiceMonitors, which allows for dynamic service monitoring configured outside the traditional Prometheus configuration methods.
-For a more complete list and their definitions view: [Prometheus Operator Design](https://prometheus-operator.dev/docs/getting-started/design/).
+## Data Flow
 
-The below diagram gives a good view of how these components are all connected.
-![Prometheus Architecture](assets/images/prometheus-architecture.png)
+### Metrics Flow
 
-To install the kube-prometheus-stack as part of Genestack's workflow view the [Installing Prometheus Doc](prometheus.md).
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                          Metrics Collection                              │
+└──────────────────────────────────────────────────────────────────────────┘
 
-As for the metrics themselves they are largely provided by 'exporters' which simply export the data exposed by various services we wish to monitor in order for Prometheus to injest them.
-The kube-prometheus-stack provides a set of key exporters deployed by default, such as, node-exporter and kube-state-metrics, that Genestack relies on to monitor its infrastructure.
+Sources                   Collectors              Storage         Visualization
+────────                  ──────────              ───────         ─────────────
 
-## Metric Exporters
+Kubernetes Pods  ─────┐
+                      │
+OpenStack Services ───┤
+                      ├──► OTel Daemon     ────┐
+Host Metrics  ────────┤    (DaemonSet)         │
+                      │                        │
+K8s Events  ──────────┘                        ├──► Prometheus ──► Grafana
+                                               │    (TSDB)         (Dashboards)
+MySQL  ───────────┐                            │                   (Alerts)
+                  │                            │
+PostgreSQL  ──────┤                            │
+                  ├──► OTel Deployment  ───────┘
+RabbitMQ  ────────┤    (Single Pod)
+                  │
+Memcached  ───────┘
 
-Genestack makes heavy use of prometheus exporters as there are many services that require monitoring. Below is the list of exporters Genestack deploys to monitor its systems.
+                                               
+ServiceMonitors  ─────► Prometheus  ────────────► Grafana
+(kube-state-metrics,    (Direct Scrape)           (Dashboards)
+ node-exporter)
+```
 
-* ### Node Exporter:
-The [node-exporter](https://github.com/prometheus/node_exporter) is geared toward hardware and OS metrics exposed by *NIX kernels.
-The node-exporter exposes many important metrics by default such as cpu, hwmon, meminfo, loadavg and many more. For a full list view the [node-exporter README](https://github.com/prometheus/node_exporter?tab=readme-ov-file#collectors).
+### Logs Flow
 
-* ### Kube State Metrics:
-The [kube-state-metrics](https://github.com/kubernetes/kube-state-metrics) service provides metrics regarding the health of Kubernetes objects such as deployments, nodes and pods.
-The kube-state-metrics service provides detailed information about the health and state of Kubernetes components and objects such as ConfigMaps, Jobs, Nodes, Deployments and many many more.
-View the [kube-state-docs](https://github.com/kubernetes/kube-state-metrics/tree/main/docs) for a complete list and further information.
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                            Logs Collection                               │
+└──────────────────────────────────────────────────────────────────────────┘
 
-Beyond those two highly important ones installed by default are many more equally important metric exporters that we install as part of Genestack's workflow that we'll go over next.
+Log Sources              Collectors           Processing         Storage
+───────────              ──────────           ──────────         ───────
 
-* ### Kubernetes Event Exporter
-Kubernetes clusters are constantly sending events that contain potentially important data that should be captured.
-With the [Kubernetes Event Exporter](https://github.com/resmoio/kubernetes-event-exporter) we can capture these events to gain a better view of what our cluster is doing.
-This exporter also includes built in alerting mechanisms for things like Slack and MSTeams that can be configured to send messages when specific events are seen.
-View the [Kubernetes Event Exporter Install Instructions](prometheus-kube-event-exporter.md) to get this exporter installed.
+/var/log/pods/  ──────┐
+ (K8s containers)     │
+                      ├──► OTel Daemon  ──► Processors  ──► Loki  ──► Grafana
+/var/log/pods/  ──────┤    (filelog)         • Parse           (Storage)   (Explore)
+ (OpenStack svcs)     │                      • Enrich          (Index)     (Search)
+                      │                      • Label
+K8s Events  ──────────┘                      • Filter
 
-* ### MariaDB/MySQL Exporter:
-Genestack uses a couple different database solutions to run OpenStack or just for general storage capabilities, the most prominent of them is MySQL or more specifically within Genestack MariaDB and Galera.
-When installing [MariaDB](infrastructure-mariadb.md) as part of Genestack's workflow it is default to enable metrics which deploys its own service monitor as part of the [mariadb-operator](https://mariadb-operator.github.io/mariadb-operator/latest/) helm charts.
-This is great if you have already installed Prometheus, if not the MariaDB deploy will fail and there may be other potential database disrupting issues if you have a need to update metrics settings alone. It is encouraged to install the [Mysql Exporter](prometheus-mysql-exporter.md) as a separate exporter that can be updated without having to run MariaDB deploy/update commands.
-The [mysql-exporter](https://github.com/prometheus/mysqld_exporter) is provided by the prometheus organization and is also what's used within the MariaDB Operator. When installed separately via the Genestack [Mysql Exporter](prometheus-mysql-exporter.md) installation instructions the [prometheus-mysql-exporter](https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus-mysql-exporter) helm charts are used.
-The mysql-exporter provides many important metrics related to the overall health and operation of your MariaDB/Galera cluster. You can view more details about what's exported in the [mysqld-exporter README](https://github.com/prometheus/mysqld_exporter?tab=readme-ov-file#mysql-server-exporter-).
+                      Parse:                 Query:
+                      • CRI format           • LogQL
+                      • Multiline            • Label filters
+                      • Timestamps           • Regex search
+                      • Severity             • Aggregation
+```
 
-* ### Postgres Exporter:
-Genestack also makes use of PostgreSQL for a limited set of services. At the time of writing only [Gnocchi](openstack-gnocchi.md) is making use of it. It's still an important part of the system and requires monitoring.
-To do so we make use of the Prometheus community helm charts [prometheus-postgres-exporter](https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus-postgres-exporter) and it's installed as part of Genestack's workflow by following the [Postgres Exporter](prometheus-postgres-exporter.md).
-Further information about the exporter and the metrics it collects and exposes can be found in the [postgres_exporter](https://github.com/prometheus-community/postgres_exporter/blob/master/README.md) documentation.
+### Traces Flow
 
-* ### RabbitMQ Exporter:
-Many OpenStack services require RabbitMQ to operate and is part of Genestack's infrastructure deployment. [RabbitMQ](infrastructure-rabbitmq.md) cluster can be finicky at times and it's important to be able to monitor it.
-Genestack makes use of the Prometheus community's [prometheus-rabbitmq-exporter](https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus-rabbitmq-exporter) helm charts and is installed as part of Genestack's workflow via [RabbitMQ Exporter](prometheus-rabbitmq-exporter.md).
-The RabbitMQ exporter provides many detailed metrics such as channels, connections and queues. View a complete list of the metrics exposed in the [RabbitMQ Exporter Docs](https://github.com/kbudde/rabbitmq_exporter/blob/main/metrics.md).
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                           Traces Collection                              │
+└──────────────────────────────────────────────────────────────────────────┘
 
-* ### Memcached Exporter:
-Many OpenStack services make use of Memcached as a caching layer which is part of Genestack's infrastructure deployment found in the [Memcached Deployment Doc](infrastructure-memcached.md).
-We monitor Memcached utilizing Prometheus community's helm chart for the [prometheus-memcached-exporter](https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus-memcached-exporter).
-The memcached-exporter offers many metrics for things like uptime, connections and limits. For a full list view the [Memcached Exporter Docs](https://github.com/prometheus/memcached_exporter/blob/master/README.md#collectors).
+Application Code         Collectors            Storage          Visualization
+────────────────         ──────────            ───────          ─────────────
 
-* ### BlackBox Exporter:
-The blackbox exporter allows blackbox probing of endpoints over HTTP, HTTPS, DNS, TCP, ICMP and gRPC. This exporter is ideally deployed cross region in order to check the service health across the network.
-Deploying it as part of the cluster it's monitoring does still have its benefits as it will reach out the gateways and back in to provide some context about the health of your services. This can also serve as a simple way to check endpoint cert expiration.
-Install this exporter following the documentation found at [BlackBox Deployment Doc](prometheus-blackbox-exporter.md). For more information regarding the BlackBox exporter see the upstream [BlackBox Exporter Doc](https://github.com/prometheus/blackbox_exporter)
+Python Apps  ────┐
+ (OpenTelemetry) │
+                 ├──► OTel Daemon  ──► Tempo  ──► Grafana
+Java Apps  ──────┤    (OTLP gRPC)      (S3)       (Trace View)
+ (Jaeger SDK)    │                                (Service Graph)
+                 │
+Go Apps  ────────┘
+ (Zipkin)
 
-* ### OVN Monitoring:
-OVN is installed a bit differently compared to the rest of the services as you can see in the [OVN Deployment Doc](infrastructure-ovn-setup.md). The installation ends up installing [Kube-OVN](https://github.com/kubeovn/kube-ovn) which exposes metrics about its operations.
-However, at this point, there's no way for Prometheus to scrape those metrics. The way Genestack achieves this is by applying ServiceMonitor CRD's so Prometheus knows how to find and scrape these services for metric collection.
-In the [Kube-OVN Deployment Doc](https://docs.rackspacecloud.com/prometheus-kube-ovn/) we see a simple command to apply the contents of [prometheus-ovn](https://github.com/rackerlabs/genestack/tree/main/base-kustomize/prometheus-ovn).
-The contents are a set of ServiceMonitor manifests that define labels, namespaces and names to match to a service to monitor which is percisely what a [ServiceMonitor](https://prometheus-operator.dev/docs/api-reference/api/#monitoring.coreos.com/v1.ServiceMonitor) CRD is designed to do.
-You can view more information about the metrics provided in the [Kube-OVN Metrics Doc](https://kubeovn.github.io/docs/stable/en/reference/metrics/).
-Once we've ran the apply command we will have installed ServiceMonitors for Kube-OVN services:
-    * CNI
-    * Controller
-    * OVN
-    * Pinger
+                 Protocols:              Query:
+                 • OTLP (gRPC/HTTP)      • TraceQL
+                 • Jaeger                • Trace ID
+                 • Zipkin                • Service
+                                         • Duration
+```
 
-    You can view more information about OVN monitoring in the [OVN Monitoring Introduction Docs](ovn-monitoring-introduction.md).
+---
 
-* ### Envoy Gateway Monitoring:
-Genestack makes use of the Envoy Gateway API for its implementation of [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/). Genestack deploys the Envoy Gateway as part of its infrastructure, view the [Envoy Gateway Deployment Doc](infrastructure-envoy-gateway-api.md) for more information.
-Envoy Gateway is a Kubernetes-native API Gateway and reverse proxy control plane. It simplifies deploying and operating Envoy Proxy as a data plane by using the standard Gateway API and its own extensible APIs. For more information about Envoy Gateway in general view the [Envoy Gateway Documentation](https://gateway.envoyproxy.io/docs/concepts/introduction/).
-The Envoy Gateway serves Prometheus metrics by default and list of the metrics collected can be found at [Envoy Gateway Exported Metrics](https://gateway.envoyproxy.io/docs/tasks/observability/gateway-exported-metrics/).
+## Components
 
-* ### OpenStack Metrics:
-OpenStack Metrics are a bit different compared to the rest of the exporters as there's no single service, pod or deployment that exposes Prometheus metrics for collection. Instead, Genestack uses the [OpenStack Exporter](https://github.com/openstack-exporter/openstack-exporter) to gather the metrics for us.
-The OpenStack exporter reaches out to all the configured OpenStack services, queries their API for stats and packages them as metrics Prometheus can then process. The OpenStack exporter is configurable and can collect metrics from just about every OpenStack service such as Keystone, Nova, Octavia etc..
-View the [OpenStack Exporter Deployment Doc](prometheus-openstack-metrics-exporter.md) for more information on how to configure and deploy the exporter in the Genestack workflow.
-You can view more information about the OpenStack exporter in general and what metrics are collected in the [OpenStack Exporter Doc](https://github.com/openstack-exporter/openstack-exporter?tab=readme-ov-file#metrics).
+### OpenTelemetry Collectors
 
-* ### Ceph Monitoring:
-[Ceph](https://rook.io/docs/rook/latest-release/Getting-Started/intro/) comes with its own set of optimized collectors and exporters. In terms of deploying [Ceph Internally](storage-ceph-rook-internal.md) there is nothing for us to do. The service and ServiceMonitor CRD's are created and metrics will be available in Prometheus assuming metric collection is enabled in the helm chart.
-If we are deploying [Ceph externally](storage-ceph-rook-external.md) then we will want to add another Prometheus CRD, the [ScrapeConfig](https://prometheus-operator.dev/docs/getting-started/design/#scrapeconfig).
-The ScrapeConfig allows us to define external sources for Prometheus to scrape.
-    !!! example "Example ScrapeConfig for external Ceph monitoring"
+**Purpose**: Universal telemetry collection, processing, and export
 
-        ``` yaml
-        apiVersion: monitoring.coreos.com/v1alpha1
-        kind: ScrapeConfig
-        metadata:
-           name: external-ceph-monitor
-           namespace: prometheus
-           labels:
-               prometheus: sys\em-monitoring-prometheus
-        spec:
-          staticConfigs:
-            - labels:
-                job: prometheus
-              targets:
-                - 192.12.34.567:9283
-        ```
-With this example we can simply apply it to the cluster and Prometheus will soon begin scraping metrics for our external Ceph cluster.
-We can see additional information about the Ceph exporter at the [Ceph Github Docs](https://github.com/rook/rook/blob/master/design/ceph/ceph-exporter.md).
-For additional information regarding the metrics collected and exposed from Ceph clusters view the [Ceph Telemetry Doc](https://github.com/rook/rook/blob/master/design/ceph/ceph-telemetry.md?plain=1).
+#### Daemon Collector (DaemonSet)
+- **Deployment**: One pod per Kubernetes node
+- **Collects**:
+  - OTLP metrics and traces from applications
+  - Jaeger and Zipkin traces (legacy protocols)
+  - Container logs via filelog (`/var/log/pods`)
+  - Host metrics (CPU, memory, disk, network)
+  - Kubernetes events via k8sobjects
+- **Processes**:
+  - Kubernetes attributes enrichment (pod, namespace, labels)
+  - Resource attribute manipulation
+  - Batching and memory limiting
+- **Exports**:
+  - Metrics → Prometheus (remote write)
+  - Logs → Loki (OTLP/HTTP)
+  - Traces → Tempo (OTLP/gRPC)
 
-* ### Push Gateway:
-The [Prometheus Push Gateway](https://github.com/prometheus/pushgateway) is used to gather metrics from short-lived jobs, like Kubernetes CronJobs.
-It's not capable of turning Prometheus into a push-based monitoring system and should only be used when there is no other way to collect the desired metrics.
-Currently, in Genestack the push gateway is only being used to gather stats from the OVN-Backup CronJob as noted in the [Pushgateway Deployment Doc](prometheus-pushgateway.md).
+#### Deployment Collector (Single Pod)
+- **Deployment**: One pod on control plane
+- **Collects**:
+  - MySQL metrics (connections, queries, locks, buffer pool)
+  - PostgreSQL metrics (backends, transactions, deadlocks, size)
+  - RabbitMQ metrics (messages, queues, consumers, node health)
+  - Memcached metrics (hit ratio, evictions, memory)
+  - HTTP endpoint checks (OpenStack API health)
+- **Exports**:
+  - Metrics → Prometheus (remote write)
 
-* ### SNMP Exporter:
-The [Prometheus SNMP Exporter](https://github.com/prometheus/snmp_exporter) is
-used for gathering SNMP metrics. A default Genestack installation does not make
-use of it, so you do not need to install it unless you plan to do additional
-configuration beyond Genestack defaults and specifically plan to monitor some
-SNMP-enabled devices.
+**Key Features**:
+- Vendor-agnostic telemetry format (OTLP)
+- Built-in processors for data manipulation
+- Multiple protocol support (OTLP, Jaeger, Zipkin)
+- Automatic Kubernetes metadata enrichment
 
-* ### Barbican Exporter:
-The Barbican exporter is used for monitoring of OpenStack's Key Management Service (Barbican) by exposing metrics to Prometheus. It collects metrics about secrets, containers, and other Barbican-specific resources.
+---
 
-* ### Textfile Collector:
-It's possible to gather node/host metrics that aren't exposed by any of the above exporters by utilizing the [Node Exporter Textfile Collector](https://github.com/prometheus/node_exporter?tab=readme-ov-file#textfile-collector).
-Currently, in Genestack the textfile-collector is used to collect kernel-taint stats. To view more information about the textfile-collector and how to deploy your own custom exporter view the [Custom Metrics Deployment Doc](prometheus-custom-node-metrics.md).
+### Prometheus
 
-This is currently the complete list of exporters and monitoring callouts deployed within the Genestack workflow. That said, Genestack is constantly evolving and list may grow or change entirely as we look to further improve our systems!
-With all these metrics available we need a way to visualize them to get a better picture of our systems and their health, we'll discuss that next!
+**Purpose**: Time-series metrics storage and querying
 
-## Visualization
+**Deployment**:
+- StatefulSet with persistent storage (15 days retention)
+- Alertmanager for alert routing
 
-In Genestack we deploy [Grafana](https://grafana.com/) as our default visualization tool. Grafana is open-sourced tooling which aligns well with the Genestack ethos while providing seamless visualization of the metrics generated by our systems.
-Grafana also plays well with Prometheus and [Loki](infrastructure-loki.md), the default logging tooling deployed in Genestacks workflow, with various datasource plugins making integration a breeze.
-Installing [Grafana](grafana.md) within Genestack is fairly straight forward, just follow the [Grafana Deployment Doc](grafana.md).
+**Collects Metrics From**:
+- OpenTelemetry collectors (remote write)
+- kube-state-metrics (Kubernetes cluster state)
+- node-exporter (node system metrics)
+- ServiceMonitors (auto-discovered targets)
 
-The installation also takes care of installing the primary [datasources](https://grafana.com/docs/grafana/latest/datasources/) which are Grafana plugins used for querying specific datasets.
-For example in Genestack we install the [Prometheus and Loki datasources](https://github.com/rackerlabs/genestack/blob/8b90d22b19795acd364afb05f08617c326f6c8f6/base-helm-configs/grafana/datasources.yaml#L4) as part of Genestack's default workflow.
-You can manually add additional datasources by following the [add datasource](https://grafana.com/docs/grafana/latest/datasources/#add-a-data-source) documentation.
-More information about the primary datasources can be found in the [Prometheus datasource](https://grafana.com/docs/grafana/latest/datasources/prometheus/) and [Loki datasource](https://grafana.com/docs/grafana/latest/datasources/loki/) documentation.
+**Data Model**:
+- Time-series: `metric_name{label="value"} value timestamp`
+- Query language: PromQL
+- Storage: Local TSDB (optimized for time-series data)
 
-As things stand now, the Grafana deployment does not deploy dashboards as part of the default deployment instructions. However, there are dashboards available found in the [etc directory](https://github.com/rackerlabs/genestack/tree/main/etc/grafana-dashboards) of the Genestack repo that can be installed manually by importing them into Grafana.
-View the [importing dashboards](https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/import-dashboards/) documentation for more information. You can also use [import-grafana-dashboard.py](https://github.com/rackerlabs/genestack/tree/main/scripts/import-grafana-dashboard.py) script for the same.
-The dashboards available cover just about every exporter/metric noted here and then some. Some of the dashboards may not be complete or may not provide the desired view. Please feel free to adjust them as needed and submit a PR to [Genestack repo](https://github.com/rackerlabs/genestack) if they may help others!
+**Retention**:
+- Default: 15 days
+- Configurable via `retention.time` and `retention.size`
 
-## Next Steps
+**Key Features**:
+- Powerful query language (PromQL)
+- Multi-dimensional data model
+- Built-in alerting rules
+- Service discovery and scraping
+- High performance for time-series queries
 
-With what's deployed as part of our Genestack workflow today we get a fairly clear view of all our systems that allows us to properly monitor our Genestack cluster.
-As we begin to expand to more regions or add other services that exist outside of our cluster, such as Swift, with its own monitoring systems a need may arise for tooling not provided within Genestack.
-For example, Grafana may not provide all the features we'd like in a dashboard and we may want to find something that could combine multiple regions while being able to provide automation activity on alerts and way to notify support and on-call team members.
-At that point it may be time to look at replacing certain tooling or running them in conjunction with things like [Dynatrace](https://www.dynatrace.com/) or [Datadog](https://www.datadoghq.com/) or any of the many tools available to fit our needs.
+---
+
+### Loki
+
+**Purpose**: Log aggregation and querying system (like Prometheus but for logs)
+
+**Deployment**:
+- Distributed architecture:
+  - **Write**: Ingests logs from OTel
+  - **Read**: Serves log queries
+  - **Backend**: Long-term storage
+
+**Data Model**:
+- Logs stored with labels (not indexed content)
+- Query language: LogQL (similar to PromQL)
+- Cost-effective: Only indexes labels, not log content
+
+**Storage**:
+- Short-term: Local filesystem
+- Long-term: S3-compatible object storage
+
+**Key Features**:
+- Label-based indexing (efficient storage)
+- LogQL for querying (grep-like but better)
+- Integrates with Grafana (Explore interface)
+- Multi-tenancy support
+- Automatic log parsing and labeling
+
+**Query Examples**:
+```logql
+# All logs from OpenStack namespace
+{namespace="openstack"}
+
+# Errors from Nova service
+{namespace="openstack", service_name="nova"} |= "ERROR"
+
+# Rate of errors per minute
+rate({namespace="openstack"} |= "ERROR" [5m])
+```
+
+---
+
+### Tempo
+
+**Purpose**: Distributed tracing backend
+
+**Deployment**:
+- Scalable architecture (ingester, querier, compactor)
+- S3-compatible storage for traces
+
+**Data Model**:
+- Traces composed of spans
+- Each span has:
+  - Trace ID (unique per request)
+  - Span ID (unique per operation)
+  - Parent span ID (for hierarchy)
+  - Timestamps, tags, logs
+
+**Key Features**:
+- Cost-effective trace storage
+- TraceQL for querying traces
+- Integrates with Grafana and Loki
+- Automatic trace to logs correlation
+
+**Use Cases**:
+- Debug slow API requests
+- Find bottlenecks in microservices
+- Trace request flow across services
+- Identify error propagation
+
+---
+
+### Grafana
+
+**Purpose**: Visualization and dashboarding platform
+
+**Deployment**:
+- Deployment with MariaDB backend
+- Persistent storage for dashboards and configuration
+
+**Datasources**:
+- **Prometheus**: Metrics and alerting
+- **Loki**: Log searching and exploration
+- **Tempo**: Distributed tracing
+
+**Features**:
+- **Dashboards**: Pre-built and custom visualizations
+- **Explore**: Ad-hoc querying interface
+- **Alerting**: Visual alert rule builder
+- **Correlation**: Jump from metrics → logs → traces
+
+**Pre-configured Dashboards**:
+- Kubernetes cluster monitoring
+- Node resource usage
+- OpenStack service health
+- Database performance
+- RabbitMQ queue monitoring
+
+---
+
+### Alertmanager
+
+**Purpose**: Alert routing and notification management
+
+**Deployment**:
+- StatefulSet for HA (high availability)
+- Receives alerts from Prometheus
+
+**Features**:
+- **Grouping**: Combine similar alerts
+- **Inhibition**: Suppress dependent alerts
+- **Silencing**: Temporarily mute alerts
+- **Routing**: Send to different channels (Slack, PagerDuty, email)
+
+**Alert Flow**:
+```
+Prometheus Rules  ──► Alertmanager  ──► Notification Channels
+ (PromQL)              (Routing)          • Slack
+                                          • PagerDuty
+                                          • Email
+                                          • Webhooks
+```
+
+---
+
+## What Gets Monitored
+
+### Kubernetes Infrastructure
+
+| Component | Metrics | Logs | Traces |
+|-----------|---------|------|--------|
+| **Nodes** | CPU, memory, disk, network | System logs | N/A |
+| **Pods** | Resource usage, restarts, status | Container stdout/stderr | App traces |
+| **Containers** | CPU, memory, I/O | Application logs | App traces |
+| **Services** | Request rate, latency, errors | Service logs | Service traces |
+| **Cluster State** | Deployments, StatefulSets, DaemonSets | K8s events | N/A |
+
+### OpenStack Services
+
+| Service | Metrics | Logs | Examples |
+|---------|---------|------|----------|
+| **Nova** | API requests, VM operations | nova-api, nova-compute logs | VM creation traces |
+| **Neutron** | Network operations, ports | neutron-server logs | Network provisioning |
+| **Keystone** | Auth requests, token operations | keystone logs | Auth flow traces |
+| **Cinder** | Volume operations | cinder-api logs | Volume attach traces |
+| **Glance** | Image operations | glance-api logs | Image upload traces |
+`All openstack services get logged the above is just an example`
+
+
+### Infrastructure Services
+
+| Service | Metrics Collected | Key Metrics |
+|---------|-------------------|-------------|
+| **MySQL/MariaDB** | 25+ metrics | Connections, queries, locks, buffer pool |
+| **PostgreSQL** | 30+ metrics | Backends, commits, deadlocks, cache hits |
+| **RabbitMQ** | 20+ metrics | Messages, queues, consumers, memory |
+| **Memcached** | 15+ metrics | Hit ratio, evictions, memory usage |
+
+### Application Instrumentation
+
+Applications can send telemetry using:
+- **OpenTelemetry SDKs** (Python, Java, Go, Node.js)
+- **Jaeger client libraries** (legacy)
+- **Zipkin libraries** (legacy)
+
+Send to: `opentelemetry-kube-stack-daemon-collector:4317` (OTLP gRPC)
+
+---
+
+## Access Points
+
+### Grafana UI
+
+```
+URL: http://grafana.monitoring.svc.cluster.local
+     or https://grafana.your-domain.com (if Ingress configured)
+
+Default Credentials:
+  Username: admin
+  Password: (from secret: grafana-admin-password)
+```
+
+**Access via kubectl port-forward**:
+```bash
+kubectl -n monitoring port-forward svc/grafana 3000:80
+# Open: http://localhost:3000
+```
+
+### Prometheus UI
+
+```
+URL: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+
+Access via kubectl port-forward:
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
+# Open: http://localhost:9090
+```
+
+**Use Cases**:
+- Query metrics with PromQL
+- View active alerts
+- Check target health
+- Debug scraping issues
+
+### Alertmanager UI
+
+```
+URL: http://kube-prometheus-stack-alertmanager.monitoring.svc.cluster.local:9093
+
+Access via kubectl port-forward:
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-alertmanager 9093:9093
+# Open: http://localhost:9093
+```
+
+**Use Cases**:
+- View active alerts
+- Silence alerts
+- Check alert routing
+
+---
+
+## Key Features
+
+### 1. Unified Observability
+
+**Three Pillars in One Stack**:
+- 📊 **Metrics**: Numerical time-series data (what's happening)
+- 📝 **Logs**: Event records (what happened)
+- 🔍 **Traces**: Request flows (how it happened)
+
+**Correlation**:
+- Jump from metric spike → related logs → trace details
+- Unified view across all telemetry types
+
+### 2. Kubernetes-Native
+
+- **Service Discovery**: Automatic target discovery via ServiceMonitors
+- **Metadata Enrichment**: Automatic pod/namespace/label tagging
+- **Resource Awareness**: Monitors K8s resources (CPU, memory, limits)
+- **CRD-Based**: Uses Kubernetes Custom Resources for configuration
+
+### 3. OpenStack Aware
+
+- **Service Logs**: Parses OpenStack log formats
+- **API Monitoring**: Tracks OpenStack API health
+- **Request Tracing**: Traces requests across OpenStack services
+- **Infrastructure Metrics**: Monitors databases and message queues
+
+### 4. High Cardinality Support
+
+- **Prometheus**: Handles millions of time series
+- **Loki**: Efficient label-based log storage
+- **Tempo**: Cost-effective trace storage at scale
+
+### 5. Alerting and Notification
+
+- **PrometheusRules**: Define alerts in YAML
+- **Alertmanager**: Route alerts to multiple channels
+- **Grafana Alerts**: Visual alert builder
+- **Alert Hierarchy**: Parent/child relationships and inhibition
+
+### 6. Multi-Tenant Ready
+
+- **Namespace Isolation**: Clear separation of concerns
+- **RBAC Integration**: Kubernetes RBAC for access control
+- **Datasource Permissions**: Grafana team-based access
+
+### 7. Long-Term Storage
+
+- **Prometheus**: 15 days in-cluster, can extend with Thanos
+- **Loki**: S3 backend for long-term log retention
+- **Tempo**: S3 backend for trace history
+
+### 8. Cost-Effective
+
+- **Loki**: Only indexes labels (not log content) → lower storage costs
+- **Tempo**: Compressed trace storage in object storage
+- **Prometheus**: Efficient TSDB for time-series data
+
+---
+
+## Summary
+
+### What This Stack Provides
+
+✅ **Complete Observability**: Metrics, logs, and traces in one unified stack  
+✅ **Kubernetes-Native**: Built for cloud-native environments  
+✅ **OpenStack-Aware**: Tailored for OpenStack deployments  
+✅ **Scalable**: Handles large-scale infrastructure  
+✅ **Cost-Effective**: Efficient storage and indexing  
+✅ **Open Source**: No vendor lock-in, community-driven  
+
+### Key Benefits
+
+- **Faster Debugging**: Correlated telemetry (metrics → logs → traces)
+- **Proactive Monitoring**: Alerts before users notice issues
+- **Performance Optimization**: Identify bottlenecks and optimize
+- **Compliance**: Audit trails and long-term retention
+- **Team Collaboration**: Shared dashboards and knowledge
+
+### Technology Choices
+
+| Technology | Why Chosen |
+|------------|-----------|
+| **OpenTelemetry** | Industry standard, vendor-neutral, future-proof |
+| **Prometheus** | De facto standard for metrics in Kubernetes |
+| **Loki** | Cost-effective logs, integrates with Prometheus/Grafana |
+| **Tempo** | Scalable tracing, S3-based storage |
+| **Grafana** | Best-in-class visualization, multi-datasource support |
+
+---
+
+## Additional Resources
+
+### Documentation
+
+- [OpenTelemetry Documentation](https://opentelemetry.io/docs/)
+- [Prometheus Documentation](https://prometheus.io/docs/)
+- [Loki Documentation](https://grafana.com/docs/loki/)
+- [Tempo Documentation](https://grafana.com/docs/tempo/)
+- [Grafana Documentation](https://grafana.com/docs/grafana/)
+
+### Community
+
+- [CNCF Observability Landscape](https://landscape.cncf.io/card-mode?category=observability-and-analysis)
+- [Genestack Project](https://github.com/rackerlabs/genestack)
+
+---
