@@ -12,8 +12,6 @@ global:
 
 replicaCount: 3
 
-namespace: kube-system
-
 networking:
   # NET_STACK defaults to ipv4
   ENABLE_SSL: true
