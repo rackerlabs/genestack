@@ -5,7 +5,6 @@
 global:
   registry:
     address: ghcr.io/rackerlabs/genestack-images
-    imagePullSecrets: []
   images:
     kubeovn:
       repository: kube-ovn
