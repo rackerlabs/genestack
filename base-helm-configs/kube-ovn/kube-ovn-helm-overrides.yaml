@@ -10,8 +10,6 @@ global:
     kubeovn:
       repository: kube-ovn
       tag: v1.15.4
-      support_arm: true
-      thirdparty: true
 
 image:
   pullPolicy: IfNotPresent
