@@ -7,11 +7,10 @@ Keystone → LDAP driver → Active Directory
 Auth happens against AD, but Keystone still manages projects, roles, tokens.
 
 ## Example LDAP configuration
-
 !!! example "LDAP/AD config `/etc/genestack/helm-configs/keystone/keystone-helm-overrides-ldap.yaml`"
 
-    ``` shell
-    --8<-- "base-helm-configs/keystone/keystone-helm-overrides-ldap.yaml"
+    ``` yaml
+    --8<-- "base-helm-configs/keystone/keystone-helm-overrides-ldap.yaml.example"
     ```
 
 ## Install/Reinstall Keystone Service
