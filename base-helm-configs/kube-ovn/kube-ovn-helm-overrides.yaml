@@ -11,9 +11,6 @@ global:
       repository: kube-ovn
       tag: v1.15.4
 
-image:
-  pullPolicy: IfNotPresent
-
 replicaCount: 3
 
 namespace: kube-system
