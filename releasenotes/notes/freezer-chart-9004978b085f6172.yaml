@@ -1,0 +1,58 @@
+---
+prelude: >
+    For more information about Freezer and upstream release notes, see:
+    Freezer release notes at https://opendev.org/openstack/freezer/src/branch/master/releasenotes/notes
+    and Freezer API release notes at https://opendev.org/openstack/freezer-api/src/branch/master/releasenotes/notes
+features:
+  - |
+    Freezer provides comprehensive backup and restore capabilities for OpenStack
+    environments, supporting multiple backup types:
+
+    Backup capabilities:
+
+    - QCOW2 image based VM backup
+    - RAW image based VM backup
+    - Client local filesystem backup
+    - Client local LVM filesystem backup
+    - MySQL DB backup
+    - Mongo DB backup
+    - Cinder volume backup
+
+    Restore capabilities:
+
+    - QCOW2 image based VM restore
+    - RAW image based VM restore
+    - Client local filesystem restore
+    - Client local LVM filesystem restore
+    - MySQL DB restore
+    - Mongo DB restore
+    - Cinder volume restore
+
+  - |
+    Added Freezer backup retention policy automation script that helps manage
+    Swift object lifecycle and container cleanup. The script provides automated
+    expiration management for Freezer backup containers stored in Swift.
+
+    Key features include:
+
+    - Set X-Delete-At headers on all objects in specified containers
+    - Flexible retention periods (seconds, minutes, hours, days, months)
+    - Automatic monitoring and deletion of empty containers
+    - Progress tracking with configurable check intervals
+    - Timeout protection to prevent indefinite execution
+    - Dry-run mode for testing
+    - Support for multiple containers in a single operation
+
+    The script is located at ``scripts/freezer_retention/swift_retention_policy.py``
+    and includes comprehensive documentation in the accompanying README.
+
+    Example usage:
+
+    .. code-block:: shell
+
+      # Set 7-day retention and auto-cleanup
+      ./swift_retention_policy.py -c freezer-bkp-lvm -d 7 --cleanup
+
+      # Multiple containers with custom monitoring
+      ./swift_retention_policy.py -c freezer-daily -c freezer-weekly \
+        -H 1 --cleanup --check-interval 30
