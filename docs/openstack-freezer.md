@@ -333,11 +333,19 @@ Update the job with changed log file name and path_to_backup
 
 ---
 
+<<<<<<< HEAD
 ### Create VM backups
 
 VM backups can be created locally (on same freezer-client VM storage) or remotely (in Swift object storage connected to Openstack Cluster)
 
 #### Backup VM to Local Storage
+=======
+## Create VM backups
+
+VM backups can be created locally (on same freezer-client VM storage) or remotely (in Swift object storage connected to Openstack Cluster)
+
+### Backup VM to Local Storage
+>>>>>>> d5149159 (OSPC-1944: Freezer Epoxy changes (#1448))
 Backup destination local storage/VM disk. Make a note of the VM UUID which you would like to backup.
 
 ``` shell
@@ -418,7 +426,11 @@ Check local backup directory structure
     13 directories, 3 files
     ```
 
+<<<<<<< HEAD
 #### Backup QCOW2 image based VMs to Swift
+=======
+### Backup QCOW2 image based VMs to Swift
+>>>>>>> d5149159 (OSPC-1944: Freezer Epoxy changes (#1448))
 
 ``` shell
 freezer-agent \
@@ -433,7 +445,11 @@ freezer-agent \
         --log-file freezer-bkp-cirros.log
 ```
 
+<<<<<<< HEAD
 #### Restore QCOW2 image based VM from Swift to Openstack Cluster
+=======
+### Restore QCOW2 image based VM from Swift to Openstack Cluster
+>>>>>>> d5149159 (OSPC-1944: Freezer Epoxy changes (#1448))
 
 ``` shell
 freezer-agent \
@@ -450,7 +466,11 @@ freezer-agent \
 
 ---
 
+<<<<<<< HEAD
 #### Cinder Volume backup to Swift
+=======
+### Cinder Volume backup to Swift
+>>>>>>> d5149159 (OSPC-1944: Freezer Epoxy changes (#1448))
 
 ``` shell
 freezer-agent 
@@ -463,7 +483,11 @@ freezer-agent
         --log-file freezer-bkp-cinder.log
 ```
 
+<<<<<<< HEAD
 #### Cinder Volume restore from Swift to Openstack Cluster
+=======
+### Cinder Volume restore from Swift to Openstack Cluster
+>>>>>>> d5149159 (OSPC-1944: Freezer Epoxy changes (#1448))
 
 ``` shell
 freezer-agent \
@@ -478,7 +502,11 @@ freezer-agent \
 
 ---
 
+<<<<<<< HEAD
 ### MongoDB backup to Swift
+=======
+## MongoDB backup to Swift
+>>>>>>> d5149159 (OSPC-1944: Freezer Epoxy changes (#1448))
 
 In this case, mongoDB's LVM (where mongoDB LVM volume is mounted) is backed up.
 
@@ -511,7 +539,11 @@ sudo systemctl status mongod
 
 ---
 
+<<<<<<< HEAD
 ### MongoDB restore from Swift
+=======
+## MongoDB restore from Swift
+>>>>>>> d5149159 (OSPC-1944: Freezer Epoxy changes (#1448))
 
 Restore operation involves quiescing mongoDB operations by stopping the mongodb service momentarily and then restarting it once the backup is completed.
 
@@ -548,7 +580,11 @@ sudo systemctl status mongod
 
 ---
 
+<<<<<<< HEAD
 ### MYSQL Backup to Swift 
+=======
+## MYSQL Backup to Swift 
+>>>>>>> d5149159 (OSPC-1944: Freezer Epoxy changes (#1448))
 
 In this case MYSQL is first backed up locally in a temp location and then backup is uploaded to Swift.
 
@@ -581,7 +617,11 @@ sudo systemctl status mysql.service
 
 ---
 
+<<<<<<< HEAD
 ### MYSQL Restore from Swift 
+=======
+## MYSQL Restore from Swift 
+>>>>>>> d5149159 (OSPC-1944: Freezer Epoxy changes (#1448))
 
 Restore operation involves quiescing mongoDB operations by stopping the mysql service momentarily and then restarting it once the backup is completed.
 
@@ -621,7 +661,11 @@ sudo systemctl status mysql.service
 
 ---
 
+<<<<<<< HEAD
 ### Filesystem Backup to Swift
+=======
+## Filesystem Backup to Swift
+>>>>>>> d5149159 (OSPC-1944: Freezer Epoxy changes (#1448))
 
 Local filesystem directory / files can be backed up to swift object store.
 
@@ -650,13 +694,21 @@ sudo systemctl status mysql
 
 ---
 
+<<<<<<< HEAD
 ### Creating Sessions
+=======
+## Creating Sessions
+>>>>>>> d5149159 (OSPC-1944: Freezer Epoxy changes (#1448))
 
 A session acts as a high-level container that groups related backup and restore actions. It provides a unique identifier and metadata that applies to all jobs executed within it.
 
 When you create a job (like the one in the Canvas), you typically want that job's executions to be tied to a specific session. This makes management easier, especially during recovery, as you can see all backup runs related to a single project or time period under one session ID.
 
+<<<<<<< HEAD
 #### Create a session config file:
+=======
+### Create a session config file:
+>>>>>>> d5149159 (OSPC-1944: Freezer Epoxy changes (#1448))
 
 Example: `session_file.json`
 
@@ -721,6 +773,7 @@ Start a session with a specific job (job-* are arbitrary):
     Session c6a7fcfd06134b788f0a34e8454174b1 start requested
     ```
 
+<<<<<<< HEAD
 ---
 
 ### Backup Retention Policy
@@ -835,3 +888,6 @@ The script operates in two phases:
 
 For full documentation and troubleshooting, see
 [`scripts/freezer_retention/README.md`](https://github.com/rackerlabs/genestack/blob/main/scripts/freezer_retention/README.md).
+=======
+---
+>>>>>>> d5149159 (OSPC-1944: Freezer Epoxy changes (#1448))
