@@ -111,6 +111,11 @@ affinity:
               operator: In
               values:
                 - worker
+        - matchExpressions:
+            - key: openstack-control-plane
+              operator: In
+              values:
+                - enabled
   # -- Pod anti-affinity to ensure pods are scheduled on different nodes.
   podAntiAffinity:
     requiredDuringSchedulingIgnoredDuringExecution:
@@ -242,6 +247,11 @@ webhook:
                 operator: In
                 values:
                   - worker
+          - matchExpressions:
+              - key: openstack-control-plane
+                operator: In
+                values:
+                  - enabled
     # -- Pod anti-affinity to ensure pods are scheduled on different nodes.
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
