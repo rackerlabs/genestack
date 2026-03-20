@@ -788,7 +788,7 @@ collectors:
     suffix: deployment
     mode: deployment
     enabled: true
-    replicas: 2
+    replicas: 1
 
     # It's ignoring presets in the default.. override them in the collector
     presets:
@@ -1029,27 +1029,6 @@ collectors:
 
 clusterRole:
   enabled: true
-
-instrumentation:
-  enabled: true
-  labels: {}
-  annotations: {}
-  exporter:
-    endpoint: http://collector-daemon:4317
-  resource:
-    resourceAttributes: {}
-    addK8sUIDAttributes: true
-  propagators:
-    - tracecontext
-    - baggage
-    - b3
-    - b3multi
-    - jaeger
-    - xray
-    - ottrace
-  sampler:
-    type: parentbased_traceidratio
-    argument: "0.1"
 
 kubernetesServiceMonitors:
   enabled: true
