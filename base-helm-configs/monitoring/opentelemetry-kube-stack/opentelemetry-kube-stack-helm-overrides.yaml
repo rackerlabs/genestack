@@ -72,7 +72,9 @@ defaultCRConfig:
         send_batch_max_size: 1500
 
       resourcedetection/env:
-        detectors: [env, system]
+        detectors:
+          - env
+          - system
         timeout: 5s
         override: false
 
@@ -304,10 +306,24 @@ collectors:
             disk: {}
             filesystem:
               exclude_mount_points:
-                mount_points: ["/dev/*", "/proc/*", "/sys/*", "/run/*"]
+                mount_points:
+                  - "/dev/*"
+                  - "/proc/*"
+                  - "/sys/*"
+                  - "/run/*"
                 match_type: regexp
               exclude_fs_types:
-                fs_types: ["autofs", "cgroup", "cgroup2", "debugfs", "devpts", "devtmpfs", "overlay", "proc", "sysfs", "tmpfs"]
+                fs_types:
+                  - "autofs"
+                  - "cgroup"
+                  - "cgroup2"
+                  - "debugfs"
+                  - "devpts"
+                  - "devtmpfs"
+                  - "overlay"
+                  - "proc"
+                  - "sysfs"
+                  - "tmpfs"
                 match_type: strict
             network: {}
             paging: {}
@@ -545,7 +561,10 @@ collectors:
           objects:
             - name: events
               mode: watch
-              namespaces: [openstack, kube-system, monitoring]
+              namespaces:
+                - openstack
+                - kube-system
+                - monitoring
 
       processors:
         attributes/add-node-labels:

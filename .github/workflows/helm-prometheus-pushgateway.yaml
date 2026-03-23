@@ -4,7 +4,7 @@ name: Helm GitHub Actions for Prometheus Pushgateway
 on:
   pull_request:
     paths:
-      - base-helm-configs/prometheus-pushgateway/**
+      - base-helm-configs/monitoring/prometheus-pushgateway/**
       - base-kustomize/prometheus-pushgateway/**
       - .github/workflows/helm-prometheus-pushgateway.yaml
 jobs:
@@ -32,7 +32,7 @@ jobs:
           ${{ steps.helm.outputs.helm-path }} template prometheus-pushgateway prometheus-community/prometheus-pushgateway \
             --create-namespace \
             --namespace=prometheus \
-            -f ${{ github.workspace }}//base-helm-configs/prometheus-pushgateway/prometheus-pushgateway-helm-overrides.yaml \
+            -f ${{ github.workspace }}//base-helm-configs/monitoring/prometheus-pushgateway/prometheus-pushgateway-helm-overrides.yaml \
             --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
             --post-renderer-args prometheus-pushgateway/${{ matrix.overlays }} > /tmp/rendered.yaml
       - name: Return helm Build

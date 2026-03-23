@@ -1,4 +1,3 @@
-
 nodeSelector:
   openstack-control-plane: enabled
 

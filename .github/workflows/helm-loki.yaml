@@ -4,7 +4,7 @@ name: Helm GitHub Actions for loki
 on:
   pull_request:
     paths:
-      - base-helm-configs/loki/**
+      - base-helm-configs/monitoring/loki/**
       - .github/workflows/helm-loki.yaml
 jobs:
   helm:
@@ -33,7 +33,7 @@ jobs:
             --create-namespace \
             --namespace=prometheus \
             --timeout 120m \
-            -f ${{ github.workspace }}//base-helm-configs/loki/loki-helm-minio-overrides-example.yaml \
+            -f ${{ github.workspace }}//base-helm-configs/monitoring/loki/loki-helm-minio-overrides-example.yaml \
             --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
             --post-renderer-args loki/${{ matrix.overlays }} > /tmp/rendered.yaml
       - name: Return helm Build
