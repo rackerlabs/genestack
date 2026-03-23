@@ -136,7 +136,6 @@ set_args=(
     --set "endpoints.oslo_db.auth.trove.password=$(kubectl --namespace openstack get secret trove-db-password -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.oslo_cache.auth.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
     --set "conf.trove.keystone_authtoken.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
-    --set "conf.trove.database.slave_connection=mysql+pymysql://trove:$(kubectl --namespace openstack get secret trove-db-password -o jsonpath='{.data.password}' | base64 -d)@mariadb-cluster-secondary.openstack.svc.cluster.local:3306/trove"
     --set "endpoints.oslo_messaging.auth.admin.password=$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.oslo_messaging.auth.trove.password=$(kubectl --namespace openstack get secret trove-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)"
 )
