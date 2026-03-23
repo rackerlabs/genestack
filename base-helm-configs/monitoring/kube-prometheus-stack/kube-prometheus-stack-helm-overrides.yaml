@@ -65,7 +65,7 @@ thanosRuler:
     podAntiAffinity: ""
 
 defaultRules:
-  create: true
+  create: false
 nodeExporter:
   enabled: false
 kubeStateMetrics:
