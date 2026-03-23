@@ -13,10 +13,11 @@ Edit the Helm overrides file for memcached at `/etc/genestack/helm-configs/memca
 to enable the memcached exporter:
 
 ``` yaml
-metrics:
-  enabled: true
-  serviceMonitor:
+monitoring:
+  prometheus:
     enabled: true
+    memcached_exporter:
+      scrape: true
 ```
 
 Once the changes have been made, apply the changes to the memcached deployment with the `/opt/genestack/bin/install-memcached.sh` script

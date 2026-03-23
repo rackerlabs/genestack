@@ -31,9 +31,13 @@ jobs:
             curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
             chmod +x ./kubectl
           fi
+      - name: Pull OSH repositories
+        run: |
+          helm repo add openstack-helm https://tarballs.opendev.org/openstack/openstack-helm
+          helm repo update
       - name: Run Helm Template
         run: |
-          ${{ steps.helm.outputs.helm-path }} template memcached oci://registry-1.docker.io/bitnamicharts/memcached \
+          ${{ steps.helm.outputs.helm-path }} template memcached openstack-helm/memcached \
             --namespace=openstack \
             --wait \
             --timeout 120m \

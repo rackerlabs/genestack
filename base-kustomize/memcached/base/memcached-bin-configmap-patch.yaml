@@ -1,0 +1,14 @@
+---
+- op: replace
+  path: /data/memcached.sh
+  value: |
+    #!/bin/sh
+    set -ex
+    memcached --version
+    exec memcached -v \
+      -p ${MEMCACHED_PORT} \
+      -U 0 \
+      -t ${MEMCACHED_THREADS:-4} \
+      -I ${MEMCACHED_ITEM_SIZE_MAX:-1m} \
+      -c ${MEMCACHED_MAX_CONNECTIONS} \
+      -m ${MEMCACHED_MEMORY}
