@@ -141,7 +141,7 @@ webhook:
   hostNetwork: false
   serviceMonitor:
     # -- Enable webhook ServiceMonitor. Metrics must be enabled
-    enabled: true
+    enabled: false
     # -- Labels to be added to the webhook ServiceMonitor
     additionalLabels: {}
     # release: kube-prometheus-stack
@@ -278,6 +278,10 @@ config:
   # -- Default MariaDB version to be used when unable to infer it via image tag
   mariadbDefaultVersion: "11.4"
   # -- Default MariaDB image
-  mariadbImage: docker-registry1.mariadb.com/library/mariadb:11.4.5
+  mariadbImage:
+    repository: docker-registry1.mariadb.com/library/mariadb
+    tag: 11.4.5
   # -- Default MaxScale image
-  maxscaleImage: docker-registry2.mariadb.com/mariadb/maxscale:23.08.5
+  maxscaleImage:
+    repository: docker-registry2.mariadb.com/mariadb/maxscale
+    tag: 23.08.5
