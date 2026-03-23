@@ -49,7 +49,8 @@ spec:
                     name: ovn-backup-config
                 - secretRef:
                     name: ovn-backup-swift-tempauth-account
-              command: ["/backup-script/ovn-backup.sh"]
+              command:
+                - "/backup-script/ovn-backup.sh"
               image: ghcr.io/rackerlabs/genestack-images/kube-ovn:v1.15.4
               imagePullPolicy: IfNotPresent
               volumeMounts:
