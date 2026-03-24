@@ -20,7 +20,7 @@ charts:
   ironic: 2024.2.121+13651f45-628a320c
   keystone: 2024.2.386+13651f45-628a320c
   kubernetes-event-exporter: 3.6.3
-  kube-ovn: v1.13.14
+  kube-ovn: v1.15.4
   kube-prometheus-stack: 78.3.0
   libvirt: 2024.2.94+912f85d38
   loki: 6.43.0
