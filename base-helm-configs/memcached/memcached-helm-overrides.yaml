@@ -119,7 +119,7 @@ pod:
       memcached:
         timeout: 30
   replicas:
-    server: 1
+    server: 2
   resources:
     enabled: true
     # Changing the keyword from "memcached" to "server" because the template in upstream statefulset uses "server" keyword https://github.com/openstack/openstack-helm/blob/1c37f29e399c27401af12cd702e93c2e99de618e/memcached/templates/statefulset.yaml#L81
