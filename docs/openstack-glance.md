@@ -29,18 +29,17 @@ OpenStack Glance is the image service within the OpenStack ecosystem, responsibl
 !!! info
 
     Before running the Glance deployment you should configure the backend which is defined in the `helm-configs/glance/glance-helm-overrides.yaml` file. The default is a making the assumption we're running with Ceph deployed by Rook so the backend is configured to be cephfs with multi-attach functionality. While this works great, you should consider all of the available storage backends and make the right decision for your environment.
+    Recent Glance releases validate uploaded/imported image content against the declared `disk_format` by default. Ensure image pipelines set `--disk-format` correctly, or tune `conf.glance.image_format.require_image_format_match` and `conf.glance.image_format.gpt_safety_checks_nonfatal` in your overrides.
 
 ## Define policy configuration
 
 !!! note "Information about the default policy rules used"
 
-    The default policy allows only the glance_admin role to publicize images.
-    The default policy allows only the glance_admin role or owner role to download images.
-    These default policy roles are found in genestack/base-helm-configs/glance/glance-helm-overrides.yaml.
-    To modify these policies, follow the policy allow concepts in the 
-    "Policy change to allow admin or owner to publicize image" example.
+    The default policy allows only the **glance_admin** role to publicize images. The default policy allows only the **glance_admin** role or
+    **owner** role to download images. These default policy roles are found in genestack/base-helm-configs/glance/glance-helm-overrides.yaml.
+    To modify these policies, follow the policy allow concepts in the "Policy change to allow admin or owner to publicize image" example.
 
-    ??? example "Default policy rules"
+    !!! example "Default policy rules"
 
         ``` yaml
         conf:
@@ -66,6 +65,11 @@ OpenStack Glance is the image service within the OpenStack ecosystem, responsibl
             "download_image": "rule:is_owner or rule:context_is_admin"
         ```
 
+    To assign the **glance_admin** role to a user, you can use the OpenStack CLI or dashboard. For example, using the OpenStack CLI:
+
+    ``` shell
+    openstack role add --project <project_name> --user <user_name> glance_admin
+    ```
 
 ## Run the package deployment
 

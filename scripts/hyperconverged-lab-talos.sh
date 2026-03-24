@@ -753,7 +753,7 @@ configureGenestackRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}" "${METAL_LB_IP}" "
 # Run Genestack Infrastructure Setup (common function)
 #############################################################################
 
-runGenestackSetupRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}" "${GATEWAY_DOMAIN}" "${ACME_EMAIL}"
+runGenestackSetupRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}" "${GATEWAY_DOMAIN}" "${ACME_EMAIL}" "${DISABLE_OPENSTACK}"
 
 #############################################################################
 # Extra Operations (on jump host)

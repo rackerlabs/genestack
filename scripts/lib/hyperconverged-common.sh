@@ -16,6 +16,8 @@
 
 export TEST_LEVEL="${TEST_LEVEL:-off}"
 export LAB_NETWORK_MTU="${LAB_NETWORK_MTU:-1500}"
+# enable or disable the deployment of openstack services within the lab environment.
+export DISABLE_OPENSTACK=${DISABLE_OPENSTACK:-false}
 
 #############################################################################
 # Common Utility Functions
@@ -35,8 +37,9 @@ function parseCommonArgs() {
 
     if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
         # barbican is needed for iSCSI encrypted volumes and cinder install has to be
-        #  done much later during the cinder volume setup
-        INCLUDE_LIST=("keystone" "barbican" "glance" "nova" "neutron" "placement")
+        #  done much later during the cinder volume setup; trove is also included since
+        #  cinder volume support was added to support trove develpment
+        INCLUDE_LIST=("keystone" "barbican" "glance" "nova" "neutron" "placement" "trove")
         EXCLUDE_LIST=("cinder")
     else
         INCLUDE_LIST=("keystone" "glance" "cinder" "nova" "neutron" "placement")
@@ -548,6 +551,9 @@ conf:
   trove:
     DEFAULT:
       trove_api_workers: 1
+      management_networks: <management_networks>
+      management_security_groups: <management_security_groups>
+      nova_keypair: <keypair_name>
     oslo_messaging_notifications:
       driver: noop
   trove_api_uwsgi:
@@ -1225,6 +1231,7 @@ function runGenestackSetup() {
 
     local gateway_domain="$1"
     local acme_email="$2"
+    local disable_openstack="${3:-false}"
 
     echo "Installing OpenStack Infrastructure"
     sudo LONGHORN_STORAGE_REPLICAS=1 \
@@ -1233,9 +1240,11 @@ function runGenestackSetup() {
          HYPERCONVERGED=true \
          /opt/genestack/bin/setup-infrastructure.sh
 
-    echo "Installing OpenStack"
-    sudo /opt/genestack/bin/setup-openstack.sh
-    sudo /opt/genestack/bin/setup-openstack-rc.sh
+    if [ ${disable_openstack} = false ]; then
+      echo "Installing OpenStack"
+      sudo /opt/genestack/bin/setup-openstack.sh
+      sudo /opt/genestack/bin/setup-openstack-rc.sh
+    fi
 }
 
 #############################################################################
@@ -1288,6 +1297,7 @@ function runGenestackSetupRemote() {
     local jump_host="$2"
     local gateway_domain="$3"
     local acme_email="$4"
+    local disable_openstack="${5:-false}"
 
     echo "Installing OpenStack Infrastructure on jump host..."
 
@@ -1299,7 +1309,7 @@ function runGenestackSetupRemote() {
         cat <<EOF
 set -e
 ensureYq
-runGenestackSetup "${gateway_domain}" "${acme_email}"
+runGenestackSetup "${gateway_domain}" "${acme_email}" ${disable_openstack}
 EOF
     } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${ssh_user}@${jump_host} bash
 }
@@ -1604,4 +1614,177 @@ openstack volume qos associate Standard-Block Standard
 openstack volume type set --private __DEFAULT__
 ANSIBLE_EOF
     } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t "ubuntu@${JUMP_HOST_IP}" bash
+}
+
+function install_preconf_octavia() {
+    echo "Installing Octavia preconf"
+    ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} << 'EOC'
+set -e
+
+if [ ! -f ~/.config/openstack ]; then
+    sudo mkdir -p ~/.config/openstack
+    sudo cp /root/.config/openstack/clouds.yaml ~/.config/openstack
+    sudo chown $(id -u):$(id -g) ~/.config
+fi
+
+source ~/.venvs/genestack/bin/activate
+
+OCTAVIA_HELM_FILE=/tmp/octavia_helm_overrides.yaml
+
+ANSIBLE_SSH_PIPELINING=0 ansible-playbook /opt/genestack/ansible/playbooks/octavia-preconf-main.yaml \
+    -e octavia_os_password=$(/usr/local/bin/kubectl get secrets keystone-admin -n openstack -o jsonpath='{.data.password}' | base64 -d) \
+    -e octavia_os_region_name=$(sudo ~/.venvs/genestack/bin/openstack --os-cloud=default endpoint list --service keystone --interface internal -c Region -f value) \
+    -e octavia_os_auth_url=$(sudo ~/.venvs/genestack/bin/openstack --os-cloud=default endpoint list --service keystone --interface internal -c URL -f value) \
+    -e octavia_os_endpoint_type=internal \
+    -e octavia_helm_file=$OCTAVIA_HELM_FILE \
+    -e interface=internal \
+    -e endpoint_type=internal
+
+echo "Installing Octavia"
+sudo /opt/genestack/bin/install-octavia.sh -f $OCTAVIA_HELM_FILE
+EOC
+}
+
+function setupKubeConfig() {
+    if [ ! -d ~/.kube ]; then
+        mkdir ~/.kube
+        sudo cp -i /etc/kubernetes/admin.conf ~/.kube/config 2>/dev/null || true
+        sudo chown $(id -u):$(id -g) ~/.kube/config 2>/dev/null || true
+    fi
+}
+
+function setupTrove() {
+    # Trove requires some setup that cannot be done w/ a pre-install job because the job
+    #  runs in a container that does not have access to the
+    #  /etc/genestack/helm-config/trove/trove-helm-overrides.yaml file that must be modified
+    #  so that the management_networks and management_security_groups can be assigned.
+    #  This also can't be done until openstack commands are available which doesn't happen until the
+    #  openstack setup is complete, which includes the installation of trove. Unfortunately, once the
+    #  changes are made, trove needs to have the helm upgrade run again which is done by the trove
+    #  install script.
+
+    echo "Running trove setup ..."
+
+    local ssh_user="$1"
+    local jump_host="$2"
+    local lab_prefix="$3"
+
+    {
+        declare -f setupKubeConfig
+
+        cat << JUMP_HOST_EOF
+# check if trove is installed and running, otherwise exit cleanly
+if ! grep "trove: true" /etc/genestack/openstack-components.yaml &>/dev/null; then
+    echo "Trove not installed, exiting Trove setup function for ${lab_prefix}-0"
+    exit 0
+fi
+
+echo "Running trove setup on ${lab_prefix}-0..."
+
+setupKubeConfig
+
+TROVE_SSH_KEY=\$(/usr/local/bin/kubectl get secret trove-ssh -n openstack -o jsonpath='{.data.private-key}' | base64 --decode)
+TROVE_SSH_PUBLIC_KEY=\$(/usr/local/bin/kubectl get secret trove-ssh -n openstack -o jsonpath='{.data.public-key}' | base64 --decode)
+TROVE_SSH_KEY_FILENAME="/home/${ssh_user}/.ssh/trove_ssh_key"
+TROVE_ADMIN_PASSWORD=\$(/usr/local/bin/kubectl --namespace openstack get secret trove-admin -o jsonpath='{.data.password}' | base64 -d)
+
+set -e
+# activate environment for openstack commands
+source /opt/genestack/scripts/genestack.rc
+
+echo "[JUMP_HOST] Creating Trove SSH key on ${lab_prefix}-0"
+echo "\${TROVE_SSH_KEY}" > \${TROVE_SSH_KEY_FILENAME} && chown ${ssh_user}:${ssh_user} \${TROVE_SSH_KEY_FILENAME} && chmod 600 \${TROVE_SSH_KEY_FILENAME}
+
+# create environment for trove credentials
+echo "[JUMP_HOST] Creating trove-openrc"
+cat > ~/openrc-trove << TROVE_EOF
+export OS_AUTH_URL=http://keystone-api.openstack.svc.cluster.local:5000/v3
+export OS_PROJECT_NAME=service
+export OS_TENANT_NAME=default
+export OS_PROJECT_DOMAIN_NAME=service
+export OS_USERNAME=trove
+export OS_PASSWORD=\${TROVE_ADMIN_PASSWORD}
+export OS_USER_DOMAIN_NAME=service
+export OS_REGION_NAME=RegionOne
+export OS_INTERFACE=internal
+export OS_IDENTITY_API_VERSION="3"
+TROVE_EOF
+
+# activate environment with trove credentials
+source ~/openrc-trove
+
+KEYPAIR_NAME="trove-access-keypair"
+SEC_GROUP_NAME="trove-access-secgroup"
+REMOTE_IP="0.0.0.0/0" # Adjust the CIDR to restrict access if needed
+
+if openstack keypair show \$KEYPAIR_NAME; then
+  echo "[JUMP_HOST] Keypair for access to Trove instances exists"
+else
+  echo "[JUMP_HOST] Creating Keypair for access to Trove instances"
+  echo "\${TROVE_SSH_PUBLIC_KEY}" > /tmp/trove-access-key.pub
+  openstack keypair create --public-key /tmp/trove-access-key.pub \$KEYPAIR_NAME
+fi
+
+# Check if security group exists
+if openstack security group show \$SEC_GROUP_NAME; then
+  echo "[JUMP_HOST] Security Group for access to Trove instances exists"
+else
+  echo "[JUMP_HOST] Creating Security Group for access to Trove instances"
+  openstack security group create --description "Security group for Trove instances" \$SEC_GROUP_NAME
+  openstack security group rule create --protocol icmp --remote-ip \$REMOTE_IP \$SEC_GROUP_NAME
+  openstack security group rule create --protocol tcp --dst-port 22 --remote-ip \$REMOTE_IP \$SEC_GROUP_NAME
+  openstack security group rule create --protocol tcp --dst-port 3306 --remote-ip \$REMOTE_IP \$SEC_GROUP_NAME
+fi
+
+# update helm overrides so configuration is setup to use a management network and security group
+echo "[JUMP_HOST] Updating Trove Helm overrides"
+FLAT_NETWORK_ID=\$(openstack network list -f value -c ID -c Name | grep flat | awk {'print \$1'})
+sed -i "s/<management_networks>/\$FLAT_NETWORK_ID/g" /etc/genestack/helm-configs/trove/trove-helm-overrides.yaml
+ACCESS_SECGROUP_ID=\$(openstack security group list -f value -c ID -c Name | grep trove-access-secgroup | awk {'print \$1'})
+sed -i "s/<management_security_groups>/\$ACCESS_SECGROUP_ID/g" /etc/genestack/helm-configs/trove/trove-helm-overrides.yaml
+sed -i "s/<keypair_name>/\$KEYPAIR_NAME/g" /etc/genestack/helm-configs/trove/trove-helm-overrides.yaml
+
+sudo /opt/genestack/bin/install-trove.sh
+JUMP_HOST_EOF
+    } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${ssh_user}@${jump_host} bash
+
+    {
+        declare -f setupKubeConfig
+
+        cat << NODE_1_EOF
+if ! grep "trove: true" /etc/genestack/openstack-components.yaml &>/dev/null; then
+    echo "Trove not installed, exiting Trove setup function for ${lab_prefix}-1"
+    exit 0
+fi
+
+echo "Running trove setup on ${lab_prefix}-1..."
+
+setupKubeConfig
+
+echo "[${lab_prefix}-1] Creating Trove SSH key"
+TROVE_SSH_KEY=\$(/usr/local/bin/kubectl get secret trove-ssh -n openstack -o jsonpath='{.data.private-key}' | base64 --decode)
+TROVE_SSH_KEY_FILENAME="/home/${ssh_user}/.ssh/trove_ssh_key"
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${ssh_user}@${lab_prefix}-1 "echo \"\${TROVE_SSH_KEY}\" > \${TROVE_SSH_KEY_FILENAME} && chown ${ssh_user}:${ssh_user} \${TROVE_SSH_KEY_FILENAME} && chmod 600 \${TROVE_SSH_KEY_FILENAME}"
+NODE_1_EOF
+    } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${ssh_user}@${jump_host} bash
+
+    {
+        declare -f setupKubeConfig
+
+        cat << NODE_2_EOF
+if ! grep "trove: true" /etc/genestack/openstack-components.yaml &>/dev/null; then
+    echo "Trove not installed, exiting Trove setup function for ${lab_prefix}-2"
+    exit 0
+fi
+
+echo "Running trove setup on ${lab_prefix}-2..."
+
+setupKubeConfig
+
+echo "[${lab_prefix}-2] Creating Trove SSH key"
+TROVE_SSH_KEY=\$(/usr/local/bin/kubectl get secret trove-ssh -n openstack -o jsonpath='{.data.private-key}' | base64 --decode)
+TROVE_SSH_KEY_FILENAME="/home/${ssh_user}/.ssh/trove_ssh_key"
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${ssh_user}@${lab_prefix}-2 "echo \"\${TROVE_SSH_KEY}\" > \${TROVE_SSH_KEY_FILENAME} && chown ${ssh_user}:${ssh_user} \${TROVE_SSH_KEY_FILENAME} && chmod 600 \${TROVE_SSH_KEY_FILENAME}"
+NODE_2_EOF
+    } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${ssh_user}@${jump_host} bash
 }

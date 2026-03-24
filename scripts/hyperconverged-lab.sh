@@ -66,6 +66,8 @@ ENVIRONMENT VARIABLES:
                         for easier testing and debugging.
     HYPERCONVERGED_CINDER_VOLUME
                         If set to "true", enables iSCSI cinder volume support.
+    DISABLE_OPENSTACK
+                        if set to "true", no openstack services will be deployed.
 
 EXAMPLES:
     # Interactive mode - will prompt for platform choice

@@ -1,0 +1,28 @@
+---
+prelude: |
+  Placement upgraded to OpenStack 2025.1 (Epoxy) release.
+
+features:
+  - |
+    Added ``placement.wsgi`` module for simplified WSGI server deployment.
+
+  - |
+    Added new configuration options:
+    ``[placement]max_allocation_candidates``,
+    ``[placement]allocation_candidates_generation_strategy``, and
+    ``[workarounds]optimize_for_wide_provider_trees`` to improve
+    allocation candidate generation performance, particularly in
+    deployments with wide provider trees.
+
+upgrade:
+  - |
+    Helm chart updated to ``2025.1.2+0cd784591``.
+
+  - |
+    Consider configuring ``max_allocation_candidates`` and
+    ``allocation_candidates_generation_strategy`` for wide provider trees.
+
+fixes:
+  - |
+    Fixed excessive memory consumption when generating allocation candidates
+    in deployments with wide provider trees.

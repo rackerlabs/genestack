@@ -36,6 +36,14 @@ generate_password() {
     < /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32}
 }
 
+backup_suffix="$(date +%Y%m%d%H%M%S)"
+for ssh_key_file in nova_ssh_key nova_ssh_key.pub manila_ssh_key manila_ssh_key.pub; do
+    if [[ -f "${ssh_key_file}" ]]; then
+        mv "${ssh_key_file}" "${ssh_key_file}.bak.${backup_suffix}"
+        echo "Moved existing ${ssh_key_file} to ${ssh_key_file}.bak.${backup_suffix}"
+    fi
+done
+
 mariadb_root_password=$(generate_password 32)
 mariadb_password=$(generate_password 32)
 keystone_rabbitmq_password=$(generate_password 64)
@@ -56,6 +64,8 @@ cinder_admin_password=$(generate_password 32)
 trove_rabbitmq_password=$(generate_password 64)
 trove_db_password=$(generate_password 32)
 trove_admin_password=$(generate_password 32)
+trove_ssh_public_key=$(ssh-keygen -qt ed25519 -N '' -C "trove_ssh" -f trove_ssh_key && cat trove_ssh_key.pub)
+trove_ssh_private_key=$(cat trove_ssh_key)
 cloudkitty_rabbitmq_password=$(generate_password 64)
 cloudkitty_db_password=$(generate_password 32)
 cloudkitty_admin_password=$(generate_password 32)
@@ -64,6 +74,8 @@ placement_db_password=$(generate_password 32)
 placement_admin_password=$(generate_password 32)
 nova_db_password=$(generate_password 32)
 nova_admin_password=$(generate_password 32)
+nova_keystone_service_password=$(generate_password 32)
+nova_keystone_test_password=$(generate_password 32)
 nova_rabbitmq_password=$(generate_password 64)
 nova_ssh_public_key=$(ssh-keygen -qt ed25519 -N '' -C "nova_ssh" -f nova_ssh_key && cat nova_ssh_key.pub)
 nova_ssh_private_key=$(cat nova_ssh_key)
@@ -74,6 +86,7 @@ designate_rabbitmq_password=$(generate_password 64)
 neutron_rabbitmq_password=$(generate_password 64)
 neutron_db_password=$(generate_password 32)
 neutron_admin_password=$(generate_password 32)
+neutron_keystone_test_password=$(generate_password 32)
 horizon_secret_key=$(generate_password 64)
 horizon_db_password=$(generate_password 32)
 octavia_rabbitmq_password=$(generate_password 64)
@@ -126,6 +139,9 @@ zaqar_admin_password=$(generate_password 32)
 zaqar_keystone_test_password=$(generate_password 32)
 
 OUTPUT_FILE="/etc/genestack/kubesecrets.yaml"
+GENERATED_FILE=$(mktemp)
+EXISTING_NAMES_FILE=$(mktemp)
+MISSING_SECRETS_FILE=$(mktemp)
 
 if [[ -f ${OUTPUT_FILE} ]]; then
     echo "Notice: ${OUTPUT_FILE} already exists."
@@ -133,7 +149,14 @@ if [[ -f ${OUTPUT_FILE} ]]; then
     exit 0
 fi
 
-cat <<EOF > $OUTPUT_FILE
+cleanup() {
+    rm -f nova_ssh_key nova_ssh_key.pub
+    rm -f manila_ssh_key manila_ssh_key.pub
+    rm -f "${GENERATED_FILE}" "${EXISTING_NAMES_FILE}" "${MISSING_SECRETS_FILE}"
+}
+trap cleanup EXIT
+
+cat <<EOF > "${GENERATED_FILE}"
 ---
 apiVersion: v1
 kind: Secret
@@ -315,6 +338,21 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
+  name: trove-ssh
+  namespace: openstack
+  annotations:
+    meta.helm.sh/release-name: trove
+    meta.helm.sh/release-namespace: openstack
+  labels:
+    app.kubernetes.io/managed-by: Helm
+type: Opaque
+data:
+  public-key: $(echo $trove_ssh_public_key | base64 -w0)
+  private-key: $(echo "$trove_ssh_private_key" | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
   name: cloudkitty-rabbitmq-password
   namespace: openstack
 type: Opaque
@@ -384,6 +422,24 @@ metadata:
 type: Opaque
 data:
   password: $(echo -n $nova_admin_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nova-keystone-service-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $nova-keystone-service-password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nova-keystone-test-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $nova-keystone-test-password | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret
@@ -497,7 +553,16 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: horizon-secrete-key
+  name: neutron-keystone-test-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $neutron_keystone_test_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: horizon-secret-key
   namespace: openstack
 type: Opaque
 data:
@@ -965,8 +1030,8 @@ EOF
 SKYLINE_SECRETS_FILE="/etc/genestack/skylinesecrets.yaml"
 if [[ -f ${SKYLINE_SECRETS_FILE} ]]; then
     echo "Found existing ${SKYLINE_SECRETS_FILE}, appending skyline secrets..."
-    cat ${SKYLINE_SECRETS_FILE} >> ${OUTPUT_FILE}
-    echo "✓ Skyline secrets appended from ${SKYLINE_SECRETS_FILE}"
+    cat ${SKYLINE_SECRETS_FILE} >> "${GENERATED_FILE}"
+    echo "Skyline secrets appended from ${SKYLINE_SECRETS_FILE}"
 else
     echo "Note: ${SKYLINE_SECRETS_FILE} not found. Run create-skyline-secrets.sh to add skyline secrets."
 fi
@@ -974,7 +1039,7 @@ fi
 # Check if kube-ovn-tls secret exists, and copy to openstack namespace if it does
 if kubectl -n kube-system get secret kube-ovn-tls >/dev/null 2>&1
 then
-    cat <<EOF >> $OUTPUT_FILE
+    cat <<EOF >> "${GENERATED_FILE}"
 ---
 apiVersion: v1
 kind: Secret
@@ -989,8 +1054,52 @@ data:
 EOF
 fi
 
-rm nova_ssh_key nova_ssh_key.pub
-rm manila_ssh_key manila_ssh_key.pub
-chmod 0640 ${OUTPUT_FILE}
+if [[ -f "${OUTPUT_FILE}" ]]; then
+    awk '/ name:/ {print $2}' "${OUTPUT_FILE}" | sort -u > "${EXISTING_NAMES_FILE}"
+
+    awk '
+    BEGIN {
+        while ((getline < ARGV[1]) > 0) {
+            existing[$1] = 1
+        }
+        ARGV[1] = ""
+    }
+    /^---$/ {
+        if (doc != "") {
+            if (name == "" || !(name in existing)) {
+                printf "%s", doc
+            }
+        }
+        doc = $0 ORS
+        name = ""
+        next
+    }
+    {
+        doc = doc $0 ORS
+    }
+    $1 == "name:" {
+        name = $2
+    }
+    END {
+        if (doc != "") {
+            if (name == "" || !(name in existing)) {
+                printf "%s", doc
+            }
+        }
+    }
+    ' "${EXISTING_NAMES_FILE}" "${GENERATED_FILE}" > "${MISSING_SECRETS_FILE}"
+
+    if [[ -s "${MISSING_SECRETS_FILE}" ]]; then
+        cat "${MISSING_SECRETS_FILE}" >> "${OUTPUT_FILE}"
+        echo "Appended missing secrets to existing ${OUTPUT_FILE}"
+    else
+        echo "No missing secrets found. ${OUTPUT_FILE} unchanged."
+    fi
+else
+    mv "${GENERATED_FILE}" "${OUTPUT_FILE}"
+    echo "Created new secrets YAML file as ${OUTPUT_FILE}"
+fi
+
+chmod 0640 "${OUTPUT_FILE}"
 echo ""
-echo "✓ Secrets YAML file created as ${OUTPUT_FILE}"
+echo "Secrets YAML file is ready at ${OUTPUT_FILE}"
