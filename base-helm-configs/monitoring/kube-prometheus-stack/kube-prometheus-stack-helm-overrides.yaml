@@ -29,17 +29,21 @@ prometheusOperator:
         openstack-control-plane: enabled
   thanosImage:
     tag: v0.34.0
+
   kubeletService:
-    ## If true, the operator will create and maintain a service for scraping kubelets
-    ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/helm/prometheus-operator/README.md
-    ##
     enabled: true
+
 kubelet:
   enabled: true
   serviceMonitor:
     enabled: true
-    ## Enable scraping /metrics from kubelet's service
     kubelet: true
+
+kubeApiServer:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
 prometheus:
   prometheusSpec:
     image:
