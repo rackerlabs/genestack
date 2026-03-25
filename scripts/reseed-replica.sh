@@ -64,16 +64,21 @@ need_cmd() {
 prompt_confirm() {
   local prompt="${1:-Continue?}"
   local reply
-  printf '%s [y/N]: ' "$prompt" >&2
-  read -r reply
-  case "$reply" in
-    y|Y|yes|YES)
-      return 0
-      ;;
-    *)
-      return 1
-      ;;
-  esac
+  while true; do
+    printf '%s [y/N]: ' "$prompt" >&2
+    read -r reply || return 1
+    case "$reply" in
+      y|Y|yes|YES)
+        return 0
+        ;;
+      "")
+        printf 'Press y to continue or n to abort.\n' >&2
+        ;;
+      *)
+        return 1
+        ;;
+    esac
+  done
 }
 
 stdin_is_tty() {
@@ -216,7 +221,7 @@ replication_channel_exists() {
   local channel="$2"
 
   kubectl -n "${NAMESPACE}" exec "${pod}" -- sh -c \
-    "mariadb -N -B -uroot -p'${ROOT_PASSWORD}' -e \"SHOW ALL SLAVES STATUS\\G\"" 2>/dev/null \
+    "mariadb -uroot -p'${ROOT_PASSWORD}' -e \"SHOW ALL SLAVES STATUS\\G\"" 2>/dev/null \
     | grep -q "Connection_name: ${channel}"
 }
 
@@ -237,7 +242,7 @@ replica_health_report() {
   fi
 
   slave_status="$(kubectl -n "${NAMESPACE}" exec "${pod}" -- sh -c \
-    "mariadb -N -B -uroot -p'${ROOT_PASSWORD}' -e \"SHOW ALL SLAVES STATUS\\G\"" 2>/dev/null || true)"
+    "mariadb -uroot -p'${ROOT_PASSWORD}' -e \"SHOW ALL SLAVES STATUS\\G\"" 2>/dev/null || true)"
 
   if [[ -z "${slave_status}" ]]; then
     printf 'unhealthy|no-slave-status'
@@ -246,9 +251,9 @@ replica_health_report() {
 
   if printf '%s\n' "${slave_status}" | awk '
     BEGIN { channels = 0; bad = 0; io = ""; sql = "" }
-    /^Connection_name:/ { channels++; next }
-    /^Slave_IO_Running:/ { io = $2; next }
-    /^Slave_SQL_Running:/ {
+    /^[[:space:]]*Connection_name:/ { channels++; next }
+    /^[[:space:]]*Slave_IO_Running:/ { io = $2; next }
+    /^[[:space:]]*Slave_SQL_Running:/ {
       sql = $2
       if (io != "Yes" || sql != "Yes") {
         bad = 1
@@ -493,7 +498,7 @@ RESET SLAVE 'mariadb-operator' ALL;"
     "SHOW SLAVE STATUS\G"
 
   final_status_text="$(kubectl -n "${NAMESPACE}" exec "${replica_pod}" -- sh -c \
-    "mariadb -N -B -uroot -p'${ROOT_PASSWORD}' -e \"SHOW SLAVE STATUS\\G\"")"
+    "mariadb -uroot -p'${ROOT_PASSWORD}' -e \"SHOW SLAVE STATUS\\G\"")"
   FINAL_STATUS_SUMMARIES+=("$(build_replica_status_summary "${replica_pod}" "${final_status_text}")")
 
   COMPLETED_REPLICAS+=("${replica_pod}")
