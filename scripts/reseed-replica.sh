@@ -10,6 +10,7 @@
 # - If multiple unhealthy replicas are found, the script can prompt for
 #   one target or reseed all unhealthy replicas.
 # - A single dump is reused when reseeding multiple replicas in one run.
+# - Backup-only mode stops after producing and validating a fresh dump.
 set -euo pipefail
 
 NAMESPACE="openstack"
@@ -22,6 +23,7 @@ KEEP_DUMP="false"
 WAIT_TIMEOUT="600s"
 INTERACTIVE="false"
 ALL_UNHEALTHY="false"
+BACKUP_ONLY="false"
 SUCCESS="false"
 declare -a UNHEALTHY_REPLICAS=()
 declare -a HEALTHY_REPLICAS=()
@@ -41,6 +43,7 @@ Options:
   --repl-secret <name>     Secret containing repl password (default: repl-password-mariadb-cluster)
   --replica <pod>          Replica pod to reseed explicitly
   --all-unhealthy          Reseed all unhealthy replicas without prompting
+  --backup-only            Only create and validate a fresh dump, then exit
   --workdir <dir>          Directory for local dump file (default: ~/backups)
   --keep-dump              Keep local dump file after completion
   --interactive            Print each major command and ask before running it
@@ -364,9 +367,10 @@ select_target_replicas() {
 
   if [[ -n "${REPLICA_POD}" ]]; then
     [[ "${REPLICA_POD}" != "${PRIMARY_POD}" ]] || die "Replica pod must not be the primary pod"
-    if ! is_known_unhealthy_replica "${REPLICA_POD}"; then
-      die "Replica pod ${REPLICA_POD} is not currently in the unhealthy replica set (${UNHEALTHY_REPLICAS[*]:-none})"
+    if ! kubectl -n "${NAMESPACE}" get pod "${REPLICA_POD}" >/dev/null 2>&1; then
+      die "Replica pod ${REPLICA_POD} does not exist in namespace ${NAMESPACE}"
     fi
+    log "Using explicitly requested replica target: ${REPLICA_POD}"
     TARGET_REPLICAS=("${REPLICA_POD}")
     return 0
   fi
@@ -530,6 +534,10 @@ while [[ $# -gt 0 ]]; do
       ALL_UNHEALTHY="true"
       shift
       ;;
+    --backup-only)
+      BACKUP_ONLY="true"
+      shift
+      ;;
     --workdir)
       WORKDIR="$2"
       shift 2
@@ -659,11 +667,16 @@ run_cmd "Waiting for primary pod to be Ready" \
   kubectl -n "${NAMESPACE}" wait --for=condition=Ready "pod/${PRIMARY_POD}" --timeout="${WAIT_TIMEOUT}"
 
 discover_replica_health
-select_target_replicas
+
+if [[ "${BACKUP_ONLY}" != "true" ]]; then
+  select_target_replicas
+fi
 
 TIMESTAMP="$(date +'%Y%m%d-%H%M%S')"
 if [[ ${#TARGET_REPLICAS[@]} -eq 1 ]]; then
   DUMP_FILE="${WORKDIR}/mariadb-reseed-${TARGET_REPLICAS[0]}-${TIMESTAMP}.sql"
+elif [[ "${BACKUP_ONLY}" == "true" ]]; then
+  DUMP_FILE="${WORKDIR}/mariadb-backup-${PRIMARY_POD}-${TIMESTAMP}.sql"
 else
   DUMP_FILE="${WORKDIR}/mariadb-reseed-all-unhealthy-${TIMESTAMP}.sql"
 fi
@@ -688,7 +701,10 @@ fi
 if [[ ${#HEALTHY_REPLICAS[@]} -gt 0 ]]; then
   printf '  Healthy replicas:  %s\n' "${HEALTHY_REPLICAS[*]}"
 fi
-printf '  Target replicas:   %s\n' "${TARGET_REPLICAS[*]}"
+if [[ ${#TARGET_REPLICAS[@]} -gt 0 ]]; then
+  printf '  Target replicas:   %s\n' "${TARGET_REPLICAS[*]}"
+fi
+printf '  Backup only:       %s\n' "${BACKUP_ONLY}"
 printf '  Root secret:       %s\n' "${ROOT_SECRET}"
 printf '  Repl secret:       %s\n' "${REPL_SECRET}"
 printf '  Dump file:         %s\n' "${DUMP_FILE}"
@@ -718,6 +734,21 @@ kubectl -n "${NAMESPACE}" exec "${PRIMARY_POD}" -- sh -c \
   > "${DUMP_FILE}"
 
 validate_dump_file "${DUMP_FILE}"
+
+if [[ "${BACKUP_ONLY}" == "true" ]]; then
+  SUCCESS="true"
+  cat <<EOF
+
+Backup completed.
+
+Primary pod:      ${PRIMARY_POD}
+Primary endpoint: ${MASTER_FQDN}
+Dump file:        ${DUMP_FILE}
+Repl secret:      ${REPL_SECRET}
+
+EOF
+  exit 0
+fi
 
 CHANGE_MASTER_LINE="$(grep -m1 -E 'CHANGE MASTER TO MASTER_LOG_FILE=' "${DUMP_FILE}" || true)"
 [[ -n "${CHANGE_MASTER_LINE}" ]] || die "Could not find CHANGE MASTER TO coordinates in dump"
