@@ -1,0 +1,122 @@
+---
+# defaults file for capi_mgmt_cluster
+#create_tunnelled_network_infra: false
+os_endpoint_type: "public"
+capi_mgmt_net_name: "capi-mgmt-net"
+capi_mgmt_subnet_name: "capi-mgmt-subnet"
+capi_mgmt_subnet_cidr: 172.16.51.0/24
+capi_mgmt_dns_servers: "10.239.0.55"
+ext_net_id: 54a88ebc-4b2f-4f37-8a75-c7838cb4c488
+
+capi_mgmt_cluster_vip_port_name: "capi-mgmt-cluster-lb-vip-port"
+capi_mgmt_cluster_lb_vip_fqdn: "capi-mgmt-lb.cluster.local"
+capi_mgmt_cluster_lb_name: "capi-mgmt-cluster-lb"
+capi_mgmt_cluster_lb_listener_name: "capi-mgmt-cluster-listener"
+capi_mgmt_cluster_lb_pool_name: "capi-mgmt-cluster-pool"
+
+capi_mgmt_secgroup_name: "capi-mgmt-cluster-secgroup"
+
+capi_mgmt_secgroup_rules:
+  - protocol: tcp
+    port_range_min: 22
+    port_range_max: 22
+    remote_ip_prefix: 0.0.0.0/0
+    direction: ingress
+    ethertype: IPv4
+  - protocol: tcp
+    port_range_min: 6443
+    port_range_max: 6443
+    remote_ip_prefix: 0.0.0.0/0
+    direction: ingress
+    ethertype: IPv4
+  - protocol: icmp
+    port_range_min: -1
+    port_range_max: -1
+    remote_ip_prefix: 0.0.0.0/0
+    direction: ingress
+    ethertype: IPv4
+  - protocol: tcp
+    port_range_min: 2379
+    port_range_max: 2380
+    remote_ip_prefix: 0.0.0.0/0
+    direction: ingress
+    ethertype: IPv4
+  - protocol: tcp
+    port_range_min: 10250
+    port_range_max: 10252
+    remote_ip_prefix: 0.0.0.0/0
+    direction: ingress
+    ethertype: IPv4
+  - protocol: udp
+    port_range_min: 4789
+    port_range_max: 4789
+    remote_ip_prefix: 0.0.0.0/0
+    direction: ingress
+    ethertype: IPv4
+
+capi_mgmt_cluster_ports:
+  - name: capi-port1
+    description: "capi mgmt cluster port 1"
+  - name: capi-port2
+    description: "capi mgmt cluster port 2"
+  - name: capi-port3
+    description: "capi mgmt cluster port 3"
+
+capi_mgmt_cluster_image: "ubuntu24"
+
+capi_boot_from_volume: true
+capi_mgmt_cluster_flavor:
+  name: 'm1.capi-mgmt-cluster-flavor'
+  vcpus: 4
+  ram: 4096
+  disk: "{{ capi_boot_from_volume | ternary(0,'80') }}"
+  ephemeral: 0
+  description: "capi mgmt cluster flavor"
+  is_public: false
+
+capi_mgmt_cluster_volume_type: "lvmdriver-1"
+
+capi_mgmt_cluster_group_name: "capi-server-group"
+capi_cluster_strict_affinity_policy: true
+
+capi_mgmt_cluster_volumes:
+  - name: capi-mgmt-cluster-volume-1
+    size: 15
+    volume_type: "{{ capi_mgmt_cluster_volume_type }}"
+  - name: capi-mgmt-cluster-volume-2
+    size: 15
+    volume_type: "{{ capi_mgmt_cluster_volume_type }}"
+  - name: capi-mgmt-cluster-volume-3
+    size: 15
+    volume_type: "{{ capi_mgmt_cluster_volume_type }}"
+
+capi_mgmt_etcd_backup_volume:
+  name: capi-mgmt-etcd-backup-volume-1
+  size: 5
+  volume_type: "{{ capi_mgmt_cluster_volume_type }}"
+
+#capi_etcd_backup_retention_days
+
+capi_mgmt_cluster_keypair:
+  name: 'capi_mgmt_cluster_keypair'
+  path: "/var/tmp/capi_mgmt_cluster_keypair"
+  type: rsa
+  size: 2048
+
+capi_mgmt_cluster_instances:
+  - name: capi-instance-1
+    port_name: "{{ capi_mgmt_cluster_ports[0].name }}"
+    boot_volume_name: "{{ capi_mgmt_cluster_volumes[0].name }}"
+  - name: capi-instance-2
+    port_name: "{{ capi_mgmt_cluster_ports[1].name }}"
+    boot_volume_name: "{{ capi_mgmt_cluster_volumes[1].name }}"
+  - name: capi-instance-3
+    port_name: "{{ capi_mgmt_cluster_ports[2].name }}"
+    boot_volume_name: "{{ capi_mgmt_cluster_volumes[2].name }}"
+
+
+capi_mgmt_dns_forwarders:
+  - 10.239.0.55
+
+capi_mgmt_bootstrap_vm_user: "ubuntu"
+capi_mgmt_bootstrap_vm_path: "/home/ubuntu"

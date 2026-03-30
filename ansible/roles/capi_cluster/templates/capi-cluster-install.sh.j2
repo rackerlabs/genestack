@@ -1,0 +1,315 @@
+#!/bin/bash
+
+set -euo pipefail
+
+# obtain values for octavia lb fqdn and lb vip
+OCTAVIA_LB_FQDN={{ capi_mgmt_cluster_lb_vip_fqdn }}
+OCTAVIA_LB_VIP={{ _capi_lb.load_balancer.vip_address }}
+HELM_VERSION={{ capi_mgmt_helm_version | default('3') }}
+DNS_VARS={{ (capi_mgmt_dns_forwarders is defined) | ternary(true, false) }}
+
+# declare the directory for kubespray repo
+KUBESPRAY_REPO_DIR="/opt/kubespray"
+KUBESPRAY_VENV_DIR="/root/.venvs/kubespray-venv"
+
+# declare asset dir and capi mgmt inventory dir
+ASSET_DIR="/home/ubuntu"
+CAPI_MGMT_DIR="capi-mgmt-cluster"
+CAPI_MGMT_KEY="/var/tmp/capi_mgmt_cluster_keypair"
+
+# declare the log file
+LOG_FILE="/var/log/capi-mgmt-cluster-install.log"
+
+# declare the kubeconfig file
+KUBECONFIG_FILE="$HOME/.kube/config"
+
+# declare the backup directory
+ETCD_BACKUP_DIR="/var/backups"
+
+# send xtrace output to FD 3, which is appended to the log file
+exec 3>>"$LOG_FILE"
+export BASH_XTRACEFD=3
+
+# include timestamps, file and line number in the trace lines
+export PS4='+ $(date "+%Y-%m-%d %H:%M:%S") [$BASH_SOURCE:$LINENO] '
+
+# remove the existing logs
+echo > "$LOG_FILE"
+
+# enable command tracing
+set -x
+
+# enable generic error handler
+#trap 'echo "ERROR: Script failed; check log file for further details" >&2' ERR
+
+function install_k8s_cluster () {
+
+# check if it's required to copy the ssh key from the
+# asset dir to the /var/tmp path; this ensures that the
+# ssh key is not overridden when the script is re-run
+if [ ! -f "$CAPI_MGMT_KEY" ]; then
+  cp "$ASSET_DIR/capi_mgmt_cluster_keypair" "$CAPI_MGMT_KEY"
+fi
+
+chmod 0400 "$CAPI_MGMT_KEY"
+
+# install git and venv packages
+apt-get update &>> "$LOG_FILE" && apt-get install git python3-venv -y &>> "$LOG_FILE"
+
+# create the venv for kubespray
+python3 -m venv "$KUBESPRAY_VENV_DIR"
+
+# check if the kubespray repo has been cloned
+if [ ! -d "$KUBESPRAY_REPO_DIR" ]; then
+  # repo has not been cloned; clone the repo
+  git clone https://github.com/kubernetes-sigs/kubespray.git "$KUBESPRAY_REPO_DIR" &>> "$LOG_FILE"
+fi
+
+# repo is cloned to the required directory; install the pip packages
+pushd "$KUBESPRAY_REPO_DIR" &>> "$LOG_FILE"
+
+# checkout the repo to tag v2.30.0
+#git checkout tags/v2.30.0 &>> "$LOG_FILE"
+
+# install the required pip packages for kubespray
+"$KUBESPRAY_VENV_DIR/bin/python" -m pip install --upgrade pip &>> "$LOG_FILE"
+"$KUBESPRAY_VENV_DIR/bin/python" -m pip install -U -r requirements.txt &>> "$LOG_FILE"
+"$KUBESPRAY_VENV_DIR/bin/python" -m pip install kubernetes &>> "$LOG_FILE"
+
+# check if ansible installed and test with ping
+"$KUBESPRAY_VENV_DIR/bin/ansible" -m ping localhost &>> "$LOG_FILE"
+
+# create the /etc/host entry for capi-mgmt lb vip
+"$KUBESPRAY_VENV_DIR/bin/ansible" -i "$ASSET_DIR"/capi-mgmt-inventory.ini all\
+	                          -m lineinfile -a "path=/etc/hosts line='$OCTAVIA_LB_VIP $OCTAVIA_LB_FQDN' state=present"\
+              	                  -b --private-key "$CAPI_MGMT_KEY" --ssh-common-args='-o StrictHostKeyChecking=no' &>> "$LOG_FILE"
+
+# this block runs only if the inventory directory for capi-mgmt-cluster
+# doesn't exist; this is because we want to preserve the initially created
+# inventory and not override it everytime the script is run; this also
+# keeps the other required yaml variables from overrides
+if [ ! -d "$KUBESPRAY_REPO_DIR/inventory/$CAPI_MGMT_DIR" ]; then
+  # create the inventory dir for capi-mgmt cluster
+  cp -rfp inventory/sample inventory/"$CAPI_MGMT_DIR"
+fi
+
+# copy of the inventory file already exists; backup the inventory first and then
+# copy the inventory file from the asset dir to the capi-mgmt cluster inventory dir
+if [ -f "$KUBESPRAY_REPO_DIR/inventory/$CAPI_MGMT_DIR/capi-mgmt-inventory.ini" ]; then
+
+  # print a message in the logs that the inventory exists
+  echo "Inventory for the mgmt cluster already exists; creating a backup before copying" &>> "$LOG_FILE"
+
+  cp inventory/"$CAPI_MGMT_DIR"/capi-mgmt-inventory.ini inventory/"$CAPI_MGMT_DIR"/inventory_$(date +%Y%m%d%H%M%S).bak
+
+  cp "$ASSET_DIR"/capi-mgmt-inventory.ini inventory/"$CAPI_MGMT_DIR"/capi-mgmt-inventory.ini
+else
+  # if there is no existing inventory copy from the asset dir
+  cp "$ASSET_DIR"/capi-mgmt-inventory.ini inventory/"$CAPI_MGMT_DIR"/capi-mgmt-inventory.ini
+fi
+
+
+# only copy the overrides if they don't already exist
+if [ ! -f "$KUBESPRAY_REPO_DIR/inventory/$CAPI_MGMT_DIR/group_vars/all/capi-cluster-vars.yml" ]; then
+  # copy the yaml overrides from the asset dir to the capi-mgmt cluster inventory dir
+  cp "$ASSET_DIR"/capi-cluster-vars.yml inventory/"$CAPI_MGMT_DIR"/group_vars/all/capi-cluster-vars.yml
+
+else
+  # print a message cluster overrides exist
+  echo "cluster overrides exist; skipping copy from the asset directory" &>> "$LOG_FILE"
+fi
+
+# copy the overrides for dns forwarders for coredns and nodelocaldns
+if [[ "${DNS_VARS,,}" == "true" ]] &>> "$LOG_FILE"; then
+  cp "$ASSET_DIR"/capi-cluster-dns-vars.yml inventory/"$CAPI_MGMT_DIR"/group_vars/all/capi-cluster-dns-vars.yml
+else
+  echo "no dns overrides defined for coredns and nodelocaldns" &>> "$LOG_FILE"
+fi
+
+# this block only runs if the cluster is not already installed
+if ! kubectl get nodes --no-headers &>> "$LOG_FILE"; then
+
+  # run the plybook to install the cluster
+  echo "cluster is not installed; running the playbooks!" &>> "$LOG_FILE"
+
+  "$KUBESPRAY_VENV_DIR/bin/ansible-playbook" -i inventory/"$CAPI_MGMT_DIR"/capi-mgmt-inventory.ini playbooks/cluster.yml\
+	                                     -b --private-key "$CAPI_MGMT_KEY" --ssh-common-args='-o StrictHostKeyChecking=no' &>> "$LOG_FILE"
+else
+  # cluster is already installed; print the message to the user
+  echo "cluster is already installed; checking if all the nodes in the cluster are healthy" &>> "$LOG_FILE"
+fi
+
+# this block only runs if the mgmt cluster is installed but not all the
+# the nodes are in ready state
+if [ "$(kubectl get nodes --no-headers | awk '{print $2}' | grep -c 'Ready')" -lt 3 ] &>> "$LOG_FILE"; then
+
+  # do not re-run the playbooks and exit
+  echo "cluster is installed but not all the nodes are healthy; please investigate the cluster state!" &>> "$LOG_FILE"
+  exit 1
+
+  #"$KUBESPRAY_VENV_DIR/bin/ansible-playbook" -i inventory/"$CAPI_MGMT_DIR"/capi-mgmt-inventory.ini playbooks/cluster.yml\
+  #	                                     -b --private-key "$CAPI_MGMT_KEY" --ssh-common-args='-o StrictHostKeyChecking=no' &>> "$LOG_FILE"
+else
+  # print a message that the cluster is already installed and is healthy
+  echo "cluster is installed and is healthy; not re-running playbook!" &>> "$LOG_FILE"
+  kubectl get nodes -o wide &>> "$LOG_FILE"
+fi
+
+popd &>> "$LOG_FILE"
+
+}
+
+function install_helm () {
+
+# this block checks if helm is installed and if not install helm
+if command -v helm &>> "$LOG_FILE"; then
+  # print a message that helm is already installed
+  echo "Helm is already installed!" &>> "$LOG_FILE"
+
+else
+  # install helm as it is not installed on the cluster
+  echo "Helm is not installed; installing helm-3 on the cluster" &>> "$LOG_FILE"
+  curl -fsSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-"$HELM_VERSION" | bash &>> "$LOG_FILE"
+fi
+
+}
+
+function install_capi_components () {
+
+# check if all the kubernetes cluster nodes are ready
+if [ "$(kubectl get nodes --no-headers | awk '{print $2}' | grep -c 'Ready')" -lt 3 ]; then
+
+    # print the message that the cluster is not fully healthy and exit
+    echo "cluster is not fully healthy; skipping install of cluster api components!" &>> "$LOG_FILE"
+    exit 1;
+
+else
+    # cluster is healthy and cluster api components can be installed
+    echo "cluster is healthy and cluster api components can be installed" &>> "$LOG_FILE"
+fi
+
+if ! kubectl get providers -A &>> "$LOG_FILE"; then
+
+  # providers are not installed
+  echo "cluster-api components are not installed" &>> "$LOG_FILE"
+
+  # download the clusterctl binary
+  "$KUBESPRAY_VENV_DIR/bin/ansible" localhost -m get_url\
+                                    -a "url=https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.11.3/clusterctl-linux-amd64\
+				        dest=/usr/local/bin/clusterctl mode=0755" &>> "$LOG_FILE"
+
+  # install the openstack resource controller
+  if [ ! -f "$KUBECONFIG_FILE" ] &>> "$LOG_FILE"; then
+
+    # set the kubeconfig file to the default
+    KUBECONFIG_FILE="/etc/kubernetes/admin.conf"
+  fi
+
+  "$KUBESPRAY_VENV_DIR/bin/ansible" localhost -m kubernetes.core.k8s\
+	                            -a "state=present apply=yes\
+				    src=https://github.com/k-orc/openstack-resource-controller/releases/latest/download/install.yaml\
+				    kubeconfig=$KUBECONFIG_FILE" &>> "$LOG_FILE"
+
+  # enable the required feature gates for CAPI
+  export EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION=true
+  export EXP_BOOTSTRAP_FORMAT_IGNITION=true
+  export CLUSTER_TOPOLOGY=true
+
+  # install the cluster api providers
+  /usr/local/bin/clusterctl init --infrastructure openstack:v0.14.0 &>> "$LOG_FILE"
+
+  # sleep for 5 seconds
+  sleep 5
+
+  # enable the helm repository for capi addons
+  "$KUBESPRAY_VENV_DIR/bin/ansible" localhost -m kubernetes.core.helm_repository -a\
+	                            "name=capi-addons repo_url=https://azimuth-cloud.github.io/cluster-api-addon-provider" &>> "$LOG_FILE"
+
+  # install the helm repo for capi addons
+  "$KUBESPRAY_VENV_DIR/bin/ansible" localhost -m kubernetes.core.helm -a \
+	                            "name=cluster-api-addon-provider chart_ref=capi-addons/cluster-api-addon-provider kubeconfig=$KUBECONFIG_FILE release_namespace=default state=present" &>> "$LOG_FILE"
+
+fi
+}
+
+function config_etcd_backup_disk () {
+
+  # check if the etcd backup dir is already mounted
+  if [ $(mount | grep $ETCD_BACKUP_DIR | wc -l) -gt 0 ]; then
+    echo "$ETCD_BACKUP_DIR is already mounted; no further actions required" &>> "$LOG_FILE"
+    return 0
+  fi
+
+  # declare the array for unused disks
+  unused_disks=()
+
+  # obtain the unused disk on the node
+  for disk in $(lsblk -dn -o NAME,TYPE | awk '$2=="disk"{print $1}'); do
+
+    node_disk="/dev/$disk"
+
+    # skip if the disk is mounted
+    if lsblk -nr "$node_disk" -o MOUNTPOINT | grep -q .; then
+      continue
+    fi
+
+    # skip if there are partitions exist on the disk
+    if [ "$(lsblk -nr "$node_disk" -o NAME | wc -l)" -ne 1 ]; then
+      continue
+    fi
+
+    # skip if filesystem signature exists on the device
+    if blkid "$node_disk" > /dev/null 2>&1; then
+      continue
+    fi
+
+    # if the disk is unused; append it to the array
+    unused_disks+=("$node_disk")
+  done
+
+{% raw %}
+  # if there are no unused disks exit
+  if [ "${#unused_disks[@]}" -eq 0 ]; then
+    echo "Expected atleast one unused disk for etcd backup!" &>> "$LOG_FILE"
+    exit 1
+  fi
+{% endraw %}
+
+  echo "Found unused disk for etcd backup dir: ${unused_disks[0]}" &>> "$LOG_FILE"
+
+  etcd_backup_disk="${unused_disks[0]}"
+
+  # for the disk and mount it on the etcd backup dir
+  echo "Formatting the disk ${unused_disks[0]}" &>> "$LOG_FILE"
+  mkfs -t ext4 "$etcd_backup_disk" &>> "$LOG_FILE"
+
+  # create the mount point directory for etcd backup
+  mkdir -p "$ETCD_BACKUP_DIR"
+
+  # mount the etcd backup dir
+  mount "$etcd_backup_disk" "$ETCD_BACKUP_DIR"
+
+  UUID=$(blkid -s UUID -o value "$etcd_backup_disk")
+
+  echo "Persisting mount in /etc/fstab" &>> "$LOG_FILE"
+  grep -q "$UUID" /etc/fstab || echo "UUID=$UUID $ETCD_BACKUP_DIR ext4 defaults 0 2" >> /etc/fstab
+}
+
+function config_etcd_backup_cron () {
+
+  # declare local variables for etcd backup
+  local ETCD_CRON="0 */6 * * * /usr/local/bin/etcd-backup.sh"
+
+  if ! crontab -l 2>/dev/null | grep -F "$ETCD_CRON" >/dev/null; then
+    echo "ETCD backup cron already configured" &>> "$LOG_FILE"
+  else
+    (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+    echo "ETCD backup cron enabled" &>> "$LOG_FILE"
+  fi
+}
+
+install_k8s_cluster
+install_helm
+install_capi_components
+config_etcd_backup_disk
+config_etcd_backup_cron

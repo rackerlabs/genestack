@@ -1,0 +1,50 @@
+---
+- name: check if the secret exists for capi mgmt cluster private key
+  kubernetes.core.k8s_info:
+    kind: Secret
+    name: capi-mgmt-ssh-key
+    namespace: openstack
+  register: _capi_key_secret
+
+- name: create the openssh keypair for the capi mgmt cluster
+  community.crypto.openssh_keypair:
+    path: "{{ capi_mgmt_cluster_keypair.path }}"
+    type: "{{ capi_mgmt_cluster_keypair.type }}"
+    size: "{{ capi_mgmt_cluster_keypair.size }}"
+  register: _capi_key
+  when: _capi_key_secret.resources | length == 0
+
+- name: create the secret for capi mgmt cluster private key
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: capi-mgmt-ssh-key
+        namespace: openstack
+      type: Opaque
+      data:
+        id_rsa: "{{ lookup('file', capi_mgmt_cluster_keypair.path) | b64encode }}"
+        id_rsa.pub: "{{ _capi_key.public_key | trim | b64encode }}"
+  when: _capi_key_secret.resources | length == 0
+
+- name: obtain the pub key from the secret for capi mgmt cluster
+  kubernetes.core.k8s_info:
+    kind: Secret
+    name: capi-mgmt-ssh-key
+    namespace: openstack
+  register: _capi_mgmt_ssh_secret
+
+- name: create the keypair in nova for the capi mgmt cluster
+  openstack.cloud.keypair:
+    interface: "{{ os_endpoint_type | default('public') }}"
+    state: present
+    name: "{{ capi_mgmt_cluster_keypair.name }}"
+    public_key: "{{ _capi_mgmt_ssh_secret.resources[0].data['id_rsa.pub'] | b64decode | trim }}"
+
+- name: copy the private key from the secret for capi mgmt cluster
+  ansible.builtin.copy:
+    content: "{{ _capi_mgmt_ssh_secret.resources[0].data['id_rsa'] | b64decode | regex_replace('\n?$', '\n') }}"
+    dest: "{{ ansible_env.HOME }}/capi_mgmt_private_key"
+    mode: '0400'

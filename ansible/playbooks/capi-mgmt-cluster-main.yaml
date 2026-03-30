@@ -1,0 +1,200 @@
+- name: Play to bootstrap project and user for capi mgmt cluster
+  hosts: localhost
+  gather_facts: true
+  vars:
+    os_endpoint_type: public
+    os_interface: "{{ os_endpoint_type }}"
+    os_username: admin
+    os_project_name: admin
+    os_tenant_name: '{{ os_project_name }}'
+    os_auth_type: password
+    os_admin_password: ''
+    os_auth_url: http://keystone.pikachu.jabronis.dev/v3
+    os_user_domain_name: default
+    os_project_domain_name: default
+    os_region_name: RegionOne
+    os_identity_api_version: 3
+    os_auth_version: 3
+    nova_endpoint_type: "{{ os_endpoint_type }}"
+    capi_mgmt_project_name: capi-mgmt-cluster-project
+    capi_mgmt_user_name: capi-mgmt-user
+    capi_mgmt_project_domain: service
+    capi_mgmt_user_domain: service
+    os_user_password: ''
+  environment:
+    OS_ENDPOINT_TYPE: "{{ os_endpoint_type }}"
+    OS_INTERFACE: "{{ os_interface }}"
+    OS_USERNAME: "{{ os_username }}"
+    OS_PASSWORD: "{{ os_admin_password }}"
+    OS_PROJECT_NAME: "{{ os_project_name }}"
+    OS_TENANT_NAME: 'admin'
+    OS_AUTH_TYPE: password
+    OS_AUTH_URL: "{{ os_auth_url }}"
+    OS_USER_DOMAIN_NAME: "{{ os_user_domain_name }}"
+    OS_PROJECT_DOMAIN_NAME: "{{ os_project_domain_name }}"
+    OS_REGION_NAME: "{{ os_region_name }}"
+    OS_IDENTITY_API_VERSION: "{{ os_identity_api_version }}"
+    OS_AUTH_VERSION: "{{ os_auth_version }}"
+    NOVA_ENDPOINT_TYPE: "{{ nova_endpoint_type }}"
+  pre_tasks:
+    - name: check that the admin password is provided
+      ansible.builtin.assert:
+        that:
+          - os_admin_password is defined
+          - os_admin_password | length > 0
+        fail_msg: >
+          password for the admin user is required
+          provide the admin password with -e os_admin_password=<passwd>
+    - name: check that the password capi_mgmt_user is provided
+      ansible.builtin.assert:
+        that:
+          - os_user_password is defined
+          - os_user_password | length > 0
+        fail_msg: >
+          password for the capi mgmt user is required
+          provide the password for capi mgmt user with -e os_user_password=<passwd>
+          this will be password for creating the capi mgmt user
+  tasks:
+    - name: Create the project for capi mgmt cluster
+      openstack.cloud.project:
+        name: "{{ capi_mgmt_project_name }}"
+        domain: "{{ capi_mgmt_project_domain }}"
+        description: "capi mgmt cluster project"
+        is_enabled: True
+        state: present
+
+    - name: Create the user for the capi mgmt cluster
+      openstack.cloud.identity_user:
+        name: "{{ capi_mgmt_user_name }}"
+        domain: "{{ capi_mgmt_user_domain }}"
+        description: "capi mgmt cluster user"
+        state: present
+        password: "{{ os_user_password }}"
+        default_project: "{{ capi_mgmt_project_name }}"
+
+    - name: Assign the admin role to the capi mgmt user
+      openstack.cloud.role_assignment:
+        user: "{{ capi_mgmt_user_name }}"
+        role: admin
+        project: "{{ capi_mgmt_project_name }}"
+        domain: service
+
+    - name: Modify the quotas for the capi mgmt cluster project
+      openstack.cloud.quota:
+        name: "{{ capi_mgmt_project_name }}"
+        cores: 30
+        volumes: 20
+        snapshots: 20
+        instances: 20
+
+    - name: Persist the capi mgmt user creds
+      ansible.builtin.set_fact:
+        capi_mgmt_os_env:
+          OS_ENDPOINT_TYPE: "{{ os_endpoint_type | default('public') }}"
+          OS_INTERFACE: "{{ os_interface | default('public') }}"
+          OS_AUTH_URL: http://keystone.pikachu.jabronis.dev/v3
+          OS_USERNAME: "{{ capi_mgmt_user_name }}"
+          OS_PASSWORD: "{{ os_user_password }}"
+          OS_PROJECT_NAME: "{{ capi_mgmt_project_name }}"
+          OS_USER_DOMAIN_NAME: service
+          OS_PROJECT_DOMAIN_NAME: service
+          OS_AUTH_TYPE: password
+          OS_REGION_NAME: "{{ os_region_name | default('RegionOne') }}"
+          OS_IDENTITY_API_VERSION: "{{ os_identity_api_version }}"
+          OS_AUTH_VERSION: "{{ os_auth_version }}"
+          NOVA_ENDPOINT_TYPE: "{{ nova_endpoint_type }}"
+          KUBECONFIG: "{{ ansible_env.HOME }}/.kube/config"
+
+- name: Playbook to create capi mgmt cluster infra
+  hosts: localhost
+  gather_facts: true
+  environment: "{{ capi_mgmt_os_env }}"
+  roles:
+    - capi_cluster
+
+- name: Playbook to deploy kubernetes cluster on capi mgmt cluster vms
+  hosts: capi_mgmt_bootstrp_vm
+  gather_facts: true
+  become: true
+  tasks:
+    - name: ping the capi mgmt cluster bootstrp vm fip
+      ansible.builtin.ping:
+
+    - name: copy the ssh key to the bootstrp vm
+      ansible.builtin.copy:
+        src: "{{ ansible_env.HOME }}/capi_mgmt_private_key"
+        dest: /home/ubuntu/capi_mgmt_cluster_keypair
+        mode: 0400
+
+    - name: copy the capi mgmt cluster inventory to the bootstrp vm
+      ansible.builtin.copy:
+        src: /var/tmp/capi-mgmt-inventory.ini
+        dest: /home/ubuntu/capi-mgmt-inventory.ini
+
+    - name: copy the capi mgmt cluster vars to the bootstrp vm
+      ansible.builtin.copy:
+        src: /var/tmp/capi-cluster-vars.yml
+        dest: /home/ubuntu/capi-cluster-vars.yml
+
+    - name: check if dns overrides exists on the localhost
+      ansible.builtin.stat:
+        path: /var/tmp/capi-cluster-dns-vars.yml
+      delegate_to: localhost
+      register: _capi_dns_vars_file
+
+    - name: copy the dns vars to the bootstrp vm
+      ansible.builtin.copy:
+        src: /var/tmp/capi-cluster-dns-vars.yml
+        dest: /home/ubuntu/capi-cluster-dns-vars.yml
+      when: _capi_dns_vars_file.stat.exists
+
+    - name: copy the shell script to the install the cluster on the bootstrp vm
+      ansible.builtin.copy:
+        src: /var/tmp/capi-cluster-install.sh
+        dest: /home/ubuntu/capi-cluster-install.sh
+        mode: u+x
+
+    - name: copy the etcd backup script to the bootstrp vm
+      ansible.builtin.copy:
+        src: /var/tmp/etcd-backup.sh
+        dest: /usr/local/bin/etcd-backup.sh
+        mode: u+x
+
+    - name: Notify the user about the script logs
+      ansible.builtin.debug:
+        msg: >
+          "installing capi-mgmt-cluster; check /var/log/capi-mgmt-cluster-install.log on
+          {{ inventory_hostname }} for further details"
+
+    - name: run the script to install the capi-mgmt-cluster
+      ansible.builtin.shell:
+        cmd: /home/ubuntu/capi-cluster-install.sh
+      async: 1800
+      poll: 0
+      register: _capi_cluster_install_script
+
+    - name: check the status of the script until script is running
+      ansible.builtin.async_status:
+        jid: "{{ _capi_cluster_install_script.ansible_job_id }}"
+      register: _capi_cluster_install_script_result
+      until: _capi_cluster_install_script_result is finished
+      retries: 180
+      delay: 10
+
+    - name: print message if the script runs without any issue
+      ansible.builtin.debug:
+        msg: >
+         capi cluster install script went without any issues; the management
+         cluster has been installed
+      when:
+        - _capi_cluster_install_script_result.rc is defined
+        - _capi_cluster_install_script_result.rc == 0
+
+    - name: copy the kubeconfig from the capi mgmt cluster
+      ansible.builtin.fetch:
+        src: /etc/kubernetes/admin.conf
+        dest: /var/tmp/capi_mgmt_cluster.kubeconfig
+        flat: yes
+      when:
+        - _capi_cluster_install_script_result.rc is defined
+        - _capi_cluster_install_script_result.rc == 0

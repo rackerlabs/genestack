@@ -1,0 +1,45 @@
+---
+- name: add the capi mgmt cluster bootstrap vm to the inventory
+  ansible.builtin.add_host:
+    name: "{{ _capi_boostrap_fip.floating_ip.floating_ip_address }}"
+    groups: 'capi_mgmt_bootstrp_vm'
+    ansible_ssh_host: "{{ _capi_boostrap_fip.floating_ip.floating_ip_address }}"
+    ansible_ssh_user: 'ubuntu'
+    ansible_ssh_private_key_file: "{{ ansible_env.HOME }}/capi_mgmt_private_key"
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+
+- name: Obtain the details of the capi mgmt cluster vms
+  openstack.cloud.server_info:
+    interface: "{{ os_endpoint_type | default('public') }}"
+    filters:
+      metadata:
+        group: 'capi_mgmt_cluster_vms'
+  register: _capi_vms
+
+- name: Generate the inventory for the capi mgmt cluster vms
+  ansible.builtin.template:
+    src: templates/inventory.ini.j2
+    dest: /var/tmp/capi-mgmt-inventory.ini
+
+- name: Generate the yaml overrides for the capi mgmt cluster
+  ansible.builtin.template:
+    src: templates/capi-cluster-vars.yml.j2
+    dest: /var/tmp/capi-cluster-vars.yml
+
+- name: Generate the yaml overrides for the capi mgmt cluster (upstream dns-servers)
+  ansible.builtin.template:
+    src: templates/capi-cluster-dns-vars.yml.j2
+    dest: /var/tmp/capi-cluster-dns-vars.yml
+  when:
+    - capi_mgmt_dns_forwarders is defined
+    - capi_mgmt_dns_forwarders | length > 0
+
+- name: Generate the capi mgmt cluster install script
+  ansible.builtin.template:
+    src: capi-cluster-install.sh.j2
+    dest: /var/tmp/capi-cluster-install.sh
+
+- name: Generate the capi mgmt cluster etcd backup script
+  ansible.builtin.template:
+    src: etcd-backup.sh.j2
+    dest: /var/tmp/etcd-backup.sh
