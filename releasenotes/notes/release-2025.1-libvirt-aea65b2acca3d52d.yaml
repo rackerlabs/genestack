@@ -1,0 +1,61 @@
+---
+prelude: |
+  Libvirt upgrade from Caracal (2024.1) to Epoxy (2025.1). Helm chart changes
+  between 2024.2.94+912f85d38 and 2025.1.4+ed289c1cd.
+features:
+  - |
+    Added support for configurable libvirt hooks via chart values:
+    ``conf.hooks.enabled`` and ``conf.hooks.scripts``. Scripts are mounted into
+    ``/etc/libvirt/hooks`` in the libvirt container.
+  - |
+    Added configurable exporter arguments under
+    ``pod.sidecars.libvirt_exporter.args`` so alternative exporter images can be
+    used when default ``--libvirt.nova`` arguments are not desired.
+  - |
+    Added optional PodMonitor support with ``manifests.podmonitor`` to expose
+    libvirt-exporter metrics to Prometheus Operator environments.
+issues:
+  - |
+    ``manifests.podmonitor`` only has effect in clusters with the Prometheus
+    Operator CRDs installed, and useful metrics require
+    ``pod.sidecars.libvirt_exporter.enabled: true``. Validate scrape target
+    discovery after enabling either setting.
+upgrade:
+  - |
+    The libvirt exporter sidecar values schema changed from boolean to object.
+    Update overrides from:
+    ``pod.sidecars.libvirt_exporter: true``
+    to:
+    ``pod.sidecars.libvirt_exporter.enabled: true``
+    and optionally set ``pod.sidecars.libvirt_exporter.args``.
+  - |
+    New configurable probe values exist for libvirt-exporter under
+    ``pod.probes.libvirt.libvirt_exporter.{readiness,liveness}``. Existing
+    environments with strict startup timing may need probe tuning.
+  - |
+    Ceph helper image default changed from
+    ``ceph-config-helper:ubuntu_jammy_19.2.2-1-20250414`` to
+    ``ceph-config-helper:ubuntu_jammy_19.2.3-1-20250805``. Re-validate Ceph
+    keyring placement and compute startup behavior where Ceph-backed instances
+    are used.
+  - |
+    For Caracal (2024.1) to Epoxy (2025.1), validate Nova/libvirt-driver
+    service-level changes in parallel with chart updates, including:
+    - minimum supported libvirt/QEMU levels in Epoxy;
+    - migration settings and TLS behavior under ``[libvirt]``;
+    - cgroup v2 compatibility on compute hosts.
+  - |
+    Override ``images.tags.libvirt`` to the latest digest tag OR
+    override ``images.pull_policy`` to ``Always`` to force upgrade
+    of libvirt daemonset.
+deprecations:
+  - |
+    Nova/libvirt-driver deprecates legacy incoming migration configuration
+    paths in favor of secure incoming migration settings. Review migration
+    config placement and TLS assumptions during Caracal to Epoxy if using
+    non-defaults.
+fixes:
+  - |
+    The libvirt chart adds explicit readiness and liveness probe handling for
+    the ``libvirt-exporter`` sidecar, improving sidecar health reporting
+    behavior relative to prior defaults.
