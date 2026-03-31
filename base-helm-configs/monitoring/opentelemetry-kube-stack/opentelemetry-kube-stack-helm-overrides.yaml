@@ -199,6 +199,26 @@ defaultCRConfig:
               key: openstack.service
               from: pod
 
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+      jaeger:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:14250
+          thrift_http:
+            endpoint: 0.0.0.0:14268
+          thrift_compact:
+            endpoint: 0.0.0.0:6831
+
+      zipkin:
+        endpoint: 0.0.0.0:9411
+
     exporters:
       prometheusremotewrite:
         endpoint: "http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
@@ -278,25 +298,6 @@ collectors:
 
     config:
       receivers:
-        otlp:
-          protocols:
-            grpc:
-              endpoint: 0.0.0.0:4317
-            http:
-              endpoint: 0.0.0.0:4318
-
-        jaeger:
-          protocols:
-            grpc:
-              endpoint: 0.0.0.0:14250
-            thrift_http:
-              endpoint: 0.0.0.0:14268
-            thrift_compact:
-              endpoint: 0.0.0.0:6831
-
-        zipkin:
-          endpoint: 0.0.0.0:9411
-
         hostmetrics:
           collection_interval: 30s
           scrapers:
@@ -732,20 +733,6 @@ collectors:
             level: detailed
 
         pipelines:
-          traces:
-            receivers:
-              - jaeger
-              - zipkin
-            processors:
-              - resourcedetection/env
-              - k8sattributes
-              - resource/hostname
-              - memory_limiter
-              - batch
-            exporters:
-              - otlp/tempo
-              - debug
-
           metrics:
             receivers:
               - hostmetrics
@@ -1027,11 +1014,26 @@ collectors:
           logs:
             level: info
           metrics:
-            level: detailed
+            level: normal
 
         pipelines:
+          traces:
+            receivers:
+              - otlp
+              - jaeger
+              - zipkin
+            processors:
+              - resourcedetection/env
+              - k8sattributes
+              - resource/hostname
+              - memory_limiter
+              - batch
+            exporters:
+              - otlp/tempo
+              - debug
           metrics:
             receivers:
+              - otlp
               - mysql
               - postgresql
               - rabbitmq
