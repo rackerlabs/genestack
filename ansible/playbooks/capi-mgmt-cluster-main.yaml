@@ -167,7 +167,7 @@
           {{ inventory_hostname }} for further details"
 
     - name: run the script to install the capi-mgmt-cluster
-      ansible.builtin.shell:
+      ansible.builtin.command:
         cmd: /home/ubuntu/capi-cluster-install.sh
       async: 1800
       poll: 0

@@ -30,3 +30,8 @@
     security_groups: "{{ _capi_sec_group.security_group.id }}"
   loop: "{{ capi_mgmt_cluster_ports }}"
   register: _capi_port_results
+  notify:
+    - Delete capi mgmt cluster lb pool
+
+- name: Flush handlers to immediately delete the lb pool in case of port change
+  ansible.builtin.meta: flush_handlers

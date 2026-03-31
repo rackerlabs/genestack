@@ -29,21 +29,6 @@
     protocol_port: 6443
   register: _capi_lb_listener
 
-- name: Deleting the existing pool for the capi mgmt cluster lb
-  openstack.cloud.lb_pool:
-    interface: "{{ os_endpoint_type | default('public') }}"
-    name: "{{ capi_mgmt_cluster_lb_pool_name }}"
-    state: absent
-  when: _capi_port_results.changed
-  register: _remove_capi_lb_pool
-
-- name: Wait for 5 seconds before re-creating the pool
-  ansible.builtin.pause:
-    seconds: 5
-  when:
-    - _capi_port_results.changed
-    - _remove_capi_lb_pool.changed
-
 - name: Create the pool for the capi mgmt cluster lb
   openstack.cloud.lb_pool:
     interface: "{{ os_endpoint_type | default('public') }}"

@@ -300,10 +300,13 @@ function config_etcd_backup_cron () {
   # declare local variables for etcd backup
   local ETCD_CRON="0 */6 * * * /usr/local/bin/etcd-backup.sh"
 
-  if ! crontab -l 2>/dev/null | grep -F "$ETCD_CRON" >/dev/null; then
+  if crontab -l 2>/dev/null | grep -qi "etcd-backup" >/dev/null; then
     echo "ETCD backup cron already configured" &>> "$LOG_FILE"
   else
-    (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+    (
+      crontab -l 2>/dev/null || true
+      echo "$ETCD_CRON"
+    ) | crontab -
     echo "ETCD backup cron enabled" &>> "$LOG_FILE"
   fi
 }
