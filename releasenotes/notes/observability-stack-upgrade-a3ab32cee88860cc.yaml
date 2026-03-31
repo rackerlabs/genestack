@@ -37,9 +37,9 @@ critical:
     in a external storage system or make a backup of the PVC if needed.
 
     In order to properly structure things, a destructive tear down of the
-  components is required. Loki, Prometheus(and any exporters),
-  Grafana(and its database) needs to be completely uninstalled, including the
-  PVC's. Metrics, and local logging will be lost during the migration process.
-  Once all the components are removed a fresh install will bring everything
-  back up functioning under the 'monitoring' namespace.
-  Follow the related docs for more information.
+    components is required. Loki, Prometheus(and any exporters),
+    Grafana(and its database) needs to be completely uninstalled, including the
+    PVC's. Metrics, and local logging will be lost during the migration process.
+    Once all the components are removed a fresh install will bring everything
+    back up functioning under the 'monitoring' namespace.
+    Follow the related docs for more information.
