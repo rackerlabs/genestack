@@ -10,7 +10,6 @@ charts:
   cloudkitty: 2025.1.2+ebb1488dc
   designate: 2025.2.6+f3906fe15
   envoyproxy-gateway: v1.7.0
-  fluent-bit: 0.48.6
   freezer: 2025.2.0+18607738c
   glance: 2025.1.4+ed289c1cd
   gnocchi: 2024.2.52+22.15d38
@@ -19,7 +18,6 @@ charts:
   horizon: 2024.2.264+13651f45-628a320c
   ironic: 2024.2.121+13651f45-628a320c
   keystone: 2024.2.386+13651f45-628a320c
-  kubernetes-event-exporter: 3.6.3
   kube-ovn: v1.15.4
   kube-prometheus-stack: 78.3.0
   libvirt: 2024.2.94+912f85d38
@@ -37,12 +35,7 @@ charts:
   opentelemetry-kube-stack: 0.13.1
   placement: 2025.1.2+0cd784591
   postgres-operator: 1.15.1
-  prometheus-blackbox-exporter: 11.6.1
-  prometheus-mysql-exporter: 2.11.0
-  prometheus-postgres-exporter: 7.3.0
   prometheus-pushgateway: 3.4.2
-  prometheus-rabbitmq-exporter: 1.13.0
-  prometheus-snmp-exporter: 9.8.1
   redis-operator: 0.22.1
   redis-replication: 0.16.9
   redis-sentinel: 0.16.10
