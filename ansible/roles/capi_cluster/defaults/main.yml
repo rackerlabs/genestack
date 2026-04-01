@@ -6,7 +6,7 @@ capi_mgmt_net_name: "capi-mgmt-net"
 capi_mgmt_subnet_name: "capi-mgmt-subnet"
 capi_mgmt_subnet_cidr: 172.16.51.0/24
 capi_mgmt_dns_servers: "10.239.0.55"
-ext_net_id: 54a88ebc-4b2f-4f37-8a75-c7838cb4c488
+#ext_net_id: 54a88ebc-4b2f-4f37-8a75-c7838cb4c488
 
 capi_mgmt_cluster_vip_port_name: "capi-mgmt-cluster-lb-vip-port"
 capi_mgmt_cluster_lb_vip_fqdn: "capi-mgmt-lb.cluster.local"
