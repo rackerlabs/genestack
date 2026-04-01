@@ -28,6 +28,7 @@ data:
   data-skyline-service-init.sh: |
     #!/bin/bash
     set -exo pipefail
+    export OS_INTERFACE=internal
     USER_PROJECT_ID=$(openstack project create --or-show --enable -f value -c id \
                                                --domain="${SERVICE_PROJECT_DOMAIN}" \
                                                "${SERVICE_PROJECT}")
