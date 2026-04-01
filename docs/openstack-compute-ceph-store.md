@@ -148,7 +148,7 @@ Note that the values for both `secret_uuid` and `rbd_secret_uuid` should be the 
 ---
 images:
   tags:
-    nova_compute: "quay.io/airshipit/nova:2024.1-ubuntu_jammy"
+    nova_compute: "quay.io/airshipit/nova:2025.1-ubuntu_noble"
 
 conf:
   ceph:
@@ -178,7 +178,7 @@ Note that the value for both `secret_uuid` should be the same UUID generated in 
 ---
 images:
   tags:
-    libvirt: "docker.io/openstackhelm/libvirt:2024.1-ubuntu_jammy"
+    libvirt: "docker.io/openstackhelm/libvirt:2025.1-ubuntu_noble"
 
 conf:
   ceph:
