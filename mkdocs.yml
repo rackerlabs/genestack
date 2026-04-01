@@ -325,6 +325,9 @@ nav:
           - Override Public Endpoint fqdn for service catalog: openstack-override-public-endpoint-fqdn.md
           - Service Overrides: openstack-service-overrides.md
           - Resource and Project Lookups: openstack-resource-lookups.md
+          - Instance-HA:
+              - Masakari Host Monitor: masakari-host-monitor.md
+              - Masakari Instance/Introspection Monitor: masakari-instance-introspec.md
           - Reservation:
               - Blazar Reservations Creation: openstack-blazar.md
           - Backup Restore:
