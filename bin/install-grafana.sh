@@ -7,7 +7,7 @@
 
 # Service
 SERVICE_NAME_DEFAULT="grafana"
-SERVICE_NAMESPACE="grafana"
+SERVICE_NAMESPACE="monitoring"
 
 # Helm
 HELM_REPO_NAME_DEFAULT="grafana"
@@ -18,7 +18,7 @@ GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
 GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 
 # Define service-specific override directories based on the framework
-SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME_DEFAULT}"
+SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/monitoring/${SERVICE_NAME_DEFAULT}"
 SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME_DEFAULT}"
 
 # Define the Global Overrides directory used in the original script

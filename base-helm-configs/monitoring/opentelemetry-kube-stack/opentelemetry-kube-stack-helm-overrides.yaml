@@ -1,0 +1,1192 @@
+# OpenTelemetry Kube Stack Configuration with Full Telemetry (Logs, Metrics, Traces)
+
+fullnameOverride: ""
+namespaceOverride: ""
+clusterName: ""
+
+cleanupJob:
+  enabled: true
+  image:
+    repository: rancher/kubectl
+    tag: v1.34.1
+    digest: ""
+  existingServiceAccount: ""
+
+crds:
+  installOtel: true
+  installPrometheus: true
+
+opentelemetry-operator:
+  enabled: true
+  manager:
+    collectorImage:
+      repository: otel/opentelemetry-collector-contrib
+  admissionWebhooks:
+    failurePolicy: "Ignore"
+  crds:
+    create: false
+  nodeSelector:
+    openstack-control-plane: enabled
+
+defaultCRConfig:
+  enabled: true
+  hostNetwork: true
+  shareProcessNamespace: false
+  priorityClassName: ""
+  terminationGracePeriodSeconds: 30
+
+  observability:
+    metrics:
+      enableMetrics: true
+
+  # It's ignoring presets in the default.. override them in the collector
+  presets:
+    logsCollection:
+      enabled: true
+    hostMetrics:
+      enabled: false
+    kubernetesAttributes:
+      enabled: false
+    kubeletMetrics:
+      enabled: false
+    kubernetesEvents:
+      enabled: false
+    clusterMetrics:
+      enabled: false
+    annotationDiscovery:
+      logs:
+        enabled: false
+      metrics:
+        enabled: false
+
+  config:
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 90
+        spike_limit_percentage: 25
+
+      batch:
+        send_batch_size: 1000
+        timeout: 10s
+        send_batch_max_size: 1500
+
+      resourcedetection/env:
+        detectors:
+          - env
+          - system
+        timeout: 5s
+        override: false
+
+      attributes:
+        actions:
+          - key: deployment.environment
+            value: "genestack"
+            action: insert
+          - key: k8s.cluster.name
+            value: "openstack-genestack-k8s-cluster"
+            action: insert
+
+      resource/openstack:
+        attributes:
+          - key: service.namespace
+            value: "openstack"
+            action: upsert
+
+      resource/k8s:
+        attributes:
+          - key: service.namespace
+            value: "kube-system"
+            action: upsert
+
+      resource/k8s-events:
+        attributes:
+          - key: log_type
+            value: "k8s-event"
+            action: insert
+
+      resource/loki-labels:
+        attributes:
+          - key: namespace
+            from_attribute: k8s.namespace.name
+            action: upsert
+          - key: pod
+            from_attribute: k8s.pod.name
+            action: upsert
+          - key: container
+            from_attribute: k8s.container.name
+            action: upsert
+          - key: node
+            from_attribute: k8s.node.name
+            action: upsert
+          - key: cluster
+            from_attribute: k8s.cluster.name
+            action: upsert
+          - key: deployment
+            from_attribute: k8s.deployment.name
+            action: upsert
+          - key: statefulset
+            from_attribute: k8s.statefulset.name
+            action: upsert
+          - key: daemonset
+            from_attribute: k8s.daemonset.name
+            action: upsert
+          - key: job
+            from_attribute: k8s.job.name
+            action: upsert
+          - key: cronjob
+            from_attribute: k8s.cronjob.name
+            action: upsert
+          - key: service_name
+            from_attribute: service.name
+            action: upsert
+          - key: service_namespace
+            from_attribute: service.namespace
+            action: upsert
+          - key: severity
+            from_attribute: severity
+            action: upsert
+          - key: application
+            from_attribute: service.name
+            action: upsert
+          - key: component
+            from_attribute: component
+            action: upsert
+          - key: log_type
+            from_attribute: log_type
+            action: upsert
+
+      resource/hostname:
+        attributes:
+          - key: host.name
+            from_attribute: k8s.node.name
+            action: insert
+
+      k8sattributes:
+        auth_type: "serviceAccount"
+        passthrough: false
+        extract:
+          metadata:
+            - k8s.namespace.name
+            - k8s.pod.name
+            - k8s.pod.uid
+            - k8s.deployment.name
+            - k8s.statefulset.name
+            - k8s.daemonset.name
+            - k8s.job.name
+            - k8s.cronjob.name
+            - k8s.node.name
+            - k8s.pod.start_time
+            - k8s.container.name
+          labels:
+            - tag_name: app
+              key: app
+              from: pod
+            - tag_name: app_kubernetes_io_name
+              key: app.kubernetes.io/name
+              from: pod
+            - tag_name: app_kubernetes_io_component
+              key: app.kubernetes.io/component
+              from: pod
+            - tag_name: app_kubernetes_io_instance
+              key: app.kubernetes.io/instance
+              from: pod
+            - tag_name: app_kubernetes_io_version
+              key: app.kubernetes.io/version
+              from: pod
+          annotations:
+            - tag_name: openstack_service
+              key: openstack.service
+              from: pod
+
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+      jaeger:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:14250
+          thrift_http:
+            endpoint: 0.0.0.0:14268
+          thrift_compact:
+            endpoint: 0.0.0.0:6831
+
+      zipkin:
+        endpoint: 0.0.0.0:9411
+
+    exporters:
+      prometheusremotewrite:
+        endpoint: "http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
+        tls:
+          insecure: true
+
+        timeout: 30s
+
+        resource_to_telemetry_conversion:
+          enabled: true
+
+        target_info:
+          enabled: false
+
+        retry_on_failure:
+          enabled: true
+          initial_interval: 5s
+          max_interval: 30s
+          max_elapsed_time: 300s
+
+      otlp/tempo:
+        endpoint: "tempo.monitoring.svc.cluster.local:4317"
+        tls:
+          insecure: true
+
+      otlphttp/loki:
+        endpoint: "http://loki-gateway.monitoring.svc.cluster.local/otlp"
+
+      debug:
+        verbosity: normal
+        sampling_initial: 2
+        sampling_thereafter: 1000
+
+collectors:
+  daemon:
+    suffix: daemon
+    mode: daemonset
+    enabled: true
+
+    scrape_configs_file: "daemon_scrape_configs.yaml"
+
+    # It's ignoring presets in the default.. override them in the collector
+    presets:
+      logsCollection:
+        enabled: true
+      hostMetrics:
+        enabled: false
+      kubernetesAttributes:
+        enabled: false
+      kubeletMetrics:
+        enabled: false
+      kubernetesEvents:
+        enabled: false
+      clusterMetrics:
+        enabled: false
+
+    serviceMonitor:
+      enabled: true
+
+    resources:
+      limits:
+        cpu: 4096m
+        memory: 4096Mi
+      requests:
+        cpu: 2048m
+        memory: 2048Mi
+
+    ports:
+      - name: otlp-grpc
+        protocol: TCP
+        port: 4317
+        targetPort: 4317
+      - name: otlp-http
+        protocol: TCP
+        port: 4318
+        targetPort: 4318
+
+    config:
+      receivers:
+        hostmetrics:
+          collection_interval: 30s
+          scrapers:
+            cpu: {}
+            load: {}
+            memory: {}
+            disk: {}
+            filesystem:
+              exclude_mount_points:
+                mount_points:
+                  - "/dev/*"
+                  - "/proc/*"
+                  - "/sys/*"
+                  - "/run/*"
+                match_type: regexp
+              exclude_fs_types:
+                fs_types:
+                  - "autofs"
+                  - "cgroup"
+                  - "cgroup2"
+                  - "debugfs"
+                  - "devpts"
+                  - "devtmpfs"
+                  - "overlay"
+                  - "proc"
+                  - "sysfs"
+                  - "tmpfs"
+                match_type: strict
+            network: {}
+            paging: {}
+
+        filelog/k8s_containers:
+          max_concurrent_files: 1024
+          fingerprint_size: 1024
+          max_batches: 0
+          encoding: utf-8
+          include:
+            - /var/log/pods/*/*/*.log
+          exclude:
+            - /var/log/pods/*/otel-collector/*.log
+            - /var/log/pods/*/otc-container/*.log
+            # Exclude OpenStack logs from K8s container receiver
+            - /var/log/pods/*/nova-*/*.log
+            - /var/log/pods/*/neutron-*/*.log
+            - /var/log/pods/*/cinder-*/*.log
+            - /var/log/pods/*/keystone-*/*.log
+            - /var/log/pods/*/glance-*/*.log
+            - /var/log/pods/*/horizon-*/*.log
+            - /var/log/pods/*/heat-*/*.log
+            - /var/log/pods/*/octavia-*/*.log
+            - /var/log/pods/*/placement-*/*.log
+            - /var/log/pods/*/manila-*/*.log
+            - /var/log/pods/*/ironic-*/*.log
+            - /var/log/pods/*/barbican-*/*.log
+            - /var/log/pods/*/ceilometer-*/*.log
+            - /var/log/pods/*/gnocchi-*/*.log
+            - /var/log/pods/*/skyline-*/*.log
+            - /var/log/pods/*/trove-*/*.log
+          start_at: end
+          include_file_path: true
+          operators:
+            - id: container-parser
+              type: container
+            - type: regex_parser
+              id: extract-k8s-metadata
+              regex: '^.*\/(?P<namespace>[^_]+)_(?P<pod>[^_]+)_(?P<uid>[^\/]+)\/(?P<container>[^\/]+)\/(?P<restart_count>\d+)\.log$'
+              parse_from: attributes["log.file.path"]
+              if: 'attributes["log.file.path"] != nil'
+            - type: add
+              field: resource["k8s.namespace.name"]
+              value: EXPR(attributes.namespace)
+              if: 'attributes.namespace != nil'
+            - type: add
+              field: resource["k8s.pod.name"]
+              value: EXPR(attributes.pod)
+              if: 'attributes.pod != nil'
+            - type: add
+              field: resource["k8s.pod.uid"]
+              value: EXPR(attributes.uid)
+              if: 'attributes.uid != nil'
+            - type: add
+              field: resource["k8s.container.name"]
+              value: EXPR(attributes.container)
+              if: 'attributes.container != nil'
+            - type: add
+              field: resource["k8s.container.restart_count"]
+              value: EXPR(attributes.restart_count)
+              if: 'attributes.restart_count != nil'
+
+        filelog/openstack:
+          max_concurrent_files: 1024
+          fingerprint_size: 1024
+          encoding: utf-8
+          include:
+            # Direct log files from nodes
+            - /var/log/nova/*.log
+            - /var/log/neutron/*.log
+            - /var/log/cinder/*.log
+            - /var/log/keystone/*.log
+            - /var/log/glance/*.log
+            - /var/log/horizon/*.log
+            - /var/log/apache2/horizon*.log
+            - /var/log/heat/*.log
+            - /var/log/swift/*.log
+            - /var/log/octavia/*.log
+            - /var/log/placement/*.log
+            - /var/log/manila/*.log
+            - /var/log/ironic/*.log
+            - /var/log/barbican/*.log
+            - /var/log/ceilometer/*.log
+            - /var/log/gnocchi/*.log
+            - /var/log/skyline/*.log
+            - /var/log/trove/*.log
+            # Pod logs from Kubernetes
+            - /var/log/pods/*/nova-*/*.log
+            - /var/log/pods/*/neutron-*/*.log
+            - /var/log/pods/*/cinder-*/*.log
+            - /var/log/pods/*/keystone-*/*.log
+            - /var/log/pods/*/glance-*/*.log
+            - /var/log/pods/*/horizon-*/*.log
+            - /var/log/pods/*/heat-*/*.log
+            - /var/log/pods/*/swift-*/*.log
+            - /var/log/pods/*/octavia-*/*.log
+            - /var/log/pods/*/placement-*/*.log
+            - /var/log/pods/*/manila-*/*.log
+            - /var/log/pods/*/ironic-*/*.log
+            - /var/log/pods/*/barbican-*/*.log
+            - /var/log/pods/*/ceilometer-*/*.log
+            - /var/log/pods/*/gnocchi-*/*.log
+            - /var/log/pods/*/skyline-*/*.log
+            - /var/log/pods/*/trove-*/*.log
+          exclude:
+            - /var/log/*/*.gz
+          start_at: end
+          include_file_path: true
+          # Multiline pattern must match AFTER CRI unwrapping
+          # CRI format: 2026-02-19T22:35:59.398699658Z stdout F <actual log line>
+          # We need to look for the OpenStack timestamp AFTER "F "
+          multiline:
+            # Match OpenStack timestamp OR Apache/Horizon logs OR CRI wrapper with OpenStack inside
+            line_start_pattern: '^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z stdout [FP] )?\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}|^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z stdout [FP] )?[\d\.]+ -'
+          operators:
+            # ── Recombine multiline logs BEFORE CRI unwrapping ──────────────────
+            - type: recombine
+              id: recombine-multiline
+              combine_field: body
+              is_first_entry: 'body matches "^(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z stdout [FP] )?\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}|^(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z stdout [FP] )?[\\d\\.]+ -"'
+              combine_with: "\n"
+              source_identifier: attributes["log.file.path"]
+              max_log_size: 1048576
+
+            # ── Extract service name from file path ─────────────────────────────
+            - type: regex_parser
+              id: extract-service-from-path
+              regex: '\/(?P<service>nova|neutron|cinder|keystone|glance|horizon|heat|swift|octavia|placement|manila|ironic|barbican|ceilometer|gnocchi|skyline|trove)'
+              parse_from: attributes["log.file.path"]
+              if: 'attributes["log.file.path"] != nil'
+
+            # ── Parse CRI wrapper (for pod logs) ────────────────────────────────
+            - type: regex_parser
+              id: parser-cri-wrapper
+              regex: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) (?P<log>.*)$'
+              parse_from: body
+              on_error: send
+
+            # Replace body with unwrapped log content
+            - type: move
+              from: attributes.log
+              to: body
+              if: 'attributes.log != nil'
+
+            # ── Parse Horizon Apache logs (special case) ─────────────────────────
+            - type: regex_parser
+              id: parser-horizon-apache
+              regex: '^(?P<remote_addr>[\w\.]+) - (?P<remote_user>[\w\-]+) \[(?P<timestamp>[^\]]+)\] "(?P<method>\w+) (?P<path>[^\s]+) (?P<protocol>[^"]+)" (?P<status>\d+) (?P<bytes>\d+)'
+              timestamp:
+                parse_from: attributes.timestamp
+                layout: '%d/%b/%Y:%H:%M:%S %z'
+              severity:
+                parse_from: attributes.status
+                mapping:
+                  error: 5xx
+                  warn: 4xx
+                  info: 2xx|3xx
+              if: 'body matches "^[\\d\\.]+ - " and attributes.service == "horizon"'
+              on_error: send
+
+            # ── Parse standard OpenStack log format (all other services) ────────
+            # Format: 2024-02-19 12:34:56.789 12345 INFO nova.compute.manager [req-abc123...] message
+            - type: regex_parser
+              id: parser-openstack-standard
+              regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) (?P<pid>\d+) (?P<severity>\w+) (?P<component>[\w\.\-]+) \[(?P<request_context>[^\]]+)\] (?P<message>.*)$'
+              parse_from: body
+              timestamp:
+                parse_from: attributes.timestamp
+                layout: '%Y-%m-%d %H:%M:%S.%L'
+              severity:
+                parse_from: attributes.severity
+              on_error: send
+
+            # ── Fallback: OpenStack log without request context ─────────────────
+            - type: regex_parser
+              id: parser-openstack-no-context
+              regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) (?P<pid>\d+) (?P<severity>\w+) (?P<component>[\w\.\-]+) (?P<message>.*)$'
+              parse_from: body
+              timestamp:
+                parse_from: attributes.timestamp
+                layout: '%Y-%m-%d %H:%M:%S.%L'
+              severity:
+                parse_from: attributes.severity
+              if: 'attributes.message == nil'
+              on_error: send
+
+            # ── Fallback: Horizon Django logs ───────────────────────────────────
+            - type: regex_parser
+              id: parser-horizon-django
+              regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2}[T ]?\d{2}:\d{2}:\d{2}[.,]?\d*)\s*(?P<severity>DEBUG|INFO|WARNING|ERROR|CRITICAL)?\s*(?P<component>[\w\.\-]+)?\s*(?P<message>.*)$'
+              severity:
+                parse_from: attributes.severity
+              if: 'body matches "^\\d{4}-\\d{2}-\\d{2}" and attributes.message == nil and attributes.service == "horizon"'
+              on_error: send
+
+            # ── Final catch-all ──────────────────────────────────────────────────
+            - type: regex_parser
+              id: parser-catchall
+              regex: '^(?P<message>.+)$'
+              parse_from: body
+              if: 'attributes.message == nil'
+
+            # ── Extract OpenStack request_id from request context ───────────────
+            - type: regex_parser
+              id: extract-request-id
+              regex: '(?P<request_id>req-[a-f0-9\-]+)'
+              parse_from: attributes.request_context
+              if: 'attributes.request_context != nil'
+              on_error: send
+
+            # ── Set service.name resource attribute ─────────────────────────────
+            - type: add
+              field: resource["service.name"]
+              value: EXPR(attributes.service)
+              if: 'attributes.service != nil'
+
+            # ── Promote OpenStack-specific attributes ───────────────────────────
+            - type: add
+              field: attributes["openstack.component"]
+              value: EXPR(attributes.component)
+              if: 'attributes.component != nil'
+
+            - type: add
+              field: attributes["openstack.pid"]
+              value: EXPR(attributes.pid)
+              if: 'attributes.pid != nil'
+
+            - type: add
+              field: attributes["openstack.request_id"]
+              value: EXPR(attributes.request_id)
+              if: 'attributes.request_id != nil'
+
+        k8sobjects:
+          auth_type: serviceAccount
+          objects:
+            - name: events
+              mode: watch
+              namespaces:
+                - openstack
+                - kube-system
+                - monitoring
+
+      processors:
+        attributes/add-node-labels:
+          actions:
+            - key: k8s.node.name
+              value: ${env:K8S_NODE_NAME}
+              action: insert
+            - key: host.name
+              value: ${env:K8S_NODE_NAME}
+              action: insert
+            - key: service.instance.id
+              value: ${env:K8S_NODE_NAME}
+              action: insert
+
+        attributes:
+          actions:
+            - key: deployment.environment
+              value: "genestack"
+              action: insert
+            - key: k8s.cluster.name
+              value: "openstack-genestack-k8s-cluster"
+              action: insert
+
+        resource/openstack:
+          attributes:
+            - key: service.namespace
+              value: "openstack"
+              action: upsert
+
+        resource/k8s:
+          attributes:
+            - key: service.namespace
+              value: "kube-system"
+              action: upsert
+
+        resource/k8s-events:
+          attributes:
+            - key: log_type
+              value: "k8s-event"
+              action: upsert
+
+        resource/loki-labels:
+          attributes:
+            - key: namespace
+              from_attribute: k8s.namespace.name
+              action: upsert
+            - key: pod
+              from_attribute: k8s.pod.name
+              action: upsert
+            - key: node
+              from_attribute: k8s.node.name
+              action: upsert
+            - key: container
+              from_attribute: k8s.container.name
+              action: upsert
+            - key: cluster
+              from_attribute: k8s.cluster.name
+              action: upsert
+            - key: deployment
+              from_attribute: k8s.deployment.name
+              action: upsert
+            - key: statefulset
+              from_attribute: k8s.statefulset.name
+              action: upsert
+            - key: daemonset
+              from_attribute: k8s.daemonset.name
+              action: upsert
+            - key: cronjob
+              from_attribute: k8s.cronjob.name
+              action: upsert
+            - key: job
+              from_attribute: k8s.job.name
+              action: upsert
+            - key: app
+              from_attribute: app
+              action: upsert
+            - key: application
+              from_attribute: service.name
+              action: insert # fallback if application doesn't exist...
+            - key: application
+              from_attribute: app.kubernetes.io/name
+              action: upsert
+            - key: component
+              from_attribute: app.kubernetes.io/component
+              action: upsert
+            - key: instance
+              from_attribute: app.kubernetes.io/instance
+              action: upsert
+            - key: part_of
+              from_attribute: app.kubernetes.io/part-of
+              action: upsert
+            - key: version
+              from_attribute: app.kubernetes.io/version
+              action: upsert
+
+        k8sattributes:
+          auth_type: "serviceAccount"
+          passthrough: true
+          extract:
+            metadata:
+              - k8s.namespace.name
+              - k8s.deployment.name
+              - k8s.statefulset.name
+              - k8s.daemonset.name
+              - k8s.cronjob.name
+              - k8s.job.name
+              - k8s.node.name
+              - k8s.pod.name
+              - k8s.pod.uid
+              - k8s.pod.start_time
+            labels:
+              - tag_name: app
+                key: app
+                from: pod
+              - tag_name: app.kubernetes.io/name
+                key: app.kubernetes.io/name
+                from: pod
+              - tag_name: app.kubernetes.io/instance
+                key: app.kubernetes.io/instance
+                from: pod
+              - tag_name: app.kubernetes.io/component
+                key: app.kubernetes.io/component
+                from: pod
+              - tag_name: app.kubernetes.io/part-of
+                key: app.kubernetes.io/part-of
+                from: pod
+              - tag_name: app.kubernetes.io/version
+                key: app.kubernetes.io/version
+                from: pod
+              - tag_name: helm.sh/chart
+                key: helm.sh/chart
+                from: pod
+              - tag_name: job-name
+                key: job-name
+                from: pod
+              - tag_name: controller-uid
+                key: controller-uid
+                from: pod
+          pod_association:
+            - sources:
+                - from: resource_attribute
+                  name: k8s.pod.ip
+            - sources:
+                - from: resource_attribute
+                  name: k8s.pod.uid
+            - sources:
+                - from: connection
+
+      service:
+        # Telemetry configuration for the collector's own logs
+        telemetry:
+          logs:
+            level: info
+            development: false
+            encoding: console
+            disable_caller: false
+            disable_stacktrace: false
+            output_paths:
+              - stderr
+            error_output_paths:
+              - stderr
+            initial_fields:
+              service: otel-collector
+          metrics:
+            level: detailed
+
+        pipelines:
+          metrics:
+            receivers:
+              - hostmetrics
+            processors:
+              - attributes/add-node-labels
+              - resourcedetection/env
+              - k8sattributes
+              - resource/hostname
+              - memory_limiter
+              - batch
+            exporters:
+              - prometheusremotewrite
+              - debug
+
+          logs/k8s:
+            receivers:
+              - filelog/k8s_containers
+            processors:
+              - memory_limiter
+              - k8sattributes
+              - batch
+              - resourcedetection/env
+              - attributes
+              - resource/loki-labels
+            exporters:
+              - debug
+              - otlphttp/loki
+
+          logs/k8s-events:
+            receivers:
+              - k8sobjects
+            processors:
+              - memory_limiter
+              - resource/k8s-events
+              - k8sattributes
+              - batch
+              - resourcedetection/env
+              - attributes
+              - resource/loki-labels
+            exporters:
+              - debug
+              - otlphttp/loki
+
+          logs/openstack:
+            receivers:
+              - filelog/openstack
+            processors:
+              - memory_limiter
+              - k8sattributes
+              - batch
+              - attributes
+              - resource/openstack
+              - resource/loki-labels
+            exporters:
+              - debug
+              - otlphttp/loki
+
+  deployment:
+    suffix: deployment
+    mode: deployment
+    enabled: true
+    replicas: 1
+
+    # It's ignoring presets in the default.. override them in the collector
+    presets:
+      logsCollection:
+        enabled: true
+      hostMetrics:
+        enabled: false
+      kubernetesAttributes:
+        enabled: false
+      kubeletMetrics:
+        enabled: false
+      kubernetesEvents:
+        enabled: false
+      clusterMetrics:
+        enabled: false
+
+    service:
+      enabled: false
+
+    hostNetwork: false
+
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+
+    nodeSelector:
+      openstack-control-plane: enabled
+
+    tolerations:
+      - key: openstack-control-plane
+        operator: Exists
+        effect: NoSchedule
+
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/instance: monitoring.opentelemetry-kube-stack-deployment
+                app.kubernetes.io/name: opentelemetry-kube-stack-deployment-collector
+            topologyKey: kubernetes.io/hostname
+
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+      requests:
+        cpu: 500m
+        memory: 512Mi
+
+    env:
+      - name: MYSQL_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: mariadb-monitoring
+            key: password
+
+      - name: POSTGRESQL_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: postgres.postgres-cluster.credentials.postgresql.acid.zalan.do
+            key: password
+
+      - name: RABBITMQ_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: rabbitmq-default-user
+            key: password
+
+      - name: RABBITMQ_USERNAME
+        valueFrom:
+          secretKeyRef:
+            name: rabbitmq-default-user
+            key: username
+
+    config:
+      receivers:
+        mysql:
+          endpoint: mariadb-cluster-internal.openstack.svc.cluster.local:3306
+          username: monitoring
+          password: ${env:MYSQL_PASSWORD}
+          collection_interval: 30s
+          metrics:
+            mysql.connection.count:
+              enabled: true
+            mysql.connection.errors:
+              enabled: true
+            mysql.commands:
+              enabled: true
+            mysql.buffer_pool.usage:
+              enabled: true
+            mysql.threads:
+              enabled: true
+            mysql.locks:
+              enabled: true
+
+        postgresql:
+          endpoint: postgres-cluster.openstack.svc.cluster.local:5432
+          username: postgres
+          password: ${env:POSTGRESQL_PASSWORD}
+          collection_interval: 30s
+          metrics:
+            postgresql.backends:
+              enabled: true
+            postgresql.commits:
+              enabled: true
+            postgresql.rollbacks:
+              enabled: true
+            postgresql.db_size:
+              enabled: true
+            postgresql.deadlocks:
+              enabled: true
+            postgresql.blocks_read:
+              enabled: true
+
+        rabbitmq:
+          endpoint: http://rabbitmq.openstack.svc.cluster.local:15672
+          username: ${env:RABBITMQ_USERNAME}
+          password: ${env:RABBITMQ_PASSWORD}
+          collection_interval: 30s
+          metrics:
+            rabbitmq.node.disk_free:
+              enabled: true
+            rabbitmq.node.disk_free_limit:
+              enabled: true
+            rabbitmq.node.disk_free_alarm:
+              enabled: true
+            rabbitmq.node.mem_used:
+              enabled: true
+            rabbitmq.node.mem_limit:
+              enabled: true
+            rabbitmq.node.mem_alarm:
+              enabled: true
+            rabbitmq.node.fd_used:
+              enabled: true
+            rabbitmq.node.fd_total:
+              enabled: true
+            rabbitmq.node.sockets_used:
+              enabled: true
+            rabbitmq.node.sockets_total:
+              enabled: true
+            rabbitmq.node.proc_used:
+              enabled: true
+            rabbitmq.node.proc_total:
+              enabled: true
+            rabbitmq.node.disk_free_details.rate:
+              enabled: true
+            rabbitmq.node.fd_used_details.rate:
+              enabled: true
+            rabbitmq.node.mem_used_details.rate:
+              enabled: true
+            rabbitmq.node.proc_used_details.rate:
+              enabled: true
+            rabbitmq.node.sockets_used_details.rate:
+              enabled: true
+
+        memcached:
+          endpoint: memcached.openstack.svc.cluster.local:11211
+          collection_interval: 30s
+          transport: tcp
+          metrics:
+            memcached.operation_hit_ratio:
+              enabled: true
+            memcached.current_items:
+              enabled: true
+            memcached.evictions:
+              enabled: true
+            memcached.bytes:
+              enabled: true
+
+        httpcheck:
+          targets:
+            - endpoint: https://nova.api.example.com
+              method: GET
+            - endpoint: https://neutron.api.example.com
+              method: GET
+            - endpoint: https://keystone.api.example.com
+              method: GET
+            - endpoint: https://octavia.api.example.com
+              method: GET
+            - endpoint: https://glance.api.example.com
+              method: GET
+            - endpoint: https://heat.api.example.com
+              method: GET
+            - endpoint: https://cinder.api.example.com
+              method: GET
+            - endpoint: https://cloudformation.api.example.com
+              method: GET
+            - endpoint: https://placement.api.example.com
+              method: GET
+            - endpoint: https://barbican.api.example.com
+              method: GET
+            - endpoint: https://magnum.api.example.com
+              method: GET
+            - endpoint: https://masakari.api.example.com
+              method: GET
+            - endpoint: https://novnc.api.example.com/vnc_auto.html
+              method: GET
+          collection_interval: 30s
+
+      processors:
+        # Add service identification
+        resource/service-metrics:
+          attributes:
+            - key: service.namespace
+              value: "openstack"
+              action: upsert
+            - key: job
+              value: "opentelemetry-deployment"
+              action: upsert
+            - key: instance
+              value: "deployment-collector"
+              action: upsert
+
+      service:
+        telemetry:
+          logs:
+            level: info
+          metrics:
+            level: normal
+
+        pipelines:
+          traces:
+            receivers:
+              - otlp
+              - jaeger
+              - zipkin
+            processors:
+              - resourcedetection/env
+              - k8sattributes
+              - resource/hostname
+              - memory_limiter
+              - batch
+            exporters:
+              - otlp/tempo
+              - debug
+          metrics:
+            receivers:
+              - otlp
+              - mysql
+              - postgresql
+              - rabbitmq
+              - memcached
+#              - httpcheck # uncomment to add endpoint checking metrics with above endpoint config...
+            processors:
+              - resource/service-metrics
+              - resourcedetection/env
+              - memory_limiter
+              - batch
+            exporters:
+              - prometheusremotewrite
+              - debug
+
+clusterRole:
+  enabled: true
+
+kubernetesServiceMonitors:
+  enabled: true
+  ignoreNamespaceSelectors: false
+
+kubeApiServer:
+  enabled: true
+  tlsConfig:
+    serverName: kubernetes
+    insecureSkipVerify: false
+  serviceMonitor:
+    jobLabel: component
+    selector:
+      matchLabels:
+        component: apiserver
+        provider: kubernetes
+    metricRelabelings:
+      - action: drop
+        regex: apiserver_request_duration_seconds_bucket;(0.15|0.2|0.3|0.35|0.4|0.45|0.6|0.7|0.8|0.9|1.25|1.5|1.75|2|3|3.5|4|4.5|6|7|8|9|15|25|40|50)
+        sourceLabels:
+          - __name__
+          - le
+
+kubelet:
+  enabled: false
+  namespace: kube-system
+  serviceMonitor:
+    honorLabels: true
+    honorTimestamps: true
+    https: true
+    cAdvisor: true
+    probes: true
+
+kubeControllerManager:
+  enabled: true
+  service:
+    enabled: true
+    port: null
+    targetPort: null
+  serviceMonitor:
+    enabled: true
+    port: http-metrics
+    jobLabel: jobLabel
+
+coreDns:
+  enabled: true
+  service:
+    enabled: true
+    port: 9153
+    targetPort: 9153
+  serviceMonitor:
+    enabled: true
+    port: http-metrics
+    jobLabel: jobLabel
+
+kubeDns:
+  enabled: false
+
+kubeEtcd:
+  enabled: true
+  service:
+    enabled: true
+    port: 2381
+    targetPort: 2381
+  serviceMonitor:
+    enabled: true
+    scheme: http
+    insecureSkipVerify: false
+    port: http-metrics
+    jobLabel: jobLabel
+    additionalLabels: {}
+
+kubeScheduler:
+  enabled: true
+  service:
+    enabled: true
+  serviceMonitor:
+    enabled: true
+    https: null
+    port: http-metrics
+    jobLabel: jobLabel
+
+kubeProxy:
+  enabled: true
+  service:
+    enabled: true
+    port: 10249
+    targetPort: 10249
+  serviceMonitor:
+    enabled: true
+    port: http-metrics
+    jobLabel: jobLabel
+    selector: {}
+    https: false
+
+kubeStateMetrics:
+  enabled: true
+
+kube-state-metrics:
+  namespaceOverride: ""
+  rbac:
+    create: true
+  releaseLabel: true
+  nodeSelector:
+    openstack-control-plane: enabled
+  prometheus:
+    monitor:
+      enabled: true
+      honorLabels: true
+  selfMonitor:
+    enabled: false
+
+nodeExporter:
+  enabled: true
+
+prometheus-node-exporter:
+  namespaceOverride: ""
+  podLabels:
+    jobLabel: node-exporter
+  releaseLabel: true
+  extraHostVolumeMounts:
+    - name: text-file-collector
+      hostPath: /opt/node_exporter/textfile_collector
+      mountPath: /var/lib/node_exporter/textfile_collector
+      readOnly: true
+      mountPropagation: HostToContainer
+  extraArgs:
+    - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
+    - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$
+    - --collector.textfile.directory=/var/lib/node_exporter/textfile_collector
+  service:
+    labels:
+      jobLabel: node-exporter
+    portName: http-metrics
+  prometheus:
+    monitor:
+      enabled: true
+      jobLabel: jobLabel
+  rbac:
+    pspEnabled: false

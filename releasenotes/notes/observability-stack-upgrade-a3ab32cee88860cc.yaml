@@ -1,0 +1,45 @@
+---
+prelude: >
+  Genestack now utilizes Opentelemetry as a metrics, logging and tracing
+  ecosystem. These changes touches the entirety of the monitoring and
+  observability stack. The goal was to consolidate the related monitoring and
+  observability tooling in to a more manageable and clean directory and
+  namespacing structure.
+
+  This means that services/applications like Loki, Grafana,
+  Prometheus(and its related tooling) have all been placed within the
+  monitoring directory structure as well as migrated from various namespaces to
+  a single 'monitoring' namespace. That means that these changes won't directly
+  work against current deployments.
+
+  In order to properly structure things, a destructive tear down of the
+  components is required. Loki, Prometheus(and any exporters),
+  Grafana(and its database) needs to be completely uninstalled, including the
+  PVC's. Metrics, and local logging will be lost during the migration process.
+  Once all the components are removed a fresh install will bring everything
+  back up functioning under the 'monitoring' namespace.
+  Follow the related docs for more information.
+features:
+  - |
+    - Utilizes Opentelemetry as the primary service for metrics, logging and
+    traces collection and exportation.
+    - Removes Fluentbit which is relplaced with an Opentelemetry receiver.
+    - Adds Tempo, a tracing backend that can be used within Grafana.
+    - Updates Loki with better tunings and log handling configurations.
+    - Removes and replaces several standalone Prometheus exporters with
+    Opentelemetry receivers. MariaDB, Rabbit, Memcached, Postgres and
+    Blackbox exporters have been removed and replaced.
+    - Migrates observability code to a monitoring directory and namespace.
+critical:
+  - |
+    The upgrage to Opentelemetry and the refactored Observability stack
+    will cause data loss for metrics and logging. Be prepared to store data
+    in a external storage system or make a backup of the PVC if needed.
+
+    In order to properly structure things, a destructive tear down of the
+    components is required. Loki, Prometheus(and any exporters),
+    Grafana(and its database) needs to be completely uninstalled, including the
+    PVC's. Metrics, and local logging will be lost during the migration process.
+    Once all the components are removed a fresh install will bring everything
+    back up functioning under the 'monitoring' namespace.
+    Follow the related docs for more information.

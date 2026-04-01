@@ -235,19 +235,13 @@ nav:
                       - Deployment: openstack-trove.md
                       - MySQL Images: openstack-trove-mysql-images.md
           - Monitoring:
-              - Monitoring Overview: prometheus-monitoring-overview.md
+              - Monitoring Overview: monitoring-info.md
               - Getting Started: monitoring-getting-started.md
               - Grafana: grafana.md
+              - Openstack Metrics Exporter: prometheus-openstack-metrics-exporter.md
+              - Custom Node Metrics: prometheus-custom-node-metrics.md
               - Kube-OVN Monitoring: prometheus-kube-ovn.md
-              - Kube-event Monitoring: prometheus-kube-event-exporter.md
-              - RabbitMQ Exporter: prometheus-rabbitmq-exporter.md
-              - Memcached Exporter: prometheus-memcached-exporter.md
-              - MariaDB Exporter: prometheus-mysql-exporter.md
-              - Postgres Exporter: prometheus-postgres-exporter.md
-              - Openstack Exporter: prometheus-openstack-metrics-exporter.md
-              - Blackbox Exporter: prometheus-blackbox-exporter.md
               - Pushgateway: prometheus-pushgateway.md
-              - SNMP Exporter: prometheus-snmp-exporter.md
               - Barbican Exporter: openstack-barbican-exporter.md
               - Designate Exporter: openstack-designate-exporter.md
               - Custom Node Metrics: prometheus-custom-node-metrics.md
@@ -289,7 +283,6 @@ nav:
               - Creating Security Policies: infrastructure-envoy-gateway-api-security.md
       - Observability:
           - Observability Overview: observability-info.md
-          - Monitoring Overview: monitoring-info.md
           - Alerting Overview: alerting-info.md
           - Logging Overview: genestack-logging.md
       - Upgrades: 2024.1-to-2025.1.md

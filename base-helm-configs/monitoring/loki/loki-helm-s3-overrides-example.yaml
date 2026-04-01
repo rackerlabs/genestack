@@ -1,0 +1,149 @@
+---
+global:
+  dnsService: coredns
+minio:
+  enabled: false
+loki:
+  persistence:
+    enabled: true
+    size: 100Gi
+  auth_enabled: false
+  configStorageType: Secret
+  ingester:
+    autoforget_unhealthy: true
+  storage:
+    bucketNames:
+      chunks: loki-chunks-bucket-name
+      ruler: loki-ruler-bucket-name
+      admin: loki-admin-bucket-name
+    type: s3
+    s3:
+      endpoint: YOUR_S3_ENDPOINT_URL
+      region: YOUR_S3_REGION
+      access_key_id: YOUR_S3_ACCESS_KEY_ID
+      secret_access_key: YOUR_S3_SECRET_ACCESS_KEY
+      s3forcepathstyle: true
+      insecure: false
+  schemaConfig:
+    configs:
+      - from: 2020-01-01
+        store: tsdb
+        object_store: s3
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+
+  distributor:
+    otlp_config:
+      default_resource_attributes_as_index_labels:
+        # OTel semantic conventions — built-in defaults kept explicitly
+        - service.name
+        - service.namespace
+        - service.version
+        - service.instance.id
+        - deployment.environment
+        - cloud.region
+        - cloud.availability_zone
+        # Kubernetes — built-in defaults kept explicitly
+        - k8s.cluster.name
+        - k8s.namespace.name
+        - k8s.pod.name
+        - k8s.node.name
+        - k8s.container.name
+        - k8s.deployment.name
+        - k8s.statefulset.name
+        - k8s.daemonset.name
+        - k8s.job.name
+        - k8s.cronjob.name
+
+  limits_config:
+    ingestion_rate_mb: 10
+    ingestion_burst_size_mb: 40
+    per_stream_rate_limit: 10MB
+    per_stream_rate_limit_burst: 40MB
+    # ── OTLP attribute → label promotion ──────────────────────────────────────
+    # Adds the short Prometheus/Loki-style aliases set by the resource/loki-labels
+    # OTel processor as indexed stream labels, on top of the distributor defaults.
+    # These are dot-free and query cleanly without underscore conversion.
+    otlp_config:
+      resource_attributes:
+        # ignore_defaults: false means the distributor list above is still applied.
+        # Our attributes_config entries are appended to it.
+        ignore_defaults: false
+        attributes_config:
+          - action: index_label
+            attributes:
+              # Short Kubernetes aliases (set by resource/loki-labels processor)
+              - log_type        # allows for querying for k8s events
+              - namespace       # mirrors k8s.namespace.name  → query: {namespace="..."}
+              - pod             # mirrors k8s.pod.name        → query: {pod="..."}
+              - node            # mirrors k8s.node.name       → query: {node="..."}
+              - container       # mirrors k8s.container.name  → query: {container="..."}
+              - cluster         # mirrors k8s.cluster.name    → query: {cluster="..."}
+              - deployment      # mirrors k8s.deployment.name → query: {deployment="..."}
+              - statefulset
+              - daemonset
+              - job
+              - cronjob
+              # App identity (sourced from pod labels via k8sattributes)
+              - app             # from pod label "app"
+              - application     # from pod label "app.kubernetes.io/name"
+              - component       # from pod label "app.kubernetes.io/component"
+              - instance        # from pod label "app.kubernetes.io/instance"
+              - part_of         # from pod label "app.kubernetes.io/part-of"
+              - version         # from pod label "app.kubernetes.io/version"
+
+    # ── Label cardinality limit ────────────────────────────────────────────────
+    # Loki 3.0+ defaults to 15 labels per stream. With the distributor defaults
+    # (17 attrs) plus the aliases above you will exceed this. Raise the limit:
+    max_label_names_per_series: 40
+
+  write:
+    replicas: 5
+    podDisruptionBudget:
+      enabled: true
+      maxUnavailable: 40%
+    nodeSelector:
+      openstack-control-plane: enabled
+    serviceMonitor:
+      enabled: true
+
+  read:
+    podDisruptionBudget:
+      enabled: true
+      maxUnavailable: 40%
+    nodeSelector:
+      openstack-control-plane: enabled
+    serviceMonitor:
+      enabled: true
+
+  canary:
+    enabled: true
+    podDisruptionBudget:
+      enabled: true
+      maxUnavailable: 50%
+    serviceMonitor:
+      enabled: true
+
+  backend:
+    serviceMonitor:
+      enabled: true
+
+gateway:
+  service:
+    type: NodePort
+    nodePort: 31776
+  podDisruptionBudget:
+    enabled: true
+    maxUnavailable: 1
+  nodeSelector:
+    openstack-control-plane: enabled
+  serviceMonitor:
+    enabled: true
+
+lokiCanary:
+  kind: Deployment
+  replicas: 1
+  nodeSelector:
+    openstack-control-plane: enabled

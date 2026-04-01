@@ -6,12 +6,12 @@
 # shellcheck disable=SC2124,SC2145,SC2294
 
 # Service
-SERVICE_NAME_DEFAULT="kube-prometheus-stack"
+SERVICE_NAME_DEFAULT="opentelemetry-kube-stack"
 SERVICE_NAMESPACE="monitoring"
 
 # Helm
-HELM_REPO_NAME_DEFAULT="prometheus-community"
-HELM_REPO_URL_DEFAULT="https://prometheus-community.github.io/helm-charts"
+HELM_REPO_NAME_DEFAULT="open-telemetry"
+HELM_REPO_URL_DEFAULT="https://open-telemetry.github.io/opentelemetry-helm-charts"
 
 # Base directories provided by the environment
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
@@ -20,9 +20,6 @@ GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 # Define service-specific override directories based on the framework
 SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/monitoring/${SERVICE_NAME_DEFAULT}"
 SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME_DEFAULT}"
-
-# Prometheus Rules directory (specific to this service's needs)
-GENESTACK_PROMETHEUS_RULES_DIR="${SERVICE_BASE_OVERRIDES}/rules"
 
 # Read the desired chart version from VERSION_FILE
 VERSION_FILE="${GENESTACK_OVERRIDES_DIR}/helm-chart-versions.yaml"
@@ -57,14 +54,13 @@ done
 : "${HELM_REPO_NAME:=$HELM_REPO_NAME_DEFAULT}"
 : "${SERVICE_NAME:=$SERVICE_NAME_DEFAULT}"
 
-
 # Determine Helm chart path
 if [[ "$HELM_REPO_URL" == oci://* ]]; then
     # OCI registry path
     HELM_CHART_PATH="$HELM_REPO_URL/$HELM_REPO_NAME/$SERVICE_NAME"
 else
     # --- Helm Repository and Execution ---
-    helm repo add "$HELM_REPO_NAME" "$HELM_REPO_URL"
+    helm repo add "$HELM_REPO_NAME" "$HELM_REPO_URL"   # uncomment if needed
     helm repo update
     HELM_CHART_PATH="$HELM_REPO_NAME/$SERVICE_NAME"
 fi
@@ -89,21 +85,6 @@ if [[ -d "$SERVICE_BASE_OVERRIDES" ]]; then
             overrides_args+=("-f" "$file")
         fi
     done
-
-    # Include YAML files from the rules subdirectory (if it exists)
-    if [[ -d "$GENESTACK_PROMETHEUS_RULES_DIR" ]]; then
-        echo "Including rules files from: $GENESTACK_PROMETHEUS_RULES_DIR"
-        for file in "$GENESTACK_PROMETHEUS_RULES_DIR"/*.yaml; do
-            if [[ -e "$file" ]]; then
-                echo " - $file (Base Rules)"
-                overrides_args+=("-f" "$file")
-            fi
-        done
-    else
-        echo "Info: Rules directory not found: $GENESTACK_PROMETHEUS_RULES_DIR"
-    fi
-else
-    echo "Warning: Base override directory not found: $SERVICE_BASE_OVERRIDES"
 fi
 
 # Include all YAML files from the custom SERVICE configuration directory

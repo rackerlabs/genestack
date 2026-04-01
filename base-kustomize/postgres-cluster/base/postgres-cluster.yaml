@@ -7,7 +7,7 @@ spec:
   teamId: "acid"
   numberOfInstances: 3
   postgresql:
-    version: "17"
+    version: "16"
     parameters:
       shared_buffers: "2GB"
       max_connections: "1024"
