@@ -1,0 +1,12 @@
+---
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: MEMCACHED_THREADS
+    value: "8"
+
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: MEMCACHED_ITEM_SIZE_MAX
+    value: "4194304"

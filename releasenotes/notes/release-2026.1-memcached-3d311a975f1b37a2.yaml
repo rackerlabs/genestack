@@ -1,0 +1,37 @@
+---
+prelude: >
+    Genestack will use openstack helm chart (https://github.com/openstack/openstack-helm/tree/master/memcached)
+    instead of bitnami helm chart (https://github.com/bitnami/charts/tree/main/bitnami/memcached) for memcached
+    from this release onwards. Currently genestack uses memcached version 1.6.39 in bitnami helm chart. However
+    openstack-helm chart provides 1.6.32 version for memcached. So it will be a minor version downgrade from
+    1.6.39 to 1.6.32. However it will not impact anything on Openstack as openstack doesn't define any specific
+    version of memcached to use in its documentation. Verified release notes in both 1.6.32
+    (https://github.com/memcached/memcached/wiki/ReleaseNotes1632) and 1.6.39
+    (https://github.com/memcached/memcached/wiki/ReleaseNotes1639) version, there are changes related to proxy
+    and tls which is not used by the memcached used by openstack.
+
+features:
+  - |
+    The env vars MEMCACHED_THREADS and MEMCACHED_MAX_ITEM_SIZE were used in
+    bitnami chart and openstack-helm chart don't provide that. So, kustomize
+    post renderer will be used to add those extra variables and include them
+    during installation.
+
+upgrade:
+  - |
+    Service name of memcached is same "memcached.openstack.svc.cluster.local"
+    as previuos bitnami chart in openstack-helm memcached chart as it is used
+    by all openstack services. Hence, need to remove existing memcached
+    installed by bitnami in genestack before installing new memcached.
+    Then install memcached of openstack-helm using the usual installation
+    script.
+
+deprecations:
+  - |
+    Bitnami chart had persistence enabled for memcached. However openstack-helm
+    chart for memcached don't have persistence enabled.
+
+other:
+  - |
+    Genestack no longer relies on bitami for memcached and will use
+    openstack-helm memcached instead.

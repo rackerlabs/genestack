@@ -29,7 +29,7 @@ charts:
   mariadb-operator: 0.38.1
   masakari: 2025.2.0+eaefa0173
   manila: 2025.1.3+e6801dcd0
-  memcached: 8.1.1
+  memcached: 2025.2.2+c31cd6c96
   metallb: v0.15.2
   neutron: 2024.2.529+13651f45-628a320c
   nova: 2025.1.19+ed289c1cd
