@@ -32,7 +32,7 @@ charts:
   memcached: 8.1.1
   metallb: v0.15.2
   neutron: 2024.2.529+13651f45-628a320c
-  nova: 2024.2.555+13651f45-628a320c
+  nova: 2025.1.19+ed289c1cd
   octavia: 2025.1.15+b1e463122
   opentelemetry-kube-stack: 0.13.1
   placement: 2025.1.2+0cd784591
