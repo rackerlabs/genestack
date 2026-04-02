@@ -1,0 +1,24 @@
+---
+# tasks file for capi_cluster
+
+- import_tasks: capi_mgmt_assert_tasks.yml
+
+- import_tasks: capi_mgmt_network_tasks.yml
+
+- import_tasks: capi_mgmt_secgroup_port_tasks.yml
+
+- import_tasks: capi_mgmt_img_flavor_tasks.yml
+
+- import_tasks: capi_mgmt_keypair_tasks.yml
+
+- include_tasks: capi_mgmt_volume_tasks.yml
+  when: (capi_boot_from_volume | bool)
+
+- import_tasks: capi_mgmt_lb_tasks.yml
+
+- import_tasks: capi_mgmt_server_group_tasks.yml
+
+- include_tasks: capi_mgmt_bfv_instance_tasks.yml
+  when: (capi_boot_from_volume | bool)
+
+- import_tasks: capi_mgmt_cluster_bootstrap_tasks.yml

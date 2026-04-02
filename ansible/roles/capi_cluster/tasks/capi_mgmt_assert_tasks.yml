@@ -1,0 +1,64 @@
+---
+- name: check if boot from volume is enabled
+  ansible.builtin.assert:
+    that:
+      - capi_boot_from_volume is defined
+      - capi_boot_from_volume | bool
+    fail_msg: "Currently only boot from volume is supported for capi mgmt cluster vms"
+
+- name: check if the external network id is provided
+  ansible.builtin.assert:
+    that:
+      - ext_net_id is defined
+      - ext_net_id | length > 0
+    fail_msg: "The required variable 'ext_net_id' must be defined and non-empty"
+
+- name: obtain the details regarding the external network
+  openstack.cloud.networks_info:
+    interface: "{{ os_endpoint_type | default('public') }}"
+    filters:
+      id: "{{ ext_net_id }}"
+  register: ext_net_info
+
+- name: check if the provided external network exists
+  ansible.builtin.assert:
+    that:
+      - ext_net_info.networks | length > 0
+    fail_msg: "Network with UUID {{ ext_net_id }} does not exist"
+
+- name: check if the provided external network is either flat or vlan type of network
+  ansible.builtin.assert:
+    that:
+      - ext_net_info.networks[0].provider_network_type in ['vlan', 'flat']
+    fail_msg: "external network id {{ ext_net_id }} must be either a flat or vlan network"
+
+- name: check if the provided external network has a subnet defined
+  ansible.builtin.assert:
+    that:
+      - ext_net_info.networks[0].subnet_ids | length > 0
+    fail_msg: "external network id {{ ext_net_id }} has no subnets defined"
+
+- name: check if the provided external network can be used as gateway for routers
+  ansible.builtin.assert:
+    that:
+      - ext_net_info.networks[0].is_router_external == True
+    fail_msg: "external network id {{ ext_net_id }} can't be used as a router gateway"
+
+- name: check if the dns server has been provided
+  ansible.builtin.assert:
+    that:
+      - capi_mgmt_dns_servers is defined
+    fail_msg: "The required variable 'capi_mgmt_dns_servers' must be defined"
+
+- name: obtain the details of the volume type
+  openstack.cloud.volume_type_info:
+    interface: "{{ os_endpoint_type | default('public') }}"
+    name: "{{ capi_mgmt_cluster_volume_type }}"
+  register: volume_type_info
+
+- name: check if the volume type exists
+  ansible.builtin.assert:
+    that:
+      - volume_type_info.volume_type.name == capi_mgmt_cluster_volume_type
+    fail_msg: "provided volume type {{ capi_mgmt_cluster_volume_type }} does not exist"
+  when: capi_boot_from_volume

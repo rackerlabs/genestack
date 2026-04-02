@@ -1,0 +1,11 @@
+---
+- name: Create the volumes for the capi mgmt cluster
+  openstack.cloud.volume:
+    interface: "{{ os_interface_name | default('public') }}"
+    state: present
+    name: "{{ item.name }}"
+    size: "{{ item.size }}"
+    volume_type: "{{ item.volume_type }}"
+    is_bootable: true
+    image: "{{ _capi_image_id }}"
+  loop: "{{ capi_mgmt_cluster_volumes }}"

@@ -1,0 +1,10 @@
+---
+kube_version: 1.35.1
+apiserver_loadbalancer_domain_name: {{ capi_mgmt_cluster_lb_vip_fqdn }}
+loadbalancer_apiserver:
+    address: {{ _capi_lb.load_balancer.vip_address }}
+    port: 6443
+loadbalancer_apiserver_localhost: false
+loadbalancer_apiserver_port: 6443
+supplementary_addresses_in_ssl_keys:
+  - {{ _capi_lb.load_balancer.vip_address }}

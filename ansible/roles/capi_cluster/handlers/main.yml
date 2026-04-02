@@ -1,0 +1,7 @@
+---
+# handlers file for capi_cluster
+- name: Delete capi mgmt cluster lb pool
+  openstack.cloud.lb_pool:
+    interface: "{{ os_endpoint_type | default('public') }}"
+    name: "{{ capi_mgmt_cluster_lb_pool_name }}"
+    state: absent

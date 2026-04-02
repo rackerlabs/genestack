@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# declare the required variables
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+BACKUP_DIR="/var/backups" # backup directory created and mounted on backup cinder volume
+BACKUP_FILE="$BACKUP_DIR/capi-etcd-$TIMESTAMP.db"
+LOG_FILE="/var/log/etcd-backup.log"
+RETENTION_DAYS={{ capi_etcd_backup_retention_days | default('7') }}
+
+# check if the backup dir is mounted; if not exit from the script
+if ! mountpoint -q "$BACKUP_DIR"; then
+  echo "$TIMESTAMP ERROR: $BACKUP_DIR is not mounted. Aborting backup" >> "$LOG_FILE"
+  exit 1
+fi
+
+echo "$TIMESTAMP INFO: Initiating backup" >> "$LOG_FILE"
+
+ETCDCTL_API=3 /usr/local/bin/etcdctl \
+  --endpoints=https://127.0.0.1:2379 \
+  --cacert=/etc/ssl/etcd/ssl/ca.pem \
+  --cert=/etc/ssl/etcd/ssl/admin-{{ capi_mgmt_cluster_instances[0].name }}.pem \
+  --key=/etc/ssl/etcd/ssl/admin-{{ capi_mgmt_cluster_instances[0].name }}-key.pem \
+  snapshot save "$BACKUP_FILE"
+
+if [ $? -eq 0 ]; then
+  echo "$TIMESTAMP INFO: etcd backup created $BACKUP_DIR/$BACKUP_FILE" >> "$LOG_FILE"
+else
+  echo "$TIMESTAMP ERROR: etcd backup failed" >> "$LOG_FILE"
+  exit 1
+fi
+
+find "$BACKUP_DIR" -type f -name "capi-etcd-*.db" -mtime +$RETENTION_DAYS -exec rm -f {} \;
+echo "$TIMESTAMP INFO: Deleted backups older than $RETENTION_DAYS days" >> "$LOG_FILE"

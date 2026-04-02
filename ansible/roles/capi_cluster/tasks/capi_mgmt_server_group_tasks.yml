@@ -1,0 +1,16 @@
+---
+#- name: Create anti-affinity server group for capi mgmt cluster
+#  openstack.cloud.server_group:
+#    interface: "{{ os_endpoint_type | default('public') }}"
+#    state: present
+#    name: "{{ capi_mgmt_cluster_group_name }}"
+#    policy: "{{ 'anti-affinity' if capi_cluster_affinity_policy == 'strict' else 'soft-anti-affinity' }}"
+#  register: _capi_server_group
+
+- name: Create anti-affinity server group for the capi mgmt cluster
+  openstack.cloud.server_group:
+    interface: "{{ os_endpoint_type | default('public') }}"
+    state: present
+    name: "{{ capi_mgmt_cluster_group_name }}"
+    policy: "{{ capi_cluster_strict_affinity_policy | ternary('anti-affinity', 'soft-anti-affinity') }}"
+  register: _capi_server_group

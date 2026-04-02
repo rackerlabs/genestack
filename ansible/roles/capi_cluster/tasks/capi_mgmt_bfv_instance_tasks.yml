@@ -1,0 +1,44 @@
+---
+- name: Create the instances for capi mgmt cluster (bfv)
+  openstack.cloud.server:
+    interface: "{{ os_endpoint_type | default('public') }}"
+    state: present
+    name: "{{ item.name }}"
+    flavor: "{{ _capi_cluster_flavor.flavor.id }}"
+    key_name: "{{ capi_mgmt_cluster_keypair.name }}"
+    nics:
+      - port-name: "{{ item.port_name }}"
+    security_groups:
+      - "{{ _capi_sec_group.security_group.id }}"
+    auto_ip: false
+    boot_volume: "{{ item.boot_volume_name }}"
+    metadata: "group=capi_mgmt_cluster_vms"
+    scheduler_hints:
+      group: "{{ _capi_server_group.server_group.id }}"
+  loop: "{{ capi_mgmt_cluster_instances }}"
+
+- name: Create the etcd backup volume for capi mgmt cluster
+  openstack.cloud.volume:
+    interface: "{{ os_endpoint_type | default('public') }}"
+    state: present
+    name: "{{ capi_mgmt_etcd_backup_volume.name }}"
+    size: "{{ capi_mgmt_etcd_backup_volume.size }}"
+    volume_type: "{{ capi_mgmt_etcd_backup_volume.volume_type }}"
+    is_bootable: false
+
+- name: Attach a floating ip to the capi mgmt cluster bootstrap vm
+  openstack.cloud.floating_ip:
+    interface: "{{ os_endpoint_type | default('public') }}"
+    state: present
+    network: "{{ ext_net_id }}"
+    fixed_address: "{{ _capi_cluster_port_ips[0] }}"
+    server: "{{ capi_mgmt_cluster_instances[0].name }}"
+    wait: true
+  register: _capi_boostrap_fip
+
+- name: Attach the etcd backup volume to the capi mgmt cluster bootstrap vm
+  openstack.cloud.server_volume:
+    interface: "{{ os_endpoint_type | default('public') }}"
+    state: present
+    server: "{{ capi_mgmt_cluster_instances[0].name }}"
+    volume: "{{ capi_mgmt_etcd_backup_volume.name }}"
