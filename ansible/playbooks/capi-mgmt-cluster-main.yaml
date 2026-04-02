@@ -2,8 +2,9 @@
   hosts: localhost
   gather_facts: true
   vars_files:
+    - vars/main.yml
     - vars/{{ ansible_distribution | lower }}.yml
-  environment: "{{ os_admin_env }}"
+  environment: "{{ os_admin_env | default({}) }}"
   pre_tasks:
     - name: check that the admin password is provided
       ansible.builtin.assert:
@@ -62,7 +63,7 @@
 - name: Playbook to create capi mgmt cluster infra
   hosts: localhost
   gather_facts: true
-  environment: "{{ capi_mgmt_os_env }}"
+  environment: "{{ capi_mgmt_os_env | default({}) }}"
   roles:
     - capi_cluster
 
