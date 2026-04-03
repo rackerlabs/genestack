@@ -1,0 +1,12 @@
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  neutron:
+    DEFAULT:
+      api_workers: 1
+      rpc_workers: 1
+      rpc_state_report_workers: 1
+    oslo_messaging_notifications:
+      driver: noop

@@ -1,0 +1,140 @@
+---
+# tasks file for hclab_service_conf
+
+- name: Create .kube directory
+  ansible.builtin.file:
+    path: "{{ ubuntu_home }}/.kube"
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: "0755"
+  when: ansible_user_id == 'ubuntu' or ubuntu_home == '/home/ubuntu'
+  failed_when: false
+  tags:
+    - always
+
+- name: Copy kubeconfig from /etc/kubernetes/admin.conf
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "{{ ubuntu_home }}/.kube/config"
+    remote_src: true
+    owner: ubuntu
+    group: ubuntu
+    mode: "0600"
+  become: true
+  when: ansible_user_id == 'ubuntu' or ubuntu_home == '/home/ubuntu'
+  failed_when: false
+  tags:
+    - always
+
+- name: Ensure OpenStack config directory exists for ubuntu user
+  ansible.builtin.file:
+    path: "{{ ubuntu_home }}/.config/openstack"
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: "0755"
+  when: ansible_user_id == 'ubuntu' or ubuntu_home == '/home/ubuntu'
+  failed_when: false
+  tags:
+    - always
+
+- name: Fix ownership of .local directory for ubuntu user
+  ansible.builtin.file:
+    path: "{{ ubuntu_home }}/.local"
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: "0755"
+    recurse: true
+  become: true
+  when: ansible_user_id == 'ubuntu' or ubuntu_home == '/home/ubuntu'
+  failed_when: false
+  tags:
+    - always
+
+- name: Configure MetalLB
+  import_tasks: metallb.yml
+  tags:
+    - metallb
+
+- name: Write service Helm overrides
+  import_tasks: helm_overrides.yml
+  tags:
+    - helm_overrides
+
+- name: Write endpoints configuration
+  import_tasks: endpoints.yml
+  tags:
+    - endpoints
+
+- name: Write OpenStack components configuration
+  import_tasks: openstack_components.yml
+  tags:
+    - openstack_components
+
+- name: Write Kubespray inventory
+  import_tasks: inventory.yml
+  tags:
+    - inventory
+
+- name: Configure SSH for cinder volume nodes
+  import_tasks: cinder/ssh_config.yml
+  tags:
+    - cinder
+    - ssh_config
+  when: hyperconverged_cinder_volume | bool
+
+- name: Set up cinder volume infrastructure
+  import_tasks: cinder/volume_setup.yml
+  tags:
+    - cinder
+    - cinder_volume_setup
+  when: hyperconverged_cinder_volume | bool
+
+- name: Create Manila K8s secrets
+  import_tasks: manila/k8s_secrets.yml
+  tags:
+    - manila_preconf_secrets
+    - manila_preconf
+  when: run_manila_preconf | bool
+
+- name: Build and upload Manila service image
+  import_tasks: manila/service_image_builder.yml
+  become: true
+  become_user: ubuntu
+  tags:
+    - manila_preconf
+  when: run_manila_preconf | bool
+
+- name: Configure Manila Helm values (driver config merge)
+  import_tasks: manila/helm_config.yml
+  tags:
+    - manila_preconf
+  when: run_manila_preconf | bool
+
+- name: Create Manila share type (post-deploy)
+  import_tasks: manila/share_type_setup.yml
+  tags:
+    - manila_post_deploy
+  when: run_manila_preconf | bool
+
+- name: Configure Trove pre-deploy (keypair, secgroup, helm overrides)
+  import_tasks: trove/preconf.yml
+  become: true
+  become_user: ubuntu
+  tags:
+    - trove_preconf
+  when: run_trove_preconf | bool
+
+- name: Distribute Trove SSH key to nodes (post-deploy)
+  import_tasks: trove/ssh_key_distribute.yml
+  tags:
+    - trove_post_deploy
+  when: run_trove_preconf | bool
+
+- name: Create post-setup OpenStack resources
+  import_tasks: post_setup_resources.yml
+  tags:
+    - post_setup
+  when: create_post_setup_resources | bool

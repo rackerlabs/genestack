@@ -1,0 +1,16 @@
+---
+pod:
+  resources:
+    enabled: false
+
+conf:
+  barbican_api_uwsgi:
+    uwsgi:
+{% if hyperconverged_cinder_volume | bool %}
+      processes: 4
+{% else %}
+      processes: 1
+{% endif %}
+  barbican:
+    oslo_messaging_notifications:
+      driver: noop

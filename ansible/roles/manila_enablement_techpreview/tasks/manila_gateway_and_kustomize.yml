@@ -1,0 +1,260 @@
+---
+# Generate gateway listener, route, kustomize overlay, and endpoint overrides
+# for Manila in /etc/genestack, then patch the envoy gateway and apply the route.
+#
+# These files land inside the /etc/genestack git tree, so the role finishes
+# with a summary telling the operator what changed and that a commit is needed.
+
+# -------------------------------------------------------------------------
+# Discover the region from the existing endpoints.yaml anchor (_region)
+# or fall back to manila_region_name from defaults.
+# -------------------------------------------------------------------------
+- name: Detect region from existing endpoints.yaml
+  ansible.builtin.shell: |
+    if [ -f /etc/genestack/helm-configs/global_overrides/endpoints.yaml ]; then
+      # Grab the YAML anchor value  _region: &region <VALUE>
+      grep -oP '^\s*_region:\s*&\w+\s+\K\S+' \
+        /etc/genestack/helm-configs/global_overrides/endpoints.yaml 2>/dev/null || true
+    fi
+  args:
+    executable: /bin/bash
+  register: _detected_region
+  changed_when: false
+
+- name: Set manila_gateway_region_lower fact
+  ansible.builtin.set_fact:
+    manila_gateway_region_lower: >-
+      {{ (_detected_region.stdout | trim | lower)
+         if (_detected_region.stdout | trim | length > 0)
+         else (manila_region_name | lower) }}
+
+- name: Display resolved gateway region
+  ansible.builtin.debug:
+    msg: "Gateway hostname region component: {{ manila_gateway_region_lower }}"
+
+# -------------------------------------------------------------------------
+# Track files changed for the summary message
+# -------------------------------------------------------------------------
+- name: Initialise list of changed files
+  ansible.builtin.set_fact:
+    _manila_preconf_changed_files: []
+
+# -------------------------------------------------------------------------
+# 1) Envoy gateway listener — /etc/genestack/gateway-api/listeners/
+# -------------------------------------------------------------------------
+- name: Ensure gateway-api listeners directory exists
+  ansible.builtin.file:
+    path: /etc/genestack/gateway-api/listeners
+    state: directory
+    mode: "0755"
+
+- name: Template Manila HTTPS listener JSON
+  ansible.builtin.template:
+    src: manila-https-listener.json.j2
+    dest: /etc/genestack/gateway-api/listeners/manila-https.json
+    mode: "0644"
+  register: _listener_result
+
+- name: Record listener change  # noqa: no-handler
+  ansible.builtin.set_fact:
+    _manila_preconf_changed_files: "{{ _manila_preconf_changed_files + ['/etc/genestack/gateway-api/listeners/manila-https.json'] }}"
+  when: _listener_result.changed
+
+# -------------------------------------------------------------------------
+# 2) Gateway route — /etc/genestack/gateway-api/routes/
+# -------------------------------------------------------------------------
+- name: Ensure gateway-api routes directory exists
+  ansible.builtin.file:
+    path: /etc/genestack/gateway-api/routes
+    state: directory
+    mode: "0755"
+
+- name: Template Manila gateway route
+  ansible.builtin.template:
+    src: custom-manila-gateway-route.yaml.j2
+    dest: /etc/genestack/gateway-api/routes/custom-manila-gateway-route.yaml
+    mode: "0644"
+  register: _route_result
+
+- name: Record route change  # noqa: no-handler
+  ansible.builtin.set_fact:
+    _manila_preconf_changed_files: "{{ _manila_preconf_changed_files + ['/etc/genestack/gateway-api/routes/custom-manila-gateway-route.yaml'] }}"
+  when: _route_result.changed
+
+# -------------------------------------------------------------------------
+# 3) Kustomize overlay — /etc/genestack/kustomize/manila/
+# -------------------------------------------------------------------------
+- name: Ensure kustomize manila overlay directory exists
+  ansible.builtin.file:
+    path: /etc/genestack/kustomize/manila/overlay
+    state: directory
+    mode: "0755"
+
+- name: Create symlink to base-kustomize/manila/aio
+  ansible.builtin.file:
+    src: /opt/genestack/base-kustomize/manila/aio
+    dest: /etc/genestack/kustomize/manila/aio
+    state: link
+    force: true
+  register: _aio_link_result
+
+- name: Record aio symlink change  # noqa: no-handler
+  ansible.builtin.set_fact:
+    _manila_preconf_changed_files: "{{ _manila_preconf_changed_files + ['/etc/genestack/kustomize/manila/aio'] }}"
+  when: _aio_link_result.changed
+
+- name: Create symlink to base-kustomize/manila/base
+  ansible.builtin.file:
+    src: /opt/genestack/base-kustomize/manila/base
+    dest: /etc/genestack/kustomize/manila/base
+    state: link
+    force: true
+  register: _base_link_result
+
+- name: Record base symlink change  # noqa: no-handler
+  ansible.builtin.set_fact:
+    _manila_preconf_changed_files: "{{ _manila_preconf_changed_files + ['/etc/genestack/kustomize/manila/base'] }}"
+  when: _base_link_result.changed
+
+- name: Template kustomization.yaml for Manila overlay
+  ansible.builtin.template:
+    src: manila-kustomization.yaml.j2
+    dest: /etc/genestack/kustomize/manila/overlay/kustomization.yaml
+    mode: "0644"
+  register: _kustomization_result
+
+- name: Record kustomization change  # noqa: no-handler
+  ansible.builtin.set_fact:
+    _manila_preconf_changed_files: "{{ _manila_preconf_changed_files + ['/etc/genestack/kustomize/manila/overlay/kustomization.yaml'] }}"
+  when: _kustomization_result.changed
+
+# -------------------------------------------------------------------------
+# 4) Endpoints — deep-merge Manila stanzas into global_overrides/endpoints.yaml
+# -------------------------------------------------------------------------
+- name: Ensure global_overrides directory exists
+  ansible.builtin.file:
+    path: /etc/genestack/helm-configs/global_overrides
+    state: directory
+    mode: "0755"
+
+- name: Template Manila endpoints fragment
+  ansible.builtin.template:
+    src: manila-endpoints-fragment.yaml.j2
+    dest: /tmp/manila_endpoints_fragment.yaml
+    mode: "0644"
+
+- name: Deep-merge Manila endpoints into global_overrides/endpoints.yaml
+  ansible.builtin.script:
+    cmd: >-
+      merge_endpoints.py
+      /etc/genestack/helm-configs/global_overrides/endpoints.yaml
+      /tmp/manila_endpoints_fragment.yaml
+    executable: python3
+  register: _endpoints_result
+  changed_when: true
+
+- name: Record endpoints change
+  ansible.builtin.set_fact:
+    _manila_preconf_changed_files: "{{ _manila_preconf_changed_files + ['/etc/genestack/helm-configs/global_overrides/endpoints.yaml'] }}"
+
+- name: Remove temporary endpoints fragment
+  ansible.builtin.file:
+    path: /tmp/manila_endpoints_fragment.yaml
+    state: absent
+
+# -------------------------------------------------------------------------
+# 5) Patch the envoy gateway with the Manila listener
+# -------------------------------------------------------------------------
+- name: Patch envoy gateway with Manila HTTPS listener
+  ansible.builtin.shell: |
+    set -o pipefail
+    source {{ genestack_venv }}/bin/activate
+    set -a
+    source {{ genestack_rc }}
+    set +a
+
+    # Only patch if the listener is not already present
+    EXISTING=$(kubectl -n envoy-gateway get gateway flex-gateway -o json 2>/dev/null \
+      | jq -r '.spec.listeners[]? | select(.name == "manila-https") | .name' 2>/dev/null)
+
+    if [ "$EXISTING" = "manila-https" ]; then
+      echo "Manila HTTPS listener already present on flex-gateway — skipping patch"
+    else
+      kubectl patch -n envoy-gateway gateway flex-gateway \
+        --type='json' \
+        --patch-file /etc/genestack/gateway-api/listeners/manila-https.json
+      echo "Patched flex-gateway with Manila HTTPS listener"
+    fi
+  args:
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _gw_patch_result
+  changed_when: "'Patched' in _gw_patch_result.stdout"
+
+- name: Show gateway patch result
+  ansible.builtin.debug:
+    msg: "{{ _gw_patch_result.stdout }}"
+
+# -------------------------------------------------------------------------
+# 6) Apply the Manila gateway route
+# -------------------------------------------------------------------------
+- name: Apply Manila gateway route
+  ansible.builtin.shell: |
+    source {{ genestack_venv }}/bin/activate
+    set -a
+    source {{ genestack_rc }}
+    set +a
+    kubectl apply -f /etc/genestack/gateway-api/routes/custom-manila-gateway-route.yaml
+  args:
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _route_apply_result
+  changed_when: "'created' in _route_apply_result.stdout or 'configured' in _route_apply_result.stdout"
+
+- name: Show route apply result
+  ansible.builtin.debug:
+    msg: "{{ _route_apply_result.stdout }}"
+
+# -------------------------------------------------------------------------
+# 7) Summary — tell the operator what changed and that /etc/genestack is dirty
+# -------------------------------------------------------------------------
+- name: Build preconf summary
+  ansible.builtin.set_fact:
+    _manila_preconf_summary: |
+      ================================================================
+        MANILA PRECONF — FILE CHANGE SUMMARY
+      ================================================================
+
+      The following files/directories were created or modified under
+      /etc/genestack:
+
+      {% for f in _manila_preconf_changed_files %}
+        - {{ f }}
+      {% endfor %}
+      {% if _manila_preconf_changed_files | length == 0 %}
+        (no file changes — all files already existed with correct content)
+      {% endif %}
+
+      Additional runtime actions taken:
+        - Envoy gateway listener: {{ _gw_patch_result.stdout | trim }}
+        - Gateway route: {{ _route_apply_result.stdout | trim }}
+
+      ================================================================
+        ACTION REQUIRED
+      ================================================================
+      The /etc/genestack git tree is likely dirty with uncommitted
+      changes. Before proceeding with install-manila.sh, please:
+
+        cd /etc/genestack
+        git status
+        git add -A
+        git commit -m "Add Manila gateway, kustomize, and endpoint configuration"
+        git push
+
+      ================================================================
+
+- name: Display preconf summary
+  ansible.builtin.debug:
+    msg: "{{ _manila_preconf_summary }}"

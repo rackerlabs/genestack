@@ -1,0 +1,24 @@
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  heat:
+    DEFAULT:
+      num_engine_workers: 1
+    heat_api:
+      workers: 1
+    heat_api_cloudwatch:
+      workers: 1
+    heat_api_cfn:
+      workers: 1
+    oslo_messaging_notifications:
+      driver: noop
+  heat_api_cfn_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1
+  heat_api_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1

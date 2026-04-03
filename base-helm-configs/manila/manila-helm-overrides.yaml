@@ -12,21 +12,21 @@
 # limitations under the License.
 images:
   tags:
-    db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    db_init: ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest
+    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest
     dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
     image_repo_sync: docker.io/docker:17.07.0
-    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    manila: ghcr.io/rackerlabs/genestack-images/manila:2024.1-1763166117
-    manila_api: ghcr.io/rackerlabs/genestack-images/manila-api:2024.1-1763166117
-    manila_data: ghcr.io/rackerlabs/genestack-images/manila-data:2024.1-1763166117
-    manila_db_sync: ghcr.io/rackerlabs/genestack-images/manila:2024.1-1763166117
-    manila_scheduler: ghcr.io/rackerlabs/genestack-images/manila-scheduler:2024.1-1763166117
-    manila_share: ghcr.io/rackerlabs/genestack-images/manila-share:2024.1-1763166117
-    manila_processor: ghcr.io/rackerlabs/genestack-images/manila:2024.1-1763166117
-    manila_storage_init: ghcr.io/rackerlabs/genestack-images/manila:2024.1-1763166117
+    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest
+    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest
+    manila: ghcr.io/rackerlabs/genestack-images/manila:2025.1-latest
+    manila_api: ghcr.io/rackerlabs/genestack-images/manila:2025.1-latest
+    manila_data: ghcr.io/rackerlabs/genestack-images/manila:2025.1-latest
+    manila_db_sync: ghcr.io/rackerlabs/genestack-images/manila:2025.1-latest
+    manila_scheduler: ghcr.io/rackerlabs/genestack-images/manila:2025.1-latest
+    manila_share: ghcr.io/rackerlabs/genestack-images/manila:2025.1-latest
+    manila_processor: ghcr.io/rackerlabs/genestack-images/manila:2025.1-latest
+    manila_storage_init: ghcr.io/rackerlabs/genestack-images/manila:2025.1-latest
     rabbit_init: docker.io/rabbitmq:3.13-management
   pull_policy: "IfNotPresent"
 

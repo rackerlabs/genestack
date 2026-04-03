@@ -142,6 +142,15 @@ export JUMP_HOST_VIP
 createComputePorts
 
 #############################################################################
+# Resolve Worker IPs from Management Ports
+#############################################################################
+
+WORKER_0_IP=$(openstack port show ${WORKER_0_PORT} -f json | jq -r '.fixed_ips[0].ip_address')
+WORKER_1_IP=$(openstack port show ${WORKER_1_PORT} -f json | jq -r '.fixed_ips[0].ip_address')
+WORKER_2_IP=$(openstack port show ${WORKER_2_PORT} -f json | jq -r '.fixed_ips[0].ip_address')
+export WORKER_0_IP WORKER_1_IP WORKER_2_IP
+
+#############################################################################
 # Kubespray-Specific: SSH Key Management
 #############################################################################
 
@@ -163,6 +172,7 @@ if ! openstack keypair show ${LAB_NAME_PREFIX}-key 2>/dev/null; then
 fi
 
 ssh-add ~/.ssh/${LAB_NAME_PREFIX}-key.pem
+#export SSH_AUTH_SOCK="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
 
 #############################################################################
 # Create Lab Instances
@@ -212,10 +222,63 @@ while ! ssh -o ConnectTimeout=2 -o ConnectionAttempts=3 -o UserKnownHostsFile=/d
 done
 
 #############################################################################
+# Copy SSH Keys to Jump Host
+#############################################################################
+
+echo "Copying SSH keys to jump host..."
+scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
+    ~/.ssh/${LAB_NAME_PREFIX}-key.pem \
+    ~/.ssh/${LAB_NAME_PREFIX}-key.pub \
+    ${SSH_USERNAME}@${JUMP_HOST_VIP}:/home/${SSH_USERNAME}/.ssh/
+ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${SSH_USERNAME}@${JUMP_HOST_VIP} \
+    "chmod 600 ~/.ssh/${LAB_NAME_PREFIX}-key.pem && chmod 644 ~/.ssh/${LAB_NAME_PREFIX}-key.pub"
+
+echo "Writing SSH config on jump host..."
+ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${SSH_USERNAME}@${JUMP_HOST_VIP} <<SSHCFG
+cat > ~/.ssh/config <<'EOF'
+Host *
+    User ubuntu
+    ForwardAgent yes
+    ForwardX11Trusted yes
+    AddKeysToAgent yes
+    IdentitiesOnly yes
+    IdentityFile /home/${SSH_USERNAME}/.ssh/${LAB_NAME_PREFIX}-key.pem
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    ProxyCommand none
+    TCPKeepAlive yes
+    ServerAliveInterval 300
+    Ciphers aes128-ctr,aes192-ctr,aes256-ctr,aes128-cbc,3des-cbc
+    MACs hmac-sha2-512,hmac-sha2-256,hmac-md5,hmac-sha1,umac-64@openssh.com
+    KexAlgorithms +diffie-hellman-group1-sha1
+EOF
+chmod 600 ~/.ssh/config
+SSHCFG
+
+echo "Updating /etc/hosts on jump host..."
+ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${SSH_USERNAME}@${JUMP_HOST_VIP} <<ETCHOSTS
+# Remove any previous block, then write a fresh one (idempotent)
+sudo sed -i '/^# BEGIN hyperconverged lab nodes/,/^# END hyperconverged lab nodes/d' /etc/hosts
+sudo tee -a /etc/hosts >/dev/null <<'EOF'
+# BEGIN hyperconverged lab nodes
+${WORKER_0_IP} ${LAB_NAME_PREFIX}-0.cluster.local ${LAB_NAME_PREFIX}-0
+${WORKER_1_IP} ${LAB_NAME_PREFIX}-1.cluster.local ${LAB_NAME_PREFIX}-1
+${WORKER_2_IP} ${LAB_NAME_PREFIX}-2.cluster.local ${LAB_NAME_PREFIX}-2
+# END hyperconverged lab nodes
+EOF
+ETCHOSTS
+
+#############################################################################
 # Create and Attach Lab Volumes
 #############################################################################
 
-if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+# Create and attach cinder volumes if cinder is in the include list
+INSTALL_CINDER_VOLUMES=false
+for _svc in "${INCLUDE_LIST[@]}"; do
+    [ "$_svc" = "cinder" ] && INSTALL_CINDER_VOLUMES=true
+done
+
+if [ "${INSTALL_CINDER_VOLUMES}" = "true" ]; then
     READY_COUNT=0
     while [ $(openstack server show ${LAB_NAME_PREFIX}-0 -f yaml | yq '.status') != 'ACTIVE' ]; do
       echo "Server instance 0 is not ready, waiting..."
@@ -248,7 +311,7 @@ if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
 
     if ! openstack volume show ${LAB_NAME_PREFIX}-0-cv1 2>/dev/null; then
       openstack volume create \
-        --size 150 \
+        --size 200 \
         --type Performance \
         --description "cinder-volumes-1 on ${LAB_NAME_PREFIX}-0" \
         ${LAB_NAME_PREFIX}-0-cv1
@@ -256,7 +319,7 @@ if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
 
     if ! openstack volume show ${LAB_NAME_PREFIX}-1-cv1 2>/dev/null; then
       openstack volume create \
-        --size 150 \
+        --size 200 \
         --type Performance \
         --description "cinder-volumes-1 on ${LAB_NAME_PREFIX}-1" \
         ${LAB_NAME_PREFIX}-1-cv1
@@ -264,7 +327,7 @@ if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
 
     if ! openstack volume show ${LAB_NAME_PREFIX}-2-cv1 2>/dev/null; then
       openstack volume create \
-        --size 150 \
+        --size 200 \
         --type Performance \
         --description "cinder-volumes-1 on ${LAB_NAME_PREFIX}-2" \
         ${LAB_NAME_PREFIX}-2-cv1
@@ -351,32 +414,9 @@ if [ ! -d "/etc/genestack" ]; then
     sudo chown \${USER}:\${USER} -R /etc/genestack
 fi
 
-# Configure MetalLB
-cat > /etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml <<EOF
----
-apiVersion: metallb.io/v1beta1
-kind: IPAddressPool
-metadata:
-  name: gateway-api-external
-  namespace: metallb-system
-spec:
-  addresses:
-    - ${METAL_LB_IP}/32  # This is assumed to be the public LB vip address
-  autoAssign: false
----
-apiVersion: metallb.io/v1beta1
-kind: L2Advertisement
-metadata:
-  name: openstack-external-advertisement
-  namespace: metallb-system
-spec:
-  ipAddressPools:
-    - gateway-api-external
-EOF
-
-# Create Kubespray inventory
+# Create Kubespray inventory (needed before host-setup; ansible not yet available)
 if [ ! -f "/etc/genestack/inventory/inventory.yaml" ]; then
-    if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+    if [ "${INSTALL_CINDER_VOLUMES}" = "true" ]; then
         cat > /etc/genestack/inventory/inventory.yaml <<EOF
 ---
 all:
@@ -386,11 +426,11 @@ all:
     ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
   hosts:
     ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}:
-      ansible_host: $(openstack port show ${WORKER_0_PORT} -f json | jq -r '.fixed_ips[0].ip_address')
+      ansible_host: ${WORKER_0_IP}
     ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}:
-      ansible_host: $(openstack port show ${WORKER_1_PORT} -f json | jq -r '.fixed_ips[0].ip_address')
+      ansible_host: ${WORKER_1_IP}
     ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}:
-      ansible_host: $(openstack port show ${WORKER_2_PORT} -f json | jq -r '.fixed_ips[0].ip_address')
+      ansible_host: ${WORKER_2_IP}
   children:
     k8s_cluster:
       vars:
@@ -403,19 +443,16 @@ all:
           children: null
         broken_kube_control_plane:
           children: null
-        # OpenStack Controllers
         openstack_control_plane:
           hosts:
             ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
-        # Edge Nodes
         ovn_network_nodes:
           hosts:
             ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
-        # Tenant Prod Nodes
         openstack_compute_nodes:
           vars:
             enable_iscsi: true
@@ -424,7 +461,6 @@ all:
             ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
-        # Block Nodes
         storage_nodes:
           vars:
             enable_iscsi: true
@@ -439,13 +475,11 @@ all:
             ${LAB_NAME_PREFIX}-0.cluster.local: null
             ${LAB_NAME_PREFIX}-1.cluster.local: null
             ${LAB_NAME_PREFIX}-2.cluster.local: null
-        # ETCD Nodes
         etcd:
           hosts:
             ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
-        # Kubernetes Nodes
         kube_control_plane:
           hosts:
             ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
@@ -467,11 +501,11 @@ all:
     ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
   hosts:
     ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}:
-      ansible_host: $(openstack port show ${WORKER_0_PORT} -f json | jq -r '.fixed_ips[0].ip_address')
+      ansible_host: ${WORKER_0_IP}
     ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}:
-      ansible_host: $(openstack port show ${WORKER_1_PORT} -f json | jq -r '.fixed_ips[0].ip_address')
+      ansible_host: ${WORKER_1_IP}
     ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}:
-      ansible_host: $(openstack port show ${WORKER_2_PORT} -f json | jq -r '.fixed_ips[0].ip_address')
+      ansible_host: ${WORKER_2_IP}
   children:
     k8s_cluster:
       vars:
@@ -484,19 +518,16 @@ all:
           children: null
         broken_kube_control_plane:
           children: null
-        # OpenStack Controllers
         openstack_control_plane:
           hosts:
             ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
-        # Edge Nodes
         ovn_network_nodes:
           hosts:
             ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
-        # Tenant Prod Nodes
         openstack_compute_nodes:
           vars:
             enable_iscsi: true
@@ -505,7 +536,6 @@ all:
             ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
-        # Block Nodes
         storage_nodes:
           vars:
             enable_iscsi: true
@@ -517,13 +547,11 @@ all:
             ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
-        # ETCD Nodes
         etcd:
           hosts:
             ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}: null
             ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}: null
-        # Kubernetes Nodes
         kube_control_plane:
           hosts:
             ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}: null
@@ -539,12 +567,6 @@ EOF
 fi
 
 EOC
-
-#############################################################################
-# Write Service Helm Overrides and Endpoints (common function)
-#############################################################################
-
-configureGenestackRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}" "${METAL_LB_IP}" "${GATEWAY_DOMAIN}"
 
 #############################################################################
 # Kubespray-Specific: Run Host Setup and Kubespray
@@ -582,24 +604,294 @@ popd
 EOC
 
 #############################################################################
-# Run Genestack Infrastructure Setup (common function)
+# Configure OpenStack Services via Ansible Role
+# (MetalLB, Helm overrides, endpoints, openstack-components)
+# Runs after venv/ansible is available, before infrastructure setup.
 #############################################################################
 
-runGenestackSetupRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}" "${GATEWAY_DOMAIN}" "${ACME_EMAIL}" "${DISABLE_OPENSTACK}"
+INCLUDE_JSON=$(printf '%s\n' "${INCLUDE_LIST[@]}" | jq -R 'select(length > 0)' | jq -s -c .)
+EXCLUDE_JSON=$(printf '%s\n' "${EXCLUDE_LIST[@]}" | jq -R 'select(length > 0)' | jq -s -c .)
+
+# Determine which services need deferred install.
+# Manila, Octavia, and Trove require pre-configuration that depends on
+# Keystone/Neutron/Glance, so they are opt-in only via -i.
+# Manila and Trove depend on cinder — if either is included and cinder is
+# in the exclude list, override the exclusion so the cinder API is available.
+INSTALL_MANILA=false
+INSTALL_OCTAVIA=false
+INSTALL_TROVE=false
+for _svc in "${INCLUDE_LIST[@]}"; do
+    [ "$_svc" = "manila" ]  && INSTALL_MANILA=true
+    [ "$_svc" = "octavia" ] && INSTALL_OCTAVIA=true
+    [ "$_svc" = "trove" ]   && INSTALL_TROVE=true
+done
+
+# Cinder dependency: Manila and Trove need the cinder API.
+# If either is enabled and cinder was explicitly excluded, remove cinder
+# from the exclude list so the lightweight API is still deployed.
+# Trove additionally requires full cinder LVM volume infrastructure.
+if [ "${INSTALL_MANILA}" = "true" ] || [ "${INSTALL_TROVE}" = "true" ]; then
+    _new_exclude=()
+    for _svc in "${EXCLUDE_LIST[@]}"; do
+        if [ "$_svc" = "cinder" ]; then
+            echo "WARNING: Removing cinder from exclude list — required by manila/trove"
+        else
+            _new_exclude+=("$_svc")
+        fi
+    done
+    EXCLUDE_LIST=("${_new_exclude[@]}")
+    EXCLUDE_JSON=$(printf '%s\n' "${EXCLUDE_LIST[@]}" | jq -R 'select(length > 0)' | jq -s -c .)
+fi
+
+# Manila and Trove may need full cinder LVM for volume-backed operations.
+# The cinder API is always available (lightweight mode), but PV/VG creation,
+# cinder-volume services, and volume types require '-i cinder'.
+if { [ "${INSTALL_MANILA}" = "true" ] || [ "${INSTALL_TROVE}" = "true" ]; } && [ "${INSTALL_CINDER_VOLUMES}" = "false" ]; then
+    echo "NOTE: manila/trove included without '-i cinder'. Cinder API is available but"
+    echo "      full LVM volume infrastructure is not. Add '-i cinder' if volume-backed"
+    echo "      operations are needed."
+fi
+
+echo "Deferred install — Manila: ${INSTALL_MANILA}, Octavia: ${INSTALL_OCTAVIA}, Trove: ${INSTALL_TROVE}"
+echo "Cinder volume mode: ${INSTALL_CINDER_VOLUMES}"
+
+echo "Running service configuration role on jump host..."
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+set -e
+source /opt/genestack/scripts/genestack.rc
+cat > /tmp/_hclab_svc_lists.json <<SJEOF
+{"include_services": ${INCLUDE_JSON}, "exclude_services": ${EXCLUDE_JSON}}
+SJEOF
+ansible-playbook /opt/genestack/ansible/playbooks/hclab-service-conf.yaml \
+    --tags metallb,helm_overrides,endpoints,openstack_components \
+    -e metal_lb_ip=${METAL_LB_IP} \
+    -e gateway_domain=${GATEWAY_DOMAIN} \
+    -e hyperconverged_cinder_volume=${INSTALL_CINDER_VOLUMES} \
+    -e lab_name_prefix=${LAB_NAME_PREFIX} \
+    -e run_manila_preconf=${INSTALL_MANILA} \
+    -e run_octavia_preconf=${INSTALL_OCTAVIA} \
+    -e run_trove_preconf=${INSTALL_TROVE} \
+    -e @/tmp/_hclab_svc_lists.json
+rm -f /tmp/_hclab_svc_lists.json
+EOC
 
 #############################################################################
-# Cinder Volume Setup
+# Run Genestack Infrastructure Setup (K8s infra, MariaDB, RabbitMQ, etc.)
 #############################################################################
-if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ] && [ ${DISABLE_OPENSTACK} = "false" ]; then
-  cinderVolumeSetup
+
+echo "Installing OpenStack Infrastructure on jump host..."
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+set -e
+source /opt/genestack/scripts/genestack.rc
+
+# Reset gateway listeners to the base pair before setup-infrastructure runs.
+# setup-envoy-gateway.sh uses JSON-patch "add" (append) to add service listeners,
+# so on reruns duplicate listeners cause a validation error. This trims back to
+# just the two base listeners (cluster-http, cluster-tls) so appends are safe.
+if kubectl -n envoy-gateway get gateway flex-gateway &>/dev/null; then
+  echo "Resetting flex-gateway listeners to base pair for idempotent rerun"
+  kubectl -n envoy-gateway get gateway flex-gateway -o json | \
+    jq '.spec.listeners = [.spec.listeners[] | select(.name == "cluster-http" or .name == "cluster-tls")]' | \
+    kubectl apply -f -
+fi
+
+echo "Installing OpenStack Infrastructure"
+sudo LONGHORN_STORAGE_REPLICAS=1 \
+     GATEWAY_DOMAIN="${GATEWAY_DOMAIN}" \
+     ACME_EMAIL="${ACME_EMAIL}" \
+     HYPERCONVERGED=true \
+     /opt/genestack/bin/setup-infrastructure.sh
+EOC
+
+#############################################################################
+# Re-derive deferred install flags (same logic as above, after infra setup).
+# Manila, Octavia, and Trove are opt-in via -i.
+#############################################################################
+
+INSTALL_MANILA=false
+INSTALL_OCTAVIA=false
+INSTALL_TROVE=false
+for _svc in "${INCLUDE_LIST[@]}"; do
+    [ "$_svc" = "manila" ]  && INSTALL_MANILA=true
+    [ "$_svc" = "octavia" ] && INSTALL_OCTAVIA=true
+    [ "$_svc" = "trove" ]   && INSTALL_TROVE=true
+done
+
+#############################################################################
+# Manila K8s Secrets (pre-deploy)
+# Only creates K8s secrets — no OpenStack access needed, just kubectl.
+# Must run before setup-openstack.sh so the secrets exist when the Manila
+# Helm chart is installed.
+#############################################################################
+
+if [ "${DISABLE_OPENSTACK}" = "false" ] && [ "${INSTALL_MANILA}" = "true" ]; then
+    echo "Creating Manila K8s secrets on jump host..."
+    ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+set -e
+source /opt/genestack/scripts/genestack.rc
+ansible-playbook /opt/genestack/ansible/playbooks/hclab-service-conf.yaml \
+    --tags manila_preconf_secrets \
+    -e run_manila_preconf=true \
+    -e lab_name_prefix=${LAB_NAME_PREFIX}
+EOC
 fi
 
 #############################################################################
-# Octavia per-configuration
+# Install OpenStack Services
+# Manila and Octavia are forced to false in openstack-components.yaml by
+# the Ansible role (they need preconf after Keystone). All other services
+# deploy in parallel via setup-openstack.sh.
 #############################################################################
-if [ "${RUN_EXTRAS}" -eq 1 ] && [ ${DISABLE_OPENSTACK} = "false" ]; then
-  install_preconf_octavia
+
+if [ "${DISABLE_OPENSTACK}" = "false" ]; then
+    echo "Installing OpenStack services on jump host..."
+    ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+set -e
+source /opt/genestack/scripts/genestack.rc
+echo "Installing OpenStack services"
+# setup-openstack.sh may exit non-zero if its last component check
+# (e.g. skyline) is disabled; this is benign so we catch it here.
+sudo /opt/genestack/bin/setup-openstack.sh || {
+    echo "Warning: setup-openstack.sh exited with code \$?, continuing..."
+}
+sudo /opt/genestack/bin/setup-openstack-rc.sh
+EOC
 fi
+
+#############################################################################
+# Octavia Pre-Configuration (amphora provider setup)
+# Now that Keystone is deployed, we can query endpoints and generate the
+# Octavia helm overrides. Writes to the helm-configs directory so
+# install-octavia.sh picks them up automatically.
+#############################################################################
+
+if [ "${DISABLE_OPENSTACK}" = "false" ] && [ "${INSTALL_OCTAVIA}" = "true" ]; then
+    echo "Running Octavia pre-configuration on jump host..."
+    ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<'EOC'
+set -e
+source /opt/genestack/scripts/genestack.rc
+
+OCTAVIA_HELM_FILE=/etc/genestack/helm-configs/octavia/octavia-preconf-overrides.yaml
+
+ANSIBLE_SSH_PIPELINING=0 ansible-playbook /opt/genestack/ansible/playbooks/octavia-preconf-main.yaml \
+    -e octavia_os_password=$(kubectl get secrets keystone-admin -n openstack -o jsonpath='{.data.password}' | base64 -d) \
+    -e octavia_os_region_name=$(sudo ~/.venvs/genestack/bin/openstack --os-cloud=default endpoint list --service keystone --interface internal -c Region -f value) \
+    -e octavia_os_auth_url=$(sudo ~/.venvs/genestack/bin/openstack --os-cloud=default endpoint list --service keystone --interface internal -c URL -f value) \
+    -e octavia_os_endpoint_type=internal \
+    -e octavia_helm_file=$OCTAVIA_HELM_FILE \
+    -e interface=internal \
+    -e endpoint_type=internal
+EOC
+fi
+
+#############################################################################
+# Manila Pre-Configuration (service image, keypair, helm config merge)
+# Now that Keystone and Glance are deployed, we can create the OpenStack
+# keypair, build and upload the service image, and merge the driver config
+# into the Manila helm overrides.
+#############################################################################
+
+if [ "${DISABLE_OPENSTACK}" = "false" ] && [ "${INSTALL_MANILA}" = "true" ]; then
+    echo "Running Manila pre-configuration on jump host..."
+    ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+set -e
+source /opt/genestack/scripts/genestack.rc
+ansible-playbook /opt/genestack/ansible/playbooks/hclab-service-conf.yaml \
+    --tags manila_preconf \
+    -e run_manila_preconf=true \
+    -e run_octavia_preconf=${INSTALL_OCTAVIA} \
+    -e lab_name_prefix=${LAB_NAME_PREFIX}
+EOC
+fi
+
+#############################################################################
+# Install deferred services (Manila and/or Octavia)
+# Both services now have their preconf overrides in place.
+#############################################################################
+
+if [ "${DISABLE_OPENSTACK}" = "false" ]; then
+    DEFERRED_PIDS=()
+    DEFERRED_NAMES=()
+
+    if [ "${INSTALL_OCTAVIA}" = "true" ]; then
+        echo "Installing Octavia on jump host..."
+        ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} \
+            "source /opt/genestack/scripts/genestack.rc && sudo /opt/genestack/bin/install-octavia.sh" &
+        DEFERRED_PIDS+=($!)
+        DEFERRED_NAMES+=("octavia")
+    fi
+
+    if [ "${INSTALL_MANILA}" = "true" ]; then
+        echo "Installing Manila on jump host..."
+        ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} \
+            "source /opt/genestack/scripts/genestack.rc && sudo /opt/genestack/bin/install-manila.sh" &
+        DEFERRED_PIDS+=($!)
+        DEFERRED_NAMES+=("manila")
+    fi
+
+    for i in "${!DEFERRED_PIDS[@]}"; do
+        wait "${DEFERRED_PIDS[$i]}" || {
+            echo "ERROR: ${DEFERRED_NAMES[$i]} install failed (exit code $?)"
+            exit 1
+        }
+        echo "${DEFERRED_NAMES[$i]} install complete"
+    done
+fi
+
+#############################################################################
+# Cinder Volume Setup via Ansible Role + Install Scripts
+#############################################################################
+if [ "${INSTALL_CINDER_VOLUMES}" = "true" ] && [ "${DISABLE_OPENSTACK}" = "false" ]; then
+    # Run the ansible role for SSH config, /etc/hosts, and PV/VG on all nodes
+    # (jump host SSH config is handled by the role's cinder/ssh_config.yml task)
+    echo "Running cinder volume setup role on jump host..."
+    ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+set -e
+source /opt/genestack/scripts/genestack.rc
+ansible-playbook /opt/genestack/ansible/playbooks/hclab-service-conf.yaml \
+    --tags cinder \
+    -e hyperconverged_cinder_volume=true \
+    -e lab_name_prefix=${LAB_NAME_PREFIX} \
+    -e worker_0_ip=${WORKER_0_IP} \
+    -e worker_1_ip=${WORKER_1_IP} \
+    -e worker_2_ip=${WORKER_2_IP}
+EOC
+
+    # Run cinder volumes playbook and create volume type/QoS
+    # NOTE: install-cinder.sh already ran inside setup-openstack.sh (parallel batch)
+    ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+set -e
+source /opt/genestack/scripts/genestack.rc
+
+echo "[JUMP_HOST] Running cinder volumes playbook (-f1 to avoid apt lock on delegated tasks)"
+ansible-playbook -i /etc/genestack/inventory/inventory.yaml \
+    -e "cinder_storage_network_interface=ansible_enp3s0 cinder_storage_network_interface_secondary=ansible_enp3s0" \
+    /opt/genestack/ansible/playbooks/deploy-cinder-volumes-reference.yaml -f1
+
+echo "[JUMP_HOST] Creating volume type and qos"
+sudo ~/.venvs/genestack/bin/openstack --os-cloud=default volume type create \
+    --description 'Standard with LUKS encryption' \
+    --encryption-provider luks \
+    --encryption-cipher aes-xts-plain64 \
+    --encryption-key-size 256 \
+    --encryption-control-location front-end \
+    --property volume_backend_name=LVM_iSCSI \
+    --property provisioning:max_vol_size='199' \
+    --property provisioning:min_vol_size='1' \
+    Standard
+sudo ~/.venvs/genestack/bin/openstack --os-cloud=default volume qos create \
+    --property read_iops_sec_per_gb='20' \
+    --property write_iops_sec_per_gb='20' \
+    Standard-Block
+sudo ~/.venvs/genestack/bin/openstack --os-cloud=default volume qos associate Standard-Block Standard
+sudo ~/.venvs/genestack/bin/openstack --os-cloud=default volume type set --private __DEFAULT__
+EOC
+fi
+
+# NOTE: Manila, Octavia, and Trove are opt-in only (-i manila,octavia,trove).
+# When included, they are deferred from setup-openstack.sh so their preconf
+# can run after Keystone/Neutron are up. Manila and Trove depend on cinder
+# (lightweight API at minimum). Trove requires the flat network (post_setup).
 
 #############################################################################
 # Extra Operations
@@ -614,16 +906,51 @@ fi
 # Post-Setup and Tests
 #############################################################################
 
-
 if [ "${TEST_LEVEL}" = "off" ]; then
     # Wait for Nova and Neutron APIs to be ready before proceeding
     waitForOpenStackAPIsReadyRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}"
-    
-    createPostSetupResourcesRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}" "${LAB_NAME_PREFIX}"
 
-    # Trove Setup & Installation
-    # Must be run after the flat network has been created
-    setupTrove "${SSH_USERNAME}" "${JUMP_HOST_VIP}" "${LAB_NAME_PREFIX}"
+    # Create post-setup resources (flavor, flat network, subnet) and Manila share type
+    echo "Running post-setup resources and Manila post-deploy on jump host..."
+    ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+set -e
+source /opt/genestack/scripts/genestack.rc
+ansible-playbook /opt/genestack/ansible/playbooks/hclab-service-conf.yaml \
+    --tags post_setup,manila_post_deploy \
+    -e create_post_setup_resources=true \
+    -e run_manila_preconf=${INSTALL_MANILA} \
+    -e lab_name_prefix=${LAB_NAME_PREFIX}
+EOC
+
+    # Trove pre-configuration, install, and SSH key distribution
+    # Must run after the flat network has been created (post_setup)
+    if [ "${INSTALL_TROVE}" = "true" ]; then
+        echo "Running Trove pre-configuration on jump host..."
+        ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+set -e
+source /opt/genestack/scripts/genestack.rc
+ansible-playbook /opt/genestack/ansible/playbooks/hclab-service-conf.yaml \
+    --tags trove_preconf \
+    -e run_trove_preconf=true \
+    -e run_manila_preconf=${INSTALL_MANILA} \
+    -e run_octavia_preconf=${INSTALL_OCTAVIA} \
+    -e lab_name_prefix=${LAB_NAME_PREFIX}
+EOC
+
+        echo "Installing Trove on jump host..."
+        ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} \
+            "source /opt/genestack/scripts/genestack.rc && sudo /opt/genestack/bin/install-trove.sh"
+
+        echo "Distributing Trove SSH key to nodes..."
+        ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+set -e
+source /opt/genestack/scripts/genestack.rc
+ansible-playbook /opt/genestack/ansible/playbooks/hclab-service-conf.yaml \
+    --tags trove_post_deploy \
+    -e run_trove_preconf=true \
+    -e lab_name_prefix=${LAB_NAME_PREFIX}
+EOC
+    fi
 
 else
     # Wait for Nova and Neutron APIs to be ready before proceeding

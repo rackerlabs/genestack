@@ -1,0 +1,29 @@
+---
+# tasks file for manila_enablement_techpreview
+
+- name: Import tasks to create Manila K8s secrets
+  import_tasks: manila_k8s_secrets.yml
+  tags:
+    - always
+
+- name: Import tasks to build and upload Manila service image
+  import_tasks: manila_service_image_builder.yml
+  become: true
+  become_user: ubuntu
+  tags:
+    - always
+
+- name: Import tasks to create gateway listener, route, kustomize overlay, and endpoints
+  import_tasks: manila_gateway_and_kustomize.yml
+  tags:
+    - always
+
+- name: Import tasks to configure Manila Helm values
+  import_tasks: manila_helm_config.yml
+  tags:
+    - always
+
+- name: Import tasks to create Manila share type
+  import_tasks: manila_share_type_setup.yml
+  tags:
+    - post_deploy

@@ -1,0 +1,12 @@
+Host *
+    User ubuntu
+    ForwardAgent yes
+    ForwardX11Trusted yes
+    AddKeysToAgent yes
+    IdentityFile {{ lab_ssh_key_pem_path }}
+    ProxyCommand none
+    TCPKeepAlive yes
+    ServerAliveInterval 300
+    Ciphers aes128-ctr,aes192-ctr,aes256-ctr,aes128-cbc,3des-cbc
+    MACs hmac-sha2-512,hmac-sha2-256,hmac-md5,hmac-sha1,umac-64@openssh.com
+    KexAlgorithms +diffie-hellman-group1-sha1

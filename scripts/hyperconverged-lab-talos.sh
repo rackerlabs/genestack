@@ -25,7 +25,7 @@ SECONDS=0
 
 # Source common library
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
-source "${SCRIPT_DIR}/lib/hyperconverged-common.sh"
+source "${SCRIPT_DIR}/lib/hyperconverged-common-talos.sh"
 
 #############################################################################
 # Talos-Specific Configuration

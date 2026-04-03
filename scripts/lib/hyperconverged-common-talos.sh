@@ -35,13 +35,16 @@ function parseCommonArgs() {
 
     RUN_EXTRAS=0
 
-    # Default service set.  Cinder is intentionally omitted — it gets a
-    # lightweight API-only install by default (enabled in openstack-components
-    # base YAML).  Passing -i with cinder triggers the full LVM volume mode
-    # (PV/VG, cinder-volume systemd service, iSCSI, barbican for encryption).
-    # Passing -e cinder disables cinder entirely.
-    INCLUDE_LIST=("keystone" "glance" "nova" "neutron" "placement")
-    EXCLUDE_LIST=()
+    if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+        # barbican is needed for iSCSI encrypted volumes and cinder install has to be
+        #  done much later during the cinder volume setup; trove is also included since
+        #  cinder volume support was added to support trove develpment
+        INCLUDE_LIST=("keystone" "barbican" "glance" "nova" "neutron" "placement" "trove")
+        EXCLUDE_LIST=("cinder")
+    else
+        INCLUDE_LIST=("keystone" "glance" "cinder" "nova" "neutron" "placement")
+        EXCLUDE_LIST=()
+    fi
 
     while getopts "i:e:x" opt; do
         case $opt in
@@ -63,7 +66,7 @@ function parseCommonArgs() {
             *)
                 echo "Usage: $0 [-i <list,of,services,to,include>]"
                 echo "       [-e <list,of,services,to,exclude>]"
-                echo "       -x <flag to run extra operations (k9s)>"
+                echo "       -x <flag to run extra operations>"
                 echo ""
                 echo "View the openstack-components.yaml for the services available to configure."
                 exit 1
@@ -320,32 +323,14 @@ function prepareJumpHostSource() {
             echo "HYPERCONVERGED_DEV is true, but we've failed to determine the base genestack directory"
             exit 1
         fi
-        # Ensure submodules are populated locally before rsync.
-        # Works from branches, worktrees, or any checkout.
-        # Stash any uncommitted changes first since submodule update can conflict.
-        echo "Initializing submodules locally..."
-        # GitHub Actions runs the checkout as a different user than the script,
-        # which triggers git's "dubious ownership" check. Mark the repo as safe.
-        git config --global --add safe.directory "${DEV_PATH}" 2>/dev/null || true
-        local STASH_RESULT
-        STASH_RESULT=$(git -C "${DEV_PATH}" stash --include-untracked 2>&1) || true
-        git -C "${DEV_PATH}" submodule update --init --recursive
-        if [[ "${STASH_RESULT}" != *"No local changes"* ]]; then
-            git -C "${DEV_PATH}" stash pop
-        fi
-
         # NOTE: we are assuming an Ubuntu (apt) based instance here
         ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} \
             "while sudo fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do echo 'Waiting for apt locks to be released...'; sleep 5; done && sudo apt-get update && sudo apt install -y rsync git"
         echo "Copying the development source code to the jump host"
         rsync -avz \
             -e "ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" \
-            --rsync-path="sudo rsync" \
-            --exclude='.git' \
-            ${DEV_PATH}/ ${SSH_USERNAME}@${JUMP_HOST_VIP}:/opt/genestack/
-        ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
-            ${SSH_USERNAME}@${JUMP_HOST_VIP} \
-            "sudo chown -R ubuntu:ubuntu /opt/genestack"
+            --rsync-path="sudo rsync" --chown=":ubuntu" \
+            ${DEV_PATH} ${SSH_USERNAME}@${JUMP_HOST_VIP}:/opt/
     else
         cloneGenestackOnJumpHost
     fi
@@ -380,9 +365,821 @@ spec:
 EOF
 }
 
-# NOTE: writeServiceHelmOverrides and writeEndpointsConfig were removed.
-# The Ansible hclab_service_conf role now handles helm overrides and endpoints.
-# The Talos workflow retains these functions in hyperconverged-common-talos.sh.
+function writeServiceHelmOverrides() {
+    # Write all OpenStack service Helm overrides for lab environment
+    # These are minimal resource configurations suitable for lab deployments
+
+    local config_base="${1:-/etc/genestack/helm-configs}"
+
+    if [ ! -f "${config_base}/envoyproxy-gateway/envoyproxy-gateway-helm-overrides.yaml" ]; then
+        cat > "${config_base}/envoyproxy-gateway/envoyproxy-gateway-helm-overrides.yaml" <<EOF
+---
+EOF
+    fi
+
+    if [ ! -f "${config_base}/barbican/barbican-helm-overrides.yaml" ]; then
+        if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+            cat > "${config_base}/barbican/barbican-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+
+conf:
+  barbican_api_uwsgi:
+    uwsgi:
+      processes: 4
+  barbican:
+    oslo_messaging_notifications:
+      driver: noop
+EOF
+        else
+            cat > "${config_base}/barbican/barbican-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+
+conf:
+  barbican_api_uwsgi:
+    uwsgi:
+      processes: 1
+  barbican:
+    oslo_messaging_notifications:
+      driver: noop
+EOF
+        fi
+    fi
+
+    if [ ! -f "${config_base}/blazar/blazar-helm-overrides.yaml" ]; then
+        cat > "${config_base}/blazar/blazar-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+
+conf:
+  blazar_api_uwsgi:
+    uwsgi:
+      processes: 1
+  blazar:
+    oslo_messaging_notifications:
+      driver: noop
+EOF
+    fi
+
+    if [ ! -f "${config_base}/cinder/cinder-helm-overrides.yaml" ]; then
+        if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+            cat > "${config_base}/cinder/cinder-helm-overrides.yaml" <<EOF
+---
+images:
+  tags:
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
+    cinder_api: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
+    cinder_backup: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
+    cinder_backup_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
+    cinder_db_sync: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
+    cinder_scheduler: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
+    cinder_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
+    cinder_volume: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
+    cinder_volume_usage_audit: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
+    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
+pod:
+  resources:
+    enabled: true
+    api:
+      requests:
+        cpu: "1"
+        memory: "1Gi"
+      limits:
+        cpu: "2"
+        memory: "2Gi"
+    scheduler:
+      requests:
+        cpu: "1"
+        memory: "1Gi"
+      limits:
+        cpu: "2"
+        memory: "2Gi"
+conf:
+# NOTE: (brew) uncomment to change default log level from INFO
+#  logging:
+#    logger_cinder:
+#      level: DEBUG
+#      handlers: stdout
+  policy:
+    "volume_extension:types_extra_specs:read_sensitive": "rule:xena_system_admin_or_project_reader"
+  cinder:
+    DEFAULT:
+      osapi_volume_workers: 2
+      rpc_response_timeout: 300
+      enabled_backends: "lvmdriver-1"
+      default_volume_type: "Standard"
+      default_availability_zone: "az1"
+  backends:
+    lvmdriver-1:
+      image_volume_cache_enabled: true
+      iscsi_iotype: fileio
+      iscsi_num_targets: 100
+      lvm_type: default
+      target_helper: tgtadm
+      target_port: 3260
+      target_protocol: iscsi
+      volume_backend_name: LVM_iSCSI
+      volume_clear: zero
+      volume_driver: cinder_rxt.rackspace.RXTLVM
+      volume_group: cinder-volumes-1
+      volume_clear_size: 128
+  cinder_api_uwsgi:
+    uwsgi:
+      processes: 2
+      threads: 1
+EOF
+        else
+            cat > "${config_base}/cinder/cinder-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  cinder:
+    DEFAULT:
+      osapi_volume_workers: 1
+    oslo_messaging_notifications:
+      driver: noop
+  cinder_api_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1
+EOF
+        fi
+    fi
+
+    if [ ! -f "${config_base}/trove/trove-helm-overrides.yaml" ]; then
+        cat > "${config_base}/trove/trove-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  trove:
+    DEFAULT:
+      trove_api_workers: 1
+      management_networks: <management_networks>
+      management_security_groups: <management_security_groups>
+      nova_keypair: <keypair_name>
+    oslo_messaging_notifications:
+      driver: noop
+  trove_api_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1
+EOF
+    fi
+
+    if [ ! -f "${config_base}/glance/glance-helm-overrides.yaml" ]; then
+        cat > "${config_base}/glance/glance-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  glance:
+    DEFAULT:
+      workers: 2
+    oslo_messaging_notifications:
+      driver: noop
+  glance_api_uwsgi:
+    uwsgi:
+      processes: 1
+volume:
+  class_name: general
+  size: 20Gi
+EOF
+    fi
+
+    if [ ! -f "${config_base}/gnocchi/gnocchi-helm-overrides.yaml" ]; then
+        cat > "${config_base}/gnocchi/gnocchi-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  gnocchi:
+    metricd:
+      workers: 1
+  gnocchi_api_wsgi:
+    wsgi:
+      processes: 1
+      threads: 1
+EOF
+    fi
+
+    if [ ! -f "${config_base}/heat/heat-helm-overrides.yaml" ]; then
+        cat > "${config_base}/heat/heat-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  heat:
+    DEFAULT:
+      num_engine_workers: 1
+    heat_api:
+      workers: 1
+    heat_api_cloudwatch:
+      workers: 1
+    heat_api_cfn:
+      workers: 1
+    oslo_messaging_notifications:
+      driver: noop
+  heat_api_cfn_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1
+  heat_api_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1
+EOF
+    fi
+
+    if [ ! -f "${config_base}/keystone/keystone-helm-overrides.yaml" ]; then
+        cat > "${config_base}/keystone/keystone-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  keystone_api_wsgi:
+    wsgi:
+      processes: 1
+      threads: 1
+  keystone:
+    oslo_messaging_notifications:
+      driver: noop
+EOF
+    fi
+
+    if [ ! -f "${config_base}/neutron/neutron-helm-overrides.yaml" ]; then
+        cat > "${config_base}/neutron/neutron-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  neutron:
+    DEFAULT:
+      api_workers: 1
+      rpc_workers: 1
+      rpc_state_report_workers: 1
+    oslo_messaging_notifications:
+      driver: noop
+EOF
+    fi
+
+    if [ ! -f "${config_base}/magnum/magnum-helm-overrides.yaml" ]; then
+        cat > "${config_base}/magnum/magnum-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  magnum_api_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1
+EOF
+    fi
+
+    if [ ! -f "${config_base}/nova/nova-helm-overrides.yaml" ]; then
+        if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+            cat > "${config_base}/nova/nova-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  enable_iscsi: true
+  nova:
+    DEFAULT:
+      osapi_compute_workers: 1
+      metadata_workers: 1
+    conductor:
+      workers: 1
+    schedule:
+      workers: 1
+    oslo_messaging_notifications:
+      driver: noop
+    libvirt:
+      virt_type: qemu
+      images_type: qcow2
+      images_path: /var/lib/nova/instances
+  nova_api_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1
+  nova_metadata_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1
+EOF
+        else
+            cat > "${config_base}/nova/nova-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  enable_iscsi: false
+  nova:
+    DEFAULT:
+      osapi_compute_workers: 1
+      metadata_workers: 1
+    conductor:
+      workers: 1
+    schedule:
+      workers: 1
+    oslo_messaging_notifications:
+      driver: noop
+    libvirt:
+      virt_type: qemu
+      images_type: qcow2
+      images_path: /var/lib/nova/instances
+  nova_api_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1
+  nova_metadata_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1
+EOF
+        fi
+    fi
+
+    if [ ! -f "${config_base}/octavia/octavia-helm-overrides.yaml" ]; then
+        cat > "${config_base}/octavia/octavia-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  octavia:
+    DEFAULT:
+      debug: true
+    oslo_messaging_notifications:
+      driver: noop
+    controller_worker:
+      loadbalancer_topology: SINGLE
+      workers: 1
+  octavia_api_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1
+EOF
+    fi
+
+    if [ ! -f "${config_base}/placement/placement-helm-overrides.yaml" ]; then
+        cat > "${config_base}/placement/placement-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  placement:
+    oslo_messaging_notifications:
+      driver: noop
+  placement_api_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1
+EOF
+    fi
+
+    if [ ! -f "${config_base}/masakari/masakari-helm-overrides.yaml" ]; then
+        cat > "${config_base}/masakari/masakari-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  masakari:
+    oslo_messaging_notifications:
+      driver: noop
+EOF
+    fi
+
+    if [ ! -f "${config_base}/manila/manila-helm-overrides.yaml" ]; then
+        cat > "${config_base}/manila/manila-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+bootstrap:
+  enabled: false
+conf:
+  manila:
+    oslo_messaging_notifications:
+      driver: noop
+EOF
+    fi
+
+    if [ ! -f "${config_base}/cloudkitty/cloudkitty-helm-overrides.yaml" ]; then
+        cat > "${config_base}/cloudkitty/cloudkitty-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  cloudkitty:
+    oslo_messaging_notifications:
+      driver: noop
+  cloudkitty_api_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1
+EOF
+    fi
+
+    if [ ! -f "${config_base}/freezer/freezer-helm-overrides.yaml" ]; then
+        cat > "${config_base}/freezer/freezer-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  freezer_api_uwsgi:
+    uwsgi:
+      processes: 1
+  freezer:
+    oslo_messaging_notifications:
+      driver: noop
+EOF
+    fi
+
+    if [ ! -f "${config_base}/zaqar/zaqar-helm-overrides.yaml" ]; then
+        cat > "${config_base}/zaqar/zaqar-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  zaqar_api_uwsgi:
+    uwsgi:
+      processes: 1
+  zaqar:
+    oslo_messaging_notifications:
+      driver: noop
+EOF
+    fi
+}
+
+function writeEndpointsConfig() {
+    # Write endpoints configuration for external access
+    # Usage: writeEndpointsConfig <gateway_domain> [config_path]
+    local gateway_domain="$1"
+    local config_path="${2:-/etc/genestack/helm-configs/global_overrides/endpoints.yaml}"
+
+    if [ ! -f "${config_path}" ]; then
+        cat > "${config_path}" <<EOF
+_region: &region RegionOne
+
+pod:
+  resources:
+    enabled: false
+
+endpoints:
+  baremetal:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: ironic.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  compute:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: nova.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  compute_metadata:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: metadata.${gateway_domain}
+    port:
+      metadata:
+        public: 443
+    scheme:
+      public: https
+  compute_novnc_proxy:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: novnc.${gateway_domain}
+    port:
+      novnc_proxy:
+        public: 443
+    scheme:
+      public: https
+  cloudformation:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: cloudformation.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  cloudwatch:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: cloudwatch.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  container_infra:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: magnum.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  key_manager:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: barbican.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  dashboard:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: horizon.${gateway_domain}
+    port:
+      web:
+        public: 443
+    scheme:
+      public: https
+  metric:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: gnocchi.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  reservation:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: blazar.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  backup:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: freezer.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  rating:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: cloudkitty.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  instance_ha:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: masakari.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  identity:
+    auth:
+      admin:
+        region_name: *region
+      test:
+        region_name: *region
+      barbican:
+        region_name: *region
+      blazar:
+        region_name: *region
+      cinder:
+        region_name: *region
+      trove:
+        region_name: *region
+      ceilometer:
+        region_name: *region
+      cloudkitty:
+        region_name: *region
+      glance:
+        region_name: *region
+      gnocchi:
+        region_name: *region
+      heat:
+        region_name: *region
+      heat_trustee:
+        region_name: *region
+      heat_stack_user:
+        region_name: *region
+      ironic:
+        region_name: *region
+      magnum:
+        region_name: *region
+      masakari:
+        region_name: *region
+      manila:
+        region_name: *region
+      neutron:
+        region_name: *region
+      nova:
+        region_name: *region
+      placement:
+        region_name: *region
+      octavia:
+        region_name: *region
+      freezer:
+        region_name: *region
+      zaqar:
+        region_name: *region
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: keystone.${gateway_domain}
+    port:
+      api:
+        public: 443
+        admin: 80
+    scheme:
+      public: https
+  ingress:
+    port:
+      ingress:
+        public: 443
+  image:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: glance.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  load_balancer:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: octavia.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  network:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: neutron.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  orchestration:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: heat.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  placement:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: placement.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  share:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: manila.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  sharev2:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: manila.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  volume:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: cinder.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  volumev2:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: cinder.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  volumev3:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: cinder.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  database:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: trove.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  messaging:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: zaqar.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+EOF
+    fi
+}
 
 function createPostSetupResources() {
     # Create post-setup OpenStack resources (flavor, flat network, subnet)
@@ -478,6 +1275,44 @@ function runGenestackSetup() {
 #############################################################################
 # Remote Configuration Functions (for SSH-based setup on jump hosts)
 #############################################################################
+
+function configureGenestackRemote() {
+    # Configure Genestack on a remote jump host via SSH
+    # Usage: configureGenestackRemote <ssh_user> <jump_host_ip> <metal_lb_ip> <gateway_domain>
+    #
+    # This function SSHes to the jump host and writes all the service helm overrides
+    # and endpoints configuration. It's used by both Kubespray and Talos scripts.
+
+    local ssh_user="$1"
+    local jump_host="$2"
+    local metal_lb_ip="$3"
+    local gateway_domain="$4"
+    local os_config="$(cat ${SCRIPT_DIR}/../../openstack-components.yaml)"
+
+    echo "Configuring Genestack service overrides on jump host..."
+
+    {
+        declare -f writeMetalLBConfig
+        declare -f writeServiceHelmOverrides
+        declare -f writeEndpointsConfig
+        declare -f writeOpenstackComponentsConfig
+        declare -f ensureYq
+        declare -f installYq
+
+        cat <<EOF
+export HYPERCONVERGED_CINDER_VOLUME=$HYPERCONVERGED_CINDER_VOLUME
+export INCLUDE_LIST=("${INCLUDE_LIST[@]}")
+export EXCLUDE_LIST=("${EXCLUDE_LIST[@]}")
+set -e
+ensureYq
+writeMetalLBConfig '${metal_lb_ip}' '/etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml'
+writeServiceHelmOverrides '/etc/genestack/helm-configs'
+writeEndpointsConfig '${gateway_domain}' '/etc/genestack/helm-configs/global_overrides/endpoints.yaml'
+writeOpenstackComponentsConfig '/etc/genestack/openstack-components.yaml' "${os_config}"
+echo 'Genestack service configuration complete'
+EOF
+    } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t "${ssh_user}@${jump_host}" bash
+}
 
 function runGenestackSetupRemote() {
     # Run Genestack infrastructure and OpenStack setup on a remote jump host
@@ -775,13 +1610,16 @@ source /opt/genestack/scripts/genestack.rc
 echo "[JUMP_HOST] Running cinder install script"
 sudo /opt/genestack/bin/install-cinder.sh
 
-echo "[JUMP_HOST] Running cinder volumes playbook (-f1 to avoid apt lock on delegated tasks)"
+echo "[JUMP_HOST] Running cinder volumes playbook (2 times in case of failed steps in first run)"
 ansible-playbook -i /etc/genestack/inventory/inventory.yaml \
     -e "cinder_storage_network_interface=ansible_enp3s0 cinder_storage_network_interface_secondary=ansible_enp3s0" \
-    /opt/genestack/ansible/playbooks/deploy-cinder-volumes-reference.yaml -f1
+    /opt/genestack/ansible/playbooks/deploy-cinder-volumes-reference.yaml -f15
+ansible-playbook -i /etc/genestack/inventory/inventory.yaml \
+    -e "cinder_storage_network_interface=ansible_enp3s0 cinder_storage_network_interface_secondary=ansible_enp3s0" \
+    /opt/genestack/ansible/playbooks/deploy-cinder-volumes-reference.yaml -f15
 
 echo "[JUMP_HOST] Creating volume type and qos"
-openstack --os-cloud=default volume type create \
+openstack volume type create \
     --description 'Standard with LUKS encryption' \
     --encryption-provider luks \
     --encryption-cipher aes-xts-plain64 \
@@ -791,12 +1629,12 @@ openstack --os-cloud=default volume type create \
     --property provisioning:max_vol_size='199' \
     --property provisioning:min_vol_size='1' \
     Standard
-openstack --os-cloud=default volume qos create \
+openstack volume qos create \
     --property read_iops_sec_per_gb='20' \
     --property write_iops_sec_per_gb='20' \
     Standard-Block
-openstack --os-cloud=default volume qos associate Standard-Block Standard
-openstack --os-cloud=default volume type set --private __DEFAULT__
+openstack volume qos associate Standard-Block Standard
+openstack volume type set --private __DEFAULT__
 ANSIBLE_EOF
     } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t "ubuntu@${JUMP_HOST_IP}" bash
 }

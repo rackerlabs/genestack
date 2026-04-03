@@ -50,8 +50,11 @@ PLATFORMS:
 
 OPTIONS:
     -i <list>    Comma-separated list of OpenStack services to include
+                 Manila, Octavia, and Trove require -i to install (opt-in).
+                 Cinder with -i enables full LVM volume mode.
+                 Manila and Trove depend on cinder and will override -e cinder.
     -e <list>    Comma-separated list of OpenStack services to exclude
-    -x           Run extra operations (k9s install, Octavia preconf, etc.)
+    -x           Run extra operations (k9s install)
 
 ENVIRONMENT VARIABLES:
     ACME_EMAIL          Email for ACME/Let's Encrypt certificates
@@ -64,8 +67,6 @@ ENVIRONMENT VARIABLES:
     HYPERCONVERGED_DEV  If set to "true", enables development mode which transports
                         the local environment checkout into the hyperconverged lab
                         for easier testing and debugging.
-    HYPERCONVERGED_CINDER_VOLUME
-                        If set to "true", enables iSCSI cinder volume support.
     DISABLE_OPENSTACK
                         if set to "true", no openstack services will be deployed.
 
@@ -79,8 +80,8 @@ EXAMPLES:
     # Deploy using Talos Linux
     $(basename "$0") talos
 
-    # Deploy Kubespray with extra services and extras enabled
-    $(basename "$0") kubespray -i heat,octavia -x
+    # Deploy Kubespray with Manila, Octavia, Trove, full Cinder, and extras
+    $(basename "$0") kubespray -i manila,octavia,trove,cinder -x
 
     # Deploy Talos with specific services excluded
     $(basename "$0") talos -e skyline

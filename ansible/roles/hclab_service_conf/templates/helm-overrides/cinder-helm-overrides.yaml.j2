@@ -1,0 +1,79 @@
+---
+{% if hyperconverged_cinder_volume | bool %}
+images:
+  tags:
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
+    cinder_api: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
+    cinder_backup: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
+    cinder_backup_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
+    cinder_db_sync: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
+    cinder_scheduler: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
+    cinder_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
+    cinder_volume: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
+    cinder_volume_usage_audit: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
+    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
+pod:
+  resources:
+    enabled: true
+    api:
+      requests:
+        cpu: "1"
+        memory: "1Gi"
+      limits:
+        cpu: "2"
+        memory: "2Gi"
+    scheduler:
+      requests:
+        cpu: "1"
+        memory: "1Gi"
+      limits:
+        cpu: "2"
+        memory: "2Gi"
+conf:
+  policy:
+    "volume_extension:types_extra_specs:read_sensitive": "rule:xena_system_admin_or_project_reader"
+  cinder:
+    DEFAULT:
+      osapi_volume_workers: 2
+      rpc_response_timeout: 300
+      enabled_backends: "lvmdriver-1"
+      default_volume_type: "Standard"
+      default_availability_zone: "az1"
+  backends:
+    lvmdriver-1:
+      image_volume_cache_enabled: true
+      iscsi_iotype: fileio
+      iscsi_num_targets: 100
+      lvm_type: default
+      target_helper: tgtadm
+      target_port: 3260
+      target_protocol: iscsi
+      volume_backend_name: LVM_iSCSI
+      volume_clear: zero
+      volume_driver: cinder_rxt.rackspace.RXTLVM
+      volume_group: {{ cinder_volume_group }}
+      volume_clear_size: 128
+  cinder_api_uwsgi:
+    uwsgi:
+      processes: 2
+      threads: 1
+{% else %}
+pod:
+  resources:
+    enabled: false
+conf:
+  cinder:
+    DEFAULT:
+      osapi_volume_workers: 1
+    oslo_messaging_notifications:
+      driver: noop
+  cinder_api_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1
+{% endif %}

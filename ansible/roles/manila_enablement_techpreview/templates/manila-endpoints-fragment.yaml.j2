@@ -1,0 +1,25 @@
+endpoints:
+  identity:
+    auth:
+      manila:
+        region_name: {{ manila_region_name }}
+  share:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: manila.api.{{ manila_gateway_region_lower }}.rackspacecloud.com
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  sharev2:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: manila.api.{{ manila_gateway_region_lower }}.rackspacecloud.com
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https

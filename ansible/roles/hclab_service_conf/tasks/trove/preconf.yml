@@ -1,0 +1,227 @@
+---
+# Trove pre-configuration: create keypair, security group, and update helm
+# overrides with real OpenStack resource IDs. Must run AFTER:
+#   - Keystone is deployed (for openstack CLI)
+#   - Neutron is deployed (for network/secgroup operations)
+#   - Post-setup resources have run (flat network must exist)
+
+# =========================================================================
+# PART 1: ENSURE clouds.yaml EXISTS
+# =========================================================================
+
+- name: Check if clouds.yaml already exists
+  ansible.builtin.stat:
+    path: "{{ ubuntu_home }}/.config/openstack/clouds.yaml"
+  register: _trove_clouds_yaml_stat
+
+- name: Generate clouds.yaml via setup-openstack-rc.sh (safety net)
+  ansible.builtin.shell:
+    cmd: |
+      source {{ genestack_venv }}/bin/activate
+      set -a
+      source {{ genestack_rc }}
+      set +a
+      bash /opt/genestack/bin/setup-openstack-rc.sh
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: not _trove_clouds_yaml_stat.stat.exists
+
+# =========================================================================
+# PART 2: GET TROVE CREDENTIALS FROM K8S SECRETS
+# =========================================================================
+
+- name: Get trove SSH public key from K8s secret
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      kubectl get secret trove-ssh -n openstack \
+        -o jsonpath='{.data.public-key}' | base64 --decode
+    executable: /bin/bash
+  register: _trove_ssh_public_key
+  changed_when: false
+
+- name: Get trove admin password from K8s secret
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      kubectl --namespace openstack get secret trove-admin \
+        -o jsonpath='{.data.password}' | base64 -d
+    executable: /bin/bash
+  register: _trove_admin_password
+  changed_when: false
+  no_log: true
+
+# =========================================================================
+# PART 3: CREATE KEYPAIR
+# =========================================================================
+
+- name: Check if trove keypair exists
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} keypair show {{ trove_keypair_name }} -f json
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_keypair_check
+  changed_when: false
+  failed_when: false
+
+- name: Write trove SSH public key to temp file
+  ansible.builtin.copy:
+    content: "{{ _trove_ssh_public_key.stdout }}"
+    dest: /tmp/trove-access-key.pub
+    mode: "0644"
+  when: _trove_keypair_check.rc != 0
+
+- name: Create trove access keypair
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} keypair create
+      --public-key /tmp/trove-access-key.pub {{ trove_keypair_name }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: _trove_keypair_check.rc != 0
+
+- name: Remove temp public key file
+  ansible.builtin.file:
+    path: /tmp/trove-access-key.pub
+    state: absent
+
+# =========================================================================
+# PART 4: CREATE SECURITY GROUP
+# =========================================================================
+
+- name: Check if trove security group exists
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} security group show {{ trove_secgroup_name }} -f json
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_secgroup_check
+  changed_when: false
+  failed_when: false
+
+- name: Create trove access security group
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} security group create
+      --description "Security group for Trove instances" {{ trove_secgroup_name }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: _trove_secgroup_check.rc != 0
+
+- name: Create ICMP rule for trove security group
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} security group rule create
+      --protocol icmp --remote-ip {{ trove_secgroup_remote_ip }} {{ trove_secgroup_name }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: _trove_secgroup_check.rc != 0
+
+- name: Create SSH rule for trove security group
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} security group rule create
+      --protocol tcp --dst-port 22 --remote-ip {{ trove_secgroup_remote_ip }} {{ trove_secgroup_name }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: _trove_secgroup_check.rc != 0
+
+- name: Create MySQL rule for trove security group
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} security group rule create
+      --protocol tcp --dst-port 3306 --remote-ip {{ trove_secgroup_remote_ip }} {{ trove_secgroup_name }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: _trove_secgroup_check.rc != 0
+
+# =========================================================================
+# PART 5: UPDATE HELM OVERRIDES WITH REAL VALUES
+# =========================================================================
+
+- name: Get flat network ID
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} network show {{ trove_flat_network_name }}
+      -f value -c id
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_flat_network_id
+  changed_when: false
+
+- name: Get trove security group ID
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} security group show {{ trove_secgroup_name }}
+      -f value -c id
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_secgroup_id
+  changed_when: false
+
+- name: Update trove helm overrides — management_networks
+  ansible.builtin.command:
+    cmd: >
+      /usr/local/bin/yq -i
+      '.conf.trove.DEFAULT.management_networks = "{{ _trove_flat_network_id.stdout | trim }}"'
+      {{ helm_config_base }}/trove/trove-helm-overrides.yaml
+  changed_when: true
+
+- name: Update trove helm overrides — management_security_groups
+  ansible.builtin.command:
+    cmd: >
+      /usr/local/bin/yq -i
+      '.conf.trove.DEFAULT.management_security_groups = "{{ _trove_secgroup_id.stdout | trim }}"'
+      {{ helm_config_base }}/trove/trove-helm-overrides.yaml
+  changed_when: true
+
+- name: Update trove helm overrides — nova_keypair
+  ansible.builtin.command:
+    cmd: >
+      /usr/local/bin/yq -i
+      '.conf.trove.DEFAULT.nova_keypair = "{{ trove_keypair_name }}"'
+      {{ helm_config_base }}/trove/trove-helm-overrides.yaml
+  changed_when: true
+
+# =========================================================================
+# PART 6: CREATE trove-openrc FOR MANUAL DEBUGGING
+# =========================================================================
+
+- name: Write trove-openrc file
+  ansible.builtin.copy:
+    content: |
+      export OS_AUTH_URL=http://keystone-api.openstack.svc.cluster.local:5000/v3
+      export OS_PROJECT_NAME=service
+      export OS_TENANT_NAME=default
+      export OS_PROJECT_DOMAIN_NAME=service
+      export OS_USERNAME=trove
+      export OS_PASSWORD={{ _trove_admin_password.stdout }}
+      export OS_USER_DOMAIN_NAME=service
+      export OS_REGION_NAME=RegionOne
+      export OS_INTERFACE=internal
+      export OS_IDENTITY_API_VERSION="3"
+    dest: "{{ ubuntu_home }}/openrc-trove"
+    owner: ubuntu
+    group: ubuntu
+    mode: "0600"
+  no_log: true

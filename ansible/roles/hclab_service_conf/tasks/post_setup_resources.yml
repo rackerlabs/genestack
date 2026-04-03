@@ -1,0 +1,53 @@
+---
+- name: Ensure OpenStack config directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config/openstack"
+    state: directory
+    mode: "0755"
+
+- name: Copy clouds.yaml from root if needed
+  ansible.builtin.copy:
+    src: /root/.config/openstack/clouds.yaml
+    dest: "{{ ansible_env.HOME }}/.config/openstack/clouds.yaml"
+    remote_src: true
+    force: false
+    mode: "0644"
+  become: true
+
+- name: Create test flavor
+  ansible.builtin.command:
+    cmd: >
+      openstack --os-cloud default flavor create {{ test_flavor_name }}
+      --public --ram {{ test_flavor_ram }} --disk {{ test_flavor_disk }} --vcpus {{ test_flavor_vcpus }}
+  register: flavor_result
+  changed_when: flavor_result.rc == 0
+  failed_when:
+    - flavor_result.rc != 0
+    - "'already exists' not in flavor_result.stderr"
+
+- name: Create flat provider network
+  ansible.builtin.command:
+    cmd: >
+      openstack --os-cloud default network create
+      --share --availability-zone-hint az1 --external
+      --provider-network-type flat --provider-physical-network physnet1 flat
+  register: network_result
+  changed_when: network_result.rc == 0
+  failed_when:
+    - network_result.rc != 0
+    - "'already exists' not in network_result.stderr"
+
+- name: Create flat subnet
+  ansible.builtin.command:
+    cmd: >
+      openstack --os-cloud default subnet create
+      --subnet-range {{ flat_network_subnet_cidr }}
+      --gateway {{ flat_network_gateway }}
+      --dns-nameserver 1.1.1.1
+      --allocation-pool start={{ flat_network_pool_start }},end={{ flat_network_pool_end }}
+      --dhcp --network flat flat_subnet
+  register: subnet_result
+  changed_when: subnet_result.rc == 0
+  failed_when:
+    - subnet_result.rc != 0
+    - "'already exists' not in subnet_result.stderr"

@@ -1,0 +1,17 @@
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  trove:
+    DEFAULT:
+      trove_api_workers: 1
+      management_networks: <management_networks>
+      management_security_groups: <management_security_groups>
+      nova_keypair: <keypair_name>
+    oslo_messaging_notifications:
+      driver: noop
+  trove_api_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1
