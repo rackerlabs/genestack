@@ -13,7 +13,7 @@ charts:
   fluent-bit: 0.48.6
   freezer: 2025.2.0+18607738c
   glance: 2025.1.4+ed289c1cd
-  gnocchi: 2024.2.52+22.15d38
+  gnocchi: 2025.1.1+0161bea65
   grafana: 10.1.0
   heat: 2025.2.12+3bc47c1e9
   horizon: 2024.2.264+13651f45-628a320c
