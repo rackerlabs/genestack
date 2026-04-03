@@ -1,21 +1,21 @@
 ---
 images:
   tags:
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
     image_repo_sync: null
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    octavia_api: "ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest"
-    octavia_db_sync: "ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest"
-    octavia_health_manager: "ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest"
-    octavia_health_manager_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    octavia_housekeeping: "ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest"
-    octavia_worker_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    octavia_worker: "ghcr.io/rackerlabs/genestack-images/octavia:2024.1-latest"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    octavia_api: "ghcr.io/rackerlabs/genestack-images/octavia:2025.1-latest"
+    octavia_db_sync: "ghcr.io/rackerlabs/genestack-images/octavia:2025.1-latest"
+    octavia_health_manager: "ghcr.io/rackerlabs/genestack-images/octavia:2025.1-latest"
+    octavia_health_manager_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    octavia_housekeeping: "ghcr.io/rackerlabs/genestack-images/octavia:2025.1-latest"
+    octavia_worker_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    octavia_worker: "ghcr.io/rackerlabs/genestack-images/octavia:2025.1-latest"
     openvswitch_vswitchd: "ghcr.io/rackerlabs/genestack-images/ovs:v3.5.1-latest"
     rabbit_init: null
     test: null
@@ -164,6 +164,9 @@ conf:
     uwsgi:
       processes: 2
       threads: 1
+      # wsgi script was removed so adding this as upstream is doing same in octavia value overrides here
+      # https://github.com/openstack/openstack-helm/blob/master/values_overrides/octavia/2025.1-ubuntu_jammy.yaml#L27
+      wsgi-file: /var/lib/openstack/bin/octavia-wsgi
 
 endpoints:
   fluentd:

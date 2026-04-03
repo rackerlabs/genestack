@@ -1,0 +1,85 @@
+---
+prelude: |
+  Redis Operator v0.24.0 adds IPv6 support for Redis Cluster client behavior,
+  expands Helm chart configurability, improves metrics exposure, and hardens
+  scaling, persistence, webhook, and cert-manager related workflows.
+
+features:
+  - |
+    Added support for exposing Redis standalone using the service type defined
+    in ``kubernetesConfig``.
+  - |
+    Added IPv6 support for Redis Cluster client commands and mocks.
+  - |
+    Added support for customizable annotations across Redis standalone,
+    RedisCluster, Sentinel, and RedisReplication chart resources.
+  - |
+    Added Redis Exporter metrics service support for cluster, replication,
+    sentinel, and standalone deployments.
+  - |
+    Added Sentinel support to the ``redis-replication`` chart.
+  - |
+    Updated Redis Helm charts to support additional already-implemented
+    properties.
+
+fixes:
+  - |
+    Fixed creation of empty PVCs when storage configuration contains only
+    ``volumeMount`` entries.
+  - |
+    Fixed chart logic for ``redisConfig`` when using ``externalConfig`` and
+    ``maxMemoryPercentOfLimit``.
+  - |
+    Fixed missing additional annotations on the replication headless service.
+  - |
+    Fixed default leader and follower replica counts so they align with
+    ``clusterSize``.
+  - |
+    Fixed ClusterRole aggregation into the admin role.
+  - |
+    Fixed cert-manager startup failures by using ``ca.crt`` instead of
+    ``ca.key``.
+  - |
+    Fixed PVC resize handling to skip shrink attempts.
+  - |
+    Fixed initContainer behavior to respect ``persistenceEnabled``.
+  - |
+    Fixed a race condition involving the global ``serviceType`` variable.
+  - |
+    Fixed RBAC namespace resource configuration.
+  - |
+    Fixed RedisCluster scaling behavior to be resilient during failover and
+    while slots are open.
+  - |
+    Fixed ACL SAVE behavior when ACL data is loaded from PVC.
+  - |
+    Fixed scale-out behavior by waiting for node convergence and blocking
+    rebalance or add-node actions while cluster slots remain open.
+  - |
+    Fixed webhook certificate secret lookup failures.
+  - |
+    Fixed a typo in dashboard datasource configuration.
+  - |
+    Fixed ``REDIS_MAX_MEMORY`` handling when
+    ``maxMemoryPercentOfLimit`` is enabled.
+
+upgrade:
+  - |
+    The mutating webhook configuration name now includes the Helm release name
+    prefix. This is a breaking change for environments that depend on the old
+    webhook naming convention.
+  - |
+    Cert-manager based deployments should verify certificate material naming,
+    because the operator now expects ``ca.crt`` instead of ``ca.key`` for the
+    affected startup path.
+
+other:
+  - |
+    Updated documentation examples for ``redisSecret`` indentation and
+    ``nodeConfVolume`` usage.
+  - |
+    Refreshed architecture documentation and fixed minor documentation typos.
+  - |
+    Updated several CI and linting dependencies, including
+    ``actions/stale``, ``actions/setup-python``, and
+    ``hadolint/hadolint-action``.

@@ -1,0 +1,97 @@
+---
+prelude: |
+  Octavia Epoxy (2025.1) adds support for SR-IOV member ports, VIP security
+  groups, and Taskflow jobboard enhancements.
+
+features:
+  - |
+    Added support for SR-IOV virtual functions (VF) on Amphora member ports.
+  - |
+    Added the ``vip_sg_ids`` parameter to the load balancer create API, allowing
+    operators to set user-defined Neutron security groups on the VIP port.
+  - |
+    Added ``vip_sg_ids`` support to the Amphora driver. When set, Octavia applies
+    the specified security groups to the VIP port and manages only the required
+    VRRP and HAProxy peer rules. This does not work with SR-IOV ports because
+    Neutron security groups are not supported there.
+  - |
+    Added support for the Taskflow Etcd jobboard backend.
+  - |
+    Added the ``[task_flow] jobboard_redis_backend_db`` option to allow use of
+    a non-default Redis database for the jobboard backend.
+upgrade:
+  - |
+    Amphora images must be updated to use the SR-IOV member port feature.
+  - |
+    During upgrade, default RBAC rules switch from Octavia Advanced RBAC to
+    Keystone default roles. As a result, ``load_balancer_*`` roles no longer
+    have access to the load balancer API unless the
+    ``octavia-advanced-rbac-policy.yaml`` override is applied.
+  - |
+    UDP load balancers require a failover after the control plane is updated in
+    order to correct the UDP rebalance issue.
+  - |
+    ``diskimage-create.sh`` now builds Ubuntu Noble (24.04) Amphora images by
+    default.
+
+critical:
+  - |
+    The default RBAC model changes during upgrade from Octavia Advanced RBAC to
+    Keystone default roles. Existing ``load_balancer_*`` roles will lose API
+    access unless the advanced RBAC override policy is retained.
+
+security:
+  - |
+    The RBAC default change to Keystone roles is less restrictive than Octavia
+    Advanced RBAC and removes some prior role scoping behavior, including global
+    observer and quota-specific roles.
+fixes:
+  - |
+    Removed orphaned ``amphora_health`` records on revert to avoid false-positive
+    failover threshold reactions.
+  - |
+    Fixed a potential ``AttributeError`` during listener update when a security
+    group rule has no protocol defined.
+  - |
+    Fixed SINGLE topology UDP behavior by sending a gratuitous ARP when a UDP
+    pool is added, improving VIP reachability after failover or IP reuse.
+  - |
+    Fixed verification of certificates signed by a private CA when using
+    Neutron endpoints.
+  - |
+    Fixed error handling in ``PlugVIPAmphora`` revert when ``db_lb`` is not
+    defined and subnet lookup raises ``NotFound``.
+  - |
+    Fixed Amphora configuration updates so the health sender also receives the
+    updated controller IP list.
+  - |
+    Fixed delayed UDP listener rebalance behavior where failed members could
+    remain in flows for up to five minutes.
+  - |
+    Reduced the HAProxy SSL cache size for HTTPS termination listeners to help
+    prevent OOM conditions during reload.
+  - |
+    Fixed L7Rule matching for ``FILE_TYPE`` with ``EQUAL_TO`` comparison.
+  - |
+    Fixed missing ``port_id`` in the ``additional_vips`` response field.
+  - |
+    Fixed a race condition during cascade delete of load balancers with multiple
+    listeners that could trigger concurrent VIP port security group updates.
+  - |
+    Ignored the serialization load balancer class in
+    ``GetAmphoraNetworkConfigs`` tasks to avoid storing full graphs in jobboard
+    details for very large load balancers.
+  - |
+    Fixed an infinite database connection retry loop in the Octavia health
+    worker.
+  - |
+    Drivers that fail to initialize are now properly removed from the enabled
+    driver list instead of remaining configured and causing API initialization
+    issues.
+  - |
+    Fixed Octavia API startup so provider driver load failures are handled
+    gracefully and failing drivers are removed from the active enabled list.
+other:
+  - |
+    Added an ``octavia-wsgi`` script for backward compatibility because pbr's
+    ``wsgi_scripts`` no longer functions with newer setuptools versions.
