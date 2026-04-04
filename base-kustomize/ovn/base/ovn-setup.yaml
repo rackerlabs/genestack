@@ -254,6 +254,89 @@ data:
       fi
     done
 
+    # Handle host VLAN interfaces if configured
+    declare -A NEW_VLANS
+    if [[ "${OVN_VLANS:-null}" != "null" ]]; then
+      IFS=',' read -r -a vlans_array <<< "$OVN_VLANS"
+      for vlan_config in ${vlans_array[@]}; do
+        IFS=':' read -r -a vlan_parts <<< "$vlan_config"
+        if [[ "${#vlan_parts[@]}" -ne 4 ]]; then
+          echo "Invalid OVN VLAN entry '${vlan_config}'. Expected interface:parent_interface:vlan_id:mtu"
+          exit 1
+        fi
+
+        VLAN_IFACE="${vlan_parts[0]}"
+        VLAN_PARENT="${vlan_parts[1]}"
+        VLAN_ID="${vlan_parts[2]}"
+        VLAN_MTU="${vlan_parts[3]}"
+
+        if [[ -z "${VLAN_IFACE}" || -z "${VLAN_PARENT}" || ! "${VLAN_ID}" =~ ^[0-9]+$ || ! "${VLAN_MTU}" =~ ^[0-9]+$ ]]; then
+          echo "Invalid OVN VLAN entry '${vlan_config}'. Expected non-empty interface and parent plus numeric vlan_id and mtu"
+          exit 1
+        fi
+
+        NEW_VLANS["${VLAN_IFACE}"]="${VLAN_PARENT}:${VLAN_ID}:${VLAN_MTU}"
+      done
+
+      if [[ "${FIRST_RUN}" == "false" ]]; then
+        PREV_VLANS=$(echo "${PREVIOUS_STATE}" | jq -r '.vlans // {}' 2>/dev/null || echo '{}')
+        if [[ "${PREV_VLANS}" != "{}" ]]; then
+          while read -r old_vlan; do
+            [[ -z "${old_vlan}" ]] && continue
+            if [[ -z "${NEW_VLANS[${old_vlan}]:-}" ]]; then
+              echo "Removing old managed VLAN interface: ${old_vlan}"
+              CURRENT_BRIDGE=$(ovs-vsctl port-to-br "${old_vlan}" 2>/dev/null || echo "")
+              if [[ -n "${CURRENT_BRIDGE}" ]]; then
+                ovs-vsctl --if-exists del-port "${CURRENT_BRIDGE}" "${old_vlan}"
+              fi
+              if ip link show "${old_vlan}" >/dev/null 2>&1; then
+                ip link del "${old_vlan}"
+              fi
+            fi
+          done < <(echo "${PREV_VLANS}" | jq -r 'keys[]')
+        fi
+      fi
+
+      for VLAN_IFACE in "${!NEW_VLANS[@]}"; do
+        IFS=':' read -r VLAN_PARENT VLAN_ID VLAN_MTU <<< "${NEW_VLANS[$VLAN_IFACE]}"
+
+        if ! ip link show "${VLAN_PARENT}" >/dev/null 2>&1; then
+          echo "Parent interface ${VLAN_PARENT} does not exist for OVN VLAN ${VLAN_IFACE}"
+          exit 1
+        fi
+
+        NEEDS_RECREATE=false
+        if ip link show "${VLAN_IFACE}" >/dev/null 2>&1; then
+          CURRENT_PARENT=$(ip -o link show dev "${VLAN_IFACE}" | sed -n 's/^[0-9]*: [^@]*@\([^:]*\):.*/\1/p')
+          CURRENT_VLAN_ID=$(ip -d link show dev "${VLAN_IFACE}" | sed -n 's/.* vlan protocol [^ ]* id \([0-9][0-9]*\).*/\1/p' | head -n 1)
+          CURRENT_MTU=$(ip -o link show dev "${VLAN_IFACE}" | awk '{for (i=1; i<=NF; i++) if ($i == "mtu") {print $(i+1); exit}}')
+
+          if [[ "${CURRENT_PARENT}" != "${VLAN_PARENT}" || "${CURRENT_VLAN_ID}" != "${VLAN_ID}" || "${CURRENT_MTU}" != "${VLAN_MTU}" ]]; then
+            echo "Recreating VLAN ${VLAN_IFACE} due to configuration changes"
+            NEEDS_RECREATE=true
+          fi
+        else
+          NEEDS_RECREATE=true
+        fi
+
+        if [[ "${NEEDS_RECREATE}" == "true" ]]; then
+          CURRENT_BRIDGE=$(ovs-vsctl port-to-br "${VLAN_IFACE}" 2>/dev/null || echo "")
+          if [[ -n "${CURRENT_BRIDGE}" ]]; then
+            ovs-vsctl --if-exists del-port "${CURRENT_BRIDGE}" "${VLAN_IFACE}"
+          fi
+          if ip link show "${VLAN_IFACE}" >/dev/null 2>&1; then
+            ip link del "${VLAN_IFACE}"
+          fi
+
+          echo "Creating VLAN ${VLAN_IFACE} on parent ${VLAN_PARENT} with id ${VLAN_ID} and MTU ${VLAN_MTU}"
+          ip link add link "${VLAN_PARENT}" name "${VLAN_IFACE}" type vlan id "${VLAN_ID}"
+        fi
+
+        ip link set dev "${VLAN_IFACE}" mtu "${VLAN_MTU}"
+        ip link set dev "${VLAN_IFACE}" up
+      done
+    fi
+
     # Handle regular port mappings
     declare -A NEW_PORTS
     if [[ "${OVN_PORT_MAPPINGS:-null}" != "null" ]]; then
@@ -378,6 +461,16 @@ data:
       BONDS_JSON="${BONDS_JSON%,}}"
     fi
 
+    VLANS_JSON="{}"
+    if [[ ${#NEW_VLANS[@]} -gt 0 ]]; then
+      VLANS_JSON="{"
+      for VLAN_IFACE in "${!NEW_VLANS[@]}"; do
+        IFS=':' read -r VLAN_PARENT VLAN_ID VLAN_MTU <<< "${NEW_VLANS[$VLAN_IFACE]}"
+        VLANS_JSON="${VLANS_JSON}\"${VLAN_IFACE}\":{\"parent\":\"${VLAN_PARENT}\",\"vlanId\":\"${VLAN_ID}\",\"mtu\":\"${VLAN_MTU}\"},"
+      done
+      VLANS_JSON="${VLANS_JSON%,}}"
+    fi
+
     PORTS_JSON="{}"
     if [[ ${#NEW_PORTS[@]} -gt 0 ]]; then
       declare -A PORTS_BY_BRIDGE
@@ -405,6 +498,7 @@ data:
       "bridges": [$(echo "$OVN_BRIDGES" | sed 's/,/","/g' | sed 's/^/"/' | sed 's/$/"/')],
       "ports": ${PORTS_JSON},
       "bonds": ${BONDS_JSON},
+      "vlans": ${VLANS_JSON},
       "bridgeMappings": "${OVN_BRIDGE_MAPPINGS}",
       "firstRun": ${FIRST_RUN}
     }
@@ -442,6 +536,8 @@ spec:
                     values:
                       - enabled
       serviceAccountName: ovn-setup
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       volumes:
         - name: pod-tmp
           emptyDir: {}
@@ -558,6 +654,8 @@ spec:
                 echo "export OVN_BONDS=${OVN_BONDS}" >> /node/ovn
                 OVN_BOND_OPTIONS=$(jq '."ovn.openstack.org/bond-options"' -r /node/annotations.json)
                 echo "export OVN_BOND_OPTIONS=${OVN_BOND_OPTIONS}" >> /node/ovn
+                OVN_VLANS=$(jq '."ovn.openstack.org/vlans"' -r /node/annotations.json)
+                echo "export OVN_VLANS=${OVN_VLANS}" >> /node/ovn
           command:
             - /bin/ash
             - -c
@@ -567,6 +665,9 @@ spec:
         - name: ovn-setup-exec
           image: "ghcr.io/rackerlabs/genestack-images/ovs:v3.5.1-latest"
           imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 0
+            privileged: true
           command:
             - bash
             - -c
