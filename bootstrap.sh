@@ -127,9 +127,9 @@ test -d "$GENESTACK_CONFIG/gateway-api" || cp -a "${BASEDIR}/etc/gateway-api" "$
 
 # Create venv and prepare Ansible
 python3 -m venv "${HOME}/.venvs/genestack"
-"${HOME}/.venvs/genestack/bin/pip" install pip --upgrade
+"${HOME}/.venvs/genestack/bin/pip" install pip poetry --upgrade
 source "${HOME}/.venvs/genestack/bin/activate" && success "Switched to venv ~/.venvs/genestack."
-pip install -r "${BASEDIR}/requirements.txt" && success "Installed ansible package."
+POETRY_VIRTUALENVS_CREATE=false poetry install --only main --no-root && success "Installed Python dependencies with Poetry."
 ansible-playbook "${BASEDIR}/scripts/get-ansible-collection-requirements.yml" \
   -e collections_file="${ANSIBLE_COLLECTION_FILE}" \
   -e user_collections_file="${USER_COLLECTION_FILE}"

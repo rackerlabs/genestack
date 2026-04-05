@@ -5,16 +5,16 @@ To work on documentation locally and preview it while developing, we can use `mk
 Start by installing the requirements for documentation.
 
 ``` shell
-pip install -r doc-requirements.txt
+poetry install --with docs --no-root
 ```
 
 !!! tip
 
-    You may want to first create a virtualenv and install requirements in there.
+    Poetry creates and manages a virtual environment automatically.
 
 Once the installation is done, run the mkdocs server locally to view your changes.
 
 ``` shell
 cd genestack/
-mkdocs serve
+poetry run mkdocs serve
 ```
