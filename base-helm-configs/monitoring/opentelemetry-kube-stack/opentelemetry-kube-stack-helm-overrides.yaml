@@ -239,8 +239,8 @@ defaultCRConfig:
           max_interval: 30s
           max_elapsed_time: 300s
 
-      otlp/tempo:
-        endpoint: "tempo.monitoring.svc.cluster.local:4317"
+      otlphttp/tempo:
+        endpoint: "http://tempo.monitoring.svc.cluster.local:4318"
         tls:
           insecure: true
 
@@ -1029,7 +1029,7 @@ collectors:
               - memory_limiter
               - batch
             exporters:
-              - otlp/tempo
+              - otlphttp/tempo
               - debug
           metrics:
             receivers:

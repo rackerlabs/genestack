@@ -1,0 +1,450 @@
+# Uncomment and kubectl apply -f <this file> to apply annotations to openstack services
+# This will re-deploy all services that have been annotated and should be done with caution...
+#---
+## Keystone
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: keystone-api
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+## Glance
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: glance-api
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+## Placement
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: placement-api
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+## Nova APIs
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: nova-api-osapi
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: nova-api-metadata
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+## Neutron API
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: neutron-server
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+## Cinder API
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: cinder-api
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+## Barbican API
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: barbican-api
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+## Nova core
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: nova-conductor
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: nova-scheduler
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+#apiVersion: apps/v1
+#kind: DaemonSet
+#metadata:
+#  name: nova-compute-default
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+## Neutron agents
+#apiVersion: apps/v1
+#kind: DaemonSet
+#metadata:
+#  name: neutron-ovn-metadata-agent-default
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+#apiVersion: apps/v1
+#kind: DaemonSet
+#metadata:
+#  name: neutron-ovn-vpn-agent-default
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+## Cinder
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: cinder-scheduler
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: cinder-volume
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: cinder-backup
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+## Heat
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: heat-api
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: heat-cfn
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: heat-engine
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+## Octavia
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: octavia-api
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: octavia-worker
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: octavia-health-manager
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: octavia-housekeeping
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+##---
+### Manila
+##apiVersion: apps/v1
+##kind: Deployment
+##metadata:
+##  name: manila-api
+##  namespace: openstack
+##spec:
+##  template:
+##    metadata:
+##      annotations:
+##        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+##
+##---
+##apiVersion: apps/v1
+##kind: Deployment
+##metadata:
+##  name: manila-scheduler
+##  namespace: openstack
+##spec:
+##  template:
+##    metadata:
+##      annotations:
+##        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+##
+##---
+##apiVersion: apps/v1
+##kind: Deployment
+##metadata:
+##  name: manila-share
+##  namespace: openstack
+##spec:
+##  template:
+##    metadata:
+##      annotations:
+##        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+##---
+### Ceilometer
+##apiVersion: apps/v1
+##kind: Deployment
+##metadata:
+##  name: ceilometer-central
+##  namespace: openstack
+##spec:
+##  template:
+##    metadata:
+##      annotations:
+##        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+##
+##---
+##apiVersion: apps/v1
+##kind: Deployment
+##metadata:
+##  name: ceilometer-notification
+##  namespace: openstack
+##spec:
+##  template:
+##    metadata:
+##      annotations:
+##        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+##
+##---
+##apiVersion: apps/v1
+##kind: DaemonSet
+##metadata:
+##  name: ceilometer-compute
+##  namespace: openstack
+##spec:
+##  template:
+##    metadata:
+##      annotations:
+##        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+##
+##---
+### Gnocchi
+##apiVersion: apps/v1
+##kind: Deployment
+##metadata:
+##  name: gnocchi-api
+##  namespace: openstack
+##spec:
+##  template:
+##    metadata:
+##      annotations:
+##        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+##
+##---
+##apiVersion: apps/v1
+##kind: Deployment
+##metadata:
+##  name: gnocchi-metricd
+##  namespace: openstack
+##spec:
+##  template:
+##    metadata:
+##      annotations:
+##        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+##
+##---
+### Skyline
+##apiVersion: apps/v1
+##kind: Deployment
+##metadata:
+##  name: skyline-apiserver
+##  namespace: openstack
+##spec:
+##  template:
+##    metadata:
+##      annotations:
+##        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+##
+##---
+##apiVersion: apps/v1
+##kind: Deployment
+##metadata:
+##  name: skyline-console
+##  namespace: openstack
+##spec:
+##  template:
+##    metadata:
+##      annotations:
+##        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+##---
+### Trove
+##apiVersion: apps/v1
+##kind: Deployment
+##metadata:
+##  name: trove-api
+##  namespace: openstack
+##spec:
+##  template:
+##    metadata:
+##      annotations:
+##        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+##
+##---
+##apiVersion: apps/v1
+##kind: Deployment
+##metadata:
+##  name: trove-conductor
+##  namespace: openstack
+##spec:
+##  template:
+##    metadata:
+##      annotations:
+##        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+##
+##---
+##apiVersion: apps/v1
+##kind: Deployment
+##metadata:
+##  name: trove-taskmanager
+##  namespace: openstack
+##spec:
+##  template:
+##    metadata:
+##      annotations:
+##        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
