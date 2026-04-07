@@ -36,6 +36,11 @@ charts:
   octavia: 2025.1.18+12458c92d
   postgres-operator: 1.15.1
   prometheus-pushgateway: 3.4.2
+<<<<<<< HEAD
+=======
+  prometheus-rabbitmq-exporter: 1.13.0
+  prometheus-snmp-exporter: 9.8.1
+>>>>>>> 30368642 (chore: OSPC-1929: Epoxy octavia and redis updates (#1471))
   redis-operator: 0.24.0
   redis-replication: 0.17.0
   redis-sentinel: 0.16.12
