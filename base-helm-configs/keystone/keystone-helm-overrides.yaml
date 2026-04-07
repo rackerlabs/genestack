@@ -1,20 +1,20 @@
 ---
 images:
   tags:
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
     image_repo_sync: null
-    keystone_api: "ghcr.io/rackerlabs/genestack-images/keystone:2024.1-latest"
-    keystone_credential_cleanup: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    keystone_credential_rotate: "ghcr.io/rackerlabs/genestack-images/keystone:2024.1-latest"
-    keystone_credential_setup: "ghcr.io/rackerlabs/genestack-images/keystone:2024.1-latest"
-    keystone_db_sync: "ghcr.io/rackerlabs/genestack-images/keystone:2024.1-latest"
-    keystone_domain_manage: "ghcr.io/rackerlabs/genestack-images/keystone:2024.1-latest"
-    keystone_fernet_rotate: "ghcr.io/rackerlabs/genestack-images/keystone:2024.1-latest"
-    keystone_fernet_setup: "ghcr.io/rackerlabs/genestack-images/keystone:2024.1-latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    keystone_api: "ghcr.io/rackerlabs/genestack-images/keystone:2025.1-latest"
+    keystone_credential_cleanup: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    keystone_credential_rotate: "ghcr.io/rackerlabs/genestack-images/keystone:2025.1-latest"
+    keystone_credential_setup: "ghcr.io/rackerlabs/genestack-images/keystone:2025.1-latest"
+    keystone_db_sync: "ghcr.io/rackerlabs/genestack-images/keystone:2025.1-latest"
+    keystone_domain_manage: "ghcr.io/rackerlabs/genestack-images/keystone:2025.1-latest"
+    keystone_fernet_rotate: "ghcr.io/rackerlabs/genestack-images/keystone:2025.1-latest"
+    keystone_fernet_setup: "ghcr.io/rackerlabs/genestack-images/keystone:2025.1-latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     rabbit_init: null
     test: null
 
@@ -93,8 +93,6 @@ conf:
       # https://opendev.org/openstack/oslo.messaging/commit/36fb5bceabe08a982ebd52e4a8f005cd26fdf6b8
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
-      # DEPRECIATION:  (warning) heartbeat_in_pthread will be deprecated in 2024.2
-      heartbeat_in_pthread: true
       # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
