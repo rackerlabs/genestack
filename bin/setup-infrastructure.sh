@@ -70,6 +70,31 @@ if [ -z "${COMPUTE_INTERFACE}" ]; then
   echo "          The script will use the last interface found ${COMPUTE_INTERFACE}"
 fi
 
+if [ -n "${OVN_EXTERNAL_VLAN_INTERFACE:-}${OVN_EXTERNAL_VLAN_PARENT:-}${OVN_EXTERNAL_VLAN_ID:-}${OVN_EXTERNAL_VLAN_MTU:-}" ]; then
+  for required_var in OVN_EXTERNAL_VLAN_INTERFACE OVN_EXTERNAL_VLAN_PARENT OVN_EXTERNAL_VLAN_ID OVN_EXTERNAL_VLAN_MTU; do
+    if [ -z "${!required_var:-}" ]; then
+      echo "[ERROR] ${required_var} must be set when configuring OVN-created VLAN interfaces"
+      exit 1
+    fi
+  done
+
+  export OVN_EXTERNAL_INTERFACE="${OVN_EXTERNAL_VLAN_INTERFACE}"
+  VLAN_SPEC="${OVN_EXTERNAL_VLAN_INTERFACE}:${OVN_EXTERNAL_VLAN_PARENT}:${OVN_EXTERNAL_VLAN_ID}:${OVN_EXTERNAL_VLAN_MTU}"
+  if [ -n "${OVN_VLANS:-}" ]; then
+    export OVN_VLANS="${OVN_VLANS},${VLAN_SPEC}"
+  else
+    export OVN_VLANS="${VLAN_SPEC}"
+  fi
+fi
+
+if [ -z "${OVN_EXTERNAL_INTERFACE}" ]; then
+  if ip link show bond0.126 >/dev/null 2>&1; then
+    export OVN_EXTERNAL_INTERFACE=bond0.126
+  else
+    export OVN_EXTERNAL_INTERFACE=${COMPUTE_INTERFACE}
+  fi
+fi
+
 if [ "${COMPUTE_INTERFACE}" = "${CONTAINER_INTERFACE}" ]; then
   echo "[ERROR] The compute interface cannot be the same as the container interface"
   exit 1
@@ -86,7 +111,13 @@ kubectl annotate \
 kubectl annotate \
         nodes \
         -l openstack-compute-node=enabled -l openstack-network-node=enabled \
-        ovn.openstack.org/ports="br-ex:${COMPUTE_INTERFACE}"
+        ovn.openstack.org/ports="br-ex:${OVN_EXTERNAL_INTERFACE}"
+if [ -n "${OVN_VLANS:-}" ]; then
+kubectl annotate \
+        nodes \
+        -l openstack-compute-node=enabled -l openstack-network-node=enabled \
+        ovn.openstack.org/vlans="${OVN_VLANS}"
+fi
 kubectl annotate \
         nodes \
         -l openstack-compute-node=enabled -l openstack-network-node=enabled \
@@ -198,4 +229,3 @@ kubectl apply -k /etc/genestack/kustomize/ovn/base
 
 # Deploy Redis Sentinel
 /opt/genestack/bin/install-redis-sentinel.sh
-
