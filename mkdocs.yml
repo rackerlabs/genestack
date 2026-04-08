@@ -168,7 +168,6 @@ nav:
                   - Kubernetes Taint: k8s-taint.md
               - Plugins and Tools: k8s-tools.md
               - Retrieve kube config: k8s-config.md
-              - Prometheus: prometheus.md
           - Storage:
               - storage-overview.md
               - Ceph Internal: storage-ceph-rook-internal.md
@@ -191,8 +190,6 @@ nav:
               - Redis: infrastructure-redis.md
               - Libvirt: infrastructure-libvirt.md
               - OVN: infrastructure-ovn-setup.md
-              - FluentBit: infrastructure-fluentbit.md
-              - Loki: infrastructure-loki.md
           - OpenStack:
               - openstack-overview.md
               - OpenStack Services:
@@ -234,17 +231,18 @@ nav:
                   - Trove:
                       - Deployment: openstack-trove.md
                       - MySQL Images: openstack-trove-mysql-images.md
-          - Monitoring:
-              - Monitoring Overview: monitoring-info.md
+          - Monitoring and Observability:
+              - Monitoring and Observability Overview: monitoring-observability-overview.md
               - Getting Started: monitoring-getting-started.md
-              - Grafana: grafana.md
+              - Opentelemetry: monitoring-opentelemetry.md
+              - Prometheus: monitoring-prometheus.md
+              - Loki: monitoring-loki.md
+              - Grafana: monitoring-grafana.md
               - Openstack Metrics Exporter: prometheus-openstack-metrics-exporter.md
               - Custom Node Metrics: prometheus-custom-node-metrics.md
-              - Kube-OVN Monitoring: prometheus-kube-ovn.md
               - Pushgateway: prometheus-pushgateway.md
               - Barbican Exporter: openstack-barbican-exporter.md
               - Designate Exporter: openstack-designate-exporter.md
-              - Custom Node Metrics: prometheus-custom-node-metrics.md
               - Alert Manager Examples:
                   - alertmanager-slack.md
                   - alertmanager-msteams.md

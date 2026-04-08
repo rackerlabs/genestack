@@ -39,7 +39,7 @@ The alternative is to create the rules within your observability platform, in Ge
 
 You can view the rest of the default alerting rule configurations in the Genestack repo [alerting rules](https://github.com/rackerlabs/genestack/blob/main/base-helm-configs/prometheus/alerting_rules.yaml) yaml file.
 
-To deploy any new rules you would simply run the [Prometheus Deployment](prometheus.md) and Helm/Prometheus will take care of updating the configurations from there.
+To deploy any new rules you would simply run the [Prometheus Deployment](monitoring-prometheus.md) and Helm/Prometheus will take care of updating the configurations from there.
 !!! example "Run the Prometheus deployment"
 
     ``` shell

@@ -1,6 +1,6 @@
-# Deploy Custom Metrics
+# Create Custom Node Metrics
 
-We can utilize the Node Exporter deployed by Prometheus to collect custom metrics that may not be available from other exporters.
+Opentelemetry installs the textfile collector to collect custom metrics that may not be available from other exporters.
 
 For more information visit: [Node Exporter Textfile Collectors](https://github.com/prometheus/node_exporter?tab=readme-ov-file#textfile-collector)
 

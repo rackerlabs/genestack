@@ -102,8 +102,6 @@ The kube-prometheus-stack is the foundation of your metrics infrastructure. It p
 - **Prometheus Operator** - Manages Prometheus lifecycle via CRDs
 - **Prometheus Server** - Collects and stores metrics (15-day retention)
 - **AlertManager** - Routes alerts to notification channels
-- **Node Exporter** - Exports node hardware and OS metrics
-- **Kube State Metrics** - Exports Kubernetes cluster state metrics
 - **Grafana** - Pre-configured with Prometheus datasource (optional, we'll install separately)
 
 ### Installation
@@ -167,6 +165,9 @@ helm install loki grafana/loki \
   -n monitoring \
   -f /etc/genestack/helm-configs/loki/loki-helm-overrides.yaml
 ```
+
+**📚 For detailed configuration, see the [Loki installation guide](monitoring-loki.md).**
+
 
 ### Verify Installation
 
@@ -232,6 +233,9 @@ curl http://localhost:3100/ready
 - **OpenTelemetry native** - First-class OTLP support
 
 ---
+
+**📚 For more information, see the [Tempo installation guide](monitoring-tempo.md).**
+
 
 ## Step 4: Install OpenTelemetry
 
@@ -312,6 +316,8 @@ kubectl -n monitoring logs daemonset/opentelemetry-kube-stack-daemon-collector -
 # Verify metrics are being sent to Prometheus
 kubectl -n monitoring logs deployment/opentelemetry-kube-stack-deployment-collector --tail=50 | grep "prometheusremotewrite"
 ```
+**📚 For more information, see the [Opentelemetry installation guide](monitoring-opentelemetry.md).**
+
 
 ### Key Features
 
@@ -323,9 +329,9 @@ kubectl -n monitoring logs deployment/opentelemetry-kube-stack-deployment-collec
 ### Configuration
 
 OpenTelemetry exporters are configured to send data to:
-- **Prometheus** - `http://kube-prometheus-stack-prometheus.monitoring.svc:9090/api/v1/write`
-- **Loki** - `http://loki-gateway.monitoring.svc/otlp`
-- **Tempo** - `tempo.monitoring.svc:4317`
+- **Prometheus** - `http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/write`
+- **Loki** - `http://loki-gateway.monitoring.svc.cluster.local/otlp`
+- **Tempo** - `http://tempo.monitoring.svc.cluster.local:4318`
 
 All within the same `monitoring` namespace for simplified networking.
 
@@ -570,18 +576,6 @@ Apply the custom rules:
 ```bash
 kubectl apply -f /etc/genestack/helm-configs/prometheus/alerting_rules.yaml
 ```
-
-### Operator-Provided Alerting Rules
-
-Many Genestack operators include built-in ServiceMonitor and PodMonitor resources with pre-configured alerts:
-
-- **RabbitMQ Operator** - Queue depth, consumer count, node health ([documentation](infrastructure-rabbitmq.md#rabbitmq-operator-monitoring))
-- **PostgreSQL Operator** - Replication lag, connection limits, deadlocks
-- **MariaDB Operator** - Replication status, slow queries
-
-These operator-managed rules follow best practices and are automatically deployed with the operator.
-
----
 
 ## Verification and Testing
 
@@ -837,11 +831,11 @@ kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:909
 
 ### Documentation
 
-- [Observability Stack Overview](monitoring-info.md) - Comprehensive architecture guide
-- [Base Component Metrics Reference](otel-base-metrics.md) - K8s and related component metrics 
-- [Additional Component Metrics Reference](otel-ext-metrics.md) - Database and additional component metrics 
-- [Prometheus Documentation](prometheus.md) - Prometheus-specific configuration
-- [Grafana Documentation](grafana.md) - Grafana-specific configuration
+- [Observability Stack Overview](monitoring-overservability-overview.md) - Comprehensive architecture guide
+- [Base Component Metrics Reference](monitoring-otel-base-metrics.md) - K8s and related component metrics 
+- [Additional Component Metrics Reference](monitoring-otel-ext-metrics.md) - Database and additional component metrics 
+- [Prometheus Documentation](monitoring-prometheus.md) - Prometheus-specific configuration
+- [Grafana Documentation](monitoring-grafana.md) - Grafana-specific configuration
 - [AlertManager Slack Integration](alertmanager-slack.md) - Slack notifications
 
 ### External Documentation

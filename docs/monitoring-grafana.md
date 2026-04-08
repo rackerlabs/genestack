@@ -11,7 +11,7 @@ Before running the script, you will need to create a secret file with your datab
     ??? example "Example secret generation"
 
         ``` shell
-        kubectl --namespace grafana \
+        kubectl --namespace monitoring \
                 create secret generic grafana-db \
                 --type Opaque \
                 --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)" \
@@ -33,7 +33,7 @@ Before running the deployment script, you must set the `custom_host` value `graf
 
 === "Default"
 
-    The default installation is simple. The `grafana-helm-overrides.yaml` file is located at `/etc/genestack/helm-configs/grafana/` and overrides can be set there to customize the installation.
+    The default installation is simple. The `grafana-helm-overrides.yaml` file is located at `/etc/genestack/helm-configs/monitoring/grafana/` and overrides can be set there to customize the installation.
 
 === "Azure Integrated"
 
@@ -58,7 +58,7 @@ Before running the deployment script, you must set the `custom_host` value `graf
     !!! example "azure-overrides.yaml"
 
         ``` yaml
-        --8<-- "base-helm-configs/grafana/azure-overrides.yaml.example"
+        --8<-- "base-helm-configs/monitoring/grafana/azure-overrides.yaml.example"
         ```
 
 ### Listeners and Routes
