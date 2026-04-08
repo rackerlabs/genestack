@@ -1,4 +1,3 @@
----
 # Copyright 2024, Rackspace Technology, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +23,7 @@
   ansible.builtin.file:
     path: "{{ lookup('env','HOME') }}/.kube/{{ cluster_name }}"
     state: directory
-    recurse: True
+    recurse: true
     mode: '0700'
 
 - name: Get kubernetes client
@@ -37,23 +36,23 @@
       host: "{{ groups['k8s_cluster'][0] }}"
 
 - block:
-  - name: Get kubernetes config
-    ansible.posix.synchronize:
-      mode: pull
-      src: "{{ item.user }}@{{ item.host }}:/root/.kube/config"
-      dest: "{{ lookup('env','HOME') }}/.kube/{{ cluster_name }}/"
+    - name: Get kubernetes config
+      ansible.posix.synchronize:
+        mode: pull
+        src: "{{ item.user }}@{{ item.host }}:/root/.kube/config"
+        dest: "{{ lookup('env','HOME') }}/.kube/{{ cluster_name }}/"
       #dest: "{{ lookup('env','HOME') }}/.kube/"
-    loop:
-      - user: "{{ ansible_become_user |default('root') }}"
-        host: "{{ groups['k8s_cluster'][0] }}"
+      loop:
+        - user: "{{ ansible_become_user |default('root') }}"
+          host: "{{ groups['k8s_cluster'][0] }}"
 
-  - name: Set path to kubectl config
-    ansible.builtin.set_fact:
-      kubeconfig_file: "{{ lookup('env','HOME') }}/.kube/{{ cluster_name }}/config"
+    - name: Set path to kubectl config
+      ansible.builtin.set_fact:
+        kubeconfig_file: "{{ lookup('env','HOME') }}/.kube/{{ cluster_name }}/config"
 
-  - name: "Display configuration"
-    ansible.builtin.debug:
-      msg: "{{ item.name }}: {{ item.value }}"
-    loop:
-      - name: "Kubectl Config (updated)"
-        value: "{{ kubeconfig_file }}"
+    - name: "Display configuration"
+      ansible.builtin.debug:
+        msg: "{{ item.name }}: {{ item.value }}"
+      loop:
+        - name: "Kubectl Config (updated)"
+          value: "{{ kubeconfig_file }}"

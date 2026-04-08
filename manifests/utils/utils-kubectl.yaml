@@ -4,14 +4,14 @@ metadata:
   name: kubectl
 spec:
   containers:
-  - name: kubectl
-    image: alpine/k8s:1.26.11
-    command:
-      - sleep
-      - "infinity"
-    imagePullPolicy: IfNotPresent
-    resources:
-      limits:
-        cpu: "1"
-        memory: "1Gi"
+    - name: kubectl
+      image: alpine/k8s:1.26.11
+      command:
+        - sleep
+        - "infinity"
+      imagePullPolicy: IfNotPresent
+      resources:
+        limits:
+          cpu: "1"
+          memory: "1Gi"
   restartPolicy: Always

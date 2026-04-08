@@ -79,7 +79,7 @@
       ansible.builtin.copy:
         src: "{{ ansible_env.HOME }}/capi_mgmt_private_key"
         dest: /home/ubuntu/capi_mgmt_cluster_keypair
-        mode: 0400
+        mode: "0400"
 
     - name: copy the capi mgmt cluster inventory to the bootstrp vm
       ansible.builtin.copy:

@@ -582,13 +582,16 @@ spec:
       containers:
         - name: rook-ceph-operator
           image: rook/ceph:master
-          args: ["ceph", "operator"]
+          args:
+            - "ceph"
+            - "operator"
           securityContext:
             runAsNonRoot: true
             runAsUser: 2016
             runAsGroup: 2016
             capabilities:
-              drop: ["ALL"]
+              drop:
+                - "ALL"
           volumeMounts:
             - mountPath: /var/lib/rook
               name: rook-config

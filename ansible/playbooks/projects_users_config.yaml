@@ -1,0 +1,55 @@
+---
+- name: Sync OpenStack Projects and Users
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  vars:
+    inferred_openstack_roles: >-
+      {{
+        (
+          openstack_users | default([])
+          | selectattr('role', 'defined')
+          | map(attribute='role')
+          | map('regex_replace', '^(.*)$', '{"name": "\\1"}')
+          | map('from_yaml')
+          | list
+        )
+      }}
+    desired_openstack_roles: >-
+      {{
+        (
+          openstack_roles | default([])
+        ) + inferred_openstack_roles
+      }}
+  tasks:
+    - name: Ensure Projects Exist
+      openstack.cloud.project:
+        state: "{{ item.state | default('present') }}"
+        name: "{{ item.name }}"
+        description: "{{ item.description | default(omit) }}"
+        domain_id: "default"
+      loop: "{{ openstack_projects | default([]) }}"
+
+    - name: Ensure Roles Exist
+      openstack.cloud.identity_role:
+        state: "{{ item.state | default('present') }}"
+        name: "{{ item.name }}"
+      loop: "{{ desired_openstack_roles | unique(attribute='name') }}"
+
+    - name: Ensure Users Exist
+      openstack.cloud.identity_user:
+        state: "{{ item.state | default('present') }}"
+        name: "{{ item.name }}"
+        password: "{{ item.password }}"
+        domain: "default"
+        default_project: "{{ item.project | default(omit) }}"
+      loop: "{{ openstack_users | default([]) }}"
+
+    - name: Assign Roles to Users on Projects
+      openstack.cloud.role_assignment:
+        state: "{{ item.state | default('present') }}"
+        user: "{{ item.name }}"
+        project: "{{ item.project }}"
+        role: "{{ item.role | default('member') }}"
+      loop: "{{ openstack_users | default([]) }}"
+      when: item.project is defined and item.role is defined
