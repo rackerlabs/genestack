@@ -32,13 +32,14 @@ lb_mgmt_secgrp_name: "lb-mgmt-secgroup"
 # these are the defaults for the flavor, image and ssh keypair
 amphora_ssh_key_name: amphora-ssh-key
 amphora_flavor_name: m1.amphora
-amphora_image_version: focal
+amphora_image_version: noble
 amphora_image_name: amphora-ubuntu-{{ amphora_image_version }}
 amphora_image_url: "https://tarballs.opendev.org/openstack/octavia/test-images/test-only-amphora-x64-haproxy-ubuntu-{{ amphora_image_version }}.qcow2"
 
 # these are the defaults for certs
 octavia_create_certs: true
 octavia_certs_dir: "{{ lookup('env', 'HOME') }}/octavia_certs"
+octavia_tmp_dir: "{{ lookup('env', 'HOME') }}/octavia"
 octavia_cert_key_bits: 4096
 octavia_key_type: "RSA"
 octavia_key_passwd: 'not-secure-passphrase'
