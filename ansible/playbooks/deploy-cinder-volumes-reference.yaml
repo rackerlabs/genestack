@@ -159,17 +159,6 @@
       notify:
         - Restart cinder-volume and cinder-backup systemd services
 
-    - name: Deploy rxt-volume rootwrap filters to rootwrap.d
-      ansible.builtin.copy:
-        content: "{{ _kubernetes_cinder_etc_secret.resources[0].data['rxt-volume.filters'] | b64decode }}"
-        dest: /etc/cinder/rootwrap.d/rxt-volume.filters
-        owner: root
-        group: root
-        mode: "0644"
-      when: _kubernetes_cinder_etc_secret.resources[0].data['rxt-volume.filters'] is defined
-      notify:
-        - Restart cinder-volume and cinder-backup systemd services
-
     - name: Create the cinder-volume configuration stage file
       changed_when: false
       ansible.builtin.copy:
