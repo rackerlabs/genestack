@@ -7,12 +7,12 @@ to maintain the health of our systems.
 ## Overview
 
 In this document we'll dive a bit deeper into the alerting components and how they're configured and used to maintain the health of our genestack.
-Please take a look at the [Monitoring Information Doc](monitoring-info.md) for more information regarding how the metrics and stats are collected in order to make use of our alerting mechanisms.
+Please take a look at the [Monitoring Information Doc](monitoring-observability-overview.md) for more information regarding how the metrics and stats are collected in order to make use of our alerting mechanisms.
 
 ## Prometheus Alerting
 
-As noted in the [Monitoring Information Doc](monitoring-info.md) we make heavy use of [Prometheus](https://prometheus.io) and within the Genestack workflow specifically we deploy the [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) which handles deployment of the Prometheus servers, operators, alertmanager and various other components.
-Genestack uses Prometheus for metrics and stats collection and overall monitoring of its systems that are described in the [Monitoring Information Doc](monitoring-info.md).
+As noted in the [Monitoring Information Doc](monitoring-observability-overview.md) we make heavy use of [Prometheus](https://prometheus.io) and within the Genestack workflow specifically we deploy the [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) which handles deployment of the Prometheus servers, operators, alertmanager and various other components.
+Genestack uses Prometheus for metrics and stats collection and overall monitoring of its systems that are described in the [Monitoring Information Doc](monitoring-observability-overview.md).
 With the metrics and stats collected we can now use Prometheus to generate alerts based on those metrics and stats using the Prometheus [Alerting Rules](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/).
 The Prometheus alerting rules allows us to define conditions we want to escalate using the [Prometheus expression language](https://prometheus.io/docs/prometheus/latest/querying/basics/) which can be visualized and sent to an external notification systems for further action.
 

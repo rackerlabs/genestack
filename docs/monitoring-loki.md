@@ -10,8 +10,6 @@ Loki is a horizontally-scalable, highly-available, multi-tenant log aggregation 
     --8<-- "bin/install-loki.sh"
     ```
 
-!!! tip
-
 === "Swift _(Recommended)_"
 
     !!! abstract

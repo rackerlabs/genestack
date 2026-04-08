@@ -136,7 +136,7 @@ kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:909
 # You should see targets for node-exporter and kube-state-metrics
 ```
 
-**📚 For detailed configuration, see the [Prometheus installation guide](prometheus.md).**
+**📚 For detailed configuration, see the [Prometheus installation guide](monitoring-prometheus.md).**
 
 ---
 
@@ -412,7 +412,7 @@ python3 scripts/import-grafana-dashboard.py \
 # Dashboards → Import → Enter dashboard ID from grafana.com
 ```
 
-**📚 For more information, see the [Grafana documentation](grafana.md).**
+**📚 For more information, see the [Grafana documentation](monitoring-grafana.md).**
 
 ---
 
@@ -430,7 +430,6 @@ However, if you need additional service-specific exporters, they are available f
 
 - **OpenStack Exporter** - [OpenStack API metrics](prometheus-openstack-metrics-exporter.md)
 - **Custom Node Metrics** - [Custom Node Metrics](prometheus-custom-node-metrics.md)
-- **OVN Metrics** - [OVN Metrics](prometheus-kube-ovn.md)
 - **Push Gateway** - [Prometheus Push Gateway](prometheus-pushgateway.md)
 
 ### When to Use Additional Exporters
@@ -831,7 +830,7 @@ kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:909
 
 ### Documentation
 
-- [Observability Stack Overview](monitoring-overservability-overview.md) - Comprehensive architecture guide
+- [Observability Stack Overview](monitoring-observability-overview.md) - Comprehensive architecture guide
 - [Base Component Metrics Reference](monitoring-otel-base-metrics.md) - K8s and related component metrics 
 - [Additional Component Metrics Reference](monitoring-otel-ext-metrics.md) - Database and additional component metrics 
 - [Prometheus Documentation](monitoring-prometheus.md) - Prometheus-specific configuration

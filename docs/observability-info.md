@@ -240,7 +240,7 @@ Prometheus collects metrics from multiple sources:
 - **Message Queues** - 20+ RabbitMQ metrics
 - **Cache** - 15+ Memcached metrics
 
-For a complete list, see the [Base Metrics Reference](otel-base-metrics.md) and [Additional Metrics Reference](otel-ext-metrics.md).
+For a complete list, see the [Base Metrics Reference](monitoring-otel-base-metrics.md) and [Additional Metrics Reference](monitoring-otel-ext-metrics.md).
 
 We have covered Prometheus, Prometheus alerting and the AlertManager in greater detail in the [Monitoring](monitoring-observability-overview.md) and [Alerting](alerting-info.md) documentation.
 
@@ -319,7 +319,7 @@ An example dashboard showing project lookup across services:
     ```
 ![project lookup example](assets/images/project-lookup-example.png)
 
-For additional information view the [Grafana](monitoring-observability-overview.md#grafana) portion of the [Monitoring Info](monitoring-oberservability-overview.md) documentation.
+For additional information view the [Grafana](monitoring-observability-overview.md#grafana) portion of the [Monitoring Info](monitoring-observability-overview.md) documentation.
 
 ## The Three Pillars of Observability
 
@@ -467,7 +467,7 @@ While Genestack provides a relatively comprehensive set of tooling and instructi
 - [Observability Stack Overview](monitoring-observability-overview.md) - Architecture details
 - [Base Component Metrics Reference](monitoring-otel-base-metrics.md) - K8s and related component metrics 
 - [Additional Component Metrics Reference](monitoring-otel-ext-metrics.md) - Database and additional component metrics 
-- [Monitoring Info](monitoring-oberservability-overview.md) - Prometheus configuration
+- [Monitoring Info](monitoring-observability-overview.md) - Prometheus configuration
 - [Alerting Info](alerting-info.md) - AlertManager setup
 - [Loki Installation](monitoring-loki.md) - Loki deployment
 
