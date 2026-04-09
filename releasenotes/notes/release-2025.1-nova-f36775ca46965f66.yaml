@@ -1,0 +1,55 @@
+---
+prelude: |
+  Nova upgrade from to Epoxy (2025.1). Helm chart changes between
+  2024.2.555+13651f45-628a320c and 2025.1.19+ed289c1cd.
+
+features:
+  - |
+    Added chart support for Nova serial console proxy with new serialproxy
+    deployment, service, ingress, endpoint, TLS secret, and manifest toggles.
+  - |
+    Added support for projected config sources mounted into
+    ``/etc/nova/nova.conf.d`` using ``pod.etcSources.*`` to simplify
+    out-of-band config overrides.
+  - |
+    Added optional Keystone service-account snippet secret (``secret_ks_etc``)
+    for injecting credential sections into ``nova.conf.d``.
+  - |
+    Added runtime class and priority class hooks in pod templates for improved
+    scheduling and workload isolation customization.
+
+issues:
+  - |
+    Validate ``new/nova/templates/service-serialproxy.yaml`` selector behavior
+    before production use of serial console; the service selector tuple appears
+    to use ``noa`` instead of ``nova`` and may fail to match pods if unpatched.
+  - |
+    Secret handling by install-nova.sh fixed in:
+    PR #1429 <https://github.com/rackerlabs/genestack/pull/1429>__
+
+upgrade:
+  - |
+    Default compute API endpoint path changed from
+    ``/v2.1/%(tenant_id)s`` to ``/v2.1/``. Validate endpoint URL rewrite rules,
+    service catalog entries, and client assumptions.
+  - |
+    New ``endpoints.volumev3`` defaults were introduced and Nova cinder
+    auth settings are now more explicit (including ``auth_type`` default).
+    Validate cinder endpoint path/catalog assumptions during upgrade.
+  - |
+    Nova service processes now consistently load ``--config-dir
+    /etc/nova/nova.conf.d`` in addition to the main config file. Ensure any
+    custom overrides are reconciled with the new snippet-loading behavior.
+  - |
+    Check quota unified limits for resource classes without registered limits
+    when migrating from legacy quotas to unified limits quotas.
+    ``unified_limits_resource_strategy`` default is ``require``
+  - |
+    Default identity usernames for service integrations now use
+    ``nova_*`` naming (for neutron, placement, cinder, ironic) and add a
+    dedicated ``service`` identity. Legacy keystone users may
+    no longer be needed.
+  - |
+    The new Nova helm chart iterates through endpoints.identity.auth
+    for user configuration. endpoints.identity.auth may require
+    modification/removal.

@@ -143,9 +143,10 @@ GENERATED_FILE=$(mktemp)
 EXISTING_NAMES_FILE=$(mktemp)
 MISSING_SECRETS_FILE=$(mktemp)
 
-if [[ -f "${OUTPUT_FILE}" ]]; then
-    cp "${OUTPUT_FILE}" "${OUTPUT_FILE}.bak.${backup_suffix}"
-    echo "Backed up existing ${OUTPUT_FILE} to ${OUTPUT_FILE}.bak.${backup_suffix}"
+if [[ -f ${OUTPUT_FILE} ]]; then
+    echo "Notice: ${OUTPUT_FILE} already exists."
+    echo "        Reusing existing secrets file to avoid mass rotation."
+    exit 0
 fi
 
 cleanup() {

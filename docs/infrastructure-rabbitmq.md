@@ -1,5 +1,10 @@
 # Deploy the RabbitMQ Operator and a RabbitMQ Cluster
 
+<!-- Genestack Epoxy RabbitMQ Deprecations
+Genestack now pins the RabbitMQ server image explicitly in the RabbitmqCluster
+manifest for the Epoxy release path instead of relying on operator defaults.
+-->
+
 ## Deploy the RabbitMQ operator.
 
 ``` shell
@@ -72,3 +77,18 @@ kubectl get prometheusrule -n prometheus -o name | xargs -I {} kubectl label -n 
 ```
 This will get all the rules in prometheus namespace and apply `release=kube-prometheus-stack` label. At this point the alerts will be configured
 in prometheus.
+
+## Epoxy upgrade notes
+
+Genestack targets RabbitMQ `4.1.4` for the Epoxy release path. The
+`RabbitmqCluster` manifest pins `spec.image` explicitly to
+`rabbitmq:4.1.4-management` so upgrades remain predictable and do not depend on
+operator default image changes.
+
+When upgrading an existing environment, re-apply the RabbitMQ cluster manifest
+so that the intended RabbitMQ image is reconciled.
+
+!!! warning
+
+    Upgrading the RabbitMQ cluster operator can trigger a rolling update of the
+    managed RabbitMQ StatefulSet.
