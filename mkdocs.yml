@@ -205,7 +205,6 @@ nav:
                       - LVM iSCSI: openstack-cinder-lvmisci.md
                       - NETAPP:
                           - Worker: openstack-cinder-netapp-worker.md
-                          - Containerized: openstack-cinder-netapp-container.md
                       - FIPS Cinder Encryption: openstack-cinder-fips-encryption.md
                   - Compute Kit:
                       - Compute Overview: openstack-compute-kit.md
