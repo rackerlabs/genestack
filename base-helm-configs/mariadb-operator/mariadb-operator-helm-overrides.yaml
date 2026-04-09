@@ -96,7 +96,10 @@ resources: {}
 nodeSelector: {}
 
 # -- Tolerations to add to controller Pod
-tolerations: []
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
 
 # -- topologySpreadConstraints to add to controller Pod
 topologySpreadConstraints: []
@@ -110,10 +113,8 @@ affinity:
     requiredDuringSchedulingIgnoredDuringExecution:
       nodeSelectorTerms:
         - matchExpressions:
-            - key: node-role.kubernetes.io/worker
-              operator: In
-              values:
-                - worker
+            - key: node-role.kubernetes.io/control-plane
+              operator: Exists
   # -- Pod anti-affinity to ensure pods are scheduled on different nodes.
   podAntiAffinity:
     requiredDuringSchedulingIgnoredDuringExecution:
@@ -165,7 +166,7 @@ webhook:
       duration: ""
       # -- Renew before duration to be used in the Certificate resource.
       renewBefore: ""
-      # -- The maximum number of CertificateRequest revisions that are maintained in the Certificate’s history.
+      # -- The maximum number of CertificateRequest revisions that are maintained in the Certificate's history.
       revisionHistoryLimit: 3
     # -- Annotatioms to be added to webhook TLS secret.
     secretAnnotations: {}
@@ -230,7 +231,10 @@ webhook:
   # -- Node selectors to add to webhook Pod
   nodeSelector: {}
   # -- Tolerations to add to webhook Pod
-  tolerations: []
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
   # -- topologySpreadConstraints to add to webhook Pod
   topologySpreadConstraints: []
   # -- priorityClassName to add to webhook Pod
@@ -241,10 +245,8 @@ webhook:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
           - matchExpressions:
-              - key: node-role.kubernetes.io/worker
-                operator: In
-                values:
-                  - worker
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
     # -- Pod anti-affinity to ensure pods are scheduled on different nodes.
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -332,13 +334,36 @@ certController:
   # -- Node selectors to add to cert-controller container
   nodeSelector: {}
   # -- Tolerations to add to cert-controller container
-  tolerations: []
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
   # -- topologySpreadConstraints to add to cert-controller container
   topologySpreadConstraints: []
   # -- priorityClassName to add to cert-controller container
   priorityClassName: ""
   # -- Affinity to add to cert-controller container
-  affinity: {}
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
+    # -- Pod anti-affinity to ensure pods are scheduled on different nodes.
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - mariadb-operator-cert-controller
+              - key: app.kubernetes.io/instance
+                operator: In
+                values:
+                  - mariadb-operator
+          topologyKey: kubernetes.io/hostname
   pdb:
     # -- Enable PodDisruptionBudget for the cert-controller.
     enabled: true

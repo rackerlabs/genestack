@@ -30,15 +30,9 @@ jobs:
             curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
             chmod +x ./kubectl
           fi
-      - name: Extract Chart Version
-        id: chart_version
-        run: |
-          VERSION=$(grep 'x-chart-version' ${{ github.workspace }}/base-helm-configs/mariadb-operator/mariadb-operator-helm-overrides.yaml | awk -F'"' '{print $2}')
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
       - name: Run Helm Template
         run: |
           ${{ steps.helm.outputs.helm-path }} template mariadb-operator mariadb-operator --repo https://mariadb-operator.github.io/mariadb-operator \
-            --version ${{ steps.chart_version.outputs.version }} \
             --namespace=mariadb-system \
             --create-namespace \
             --wait \
