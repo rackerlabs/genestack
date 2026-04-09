@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    A new override `force_proxy_setting` is introduced to control when proxy
+    environment variables are added into the shell and systemd environment.
+    In some circumstances, adding system-wide HTTP proxy environment variables
+    can cause issues with dbus, rendering systemd inoperable and stopping all
+    systemd operations including reboot. This can happen if the proxy server
+    does not allow reverse connections or blocks requests to localhost when `NO_PROXY`
+    is improperly configured.
