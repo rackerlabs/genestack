@@ -50,8 +50,15 @@ export MARIADB_ROOT_PASSWORD=$(kubectl get secret mariadb -n openstack \
 
 ### 2. Create full database backup
 
+Identify the primary pod first, then run the backup from it:
+
 ```bash
-kubectl exec -i mariadb-cluster-0 -n openstack -- mariadb-dump \
+PRIMARY_POD=$(kubectl get mariadb mariadb-cluster -n openstack -o jsonpath="{.status.currentPrimary}")
+echo "Primary pod: $PRIMARY_POD"
+```
+
+```bash
+kubectl exec -i "$PRIMARY_POD" -n openstack -- mariadb-dump \
   -u root -p"$MARIADB_ROOT_PASSWORD" \
   --all-databases \
   --single-transaction \
@@ -68,7 +75,7 @@ ls -lh mariadb-cluster-full-backup-*.sql | tail -1
 ### 3. Check database sizes
 
 ```sql
-kubectl exec -it mariadb-cluster-0 -n openstack -- mariadb -u root -p"$MARIADB_ROOT_PASSWORD" -e "
+kubectl exec -it "$PRIMARY_POD" -n openstack -- mariadb -u root -p"$MARIADB_ROOT_PASSWORD" -e "
 SELECT
   table_schema AS 'Database',
   ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS 'Size_MB'
@@ -85,7 +92,7 @@ Determine your cluster topology and run the appropriate checks:
 === "Galera Cluster"
 
     ```sql
-    kubectl exec -it mariadb-cluster-0 -n openstack -- mariadb -u root -p"$MARIADB_ROOT_PASSWORD" -e "
+    kubectl exec -it "$PRIMARY_POD" -n openstack -- mariadb -u root -p"$MARIADB_ROOT_PASSWORD" -e "
     SHOW STATUS LIKE 'wsrep_cluster_size';
     SHOW STATUS LIKE 'wsrep_cluster_status';
     SHOW STATUS LIKE 'wsrep_ready';"
@@ -173,7 +180,7 @@ kubectl get crd | grep mariadb
 === "MariaDB Image"
 
     ```bash
-    kubectl get pods mariadb-cluster-0 \
+    kubectl get pods "$PRIMARY_POD" \
         -n openstack \
         -o jsonpath="{..image}" \
         | tr -s '[:space:]' '\n' | sort -u
