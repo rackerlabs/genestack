@@ -995,19 +995,177 @@ collectors:
               method: GET
           collection_interval: 30s
 
-      processors:
-        # Add service identification
-        resource/service-metrics:
-          attributes:
-            - key: service.namespace
-              value: "openstack"
-              action: upsert
-            - key: job
-              value: "opentelemetry-deployment"
-              action: upsert
-            - key: instance
-              value: "deployment-collector"
-              action: upsert
+        prometheus/infra:
+          config:
+            scrape_configs:
+              - job_name: cert-manager
+                kubernetes_sd_configs:
+                  - role: pod
+                    namespaces:
+                      names:
+                        - cert-manager
+                relabel_configs:
+                  - source_labels:
+                      - __meta_kubernetes_pod_annotation_prometheus_io_scrape
+                    regex: "true"
+                    action: keep
+                  - source_labels:
+                      - __meta_kubernetes_pod_annotation_prometheus_io_path
+                    regex: "(.+)"
+                    target_label: __metrics_path__
+                  - source_labels:
+                      - __address__
+                      - __meta_kubernetes_pod_annotation_prometheus_io_port
+                    regex: "([^:]+)(?::\\d+)?;(\\d+)"
+                    replacement: "$$1:$$2"
+                    target_label: __address__
+                  - source_labels:
+                      - __meta_kubernetes_pod_name
+                    target_label: pod
+                  - source_labels:
+                      - __meta_kubernetes_namespace
+                    target_label: namespace
+                  - source_labels:
+                      - __meta_kubernetes_pod_label_app_kubernetes_io_component
+                    target_label: component
+
+              - job_name: metallb
+                metrics_path: /metrics
+                kubernetes_sd_configs:
+                  - role: pod
+                    namespaces:
+                      names:
+                        - metallb-system
+                relabel_configs:
+                  - source_labels:
+                      - __meta_kubernetes_pod_label_app_kubernetes_io_component
+                    regex: "controller|speaker"
+                    action: keep
+                  - source_labels:
+                      - __meta_kubernetes_pod_container_port_number
+                    regex: "7472"
+                    action: keep
+                  - source_labels:
+                      - __meta_kubernetes_pod_label_app_kubernetes_io_component
+                    target_label: component
+                  - source_labels:
+                      - __meta_kubernetes_pod_name
+                    target_label: pod
+                  - source_labels:
+                      - __meta_kubernetes_namespace
+                    target_label: namespace
+
+              - job_name: kube-ovn-monitor
+                kubernetes_sd_configs:
+                  - role: endpoints
+                    namespaces:
+                      names:
+                        - kube-system
+                relabel_configs:
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    regex: "kube-ovn-monitor"
+                    action: keep
+                  - source_labels:
+                      - __meta_kubernetes_endpoint_port_name
+                    regex: "metrics"
+                    action: keep
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    target_label: service
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    target_label: job
+                  - source_labels:
+                      - __meta_kubernetes_namespace
+                    target_label: namespace
+                  - source_labels:
+                      - __meta_kubernetes_pod_name
+                    target_label: pod
+
+              - job_name: kube-ovn-controller
+                kubernetes_sd_configs:
+                  - role: endpoints
+                    namespaces:
+                      names:
+                        - kube-system
+                relabel_configs:
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    regex: "kube-ovn-controller"
+                    action: keep
+                  - source_labels:
+                      - __meta_kubernetes_endpoint_port_name
+                    regex: "metrics"
+                    action: keep
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    target_label: service
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    target_label: job
+                  - source_labels:
+                      - __meta_kubernetes_namespace
+                    target_label: namespace
+                  - source_labels:
+                      - __meta_kubernetes_pod_name
+                    target_label: pod
+
+              - job_name: kube-ovn-cni
+                kubernetes_sd_configs:
+                  - role: endpoints
+                    namespaces:
+                      names:
+                        - kube-system
+                relabel_configs:
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    regex: "kube-ovn-cni"
+                    action: keep
+                  - source_labels:
+                      - __meta_kubernetes_endpoint_port_name
+                    regex: "metrics"
+                    action: keep
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    target_label: service
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    target_label: job
+                  - source_labels:
+                      - __meta_kubernetes_namespace
+                    target_label: namespace
+                  - source_labels:
+                      - __meta_kubernetes_pod_name
+                    target_label: pod
+
+              - job_name: kube-ovn-pinger
+                kubernetes_sd_configs:
+                  - role: endpoints
+                    namespaces:
+                      names:
+                        - kube-system
+                relabel_configs:
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    regex: "kube-ovn-pinger"
+                    action: keep
+                  - source_labels:
+                      - __meta_kubernetes_endpoint_port_name
+                    regex: "metrics"
+                    action: keep
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    target_label: service
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    target_label: job
+                  - source_labels:
+                      - __meta_kubernetes_namespace
+                    target_label: namespace
+                  - source_labels:
+                      - __meta_kubernetes_pod_name
+                    target_label: pod
 
       service:
         telemetry:
@@ -1038,9 +1196,9 @@ collectors:
               - postgresql
               - rabbitmq
               - memcached
+              - prometheus/infra
 #              - httpcheck # uncomment to add endpoint checking metrics with above endpoint config...
             processors:
-              - resource/service-metrics
               - resourcedetection/env
               - memory_limiter
               - batch

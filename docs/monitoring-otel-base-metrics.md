@@ -1,6 +1,6 @@
 # OpenTelemetry Base Metrics Collection - Complete Reference
 
-This document describes all metrics collected by your OpenTelemetry configuration and where they come from.
+This document describes the metrics collected by the current OpenTelemetry + Prometheus configuration and where they come from.
 
 ---
 
@@ -8,11 +8,12 @@ This document describes all metrics collected by your OpenTelemetry configuratio
 
 1. [Metrics Collection Architecture](#metrics-collection-architecture)
 2. [OTel Collector Metrics](#otel-collector-metrics)
-3. [Kubernetes Component Metrics](#kubernetes-component-metrics)
-4. [Node and System Metrics](#node-and-system-metrics)
-5. [Application Metrics](#application-metrics)
-6. [Metric Label Reference](#metric-label-reference)
-7. [Troubleshooting](#troubleshooting)
+3. [Infrastructure Metrics](#infrastructure-metrics)
+4. [Kubernetes Component Metrics](#kubernetes-component-metrics)
+5. [Node and System Metrics](#node-and-system-metrics)
+6. [Application Metrics](#application-metrics)
+7. [Metric Label Reference](#metric-label-reference)
+8. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -20,71 +21,89 @@ This document describes all metrics collected by your OpenTelemetry configuratio
 
 ### Collection Flow
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                      METRICS SOURCES                                │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ┌─────────────────┐                         ┌─────────────────┐    │
-│  │ Applications    │                         │ Host Metrics    │    │
-│  │ (OTLP)          │                         │ (node-level)    │    │
-│  └────────┬────────┘                         └────────┬────────┘    │
-│           │                                           │             │
-│           └──────────────────┬────────────────────────┘             │
-│                              │                                      │
-│                              ▼                                      │
-│               ┌──────────────────────────┐                          │
-│               │ OTel Collector DaemonSet │                          │
-│               │  (on each node)          │                          │
-│               └──────────┬───────────────┘                          │
-│                          │                                          │
-│                          ▼                                          │
-│               ┌──────────────────────────┐                          │
-│               │ Prometheus Remote Write  │                          │
-│               │ (:9090/api/v1/write)     │                          │
-│               └──────────────────────────┘                          │
-│                                                                     │
-├─────────────────────────────────────────────────────────────────────┤
-│              PROMETHEUS DIRECT SCRAPING (ServiceMonitors)           │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐             │
-│  │ API      │  │ Scheduler│  │ Ctrl Mgr │  │ Kubelet  │             │
-│  │ Server   │  │          │  │          │  │ cAdvisor │ ...         │
-│  └─────┬────┘  └─────┬────┘  └─────┬────┘  └─────┬────┘             │
-│        │             │             │             │                  │
-│        └─────────────┼─────────────┼─────────────┘                  │
-│                      │             │                                │
-│                      ▼             ▼                                │
-│           ┌──────────────────────────────┐                          │
-│           │ Prometheus Server (scrape)   │                          │
-│           └──────────────────────────────┘                          │
-└─────────────────────────────────────────────────────────────────────┘
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           METRICS SOURCES                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌─────────────────┐   ┌─────────────────┐   ┌──────────────────────────┐   │
+│  │ Applications    │   │ Host Metrics    │   │ Infra Receivers          │   │
+│  │ (OTLP)          │   │ (node-level)    │   │ MySQL / PostgreSQL /     │   │
+│  │                 │   │                 │   │ RabbitMQ / Memcached     │   │
+│  └────────┬────────┘   └────────┬────────┘   └────────────┬─────────────┘   │
+│           │                     │                         │                 │
+│           │                     ▼                         │                 │
+│           │        ┌──────────────────────────┐           │                 │
+│           │        │ OTel Collector DaemonSet │           │                 │
+│           │        │   (on each node)         │           │                 │
+│           │        └──────────┬───────────────┘           │                 │
+│           │                   │                           │                 │
+│           └───────────────────┼───────────────┬───────────┘                 │
+│                               │               │                             │
+│                               ▼               ▼                             │
+│                  ┌────────────────────────────────────────┐                 │
+│                  │ OTel Collector Deployment              │                 │
+│                  │ (cluster-wide OTLP + infra scraping)   │                 │
+│                  └──────────────────┬─────────────────────┘                 │
+│                                     │                                       │
+│                                     ▼                                       │
+│                  ┌────────────────────────────────────────┐                 │
+│                  │ Prometheus Remote Write                │                 │
+│                  │   (:9090/api/v1/write)                 │                 │
+│                  └────────────────────────────────────────┘                 │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                PROMETHEUS DIRECT SCRAPING (ServiceMonitors)                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐   ┌──────────┐  ┌──────────────┐  │
+│  │ API      │  │ Scheduler│  │ Ctrl Mgr │   │ CoreDNS  │  │ etcd / Proxy │  │
+│  │ Server   │  │          │  │          │   │          │  │ / KSM / Node │  │
+│  └─────┬────┘  └─────┬────┘  └─────┬────┘   └────┬─────┘  └──────┬───────┘  │
+│        │             │             │             │               │          │
+│        └─────────────┼─────────────┼─────────────┼───────────────┘          │
+│                      │             │             │                          │
+│                      ▼             ▼             ▼                          │
+│                    ┌──────────────────────────────┐                         │
+│                    │   Prometheus Server (scrape) │                         │
+│                    └──────────────────────────────┘                         │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Key Components
 
-1. **OTel Collector DaemonSet**: Runs on every node, collects node-local metrics
-2. **Prometheus Server**: Scrapes Kubernetes components directly via ServiceMonitors
-3. **Remote Write**: OTel collectors push metrics to Prometheus
+1. **OTel Collector DaemonSet**: runs on every node and collects node-local host metrics.
+2. **OTel Collector Deployment**: receives OTLP metrics and scrapes infrastructure/service metrics.
+3. **Prometheus Server**: scrapes Kubernetes components directly via ServiceMonitors.
+4. **Remote Write**: OTel collectors push their metrics into Prometheus via remote write.
+
+### Important Design Notes
+
+- `hostmetrics` is **enabled** in the daemon collector and wired into the daemon metrics pipeline.
+- `kubeletMetrics` preset is **disabled** in both collectors.
+- Prometheus direct kubelet scraping is also **disabled** because `kubelet.enabled: false`.
+- `resource_to_telemetry_conversion` is enabled on the Prometheus remote write exporter, so OTel resource attributes become Prometheus labels.
+- `target_info` is disabled on the Prometheus remote write exporter.
+- The `httpcheck` receiver is configured with targets, but it is **currently commented out of the deployment metrics pipeline**. Its metric families are documented below so the reference stays complete for the configured receiver.
 
 ---
 
 ## OTel Collector Metrics
 
-These metrics are collected by the OTel collector and sent to Prometheus via remote write.
+These metrics are collected by the OTel collectors and sent to Prometheus via remote write.
 
 ### 1. Host Metrics (from hostmetrics receiver)
 
-**Source**: hostmetrics receiver on each node  
-**Collection Interval**: 30s  
-**Labels**: `k8s_node_name`, `host_name`, `service_instance_id`
+**Source**: `hostmetrics` receiver on each node  
+**Collector**: OTel DaemonSet  
+**Collection Interval**: `30s`  
+**Labels**: `k8s_node_name`, `host_name`, `service_instance_id` plus converted resource attributes
 
 #### CPU Metrics
 
 | Metric Name | Type | Description | Labels |
 |-------------|------|-------------|--------|
-| `system_cpu_time_seconds_total` | Counter | CPU time by state | `cpu`, `state` (user, system, idle, iowait, irq, softirq, steal, nice) |
+| `system_cpu_time_seconds_total` | Counter | CPU time by state | `cpu`, `state` |
 | `system_cpu_utilization_ratio` | Gauge | CPU utilization (0-1) | `cpu`, `state` |
 | `system_cpu_load_average_1m` | Gauge | 1-minute load average | - |
 | `system_cpu_load_average_5m` | Gauge | 5-minute load average | - |
@@ -94,14 +113,14 @@ These metrics are collected by the OTel collector and sent to Prometheus via rem
 
 | Metric Name | Type | Description | Labels |
 |-------------|------|-------------|--------|
-| `system_memory_usage_bytes` | Gauge | Memory usage | `state` (used, free, buffered, cached, slab_reclaimable, slab_unreclaimable) |
+| `system_memory_usage_bytes` | Gauge | Memory usage by state | `state` |
 | `system_memory_utilization_ratio` | Gauge | Memory utilization (0-1) | `state` |
 
 #### Disk Metrics
 
 | Metric Name | Type | Description | Labels |
 |-------------|------|-------------|--------|
-| `system_disk_io_bytes_total` | Counter | Disk I/O bytes | `device`, `direction` (read, write) |
+| `system_disk_io_bytes_total` | Counter | Disk I/O bytes | `device`, `direction` |
 | `system_disk_operations_total` | Counter | Disk operations count | `device`, `direction` |
 | `system_disk_io_time_seconds_total` | Counter | Disk I/O time | `device` |
 | `system_disk_weighted_io_time_seconds_total` | Counter | Weighted I/O time | `device` |
@@ -112,17 +131,17 @@ These metrics are collected by the OTel collector and sent to Prometheus via rem
 
 | Metric Name | Type | Description | Labels |
 |-------------|------|-------------|--------|
-| `system_filesystem_usage_bytes` | Gauge | Filesystem usage | `device`, `type`, `mode`, `mountpoint`, `state` (used, free, reserved) |
+| `system_filesystem_usage_bytes` | Gauge | Filesystem usage by state | `device`, `type`, `mode`, `mountpoint`, `state` |
 | `system_filesystem_utilization_ratio` | Gauge | Filesystem utilization (0-1) | `device`, `type`, `mode`, `mountpoint` |
-| `system_filesystem_inodes_usage` | Gauge | Inode usage | `device`, `type`, `mode`, `mountpoint`, `state` |
+| `system_filesystem_inodes_usage` | Gauge | Inode usage by state | `device`, `type`, `mode`, `mountpoint`, `state` |
 
-**Note**: Excludes pseudo-filesystems: `/dev/*`, `/proc/*`, `/sys/*`, `/run/*`, overlay, tmpfs, etc.
+**Note**: Excludes pseudo-filesystems and mounts such as `/dev/*`, `/proc/*`, `/sys/*`, `/run/*`, `overlay`, `tmpfs`, `cgroup*`, and similar filesystem types.
 
 #### Network Metrics
 
 | Metric Name | Type | Description | Labels |
 |-------------|------|-------------|--------|
-| `system_network_io_bytes_total` | Counter | Network I/O bytes | `device`, `direction` (transmit, receive) |
+| `system_network_io_bytes_total` | Counter | Network I/O bytes | `device`, `direction` |
 | `system_network_packets_total` | Counter | Network packets | `device`, `direction` |
 | `system_network_errors_total` | Counter | Network errors | `device`, `direction` |
 | `system_network_dropped_total` | Counter | Dropped packets | `device`, `direction` |
@@ -132,354 +151,577 @@ These metrics are collected by the OTel collector and sent to Prometheus via rem
 
 | Metric Name | Type | Description | Labels |
 |-------------|------|-------------|--------|
-| `system_paging_usage_bytes` | Gauge | Swap usage | `device`, `state` (used, free) |
-| `system_paging_operations_total` | Counter | Page in/out operations | `type` (major, minor), `direction` |
+| `system_paging_usage_bytes` | Gauge | Swap usage | `device`, `state` |
+| `system_paging_operations_total` | Counter | Page in/out operations | `type`, `direction` |
 | `system_paging_faults_total` | Counter | Page faults | `type` |
 
-#### Process Metrics
+#### Not Collected by hostmetrics in This Config
 
-| Metric Name | Type | Description | Labels |
-|-------------|------|-------------|--------|
-| `system_processes_count` | Gauge | Process count | `status` (running, blocked, etc.) |
-| `system_processes_created_total` | Counter | Processes created | - |
+The following hostmetrics scrapers are **not enabled** in the current configuration:
 
----
+- `process`
+- `processes`
 
-### 2. Pod and Container Metrics (from Prometheus cAdvisor scraping)
+That means this config does **not** collect hostmetrics process metrics such as:
 
-**Source**: Prometheus scraping kubelet's cAdvisor endpoint `https://<node-ip>:10250/metrics/cadvisor`  
-**Scrape Interval**: 30s (default)  
-**Labels**: Includes pod, container, namespace, node, image labels
-
-**Note**: In your configuration, kubeletstats receiver is **disabled** to avoid duplicate sample errors. Instead, pod and container metrics come from Prometheus directly scraping kubelet/cAdvisor via ServiceMonitor. These metrics use the `container_*` prefix instead of `k8s_pod_*` or `k8s_container_*`.
-
-#### Container CPU Metrics
-
-| Metric Name | Type | Description | Labels | kubeletstats Equivalent |
-|-------------|------|-------------|--------|-------------------------|
-| `container_cpu_usage_seconds_total` | Counter | Total CPU time used | `container`, `pod`, `namespace`, `node` | `k8s_container_cpu_time_seconds_total` |
-| `container_cpu_cfs_periods_total` | Counter | CFS scheduler periods | `container`, `pod`, `namespace` | - |
-| `container_cpu_cfs_throttled_periods_total` | Counter | Throttled periods | `container`, `pod`, `namespace` | - |
-| `container_cpu_cfs_throttled_seconds_total` | Counter | Time throttled | `container`, `pod`, `namespace` | - |
-
-**Query Examples**:
-```promql
-# CPU usage rate (cores)
-rate(container_cpu_usage_seconds_total{container!=""}[5m])
-
-# Per-pod CPU usage
-sum by (pod, namespace) (rate(container_cpu_usage_seconds_total{container!=""}[5m]))
-
-# CPU throttling percentage
-rate(container_cpu_cfs_throttled_seconds_total[5m]) 
-  / 
-rate(container_cpu_cfs_periods_total[5m]) * 100
-```
-
-#### Container Memory Metrics
-
-| Metric Name | Type | Description | Labels | kubeletstats Equivalent |
-|-------------|------|-------------|--------|-------------------------|
-| `container_memory_usage_bytes` | Gauge | Current memory usage | `container`, `pod`, `namespace`, `node` | `k8s_container_memory_usage_bytes` |
-| `container_memory_working_set_bytes` | Gauge | Working set size (used for OOM) | `container`, `pod`, `namespace`, `node` | `k8s_container_memory_working_set_bytes` |
-| `container_memory_rss` | Gauge | Resident set size | `container`, `pod`, `namespace`, `node` | `k8s_container_memory_rss_bytes` |
-| `container_memory_cache` | Gauge | Page cache | `container`, `pod`, `namespace` | - |
-| `container_memory_swap` | Gauge | Swap usage | `container`, `pod`, `namespace` | - |
-| `container_memory_failcnt` | Counter | Memory allocation failures | `container`, `pod`, `namespace` | - |
-| `container_memory_failures_total` | Counter | Memory limit hit count | `container`, `pod`, `namespace`, `failure_type`, `scope` | - |
-
-**Query Examples**:
-```promql
-# Current memory usage
-container_memory_working_set_bytes{container!=""}
-
-# Per-pod memory usage
-sum by (pod, namespace) (container_memory_working_set_bytes{container!=""})
-
-# Memory usage as % of limit
-container_memory_working_set_bytes{container!=""}
-  /
-container_spec_memory_limit_bytes{container!=""} * 100
-```
-
-#### Container Network Metrics
-
-| Metric Name | Type | Description | Labels | kubeletstats Equivalent |
-|-------------|------|-------------|--------|-------------------------|
-| `container_network_receive_bytes_total` | Counter | Network RX bytes | `pod`, `namespace`, `interface` | `k8s_pod_network_io_bytes_total{direction="receive"}` |
-| `container_network_transmit_bytes_total` | Counter | Network TX bytes | `pod`, `namespace`, `interface` | `k8s_pod_network_io_bytes_total{direction="transmit"}` |
-| `container_network_receive_packets_total` | Counter | Network RX packets | `pod`, `namespace`, `interface` | - |
-| `container_network_transmit_packets_total` | Counter | Network TX packets | `pod`, `namespace`, `interface` | - |
-| `container_network_receive_packets_dropped_total` | Counter | RX packets dropped | `pod`, `namespace`, `interface` | - |
-| `container_network_transmit_packets_dropped_total` | Counter | TX packets dropped | `pod`, `namespace`, `interface` | - |
-| `container_network_receive_errors_total` | Counter | RX errors | `pod`, `namespace`, `interface` | `k8s_pod_network_errors_total{direction="receive"}` |
-| `container_network_transmit_errors_total` | Counter | TX errors | `pod`, `namespace`, `interface` | `k8s_pod_network_errors_total{direction="transmit"}` |
-
-**Query Examples**:
-```promql
-# Network receive rate (bytes/sec)
-rate(container_network_receive_bytes_total[5m])
-
-# Per-pod network bandwidth
-sum by (pod, namespace) (
-  rate(container_network_receive_bytes_total[5m]) +
-  rate(container_network_transmit_bytes_total[5m])
-)
-```
-
-#### Container Filesystem Metrics
-
-| Metric Name | Type | Description | Labels | kubeletstats Equivalent |
-|-------------|------|-------------|--------|-------------------------|
-| `container_fs_usage_bytes` | Gauge | Filesystem usage | `container`, `pod`, `namespace`, `device` | `k8s_container_filesystem_usage_bytes` |
-| `container_fs_limit_bytes` | Gauge | Filesystem limit | `container`, `pod`, `namespace`, `device` | `k8s_container_filesystem_capacity_bytes` |
-| `container_fs_reads_total` | Counter | Filesystem reads | `container`, `pod`, `namespace`, `device` | - |
-| `container_fs_writes_total` | Counter | Filesystem writes | `container`, `pod`, `namespace`, `device` | - |
-| `container_fs_reads_bytes_total` | Counter | Bytes read | `container`, `pod`, `namespace`, `device` | - |
-| `container_fs_writes_bytes_total` | Counter | Bytes written | `container`, `pod`, `namespace`, `device` | - |
-| `container_fs_inodes_total` | Gauge | Total inodes | `container`, `pod`, `namespace`, `device` | - |
-| `container_fs_inodes_free` | Gauge | Free inodes | `container`, `pod`, `namespace`, `device` | - |
-
-**Query Examples**:
-```promql
-# Filesystem usage
-container_fs_usage_bytes{container!=""}
-
-# Filesystem usage %
-container_fs_usage_bytes{container!=""}
-  /
-container_fs_limit_bytes{container!=""} * 100
-
-# I/O rate
-rate(container_fs_reads_bytes_total[5m]) + 
-rate(container_fs_writes_bytes_total[5m])
-```
-
-#### Container Limits and Requests
-
-| Metric Name | Type | Description | Labels |
-|-------------|------|-------------|--------|
-| `container_spec_cpu_quota` | Gauge | CPU quota (microseconds per period) | `container`, `pod`, `namespace` |
-| `container_spec_cpu_period` | Gauge | CPU period (microseconds) | `container`, `pod`, `namespace` |
-| `container_spec_cpu_shares` | Gauge | CPU shares | `container`, `pod`, `namespace` |
-| `container_spec_memory_limit_bytes` | Gauge | Memory limit | `container`, `pod`, `namespace` |
-| `container_spec_memory_reservation_limit_bytes` | Gauge | Memory soft limit | `container`, `pod`, `namespace` |
-| `container_spec_memory_swap_limit_bytes` | Gauge | Memory + swap limit | `container`, `pod`, `namespace` |
-
-**Query Examples**:
-```promql
-# CPU limit in cores
-container_spec_cpu_quota / container_spec_cpu_period
-
-# Memory limit
-container_spec_memory_limit_bytes{container!=""}
-```
-
-#### Pod-Level Aggregations
-
-Since cAdvisor reports per-container metrics, aggregate to pod level:
-
-```promql
-# Pod CPU usage (sum of all containers in pod)
-sum by (pod, namespace, node) (
-  rate(container_cpu_usage_seconds_total{container!=""}[5m])
-)
-
-# Pod memory usage (sum of all containers in pod)
-sum by (pod, namespace, node) (
-  container_memory_working_set_bytes{container!=""}
-)
-
-# Pod network I/O (already at pod level, not container level)
-rate(container_network_receive_bytes_total[5m]) +
-rate(container_network_transmit_bytes_total[5m])
-```
-
-#### Special Labels
-
-**Important label filters**:
-- `container!=""` - Excludes pod-level aggregates (use for per-container metrics)
-- `container=""` - Shows only pod-level aggregates
-- `container!="POD"` - Excludes pause containers in older K8s versions
-- `image!=""` - Excludes special system containers
-
-**Label mappings from cAdvisor**:
-- `pod` → Kubernetes pod name (cAdvisor)
-- `k8s_pod_name` → Kubernetes pod name (kubeletstats)
-- `namespace` → Kubernetes namespace (cAdvisor)
-- `k8s_namespace_name` → Kubernetes namespace (kubeletstats)
-- `container` → Container name (cAdvisor)
-- `k8s_container_name` → Container name (kubeletstats)
+- `system_processes_count`
+- `system_processes_created_total`
 
 ---
 
-### 3. kubeletstats Metrics (DISABLED in Current Config)
-
-**Status**: ⚠️ **DISABLED** - kubeletstats receiver is disabled to prevent duplicate sample errors.
-
-The kubeletstats receiver would provide `k8s_pod_*` and `k8s_container_*` metrics, but these overlap significantly with the `container_*` metrics from cAdvisor (above). 
-
-**Why disabled**: Multiple OTel collectors were sending identical metrics with identical timestamps to Prometheus, causing "duplicate sample" and "out of order sample" errors. The issue persisted even with proper node-level filtering.
-
-**Alternative**: Use the `container_*` metrics from Prometheus/cAdvisor instead (see section above for equivalent queries).
-
-**If you need kubeletstats metrics**: They can be re-enabled via the `kubeletMetrics` preset, but you may experience duplicate sample warnings in Prometheus logs. Most metrics will still work despite the warnings.
-
----
-
-### 3. Application Metrics (via OTLP)
+### 2. OTLP Application Metrics
 
 **Source**: Applications sending metrics to OTel collector via OTLP  
-**Endpoints**: 
+**Collector**: OTel Deployment
+
+**Endpoints**:
 - gRPC: `:4317`
 - HTTP: `:4318`
 
-Applications instrumented with OpenTelemetry SDKs can send custom metrics. These vary by application but commonly include:
+Applications instrumented with OpenTelemetry SDKs can send custom metrics. These vary by application, but commonly include:
 
-- Request counts, durations, error rates
-- Business metrics (transactions, users, etc.)
-- Resource usage from application perspective
-- Custom application-specific metrics
+- Request counts
+- Request durations
+- Error counts/rates
+- Business metrics
+- Application-specific resource and usage metrics
 
-**Labels**: Enriched with Kubernetes metadata via `k8sattributes` processor:
-- `k8s_namespace_name`
-- `k8s_pod_name`
-- `k8s_node_name`
-- `k8s_deployment_name`, `k8s_statefulset_name`, etc.
-- Pod labels: `app`, `app_kubernetes_io_name`, `app_kubernetes_io_component`, etc.
+**Metadata enrichment**:
+- Resource attributes are preserved and converted to Prometheus labels by remote write
+- Kubernetes metadata is added where available through the `k8sattributes` processor
+
+---
+
+### 3. kubeletstats Metrics (DISABLED)
+
+**Status**: ⚠️ **DISABLED**
+
+The `kubeletMetrics` preset is disabled in both the daemon and deployment collectors, so OTel is **not** collecting `k8s_pod_*` / `k8s_container_*` metrics from the kubeletstats receiver.
+
+---
+
+### 4. HTTP Endpoint Check Metrics
+
+**Source**: `httpcheck` receiver  
+**Collector**: OTel Deployment  
+**Configured Collection Interval**: `30s`  
+**Configured Targets**:
+- `https://nova.api.example.com`
+- `https://neutron.api.example.com`
+- `https://keystone.api.example.com`
+- `https://octavia.api.example.com`
+- `https://glance.api.example.com`
+- `https://heat.api.example.com`
+- `https://cinder.api.example.com`
+- `https://cloudformation.api.example.com`
+- `https://placement.api.example.com`
+- `https://barbican.api.example.com`
+- `https://magnum.api.example.com`
+- `https://masakari.api.example.com`
+- `https://novnc.api.example.com/vnc_auto.html`
+
+#### HTTP Check Metric Families
+
+| Metric Name | Type | Description | Labels |
+|-------------|------|-------------|--------|
+| `httpcheck.status` | Gauge | Result of the HTTP endpoint check, typically success/failure state | `target`, `method`, others |
+| `httpcheck.duration` | Gauge | Total check duration | `target`, `method`, others |
+| `httpcheck.dns_duration` | Gauge | DNS lookup duration | `target`, `method`, others |
+| `httpcheck.connect_duration` | Gauge | TCP connect duration | `target`, `method`, others |
+| `httpcheck.tls_duration` | Gauge | TLS handshake duration for HTTPS targets | `target`, `method`, others |
+| `httpcheck.first_byte_duration` | Gauge | Time to first byte | `target`, `method`, others |
+| `httpcheck.response_duration` | Gauge | Response read duration | `target`, `method`, others |
+
+#### Optional TLS Certificate Metrics
+
+Depending on receiver options, HTTP/TLS checking can also expose certificate-related metrics such as certificate expiry timing. Those are not explicitly enabled in the pasted config, so they should be treated as optional rather than guaranteed.
+
+#### Current Status in This Config
+
+The receiver is configured, but it is currently commented out in the deployment collector metrics pipeline:
+
+```yaml
+#              - httpcheck # uncomment to add endpoint checking metrics with above endpoint config...
+```
+
+So the receiver and target list are defined, but **its metrics are not currently emitted until it is uncommented in the pipeline**.
+
+---
+
+## Infrastructure Metrics
+
+These metrics are collected by the OTel deployment collector and remote-written to Prometheus.
+
+### 1. MySQL Metrics
+
+**Source**: `mysql` receiver  
+**Collector**: OTel Deployment  
+**Endpoint**: `mariadb-cluster-internal.openstack.svc.cluster.local:3306`  
+**Collection Interval**: `30s`
+
+Enabled metric families:
+
+| Metric Name | Type | Description |
+|-------------|------|-------------|
+| `mysql.connection.count` | Gauge / Sum | Current and cumulative connection metrics |
+| `mysql.connection.errors` | Sum | MySQL connection error counters |
+| `mysql.commands` | Sum | Command execution counters by command type |
+| `mysql.buffer_pool.usage` | Gauge | InnoDB buffer pool usage |
+| `mysql.threads` | Gauge | MySQL thread counts |
+| `mysql.locks` | Gauge / Sum | Lock-related MySQL metrics |
+
+**Notes**:
+- Exact emitted series depend on the MySQL server status variables available.
+- These are OpenTelemetry semantic metric names before export; Prometheus naming may reflect translation by the exporter.
+
+---
+
+### 2. PostgreSQL Metrics
+
+**Source**: `postgresql` receiver  
+**Collector**: OTel Deployment  
+**Endpoint**: `postgres-cluster.openstack.svc.cluster.local:5432`  
+**Collection Interval**: `30s`
+
+Enabled metric families:
+
+| Metric Name | Type | Description |
+|-------------|------|-------------|
+| `postgresql.backends` | Gauge | PostgreSQL backend connections |
+| `postgresql.commits` | Sum | Transaction commits |
+| `postgresql.rollbacks` | Sum | Transaction rollbacks |
+| `postgresql.db_size` | Gauge | Database size |
+| `postgresql.deadlocks` | Sum | Deadlock count |
+| `postgresql.blocks_read` | Sum | Blocks read from disk |
+
+**Notes**:
+- Exact labels vary by database and server version.
+- Only the explicitly enabled PostgreSQL metrics are collected.
+
+---
+
+### 3. RabbitMQ Metrics
+
+**Source**: `rabbitmq` receiver  
+**Collector**: OTel Deployment  
+**Endpoint**: `http://rabbitmq.openstack.svc.cluster.local:15672`  
+**Collection Interval**: `30s`
+
+Enabled metric families:
+
+| Metric Name | Type | Description |
+|-------------|------|-------------|
+| `rabbitmq.node.disk_free` | Gauge | Free disk space on the node |
+| `rabbitmq.node.disk_free_limit` | Gauge | Configured disk free limit |
+| `rabbitmq.node.disk_free_alarm` | Gauge | Whether disk free alarm is active |
+| `rabbitmq.node.mem_used` | Gauge | Memory used |
+| `rabbitmq.node.mem_limit` | Gauge | Memory limit |
+| `rabbitmq.node.mem_alarm` | Gauge | Whether memory alarm is active |
+| `rabbitmq.node.fd_used` | Gauge | File descriptors used |
+| `rabbitmq.node.fd_total` | Gauge | File descriptor limit |
+| `rabbitmq.node.sockets_used` | Gauge | Sockets used |
+| `rabbitmq.node.sockets_total` | Gauge | Socket limit |
+| `rabbitmq.node.proc_used` | Gauge | Erlang processes used |
+| `rabbitmq.node.proc_total` | Gauge | Erlang process limit |
+| `rabbitmq.node.disk_free_details.rate` | Gauge | Disk free change rate |
+| `rabbitmq.node.fd_used_details.rate` | Gauge | File descriptor usage rate |
+| `rabbitmq.node.mem_used_details.rate` | Gauge | Memory usage rate |
+| `rabbitmq.node.proc_used_details.rate` | Gauge | Process usage rate |
+| `rabbitmq.node.sockets_used_details.rate` | Gauge | Socket usage rate |
+
+---
+
+### 4. Memcached Metrics
+
+**Source**: `memcached` receiver  
+**Collector**: OTel Deployment  
+**Endpoint**: `memcached.openstack.svc.cluster.local:11211`  
+**Transport**: `tcp`  
+**Collection Interval**: `30s`
+
+Enabled metric families:
+
+| Metric Name | Type | Description |
+|-------------|------|-------------|
+| `memcached.operation_hit_ratio` | Gauge | Cache hit ratio |
+| `memcached.current_items` | Gauge | Current item count |
+| `memcached.evictions` | Sum | Eviction count |
+| `memcached.bytes` | Gauge | Memory bytes used by memcached |
+
+---
+
+### 5. cert-manager Metrics
+
+**Source**: Prometheus receiver scrape job `cert-manager`  
+**Collector**: OTel Deployment  
+**Discovery**: Kubernetes pod discovery in namespace `cert-manager`  
+**Selection**: Pods annotated with `prometheus.io/scrape: "true"`
+
+This scrape job keeps pods in `cert-manager` where annotation-based scraping is enabled and respects annotated path/port overrides.
+
+Common metric families expected from cert-manager components:
+
+#### Certificate Metrics
+
+| Metric Name | Type | Description | Labels |
+|-------------|------|-------------|--------|
+| `certmanager_certificate_expiration_timestamp_seconds` | Gauge | Certificate expiration time as Unix timestamp | `name`, `namespace`, issuer labels |
+| `certmanager_certificate_renewal_timestamp_seconds` | Gauge | Scheduled certificate renewal time | `name`, `namespace`, issuer labels |
+| `certmanager_certificate_ready_status` | Gauge | Whether the certificate is ready | `name`, `namespace`, `condition` |
+
+#### Controller / Runtime Metrics
+
+| Metric Name | Type | Description | Labels |
+|-------------|------|-------------|--------|
+| `certmanager_controller_sync_call_count` | Counter | Controller sync call count | `controller` |
+| `certmanager_controller_sync_call_duration_seconds` | Histogram | Sync duration | `controller` |
+| `certmanager_controller_sync_error_count` | Counter | Sync error count | `controller` |
+| `go_*` | Various | Go runtime metrics | Varies |
+| `process_*` | Various | Process metrics | Varies |
+| `controller_runtime_*` | Various | Controller runtime metrics | Varies |
+
+**Notes**:
+- Actual cert-manager metric set depends on which components expose `/metrics`.
+- This config discovers pods by annotations rather than fixed ServiceMonitors.
+
+---
+
+### 6. MetalLB Metrics
+
+**Source**: Prometheus receiver scrape job `metallb`  
+**Collector**: OTel Deployment  
+**Discovery**: Kubernetes pod discovery in namespace `metallb-system`  
+**Selection**:
+- `app.kubernetes.io/component=controller|speaker`
+- container port `7472`
+
+#### Allocator Metrics
+
+| Metric Name | Type | Description | Labels |
+|-------------|------|-------------|--------|
+| `metallb_allocator_addresses_in_use_total` | Gauge | IP addresses in use per pool | `pool` |
+| `metallb_allocator_addresses_total` | Gauge | Total usable IPs per pool | `pool` |
+
+#### Config / Kubernetes Client Metrics
+
+| Metric Name | Type | Description | Labels |
+|-------------|------|-------------|--------|
+| `metallb_k8s_client_updates_total` | Counter | Kubernetes object updates processed | Varies |
+| `metallb_k8s_client_update_errors_total` | Counter | Update failures | Varies |
+| `metallb_k8s_client_config_loaded_bool` | Gauge | Config loaded successfully at least once | - |
+| `metallb_k8s_client_config_stale_bool` | Gauge | Running with stale config | - |
+
+#### BGP Metrics
+
+| Metric Name | Type | Description | Labels |
+|-------------|------|-------------|--------|
+| `metallb_bgp_session_up` | Gauge | BGP session state | `peer` |
+| `metallb_bgp_updates_total` | Counter | BGP UPDATE messages sent | `peer`, `vrf` |
+| `metallb_bgp_announced_prefixes_total` | Gauge | Advertised prefixes | `peer`, `vrf` |
+
+#### FRR-only Metrics (if FRR mode is in use)
+
+| Metric Name | Type | Description | Labels |
+|-------------|------|-------------|--------|
+| `metallb_bgp_opens_sent` | Counter | BGP OPEN messages sent | `peer`, `vrf` |
+| `metallb_bgp_opens_received` | Counter | BGP OPEN messages received | `peer`, `vrf` |
+| `metallb_bgp_notifications_sent` | Counter | BGP NOTIFICATION messages sent | `peer`, `vrf` |
+| `metallb_bgp_updates_total_received` | Counter | BGP UPDATE messages received | `peer`, `vrf` |
+| `metallb_bgp_keepalives_sent` | Counter | KEEPALIVE messages sent | `peer`, `vrf` |
+| `metallb_bgp_keepalives_received` | Counter | KEEPALIVE messages received | `peer`, `vrf` |
+| `metallb_bgp_route_refresh_sent` | Counter | Route refresh messages sent | `peer`, `vrf` |
+| `metallb_bgp_total_sent` | Counter | Total BGP messages sent | `peer`, `vrf` |
+| `metallb_bgp_total_received` | Counter | Total BGP messages received | `peer`, `vrf` |
+| `metallb_bfd_session_up` | Gauge | BFD session state | `peer`, `vrf` |
+| `metallb_bfd_control_packet_input` | Counter | Received BFD control packets | `peer`, `vrf` |
+| `metallb_bfd_control_packet_output` | Counter | Sent BFD control packets | `peer`, `vrf` |
+
+#### Runtime Metrics
+
+| Metric Name | Type | Description | Labels |
+|-------------|------|-------------|--------|
+| `go_*` | Various | Go runtime metrics | Varies |
+| `process_*` | Various | Process metrics | Varies |
+| `controller_runtime_*` | Various | Controller-runtime metrics | Varies |
+
+---
+
+### 7. OVN / Kube-OVN Metrics
+
+**Source**: Prometheus receiver scrape jobs:
+- `kube-ovn-monitor`
+- `kube-ovn-controller`
+- `kube-ovn-cni`
+- `kube-ovn-pinger`
+
+**Collector**: OTel Deployment  
+**Discovery**: Kubernetes endpoints in namespace `kube-system`  
+**Selection**:
+- service name matches the target service
+- endpoint port name `metrics`
+
+This config now explicitly scrapes these Kube-OVN services:
+
+- `kube-ovn-monitor`
+- `kube-ovn-controller`
+- `kube-ovn-cni`
+- `kube-ovn-pinger`
+
+#### 7.1 OVN Monitor Metrics (`kube-ovn-monitor`)
+
+| Metric Name | Type | Description | Labels |
+|-------------|------|-------------|--------|
+| `kube_ovn_ovn_status` | Gauge | OVN health status: follower/standby=2, leader/active=1, unhealthy=0 | Varies |
+| `kube_ovn_failed_req_count` | Gauge | Failed requests to OVN stack | Varies |
+| `kube_ovn_log_file_size` | Gauge | OVN log file size | `component` |
+| `kube_ovn_db_file_size` | Gauge | OVN database file size | `component` |
+| `kube_ovn_chassis_info` | Gauge | Chassis state/metadata | `chassis`, others |
+| `kube_ovn_db_status` | Gauge | OVN NB/SB DB health | `db` |
+| `kube_ovn_logical_switch_info` | Gauge | Logical switch metadata | `logical_switch` |
+| `kube_ovn_logical_switch_external_id` | Gauge | Logical switch external IDs | `logical_switch`, `key`, `value` |
+| `kube_ovn_logical_switch_port_binding` | Gauge | Logical switch to port binding | `logical_switch`, `port` |
+| `kube_ovn_logical_switch_tunnel_key` | Gauge | Tunnel key for logical switch | `logical_switch` |
+| `kube_ovn_logical_switch_ports_num` | Gauge | Number of ports on logical switch | `logical_switch` |
+| `kube_ovn_logical_switch_port_info` | Gauge | Logical switch port metadata | `logical_switch`, `port` |
+| `kube_ovn_logical_switch_port_tunnel_key` | Gauge | Tunnel key for logical switch port | `logical_switch`, `port` |
+| `kube_ovn_cluster_enabled` | Gauge | Whether clustering is enabled | - |
+| `kube_ovn_cluster_role` | Gauge | Cluster server role | `role` |
+| `kube_ovn_cluster_status` | Gauge | Cluster server status | `status` |
+| `kube_ovn_cluster_term` | Gauge | Current raft term | - |
+| `kube_ovn_cluster_leader_self` | Gauge | Whether this server is leader | - |
+| `kube_ovn_cluster_vote_self` | Gauge | Whether this server voted for itself | - |
+| `kube_ovn_cluster_election_timer` | Gauge | Election timer value | - |
+| `kube_ovn_cluster_log_not_committed` | Gauge | Log entries not committed | - |
+| `kube_ovn_cluster_log_not_applied` | Gauge | Log entries not applied | - |
+| `kube_ovn_cluster_log_index_start` | Gauge | Log start index | - |
+| `kube_ovn_cluster_log_index_next` | Gauge | Next log index | - |
+| `kube_ovn_cluster_inbound_connections_total` | Gauge | Inbound connections | - |
+| `kube_ovn_cluster_outbound_connections_total` | Gauge | Outbound connections | - |
+| `kube_ovn_cluster_inbound_connections_error_total` | Gauge | Failed inbound connections | - |
+| `kube_ovn_cluster_outbound_connections_error_total` | Gauge | Failed outbound connections | - |
+
+#### 7.2 OVS Monitor Metrics (`kube-ovn-monitor`)
+
+| Metric Name | Type | Description | Labels |
+|-------------|------|-------------|--------|
+| `ovs_status` | Gauge | OVS health state | - |
+| `ovs_info` | Gauge | OVS metadata | Varies |
+| `failed_req_count` | Gauge | Failed requests to OVS stack | - |
+| `log_file_size` | Gauge | OVS log file size | `component` |
+| `db_file_size` | Gauge | OVS database file size | `component` |
+| `datapath` | Gauge | Datapath marker | `datapath` |
+| `dp_total` | Gauge | Total datapaths | - |
+| `dp_if` | Gauge | Datapath interface marker | `datapath`, `interface` |
+| `dp_if_total` | Gauge | Interfaces per datapath | `datapath` |
+| `dp_flows_total` | Gauge | Flow count | `datapath` |
+| `dp_flows_lookup_hit` | Gauge | Flow lookup hits | `datapath` |
+| `dp_flows_lookup_missed` | Gauge | Flow lookup misses | `datapath` |
+| `dp_flows_lookup_lost` | Gauge | Lost packets | `datapath` |
+| `dp_masks_hit` | Gauge | Mask visits | `datapath` |
+| `dp_masks_total` | Gauge | Mask count | `datapath` |
+| `dp_masks_hit_ratio` | Gauge | Average mask visits per packet | `datapath` |
+| `interface` | Gauge | Interface marker | `interface` |
+| `interface_admin_state` | Gauge | Interface admin state | `interface` |
+| `interface_link_state` | Gauge | Interface link state | `interface` |
+| `interface_mac_in_use` | Gauge | MAC in use | `interface`, `mac` |
+| `interface_mtu` | Gauge | Interface MTU | `interface` |
+| `interface_of_port` | Gauge | OpenFlow port ID | `interface` |
+| `interface_if_index` | Gauge | Interface index | `interface` |
+| `interface_tx_packets` | Gauge | TX packets | `interface` |
+| `interface_tx_bytes` | Gauge | TX bytes | `interface` |
+| `interface_tx_error` | Gauge | TX error count | `interface` |
+| `interface_rx_packets` | Gauge | RX packets | `interface` |
+| `interface_rx_bytes` | Gauge | RX bytes | `interface` |
+| `interface_rx_errors` | Gauge | RX errors | `interface` |
+| `interface_rx_dropped` | Gauge | RX drops | `interface` |
+| `interface_rx_frame_err` | Gauge | RX frame errors | `interface` |
+| `interface_rx_over_err` | Gauge | RX overrun errors | `interface` |
+| `interface_tx_dropped` | Gauge | TX drops | `interface` |
+| `interface_tx_errors` | Gauge | TX errors | `interface` |
+| `interface_collisions` | Gauge | Interface collisions | `interface` |
+
+#### 7.3 kube-ovn-controller Metrics
+
+| Metric Name | Type | Description | Labels |
+|-------------|------|-------------|--------|
+| `rest_client_request_latency_seconds` | Histogram | Request latency in seconds | `verb`, `url` |
+| `rest_client_requests_total` | Counter | Number of HTTP requests | `code`, `method`, `host` |
+| `lists_total` | Counter | Total number of API lists done by reflectors | `name` |
+| `list_duration_seconds` | Summary | Duration of reflector list calls | `name` |
+| `items_per_list` | Summary | Number of items returned per list call | `name` |
+| `watches_total` | Counter | Total number of API watches done by reflectors | `name` |
+| `short_watches_total` | Counter | Total number of short API watches done by reflectors | `name` |
+| `watch_duration_seconds` | Summary | Duration of reflector watch calls | `name` |
+| `items_per_watch` | Summary | Number of items returned per watch call | `name` |
+| `last_resource_version` | Gauge | Last resource version seen by reflectors | `name` |
+| `ovs_client_request_latency_milliseconds` | Histogram | Latency histogram for OVS requests | `method` |
+| `subnet_available_ip_count` | Gauge | Available IP count in subnet | `subnet` |
+| `subnet_used_ip_count` | Gauge | Used IP count in subnet | `subnet` |
+
+#### 7.4 kube-ovn-cni Metrics
+
+| Metric Name | Type | Description | Labels |
+|-------------|------|-------------|--------|
+| `cni_op_latency_seconds` | Histogram | CNI operation latency | `operation` |
+| `cni_wait_address_seconds_total` | Counter | Time waiting for controller to assign an address | `operation` |
+| `cni_wait_connectivity_seconds_total` | Counter | Time waiting for address readiness in overlay network | `operation` |
+| `cni_wait_route_seconds_total` | Counter | Time waiting for routed annotation to be added to pod | `operation` |
+| `rest_client_request_latency_seconds` | Histogram | Request latency in seconds | `verb`, `url` |
+
+#### 7.5 kube-ovn-pinger Metrics
+
+| Metric Name | Type | Description | Labels |
+|-------------|------|-------------|--------|
+| `pinger_ovs_up` | Gauge | Whether OVS on the node is up | `node` |
+| `pinger_ovs_down` | Gauge | Whether OVS on the node is down | `node` |
+| `pinger_ovn_controller_up` | Gauge | Whether `ovn_controller` on the node is up | `node` |
+| `pinger_ovn_controller_down` | Gauge | Whether `ovn_controller` on the node is down | `node` |
+| `pinger_inconsistent_port_binding` | Gauge | Number of mismatched port bindings between OVS and OVN-SB | `node` |
+| `pinger_apiserver_healthy` | Gauge | Whether API server requests are healthy on this node | `node` |
+| `pinger_apiserver_unhealthy` | Gauge | Whether API server requests are unhealthy on this node | `node` |
+| `pinger_apiserver_latency_ms` | Histogram | API server request latency from this node | `node` |
+| `pinger_internal_dns_healthy` | Gauge | Whether internal DNS requests are healthy on this node | `node` |
+| `pinger_internal_dns_unhealthy` | Gauge | Whether internal DNS requests are unhealthy on this node | `node` |
+| `pinger_internal_dns_latency_ms` | Histogram | Internal DNS request latency from this node | `node` |
+| `pinger_external_dns_health` | Gauge | Whether external DNS requests are healthy on this node | `node` |
+| `pinger_external_dns_unhealthy` | Gauge | Whether external DNS requests are unhealthy on this node | `node` |
+| `pinger_external_dns_latency_ms` | Histogram | External DNS request latency from this node | `node` |
+| `pinger_pod_ping_latency_ms` | Histogram | Pod-to-pod ping latency | `src`, `dst`, others |
+| `pinger_pod_ping_lost_total` | Gauge | Lost packet count for pod-to-pod ping | `src`, `dst` |
+| `pinger_pod_ping_count_total` | Gauge | Total packet count for pod-to-pod ping | `src`, `dst` |
+| `pinger_node_ping_latency_ms` | Histogram | Pod-to-node ping latency | `src`, `dst`, others |
+| `pinger_node_ping_lost_total` | Gauge | Lost packet count for pod-to-node ping | `src`, `dst` |
+| `pinger_node_ping_count_total` | Gauge | Total packet count for pod-to-node ping | `src`, `dst` |
+| `pinger_external_ping_latency_ms` | Histogram | Pod-to-external-address ping latency | `target`, others |
+| `pinger_external_lost_total` | Gauge | Lost packet count for external ping | `target` |
 
 ---
 
 ## Kubernetes Component Metrics
 
-These metrics are scraped **directly by Prometheus** via ServiceMonitors (NOT via OTel collectors).
+These metrics are scraped **directly by Prometheus** via ServiceMonitors, not by OTel.
 
 ### 1. API Server Metrics
 
-**Source**: `kube-apiserver` (scraped by Prometheus)  
-**Endpoint**: `https://kubernetes.default.svc:443/metrics`  
-**Labels**: `instance`, `job`, `endpoint`, `service`, `namespace`
+**Source**: `kube-apiserver`  
+**Status**: ✅ enabled  
+**Endpoint**: `https://kubernetes.default.svc:443/metrics`
 
 Common metrics:
-- `apiserver_request_total` - API request count
-- `apiserver_request_duration_seconds` - Request latency (histogram)
-- `apiserver_request_sli_duration_seconds` - SLI latency
-- `apiserver_current_inflight_requests` - In-flight requests
-- `apiserver_longrunning_requests` - Long-running requests
-- `apiserver_response_sizes` - Response sizes
-- `apiserver_storage_objects` - Object counts in etcd
-- `apiserver_audit_event_total` - Audit events
-- `etcd_request_duration_seconds` - etcd request latency
-- `etcd_db_total_size_in_bytes` - etcd database size
+- `apiserver_request_total`
+- `apiserver_request_duration_seconds`
+- `apiserver_request_sli_duration_seconds`
+- `apiserver_current_inflight_requests`
+- `apiserver_longrunning_requests`
+- `apiserver_response_sizes`
+- `apiserver_storage_objects`
+- `apiserver_audit_event_total`
+- `etcd_request_duration_seconds`
+- `etcd_db_total_size_in_bytes`
 
-**Note**: Some histogram buckets are dropped via `metricRelabelings` to reduce cardinality.
+**Note**: Some `apiserver_request_duration_seconds_bucket` buckets are intentionally dropped by metric relabeling.
+
+---
 
 ### 2. Scheduler Metrics
 
-**Source**: `kube-scheduler` (scraped by Prometheus)  
-**Endpoint**: `https://<scheduler-pod-ip>:10259/metrics`  
-**Labels**: `instance`, `job`, `endpoint`, `service`, `namespace`, `pod`
+**Source**: `kube-scheduler`  
+**Status**: ✅ enabled  
+**Endpoint**: `https://:10259/metrics`
 
 Common metrics:
-- `scheduler_queue_incoming_pods_total` - Incoming pods by event/queue
-- `scheduler_scheduling_attempt_duration_seconds` - Scheduling duration
-- `scheduler_e2e_scheduling_duration_seconds` - End-to-end scheduling time
-- `scheduler_pod_scheduling_attempts` - Pod scheduling attempts
-- `scheduler_pending_pods` - Pending pods count
-- `scheduler_framework_extension_point_duration_seconds` - Plugin execution time
-- `scheduler_schedule_attempts_total` - Schedule attempts
-- `scheduler_preemption_attempts_total` - Preemption attempts
+- `scheduler_queue_incoming_pods_total`
+- `scheduler_scheduling_attempt_duration_seconds`
+- `scheduler_e2e_scheduling_duration_seconds`
+- `scheduler_pod_scheduling_attempts`
+- `scheduler_pending_pods`
+- `scheduler_framework_extension_point_duration_seconds`
+- `scheduler_schedule_attempts_total`
+- `scheduler_preemption_attempts_total`
+
+---
 
 ### 3. Controller Manager Metrics
 
-**Source**: `kube-controller-manager` (scraped by Prometheus)  
-**Endpoint**: `https://<controller-pod-ip>:10257/metrics`  
-**Labels**: `instance`, `job`, `endpoint`, `service`, `namespace`, `pod`
+**Source**: `kube-controller-manager`  
+**Status**: ✅ enabled  
+**Endpoint**: `https://:10257/metrics`
 
 Common metrics:
-- `workqueue_adds_total` - Work queue additions
-- `workqueue_depth` - Work queue depth
-- `workqueue_queue_duration_seconds` - Time in queue
-- `workqueue_work_duration_seconds` - Work duration
-- `workqueue_retries_total` - Retries count
-- Controller-specific metrics for each controller (deployment, replicaset, etc.)
+- `workqueue_adds_total`
+- `workqueue_depth`
+- `workqueue_queue_duration_seconds`
+- `workqueue_work_duration_seconds`
+- `workqueue_retries_total`
 
-### 4. Kubelet Metrics (cAdvisor)
+---
 
-**Source**: `kubelet` cAdvisor endpoint (scraped by Prometheus)  
-**Endpoint**: `https://<node-ip>:10250/metrics/cadvisor`  
-**Labels**: `instance`, `job`, `node`, `container`, `pod`, `namespace`, `image`
+### 4. CoreDNS Metrics
 
-**Important**: These are **different** from kubeletstats metrics. cAdvisor provides more detailed container metrics.
-
-Common metrics:
-- `container_cpu_usage_seconds_total` - Container CPU usage
-- `container_memory_usage_bytes` - Container memory usage
-- `container_memory_working_set_bytes` - Container working set
-- `container_network_receive_bytes_total` - Network RX bytes
-- `container_network_transmit_bytes_total` - Network TX bytes
-- `container_fs_usage_bytes` - Filesystem usage
-- `container_fs_reads_total` - Filesystem reads
-- `container_fs_writes_total` - Filesystem writes
-- `container_start_time_seconds` - Container start time
-- `container_last_seen` - Last seen timestamp
-
-### 5. Kubelet Metrics (kubelet /metrics)
-
-**Source**: `kubelet` endpoint (scraped by Prometheus)  
-**Endpoint**: `https://<node-ip>:10250/metrics`  
-**Labels**: `instance`, `job`, `node`
+**Source**: `coredns`  
+**Status**: ✅ enabled  
+**Endpoint**: `http://:9153/metrics`
 
 Common metrics:
-- `kubelet_running_pods` - Running pods count
-- `kubelet_running_containers` - Running containers count
-- `kubelet_volume_stats_*` - Volume statistics
-- `kubelet_pod_start_duration_seconds` - Pod start duration
-- `kubelet_pod_worker_duration_seconds` - Pod worker duration
-- `kubelet_runtime_operations_*` - Container runtime operations
-- `kubelet_pleg_*` - Pod lifecycle event generator metrics
+- `coredns_dns_request_duration_seconds`
+- `coredns_dns_requests_total`
+- `coredns_dns_responses_total`
+- `coredns_forward_requests_total`
+- `coredns_cache_hits_total`
+- `coredns_cache_misses_total`
 
-### 6. CoreDNS Metrics
+---
 
-**Source**: `coredns` (scraped by Prometheus)  
-**Endpoint**: `http://<coredns-pod-ip>:9153/metrics`  
-**Labels**: `instance`, `job`, `pod`, `namespace`
+### 5. etcd Metrics
 
-Common metrics:
-- `coredns_dns_request_duration_seconds` - DNS request duration
-- `coredns_dns_requests_total` - DNS requests count
-- `coredns_dns_responses_total` - DNS responses count
-- `coredns_forward_requests_total` - Forwarded requests
-- `coredns_cache_hits_total` - Cache hits
-- `coredns_cache_misses_total` - Cache misses
-
-### 7. etcd Metrics
-
-**Source**: `etcd` (scraped by Prometheus if configured)  
-**Endpoint**: `http://<etcd-ip>:2381/metrics`  
-**Labels**: `instance`, `job`
+**Source**: `etcd`  
+**Status**: ✅ enabled  
+**Endpoint**: `http://:2381/metrics`
 
 Common metrics:
-- `etcd_server_proposals_committed_total` - Committed proposals
-- `etcd_server_proposals_applied_total` - Applied proposals
-- `etcd_server_proposals_pending` - Pending proposals
-- `etcd_server_proposals_failed_total` - Failed proposals
-- `etcd_disk_wal_fsync_duration_seconds` - WAL fsync duration
-- `etcd_disk_backend_commit_duration_seconds` - Backend commit duration
-- `etcd_network_peer_round_trip_time_seconds` - Peer RTT
-- `etcd_mvcc_db_total_size_in_bytes` - Database size
+- `etcd_server_proposals_committed_total`
+- `etcd_server_proposals_applied_total`
+- `etcd_server_proposals_pending`
+- `etcd_server_proposals_failed_total`
+- `etcd_disk_wal_fsync_duration_seconds`
+- `etcd_disk_backend_commit_duration_seconds`
+- `etcd_network_peer_round_trip_time_seconds`
+- `etcd_mvcc_db_total_size_in_bytes`
 
-### 8. Kube Proxy Metrics
+---
 
-**Source**: `kube-proxy` (scraped by Prometheus)  
-**Endpoint**: `http://<proxy-pod-ip>:10249/metrics`  
-**Labels**: `instance`, `job`, `node`
+### 6. Kube Proxy Metrics
+
+**Source**: `kube-proxy`  
+**Status**: ✅ enabled  
+**Endpoint**: `http://:10249/metrics`
 
 Common metrics:
-- `kubeproxy_sync_proxy_rules_duration_seconds` - Sync duration
-- `kubeproxy_network_programming_duration_seconds` - Network programming duration
-- `rest_client_requests_total` - REST client requests
-- `rest_client_request_duration_seconds` - REST client latency
+- `kubeproxy_sync_proxy_rules_duration_seconds`
+- `kubeproxy_network_programming_duration_seconds`
+- `rest_client_requests_total`
+- `rest_client_request_duration_seconds`
+
+---
+
+### 7. Kubelet Metrics
+
+**Source**: `kubelet`  
+**Status**: ❌ disabled
+
+Although a `kubelet:` block exists with ServiceMonitor options, the current config sets:
+
+```yaml
+kubelet:
+  enabled: false
+```
+
+So Prometheus is **not currently scraping kubelet** and is **not collecting**:
+
+- kubelet `/metrics`
+- kubelet `/metrics/cadvisor`
+
+That means `container_*` cAdvisor metrics are **not currently part of this base config** unless enabled elsewhere.
 
 ---
 
@@ -487,98 +729,100 @@ Common metrics:
 
 ### 1. Node Exporter Metrics
 
-**Source**: `node-exporter` DaemonSet (scraped by Prometheus)  
-**Endpoint**: `http://<node-exporter-pod-ip>:9100/metrics`  
-**Labels**: `instance`, `job`, `node` (added via relabeling)
-
-**Important**: These provide MORE detailed node metrics than hostmetrics receiver.
+**Source**: `node-exporter` DaemonSet  
+**Status**: ✅ enabled  
+**Endpoint**: `http://:9100/metrics`
 
 #### CPU Metrics
-- `node_cpu_seconds_total` - CPU time by mode
-- `node_load1`, `node_load5`, `node_load15` - Load averages
-- `node_procs_running` - Running processes
-- `node_procs_blocked` - Blocked processes
+- `node_cpu_seconds_total`
+- `node_load1`, `node_load5`, `node_load15`
+- `node_procs_running`
+- `node_procs_blocked`
 
 #### Memory Metrics
-- `node_memory_MemTotal_bytes` - Total memory
-- `node_memory_MemFree_bytes` - Free memory
-- `node_memory_MemAvailable_bytes` - Available memory
-- `node_memory_Buffers_bytes` - Buffers
-- `node_memory_Cached_bytes` - Cached
-- `node_memory_SwapTotal_bytes` - Swap total
-- `node_memory_SwapFree_bytes` - Swap free
+- `node_memory_MemTotal_bytes`
+- `node_memory_MemFree_bytes`
+- `node_memory_MemAvailable_bytes`
+- `node_memory_Buffers_bytes`
+- `node_memory_Cached_bytes`
+- `node_memory_SwapTotal_bytes`
+- `node_memory_SwapFree_bytes`
 
 #### Disk Metrics
-- `node_disk_io_time_seconds_total` - Disk I/O time
-- `node_disk_read_bytes_total` - Bytes read
-- `node_disk_written_bytes_total` - Bytes written
-- `node_disk_reads_completed_total` - Read operations
-- `node_disk_writes_completed_total` - Write operations
+- `node_disk_io_time_seconds_total`
+- `node_disk_read_bytes_total`
+- `node_disk_written_bytes_total`
+- `node_disk_reads_completed_total`
+- `node_disk_writes_completed_total`
 
 #### Filesystem Metrics
-- `node_filesystem_size_bytes` - Filesystem size
-- `node_filesystem_free_bytes` - Filesystem free
-- `node_filesystem_avail_bytes` - Filesystem available
-- `node_filesystem_files` - Total inodes
-- `node_filesystem_files_free` - Free inodes
+- `node_filesystem_size_bytes`
+- `node_filesystem_free_bytes`
+- `node_filesystem_avail_bytes`
+- `node_filesystem_files`
+- `node_filesystem_files_free`
 
 #### Network Metrics
-- `node_network_receive_bytes_total` - Network RX bytes
-- `node_network_transmit_bytes_total` - Network TX bytes
-- `node_network_receive_packets_total` - Network RX packets
-- `node_network_transmit_packets_total` - Network TX packets
-- `node_network_receive_errs_total` - Network RX errors
-- `node_network_transmit_errs_total` - Network TX errors
-- `node_network_receive_drop_total` - Network RX drops
-- `node_network_transmit_drop_total` - Network TX drops
+- `node_network_receive_bytes_total`
+- `node_network_transmit_bytes_total`
+- `node_network_receive_packets_total`
+- `node_network_transmit_packets_total`
+- `node_network_receive_errs_total`
+- `node_network_transmit_errs_total`
+- `node_network_receive_drop_total`
+- `node_network_transmit_drop_total`
 
 #### System Metrics
-- `node_time_seconds` - System time
-- `node_boot_time_seconds` - Boot time
-- `node_context_switches_total` - Context switches
-- `node_forks_total` - Forks
-- `node_intr_total` - Interrupts
+- `node_time_seconds`
+- `node_boot_time_seconds`
+- `node_context_switches_total`
+- `node_forks_total`
+- `node_intr_total`
+
+**Notes**:
+- Node exporter excludes many pseudo-filesystems and ephemeral mount paths.
+- Textfile collector is enabled at `/var/lib/node_exporter/textfile_collector`.
+
+---
 
 ### 2. Kube State Metrics
 
-**Source**: `kube-state-metrics` Deployment (scraped by Prometheus)  
-**Endpoint**: `http://<ksm-pod-ip>:8080/metrics`  
-**Labels**: Varies by resource type
-
-**Important**: Provides Kubernetes object state metrics (NOT performance metrics).
+**Source**: `kube-state-metrics` Deployment  
+**Status**: ✅ enabled  
+**Endpoint**: `http://:8080/metrics`
 
 #### Pod Metrics
-- `kube_pod_info` - Pod information
-- `kube_pod_status_phase` - Pod phase (Running, Pending, etc.)
-- `kube_pod_status_ready` - Pod ready status
-- `kube_pod_container_status_ready` - Container ready status
-- `kube_pod_container_status_restarts_total` - Container restarts
-- `kube_pod_labels` - Pod labels
-- `kube_pod_owner` - Pod owner
+- `kube_pod_info`
+- `kube_pod_status_phase`
+- `kube_pod_status_ready`
+- `kube_pod_container_status_ready`
+- `kube_pod_container_status_restarts_total`
+- `kube_pod_labels`
+- `kube_pod_owner`
 
 #### Deployment Metrics
-- `kube_deployment_status_replicas` - Deployment replicas
-- `kube_deployment_status_replicas_available` - Available replicas
-- `kube_deployment_status_replicas_unavailable` - Unavailable replicas
-- `kube_deployment_spec_replicas` - Desired replicas
-- `kube_deployment_metadata_generation` - Generation
+- `kube_deployment_status_replicas`
+- `kube_deployment_status_replicas_available`
+- `kube_deployment_status_replicas_unavailable`
+- `kube_deployment_spec_replicas`
+- `kube_deployment_metadata_generation`
 
 #### Node Metrics
-- `kube_node_info` - Node information
-- `kube_node_status_condition` - Node conditions (Ready, MemoryPressure, etc.)
-- `kube_node_status_allocatable` - Allocatable resources
-- `kube_node_status_capacity` - Node capacity
-- `kube_node_spec_unschedulable` - Unschedulable status
+- `kube_node_info`
+- `kube_node_status_condition`
+- `kube_node_status_allocatable`
+- `kube_node_status_capacity`
+- `kube_node_spec_unschedulable`
 
 #### StatefulSet Metrics
-- `kube_statefulset_status_replicas` - StatefulSet replicas
-- `kube_statefulset_status_replicas_ready` - Ready replicas
-- `kube_statefulset_replicas` - Desired replicas
+- `kube_statefulset_status_replicas`
+- `kube_statefulset_status_replicas_ready`
+- `kube_statefulset_replicas`
 
 #### DaemonSet Metrics
-- `kube_daemonset_status_number_ready` - Ready pods
-- `kube_daemonset_status_desired_number_scheduled` - Desired pods
-- `kube_daemonset_status_number_available` - Available pods
+- `kube_daemonset_status_number_ready`
+- `kube_daemonset_status_desired_number_scheduled`
+- `kube_daemonset_status_number_available`
 
 #### Other Resource Metrics
 - Services: `kube_service_*`
@@ -596,15 +840,28 @@ Common metrics:
 
 ### OpenStack Service Metrics (via OTLP)
 
-If OpenStack services are instrumented to send OTLP metrics, they will include:
-- Custom application metrics
-- Auto-instrumented framework metrics (HTTP requests, DB queries, etc.)
-- Resource usage from application perspective
+If OpenStack services are instrumented to send OTLP metrics, they are accepted by the deployment collector and forwarded to Prometheus.
 
-**Labels**: Enriched with:
-- `service_name` (nova, neutron, cinder, etc.)
-- Kubernetes labels from `k8sattributes` processor
-- Custom application labels
+These may include:
+- API request counts
+- API request durations
+- Error counters
+- Business metrics
+- Internal worker / queue metrics
+- Custom service metrics
+
+### OpenStack Platform Service Metrics (via Specialized Receivers)
+
+In addition to OTLP application metrics, this config also collects infrastructure/service metrics from core platform backends:
+
+- MariaDB / MySQL
+- PostgreSQL
+- RabbitMQ
+- Memcached
+
+### OpenStack Endpoint Availability Metrics (via HTTP Check Receiver)
+
+The config also defines synthetic HTTP endpoint checks for major OpenStack APIs. Even though the receiver is currently commented out of the active pipeline, the configured targets and expected metric families are part of the documented telemetry design.
 
 ---
 
@@ -612,13 +869,11 @@ If OpenStack services are instrumented to send OTLP metrics, they will include:
 
 ### Common Labels Added by OTel Collectors
 
-All metrics from OTel collectors are enriched with these labels (where applicable):
-
 | Label | Source | Description |
 |-------|--------|-------------|
-| `k8s_node_name` | k8sattributes + attributes processor | Kubernetes node name |
-| `host_name` | attributes processor | Same as k8s_node_name |
-| `service_instance_id` | attributes processor | Node name (for uniqueness) |
+| `k8s_node_name` | resource attribute conversion | Kubernetes node name |
+| `host_name` | attributes / resource conversion | Host name, set from node name in daemon collector |
+| `service_instance_id` | attributes / resource conversion | Node name used as service instance ID |
 | `k8s_namespace_name` | k8sattributes | Kubernetes namespace |
 | `k8s_pod_name` | k8sattributes | Pod name |
 | `k8s_pod_uid` | k8sattributes | Pod UID |
@@ -628,64 +883,45 @@ All metrics from OTel collectors are enriched with these labels (where applicabl
 | `k8s_job_name` | k8sattributes | Job name |
 | `k8s_cronjob_name` | k8sattributes | CronJob name |
 | `k8s_container_name` | k8sattributes | Container name |
-| `app` | k8sattributes (from pod label) | App label |
-| `app_kubernetes_io_name` | k8sattributes | Standard app name |
-| `app_kubernetes_io_component` | k8sattributes | App component |
-| `app_kubernetes_io_instance` | k8sattributes | App instance |
-| `app_kubernetes_io_version` | k8sattributes | App version |
-| `deployment_environment` | attributes processor | Fixed: "genestack" |
-| `k8s_cluster_name` | attributes processor | Fixed: "openstack-genestack-k8s-cluster" |
+| `app` | pod label extraction | `app` pod label |
+| `app_kubernetes_io_name` | pod label extraction | `app.kubernetes.io/name` |
+| `app_kubernetes_io_component` | pod label extraction | `app.kubernetes.io/component` |
+| `app_kubernetes_io_instance` | pod label extraction | `app.kubernetes.io/instance` |
+| `app_kubernetes_io_version` | pod label extraction | `app.kubernetes.io/version` |
+| `deployment_environment` | attributes processor | Fixed value: `genestack` |
+| `k8s_cluster_name` | attributes processor | Fixed cluster name |
+
+### Additional Labels Common on Infrastructure Metrics
+
+| Label | Source | Description |
+|-------|--------|-------------|
+| `component` | relabeling / scraped metrics | Component name such as `controller`, `speaker`, `webhook` |
+| `namespace` | Prometheus SD / relabeling | Kubernetes namespace of target |
+| `pod` | Prometheus SD / relabeling | Pod name of target |
+| `service` | Prometheus SD / relabeling | Service name |
+| `peer` | MetalLB metrics | BGP/BFD peer |
+| `pool` | MetalLB metrics | Address pool |
+| `vrf` | MetalLB metrics | VRF |
+| `controller` | cert-manager metrics | cert-manager controller name |
+| `subnet` | Kube-OVN metrics | Subnet identifier |
+| `logical_switch` | Kube-OVN metrics | OVN logical switch |
+| `interface` | Kube-OVN / OVS metrics | Interface label |
+| `db` | Kube-OVN metrics | DB name/type |
+| `node` | Kube-OVN / Prometheus | Node associated with metric |
+| `target` | HTTP check receiver | Endpoint being checked |
+| `method` | HTTP check receiver | HTTP method used for the check |
 
 ### Labels from Prometheus ServiceMonitors
 
-Metrics scraped directly by Prometheus include:
-
 | Label | Description |
 |-------|-------------|
-| `instance` | Scrape target address (IP:port) |
-| `job` | ServiceMonitor job name (e.g., "kube-scheduler") |
+| `instance` | Scrape target address |
+| `job` | Job name |
 | `endpoint` | Endpoint name |
 | `service` | Service name |
 | `namespace` | Namespace |
-| `pod` | Pod name (if available) |
-| `node` | Node name (if added via relabeling) |
-
-**Note**: To add `node` labels to ServiceMonitor metrics, add relabeling rules (see section above).
-
----
-
-## Estimated Metric Cardinality
-
-Based on your configuration:
-
-### From OTel Collectors
-- **hostmetrics**: ~200-300 unique series per node × N nodes
-- **kubeletstats**: ⚠️ **DISABLED** (would be ~50-100 series per pod × P pods if enabled)
-- **OTLP applications**: Varies widely (1000s to 100,000s depending on instrumentation)
-
-### From Prometheus ServiceMonitors
-- **API Server**: ~5,000 series
-- **Scheduler**: ~500 series per scheduler
-- **Controller Manager**: ~1,000 series per controller
-- **Kubelet (cAdvisor)**: ~100-200 series per pod × P pods (**primary source for container metrics**)
-- **Kubelet (kubelet)**: ~100 series per node × N nodes
-- **CoreDNS**: ~50 series per CoreDNS pod
-- **etcd**: ~500 series per etcd member
-- **Kube Proxy**: ~100 series per node × N nodes
-- **Node Exporter**: ~800-1000 series per node × N nodes
-- **Kube State Metrics**: ~5-10 series per Kubernetes object
-
-### Total Estimate
-For a typical cluster with:
-- 5 nodes
-- 100 pods
-- Standard Kubernetes components
-
-**Total: ~50,000-100,000 unique time series**
-
-For larger clusters, this can grow to 500,000+ series.
-
-**Note**: With kubeletstats disabled, you're primarily using Prometheus-scraped `container_*` metrics for pod/container monitoring, which reduces the risk of duplicate metrics while still providing comprehensive coverage.
+| `pod` | Pod name, when available |
+| `node` | Node name, when added by relabeling |
 
 ---
 
@@ -693,124 +929,182 @@ For larger clusters, this can grow to 500,000+ series.
 
 ### Metrics Not Appearing
 
-1. **Check if OTel collector is running**:
-   ```bash
-   kubectl get pods -n opentelemetry
-   ```
+1. **Check if OTel collectors are running**:
+```bash
+kubectl get pods -n monitoring | grep opentelemetry
+```
 
-2. **Check collector logs for errors**:
-   ```bash
-   kubectl logs -n opentelemetry daemonset/opentelemetry-kube-stack-daemon-collector -c otc-container
-   ```
+2. **Check collector logs**:
+```bash
+kubectl logs -n monitoring daemonset/opentelemetry-kube-stack-daemon-collector -c otc-container
+kubectl logs -n monitoring deployment/opentelemetry-kube-stack-deployment-collector -c otc-container
+```
 
-3. **Verify metrics are being collected** (debug exporter):
-   ```bash
-   kubectl logs -n opentelemetry daemonset/opentelemetry-kube-stack-daemon-collector \
-     -c otc-container | grep "k8s_pod_cpu"
-   ```
+3. **Verify remote write pipeline is healthy**:
+```bash
+kubectl logs -n monitoring deployment/opentelemetry-kube-stack-deployment-collector -c otc-container | grep -i prometheusremotewrite
+```
 
-4. **Check Prometheus targets**:
-   - Go to Prometheus UI → Status → Targets
-   - Verify all ServiceMonitors are discovered and UP
+---
 
-### Missing Labels
+### Missing Host Metrics
 
-1. **For OTel-collected metrics**: Check that `k8sattributes` and `attributes/add-node-labels` processors are in the pipeline
+1. Verify the daemon collector is running on each node.
+2. Confirm the `hostmetrics` receiver is active in the daemon collector metrics pipeline.
+3. Check for permissions or host mount issues if hostmetrics suddenly drops out.
 
-2. **For Prometheus-scraped metrics**: Add relabeling rules to ServiceMonitors
+---
 
-3. **Verify labels in Prometheus**:
-   ```promql
-   # Check a metric and see all its labels
-   system_cpu_time_seconds_total{k8s_node_name!=""}
-   ```
+### Missing MySQL / PostgreSQL / RabbitMQ / Memcached Metrics
+
+1. Confirm the deployment collector is running.
+2. Verify credentials secrets exist:
+   - `mariadb-monitoring`
+   - `postgres.postgres-cluster.credentials.postgresql.acid.zalan.do`
+   - `rabbitmq-monitoring-user`
+3. Confirm the services are reachable from the deployment collector pod.
+4. Check receiver-specific errors in collector logs:
+```bash
+kubectl logs -n monitoring deployment/opentelemetry-kube-stack-deployment-collector -c otc-container | grep -E "mysql|postgresql|rabbitmq|memcached"
+```
+
+---
+
+### Missing cert-manager Metrics
+
+1. Verify pods exist in namespace `cert-manager`.
+2. Confirm relevant pods expose Prometheus metrics.
+3. Confirm pods are annotated with `prometheus.io/scrape: "true"` where required.
+4. Check deployment collector logs for `prometheus/infra` scrape errors.
+
+---
+
+### Missing MetalLB Metrics
+
+1. Verify pods exist in namespace `metallb-system`.
+2. Confirm controller/speaker pods expose metrics on port `7472`.
+3. Confirm pod label `app.kubernetes.io/component` is set to `controller` or `speaker`.
+4. Check deployment collector logs for MetalLB scrape failures.
+
+---
+
+### Missing Kube-OVN Metrics
+
+1. Verify these services exist in `kube-system`:
+   - `kube-ovn-monitor`
+   - `kube-ovn-controller`
+   - `kube-ovn-cni`
+   - `kube-ovn-pinger`
+2. Confirm each target exposes an endpoint port named `metrics`.
+3. Verify the services have backing endpoints.
+4. Check deployment collector logs for scrape failures:
+```bash
+kubectl logs -n monitoring deployment/opentelemetry-kube-stack-deployment-collector -c otc-container | grep -E "kube-ovn-monitor|kube-ovn-controller|kube-ovn-cni|kube-ovn-pinger"
+```
+
+---
+
+### Missing HTTP Check Metrics
+
+1. Confirm the `httpcheck` receiver is uncommented in the deployment metrics pipeline.
+2. Verify DNS and TLS connectivity from the deployment collector pod.
+3. Check logs for `httpcheck` receiver activity.
+
+---
+
+### Missing Kubelet / cAdvisor Metrics
+
+This is expected in the current base config because:
+
+- `kubelet.enabled: false`
+- `kubeletMetrics` preset is disabled
+
+If you want `container_*` and kubelet metrics, you must explicitly enable kubelet scraping.
+
+---
 
 ### High Cardinality Issues
 
-If Prometheus is struggling with too many metrics:
+If Prometheus is struggling with too many series:
 
-1. **Drop unnecessary metrics** via `metricRelabelings` in ServiceMonitors
-2. **Reduce collection intervals** (30s → 60s)
-3. **Limit metric groups** in kubeletstats receiver
-4. **Use recording rules** to aggregate high-cardinality metrics
+1. Drop unnecessary labels at scrape time or via relabeling.
+2. Reduce collection intervals where acceptable (`30s` → `60s`).
+3. Use recording rules to pre-aggregate noisy metrics.
+4. Be cautious with:
+   - per-peer MetalLB metrics
+   - per-interface OVS metrics
+   - per-target pinger metrics
+   - per-target HTTP check metrics
+   - high-label OTLP application metrics
+   - kube-state-metrics object labels
+
+---
 
 ### Duplicate Metrics
 
-If you see the same metric with different prefixes:
-- `system_*` from hostmetrics (OTel)
-- `node_*` from node-exporter (Prometheus)
-- `container_*` from both kubeletstats and cAdvisor
+Some overlap is expected:
 
-This is normal - they provide different levels of detail. Choose which source you prefer and drop duplicates if needed.
+- `system_*` from OTel `hostmetrics`
+- `node_*` from `node-exporter`
+
+This is normal. They provide different views of node health.
+
+In the current base config, **container_* metrics are not duplicated**, because kubelet/cAdvisor scraping is disabled.
 
 ---
 
 ## Summary
 
-Your configuration collects metrics from:
+Base configuration collects metrics from:
 
 1. **OTel Collectors (Remote Write to Prometheus)**:
-   - Host metrics (CPU, memory, disk, network, filesystem, paging, processes) via `hostmetrics` receiver
-   - Application OTLP metrics (traces and metrics from instrumented applications)
-   - **Note**: kubeletstats receiver is disabled to avoid duplicate sample errors
+   - Host metrics via `hostmetrics`
+   - Application OTLP metrics
+   - MySQL metrics via OTel receiver
+   - PostgreSQL metrics via OTel receiver
+   - RabbitMQ metrics via OTel receiver
+   - Memcached metrics via OTel receiver
+   - `cert-manager` metrics via OTel Prometheus receiver
+   - `MetalLB` metrics via OTel Prometheus receiver
+   - `kube-ovn-monitor` metrics via OTel Prometheus receiver
+   - `kube-ovn-controller` metrics via OTel Prometheus receiver
+   - `kube-ovn-cni` metrics via OTel Prometheus receiver
+   - `kube-ovn-pinger` metrics via OTel Prometheus receiver
+   - HTTP check targets and metric families are configured/documented, but the receiver is not currently enabled in the active metrics pipeline
+   - kubeletstats receiver remains disabled
 
 2. **Prometheus Direct Scraping**:
-   - Kubernetes components (API server, scheduler, controller manager, etc.)
-   - **Kubelet/cAdvisor** (pod and container metrics - `container_*` prefix)
-   - Node exporter (detailed node metrics - `node_*` prefix)
-   - Kube-state-metrics (Kubernetes object state - `kube_*` prefix)
+   - Kubernetes API server
+   - Scheduler
+   - Controller manager
+   - CoreDNS
+   - etcd
+   - kube-proxy
+   - node-exporter
+   - kube-state-metrics
+
+3. **Not Currently Collected in This Base Config**:
+   - kubelet metrics
+   - cAdvisor `container_*` metrics
+   - hostmetrics process-related scrapers (process, processes) are not enabled
+   - active HTTP check metric emission until the receiver is uncommented in the pipeline
 
 ## Key Metric Sources by Prefix
 
 | Metric Prefix | Source | Collection Method | What It Measures |
 |--------------|--------|-------------------|------------------|
-| `system_*` | hostmetrics receiver | OTel DaemonSet → Remote Write | Node-level system metrics (CPU, memory, disk, network) |
-| `container_*` | kubelet/cAdvisor | Prometheus scraping | Pod and container resource usage |
-| `node_*` | node-exporter | Prometheus scraping | Detailed node metrics (more comprehensive than system_*) |
+| `system_*` | hostmetrics receiver | OTel DaemonSet → Remote Write | Node-level system metrics |
+| `httpcheck.*` | HTTP check receiver | OTel Deployment → Remote Write when enabled | Endpoint availability and latency checks |
+| `mysql.*` | MySQL receiver | OTel Deployment → Remote Write | MariaDB/MySQL server health and usage |
+| `postgresql.*` | PostgreSQL receiver | OTel Deployment → Remote Write | PostgreSQL usage and transaction metrics |
+| `rabbitmq.*` | RabbitMQ receiver | OTel Deployment → Remote Write | RabbitMQ node resource and alarm metrics |
+| `memcached.*` | Memcached receiver | OTel Deployment → Remote Write | Cache utilization and eviction metrics |
+| `certmanager_*` | cert-manager pods | OTel Deployment → Remote Write | Certificate lifecycle and controller metrics |
+| `metallb_*` | MetalLB controller/speaker | OTel Deployment → Remote Write | Address pools, config health, BGP/BFD state |
+| `kube_ovn_*`, `ovs_*` | Kube-OVN services | OTel Deployment → Remote Write | OVN/OVS health and topology metrics |
+| `pinger_*` | kube-ovn-pinger | OTel Deployment → Remote Write | Network and control-plane reachability checks |
+| `node_*` | node-exporter | Prometheus scraping | Detailed node metrics |
 | `kube_*` | kube-state-metrics | Prometheus scraping | Kubernetes object state and metadata |
-| `apiserver_*`, `scheduler_*`, etc. | K8s components | Prometheus scraping | Control plane component metrics |
-| Custom app metrics | OTLP instrumented apps | OTel DaemonSet → Remote Write | Application-specific metrics |
+| `apiserver_*`, `scheduler_*`, `workqueue_*`, `coredns_*`, `etcd_*`, `kubeproxy_*` | K8s components | Prometheus scraping | Control plane and cluster service health |
 
-## Common Query Patterns
-
-### Pod CPU Usage
-```promql
-# Using cAdvisor metrics (container_*)
-sum by (pod, namespace) (
-  rate(container_cpu_usage_seconds_total{container!=""}[5m])
-)
-```
-
-### Pod Memory Usage
-```promql
-# Using cAdvisor metrics (container_*)
-sum by (pod, namespace) (
-  container_memory_working_set_bytes{container!=""}
-)
-```
-
-### Node CPU Usage
-```promql
-# Using hostmetrics (system_*)
-sum by (k8s_node_name) (
-  rate(system_cpu_time_seconds_total{state!="idle"}[5m])
-)
-
-# Or using node-exporter (node_*)
-1 - avg by (instance) (
-  rate(node_cpu_seconds_total{mode="idle"}[5m])
-)
-```
-
-### Node Memory Usage
-```promql
-# Using hostmetrics (system_*)
-sum by (k8s_node_name) (
-  system_memory_usage_bytes{state="used"}
-)
-
-# Or using node-exporter (node_*)
-node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes
-```
-
-All metrics are enriched with Kubernetes metadata and stored in Prometheus for querying in Grafana.
+All collected metrics are stored in Prometheus and can be queried from Grafana.

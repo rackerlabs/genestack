@@ -850,7 +850,6 @@ kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:909
 
 - [Observability Stack Overview](monitoring-observability-overview.md) - Comprehensive architecture guide
 - [Base Component Metrics Reference](monitoring-otel-base-metrics.md) - K8s and related component metrics 
-- [Additional Component Metrics Reference](monitoring-otel-ext-metrics.md) - Database and additional component metrics 
 - [Prometheus Documentation](monitoring-prometheus.md) - Prometheus-specific configuration
 - [Grafana Documentation](monitoring-grafana.md) - Grafana-specific configuration
 - [AlertManager Slack Integration](alertmanager-slack.md) - Slack notifications
