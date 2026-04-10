@@ -1,0 +1,6 @@
+- op: add
+  path: /configuration/users/infrastructure_roles_secrets/-
+  value:
+    secretname: postgres-monitoring
+    userkey: username
+    passwordkey: password

@@ -258,32 +258,50 @@ Collects infrastructure metrics:
 - PostgreSQL metrics (backends, deadlocks, transactions)
 - RabbitMQ metrics (messages, queues, consumers)
 - Memcached metrics (hit ratio, evictions)
+- Metallb metrics
+- Cert Manager metrics
+- Kube OVN metrics
 - HTTP endpoint health checks
 
 ### Prerequisites
 
-Before installing OpenTelemetry, copy required secrets from the `openstack` namespace:
+Before installing OpenTelemetry we'll need secrets for various services we're gather metrics from. 
+If this is a fresh cluster deployment we'll need to create the secrets in the `monitoring` namespace:
 
-```bash
-# Copy RabbitMQ credentials
-kubectl -n openstack get secret rabbitmq-default-user -o yaml \
-  | yq 'del(.metadata.creationTimestamp, .metadata.uid, .metadata.ownerReferences, .metadata.resourceVersion, .metadata.namespace)' \
-  | kubectl apply --namespace monitoring -f -
+??? example "Create MariaDB secret"
+```shell
+kubectl --namespace monitoring \
+  create secret generic mariadb-monitoring \
+  --type Opaque \
+  --from-literal=username="monitoring" \
+  --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
+```
 
-# Copy PostgreSQL credentials
-kubectl get secret postgres.postgres-cluster.credentials.postgresql.acid.zalan.do \
+??? example "Create Postgres secret"
+```shell
+kubectl --namespace monitoring \
+  create secret generic postgres-monitoring \
+  --type Opaque \
+  --from-literal=username="monitoring" 
+  --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64}; echo;)"
+```
+
+??? example "Create RabbitMQ secret in openstack namespace"
+```shell
+kubectl --namespace openstack \
+  create secret generic rabbitmq-monitoring-user \
+  --type Opaque \
+  --from-literal=username="monitoring" \
+  --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64}; echo;)"
+```
+For now we'll have to copy the secret into the monitoring namespace as well. 
+
+??? example "Copy RabbitMQ secret to monitoring namespace"
+```shell
+kubectl get secret rabbitmq-monitoring-user \
   -n openstack -o yaml \
   | sed 's/namespace: openstack/namespace: monitoring/' \
   | kubectl apply -f -
-
-# Copy MariaDB monitoring credentials
-kubectl get secret mariadb-monitoring \
-  -n openstack -o yaml \
-  | sed 's/namespace: openstack/namespace: monitoring/' \
-  | kubectl apply -f -
-
-# Verify secrets are copied
-kubectl -n monitoring get secrets | grep -E "rabbitmq|postgres|mariadb"
 ```
 
 ### Installation

@@ -1,4 +1,17 @@
 sortOptions:
   order: fifo
 resources:
+  - mariadb-monitoring-user-create.yaml
+  - mariadb-monitoring-user-grant.yaml
+  - rabbitmq-monitoring-user-create.yaml
+  - rabbitmq-monitoring-user-grant.yaml
   - all.yaml
+
+patches:
+  - target:
+      group: acid.zalan.do
+      version: v1
+      kind: OperatorConfiguration
+      name: postgresql-operator-configuration
+      namespace: monitoring
+    path: patch-operatorconfig.yaml

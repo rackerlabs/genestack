@@ -10,6 +10,45 @@ into it's features, components and how it's used within genestack.
 
 ## Install the Opentelemetry Stack
 
+efore installing OpenTelemetry we'll need secrets for various services we're gather metrics from. 
+If this is a fresh cluster deployment we'll need to create the secrets in the `monitoring` namespace:
+
+??? example "Create MariaDB secret"
+```shell
+kubectl --namespace monitoring \
+  create secret generic mariadb-monitoring \
+  --type Opaque \
+  --from-literal=username="monitoring" \
+  --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
+```
+
+??? example "Create Postgres secret"
+```shell
+kubectl --namespace monitoring \
+  create secret generic postgres-monitoring \
+  --type Opaque \
+  --from-literal=username="monitoring" 
+  --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64}; echo;)"
+```
+
+??? example "Create RabbitMQ secret in openstack namespace"
+```shell
+kubectl --namespace openstack \
+  create secret generic rabbitmq-monitoring-user \
+  --type Opaque \
+  --from-literal=username="monitoring" \
+  --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64}; echo;)"
+```
+For now we'll have to copy the secret into the monitoring namespace as well. 
+
+??? example "Copy RabbitMQ secret to monitoring namespace"
+```shell
+kubectl get secret rabbitmq-monitoring-user \
+  -n openstack -o yaml \
+  | sed 's/namespace: openstack/namespace: monitoring/' \
+  | kubectl apply -f -
+```
+
 !!! example "Run the Opentelemetry deployment Script `/opt/genestack/bin/install-opentelemetry-kube-stack.sh`"
 
     ``` shell
