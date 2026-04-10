@@ -18,7 +18,6 @@ charts:
   horizon: 2024.2.264+13651f45-628a320c
   ironic: 2024.2.121+13651f45-628a320c
   keystone: 2025.1.5+ed289c1cd
-  kubernetes-event-exporter: 3.6.3
   kube-ovn: v1.15.4
   kube-prometheus-stack: 78.3.0
   loki: 6.52.0
