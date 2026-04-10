@@ -59,28 +59,100 @@ graph TB
 
 #### Create Management Cluster VM's
 
-!!! note "Openstack as a Platform for Creating Management VM"
-    If these VM's are to be created as admin tenant on openstack, A relevant flavor needs to be created with the following recommendations.
+The management cluster infrastructure (project, network, instances, load balancer, etc.) can be provisioned automatically using the `capi_cluster` Ansible role included in Genestack, or manually if you prefer full control.
 
-- CPU: 12 vCPU per VM
-- Memory: 16 GB per VM
-- Disk: Minimum 100GB disk
+=== "Automated (Recommended)"
 
-Following Disk Size/Paritioning is an example only:
+    The `capi_cluster` Ansible role automates the entire infrastructure setup including:
 
-| Mount point      | Capacity | FS    | VG                       | LV           | Disk |
-|------------------|----------|-------|--------------------------|--------------|------|
-| `/boot`          | 1GB      | ext4  | -                        | -            | sda  |
-| `/boot/efi`      | 256MB    | fat32 | -                        | -            | sda  |
-| `/home`          | 10GB     | ext4  | vglocal00                | lv-home      | sda  |
-| `/`              | 100GB    | ext4  | vglocal00                | lv-root      | sda  |
-| `/opt`           | 10GB     | ext4  | vglocal00                | lv-opt       | sda  |
-| `/root`          | 20GB     | ext4  | vglocal00                | lv-home-root | sda  |
-| `/tmp`           | 10GB     | ext4  | vglocal00                | lv-tmp       | sda  |
-| `/var`           | 50GB     | ext4  | vglocal00                | lv-var       | sda  |
-| `/var/log`       | 50GB     | ext4  | vglocal00                | lv-log       | sda  |
-| `/var/lib/kubelet` | 50GB   | ext4  | vglocal00                | lv-kubelet   | sda  |
-| `/var/lib/etcd`  | 50GB     | ext4  | vglocal00                | -            | sdb  |
+    - OpenStack project and user creation (in the `service` domain)
+    - Network, subnet, router, and security group provisioning
+    - Flavor, image (Ubuntu 24.04), keypair, and volume creation
+    - Octavia load balancer for the Kubernetes API
+    - Boot-from-volume instance provisioning (3 nodes)
+    - Kubespray-based Kubernetes cluster installation
+    - CAPI component initialization and etcd backup configuration
+
+    !!! warning "Prerequisites for the Ansible Role"
+        - Cinder volume service must be enabled (role uses boot-from-volume instances)
+        - A pre-created shared external Neutron network (flat or VLAN)
+        - Keystone admin credentials
+        - Octavia service enabled (role creates a load balancer)
+        - DNS server reachable from the external network that can resolve OpenStack service endpoints
+        - OpenStack SDK installed on the Ansible control node (the Genestack venv is sufficient)
+        - Sufficient Glance storage for the Ubuntu 24.04 image upload
+        - If OpenStack endpoints are behind a TLS gateway, certificates must be signed by a well-known CA (self-signed certs will cause failures)
+
+    Run the playbook from the Genestack ansible playbooks directory:
+
+    ```bash
+    cd /opt/genestack/ansible/playbooks
+
+    ansible-playbook capi-mgmt-cluster-main.yaml \
+      -e os_admin_password=<keystone_admin_password> \
+      -e os_user_password=<capi_mgmt_user_password> \
+      -e ext_net_id='<external_network_uuid>'
+    ```
+
+    | Parameter | Description |
+    |-----------|-------------|
+    | `os_admin_password` | Keystone admin user password |
+    | `os_user_password` | Password for the new CAPI management user |
+    | `ext_net_id` | UUID of the pre-existing external Neutron network |
+
+    ??? info "Key Role Variables (Customizable)"
+        Override these via `-e` flags or by editing `ansible/roles/capi_cluster/defaults/main.yml`:
+
+        | Variable | Default | Description |
+        |----------|---------|-------------|
+        | `capi_mgmt_subnet_cidr` | `172.16.51.0/24` | Subnet CIDR for management network |
+        | `capi_mgmt_dns_servers` | `10.239.0.55` | DNS server for the management cluster |
+        | `capi_mgmt_cluster_flavor.vcpus` | `4` | vCPUs per management VM |
+        | `capi_mgmt_cluster_flavor.ram` | `4096` | RAM (MB) per management VM |
+        | `capi_mgmt_cluster_volume_type` | `lvmdriver-1` | Cinder volume type for boot volumes |
+        | `capi_mgmt_cluster_volumes[].size` | `15` | Boot volume size (GB) per instance |
+        | `capi_mgmt_etcd_backup_volume.size` | `5` | etcd backup volume size (GB) |
+        | `capi_boot_from_volume` | `true` | Boot instances from Cinder volumes |
+        | `capi_mgmt_dns_forwarders` | `[10.239.0.55]` | DNS forwarders for CoreDNS |
+
+        Refer to `ansible/roles/capi_cluster/defaults/main.yml` for the full list of variables.
+
+    The playbook will:
+
+    1. Create the `capi-mgmt-cluster-project` in the `service` domain with appropriate quotas
+    2. Provision all OpenStack infrastructure (network, LB, instances, etc.)
+    3. Install Kubernetes via Kubespray on the 3 management VMs
+    4. Copy the kubeconfig to `/var/tmp/capi_mgmt_cluster.kubeconfig` on the control node
+
+    !!! success "After Completion"
+        Once the playbook finishes, skip ahead to [Install clusterctl](#install-clusterctl) to continue with CAPI initialization. The Kubespray installation, Python venv setup, and cluster configuration steps below are handled by the role.
+
+=== "Manual"
+
+    If you prefer to provision the management cluster VMs manually, follow the steps below.
+
+    !!! note "OpenStack as a Platform for Creating Management VMs"
+        If these VMs are to be created as admin tenant on OpenStack, a relevant flavor needs to be created with the following recommendations.
+
+    - CPU: 12 vCPU per VM
+    - Memory: 16 GB per VM
+    - Disk: Minimum 100GB disk
+
+    Following Disk Size/Partitioning is an example only:
+
+    | Mount point      | Capacity | FS    | VG                       | LV           | Disk |
+    |------------------|----------|-------|--------------------------|--------------|------|
+    | `/boot`          | 1GB      | ext4  | -                        | -            | sda  |
+    | `/boot/efi`      | 256MB    | fat32 | -                        | -            | sda  |
+    | `/home`          | 10GB     | ext4  | vglocal00                | lv-home      | sda  |
+    | `/`              | 100GB    | ext4  | vglocal00                | lv-root      | sda  |
+    | `/opt`           | 10GB     | ext4  | vglocal00                | lv-opt       | sda  |
+    | `/root`          | 20GB     | ext4  | vglocal00                | lv-home-root | sda  |
+    | `/tmp`           | 10GB     | ext4  | vglocal00                | lv-tmp       | sda  |
+    | `/var`           | 50GB     | ext4  | vglocal00                | lv-var       | sda  |
+    | `/var/log`       | 50GB     | ext4  | vglocal00                | lv-log       | sda  |
+    | `/var/lib/kubelet` | 50GB   | ext4  | vglocal00                | lv-kubelet   | sda  |
+    | `/var/lib/etcd`  | 50GB     | ext4  | vglocal00                | -            | sdb  |
 
 #### Verify Python 3 is installed on all master nodes in the management cluster.
 

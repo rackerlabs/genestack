@@ -278,6 +278,7 @@ nav:
           - MariaDB:
               - Operations: infrastructure-mariadb-ops.md
               - Restore with Swift Tempauth: mariadb-backuprestore-from-tempauth.md
+              - MariaDB Operator Upgrade Runbook: openstack-mariadb-operator-upgrade.md
           - Gateway API:
               - Creating Security Policies: infrastructure-envoy-gateway-api-security.md
       - Observability:
