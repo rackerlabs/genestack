@@ -1,15 +1,3 @@
-apiVersion: rabbitmq.com/v1beta1
-kind: User
-metadata:
-  name: rabbitmq-monitoring
-  namespace: openstack
-spec:
-  tags:
-    - monitoring
-  rabbitmqClusterReference:
-    name: rabbitmq
-  importCredentialsSecret:
-    name: rabbitmq-monitoring-user
 ---
 apiVersion: rabbitmq.com/v1beta1
 kind: Permission
