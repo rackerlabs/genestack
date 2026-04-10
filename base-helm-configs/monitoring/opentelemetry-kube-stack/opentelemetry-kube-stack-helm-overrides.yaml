@@ -1054,6 +1054,63 @@ collectors:
                   - source_labels: [__meta_kubernetes_pod_name]
                     target_label: pod
 
+              - job_name: kube-ovn-controller
+                kubernetes_sd_configs:
+                  - role: endpoints
+                    namespaces:
+                      names: [kube-system]
+                relabel_configs:
+                  - source_labels: [__meta_kubernetes_service_name]
+                    regex: "kube-ovn-controller"
+                    action: keep
+                  - source_labels: [__meta_kubernetes_endpoint_port_name]
+                    regex: "metrics"
+                    action: keep
+                  - source_labels: [__meta_kubernetes_service_name]
+                    target_label: service
+                  - source_labels: [__meta_kubernetes_namespace]
+                    target_label: namespace
+                  - source_labels: [__meta_kubernetes_pod_name]
+                    target_label: pod
+
+              - job_name: kube-ovn-cni
+                kubernetes_sd_configs:
+                  - role: endpoints
+                    namespaces:
+                      names: [kube-system]
+                relabel_configs:
+                  - source_labels: [__meta_kubernetes_service_name]
+                    regex: "kube-ovn-cni"
+                    action: keep
+                  - source_labels: [__meta_kubernetes_endpoint_port_name]
+                    regex: "metrics"
+                    action: keep
+                  - source_labels: [__meta_kubernetes_service_name]
+                    target_label: service
+                  - source_labels: [__meta_kubernetes_namespace]
+                    target_label: namespace
+                  - source_labels: [__meta_kubernetes_pod_name]
+                    target_label: pod
+
+              - job_name: kube-ovn-pinger
+                kubernetes_sd_configs:
+                  - role: endpoints
+                    namespaces:
+                      names: [kube-system]
+                relabel_configs:
+                  - source_labels: [__meta_kubernetes_service_name]
+                    regex: "kube-ovn-pinger"
+                    action: keep
+                  - source_labels: [__meta_kubernetes_endpoint_port_name]
+                    regex: "metrics"
+                    action: keep
+                  - source_labels: [__meta_kubernetes_service_name]
+                    target_label: service
+                  - source_labels: [__meta_kubernetes_namespace]
+                    target_label: namespace
+                  - source_labels: [__meta_kubernetes_pod_name]
+                    target_label: pod
+
       service:
         telemetry:
           logs:

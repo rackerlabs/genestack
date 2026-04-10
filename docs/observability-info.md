@@ -240,7 +240,7 @@ Prometheus collects metrics from multiple sources:
 - **Message Queues** - 20+ RabbitMQ metrics
 - **Cache** - 15+ Memcached metrics
 
-For a complete list, see the [Base Metrics Reference](monitoring-otel-base-metrics.md) and [Additional Metrics Reference](monitoring-otel-ext-metrics.md).
+For a complete list, see the [Base Metrics Reference](monitoring-otel-base-metrics.md).
 
 We have covered Prometheus, Prometheus alerting and the AlertManager in greater detail in the [Monitoring](monitoring-observability-overview.md) and [Alerting](alerting-info.md) documentation.
 
@@ -466,7 +466,6 @@ While Genestack provides a relatively comprehensive set of tooling and instructi
 - [Getting Started with Monitoring](monitoring-getting-started.md) - Complete setup guide
 - [Observability Stack Overview](monitoring-observability-overview.md) - Architecture details
 - [Base Component Metrics Reference](monitoring-otel-base-metrics.md) - K8s and related component metrics 
-- [Additional Component Metrics Reference](monitoring-otel-ext-metrics.md) - Database and additional component metrics 
 - [Monitoring Info](monitoring-observability-overview.md) - Prometheus configuration
 - [Alerting Info](alerting-info.md) - AlertManager setup
 - [Loki Installation](monitoring-loki.md) - Loki deployment
@@ -482,6 +481,3 @@ While Genestack provides a relatively comprehensive set of tooling and instructi
 
 ---
 
-**Document Version**: 2.0  
-**Last Updated**: 2026-03-17  
-**Stack**: OpenTelemetry, Prometheus, Loki, Tempo, Grafana
