@@ -186,6 +186,15 @@
     - src: "volume.filters"
       dest: /etc/cinder/volume.filters
 
+- name: Copy cinder-volume filters to rootwrap.d
+  ansible.builtin.copy:
+    src: "/etc/cinder/volume.filters"
+    dest: "/etc/cinder/rootwrap.d/volume.filters"
+    owner: root
+    group: root
+    mode: "0644"
+    remote_src: true
+
 - name: "Create the cinder-volume configuration stage file"
   changed_when: false
   ansible.builtin.copy:
