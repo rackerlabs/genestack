@@ -1014,10 +1014,20 @@ collectors:
                     regex: "(.+)"
                     target_label: __metrics_path__
                   - source_labels:
-                      - __address__, __meta_kubernetes_pod_annotation_prometheus_io_port
+                      - __address__
+                      - __meta_kubernetes_pod_annotation_prometheus_io_port
                     regex: "([^:]+)(?::\\d+)?;(\\d+)"
                     replacement: "$$1:$$2"
                     target_label: __address__
+                  - source_labels:
+                      - __meta_kubernetes_pod_name
+                    target_label: pod
+                  - source_labels:
+                      - __meta_kubernetes_namespace
+                    target_label: namespace
+                  - source_labels:
+                      - __meta_kubernetes_pod_label_app_kubernetes_io_component
+                    target_label: component
 
               - job_name: metallb
                 metrics_path: /metrics
@@ -1028,7 +1038,7 @@ collectors:
                         - metallb-system
                 relabel_configs:
                   - source_labels:
-                     - __meta_kubernetes_pod_label_app_kubernetes_io_component
+                      - __meta_kubernetes_pod_label_app_kubernetes_io_component
                     regex: "controller|speaker"
                     action: keep
                   - source_labels:
@@ -1064,6 +1074,9 @@ collectors:
                       - __meta_kubernetes_service_name
                     target_label: service
                   - source_labels:
+                      - __meta_kubernetes_service_name
+                    target_label: job
+                  - source_labels:
                       - __meta_kubernetes_namespace
                     target_label: namespace
                   - source_labels:
@@ -1088,6 +1101,9 @@ collectors:
                   - source_labels:
                       - __meta_kubernetes_service_name
                     target_label: service
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    target_label: job
                   - source_labels:
                       - __meta_kubernetes_namespace
                     target_label: namespace
@@ -1114,6 +1130,9 @@ collectors:
                       - __meta_kubernetes_service_name
                     target_label: service
                   - source_labels:
+                      - __meta_kubernetes_service_name
+                    target_label: job
+                  - source_labels:
                       - __meta_kubernetes_namespace
                     target_label: namespace
                   - source_labels:
@@ -1138,6 +1157,9 @@ collectors:
                   - source_labels:
                       - __meta_kubernetes_service_name
                     target_label: service
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    target_label: job
                   - source_labels:
                       - __meta_kubernetes_namespace
                     target_label: namespace
