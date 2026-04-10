@@ -7,7 +7,7 @@ For more information see: [Prometheus docs](https://prometheus.io) and [Openstac
 
 !!! note
 
-    To deploy metric exporters you will first need to deploy the Prometheus Operator, see: [Deploy Prometheus](prometheus.md).
+    To deploy metric exporters you will first need to deploy the Prometheus Operator, see: [Deploy Prometheus](monitoring-prometheus.md).
 
 ### Create clouds-yaml secret
 

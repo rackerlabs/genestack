@@ -861,13 +861,13 @@ collectors:
       - name: RABBITMQ_PASSWORD
         valueFrom:
           secretKeyRef:
-            name: rabbitmq-default-user
+            name: rabbitmq-monitoring-user
             key: password
 
       - name: RABBITMQ_USERNAME
         valueFrom:
           secretKeyRef:
-            name: rabbitmq-default-user
+            name: rabbitmq-monitoring-user
             key: username
 
     config:

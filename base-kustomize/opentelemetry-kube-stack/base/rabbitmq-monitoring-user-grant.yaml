@@ -1,0 +1,405 @@
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-root
+  namespace: openstack
+spec:
+  vhost: /
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-aodh
+  namespace: openstack
+spec:
+  vhost: aodh
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-barbican
+  namespace: openstack
+spec:
+  vhost: barbican
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-blazar
+  namespace: openstack
+spec:
+  vhost: blazar
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-ceilometer
+  namespace: openstack
+spec:
+  vhost: ceilometer
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-cinder
+  namespace: openstack
+spec:
+  vhost: cinder
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-cloudkitty
+  namespace: openstack
+spec:
+  vhost: cloudkitty
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-designate
+  namespace: openstack
+spec:
+  vhost: designate
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-glance
+  namespace: openstack
+spec:
+  vhost: glance
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-gnocchi
+  namespace: openstack
+spec:
+  vhost: gnocchi
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-heat
+  namespace: openstack
+spec:
+  vhost: heat
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-horizon
+  namespace: openstack
+spec:
+  vhost: horizon
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-ironic
+  namespace: openstack
+spec:
+  vhost: ironic
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-keystone
+  namespace: openstack
+spec:
+  vhost: keystone
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-magnum
+  namespace: openstack
+spec:
+  vhost: magnum
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-manila
+  namespace: openstack
+spec:
+  vhost: manila
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-masakari
+  namespace: openstack
+spec:
+  vhost: masakari
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-mistral
+  namespace: openstack
+spec:
+  vhost: mistral
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-neutron
+  namespace: openstack
+spec:
+  vhost: neutron
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-nova
+  namespace: openstack
+spec:
+  vhost: nova
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-octavia
+  namespace: openstack
+spec:
+  vhost: octavia
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-placement
+  namespace: openstack
+spec:
+  vhost: placement
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-senlin
+  namespace: openstack
+spec:
+  vhost: senlin
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-swift
+  namespace: openstack
+spec:
+  vhost: swift
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-trove
+  namespace: openstack
+spec:
+  vhost: trove
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-watcher
+  namespace: openstack
+spec:
+  vhost: watcher
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: rabbitmq-monitoring-permission-zaqar
+  namespace: openstack
+spec:
+  vhost: zaqar
+  user: monitoring
+  permissions:
+    configure: "^$"
+    write: "^$"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
