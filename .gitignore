@@ -30,6 +30,9 @@ inventory/*
 inventory/*/artifacts/
 openstack-flex/inventory.ini
 
+# Ansible venv
+.ansible/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
