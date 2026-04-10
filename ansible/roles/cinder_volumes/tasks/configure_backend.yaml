@@ -1,0 +1,73 @@
+---
+
+- name: Set enabled backend fact
+  set_fact:
+    cinder_backend: |
+      {% set rendered_backend = {} %}
+      {% for backend in cinder_backend_name.split(',') %}
+      {%   set default_backend = (_kubernetes_cinder_etc_secret.resources[0].data['backends.conf'] | b64decode | community.general.from_ini)[backend] %}
+      {%   set _ = rendered_backend.__setitem__(backend, default_backend) %}
+      {% endfor %}
+      {{ rendered_backend }}
+
+- name: "Create the cinder-volume-{{ cinder_worker_name }} backend configuration"
+  ansible.builtin.copy:
+    content: "{{ cinder_backend | community.general.to_ini }}"
+    dest: "/etc/cinder/{{ cinder_worker_name }}-backends.conf"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: "Create the cinder-volume-{{ cinder_worker_name }} configuration stage file"
+  ansible.builtin.copy:
+    src: "/etc/cinder/cinder.conf.stage"
+    dest: "/etc/cinder/{{ cinder_worker_name }}-cinder.conf.stage"
+    owner: root
+    group: root
+    mode: "0644"
+    remote_src: true
+
+- name: Ensure the backend configuration is set to our expected value
+  changed_when: false
+  community.general.ini_file:
+    path: "/etc/cinder/{{ cinder_worker_name }}-cinder.conf.stage"
+    section: DEFAULT
+    option: enabled_backends
+    value: "{{ cinder_backend_name }}"
+    create: true
+
+- name: "Override host value in {{ cinder_worker_name }}-cinder.conf.stage"
+  community.general.ini_file:
+    path: "/etc/cinder/{{ cinder_worker_name }}-cinder.conf.stage"
+    section: DEFAULT
+    option: host
+    value: cinder-volume-{{ cinder_worker_name }}-worker
+    mode: '0644'
+    state: present
+
+- name: "Create the cinder-volume-{{ cinder_worker_name }} configuration"
+  ansible.builtin.copy:
+    src: "/etc/cinder/{{ cinder_worker_name }}-cinder.conf.stage"
+    dest: "/etc/cinder/{{ cinder_worker_name }}-cinder.conf"
+    owner: root
+    group: root
+    mode: "0644"
+    remote_src: true
+  notify:
+    - "Restart cinder-volume-backend systemd services"
+
+- name: "Create the cinder-volume-{{ cinder_worker_name }} systemd service units"
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode | default('0644') }}"
+  loop:
+    - src: "../templates/cinder-volume-storage.service"
+      dest: "/etc/systemd/system/cinder-volume-{{ cinder_worker_name }}.service"
+    - src: "../templates/sudoers"
+      dest: /etc/sudoers.d/cinder-volume
+      mode: "0440"
+  notify:
+    - "Restart cinder-volume-backend systemd services"
