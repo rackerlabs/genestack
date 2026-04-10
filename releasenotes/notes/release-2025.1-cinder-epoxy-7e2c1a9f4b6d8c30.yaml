@@ -1,0 +1,75 @@
+---
+prelude: >
+  Genestack Cinder has been updated for Epoxy (`2025.1`) with a focus on safer
+  day-2 operations, cleaner defaults, and repeatable installs.
+
+features:
+  - |
+    Cinder chart and image baselines were updated for the `2025.1` release
+    track.
+  - |
+    Cinder helper jobs now use the `openstack-client` image family instead of
+    the legacy helper pattern, aligning Cinder with current Genestack tooling.
+  - |
+    Community defaults keep Cinder disabled by default (`openstack-components`)
+    so users can opt in intentionally.
+  - |
+    Upstream Cinder `26.0.0` adds the `cinder.wsgi` module for cleaner
+    WSGI app loading (for example `cinder.wsgi.api:application`), which
+    simplifies deployment patterns.
+  - |
+    Upstream Cinder/Ceph adds a backup retention option to keep only the last
+    `n` snapshots per volume backup, reducing source-side Ceph snapshot growth.
+  - |
+    Epoxy highlights call out Cinder Brick multipath setup/management
+    improvements and broad driver updates across common backends.
+
+upgrade:
+  - |
+    If you use Fujitsu backends with password authentication, set
+    `fujitsu_passwordless = False`. In 2025.1 the default is `True`.
+  - |
+    Existing environments that use `keystone_authtoken.auth_uri` should plan
+    to migrate to `www_authenticate_uri`.
+  - |
+    Breaking change: generated global `endpoints.identity.auth` overrides are
+    no longer applied from hyperconverged common endpoint generation. If your
+    environment depended on that global block (for example custom service auth
+    region/user domain/project domain values), move those settings into
+    service-specific helm overrides before upgrade.
+
+deprecations:
+  - |
+    Remove deprecated iSER options from local overrides if still present:
+    `num_iser_scan_tries`, `iser_target_prefix`, `iser_ip_address`,
+    `iser_port`, `iser_helper`.
+  - |
+    Pure Storage `queue_depth` is deprecated and is expected to be removed in
+    `2026.1`.
+
+fixes:
+  - |
+    Cinder install/reinstall flows were validated in hyperconverged lab runs,
+    including a successful immediate rerun (`install-cinder.sh`) for
+    idempotency.
+  - |
+    Cinder API and scheduler runtime validation showed healthy replicas and no
+    fatal runtime errors in sampled logs.
+  - |
+    Upstream Cinder bug fixes directly relevant to operators include:
+    - `Bug #2105961`: NVMe-oF connector validation now checks `nqn` correctly.
+    - `Bug #2111461`: `cinder-manage` purge path fixed for FK constraint cases.
+    - `Bug #1907295`: attachment update failures now return `409` instead of
+      generic `500` in invalid state paths.
+    - `Bug #2082587`: backup restore TypeError fix.
+  - |
+    Upstream Ceph/RBD-related Cinder fixes include:
+    - RBD `Bug #2115985`: manage-volume fix for `multiattach` and
+      `replication_enabled` type properties.
+    - NFS snapshot regression fix (`Bug #2074377`) and attached-volume snapshot
+      metadata fix (`Bug #1989514`) included in the Epoxy cycle.
+
+other:
+  - |
+    Known warnings seen during validation were limited to expected deprecation
+    signals (for example `auth_uri`) and did not block deployment.

@@ -1,0 +1,37 @@
+---
+- name: Create the security group for capi mgmt cluster
+  openstack.cloud.security_group:
+    interface: "{{ os_interface_name | default('public') }}"
+    state: present
+    name: "{{ capi_mgmt_secgroup_name }}"
+    description: "capi mgmt cluster secgroup"
+  register: _capi_sec_group
+
+- name: Create the security group rules for capi mgmt secgroup
+  openstack.cloud.security_group_rule:
+    interface: "{{ os_interface_name | default('public') }}"
+    state: present
+    security_group: "{{ capi_mgmt_secgroup_name }}"
+    protocol: "{{ item.protocol }}"
+    port_range_min: "{{ item.port_range_min }}"
+    port_range_max: "{{ item.port_range_max }}"
+    remote_ip_prefix: "{{ item.remote_ip_prefix }}"
+    direction: "{{ item.direction }}"
+    ethertype: "{{ item.ethertype }}"
+  loop: "{{ capi_mgmt_secgroup_rules }}"
+
+- name: Create the ports for capi mgmt cluster
+  openstack.cloud.port:
+    interface: "{{ os_interface_name | default('public') }}"
+    state: present
+    name: "{{ item.name }}"
+    network: "{{ _capi_geneve_net.id }}"
+    description: "{{ item.description }}"
+    security_groups: "{{ _capi_sec_group.security_group.id }}"
+  loop: "{{ capi_mgmt_cluster_ports }}"
+  register: _capi_port_results
+  notify:
+    - Delete capi mgmt cluster lb pool
+
+- name: Flush handlers to immediately delete the lb pool in case of port change
+  ansible.builtin.meta: flush_handlers

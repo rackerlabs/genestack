@@ -1,0 +1,69 @@
+---
+prelude: >
+  Genestack Ceilometer has been reviewed and aligned for the Epoxy (`2025.1`)
+  upgrade path, with updated operator guidance around telemetry definition
+  changes, deprecated settings, release-specific behavior, and validated
+  dependency handling for Gnocchi-backed deployments.
+
+features:
+  - |
+    Ceilometer `2025.1` adds broader telemetry coverage, including compute
+    pollster publication of `disk.ephemeral.size` and `disk.root.size`.
+  - |
+    Ceilometer now exposes the `power.state` metric from `virDomainState`.
+  - |
+    Metadata coverage is expanded in `2025.1`, including `storage_policy` for
+    Swift container telemetry and `volume_type_id` for volume notifications and
+    Gnocchi resources.
+  - |
+    Ceilometer adds `[polling] ignore_disabled_projects`, which can reduce
+    polling overhead in environments with disabled projects.
+
+upgrade:
+  - |
+    If your deployment overrides Ceilometer telemetry definitions, refresh
+    local `meters.yaml` and `gnocchi_resources.yaml` content for `2025.1`
+    before upgrade.
+  - |
+    Dynamic pollster URL handling changed in `2025.1`: relative `url_path`
+    values are now appended to endpoint URLs. Review any custom dynamic
+    pollsters that relied on prior replacement behavior.
+  - |
+    Upstream support was removed for Open Contrail, VMware vSphere, and
+    Python 3.8. Ceilometer `2025.1` now requires Python 3.9 or newer.
+  - |
+    The following meters were removed upstream and should be removed from local
+    expectations or integrations if still referenced:
+    `cpu_l3_cache_usage`, `memory_bandwidth_local`,
+    `memory_bandwidth_total`.
+  - |
+    Genestack now enables the Ceilometer `db-sync` job in the community
+    baseline. This matches the active chart dependency graph used by the
+    `central`, `compute`, and `notification` workloads and is required for a
+    clean startup sequence with Gnocchi-backed telemetry storage.
+
+deprecations:
+  - |
+    `[DEFAULT] hypervisor_inspector` is deprecated because libvirt is now the
+    only supported hypervisor inspector backend.
+  - |
+    `[polling] tenant_name_discovery` is deprecated in favor of
+    `[polling] identity_name_discovery`.
+
+fixes:
+  - |
+    Ceilometer `24.0.1` includes a libvirt inspector exception-handling fix for
+    `interfaceStats` (`Bug #2113768`), reducing failure noise during telemetry
+    collection.
+
+issues:
+  - |
+    The Epoxy highlights page does not include a dedicated Ceilometer section.
+    Cross-project context still matters: Watcher Epoxy highlights note removal
+    of the obsolete Ceilometer API datasource, which may affect operators with
+    older integration assumptions around Ceilometer APIs.
+  - |
+    Ceilometer validation in Genestack depends on healthy Gnocchi API
+    endpoints, PostgreSQL indexer storage, and Ceph metric storage. If any of
+    those dependencies are absent, Ceilometer pods will remain in their init
+    dependency wait state.

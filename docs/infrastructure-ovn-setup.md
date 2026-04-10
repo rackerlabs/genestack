@@ -17,6 +17,7 @@ Post deployment we need to setup neutron to work with our integrated OVN environ
 | **ovn.openstack.org/ports** | str | `br-ex:bond1` | Comma separated list of bridge mappings. Maps values from the **bridges** annotation to physical devices or bonds on a given node.  |
 | **ovn.openstack.org/bonds** | str | `br-ex:bond0:eno1+eno3:balance-tcp:active` | Comma separated list of bond definitions. Format: `bridge:bondname:member1+member2:mode:lacp`. Creates OVS bonds with specified members. |
 | **ovn.openstack.org/bond-options** | str | `bond0:mii-monitor-interval=100,lacp-time=fast` | Comma separated list of additional bond options. Format: `bondname:option1=value1,option2=value2`. Supports MII monitoring, LACP timing, and other OVS bond parameters. |
+| **ovn.openstack.org/vlans** | str | `bond0.126:bond0:126:1500` | Comma separated list of host VLAN interfaces that **ovn-setup** should create before attaching ports. Format: `interface_name:parent_interface:vlan_id:mtu`. |
 | **ovn.openstack.org/mappings** | str | `physnet1:br-ex` | Comma separated list of neutron mappings. Maps a value that will be used in neutron to a value found in the **ports** or **bonds** annotation. Every provider network name listed in this annotation will have a unique mac address generated per-host. |
 | **ovn.openstack.org/availability_zones** | str | `az1` | Colon separated list of Availability Zones a given node will serve. |
 | **ovn.openstack.org/gateway** | str| `enabled` | If set to `enabled`, the node will be marked as a gateway. |
@@ -69,6 +70,35 @@ kubectl annotate \
         -l openstack-compute-node=enabled -l openstack-network-node=enabled \
         ovn.openstack.org/ports='br-ex:bond1'
 ```
+
+### Set `ovn.openstack.org/vlans` (Optional)
+
+Create Linux VLAN subinterfaces on the host before OVN attaches them to an OVS bridge. This is useful when the host must keep the parent interface while OVN consumes a tagged child interface such as `bond0.126`.
+
+**Format:** `interface_name:parent_interface:vlan_id:mtu`
+
+**Parameters:**
+- `interface_name`: Name of the VLAN interface to create, for example `bond0.126`
+- `parent_interface`: Existing host interface that carries the VLAN, for example `bond0`
+- `vlan_id`: Numeric VLAN tag
+- `mtu`: MTU to apply to the VLAN interface
+
+**Example: External uplink on VLAN 126**
+``` shell
+kubectl annotate \
+        nodes \
+        -l openstack-network-node=enabled \
+        ovn.openstack.org/vlans='bond0.126:bond0:126:1500'
+
+kubectl annotate \
+        nodes \
+        -l openstack-network-node=enabled \
+        ovn.openstack.org/ports='br-ex:bond0.126'
+```
+
+!!! note
+
+    `ovn.openstack.org/vlans` only creates the host VLAN device. You should still reference that interface through `ovn.openstack.org/ports` so it can be attached to the correct bridge.
 
 ### Set `ovn.openstack.org/bonds` (Optional)
 

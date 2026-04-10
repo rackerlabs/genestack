@@ -1,0 +1,28 @@
+---
+prelude: |
+  The Heat chart configuration has been updated for the OpenStack-Helm 2025.2
+  line. This change aligns Genestack Heat overrides with chart removals and
+  current image defaults.
+upgrade:
+  - |
+    The Heat CloudWatch API path is no longer supported by the chart.
+    CloudWatch manifests and related values have been removed from Heat
+    overrides.
+  - |
+    Keystone user bootstrap behavior changed in upstream Heat chart logic:
+    ``job-ks-user`` now creates both ``heat`` and ``heat_trustee`` users.
+    Legacy ``heat-trustee-ks-user`` job dependencies have been removed from
+    Genestack Heat overrides.
+  - |
+    Heat and OpenStack client image overrides now use Genestack GHCR images:
+
+    - ``ghcr.io/rackerlabs/genestack-images/openstack-client:2025.1-latest``
+    - ``ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest``
+  - |
+    Heat API and CFN liveness probe patches were updated to use port ``1717``
+    to match stats-based probe behavior enabled by the current Heat chart.
+deprecations:
+  - |
+    CloudWatch-specific Heat override keys are no longer supported and should
+    not be used in custom overlays.
+...

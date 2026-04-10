@@ -205,7 +205,6 @@ nav:
                       - LVM iSCSI: openstack-cinder-lvmisci.md
                       - NETAPP:
                           - Worker: openstack-cinder-netapp-worker.md
-                          - Containerized: openstack-cinder-netapp-container.md
                       - FIPS Cinder Encryption: openstack-cinder-fips-encryption.md
                   - Compute Kit:
                       - Compute Overview: openstack-compute-kit.md
@@ -325,10 +324,14 @@ nav:
           - Override Public Endpoint fqdn for service catalog: openstack-override-public-endpoint-fqdn.md
           - Service Overrides: openstack-service-overrides.md
           - Resource and Project Lookups: openstack-resource-lookups.md
+          - Instance-HA:
+              - Masakari Host Monitor: masakari-host-monitor.md
+              - Masakari Instance/Introspection Monitor: masakari-instance-introspec.md
           - Reservation:
               - Blazar Reservations Creation: openstack-blazar.md
           - Backup Restore:
               - Freezer Backup Restore Creation: openstack-freezer.md
+              - Freezer Backup Retention Policy: openstack-freezer-backup-retention.md
           - Databases:
               - Trove:
                   - Deployment: openstack-trove.md

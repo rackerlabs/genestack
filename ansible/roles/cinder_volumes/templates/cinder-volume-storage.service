@@ -1,5 +1,5 @@
 [Unit]
-Description = cinder-volume-netapp service
+Description = cinder-volume-{{cinder_worker_name}} service
 After = network-online.target
 After = syslog.target
 
@@ -7,7 +7,7 @@ After = syslog.target
 Type = simple
 User = cinder
 Group = cinder
-ExecStart = /opt/cinder/bin/cinder-volume --config-file /etc/cinder/netapp-cinder.conf --config-file /etc/cinder/netapp-backends.conf
+ExecStart = /opt/cinder/bin/cinder-volume --config-file /etc/cinder/{{cinder_worker_name}}-cinder.conf --config-file /etc/cinder/{{cinder_worker_name}}-backends.conf
 ExecReload = /bin/kill -HUP $MAINPID
 # Give a reasonable amount of time for the server to start up/shut down
 TimeoutSec = 120

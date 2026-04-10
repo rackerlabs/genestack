@@ -1,0 +1,48 @@
+---
+- name: Check if image for capi mgmt cluster is already uploaded
+  openstack.cloud.image_info:
+    interface: "{{ os_endpoint_type | default('public') }}"
+    name: "{{ capi_mgmt_cluster_image }}"
+  register: _capi_preuploaded_image
+
+- name: Download the image for the capi mgmt cluster if required
+  ansible.builtin.get_url:
+    url: https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
+    dest: /tmp/noble-server-cloudimg-amd64.img
+    mode: '0644'
+  when: _capi_preuploaded_image.images | length == 0
+
+- name: Upload the image to glance for the capi mgmt cluster
+  openstack.cloud.image:
+    interface: "{{ os_endpoint_type | default('public') }}"
+    state: present
+    name: "{{ capi_mgmt_cluster_image }}"
+    disk_format: qcow2
+    container_format: bare
+    filename: /tmp/noble-server-cloudimg-amd64.img
+    visibility: shared
+  register: _capi_ansibleupload_image
+  when: _capi_preuploaded_image.images | length == 0
+
+- name: Create the flavor for the capi mgmt cluster
+  openstack.cloud.compute_flavor:
+    interface: "{{ os_endpoint_type | default('public') }}"
+    state: present
+    name: "{{ capi_mgmt_cluster_flavor.name }}"
+    vcpus: "{{ capi_mgmt_cluster_flavor.vcpus }}"
+    ram: "{{ capi_mgmt_cluster_flavor.ram }}"
+    disk: "{{ capi_mgmt_cluster_flavor.disk }}"
+    ephemeral: "{{ capi_mgmt_cluster_flavor.ephemeral }}"
+    description: "{{ capi_mgmt_cluster_flavor.description }}"
+    is_public: "{{ capi_mgmt_cluster_flavor.is_public }}"
+  register: _capi_cluster_flavor
+
+- name: Set the image id to the pre-uploaded ubuntu24 image
+  set_fact:
+    _capi_image_id: "{{ _capi_preuploaded_image.images[0].id }}"
+  when: _capi_preuploaded_image.images | length == 1
+
+- name: Set the image id to the ansible-uploaded ubuntu24 image
+  set_fact:
+    _capi_image_id: "{{ _capi_ansibleupload_image.image.id }}"
+  when: _capi_preuploaded_image.images | length == 0

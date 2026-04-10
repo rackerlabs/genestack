@@ -1,0 +1,216 @@
+---
+prelude: |
+  MariaDB Operator Helm charts have been upgraded from 0.38.1 to 26.3.0
+  following the recommended progressive upgrade path via 25.8.4 and 25.10.4.
+
+  Upgrade path:
+      0.38.1 → 25.8.4 → 25.10.4 → 26.3.0
+
+  The version 25.8.4 and 25.10.4 is the latest patch release in the 25.8.x and
+  25.10.x series and includes all prior fixes along with additional stability
+  improvements.
+
+  This upgrade introduces improvements to replication failover behaviour,
+  backup and restore capabilities, operator stability, and compatibility
+  with newer Kubernetes versions.
+
+  The 25.x release line establishes PhysicalBackup and improved replication
+  handling, while 26.3.0 extends this with Point-in-Time Recovery (PITR),
+  enhanced backup integrations, and Helm chart structural changes.
+
+  These improvements apply to both Galera and replication clusters.
+
+features:
+  - |
+    Physical backups introduced in the 25.8 release series via the PhysicalBackup CR.
+
+    Supported mechanisms:
+      * MariaDB-native backups using mariadb-backup
+      * Kubernetes VolumeSnapshots for storage-level backup and restore
+
+    Benefits:
+      * Faster backup and restore operations
+      * Reduced recovery time objectives (RTO)
+      * Support for cluster bootstrapping via spec.bootstrapFrom
+
+  - |
+    Replication cluster improvements across the 25.x series:
+      * More stable and predictable failover handling
+      * Improved replica lifecycle management
+      * Enhanced reconciliation reducing drift and recovery time
+
+  - |
+    Backup and restore improvements in the 25.10 series:
+      * Improved backup job generation and scheduling
+      * More reliable restore workflows
+      * Enhanced object storage compatibility (e.g. S3, SSE-C)
+
+    Replication clusters can now configure backup targets to run on replicas
+    instead of the primary using:
+      target: Replica
+      target: PreferReplica
+
+  - |
+    New capabilities introduced in 26.3.0:
+
+      * Point-in-Time Recovery (PITR) support
+        - Enables restoring databases to a specific timestamp
+        - Improves recovery precision beyond full backup restores
+
+      * PhysicalBackup enhancements:
+        - Azure Blob Storage support
+        - On-demand PhysicalBackup execution
+
+      These features significantly improve disaster recovery flexibility and
+      multi-cloud support.
+
+  - |
+    Introduced the new `mariadb-cluster` Helm chart for managing MariaDB
+    clusters and related resources in a single Helm release. This provides
+    an alternative deployment method to Kustomize-based installations.
+
+issues:
+  - |
+    Replication auto-failover depends on Kubernetes detecting primary pod failure.
+    In node shutdown or network partition scenarios, failover timing is influenced
+    by Kubernetes node health detection and eviction behaviour.
+
+  - |
+    VolumeSnapshot-based backups depend on CSI driver capabilities and may vary
+    across environments in terms of consistency guarantees.
+
+  - |
+    In 26.3.0, restore behaviour using bootstrapFrom.targetRecoveryTime has changed:
+    the operator now selects the closest backup **not after** the requested timestamp.
+
+    This may result in different restore points compared to previous versions and
+    should be validated in recovery procedures.
+
+upgrade:
+  - |
+    Upgrade path followed:
+
+        0.38.1 → 25.8.4 → 25.10.4 → 26.3.0
+
+    Sequential upgrades are required due to CRD evolution and changes in
+    replication and backup behaviour across versions
+
+  - |
+    Replication configuration change (25.x):
+
+      syncBinlog changed from boolean to integer
+
+      Old:
+        syncBinlog: true
+
+      New:
+        syncBinlog: 1
+
+    This change is handled by updated CRDs and typically requires no manual
+    action unless explicitly overridden in custom configurations
+
+  - |
+    Helm values change (26.3.0):
+
+      Image configuration fields have transitioned from single string values
+      to structured repository + tag format
+
+      Old:
+        config:
+          mariadbImageName: repo/image
+
+      New:
+        config:
+          mariadbImage:
+            repository: repo/image
+            tag: <version>
+
+    Custom Helm values must be updated accordingly prior to upgrade.
+
+  - |
+    CI workflow change (helm-mariadb-operator.yaml):
+
+      The Helm chart version is now pinned using the x-chart-version field
+      defined in the overrides file rather than always pulling the latest
+      chart from the Helm repository.
+
+      A new x-chart-version field has been added to the top of
+      base-helm-configs/mariadb-operator/mariadb-operator-helm-overrides.yaml:
+
+        x-chart-version: "26.3.0"
+
+      The GitHub Actions workflow extracts this value at runtime and passes
+      it as --version to helm template. This ensures the CI pipeline uses
+      a chart version compatible with the overrides file structure.
+
+      To update the chart version, modify the x-chart-version field in the
+      overrides file. Both CI and deployment will stay in sync.
+
+  - |
+    Pre-upgrade recommendations:
+      * Validate existing backups and restore procedures
+      * Review Helm values for image configuration compatibility
+      * Ensure CSI drivers support VolumeSnapshots (if used)
+      * Confirm Kubernetes version compatibility
+
+  - |
+    Post-upgrade validation:
+      * Verify cluster health and replication status
+      * Validate backup job execution
+      * Perform test restore (including PITR where applicable)
+      * Review operator logs for reconciliation errors
+
+deprecations:
+  - |
+    Boolean-based replication configuration parameters have been removed.
+    Integer values are now required.
+
+  - |
+    Legacy MaxScale components bundled within the operator have been removed.
+    MaxScale should be deployed and managed independently if required.
+
+critical:
+  - |
+    Helm values format changes in 26.3.0 may cause upgrade failures or incorrect
+    image configuration if not updated prior to deployment.
+
+  - |
+    Restore behaviour change for targetRecoveryTime may impact recovery outcomes.
+    Validation of restore workflows is strongly recommended.
+
+  - |
+    Backup configuration errors, particularly with PhysicalBackup, may impact
+    recovery capabilities if not verified post-upgrade.
+
+security: []
+
+fixes:
+  - |
+    Fixes introduced between 25.8.1 and 25.8.4 include:
+      * Galera failover improvements
+      * PhysicalBackup VolumeSnapshot consistency improvements
+      * Reduced Grant reconciliation time
+      * VolumeSnapshot locking optimizations
+      * Restore volume mutability improvements
+      * PhysicalBackup storage mount subPath fix
+      * Grant finalizer fixes for users with custom names
+      * appProtocol added to MariaDB service ports
+      * panic fix in GetAutomaticFailoverDelay
+      * support updates for Go 1.25 and Kubernetes 1.34
+
+  - |
+    Improvements in the 25.10 series include:
+      * Improved replication failover and replica recovery handling
+      * Improved backup job generation and restore workflows
+      * Improved S3 backup handling and support for SSE-C encryption
+      * Improved Helm chart argument handling
+      * Removal of legacy MaxScale components from the operator
+      * Kubernetes 1.35 support
+
+  - |
+    Improvements in 26.3.0 include:
+      * Introduction of Point-in-Time Recovery (PITR)
+      * Enhanced PhysicalBackup capabilities and storage integrations
+      * Improved recovery logic for deterministic restore behaviour
+      * General operator stability and reconciliation improvements
+      * Continued dependency and Kubernetes compatibility updates

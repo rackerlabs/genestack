@@ -1,0 +1,58 @@
+---
+prelude: >
+  Keystone upgrade to Epoxy (2025.1) completed. Helm chart updated from
+  2024.2 to 2025.1.5+ed289c1cd with image updates to the 2025.1 stream.
+  Helper container images migrated from heat to openstack-client.
+
+features:
+  - |
+    Keystone images updated to 2025.1-latest stream
+    (ghcr.io/rackerlabs/genestack-images/keystone:2025.1-latest).
+  - |
+    Helper container images (bootstrap, db_drop, db_init, ks_user,
+    keystone_credential_cleanup) migrated from legacy heat:2024.1-latest
+    to purpose-built openstack-client:latest image.
+  - |
+    Upstream Keystone 2025.1 adds pagination support for user, group,
+    project, and domain listing via `limit` and `marker` query parameters.
+  - |
+    New `keystone.wsgi` module provides a consistent WSGI application
+    location for simplified deployment with uWSGI or gunicorn.
+
+upgrade:
+  - |
+    Helm chart version advanced from 2024.2 series to 2025.1.5+ed289c1cd.
+  - |
+    Dependency on passlib library has been dropped upstream in favor of
+    using bcrypt and cryptography directly. Passwords hashed with passlib
+    are still supported but edge cases may require password rotation.
+  - |
+    Python 3.8 support was dropped upstream. Minimum supported version
+    is now Python 3.9.
+  - |
+    The templated catalog driver and `[catalog] template_file` option
+    have been removed upstream.
+
+deprecations:
+  - |
+    Removed deprecated `heartbeat_in_pthread` override from Keystone chart
+    values to align with oslo.messaging deprecation guidance.
+  - |
+    Upstream deprecation: `[DEFAULT] max_param_size` option is deprecated
+    (was used for identity v2 API removed in 13.0.0).
+  - |
+    Upstream warning: sha512_crypt password hashing support will be removed
+    in the next release (post-Epoxy). Users with sha512_crypt hashed
+    passwords should rotate their passwords before upgrading past 2025.1.
+
+security:
+  - |
+    Upstream fix: Tokens for users disabled in read-only backends (LDAP)
+    are now properly invalidated. Previously, tokens continued to be
+    accepted after user disablement due to missing backend notifications.
+    See LP#2122615 for details.
+
+other:
+  - |
+    Legacy heat helper images replaced with openstack-client to reduce
+    image sprawl and align with Genestack container strategy.

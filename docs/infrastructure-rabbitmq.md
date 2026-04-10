@@ -1,5 +1,10 @@
 # Deploy the RabbitMQ Operator and a RabbitMQ Cluster
 
+<!-- Genestack Epoxy RabbitMQ Deprecations
+Genestack now pins the RabbitMQ server image explicitly in the RabbitmqCluster
+manifest for the Epoxy release path instead of relying on operator defaults.
+-->
+
 ## Deploy the RabbitMQ operator.
 
 ``` shell

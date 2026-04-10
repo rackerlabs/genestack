@@ -1,0 +1,94 @@
+---
+- set_fact:
+    cinder_backend: |
+      {% set rendered_backend = {} %}
+      {% for backend in cinder_backend_name.split(',') %}
+      {%   set default_backend = (_kubernetes_cinder_etc_secret.resources[0].data['backends.conf'] | b64decode | community.general.from_ini)[backend] %}
+      {%   set network_interface = hostvars[inventory_hostname][storage_network_interface]['ipv4']['address'] | default(ansible_default_ipv4.address) %}
+      {%   set _ = default_backend.__setitem__("target_ip_address", network_interface) %}
+      {%   if ("lvm" in backend) and (storage_network_multipath | bool) %}
+      {%       set network_interface_secondary = hostvars[inventory_hostname][storage_network_interface_secondary]['ipv4']['address'] %}
+      {%       set _ = default_backend.__setitem__("iscsi_secondary_ip_addresses", network_interface_secondary) %}
+      {%   endif %}
+      {%   set _ = rendered_backend.__setitem__(backend, default_backend) %}
+      {% endfor %}
+      {{ rendered_backend }}
+
+- name: Create the cinder-volume backend configuration
+  ansible.builtin.copy:
+    content: "{{ cinder_backend | community.general.to_ini }}"
+    dest: "/etc/cinder/backends.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Restart cinder-volume and cinder-backup systemd services
+
+- name: Ensure the backend configuration is set to our expected value
+  changed_when: false
+  community.general.ini_file:
+    path: "/etc/cinder/cinder.conf.stage"
+    section: DEFAULT
+    option: enabled_backends
+    value: "{{ cinder_backend_name }}"
+    create: true
+
+- name: Create the cinder-volume configuration
+  ansible.builtin.copy:
+    src: "/etc/cinder/cinder.conf.stage"
+    dest: "/etc/cinder/cinder.conf"
+    owner: root
+    group: root
+    mode: "0644"
+    remote_src: true
+  notify:
+    - Restart cinder-volume and cinder-backup systemd services
+
+- name: "Create the cinder-volume-{{ cinder_worker_name }} systemd service units"
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode | default('0644') }}"
+  loop:
+    - src: "../templates/cinder-volume-usage-audit.timer"
+      dest: "/etc/systemd/system/cinder-volume-usage-audit.timer"
+    - src: "../templates/cinder-volume-usage-audit.service"
+      dest: "/etc/systemd/system/cinder-volume-usage-audit.service"
+    - src: "../templates/cinder-volume.service"
+      dest: "/etc/systemd/system/cinder-volume.service"
+    - src: "../templates/cinder-backup.service"
+      dest: "/etc/systemd/system/cinder-backup.service"
+    - src: "../templates/sudoers"
+      dest: "/etc/sudoers.d/cinder-volume"
+      mode: "0440"
+  notify:
+    - Restart cinder-volume and cinder-backup systemd services
+
+- name: Create the cinder tgtd integration
+  ansible.builtin.copy:
+    content: |
+      include /var/lib/cinder/volumes/*
+    dest: /etc/tgt/conf.d/cinder.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload cinder-volume-tgt systemd service
+
+- name: "Create the cinder-volume systemd service units"
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode | default('0644') }}"
+  loop:
+    - src: "../templates/cinder-volume.service"
+      dest: "/etc/systemd/system/cinder-volume.service"
+    - src: "../templates/sudoers"
+      dest: /etc/sudoers.d/cinder-volume
+      mode: "0440"
+  notify:
+    - Restart cinder-volume and cinder-backup systemd services

@@ -39,7 +39,7 @@
   tags:
     - hosts-config
 
-- name: Ensure environement is applied during sudo
+- name: Ensure environment is applied during sudo
   ansible.builtin.lineinfile:
     path: /etc/pam.d/sudo
     line: "session    required   pam_env.so readenv=1 user_readenv=0"

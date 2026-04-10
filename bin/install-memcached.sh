@@ -10,8 +10,8 @@ SERVICE_NAME_DEFAULT="memcached"
 SERVICE_NAMESPACE="openstack"
 
 # Helm
-HELM_REPO_NAME_DEFAULT="bitnami"
-HELM_REPO_URL_DEFAULT="https://charts.bitnami.com/bitnami"
+HELM_REPO_NAME_DEFAULT="openstack-helm"
+HELM_REPO_URL_DEFAULT="https://tarballs.opendev.org/openstack/openstack-helm"
 
 # Base directories provided by the environment
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"

@@ -11,11 +11,11 @@
     - multipathd.service
     - multipath-tools.service
   when:
-    - not (custom_multipath | default(false) | bool)
+    - not (storage_network_multipath | default(false) | bool)
 
 - name: Copy over multipath Round Robin configuration file
   when:
-    - custom_multipath | default(false) | bool
+    - storage_network_multipath | default(false) | bool
     - ('openstack_compute_nodes' in group_names)
   block:
     - name: Install Packages
@@ -37,7 +37,7 @@
 - name: Install open-iscsi and multipath on nova compute nodes
   when:
     - enable_iscsi | default(false) | bool
-    - custom_multipath | default(false) | bool
+    - storage_network_multipath | default(false) | bool
     - ('openstack_compute_nodes' in group_names)
   block:
     - name: Install Packages

@@ -1,0 +1,24 @@
+[all]
+{% for server in _capi_vms.servers | sort(attribute='hostname') %}
+{{ server.hostname }} ansible_host={{ server.addresses.values() | list | sum(start=[]) | selectattr('OS-EXT-IPS:type', 'equalto', 'fixed') | map(attribute='addr') | join('') }} etcd_member_name={{ server.hostname }} ansible_user=ubuntu
+{% endfor %}
+
+[kube_control_plane]
+{% for server in _capi_vms.servers | sort(attribute='hostname') %}
+{{ server.hostname }}
+{% endfor %}
+
+[etcd:children]
+kube_control_plane
+
+[kube_node]
+{% for server in _capi_vms.servers | sort(attribute='hostname') %}
+{{ server.hostname }}
+{% endfor %}
+
+[calico_rr]
+
+[k8s_cluster:children]
+kube_control_plane
+kube_node
+calico_rr
