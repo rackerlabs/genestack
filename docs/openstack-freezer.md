@@ -200,9 +200,9 @@ sudo kubectl logs -n openstack freezer-api-6849445b5c-dqm8n -f
 
 ---
 
-# Freezer Use Cases
+## Freezer Use Cases
 
-## Create Freezer Jobs
+### Create Freezer Jobs
 
 Similar to cronjobs, freezer jobs are an abstraction to schedule specific backups at a pre-defined time.
 
@@ -333,11 +333,11 @@ Update the job with changed log file name and path_to_backup
 
 ---
 
-## Create VM backups
+### Create VM backups
 
 VM backups can be created locally (on same freezer-client VM storage) or remotely (in Swift object storage connected to Openstack Cluster)
 
-### Backup VM to Local Storage
+#### Backup VM to Local Storage
 Backup destination local storage/VM disk. Make a note of the VM UUID which you would like to backup.
 
 ``` shell
@@ -418,7 +418,7 @@ Check local backup directory structure
     13 directories, 3 files
     ```
 
-### Backup QCOW2 image based VMs to Swift
+#### Backup QCOW2 image based VMs to Swift
 
 ``` shell
 freezer-agent \
@@ -433,7 +433,7 @@ freezer-agent \
         --log-file freezer-bkp-cirros.log
 ```
 
-### Restore QCOW2 image based VM from Swift to Openstack Cluster
+#### Restore QCOW2 image based VM from Swift to Openstack Cluster
 
 ``` shell
 freezer-agent \
@@ -450,7 +450,7 @@ freezer-agent \
 
 ---
 
-### Cinder Volume backup to Swift
+#### Cinder Volume backup to Swift
 
 ``` shell
 freezer-agent 
@@ -463,7 +463,7 @@ freezer-agent
         --log-file freezer-bkp-cinder.log
 ```
 
-### Cinder Volume restore from Swift to Openstack Cluster
+#### Cinder Volume restore from Swift to Openstack Cluster
 
 ``` shell
 freezer-agent \
@@ -478,7 +478,7 @@ freezer-agent \
 
 ---
 
-## MongoDB backup to Swift
+### MongoDB backup to Swift
 
 In this case, mongoDB's LVM (where mongoDB LVM volume is mounted) is backed up.
 
@@ -511,7 +511,7 @@ sudo systemctl status mongod
 
 ---
 
-## MongoDB restore from Swift
+### MongoDB restore from Swift
 
 Restore operation involves quiescing mongoDB operations by stopping the mongodb service momentarily and then restarting it once the backup is completed.
 
@@ -548,7 +548,7 @@ sudo systemctl status mongod
 
 ---
 
-## MYSQL Backup to Swift 
+### MYSQL Backup to Swift 
 
 In this case MYSQL is first backed up locally in a temp location and then backup is uploaded to Swift.
 
@@ -581,7 +581,7 @@ sudo systemctl status mysql.service
 
 ---
 
-## MYSQL Restore from Swift 
+### MYSQL Restore from Swift 
 
 Restore operation involves quiescing mongoDB operations by stopping the mysql service momentarily and then restarting it once the backup is completed.
 
@@ -621,7 +621,7 @@ sudo systemctl status mysql.service
 
 ---
 
-## Filesystem Backup to Swift
+### Filesystem Backup to Swift
 
 Local filesystem directory / files can be backed up to swift object store.
 
@@ -650,13 +650,13 @@ sudo systemctl status mysql
 
 ---
 
-## Creating Sessions
+### Creating Sessions
 
 A session acts as a high-level container that groups related backup and restore actions. It provides a unique identifier and metadata that applies to all jobs executed within it.
 
 When you create a job (like the one in the Canvas), you typically want that job's executions to be tied to a specific session. This makes management easier, especially during recovery, as you can see all backup runs related to a single project or time period under one session ID.
 
-### Create a session config file:
+#### Create a session config file:
 
 Example: `session_file.json`
 
@@ -722,3 +722,116 @@ Start a session with a specific job (job-* are arbitrary):
     ```
 
 ---
+
+### Backup Retention Policy
+
+Freezer backups stored in Swift can accumulate over time. The `swift_retention_policy.py`
+script automates object expiration and container cleanup for Freezer backup containers.
+
+!!! info "Location"
+    The script is located at `scripts/freezer_retention/swift_retention_policy.py`
+    in the [Genestack repository](https://github.com/rackerlabs/genestack/tree/main/scripts).
+
+!!! note
+    This script has only been tested with Freezer backup containers created in Swift,
+    but should work with any S3 compatible containers and objects.
+
+#### Prerequisites
+
+```bash
+pip install python-swiftclient
+source ~/openrc
+swift list
+```
+
+#### Quick Start
+
+```bash
+chmod +x scripts/freezer_retention/swift_retention_policy.py
+```
+
+=== "Set expiration and auto-cleanup"
+
+    ```bash
+    ./swift_retention_policy.py -c freezer-bkp-lvm -m 5 --cleanup
+    ```
+
+=== "Multiple containers"
+
+    ```bash
+    ./swift_retention_policy.py -c freezer-daily -c freezer-weekly -H 1 --cleanup
+    ```
+
+=== "Set expiration only (no cleanup)"
+
+    ```bash
+    ./swift_retention_policy.py -c freezer-bkp-lvm -d 7
+    ```
+
+=== "Dry run"
+
+    ```bash
+    ./swift_retention_policy.py -c freezer-bkp-lvm -m 5 --cleanup --dry-run
+    ```
+
+??? example "All available options"
+
+    ```
+    Time Options:
+      -s, --seconds N           Delete after N seconds
+      -m, --minutes N           Delete after N minutes
+      -H, --hours N             Delete after N hours
+      -d, --days N              Delete after N days
+      -M, --months N            Delete after N months
+      -t, --delete-at UNIX      Delete at specific timestamp
+
+    Cleanup Options:
+      --cleanup                 Monitor and delete containers when empty
+      --check-interval SECONDS  Seconds between checks (default: 60)
+      --max-wait SECONDS        Maximum time to wait (default: 3600)
+
+    Other Options:
+      --dry-run                 Show what would be done
+      -v, --verbose             Verbose output
+    ```
+
+#### How It Works
+
+The script operates in two phases:
+
+1. Sets `X-Delete-At` headers on all objects in the specified containers
+2. Monitors containers and automatically deletes them once empty (when `--cleanup` is used)
+
+| Container Status | Description | Auto-Delete? |
+|------------------|-------------|:------------:|
+| `empty` | No objects remaining | Yes |
+| `not_found` | Container does not exist | N/A |
+| `has_permanent_objects` | Objects without `X-Delete-At` | No |
+| `waiting_for_expiration` | Objects not yet past expiry | No |
+| `waiting_for_expirer` | Expired but not yet removed by Swift | No |
+
+!!! tip "Recommended check intervals"
+
+    | Expiration Window | Check Interval |
+    |-------------------|----------------|
+    | < 10 minutes | 30-60 seconds |
+    | 1-24 hours | 5-15 minutes |
+    | > 1 day | 30-60 minutes |
+
+    ```bash
+    # Short expiration
+    ./swift_retention_policy.py -c container -m 5 --cleanup --check-interval 30
+
+    # Long expiration
+    ./swift_retention_policy.py -c container -d 1 --cleanup --check-interval 1800
+    ```
+
+!!! warning "Set a max wait time"
+    Prevent the script from running indefinitely:
+
+    ```bash
+    ./swift_retention_policy.py -c container -m 5 --cleanup --max-wait 3600
+    ```
+
+For full documentation and troubleshooting, see
+[`scripts/freezer_retention/README.md`](https://github.com/rackerlabs/genestack/blob/main/scripts/freezer_retention/README.md).
