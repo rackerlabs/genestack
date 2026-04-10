@@ -1,3 +1,6 @@
 ---
 collapse_pre_releases: false
+default_branch: main
+release_tag_re: |
+  release-\d+(?:\.\d+)*(?:(?:a|b|rc)\d+)?$
 stop_at_branch_base: true

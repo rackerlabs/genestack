@@ -1,0 +1,16 @@
+---
+
+cinder_volume_package_list:
+  - build-essential
+  - git
+  - open-iscsi
+  - python3-venv
+  - python3-dev
+  - qemu-block-extra
+  - qemu-utils
+
+cinder_backend_packages:
+  netapp: []
+  storage: []
+  lvm:
+    - "tgt"

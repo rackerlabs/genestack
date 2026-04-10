@@ -1,0 +1,39 @@
+---
+
+- name: Copy storage client certificates Debian
+  ansible.builtin.copy:
+    src: "{{ cinder_storage_cert_src_dir }}/{{ item }}"
+    dest: "/usr/local/share/ca-certificates/{{ item }}"
+    owner: root
+    group: root
+    mode: '0644'
+  when:
+    - cinder_enable_storage_ssl | bool
+    - ansible_os_family | lower == "debian"
+  loop: "{{ cinder_storage_cert_filenames }}"
+
+- name: Copy storage client certificates Redhat
+  ansible.builtin.copy:
+    src: "{{ cinder_storage_cert_src_dir }}/{{ item }}"
+    dest: "/etc/pki/ca-trust/source/anchors/{{ item }}"
+    owner: root
+    group: root
+    mode: '0644'
+  when:
+    - cinder_enable_storage_ssl | bool
+    - ansible_os_family | lower == "redhat"
+  loop: "{{ cinder_storage_cert_filenames }}"
+
+- name: Update CA certificate trust Debian
+  ansible.builtin.command:
+    cmd: /usr/sbin/update-ca-certificates
+  when:
+    - cinder_enable_storage_ssl | bool
+    - ansible_os_family | lower == "debian"
+
+- name: Update CA certificate trust Redhat
+  ansible.builtin.command:
+    cmd: /usr/sbin/update-ca-trust extract
+  when:
+    - cinder_enable_storage_ssl | bool
+    - ansible_os_family | lower == "redhat"

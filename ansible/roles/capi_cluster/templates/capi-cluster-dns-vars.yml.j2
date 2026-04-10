@@ -1,0 +1,5 @@
+---
+upstream_dns_servers:
+{% for capi_dns_forwarder in capi_mgmt_dns_forwarders %}
+- {{ capi_dns_forwarder }}
+{% endfor %}

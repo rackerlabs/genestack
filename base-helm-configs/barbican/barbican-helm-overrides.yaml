@@ -1,18 +1,18 @@
 ---
 images:
   tags:
-    barbican_api: ghcr.io/rackerlabs/genestack-images/barbican:2024.1-latest
-    barbican_db_sync: ghcr.io/rackerlabs/genestack-images/barbican:2024.1-latest
-    bootstrap: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    barbican_api: ghcr.io/rackerlabs/genestack-images/barbican:2025.1-latest
+    barbican_db_sync: ghcr.io/rackerlabs/genestack-images/barbican:2025.1-latest
+    bootstrap: ghcr.io/rackerlabs/genestack-images/openstack-client:latest
+    db_drop: ghcr.io/rackerlabs/genestack-images/openstack-client:latest
+    db_init: ghcr.io/rackerlabs/genestack-images/openstack-client:latest
     dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
     image_repo_sync:
-    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    ks_endpoints: ghcr.io/rackerlabs/genestack-images/openstack-client:latest
+    ks_service: ghcr.io/rackerlabs/genestack-images/openstack-client:latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/openstack-client:latest
     rabbit_init:
-    scripted_test: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
+    scripted_test: ghcr.io/rackerlabs/genestack-images/openstack-client:latest
 
 # NOTE: (brew) CPU requests values based on a three node
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
@@ -83,8 +83,6 @@ conf:
       # https://opendev.org/openstack/oslo.messaging/commit/36fb5bceabe08a982ebd52e4a8f005cd26fdf6b8
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
-      # DEPRECIATION:  (warning) heartbeat_in_pthread will be deprecated in 2024.2
-      heartbeat_in_pthread: true
       # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617

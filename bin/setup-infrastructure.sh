@@ -70,6 +70,31 @@ if [ -z "${COMPUTE_INTERFACE}" ]; then
   echo "          The script will use the last interface found ${COMPUTE_INTERFACE}"
 fi
 
+if [ -n "${OVN_EXTERNAL_VLAN_INTERFACE:-}${OVN_EXTERNAL_VLAN_PARENT:-}${OVN_EXTERNAL_VLAN_ID:-}${OVN_EXTERNAL_VLAN_MTU:-}" ]; then
+  for required_var in OVN_EXTERNAL_VLAN_INTERFACE OVN_EXTERNAL_VLAN_PARENT OVN_EXTERNAL_VLAN_ID OVN_EXTERNAL_VLAN_MTU; do
+    if [ -z "${!required_var:-}" ]; then
+      echo "[ERROR] ${required_var} must be set when configuring OVN-created VLAN interfaces"
+      exit 1
+    fi
+  done
+
+  export OVN_EXTERNAL_INTERFACE="${OVN_EXTERNAL_VLAN_INTERFACE}"
+  VLAN_SPEC="${OVN_EXTERNAL_VLAN_INTERFACE}:${OVN_EXTERNAL_VLAN_PARENT}:${OVN_EXTERNAL_VLAN_ID}:${OVN_EXTERNAL_VLAN_MTU}"
+  if [ -n "${OVN_VLANS:-}" ]; then
+    export OVN_VLANS="${OVN_VLANS},${VLAN_SPEC}"
+  else
+    export OVN_VLANS="${VLAN_SPEC}"
+  fi
+fi
+
+if [ -z "${OVN_EXTERNAL_INTERFACE}" ]; then
+  if ip link show bond0.126 >/dev/null 2>&1; then
+    export OVN_EXTERNAL_INTERFACE=bond0.126
+  else
+    export OVN_EXTERNAL_INTERFACE=${COMPUTE_INTERFACE}
+  fi
+fi
+
 if [ "${COMPUTE_INTERFACE}" = "${CONTAINER_INTERFACE}" ]; then
   echo "[ERROR] The compute interface cannot be the same as the container interface"
   exit 1
@@ -86,7 +111,13 @@ kubectl annotate \
 kubectl annotate \
         nodes \
         -l openstack-compute-node=enabled -l openstack-network-node=enabled \
-        ovn.openstack.org/ports="br-ex:${COMPUTE_INTERFACE}"
+        ovn.openstack.org/ports="br-ex:${OVN_EXTERNAL_INTERFACE}"
+if [ -n "${OVN_VLANS:-}" ]; then
+kubectl annotate \
+        nodes \
+        -l openstack-compute-node=enabled -l openstack-network-node=enabled \
+        ovn.openstack.org/vlans="${OVN_VLANS}"
+fi
 kubectl annotate \
         nodes \
         -l openstack-compute-node=enabled -l openstack-network-node=enabled \
@@ -132,7 +163,33 @@ kubectl apply -f /etc/genestack/manifests/metallb/metallb-namespace.yaml
 /opt/genestack/bin/install-metallb.sh
 echo "Waiting for the metallb-controller to be available"
 kubectl -n metallb-system wait --timeout=5m deployments.apps/metallb-controller --for=condition=available
-kubectl apply -f /etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml
+
+echo "Waiting for the metallb validating webhook service endpoints"
+METALLB_WEBHOOK_MAX_RETRIES=${METALLB_WEBHOOK_MAX_RETRIES:-30}
+METALLB_WEBHOOK_RETRY_DELAY=${METALLB_WEBHOOK_RETRY_DELAY:-5}
+for ((i=1; i<=METALLB_WEBHOOK_MAX_RETRIES; i++)); do
+  if kubectl -n metallb-system get endpoints metallb-webhook-service \
+      -o jsonpath='{.subsets[0].addresses[0].ip}' 2>/dev/null | grep -q .; then
+    break
+  fi
+  if [ "${i}" -eq "${METALLB_WEBHOOK_MAX_RETRIES}" ]; then
+    echo "ERROR: metallb-webhook-service has no ready endpoints after waiting."
+    kubectl -n metallb-system get pods -o wide || true
+    kubectl -n metallb-system get endpoints metallb-webhook-service -o yaml || true
+    exit 1
+  fi
+  sleep "${METALLB_WEBHOOK_RETRY_DELAY}"
+done
+
+apply_metallb_crs() {
+  kubectl apply -f /etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml
+}
+
+if ! apply_metallb_crs; then
+  echo "Metallb webhook race detected; retrying CR apply..."
+  sleep 10
+  apply_metallb_crs
+fi
 
 # Deploy openstack
 kubectl apply -k /etc/genestack/kustomize/openstack/base
@@ -148,15 +205,19 @@ echo "Waiting for the cert-manager to be available"
 kubectl -n cert-manager wait --timeout=5m deployments.apps/cert-manager --for=condition=available
 
 # Deploy the Genestack secrets
-/opt/genestack/bin/create-secrets.sh
-if ! kubectl create -f /etc/genestack/kubesecrets.yaml; then
-  echo "Secrets already created"
+if [ -f /etc/genestack/kubesecrets.yaml ]; then
+  echo "Reusing existing /etc/genestack/kubesecrets.yaml"
+else
+  /opt/genestack/bin/create-secrets.sh
 fi
+kubectl apply -f /etc/genestack/kubesecrets.yaml
 
-/opt/genestack/bin/create-skyline-secrets.sh
-if ! kubectl create -f /etc/genestack/skylinesecrets.yaml; then
-  echo "Skyline secrets already created"
+if [ -f /etc/genestack/skylinesecrets.yaml ]; then
+  echo "Reusing existing /etc/genestack/skylinesecrets.yaml"
+else
+  /opt/genestack/bin/create-skyline-secrets.sh
 fi
+kubectl apply -f /etc/genestack/skylinesecrets.yaml
 
 # Deploy mariadb
 /opt/genestack/bin/install-mariadb-operator.sh
@@ -198,4 +259,3 @@ kubectl apply -k /etc/genestack/kustomize/ovn/base
 
 # Deploy Redis Sentinel
 /opt/genestack/bin/install-redis-sentinel.sh
-

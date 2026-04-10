@@ -49,7 +49,7 @@ The `helm-chart-versions.yaml` file, located at `/etc/genestack/helm-chart-versi
     ironic: 2024.2.121+13651f45-628a320c
     keystone: 2024.2.386+13651f45-628a320c
     kube-event-exporter: 3.6.3
-    kube-ovn: v1.13.14
+    kube-ovn: v1.15.4
     libvirt: 2024.2.92+628a320c
     longhorn: 1.8.0
     magnum: 2024.2.157+13651f45-628a320c

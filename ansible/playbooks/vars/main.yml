@@ -1,0 +1,52 @@
+---
+os_endpoint_type: public
+os_interface: "{{ os_endpoint_type }}"
+os_username: admin
+os_project_name: admin
+os_tenant_name: '{{ os_project_name }}'
+os_auth_type: password
+os_admin_password: ''
+os_auth_url: http://keystone.pikachu.jabronis.dev/v3
+os_user_domain_name: default
+os_project_domain_name: default
+os_region_name: RegionOne
+os_identity_api_version: 3
+os_auth_version: 3
+nova_endpoint_type: "{{ os_endpoint_type }}"
+capi_mgmt_project_name: capi-mgmt-cluster-project
+capi_mgmt_user_name: capi-mgmt-user
+capi_mgmt_project_domain: service
+capi_mgmt_user_domain: service
+os_user_password: ''
+
+os_admin_env:
+  OS_ENDPOINT_TYPE: "{{ os_endpoint_type }}"
+  OS_INTERFACE: "{{ os_interface }}"
+  OS_USERNAME: "{{ os_username }}"
+  OS_PASSWORD: "{{ os_admin_password }}"
+  OS_PROJECT_NAME: "{{ os_project_name }}"
+  OS_TENANT_NAME: 'admin'
+  OS_AUTH_TYPE: password
+  OS_AUTH_URL: "{{ os_auth_url }}"
+  OS_USER_DOMAIN_NAME: "{{ os_user_domain_name }}"
+  OS_PROJECT_DOMAIN_NAME: "{{ os_project_domain_name }}"
+  OS_REGION_NAME: "{{ os_region_name }}"
+  OS_IDENTITY_API_VERSION: "{{ os_identity_api_version }}"
+  OS_AUTH_VERSION: "{{ os_auth_version }}"
+  NOVA_ENDPOINT_TYPE: "{{ nova_endpoint_type }}"
+
+capi_mgmt_env:
+  OS_ENDPOINT_TYPE: "{{ os_endpoint_type | default('public') }}"
+  OS_INTERFACE: "{{ os_interface | default('public') }}"
+  OS_AUTH_URL: http://keystone.pikachu.jabronis.dev/v3
+  OS_USERNAME: "{{ capi_mgmt_user_name }}"
+  OS_PASSWORD: "{{ os_user_password }}"
+  OS_PROJECT_NAME: "{{ capi_mgmt_project_name }}"
+  OS_USER_DOMAIN_NAME: service
+  OS_PROJECT_DOMAIN_NAME: service
+  OS_AUTH_TYPE: password
+  OS_REGION_NAME: "{{ os_region_name | default('RegionOne') }}"
+  OS_IDENTITY_API_VERSION: "{{ os_identity_api_version }}"
+  OS_AUTH_VERSION: "{{ os_auth_version }}"
+  NOVA_ENDPOINT_TYPE: "{{ nova_endpoint_type }}"
+  KUBECONFIG: "{{ ansible_env.HOME }}/.kube/config"

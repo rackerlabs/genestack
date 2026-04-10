@@ -1,0 +1,29 @@
+---
+- name: Create the geneve tunnel network for the capi mgmt cluster
+  openstack.cloud.network:
+    interface: "{{ os_endpoint_type | default('public') }}"
+    state: present
+    name: "{{ capi_mgmt_net_name }}"
+  register: _capi_geneve_net
+
+- name: Create the subnet for the capi mgmt cluster
+  openstack.cloud.subnet:
+    interface: "{{ os_endpoint_type | default('public') }}"
+    state: present
+    name: "{{ capi_mgmt_subnet_name }}"
+    network_name: "{{ capi_mgmt_net_name }}"
+    ip_version: 4
+    cidr: "{{ capi_mgmt_subnet_cidr }}"
+    dns_nameservers: "{{ capi_mgmt_dns_servers | split }}"
+  register: _capi_geneve_subnet
+
+- name: Create the router for the capi mgmt cluster
+  openstack.cloud.router:
+    interface: "{{ os_endpoint_type | default('public') }}"
+    state: present
+    name: capi-mgmt-cluster-router
+    interfaces:
+      - "{{ capi_mgmt_subnet_name }}"
+    external_gateway_info:
+      enable_snat: true
+      network: "{{ ext_net_id }}"

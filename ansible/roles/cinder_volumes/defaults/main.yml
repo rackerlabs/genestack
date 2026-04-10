@@ -1,0 +1,17 @@
+---
+
+cinder_release_branch: "unmaintained/2024.1"
+storage_network_interface: ansible_br_storage
+storage_network_interface_secondary:
+cinder_backend_name: ""
+cinder_worker_name: "netapp" # Other possibilities: lvm, storage (non NetApp)
+
+cinder_virtualenv_path: "/opt/cinder"
+storage_network_multipath: false
+cinder_enable_storage_ssl: false
+cinder_storage_cert_src_dir: "/opt/genestack/ansible/playbooks/templates/"
+cinder_storage_cert_filenames:
+  - "ontap-cluster-host.crt"
+  - "ontap-vserver-host.crt"
+
+cinder_volume_package_state: latest

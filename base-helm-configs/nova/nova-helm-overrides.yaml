@@ -1,29 +1,29 @@
 ---
 images:
   tags:
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
     image_repo_sync: null
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    nova_api: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_archive_deleted_rows: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_cell_setup: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_cell_setup_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    nova_compute: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_compute_ironic: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_compute_ssh: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_conductor: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_db_sync: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_novncproxy: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_novncproxy_assets: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_scheduler: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    nova_api: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
+    nova_archive_deleted_rows: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
+    nova_cell_setup: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
+    nova_cell_setup_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    nova_compute: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
+    nova_compute_ironic: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
+    nova_compute_ssh: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
+    nova_conductor: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
+    nova_db_sync: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
+    nova_novncproxy: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
+    nova_novncproxy_assets: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
+    nova_scheduler: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
     nova_service_cleaner: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
-    nova_spiceproxy: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
-    nova_spiceproxy_assets: "ghcr.io/rackerlabs/genestack-images/nova:2024.1-latest"
+    nova_spiceproxy: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
+    nova_spiceproxy_assets: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
     nova_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
     nova_wait_for_computes_init: "quay.io/rackspace/rackerlabs-hyperkube-amd64:v1.11.6"
     rabbit_init: null
@@ -396,6 +396,7 @@ manifests:
   deployment_spiceproxy: false
   ingress_metadata: false
   ingress_novncproxy: false
+  ingress_serialproxy: false
   ingress_osapi: false
   ingress_spiceproxy: false
   job_db_init: false
@@ -405,6 +406,7 @@ manifests:
   secret_ingress_tls: false
   service_ingress_metadata: false
   service_ingress_novncproxy: false
+  service_ingress_serialproxy: false
   service_ingress_osapi: false
   service_ingress_spiceproxy: false
   service_spiceproxy: false

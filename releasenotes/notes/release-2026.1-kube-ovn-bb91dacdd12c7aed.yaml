@@ -1,0 +1,84 @@
+---
+prelude: >
+  Genestack 2026.1 upgrades Kube-OVN from v1.13.14 to v1.15.4 using v1.14.15 as
+  an intermediate step. Operators must restore Neutron-managed ACLs after
+  upgrading to v1.14.15 before proceeding to v1.15.4.
+
+features:
+  - |
+    Base Genestack now enables Kube-OVN garbage collection with
+    ``GC_INTERVAL: 360``.
+
+critical:
+  - |
+    In Genestack's shared-OVN deployment, where OpenStack and Kubernetes use the
+    same OVN Northbound database, upgrading Kube-OVN to v1.14.15 removes
+    Neutron-managed OVN ACL associations.
+
+    When this occurs, OpenStack security groups stop enforcing policy
+    until the OVN Northbound database is resynchronized from Neutron.
+
+    Operators must restore Neutron-managed ACLs after upgrading to
+    v1.14.15 and before continuing to v1.15.4.
+
+upgrade:
+  - |
+    Upgrade Kube-OVN in two stages:
+
+    1. Record the current Neutron-managed ACL count before beginning the
+       upgrade:
+
+       kubectl ko nbctl list acl | grep neutron:security_group_rule_id > \
+         /tmp/neutron-security_group_rule_id.txt
+       wc -l /tmp/neutron-security_group_rule_id.txt
+
+    2. Upgrade from Kube-OVN v1.13.14 to v1.14.15.
+
+       Update ``kube-ovn-helm-overrides.yaml`` and
+       ``helm-chart-versions.yaml`` to reference v1.14.15 as needed for
+       the first-stage upgrade.
+
+    3. Confirm that Neutron-managed ACLs were removed:
+
+       kubectl ko nbctl list acl | grep neutron:security_group_rule_id | wc -l
+
+    4. Restore Neutron-managed ACLs by resynchronizing OVN from Neutron:
+
+       kubectl -n openstack exec -c neutron-server \
+         $(kubectl -n openstack get pod \
+           -l application=neutron,component=server -o name | shuf -n 1) \
+         -- /var/lib/openstack/bin/neutron-ovn-db-sync-util \
+         --config-file /etc/neutron/neutron.conf \
+         --config-file /etc/neutron/plugins/ml2/ml2_conf.ini \
+         --ovn-neutron_sync_mode add
+
+    5. Verify that the ACL count has returned to the expected value, then
+       continue the upgrade to Kube-OVN v1.15.4.
+
+  - |
+    Environments that currently disable Kube-OVN garbage collection with
+    ``GC_INTERVAL: 0`` should set a non-zero value when upgrading to
+    v1.15.4.
+
+    Base Genestack now sets ``GC_INTERVAL: 360``. Environments that do
+    not override this value will inherit garbage collection behavior
+    from the base configuration.
+
+  - |
+    The legacy ``global.images.kubeovn.vpcRepository`` override is no
+    longer used with Kube-OVN v1.15.x.
+
+    Operators who previously customized the VPC NAT gateway image using
+    ``global.images.kubeovn.vpcRepository`` should migrate to:
+
+    - ``global.images.natgateway.repository``
+    - ``global.images.natgateway.tag``
+
+    Environments that do not use Kube-OVN VPC NAT gateway functionality
+    are unaffected.
+
+deprecations:
+  - |
+    The legacy ``global.images.kubeovn.vpcRepository`` override path is
+    obsolete for Kube-OVN v1.15.x. See the upgrade section for the
+    replacement ``global.images.natgateway.*`` keys.

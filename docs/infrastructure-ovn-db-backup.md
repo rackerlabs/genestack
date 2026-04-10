@@ -84,7 +84,7 @@ spec:
       - "/usr/bin/sleep"
     args:
       - "infinity"
-    image: docker.io/kubeovn/kube-ovn:v1.13.13
+    image: ghcr.io/rackerlabs/genestack-images/kube-ovn:v1.15.4
     volumeMounts:
     - mountPath: /etc/ovn
       name: host-config-ovn
