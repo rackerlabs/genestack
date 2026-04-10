@@ -21,10 +21,31 @@ tempo:
   # -- If true, Tempo will report anonymous usage data about the shape of a deployment to Grafana Labs
   reportingEnabled: false
 
+  serviceMonitor:
+    enabled: true
+
+  overrides:
+    defaults:
+      metrics_generator:
+        processors:
+          - service-graphs
+          - span-metrics
+          - local-blocks
+
   metricsGenerator:
     # -- If true, enables Tempo's metrics generator (https://grafana.com/docs/tempo/next/metrics-generator/)
     enabled: true
     remoteWriteUrl: "http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
+    processor:
+      local_blocks:
+        flush_to_storage: true
+        filter_server_spans: false
+        max_block_duration: 1m
+      service_graphs:
+        wait: 10s
+        max_items: 10000
+      span_metrics:
+        enable_target_info: true
 
   # Tempo server configuration.
   # Refers to: https://grafana.com/docs/tempo/latest/configuration/#server

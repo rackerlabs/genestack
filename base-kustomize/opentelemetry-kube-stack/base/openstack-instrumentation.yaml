@@ -1,0 +1,53 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: openstack-instrumentation
+  namespace: openstack
+spec:
+  exporter:
+    endpoint: http://opentelemetry-kube-stack-deployment-collector.monitoring.svc.cluster.local:4318
+
+  propagators:
+    - tracecontext
+    - baggage
+    - jaeger
+
+  resource:
+    addK8sUIDAttributes: true
+
+  sampler:
+    type: parentbased_traceidratio
+    argument: "1"
+
+  python:
+    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-python:0.60b0
+
+    env:
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: "http://opentelemetry-kube-stack-deployment-collector.monitoring.svc.cluster.local:4318"
+      - name: OTEL_TRACES_EXPORTER
+        value: "otlp"
+      - name: OTEL_EXPORTER_OTLP_PROTOCOL
+        value: "http/protobuf"
+      - name: OTEL_EXPORTER_OTLP_TIMEOUT
+        value: "10000"
+      - name: OTEL_PYTHON_INSTRUMENTATION_ENABLED
+        value: "true"
+      - name: OTEL_PYTHON_LOG_CORRELATION
+        value: "true"
+      - name: OTEL_PYTHON_LOG_FORMAT
+        value: "%(asctime)s %(levelname)s [%(name)s] [trace_id=%(otelTraceID)s span_id=%(otelSpanID)s] - %(message)s"
+      - name: OTEL_BSP_MAX_QUEUE_SIZE
+        value: "2048"
+      - name: OTEL_BSP_SCHEDULE_DELAY
+        value: "5000"
+      - name: OTEL_BSP_MAX_EXPORT_BATCH_SIZE
+        value: "512"
+      - name: OTEL_METRICS_EXPORTER
+        value: "none"
+      - name: OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED
+        value: "false"
+      - name: OTEL_LOGS_EXPORTER
+        value: "none"
+      - name: OTEL_LOG_LEVEL
+        value: "debug"
