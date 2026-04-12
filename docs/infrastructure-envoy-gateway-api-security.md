@@ -18,7 +18,7 @@ kind: HTTPRoute
 metadata:
   annotations:
   name: alertmanager-gateway-route
-  namespace: prometheus
+  namespace: monitoring
 spec:
   hostnames:
   - alertmanager.example.com

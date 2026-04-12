@@ -121,6 +121,7 @@ swift_rabbitmq_password=$(generate_password 32)
 memcached_shared_secret=$(generate_password 32)
 grafana_secret=$(generate_password 32)
 grafana_root_secret=$(generate_password 32)
+mariadb_monitoring_password=$(generate_password 32)
 ironic_db_password=$(generate_password 32)
 ironic_rabbitmq_password=$(generate_password 32)
 blazar_rabbitmq_password=$(generate_password 64)
@@ -137,6 +138,11 @@ zaqar_rabbitmq_password=$(generate_password 64)
 zaqar_db_password=$(generate_password 32)
 zaqar_admin_password=$(generate_password 32)
 zaqar_keystone_test_password=$(generate_password 32)
+keystone_auth_url="http://keystone-api.openstack.svc.cluster.local:5000/v3"
+keystone_username="admin"
+keystone_user_domain="Default"
+keystone_project_name="admin"
+keystone_project_domain="Default"
 
 OUTPUT_FILE="/etc/genestack/kubesecrets.yaml"
 GENERATED_FILE=$(mktemp)
@@ -847,11 +853,21 @@ data:
   memcache_secret_key: $(echo -n $memcached_shared_secret | base64 -w0)
 ---
 apiVersion: v1
+kind: Secret
+metadata:
+  name: mariadb-monitoring
+  namespace: openstack
+type: Opaque
+data:
+  username: $(echo -n "monitoring" | base64 -w0)
+  password: $(echo -n $mariadb_monitoring_password | base64 -w0)
+---
+apiVersion: v1
 kind: Namespace
 metadata:
   labels:
-    kubernetes.io/metadata.name: grafana
-    name: grafana
+    kubernetes.io/metadata.name: monitoring
+    name: monitoring
   name: monitoring
 ---
 apiVersion: v1
@@ -974,7 +990,7 @@ type: Opaque
 data:
   AUTH_URL: $(echo -n $keystone_auth_url | base64 -w0)
   USERNAME: $(echo -n $keystone_username | base64 -w0)
-  PASSWORD: $(kubectl get secret keystone-admin -n openstack -o jsonpath={.data.password})
+  PASSWORD: $(echo -n $keystone_admin_password | base64 -w0)
   USER_DOMAIN_NAME: $(echo -n $keystone_user_domain | base64 -w0)
   PROJECT_NAME: $(echo -n $keystone_project_name | base64 -w0)
   PROJECT_DOMAIN_NAME: $(echo -n $keystone_project_domain | base64 -w0)

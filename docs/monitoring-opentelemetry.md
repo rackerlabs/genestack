@@ -1,64 +1,55 @@
 # OpenTelemetry
 
-We are taking advantage of the Opentelemetry community opentelemetry-kube-stack as
-well as other various components for monitoring and observability. For more
-information, take a look at the [Opentelemetry Kube Stack Helm Chart](https://github.com/open-telemetry/opentelemetry-helm-charts/tree/main/charts/opentelemetry-kube-stack)
-as well as the [Opentelemetry Docs](https://opentelemetry.io/).
+Genestack uses the OpenTelemetry Helm chart to deploy the operator, daemon collector, and deployment collector into the `monitoring` namespace.
 
-The [Monitoring and Observability Overview](monitoring-observability-overview.md) documentation page for more information
-into it's features, components and how it's used within genestack. 
+## Paths
 
-## Install the Opentelemetry Stack
+- Base Helm values: `/opt/genestack/base-helm-configs/opentelemetry-kube-stack/`
+- Service overrides: `/etc/genestack/helm-configs/opentelemetry-kube-stack/`
+- Kustomize overlay: `/etc/genestack/kustomize/opentelemetry-kube-stack/overlay/`
 
-efore installing OpenTelemetry we'll need secrets for various services we're gather metrics from. 
-If this is a fresh cluster deployment we'll need to create the secrets in the `monitoring` namespace:
+## Default Receivers
 
-??? example "Create MariaDB secret"
+The default configuration enables:
+
+- MySQL
+- PostgreSQL
+- RabbitMQ
+- Memcached
+
+The deployment collector also includes placeholder `httpcheck` targets. Update those endpoints in the base or service override values for your environment before relying on that receiver.
+
+## Secret and Database Preparation
+
+Before Helm runs, the install script:
+
+- ensures `monitoring` exists
+- applies Talos Pod Security labels when the provider is `talos`
+- creates or applies the `mariadb-monitoring` secret in `openstack`
+- copies `mariadb-monitoring` into `monitoring`
+- copies `rabbitmq-default-user` from `openstack` into `monitoring`
+- applies the MariaDB `User` and `Grant` resources for the monitoring account
+
+The supported way to seed the generated secrets file is:
+
 ```shell
-kubectl --namespace monitoring \
-  create secret generic mariadb-monitoring \
-  --type Opaque \
-  --from-literal=username="monitoring" \
-  --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
+/opt/genestack/bin/create-secrets.sh
 ```
 
-??? example "Create Postgres secret"
+## Install
+
 ```shell
-kubectl --namespace monitoring \
-  create secret generic postgres-monitoring \
-  --type Opaque \
-  --from-literal=username="monitoring" 
-  --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64}; echo;)"
+/opt/genestack/bin/install-opentelemetry-kube-stack.sh
 ```
 
-??? example "Create RabbitMQ secret in openstack namespace"
-```shell
-kubectl --namespace openstack \
-  create secret generic rabbitmq-monitoring-user \
-  --type Opaque \
-  --from-literal=username="monitoring" \
-  --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64}; echo;)"
-```
-For now we'll have to copy the secret into the monitoring namespace as well. 
+## Verify
 
-??? example "Copy RabbitMQ secret to monitoring namespace"
 ```shell
-kubectl get secret rabbitmq-monitoring-user \
-  -n openstack -o yaml \
-  | sed 's/namespace: openstack/namespace: monitoring/' \
-  | kubectl apply -f -
+kubectl -n monitoring get pods -l app.kubernetes.io/instance=opentelemetry-kube-stack
+kubectl -n monitoring get opentelemetrycollectors
 ```
 
-!!! example "Run the Opentelemetry deployment Script `/opt/genestack/bin/install-opentelemetry-kube-stack.sh`"
+!!! info "Talos-only"
 
-    ``` shell
-    --8<-- "bin/install-opentelemetry-kube-stack.sh"
-    ```
-
-!!! success
-
-    If the installation is successful, you should see the related pods
-    in the monitoring namespace.
-    ``` shell
-    kubectl -n monitoring get pods -l "release=opentelemetry-kube-stack"
-    ```
+    The daemon collector and node-level monitoring components need privileged Pod Security labels on Talos.
+    Skip this on Kubespray unless your cluster enforces the same restriction.

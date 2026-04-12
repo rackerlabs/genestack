@@ -37,7 +37,7 @@ In Genestack we have separated the alerting rules config out from the primary he
 Doing it this way allows for easier review of new rules, better maintainability, easier updates of the stack and helps with portability for larger deployments. Keeping our configurations separated and checked in to the repo in such a manner is ideal for these reasons.
 The alternative is to create the rules within your observability platform, in Genestack's default workflow this would be Grafana. Although the end user is free to make such a choice you end up losing a lot of the benefits we just mentioned while creating additional headaches when deploying to new clusters or even during basic updates.
 
-You can view the rest of the default alerting rule configurations in the Genestack repo [alerting rules](https://github.com/rackerlabs/genestack/blob/main/base-helm-configs/prometheus/alerting_rules.yaml) yaml file.
+Alertmanager defaults are stored in the Genestack repo at [`base-helm-configs/kube-prometheus-stack/alertmanager_config.yaml`](https://github.com/rackerlabs/genestack/blob/main/base-helm-configs/kube-prometheus-stack/alertmanager_config.yaml). Custom Prometheus rules are typically added as additional YAML files under `/etc/genestack/helm-configs/kube-prometheus-stack/`.
 
 To deploy any new rules you would simply run the [Prometheus Deployment](monitoring-prometheus.md) and Helm/Prometheus will take care of updating the configurations from there.
 !!! example "Run the Prometheus deployment"
@@ -50,13 +50,13 @@ To deploy any new rules you would simply run the [Prometheus Deployment](monitor
 
 The kube-prometheus-stack not only contains our monitoring components such as Prometheus and related CRD's, but it also contains another important features, the [Alert Manager](https://prometheus.io/docs/alerting/latest/alertmanager/).
 The Alert Manager is a crucial component in the alerting pipeline as it takes care of grouping, deduplicating and even routing the alerts to the correct receiver integrations.
-Prometheus is responsible for generating the alerts based on the [Alerting Rules](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/) we [defined](https://github.com/rackerlabs/genestack/blob/main/base-helm-configs/prometheus/alerting_rules.yaml).
+Prometheus is responsible for generating the alerts based on the [Alerting Rules](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/) you define for your environment.
 Prometheus then sends these alerts to the [Alert Manager](https://prometheus.io/docs/alerting/latest/alertmanager/) for further processing.
 
 The below diagram gives a better idea of how the Alert Manager works with Prometheus as a whole.
 ![Prometheus Architecture](assets/images/prometheus-architecture.png)
 
-Genestack provides a basic [alertmanager_config](https://github.com/rackerlabs/genestack/blob/main/base-helm-configs/prometheus/alertmanager_config.yaml) that's separated out from the primary Prometheus configurations for similar reasons the [alerting rules](https://github.com/rackerlabs/genestack/blob/main/base-helm-configs/prometheus/alerting_rules.yaml) are.
+Genestack provides a basic [alertmanager_config](https://github.com/rackerlabs/genestack/blob/main/base-helm-configs/kube-prometheus-stack/alertmanager_config.yaml) that is separated out from the primary Prometheus configuration so it can be overridden independently.
 Here we can see the key components of the Alert Manager config that allows us to group and send our alerts to external services for further action.
 
 * [Inhibit Rules](https://prometheus.io/docs/alerting/latest/configuration/#inhibition-related-settings)
@@ -71,7 +71,7 @@ These are all explained in greater detail in the [Alert Manager Docs](https://pr
 The Alert Manager has various baked-in methods to allow those notifications to be sent to services like [email](https://prometheus.io/docs/alerting/latest/configuration/#email_config), [PagerDuty](https://prometheus.io/docs/alerting/latest/configuration/#pagerduty_config) and [Microsoft Teams](https://prometheus.io/docs/alerting/latest/configuration/#msteams_config).
 For a full list and further information view the [receiver information documentation](https://prometheus.io/docs/alerting/latest/configuration/#receiver-integration-settings).
 
-The following list contains a few examples of these receivers as part of the [alertmanager_config](https://github.com/rackerlabs/genestack/blob/main/base-helm-configs/prometheus/alertmanager_config.yaml) found in Genestack.
+The following list contains a few examples of these receivers as part of the [alertmanager_config](https://github.com/rackerlabs/genestack/blob/main/base-helm-configs/kube-prometheus-stack/alertmanager_config.yaml) found in Genestack.
 
 * [Slack Receiver](alertmanager-slack.md)
 * [PagerDuty Receiver](alertmanager-pagerduty.md)

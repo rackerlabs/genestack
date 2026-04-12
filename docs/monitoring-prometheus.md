@@ -1,39 +1,47 @@
 # Prometheus
 
-We are taking advantage of the prometheus community kube-prometheus-stack as
-well as other various components for monitoring and alerting. For more
-information, take a look at [Prometheus Kube Stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack).
+Genestack uses the `kube-prometheus-stack` chart to deploy Prometheus, Alertmanager, node-exporter, and kube-state-metrics into the `monitoring` namespace.
 
+## Paths
 
-## Install the Prometheus Stack
+- Base Helm values: `/opt/genestack/base-helm-configs/kube-prometheus-stack/`
+- Service overrides: `/etc/genestack/helm-configs/kube-prometheus-stack/`
+- Kustomize overlay: `/etc/genestack/kustomize/kube-prometheus-stack/overlay/`
 
-!!! example "Run the Prometheus deployment Script `/opt/genestack/bin/install-kube-prometheus-stack.sh`"
+## Install
 
-    ``` shell
-    --8<-- "bin/install-kube-prometheus-stack.sh"
-    ```
+```shell
+/opt/genestack/bin/install-kube-prometheus-stack.sh
+```
 
-!!! success
+## Verify
 
-    If the installation is successful, you should see the related pods
-    in the monitoring namespace.
-    ``` shell
-    kubectl -n monitoring get pods -l "release=kube-prometheus-stack"
-    ```
+```shell
+kubectl -n monitoring get pods -l app.kubernetes.io/instance=kube-prometheus-stack
+kubectl -n monitoring get prometheus,alertmanager
+```
 
-## Update Alertmanager Configuration
+## Alertmanager Configuration
 
-In this example, we supply a Teams webhook URL to send all open alerts to a
-teams channel. However, there are a plethora of other receivers available.
-For a full list, review prometheus documentation: [receiver-integration-settings](https://prometheus.io/docs/alerting/latest/configuration/#receiver-integration-settings).
+The base Alertmanager example is stored at:
 
-!!! example
+- `/opt/genestack/base-helm-configs/kube-prometheus-stack/alertmanager_config.yaml`
 
-    You can ignore this step if you don't want to send alerts to Teams, the
-    alertmanager will still deploy and provide information.
+If you want to customize Alertmanager, place your override file in:
 
-    ``` shell
-    read -p "webhook_url: " webhook_url;
-    sed -i -e "s#https://webhook_url.example#$webhook_url#" \
-    /etc/genestack/helm-configs/prometheus/alertmanager_config.yaml
-    ```
+- `/etc/genestack/helm-configs/kube-prometheus-stack/`
+
+Example:
+
+```shell
+read -p "webhook_url: " webhook_url
+sed -i -e "s#https://webhook_url.example#${webhook_url}#" \
+  /etc/genestack/helm-configs/kube-prometheus-stack/alertmanager_config.yaml
+```
+
+Any additional YAML files placed in `/etc/genestack/helm-configs/kube-prometheus-stack/` are included by the install script, so this is also the supported place for custom Prometheus rules.
+
+!!! info "Talos-only"
+
+    Prometheus node-exporter needs privileged host access on Talos.
+    Skip this on Kubespray unless your cluster enforces the same restriction.

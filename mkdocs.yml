@@ -168,6 +168,7 @@ nav:
                   - Kubernetes Taint: k8s-taint.md
               - Plugins and Tools: k8s-tools.md
               - Retrieve kube config: k8s-config.md
+              - Prometheus: monitoring-prometheus.md
           - Storage:
               - storage-overview.md
               - Ceph Internal: storage-ceph-rook-internal.md
@@ -190,6 +191,8 @@ nav:
               - Redis: infrastructure-redis.md
               - Libvirt: infrastructure-libvirt.md
               - OVN: infrastructure-ovn-setup.md
+              - FluentBit: infrastructure-fluentbit.md
+              - Loki: infrastructure-loki.md
           - OpenStack:
               - openstack-overview.md
               - OpenStack Services:
@@ -233,11 +236,13 @@ nav:
           - Monitoring and Observability:
               - Monitoring and Observability Overview: monitoring-observability-overview.md
               - Getting Started: monitoring-getting-started.md
-              - Opentelemetry: monitoring-opentelemetry.md
+              - OpenTelemetry: monitoring-opentelemetry.md
               - Prometheus: monitoring-prometheus.md
               - Loki: monitoring-loki.md
+              - Tempo: monitoring-tempo.md
               - Grafana: monitoring-grafana.md
-              - Openstack Metrics Exporter: prometheus-openstack-metrics-exporter.md
+              - OpenStack Exporter: openstack-exporter.md
+              - OpenStack Metrics Exporter: prometheus-openstack-metrics-exporter.md
               - Custom Node Metrics: prometheus-custom-node-metrics.md
               - Pushgateway: prometheus-pushgateway.md
               - Barbican Exporter: openstack-barbican-exporter.md
@@ -268,6 +273,7 @@ nav:
               - Troubleshooting: ovn-troubleshooting.md
               - Traffic flow introduction: ovn-traffic-flow-intro.md
               - Database Backup: infrastructure-ovn-db-backup.md
+              - Monitoring introduction: ovn-monitoring-introduction.md
               - Claim Storm alert: ovn-alert-claim-storm.md
               - Updating Kube OVN to OpenStack Configuration: ovn-kube-ovn-openstack.md
               - Updating Kube OVN IP Space: infrastructure-kube-ovn-re-ip.md

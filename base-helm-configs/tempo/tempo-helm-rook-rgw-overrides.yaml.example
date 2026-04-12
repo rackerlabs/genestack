@@ -1,0 +1,10 @@
+tempo:
+  storage:
+    trace:
+      backend: s3
+      s3:
+        bucket: tempo-traces
+        endpoint: rook-ceph-rgw-s3.rook-ceph.svc.cluster.local:80
+        access_key: REPLACE_ME
+        secret_key: REPLACE_ME
+        insecure: true

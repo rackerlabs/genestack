@@ -12,4 +12,4 @@ nodeSelector:
 
 serviceMonitor:
   enabled: true
-  namespace: prometheus
+  namespace: monitoring
