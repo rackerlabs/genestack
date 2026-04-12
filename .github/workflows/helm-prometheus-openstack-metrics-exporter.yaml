@@ -4,9 +4,9 @@ name: Helm GitHub Actions for openstack-metrics-exporter
 on:
   pull_request:
     paths:
-      - base-helm-configs/monitoring/openstack-metrics-exporter/**
-      - base-kustomize/monitoring/openstack-metrics-exporter/**
-      - .github/workflows/helm-openstack-metrics-exporter.yaml
+      - base-helm-configs/openstack-metrics-exporter/**
+      - base-kustomize/openstack-metrics-exporter/**
+      - .github/workflows/helm-prometheus-openstack-metrics-exporter.yaml
 jobs:
   helm:
     name: Helm
@@ -33,12 +33,12 @@ jobs:
         run: |
           cd submodules/openstack-exporter/charts/
           ${{ steps.helm.outputs.helm-path }} template os-metrics ./prometheus-openstack-exporter \
-            --namespace=openstack \
+            --namespace=monitoring \
             --wait \
             --timeout 120m \
-            -f ${{ github.workspace }}/base-helm-configs/monitoring/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml  > /tmp/rendered.yaml
+            -f ${{ github.workspace }}/base-helm-configs/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml > /tmp/rendered.yaml
       - name: Return helm Build
         uses: actions/upload-artifact@v4
         with:
-          name: helm-openstack-exporter-artifact-${{ matrix.overlays }}
+          name: helm-openstack-exporter-artifact
           path: /tmp/rendered.yaml
