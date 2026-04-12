@@ -192,7 +192,6 @@ nav:
               - Libvirt: infrastructure-libvirt.md
               - OVN: infrastructure-ovn-setup.md
               - FluentBit: infrastructure-fluentbit.md
-              - Loki: infrastructure-loki.md
           - OpenStack:
               - openstack-overview.md
               - OpenStack Services:
@@ -273,7 +272,6 @@ nav:
               - Troubleshooting: ovn-troubleshooting.md
               - Traffic flow introduction: ovn-traffic-flow-intro.md
               - Database Backup: infrastructure-ovn-db-backup.md
-              - Monitoring introduction: ovn-monitoring-introduction.md
               - Claim Storm alert: ovn-alert-claim-storm.md
               - Updating Kube OVN to OpenStack Configuration: ovn-kube-ovn-openstack.md
               - Updating Kube OVN IP Space: infrastructure-kube-ovn-re-ip.md
