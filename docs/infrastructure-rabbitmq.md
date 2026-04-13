@@ -37,15 +37,6 @@ kubectl apply -k /etc/genestack/kustomize/rabbitmq-cluster/overlay
 kubectl --namespace openstack get rabbitmqclusters.rabbitmq.com -w
 ```
 
-## Monitoring Integration
-
-RabbitMQ telemetry in Genestack is collected through the OpenTelemetry monitoring stack. Do not add
-RabbitMQ-specific Prometheus `ServiceMonitor`, `PodMonitor`, or rule resources as part of the infrastructure
-deployment flow.
-
-See [OpenTelemetry](monitoring-opentelemetry.md) and [Monitoring Getting Started](monitoring-getting-started.md)
-for the supported monitoring path.
-
 ## Epoxy upgrade notes
 
 Genestack targets RabbitMQ `4.1.4` for the Epoxy release path. The
@@ -57,6 +48,3 @@ When upgrading an existing environment, re-apply the RabbitMQ cluster manifest
 so that the intended RabbitMQ image is reconciled.
 
 !!! warning
-
-    Upgrading the RabbitMQ cluster operator can trigger a rolling update of the
-    managed RabbitMQ StatefulSet.
