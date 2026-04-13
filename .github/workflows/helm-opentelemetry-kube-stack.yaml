@@ -4,7 +4,7 @@ name: Helm GitHub Actions for Opentelemetry
 on:
   pull_request:
     paths:
-      - base-helm-configs/monitoring/opentelemetry-kube-stack/**
+      - base-helm-configs/opentelemetry-kube-stack/**
       - base-kustomize/opentelemetry-kube-stack/**
       - .github/workflows/helm-opentelemetry-kube-stack.yaml
 jobs:
@@ -31,8 +31,8 @@ jobs:
         run: |
           ${{ steps.helm.outputs.helm-path }} template opentelemetry open-telemetry/opentelemetry-kube-stack \
             --create-namespace \
-            --namespace=prometheus \
-            -f ${{ github.workspace }}//base-helm-configs/monitoring/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-overrides.yaml \
+            --namespace=monitoring \
+            -f ${{ github.workspace }}/base-helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-overrides.yaml \
             --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
             --post-renderer-args opentelemetry-kube-stack/${{ matrix.overlays }} > /tmp/rendered.yaml
       - name: Return helm Build

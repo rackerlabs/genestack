@@ -86,7 +86,7 @@ data:
   prometheus_basic_auth_password: $(echo -n "" | base64)
   prometheus_basic_auth_user: $(echo -n "" | base64)
   prometheus_enable_basic_auth: $(echo -n "false" | base64)
-  prometheus_endpoint: $(echo -n "http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090" | base64 -w0)"
+  prometheus_endpoint: $(echo -n "http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090" | base64 -w0)"
 
 # Write to skylinesecrets.yaml
 echo "$SKYLINE_SECRET_CONTENT" > ${SKYLINE_SECRETS_FILE}

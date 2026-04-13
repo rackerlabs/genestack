@@ -1,0 +1,109 @@
+---
+deploymentMode: SingleBinary
+
+minio:
+  enabled: false
+
+loki:
+  auth_enabled: false
+  commonConfig:
+    replication_factor: 1
+  storage:
+    type: filesystem
+  schemaConfig:
+    configs:
+      - from: 2024-04-01
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+  distributor:
+    otlp_config:
+      default_resource_attributes_as_index_labels:
+        - service.name
+        - service.namespace
+        - service.version
+        - service.instance.id
+        - deployment.environment
+        - cloud.region
+        - cloud.availability_zone
+        - k8s.cluster.name
+        - k8s.namespace.name
+        - k8s.pod.name
+        - k8s.node.name
+        - k8s.container.name
+        - k8s.deployment.name
+        - k8s.statefulset.name
+        - k8s.daemonset.name
+        - k8s.job.name
+        - k8s.cronjob.name
+  limits_config:
+    ingestion_rate_mb: 10
+    ingestion_burst_size_mb: 40
+    per_stream_rate_limit: 10MB
+    per_stream_rate_limit_burst: 40MB
+    max_label_names_per_series: 40
+    otlp_config:
+      resource_attributes:
+        ignore_defaults: false
+        attributes_config:
+          - action: index_label
+            attributes:
+              - log_type
+              - namespace
+              - pod
+              - node
+              - container
+              - cluster
+              - deployment
+              - statefulset
+              - daemonset
+              - job
+              - cronjob
+              - app
+              - application
+              - component
+              - instance
+              - part_of
+              - version
+
+chunksCache:
+  enabled: false
+
+resultsCache:
+  enabled: false
+
+ruler:
+  enabled: false
+
+singleBinary:
+  replicas: 1
+  nodeSelector:
+    openstack-control-plane: enabled
+  persistence:
+    storageClass: general
+    size: 20Gi
+
+write:
+  replicas: 0
+
+read:
+  replicas: 0
+
+backend:
+  replicas: 0
+
+gateway:
+  nodeSelector:
+    openstack-control-plane: enabled
+  serviceMonitor:
+    enabled: true
+
+lokiCanary:
+  enabled: true
+  kind: Deployment
+  replicas: 1
+  nodeSelector:
+    openstack-control-plane: enabled

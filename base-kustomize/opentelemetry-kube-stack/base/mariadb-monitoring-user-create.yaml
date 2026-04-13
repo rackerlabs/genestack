@@ -2,6 +2,7 @@ apiVersion: k8s.mariadb.com/v1alpha1
 kind: User
 metadata:
   name: monitoring
+  namespace: openstack
 spec:
   name: monitoring
   mariaDbRef:

@@ -6,13 +6,36 @@ Complete overview of the monitoring and observability stack for Rackspace Genest
 
 ## Table of Contents
 
-1. [Architecture Overview](#architecture-overview)
-2. [Technology Stack](#technology-stack)
-3. [Data Flow](#data-flow)
-4. [Components](#components)
-5. [What Gets Monitored](#what-gets-monitored)
-6. [Access Points](#access-points)
-7. [Key Features](#key-features)
+1. [Component Guide Map](#component-guide-map)
+2. [Architecture Overview](#architecture-overview)
+3. [Technology Stack](#technology-stack)
+4. [Data Flow](#data-flow)
+5. [Components](#components)
+6. [What Gets Monitored](#what-gets-monitored)
+7. [Access Points](#access-points)
+8. [Key Features](#key-features)
+
+---
+
+## Component Guide Map
+
+Genestack keeps monitoring configuration in service-specific directories so the Helm values and Kustomize overlays follow the same pattern as the rest of the platform:
+
+- `/opt/genestack/base-helm-configs/<service>/`
+- `/etc/genestack/helm-configs/<service>/`
+- `/etc/genestack/kustomize/<service>/overlay/`
+
+The documentation still groups the stack conceptually so you can navigate it as one monitoring system:
+
+- [Getting Started](monitoring-getting-started.md) for install order and day-one validation
+- [Prometheus](monitoring-prometheus.md) for metrics storage and alerting
+- [Loki](monitoring-loki.md) for logs
+- [Tempo](monitoring-tempo.md) for traces
+- [Grafana](monitoring-grafana.md) for dashboards and datasources
+- [OpenTelemetry](monitoring-opentelemetry.md) for collectors and infrastructure telemetry receivers
+- [OpenStack Exporter](openstack-exporter.md) for OpenStack API availability probes
+- [Pushgateway](prometheus-pushgateway.md) for short-lived job metrics
+- [Base OpenTelemetry Metrics Reference](monitoring-otel-base-metrics.md) for the default deployment-collector metrics
 
 ---
 

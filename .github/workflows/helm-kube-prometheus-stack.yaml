@@ -4,7 +4,7 @@ name: Helm GitHub Actions for kube-prometheus-stack
 on:
   pull_request:
     paths:
-      - base-helm-configs/monitoring/kube-prometheus-stack/**
+      - base-helm-configs/kube-prometheus-stack/**
       - base-kustomize/kube-prometheus-stack/**
       - .github/workflows/helm-kube-prometheus-stack.yaml
 jobs:
@@ -31,9 +31,9 @@ jobs:
         run: |
           ${{ steps.helm.outputs.helm-path }} template prometheus prometheus-community/kube-prometheus-stack \
             --create-namespace \
-            --namespace=prometheus \
-            -f ${{ github.workspace }}//base-helm-configs/monitoring/kube-prometheus-stack/kube-prometheus-stack-helm-overrides.yaml \
-            -f ${{ github.workspace }}//base-helm-configs/monitoring/kube-prometheus-stack/alertmanager_config.yaml \
+            --namespace=monitoring \
+            -f ${{ github.workspace }}/base-helm-configs/kube-prometheus-stack/kube-prometheus-stack-helm-overrides.yaml \
+            -f ${{ github.workspace }}/base-helm-configs/kube-prometheus-stack/alertmanager_config.yaml \
             --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
             --post-renderer-args kube-prometheus-stack/${{ matrix.overlays }} > /tmp/rendered.yaml
       - name: Return helm Build

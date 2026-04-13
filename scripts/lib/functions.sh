@@ -50,8 +50,8 @@ wait_for_cloud_init() {
 wait_and_install_packages() {
     local sleep_time=5  # Default sleep time between checks (in seconds)
     local pkg_manager=""
-    local apt_packages=("python3-pip" "python3-venv" "python3-dev" "jq" "build-essential")
-    local dnf_packages=("python3-pip" "python3-venv" "python3-dev" "jq" "build-essential")
+    local apt_packages=("python3-pip" "python3-venv" "python3-dev" "jq" "build-essential" "curl" "wget")
+    local dnf_packages=("python3-pip" "python3-venv" "python3-dev" "jq" "build-essential" "curl" "wget")
 
     # Check for Apt locks
     echo "Checking for Apt locks..."
@@ -149,11 +149,37 @@ function installYq() {
     ${SUDO_CMD} chmod +x /usr/local/bin/yq
 }
 
+# Install helm binary using the upstream get-helm-3 helper.
+# Usage: installHelm
+function installHelm() {
+    echo "Installing helm..."
+    local version=${HELM_VERSION:-v3.17.3}
+    local installer="/tmp/get-helm-3.sh"
+
+    curl -fsSL "https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3" -o "${installer}"
+    chmod +x "${installer}"
+
+    if sudo -l 2>/dev/null | grep -q NOPASSWD; then
+        sudo -n env DESIRED_VERSION="${version}" bash "${installer}"
+    else
+        env DESIRED_VERSION="${version}" bash "${installer}"
+    fi
+}
+
 # Ensure yq is installed, install if missing
 # Usage: ensureYq
 function ensureYq() {
     if ! yq --version &> /dev/null; then
         echo "yq is not installed. Attempting to install yq"
         installYq
+    fi
+}
+
+# Ensure helm is installed, install if missing
+# Usage: ensureHelm
+function ensureHelm() {
+    if ! helm version --short &> /dev/null; then
+        echo "helm is not installed. Attempting to install helm"
+        installHelm
     fi
 }

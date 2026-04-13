@@ -77,7 +77,7 @@ Cache     │   (Single Pod)
 APIs      ┘
 ```
 
-You can view the [OpenTelemetry installation documentation](monitoring-getting-started.md#step-4-install-opentelemetry) for detailed deployment instructions.
+You can view the [OpenTelemetry installation documentation](monitoring-getting-started.md#install-opentelemetry) for detailed deployment instructions.
 
 ### Configuration
 
@@ -480,4 +480,3 @@ While Genestack provides a relatively comprehensive set of tooling and instructi
 - [CNCF Observability Landscape](https://landscape.cncf.io/card-mode?category=observability-and-analysis)
 
 ---
-

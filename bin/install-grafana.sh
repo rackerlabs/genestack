@@ -9,6 +9,8 @@
 SERVICE_NAME_DEFAULT="grafana"
 SERVICE_NAMESPACE="monitoring"
 
+source "$(dirname "$0")/monitoring-common.sh"
+
 # Helm
 HELM_REPO_NAME_DEFAULT="grafana"
 HELM_REPO_URL_DEFAULT="https://grafana.github.io/helm-charts"
@@ -18,11 +20,15 @@ GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
 GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 
 # Define service-specific override directories based on the framework
-SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/monitoring/${SERVICE_NAME_DEFAULT}"
+SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME_DEFAULT}"
 SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME_DEFAULT}"
 
 # Define the Global Overrides directory used in the original script
 GLOBAL_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR}/helm-configs/global_overrides"
+
+monitoring_ensure_namespace "${SERVICE_NAMESPACE}"
+monitoring_label_namespace_for_talos "${SERVICE_NAMESPACE}"
+monitoring_ensure_grafana_db_secret
 
 # Read the desired chart version from VERSION_FILE
 VERSION_FILE="${GENESTACK_OVERRIDES_DIR}/helm-chart-versions.yaml"

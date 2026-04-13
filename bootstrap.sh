@@ -108,6 +108,9 @@ fi
 # Set script to exit on any non-zero error code
 set -e
 
+ensureYq
+ensureHelm
+
 # Install project dependencies
 success "Configuring genestack directory and overrides directory structure:"
 test -L "$GENESTACK_CONFIG" 2>&1 || mkdir -p "${GENESTACK_CONFIG}"
@@ -156,7 +159,7 @@ for service in "$base_source_dir"/*; do
     # Check if the service has subdirectories
     if [ "$(find "$service" -mindepth 1 -type d | wc -l)" -eq 0 ]; then
       # If no subdirectories, symlink the service directly under the target dir
-      if [ ! -L "$base_target_dir/$service_name" ]; then
+      if [ ! -e "$base_target_dir/$service_name" ] && [ ! -L "$base_target_dir/$service_name" ]; then
         ln -s "$service" "$base_target_dir/$service_name"
         success "Created symlink for $service_name directly under $base_target_dir."
       else
@@ -171,7 +174,7 @@ for service in "$base_source_dir"/*; do
       fi
       for item in "$service"/*; do
         item_name=$(basename "$item")
-        if [ ! -L "$base_target_dir/$service_name/$item_name" ]; then
+        if [ ! -e "$base_target_dir/$service_name/$item_name" ] && [ ! -L "$base_target_dir/$service_name/$item_name" ]; then
           ln -s "$item" "$base_target_dir/$service_name/$item_name"
           success "Created symlink for $service_name/$item_name."
         else

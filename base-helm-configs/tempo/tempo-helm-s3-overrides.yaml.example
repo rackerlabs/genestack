@@ -1,0 +1,10 @@
+tempo:
+  storage:
+    trace:
+      backend: s3
+      s3:
+        bucket: tempo-traces
+        endpoint: s3.example.com
+        access_key: REPLACE_ME
+        secret_key: REPLACE_ME
+        insecure: false
