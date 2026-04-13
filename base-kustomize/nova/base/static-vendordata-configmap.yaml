@@ -4,4 +4,10 @@ metadata:
   name: static-vendor-data
   namespace: openstack
 data:
+  # This ConfigMap is intentionally empty by default and is expected to be
+  # overridden from /etc/genestack for cloud-specific vendordata. When
+  # providing required cloud-init behavior, prefer a standalone cloud-init
+  # part such as a shell script or boothook rather than top-level cloud-config
+  # keys like packages, bootcmd, or runcmd, which are commonly replaced by
+  # user-supplied cloud-config.
   vendor_data.json: '{}'
