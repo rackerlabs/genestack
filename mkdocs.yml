@@ -168,7 +168,6 @@ nav:
                   - Kubernetes Taint: k8s-taint.md
               - Plugins and Tools: k8s-tools.md
               - Retrieve kube config: k8s-config.md
-              - Prometheus: monitoring-prometheus.md
           - Storage:
               - storage-overview.md
               - Ceph Internal: storage-ceph-rook-internal.md
@@ -191,7 +190,6 @@ nav:
               - Redis: infrastructure-redis.md
               - Libvirt: infrastructure-libvirt.md
               - OVN: infrastructure-ovn-setup.md
-              - FluentBit: infrastructure-fluentbit.md
           - OpenStack:
               - openstack-overview.md
               - OpenStack Services:

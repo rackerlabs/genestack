@@ -5,6 +5,16 @@ This guide documents the supported monitoring install flow for Genestack. The mo
 - Helm overrides: `/etc/genestack/helm-configs/<service>`
 - Kustomize overlays: `/etc/genestack/kustomize/<service>/overlay`
 
+That service-specific layout is the Genestack standard. The docs still group the monitoring stack conceptually so you can reason about it as one system:
+
+- [Prometheus](monitoring-prometheus.md) for metrics storage, scraping, and alerting
+- [Loki](monitoring-loki.md) for logs
+- [Tempo](monitoring-tempo.md) for traces
+- [Grafana](monitoring-grafana.md) for dashboards and datasources
+- [OpenTelemetry](monitoring-opentelemetry.md) for telemetry collection and infrastructure receivers
+- [OpenStack Exporter](openstack-exporter.md) for OpenStack API availability probes
+- [Pushgateway](prometheus-pushgateway.md) for short-lived job metrics
+
 The supported install order is:
 
 1. `kube-prometheus-stack`
@@ -176,9 +186,16 @@ Before installation, the script:
 
 - ensures the `monitoring` namespace exists
 - applies Talos namespace labels when appropriate
-- creates or applies the `mariadb-monitoring` secret
-- copies `rabbitmq-default-user` into `monitoring`
+- creates or applies the `mariadb-monitoring` secret in `openstack`
+- creates or applies the `rabbitmq-monitoring-user` secret in `openstack`
+- copies `mariadb-monitoring` into `monitoring`
 - applies the MariaDB monitoring `User` and `Grant` resources in `openstack`
+- applies the RabbitMQ monitoring `User` and `Permission` resources in `openstack`
+- copies `rabbitmq-monitoring-user` into `monitoring`
+
+If you keep the default PostgreSQL receiver enabled, make sure the secret
+`postgres.postgres-cluster.credentials.postgresql.acid.zalan.do` already exists in the `monitoring`
+namespace before installing OpenTelemetry.
 
 Install OpenTelemetry:
 

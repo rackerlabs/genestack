@@ -29,10 +29,12 @@ GLOBAL_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR}/helm-configs/global_overrides"
 monitoring_ensure_namespace "${SERVICE_NAMESPACE}"
 monitoring_label_namespace_for_talos "${SERVICE_NAMESPACE}"
 monitoring_ensure_mariadb_monitoring_secret
-monitoring_copy_secret_between_namespaces "rabbitmq-default-user" "openstack" "monitoring"
+monitoring_ensure_rabbitmq_monitoring_secret
 
-kubectl apply -n openstack -f "${GENESTACK_BASE_DIR}/base-kustomize/${SERVICE_NAME_DEFAULT}/base/mariadb_monitoring_user_create.yaml"
-kubectl apply -n openstack -f "${GENESTACK_BASE_DIR}/base-kustomize/${SERVICE_NAME_DEFAULT}/base/mariadb_monitoring_user_grant.yaml"
+kubectl apply -n openstack -f "${GENESTACK_BASE_DIR}/base-kustomize/${SERVICE_NAME_DEFAULT}/base/mariadb-monitoring-user-create.yaml"
+kubectl apply -n openstack -f "${GENESTACK_BASE_DIR}/base-kustomize/${SERVICE_NAME_DEFAULT}/base/mariadb-monitoring-user-grant.yaml"
+kubectl apply -n openstack -f "${GENESTACK_BASE_DIR}/base-kustomize/${SERVICE_NAME_DEFAULT}/base/rabbitmq-monitoring-user-create.yaml"
+kubectl apply -n openstack -f "${GENESTACK_BASE_DIR}/base-kustomize/${SERVICE_NAME_DEFAULT}/base/rabbitmq-monitoring-user-grant.yaml"
 
 # Read the desired chart version from VERSION_FILE
 VERSION_FILE="${GENESTACK_OVERRIDES_DIR}/helm-chart-versions.yaml"

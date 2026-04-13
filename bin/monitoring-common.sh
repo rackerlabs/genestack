@@ -139,3 +139,18 @@ monitoring_ensure_mariadb_monitoring_secret() {
 
     monitoring_copy_secret_between_namespaces "mariadb-monitoring" "openstack" "monitoring"
 }
+
+monitoring_ensure_rabbitmq_monitoring_secret() {
+    if ! kubectl -n openstack get secret rabbitmq-monitoring-user >/dev/null 2>&1; then
+        if ! monitoring_apply_secret_from_kubesecrets "rabbitmq-monitoring-user" "openstack" "openstack"; then
+            kubectl create secret generic rabbitmq-monitoring-user \
+                --namespace openstack \
+                --type Opaque \
+                --from-literal=username=monitoring \
+                --from-literal=password="$(monitoring_generate_password 32)" \
+                --dry-run=client -o yaml | kubectl apply -f -
+        fi
+    fi
+
+    monitoring_copy_secret_between_namespaces "rabbitmq-monitoring-user" "openstack" "monitoring"
+}
