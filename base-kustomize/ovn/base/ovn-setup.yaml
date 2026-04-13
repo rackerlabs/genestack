@@ -544,7 +544,7 @@ spec:
         - name: ovn-setup
           configMap:
             name: "ovn-integration-properties"
-            defaultMode: 0555
+            defaultMode: 365
         - hostPath:
             path: /run
           name: run

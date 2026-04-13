@@ -1,0 +1,18 @@
+---
+- name: Sync OpenStack Flavors
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Ensure Compute Flavors are Synchronized
+      openstack.cloud.compute_flavor:
+        state: present
+        name: "{{ item.name }}"
+        description: "{{ item.description | default(omit) }}"
+        ram: "{{ item.ram }}"
+        disk: "{{ item.disk }}"
+        vcpus: "{{ item.vcpus }}"
+        ephemeral: "{{ item.ephemeral | default(0) }}"
+        swap: "{{ item.swap | default(0) }}"
+        is_public: "{{ item.is_public | bool }}"
+        extra_specs: "{{ item.extra_specs }}"
+      loop: "{{ openstack_flavors | default([]) }}"

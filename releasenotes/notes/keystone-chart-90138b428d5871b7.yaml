@@ -1,5 +1,3 @@
-
----
 deprecations:
   - |
     The keystone chart will now use the online OSH helm repository. This change

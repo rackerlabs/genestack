@@ -1,12 +1,17 @@
+---
 skip_list:
-- yaml
-- jinja
-- no-free-form
-- name
-- var-naming
-- risky-file-permissions
-- no-changed-when
-- fqcn
+  - yaml
+  - jinja
+  - no-free-form
+  - name
+  - var-naming
+  - risky-file-permissions
+  - no-changed-when
+  - fqcn
 
 exclude_paths:
-- mkdocs.yml
+  - mkdocs.yml
+  - submodules/
+  - .ansible/
+  - .cache/
+  - .venv/

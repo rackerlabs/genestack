@@ -1,0 +1,18 @@
+---
+# Declarative Identity State (Manually Maintained)
+
+#openstack_projects:
+#  - name: "project_name"
+#    description: "Project Descripton"
+#    state: present
+
+#openstack_roles:
+#  - name: "role_name"
+#    state: present
+
+#openstack_users:
+#  - name: "admin"
+#    password: "VaultedPassword"
+#    project: "project_name"
+#    role: "role_name"
+#    state: present

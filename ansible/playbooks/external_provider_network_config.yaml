@@ -1,0 +1,42 @@
+---
+- name: Sync OpenStack Provider Networks
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Ensure External Provider Networks are Synchronized
+      openstack.cloud.network:
+        state: present
+        name: "{{ item.name }}"
+        provider_physical_network: "{{ (item.provider_physical_network == 'null') | ternary(omit, item.provider_physical_network) }}"
+        provider_network_type: "{{ (item.provider_network_type == 'null') | ternary(omit, item.provider_network_type) }}"
+        provider_segmentation_id: "{{ (item.provider_segmentation_id == 'null') | ternary(omit, item.provider_segmentation_id) }}"
+        external: "{{ item.external | bool }}"
+        shared: "{{ item.shared | bool }}"
+      loop: "{{ openstack_networks | default([]) }}"
+
+    - name: Validate subnet allocation pool compatibility
+      ansible.builtin.assert:
+        that:
+          - item.1.allocation_pools | default([]) | length <= 1
+        fail_msg: >-
+          The openstack.cloud.subnet module only supports a single allocation
+          pool via allocation_pool_start/allocation_pool_end. Subnet
+          {{ item.1.name }} on network {{ item.0.name }} defines multiple
+          allocation pools.
+      with_subelements:
+        - "{{ openstack_networks | default([]) }}"
+        - subnets
+
+    - name: Ensure Subnets are Synchronized
+      openstack.cloud.subnet:
+        state: present
+        network_name: "{{ item.0.name }}"
+        name: "{{ item.1.name }}"
+        cidr: "{{ item.1.cidr }}"
+        gateway_ip: "{{ (item.1.gateway_ip == 'null') | ternary(omit, item.1.gateway_ip) }}"
+        is_dhcp_enabled: "{{ item.1.enable_dhcp | bool }}"
+        allocation_pool_start: "{{ item.1.allocation_pools[0].start if (item.1.allocation_pools | default([]) | length) > 0 else omit }}"
+        allocation_pool_end: "{{ item.1.allocation_pools[0].end if (item.1.allocation_pools | default([]) | length) > 0 else omit }}"
+      with_subelements:
+        - "{{ openstack_networks | default([]) }}"
+        - subnets
