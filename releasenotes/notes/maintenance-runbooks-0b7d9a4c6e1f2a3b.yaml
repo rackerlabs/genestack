@@ -1,0 +1,7 @@
+---
+other:
+  - |
+    Added operational maintenance runbooks under ``maintenances/`` for Kubernetes,
+    Kubespray, and staged Longhorn upgrades, along with a reusable component
+    maintenance template. These runbooks are kept outside the published docs tree
+    and use a plain-text, copy-paste-safe format intended for operator use.
