@@ -40,6 +40,8 @@ If you are using a Rook RGW object store, you can generate the Loki and Tempo ov
 /opt/genestack/bin/setup-monitoring-rgw-storage.sh
 ```
 
+This helper uses `mc` (the MinIO Client) for bucket creation. If `mc` is missing, the script downloads a temporary copy. In restricted environments, install `mc` first or allow HTTPS access to `dl.min.io`.
+
 ### MinIO
 
 Example file:

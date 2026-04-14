@@ -119,6 +119,8 @@ If you are using Rook/Ceph RGW, the helper below creates the object-store user, 
 /opt/genestack/bin/setup-monitoring-rgw-storage.sh
 ```
 
+The helper uses `mc` (the MinIO Client) to create the buckets. If `mc` is not already on `PATH`, the script downloads a temporary copy automatically. Restricted environments must either allow HTTPS access to `dl.min.io` or install `mc` manually before running the helper.
+
 You can override the defaults with environment variables such as `ROOK_NAMESPACE`, `RGW_STORE_NAME`, `RGW_TOOLBOX_DEPLOYMENT`, and `TARGET_NAMESPACE`.
 
 Install Loki:
