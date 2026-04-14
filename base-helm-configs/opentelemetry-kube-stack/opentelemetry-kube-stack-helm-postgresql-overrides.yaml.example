@@ -1,0 +1,54 @@
+---
+collectors:
+  deployment:
+    env:
+      - name: MYSQL_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: mariadb-monitoring
+            key: password
+      - name: POSTGRESQL_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: postgres.postgres-cluster.credentials.postgresql.acid.zalan.do
+            key: password
+      - name: RABBITMQ_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: rabbitmq-monitoring-user
+            key: password
+      - name: RABBITMQ_USERNAME
+        valueFrom:
+          secretKeyRef:
+            name: rabbitmq-monitoring-user
+            key: username
+    config:
+      receivers:
+        postgresql:
+          endpoint: postgres-cluster.openstack.svc.cluster.local:5432
+          username: postgres
+          password: ${env:POSTGRESQL_PASSWORD}
+          collection_interval: 30s
+          metrics:
+            postgresql.backends:
+              enabled: true
+            postgresql.commits:
+              enabled: true
+            postgresql.rollbacks:
+              enabled: true
+            postgresql.db_size:
+              enabled: true
+            postgresql.deadlocks:
+              enabled: true
+            postgresql.blocks_read:
+              enabled: true
+      service:
+        pipelines:
+          metrics:
+            receivers:
+              - otlp
+              - mysql
+              - postgresql
+              - rabbitmq
+              - memcached
+              - prometheus/infra
