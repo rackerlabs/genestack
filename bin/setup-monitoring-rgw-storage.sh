@@ -26,6 +26,11 @@ else
     RGW_SCHEME="http"
 fi
 
+MC_GLOBAL_ARGS=()
+if [[ "${RGW_SCHEME}" == "https" ]]; then
+    MC_GLOBAL_ARGS+=(--insecure)
+fi
+
 RGW_ENDPOINT="${ROOK_SERVICE}.${ROOK_NAMESPACE}.svc.cluster.local:${ROOK_SERVICE_PORT}"
 RGW_SECRET_NAME="monitoring-rgw-s3"
 
@@ -68,8 +73,19 @@ ensure_mc() {
     local mc_url mc_dir
     mc_url="$(detect_mc_url)"
     mc_dir="$(mktemp -d)"
+    MC_TMP_DIR="${mc_dir}"
     MC_BIN="${mc_dir}/mc"
-    curl -fsSL "${mc_url}" -o "${MC_BIN}"
+
+    if command -v curl >/dev/null 2>&1; then
+        curl -fsSL "${mc_url}" -o "${MC_BIN}"
+    elif command -v wget >/dev/null 2>&1; then
+        wget -qO "${MC_BIN}" "${mc_url}"
+    else
+        echo "Unable to install mc automatically: neither curl nor wget is available." >&2
+        echo "Install the MinIO Client (mc) on PATH or provide curl/wget so the helper can download it." >&2
+        return 1
+    fi
+
     chmod +x "${MC_BIN}"
 }
 
@@ -97,11 +113,11 @@ create_buckets_with_mc() {
     ensure_mc
     start_port_forward
 
-    "${MC_BIN}" alias set monitoring-rgw "http://127.0.0.1:${RGW_LOCAL_PORT}" "${RGW_ACCESS_KEY_ID}" "${RGW_SECRET_ACCESS_KEY}" >/dev/null
-    "${MC_BIN}" mb --ignore-existing "monitoring-rgw/${LOKI_CHUNKS_BUCKET}" >/dev/null
-    "${MC_BIN}" mb --ignore-existing "monitoring-rgw/${LOKI_RULER_BUCKET}" >/dev/null
-    "${MC_BIN}" mb --ignore-existing "monitoring-rgw/${LOKI_ADMIN_BUCKET}" >/dev/null
-    "${MC_BIN}" mb --ignore-existing "monitoring-rgw/${TEMPO_BUCKET}" >/dev/null
+    "${MC_BIN}" "${MC_GLOBAL_ARGS[@]}" alias set monitoring-rgw "${RGW_SCHEME}://127.0.0.1:${RGW_LOCAL_PORT}" "${RGW_ACCESS_KEY_ID}" "${RGW_SECRET_ACCESS_KEY}" >/dev/null
+    "${MC_BIN}" "${MC_GLOBAL_ARGS[@]}" mb --ignore-existing "monitoring-rgw/${LOKI_CHUNKS_BUCKET}" >/dev/null
+    "${MC_BIN}" "${MC_GLOBAL_ARGS[@]}" mb --ignore-existing "monitoring-rgw/${LOKI_RULER_BUCKET}" >/dev/null
+    "${MC_BIN}" "${MC_GLOBAL_ARGS[@]}" mb --ignore-existing "monitoring-rgw/${LOKI_ADMIN_BUCKET}" >/dev/null
+    "${MC_BIN}" "${MC_GLOBAL_ARGS[@]}" mb --ignore-existing "monitoring-rgw/${TEMPO_BUCKET}" >/dev/null
 }
 
 create_rgw_user() {
@@ -187,7 +203,7 @@ print(data["keys"][0]["secret_key"])
 PY
 )"
 
-trap '[[ -n "${PORT_FORWARD_PID:-}" ]] && kill "${PORT_FORWARD_PID}" >/dev/null 2>&1 || true; [[ -n "${MC_BIN:-}" && "${MC_BIN}" == /tmp/* ]] && rm -f "${MC_BIN}" >/dev/null 2>&1 || true' EXIT
+trap '[[ -n "${PORT_FORWARD_PID:-}" ]] && kill "${PORT_FORWARD_PID}" >/dev/null 2>&1 || true; [[ -n "${MC_TMP_DIR:-}" ]] && rm -rf "${MC_TMP_DIR}" >/dev/null 2>&1 || true' EXIT
 
 create_buckets_with_mc
 
