@@ -27,6 +27,8 @@ If you are using Rook RGW, the helper below creates the user, buckets, Kubernete
 /opt/genestack/bin/setup-monitoring-rgw-storage.sh
 ```
 
+This helper uses `mc` (the MinIO Client) for bucket creation. If `mc` is not installed, the script downloads a temporary copy. In restricted environments, install `mc` first or allow HTTPS access to `dl.min.io`.
+
 ## Install
 
 ```shell
