@@ -1,4 +1,7 @@
 ---
+global:
+  dnsService: coredns
+
 deploymentMode: SingleBinary
 
 minio:

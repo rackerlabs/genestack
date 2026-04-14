@@ -12,6 +12,8 @@ Loki is Genestack's log backend. It is deployed into the `monitoring` namespace 
 
 The default base file, `/opt/genestack/base-helm-configs/loki/loki-helm-overrides.yaml`, uses a single-binary Loki deployment with filesystem-backed storage. This is the supported default for simple environments and first-pass validation.
 
+It also assumes the cluster DNS service is named `coredns`. If your environment uses a different service name, add an override file that sets `global.dnsService` before installing.
+
 ## Storage Backends
 
 Add one or more override files to `/etc/genestack/helm-configs/loki/` before installing Loki.

@@ -129,6 +129,8 @@ Install Loki:
 /opt/genestack/bin/install-loki.sh
 ```
 
+If your cluster DNS service is not named `coredns`, add a Loki override file that sets `global.dnsService` before installing. The Loki gateway uses this value to generate its NGINX resolver configuration.
+
 Verify Loki:
 
 ```shell
