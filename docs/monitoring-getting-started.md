@@ -184,7 +184,7 @@ kubectl -n monitoring get secret grafana -o jsonpath='{.data.admin-password}' | 
 
 ## Install OpenTelemetry
 
-The OpenTelemetry stack deploys the operator, daemon collector, and deployment collector. The default configuration enables MySQL, PostgreSQL, RabbitMQ, and Memcached telemetry, and includes placeholder `httpcheck` targets you can customize for your environment.
+The OpenTelemetry stack deploys the operator, daemon collector, and deployment collector. The default configuration enables MySQL, RabbitMQ, and Memcached telemetry, and includes placeholder `httpcheck` targets you can customize for your environment. PostgreSQL telemetry is available, but it is not enabled by default.
 
 Before installation, the script:
 
@@ -197,9 +197,7 @@ Before installation, the script:
 - applies the RabbitMQ monitoring `User` and `Permission` resources in `openstack`
 - copies `rabbitmq-monitoring-user` into `monitoring`
 
-If you keep the default PostgreSQL receiver enabled, make sure the secret
-`postgres.postgres-cluster.credentials.postgresql.acid.zalan.do` already exists in the `monitoring`
-namespace before installing OpenTelemetry.
+If you run PostgreSQL and want OpenTelemetry to scrape it, add a service override file in `/etc/genestack/helm-configs/opentelemetry-kube-stack/` before installation. Start from `/opt/genestack/base-helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-postgresql-overrides.yaml.example`, then adjust the secret and endpoint values for your environment.
 
 Install OpenTelemetry:
 

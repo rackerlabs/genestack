@@ -34,7 +34,7 @@ Before Helm runs, the install script:
 - applies the RabbitMQ `User` and `Permission` resources for the monitoring account
 - copies `rabbitmq-monitoring-user` from `openstack` into `monitoring`
 
-The default values also reference the PostgreSQL credentials secret `postgres.postgres-cluster.credentials.postgresql.acid.zalan.do`. Ensure that secret is present in the `monitoring` namespace before installing OpenTelemetry if you keep the PostgreSQL receiver enabled.
+PostgreSQL telemetry is optional and not enabled by default. If you want to collect PostgreSQL metrics, add a service override file under `/etc/genestack/helm-configs/opentelemetry-kube-stack/` before installation. You can start from `/opt/genestack/base-helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-postgresql-overrides.yaml.example`, then adjust the secret and endpoint values for your environment.
 
 The supported way to seed the generated secrets file is:
 
