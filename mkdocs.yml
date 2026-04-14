@@ -297,6 +297,7 @@ nav:
           - Compute:
               - Nova Flavor Creation: openstack-flavors.md
               - Nova CPU Allocation Ratio: openstack-cpu-allocation-ratio.md
+              - Nested Virtualization: openstack-nested-virtualization.md
               - Nova PCI Passthrough: openstack-pci-passthrough.md
               - Nova External Ceph Storage: openstack-compute-ceph-store.md
               - Host Aggregates: openstack-host-aggregates.md

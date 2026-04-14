@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Genestack now enables the libvirt chart's ``conf.init_modules`` workflow by
+    default in the base libvirt Helm overrides. This writes host modprobe
+    configuration for ``kvm_intel`` or ``kvm_amd`` and enables nested
+    virtualization on compute nodes that support it, allowing guest workloads to
+    use nested KVM when Nova/libvirt CPU settings also expose virtualization
+    extensions to the instance.
