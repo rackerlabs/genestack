@@ -110,157 +110,96 @@ Freezer-Scheduler using Genestack.
 
 ## :material-server-network: Installing Freezer-Agent and Freezer-Scheduler on Freezer-Client
 
-In this case it's assumed that your Freezer-Client is actually a VM which can talk to
+In this case its assumed that your Freezer-Client is actually a VM which can talk to
 the openstack api endpoints of your flex cluster.
 
 !!! note
 
-    In this case it's assumed Ubuntu OS is the OS of choice on the freezer-client VM.
+    In this case its assumed Ubuntu OS is the OS of choice on the freezer-client VM.
     However, it can really be any OS as long as its able to run python, since all
     freezer-agent code runs inside the virtual environment.
 
-=== "Automated (Recommended)"
+```bash
+sudo apt-get install python3-dev
+sudo apt install python3.12-venv
+sudo python3 -m venv freezer-venv
+source freezer-venv/bin/activate
 
-    The `install_freezer_client.sh` script automates the entire Freezer client setup including package installation, virtual environment creation, configuration file generation, and client registration.
+pip install pymysql
+pip install freezer
+```
 
-    !!! info "Script Location"
-        `scripts/freezer/install_freezer_client.sh` in the [Genestack repository](https://github.com/rackerlabs/genestack/tree/main/scripts/freezer).
+Now freezer binaries are available inside the virtual environment.
 
-    The script will prompt you for the following inputs:
+Create RC file with flex openstack cluster credentials like below example
 
-    | Input | Description | Example |
-    |-------|-------------|---------|
-    | Keystone FQDN | Public FQDN of your Keystone endpoint (without `https://` or `/v3`) | `keystone.cloud.dev` |
-    | Freezer service password | Password for the `freezer` user in `keystone_authtoken` | *(from Kubernetes secret `freezer-keystone-service-password`)* |
-    | Client ID | Unique identifier for this Freezer client | `backup-client-vm` |
+```bash title="openrc"
+# ==================== BASIC AUTHENTICATION ====================
+export OS_AUTH_URL="https://keystone.cloud.dev/v3"
+export OS_USERNAME=admin
+export OS_PASSWORD=password
+export OS_PROJECT_NAME=admin
+export OS_PROJECT_DOMAIN_NAME=default
+export OS_USER_DOMAIN_NAME=default
 
-    !!! tip "Retrieving the Freezer service password"
-        From your Genestack control plane node:
+# ==================== API VERSIONS ====================
+export OS_IDENTITY_API_VERSION=3
 
-        ```bash
-        kubectl -n openstack get secret freezer-keystone-service-password \
-          -o jsonpath='{.data.password}' | base64 -d; echo
-        ```
+# ==================== ENDPOINT CONFIGURATION ====================
+export OS_ENDPOINT_TYPE=publicURL
+export OS_REGION_NAME=RegionOne
 
-    Run the installer:
+# ==================== SSL CONFIGURATION ====================
+export OS_INSECURE=true
+export PYTHONHTTPSVERIFY=0
+```
 
-    ```bash
-    chmod +x scripts/freezer/install_freezer_client.sh
-    ./scripts/freezer/install_freezer_client.sh
-    ```
+!!! warning
 
-    The script automatically:
+    Make sure your DNS resolution is able to resolve the public endpoints for freezer service running on your openstack flex cluster.
 
-    - Detects the OS, version, and architecture
-    - Installs `python3-dev` and `python3-venv` (supports apt, dnf, yum)
-    - Creates a Python virtual environment at `~/freezer-venv`
-    - Installs `freezer` and `pymysql` via pip
-    - Generates `~/openrc` with your Keystone credentials
-    - Generates `/etc/freezer/freezer-scheduler.conf`
-    - Generates `~/client_register_config.json` with detected OS metadata
-    - Validates DNS resolution for the Keystone endpoint (with troubleshooting hints on failure)
-    - Checks HTTPS connectivity to the Keystone API
-    - Registers the client with the Freezer API
-    - Starts the `freezer-scheduler` automatically
+Create `freezer-scheduler.conf` file
 
-    !!! warning "DNS Resolution"
-        The script validates DNS resolution before registering the client. If resolution fails, it will exit with actionable hints including `/etc/hosts` entries, nameserver configuration, and VPN connectivity checks.
+```ini title="freezer-scheduler.conf"
+[DEFAULT]
 
-    To reactivate the environment in a new shell session:
+freezer_endpoint_interface=public
 
-    ```bash
-    source ~/freezer-venv/bin/activate
-    source ~/openrc
-    ```
+# Logging Configuration (Recommended)
+log_file = /var/log/freezer/scheduler.log
+log_dir = /var/log/freezer
+use_syslog = False
 
-=== "Manual"
+# Client Identification (CRITICAL)
+# This ID is used by the API to assign jobs to this specific scheduler instance.
+# It's usually set to the VM's hostname.
+client_id = freezer-client
 
-    Install packages and create a virtual environment:
+# Jobs Directory (Where the scheduler looks for local job definitions - optional)
+jobs_dir = /home/ubuntu/freezer-bkp-dir
 
-    ```bash
-    sudo apt-get install python3-dev
-    sudo apt install python3.12-venv
-    sudo python3 -m venv freezer-venv
-    source freezer-venv/bin/activate
+# API Polling Interval (in seconds)
+interval = 60
 
-    pip install pymysql
-    pip install freezer
-    ```
+[keystone_authtoken]
+auth_url = https://keystone.cloud.dev/v3
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+project_name = service
+username = freezer
+password = freezer-service-password
+```
 
-    Now freezer binaries are available inside the virtual environment.
+Start freezer-scheduler
 
-    Create RC file with flex openstack cluster credentials like below example
-
-    ```bash title="openrc"
-    # ==================== BASIC AUTHENTICATION ====================
-    export OS_AUTH_URL="https://keystone.cloud.dev/v3"
-    export OS_USERNAME=admin
-    export OS_PASSWORD=password
-    export OS_PROJECT_NAME=admin
-    export OS_PROJECT_DOMAIN_NAME=default
-    export OS_USER_DOMAIN_NAME=default
-
-    # ==================== API VERSIONS ====================
-    export OS_IDENTITY_API_VERSION=3
-
-    # ==================== ENDPOINT CONFIGURATION ====================
-    export OS_ENDPOINT_TYPE=publicURL
-    export OS_REGION_NAME=RegionOne
-
-    # ==================== SSL CONFIGURATION ====================
-    export OS_INSECURE=true
-    export PYTHONHTTPSVERIFY=0
-    ```
-
-    !!! warning
-
-        Make sure your DNS resolution is able to resolve the public endpoints for freezer service running on your openstack flex cluster.
-
-    Create `freezer-scheduler.conf` file
-
-    ```ini title="freezer-scheduler.conf"
-    [DEFAULT]
-
-    freezer_endpoint_interface=public
-
-    # Logging Configuration (Recommended)
-    log_file = /var/log/freezer/scheduler.log
-    log_dir = /var/log/freezer
-    use_syslog = False
-
-    # Client Identification (CRITICAL)
-    # This ID is used by the API to assign jobs to this specific scheduler instance.
-    # It's usually set to the VM's hostname.
-    client_id = freezer-client
-
-    # Jobs Directory (Where the scheduler looks for local job definitions - optional)
-    jobs_dir = /home/ubuntu/freezer-bkp-dir
-
-    # API Polling Interval (in seconds)
-    interval = 60
-
-    [keystone_authtoken]
-    auth_url = https://keystone.cloud.dev/v3
-    auth_type = password
-    project_domain_name = Default
-    user_domain_name = Default
-    project_name = service
-    username = freezer
-    password = freezer-service-password
-    ```
-
-    Start freezer-scheduler
-
-    ```bash
-    freezer-scheduler start \
-                --insecure \
-                --config-file /etc/freezer/freezer-scheduler.conf
-    ```
+```bash
+freezer-scheduler start \
+            --insecure \
+            --config-file /etc/freezer/freezer-scheduler.conf
+```
 
 ### :material-account-plus: Register Freezer agent
-
-!!! note
-    If you used the automated installer, client registration was already handled by the script. The steps below are only needed for manual installations.
 
 !!! example "Create client description using json file"
 
@@ -294,76 +233,6 @@ sudo kubectl logs -n openstack freezer-api-6849445b5c-dqm8n -f
 ...
 2025-10-06 15:43:25.809 1 INFO freezer_api.db.sqlalchemy.api [req-d7f36415-4b7f-4f8f-a36c-1917f117f6f4 - - - - - -]  Client registered, client_id: backup-client-vm
 ```
-
----
-
-### :material-delete-variant: Uninstalling Freezer Client
-
-To completely remove the Freezer client from a VM, use the `uninstall_freezer_client.sh` script.
-
-!!! info "Script Location"
-    `scripts/freezer/uninstall_freezer_client.sh` in the [Genestack repository](https://github.com/rackerlabs/genestack/tree/main/scripts/freezer).
-
-```bash
-chmod +x scripts/freezer/uninstall_freezer_client.sh
-./scripts/freezer/uninstall_freezer_client.sh
-```
-
-The script will:
-
-- Stop the `freezer-scheduler` process (gracefully, then force-kill if needed)
-- Optionally deregister the client from the Freezer API (prompts for confirmation)
-- Remove the Python virtual environment (`~/freezer-venv`)
-- Remove configuration files (`~/openrc`, `/etc/freezer/`, `~/client_register_config.json`)
-- Remove log and jobs directories (`/var/log/freezer/`, `~/freezer-bkp-dir`)
-
-??? example "Expected Output"
-
-    ```bash
-    # ./scripts/freezer/uninstall_freezer_client.sh
-    ============================================
-    Freezer Client Uninstaller
-    ============================================
-    This will remove:
-    - Freezer scheduler process
-    - Python virtual environment: /root/freezer-venv
-    - OpenRC file: /root/openrc
-    - Scheduler config: /etc/freezer/freezer-scheduler.conf
-    - Client config: /root/client_register_config.json
-    - Log directory: /var/log/freezer
-    - Jobs directory: /root/freezer-bkp-dir
-
-    Continue? (y/N): y
-
-    [INFO]  Stopping freezer-scheduler...
-    The request you have made requires authentication. (HTTP 401) (Request-ID: req-8dc640d9-ea90-4a0e-a334-ce9fddf11cfa)
-    [INFO]  Freezer scheduler stopped.
-
-    Deregister client 'mks-cl-2' from Freezer API? (y/N): y
-    [INFO]  Deregistering client 'mks-cl-2'...
-    [INFO]  Client 'mks-cl-2' deregistered.
-    [INFO]  Removing virtual environment: /root/freezer-venv...
-    [INFO]  Removing openrc: /root/openrc...
-    [INFO]  Removing client config: /root/client_register_config.json...
-    [INFO]  Removing scheduler config directory: /etc/freezer/...
-    [INFO]  Removing log directory: /var/log/freezer...
-    [INFO]  Removing jobs directory: /root/freezer-bkp-dir...
-
-    ============================================
-    Uninstall Complete
-    ============================================
-    Removed:
-    - Freezer scheduler process
-    - /root/freezer-venv
-    - /root/openrc
-    - /root/client_register_config.json
-    - /etc/freezer/
-    - /var/log/freezer
-    - /root/freezer-bkp-dir
-    ```
-
-!!! warning
-    The script requires user confirmation before proceeding. Backup data stored in Swift is not affected.
 
 ---
 
@@ -502,15 +371,7 @@ Update the job with changed log file name and path_to_backup
 
 ### :material-server: Create VM backups
 
-VM backups can be created locally (on same freezer-client VM storage) or remotely (in Swift object storage connected to Openstack Cluster).
-
-!!! tip "Prerequisites"
-    Ensure you have sourced the OpenRC file and activated the Freezer virtual environment before running any `freezer-agent` commands:
-
-    ```bash
-    source ~/freezer-venv/bin/activate
-    source ~/openrc
-    ```
+VM backups can be created locally (on same freezer-client VM storage) or remotely (in Swift object storage connected to Openstack Cluster)
 
 #### Backup VM to Local Storage
 
@@ -605,7 +466,7 @@ freezer-agent \
         --backup-name freezer-bkp-cirros \
         --mode nova \
         --engine nova \
-        --noincremental \
+        --no-incremental true \
         --log-file freezer-bkp-cirros.log
 ```
 
@@ -625,8 +486,6 @@ freezer-agent \
 ```
 
 ---
-
-### :material-harddisk: Cinder Volume Backup & Restore
 
 #### Cinder Volume backup to Swift
 
@@ -810,20 +669,6 @@ freezer-agent \
         --backup-name freezer-bkp-fs \
         --compression gzip \
         --log-file freezer-bkp-fs.log
-```
-
-#### Filesystem Restore from Swift
-
-```bash
-freezer-agent \
-        --action restore \
-        --mode fs \
-        --restore-from-date "2026-01-20T07:43:59" \
-        --restore-abs-path /home/ubuntu/freezer-git-repo/freezer-restored/ \
-        --storage swift \
-        --container freezer-bkp-fs \
-        --backup-name freezer-bkp-fs \
-        --log-file freezer-restore-fs.log
 ```
 
 ---
@@ -1012,4 +857,4 @@ The script operates in two phases:
     ```
 
 For full documentation and troubleshooting, see
-[Freezer Backup Retention Policy](openstack-freezer-backup-retention.md).
+[`scripts/freezer_retention/README.md`](openstack-freezer-backup-retention.md).
