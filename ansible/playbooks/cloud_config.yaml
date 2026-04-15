@@ -1,0 +1,18 @@
+---
+- ansible.builtin.import_playbook: projects_users_config.yaml
+  tags:
+    - identity
+
+- ansible.builtin.import_playbook: flavor_config.yaml
+  tags:
+    - flavors
+
+- ansible.builtin.import_playbook: external_provider_network_config.yaml
+  tags:
+    - networks
+
+- ansible.builtin.import_playbook: network-service-types.yaml
+  vars:
+    network_name: "PUBLICNET"
+  tags:
+    - security

@@ -1,10 +1,18 @@
 #!/bin/bash
-set -e  # Exit on error
+set -euo pipefail
 
-# Variables
-CHART_DIR="/opt/genestack/base-helm-configs/monitoring/openstack-api-exporter-chart"
-NAMESPACE="monitoring"
-RELEASE_NAME="openstack-exporter"
+SERVICE_NAME_DEFAULT="openstack-exporter"
+CHART_DIR_NAME="openstack-api-exporter-chart"
+SERVICE_NAMESPACE="monitoring"
+
+GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
+GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
+
+CHART_DIR="${GENESTACK_BASE_DIR}/base-helm-configs/${CHART_DIR_NAME}"
+SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${CHART_DIR_NAME}"
+GLOBAL_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR}/helm-configs/global_overrides"
+
+source "$(dirname "$0")/monitoring-common.sh"
 
 # Check if chart directory exists
 if [ ! -d "${CHART_DIR}" ]; then
@@ -28,15 +36,12 @@ find_unused_port() {
     done
 }
 
-# Ensure namespace exists
-if ! kubectl get namespace ${NAMESPACE} >/dev/null 2>&1; then
-    echo "Namespace ${NAMESPACE} does not exist. Creating..."
-    kubectl create namespace ${NAMESPACE}
-fi
+monitoring_ensure_namespace "${SERVICE_NAMESPACE}"
+monitoring_label_namespace_for_talos "${SERVICE_NAMESPACE}"
 
 # Check if release already exists
-if helm list -n ${NAMESPACE} | grep -q ${RELEASE_NAME}; then
-    echo "Release ${RELEASE_NAME} already exists!"
+if helm list -n "${SERVICE_NAMESPACE}" | grep -q "${SERVICE_NAME_DEFAULT}"; then
+    echo "Release ${SERVICE_NAME_DEFAULT} already exists!"
     exit 1
 fi
 
@@ -45,20 +50,60 @@ DYNAMIC_PORT=$(find_unused_port)
 DYNAMIC_TAG="sha-7951e2c"
 echo "Using dynamic port: $DYNAMIC_PORT and tag: $DYNAMIC_TAG"
 
-# Install Helm chart with dynamic values
-echo "Installing Helm chart..."
-helm install ${RELEASE_NAME} ${CHART_DIR} \
-    --namespace ${NAMESPACE} \
-    --set image.tag=${DYNAMIC_TAG} \
-    --set service.port=${DYNAMIC_PORT} || {
-        echo "Helm installation failed!"
-        exit 1
-    }
+monitoring_apply_secret_from_kubesecrets "keystone-auth-openstack-exporter" "monitoring" "monitoring" || true
+
+overrides_args=()
+
+for base_file in "${CHART_DIR}/values.yaml" "${CHART_DIR}/probe_target.yaml"; do
+    if [[ -f "${base_file}" ]]; then
+        echo " - ${base_file}"
+        overrides_args+=("-f" "${base_file}")
+    fi
+done
+
+if [[ -d "${GLOBAL_OVERRIDES_DIR}" ]]; then
+    echo "Including global overrides from directory: ${GLOBAL_OVERRIDES_DIR}"
+    for file in "${GLOBAL_OVERRIDES_DIR}"/*.yaml; do
+        if [[ -e "${file}" ]]; then
+            echo " - ${file}"
+            overrides_args+=("-f" "${file}")
+        fi
+    done
+fi
+
+if [[ -d "${SERVICE_CUSTOM_OVERRIDES}" ]]; then
+    echo "Including overrides from service config directory: ${SERVICE_CUSTOM_OVERRIDES}"
+    for file in "${SERVICE_CUSTOM_OVERRIDES}"/*.yaml; do
+        if [[ -e "${file}" ]]; then
+            echo " - ${file}"
+            overrides_args+=("-f" "${file}")
+        fi
+    done
+fi
+
+helm_command=(
+    helm upgrade --install "${SERVICE_NAME_DEFAULT}" "${CHART_DIR}"
+    --namespace "${SERVICE_NAMESPACE}"
+    --create-namespace
+    --timeout 15m
+    "${overrides_args[@]}"
+    --set "image.tag=${DYNAMIC_TAG}"
+    --set "service.port=${DYNAMIC_PORT}"
+    --post-renderer "${GENESTACK_OVERRIDES_DIR}/kustomize/kustomize.sh"
+    --post-renderer-args "${CHART_DIR_NAME}/overlay"
+    "$@"
+)
+
+echo "Executing Helm command (arguments are quoted safely):"
+printf '%q ' "${helm_command[@]}"
+echo
+
+"${helm_command[@]}"
 
 # Verify deployment
 echo "Verifying deployment..."
-kubectl get pods -n ${NAMESPACE}
-kubectl get svc -n ${NAMESPACE}
-kubectl get servicemonitor -n ${NAMESPACE}
+kubectl get pods -n "${SERVICE_NAMESPACE}"
+kubectl get svc -n "${SERVICE_NAMESPACE}"
+kubectl get servicemonitor -n "${SERVICE_NAMESPACE}"
 
 echo "Installation complete with port $DYNAMIC_PORT!"

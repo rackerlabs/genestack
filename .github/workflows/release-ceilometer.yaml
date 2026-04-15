@@ -4,8 +4,8 @@ name: Create and publish a Ceilometer image
 on:
   push:
     paths:
-    - '.github/workflows/release-ceilometer.yaml'
-    - 'Containerfiles/CeilometerRXT-Containerfile'
+      - '.github/workflows/release-ceilometer.yaml'
+      - 'Containerfiles/CeilometerRXT-Containerfile'
     branches:
       - development
       - main
@@ -91,7 +91,8 @@ jobs:
 
   change-original-images:
     runs-on: ubuntu-latest
-    needs: [build-and-push-image]
+    needs:
+      - build-and-push-image
     permissions:
       contents: write
       pull-requests: write

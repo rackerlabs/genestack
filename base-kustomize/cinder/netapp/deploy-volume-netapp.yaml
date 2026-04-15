@@ -331,11 +331,11 @@ spec:
         - name: cinder-bin
           configMap:
             name: cinder-bin
-            defaultMode: 0555
+            defaultMode: 365
         - name: cinder-etc
           secret:
             secretName: cinder-etc
-            defaultMode: 0444
+            defaultMode: 292
         - name: pod-shared
           emptyDir: {}
         - name: cinder-conversion
@@ -345,4 +345,4 @@ spec:
         - name: cinder-netapp-data
           configMap:
             name: "cinder-volume-netapp-config"
-            defaultMode: 0555
+            defaultMode: 365

@@ -36,3 +36,15 @@ kubectl apply -k /etc/genestack/kustomize/rabbitmq-cluster/overlay
 ``` shell
 kubectl --namespace openstack get rabbitmqclusters.rabbitmq.com -w
 ```
+
+## Epoxy upgrade notes
+
+Genestack targets RabbitMQ `4.1.4` for the Epoxy release path. The
+`RabbitmqCluster` manifest pins `spec.image` explicitly to
+`rabbitmq:4.1.4-management` so upgrades remain predictable and do not depend on
+operator default image changes.
+
+When upgrading an existing environment, re-apply the RabbitMQ cluster manifest
+so that the intended RabbitMQ image is reconciled.
+
+!!! warning

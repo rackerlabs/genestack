@@ -22,19 +22,22 @@ network:
     br-host:
       dhcp4: true
       mtu: 1500
-      interfaces: [vlan100]
+      interfaces:
+        - vlan100
 
     br-overlay:
       dhcp4: false
       mtu: 9000
-      interfaces: [vlan120]
+      interfaces:
+        - vlan120
       addresses:
         - 172.29.240.51/22
 
     br-storage:
       dhcp4: false
       mtu: 9000
-      interfaces: [vlan130]
+      interfaces:
+        - vlan130
       addresses:
         - 172.29.244.51/22
 
@@ -42,7 +45,8 @@ network:
     br-pxe:
       dhcp4: false
       mtu: 1500
-      interfaces: [vlan150]
+      interfaces:
+        - vlan150
       addresses:
         - 172.23.208.51/22
 

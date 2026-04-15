@@ -61,7 +61,7 @@ spec:
         - name: skyline-data
           configMap:
             name: "skyline-integration-properties"
-            defaultMode: 0555
+            defaultMode: 365
       initContainers:
         - name: init
           image: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"

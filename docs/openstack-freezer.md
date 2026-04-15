@@ -1,4 +1,4 @@
-# Deploy Freezer
+# :material-snowflake: Deploy Freezer
 
 Freezer is a disaster recovery and backup-as-a-service component for OpenStack.
 It provides a way to back up various resources, such as virtual machine instances,
@@ -7,18 +7,25 @@ databases, and file systems.
 It allows users to schedule backups, restore data, and manage the lifecycle of their
 backups to ensure data protection and business continuity within an OpenStack cloud.
 
-This document outlines the deployment of OpenStack Freezer-Api, Freezer-Agent and 
-Freezer-Scheduler using Genestack. [The architecture of freezer](https://docs.openstack.org/freezer/latest/_images/Service_Architecture_02.png) is different than that
-of typical openstack services wherein only the freezer-api service resides and runs 
-in the openstack cluster and freezer-agent, freezer-scheduler run outside. The user
-has choice to deploy freezer-agent and scheduler on VM/Baremetal etc. making it act
-as a dedicated Freezer-Client.
+This document outlines the deployment of OpenStack Freezer-Api, Freezer-Agent and
+Freezer-Scheduler using Genestack.
 
-## Installing Freezer API
+!!! info "Freezer Architecture"
+    ![Freezer Service Architecture](https://docs.openstack.org/freezer/latest/_images/Service_Architecture_02.png){ width="600" }
 
-Login to your flex openstack cluster.
+    Unlike typical OpenStack services, only the freezer-api resides and runs
+    in the OpenStack cluster. The freezer-agent and freezer-scheduler run outside
+    the cluster. The user can deploy freezer-agent and scheduler on VM/Baremetal etc.
+    making it act as a dedicated Freezer-Client.
 
-### Create secrets
+---
+
+## :material-package-variant: Installing Freezer API
+
+!!! tip
+    Login to your flex openstack cluster
+
+### :material-key-variant: Create secrets
 
 !!! note "Information about the secrets used"
 
@@ -27,7 +34,7 @@ Login to your flex openstack cluster.
 
     ??? example "Example secret generation"
 
-        ``` shell
+        ```bash
         kubectl --namespace openstack \
                 create secret generic freezer-db-password \
                 --type Opaque \
@@ -49,32 +56,61 @@ Login to your flex openstack cluster.
                 --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
         ```
 
-### Run the package deployment
+### :material-play-circle: Run the package deployment
 
 !!! example "Run the Freezer deployment Script `/opt/genestack/bin/install-freezer.sh`"
 
-    ``` shell
+    ```bash
     --8<-- "bin/install-freezer.sh"
     ```
 
-!!! tip
+### :material-check-circle: Validate Install Success
 
-    You may need to provide custom values to configure your OpenStack services.
-    For a simple single region or lab deployment you can supply an additional
-    overrides flag using the example found at
-    `base-helm-configs/aio-example-openstack-overrides.yaml`.
+=== "Command"
 
-### Validate functionality
+    ```bash
+    kubectl get pods -n openstack | grep -i freezer
+    kubectl get configmaps -n openstack | grep -i freezer
+    kubectl get secrets -n openstack | grep freezer
+    kubectl get service -n openstack | grep freezer
+    ```
 
-``` shell
-kubectl --namespace openstack exec -ti openstack-admin-client -- freezer host-list
-```
+=== "Expected Output"
+
+    ```bash
+    kubectl get pods -n openstack | grep -i freezer
+    freezer-api-5b8fcbcf8b-g6z6h               1/1     Running     0              3m54s
+    freezer-api-5b8fcbcf8b-rbx4r               1/1     Running     0              4m9s
+    freezer-api-5b8fcbcf8b-zc9c7               1/1     Running     0              3m54s
+    freezer-db-sync-l7mnh                      0/1     Completed   0              4m9s
+    freezer-ks-endpoints-bz6t5                 0/3     Completed   0              3m32s
+    freezer-ks-service-jxgp7                   0/1     Completed   0              3m52s
+    freezer-ks-user-tqqqt                      0/1     Completed   0              2m54s
+
+    kubectl get configmaps -n openstack | grep -i freezer
+    freezer-bin                      7      4m35s
+
+    kubectl get secrets -n openstack | grep freezer
+    freezer-admin                                                    Opaque               1      6d9h
+    freezer-db-admin                                                 Opaque               1      4m45s
+    freezer-db-password                                              Opaque               1      6d9h
+    freezer-db-user                                                  Opaque               1      4m45s
+    freezer-etc                                                      Opaque               4      4m45s
+    freezer-keystone-admin                                           Opaque               9      4m45s
+    freezer-keystone-service-password                                Opaque               1      6d9h
+    freezer-keystone-test-password                                   Opaque               1      6d9h
+    freezer-keystone-user                                            Opaque               9      4m45s
+    sh.helm.release.v1.freezer.v1                                    helm.sh/release.v1   1      4m45s
+
+    kubectl get service -n openstack | grep -i freezer
+    freezer-api                 ClusterIP      10.x.x.x   <none>        9090/TCP
+    ```
 
 ---
 
-## Installing Freezer-Agent and Freezer-Scheduler on Freezer-Client
+## :material-server-network: Installing Freezer-Agent and Freezer-Scheduler on Freezer-Client
 
-In this case its assumed that your Freezer-Client is actually a VM which can talk to 
+In this case its assumed that your Freezer-Client is actually a VM which can talk to
 the openstack api endpoints of your flex cluster.
 
 !!! note
@@ -83,7 +119,7 @@ the openstack api endpoints of your flex cluster.
     However, it can really be any OS as long as its able to run python, since all
     freezer-agent code runs inside the virtual environment.
 
-``` shell
+```bash
 sudo apt-get install python3-dev
 sudo apt install python3.12-venv
 sudo python3 -m venv freezer-venv
@@ -97,7 +133,7 @@ Now freezer binaries are available inside the virtual environment.
 
 Create RC file with flex openstack cluster credentials like below example
 
-``` shell
+```bash title="openrc"
 # ==================== BASIC AUTHENTICATION ====================
 export OS_AUTH_URL="https://keystone.cloud.dev/v3"
 export OS_USERNAME=admin
@@ -118,14 +154,13 @@ export OS_INSECURE=true
 export PYTHONHTTPSVERIFY=0
 ```
 
-!!! note
+!!! warning
 
     Make sure your DNS resolution is able to resolve the public endpoints for freezer service running on your openstack flex cluster.
 
 Create `freezer-scheduler.conf` file
 
-``` shell
----
+```ini title="freezer-scheduler.conf"
 [DEFAULT]
 
 freezer_endpoint_interface=public
@@ -154,28 +189,29 @@ user_domain_name = Default
 project_name = service
 username = freezer
 password = freezer-service-password
----
 ```
 
 Start freezer-scheduler
 
-``` shell
+```bash
 freezer-scheduler start \
             --insecure \
             --config-file /etc/freezer/freezer-scheduler.conf
 ```
 
-Register Freezer agent
-Create client description `client_register_config.json`
+### :material-account-plus: Register Freezer agent
 
-``` json
-{
-  "client_id": "backup-client-vm",
-  "client_name": "backup-client-vm",
-  "client_os": "Linux",
-  "architecture": "x86_64",
-  "os_version": "Ubuntu 24.04 LTS"
-}
+!!! example "Create client description using json file"
+
+    ```json title="client_register_config.json"
+    {
+      "client_id": "backup-client-vm",
+      "client_name": "backup-client-vm",
+      "client_os": "Linux",
+      "architecture": "x86_64",
+      "os_version": "Ubuntu 24.04 LTS"
+    }
+    ```
 
 === "Command"
 
@@ -191,7 +227,7 @@ Create client description `client_register_config.json`
 
 While running above command, have a watch on kubectl logs of freezer-api pods in your openstack cluster
 
-``` shell
+```bash
 sudo kubectl logs -n openstack freezer-api-6849445b5c-7s4cn -f
 sudo kubectl logs -n openstack freezer-api-6849445b5c-dqm8n -f
 ...
@@ -200,15 +236,15 @@ sudo kubectl logs -n openstack freezer-api-6849445b5c-dqm8n -f
 
 ---
 
-## Freezer Use Cases
+## :material-briefcase: Freezer Use Cases
 
-### Create Freezer Jobs
+### :material-calendar-clock: Create Freezer Jobs
 
 Similar to cronjobs, freezer jobs are an abstraction to schedule specific backups at a pre-defined time.
 
 Create job description `temp-job.json`:
 
-``` json
+```json title="temp-job.json"
 {
     "description": "Test-0001",
     "job_id": "9999",
@@ -333,14 +369,15 @@ Update the job with changed log file name and path_to_backup
 
 ---
 
-### Create VM backups
+### :material-server: Create VM backups
 
 VM backups can be created locally (on same freezer-client VM storage) or remotely (in Swift object storage connected to Openstack Cluster)
 
 #### Backup VM to Local Storage
+
 Backup destination local storage/VM disk. Make a note of the VM UUID which you would like to backup.
 
-``` shell
+```bash
 freezer-agent \
         --action backup \
         --nova-inst-id 7ee5959f-0039-4f5f-b953-25ef38b1a88e \
@@ -354,7 +391,7 @@ freezer-agent \
 
 !!! example "Output in TABULAR format"
 
-    ``` shell
+    ```bash
     +----------------------+---------------------------------+
     |       Property       |              Value              |
     +----------------------+---------------------------------+
@@ -387,7 +424,7 @@ freezer-agent \
     +----------------------+---------------------------------+
     ```
 
-Check local backup directory structure 
+Check local backup directory structure
 
 === "Command"
 
@@ -420,7 +457,7 @@ Check local backup directory structure
 
 #### Backup QCOW2 image based VMs to Swift
 
-``` shell
+```bash
 freezer-agent \
         --action backup \
         --nova-inst-id 97dfb7df-1b9b-4848-a7d5-840467af5b66 \
@@ -435,7 +472,7 @@ freezer-agent \
 
 #### Restore QCOW2 image based VM from Swift to Openstack Cluster
 
-``` shell
+```bash
 freezer-agent \
         --action restore \
         --nova-inst-id 97dfb7df-1b9b-4848-a7d5-840467af5b66 \
@@ -452,8 +489,8 @@ freezer-agent \
 
 #### Cinder Volume backup to Swift
 
-``` shell
-freezer-agent 
+```bash
+freezer-agent \
         --action backup \
         --cinder-vol-id 2453735e-678a-4b4a-8604-b79b55c2cd21 \
         --storage swift \
@@ -465,7 +502,7 @@ freezer-agent
 
 #### Cinder Volume restore from Swift to Openstack Cluster
 
-``` shell
+```bash
 freezer-agent \
         --action restore \
         --mode cinder \
@@ -478,17 +515,17 @@ freezer-agent \
 
 ---
 
-### MongoDB backup to Swift
+### :material-database-arrow-up: MongoDB backup to Swift
 
 In this case, mongoDB's LVM (where mongoDB LVM volume is mounted) is backed up.
 
-!!! warning "MYSQL DB operations"
+!!! warning "MongoDB operations"
     Make sure you quiesce any DB operations by stopping the mongodb service momentarily and then restarting it once the backup is completed.
 
 !!! note "Running Freezer commands"
     Freezer commands can only be run from inside the virtual environment.
 
-``` shell
+```bash
 sudo systemctl stop mongod
 sudo systemctl status mongod
 
@@ -498,7 +535,7 @@ freezer-agent \
         --lvm-volgroup mongo \
         --lvm-snapsize 2G \
         --lvm-snap-perm ro \
-        --lvm-dirmount /tmp/lvm-snapshot-backup  \
+        --lvm-dirmount /tmp/lvm-snapshot-backup  \
         --path-to-backup /tmp/lvm-snapshot-backup \
         --storage swift \
         --container mongo-bkp-lvm \
@@ -511,11 +548,11 @@ sudo systemctl status mongod
 
 ---
 
-### MongoDB restore from Swift
+### :material-database-arrow-down: MongoDB restore from Swift
 
 Restore operation involves quiescing mongoDB operations by stopping the mongodb service momentarily and then restarting it once the backup is completed.
 
-``` shell
+```bash
 sudo systemctl stop mongod
 sudo systemctl status mongod
 
@@ -548,19 +585,18 @@ sudo systemctl status mongod
 
 ---
 
-### MYSQL Backup to Swift 
+### :material-database-export: MySQL Backup to Swift
 
-In this case MYSQL is first backed up locally in a temp location and then backup is uploaded to Swift.
+In this case MySQL is first backed up locally in a temp location and then backup is uploaded to Swift.
 
-Backup operation involves quiescing mongoDB operations by stopping the mysql service momentarily and then restarting it once the backup is completed.
+!!! warning "MySQL DB operations"
+    Make sure you quiesce any DB operations by stopping the mysql service momentarily and then restarting it once the backup is completed.
 
-``` shell
+```bash
 sudo systemctl stop mysql
 sudo systemctl status mysql
 
 mkdir -p /tmp/mysql-backup
-
-# Restore timestamp can be fetched by querying the swift objects in the backup container like below.
 
 freezer-agent \
         --action backup \
@@ -581,22 +617,20 @@ sudo systemctl status mysql.service
 
 ---
 
-### MYSQL Restore from Swift 
+### :material-database-import: MySQL Restore from Swift
 
-Restore operation involves quiescing mongoDB operations by stopping the mysql service momentarily and then restarting it once the backup is completed.
-
-``` shell
-sudo systemctl stop mysql
-sudo systemctl status mysql
-
-mkdir -p /tmp/mysql-restore
-```
+Restore operation involves quiescing MySQL operations by stopping the mysql service momentarily and then restarting it once the restore is completed.
 
 !!! note "About Swift"
     - Restore timestamp can be fetched by querying the swift objects in the backup container like below.
     - Swift authenticates using the S3 credentials available on Freezer-client VM.
 
-``` bash
+```bash
+sudo systemctl stop mysql
+sudo systemctl status mysql
+
+mkdir -p /tmp/mysql-restore
+
 swift list --lh freezer-bkp-mysql
 
 # Note the timestamp of the first object in the container.
@@ -621,17 +655,11 @@ sudo systemctl status mysql.service
 
 ---
 
-### Filesystem Backup to Swift
+### :material-folder-arrow-up: Filesystem Backup to Swift
 
 Local filesystem directory / files can be backed up to swift object store.
 
-``` shell
-
-sudo systemctl stop mysql
-sudo systemctl status mysql
-
-mkdir -p /tmp/mysql-restore
-
+```bash
 freezer-agent \
         --action backup \
         --mode fs \
@@ -641,89 +669,84 @@ freezer-agent \
         --backup-name freezer-bkp-fs \
         --compression gzip \
         --log-file freezer-bkp-fs.log
-
-
-sudo systemctl start mysql
-sudo systemctl status mysql
-
 ```
 
 ---
 
-### Creating Sessions
+### :material-link-variant: Creating Sessions
 
 A session acts as a high-level container that groups related backup and restore actions. It provides a unique identifier and metadata that applies to all jobs executed within it.
 
-When you create a job (like the one in the Canvas), you typically want that job's executions to be tied to a specific session. This makes management easier, especially during recovery, as you can see all backup runs related to a single project or time period under one session ID.
+When you create a job, you typically want that job's executions to be tied to a specific session. This makes management easier, especially during recovery, as you can see all backup runs related to a single project or time period under one session ID.
 
-#### Create a session config file:
+1. Create a session config file on the Freezer Client.
 
-Example: `session_file.json`
+    ??? example "Sample `session_file.json`"
 
-``` json
-{
-    "description": "Local Storage VM Backup Session",
-    "name": "local_vm_backup",
-    "freezer_session_version": 2,
-    "jobs": [
-        "local_storage_vm_job"
-    ],
-    "schedule": {
-        "schedule_date": "2025-10-07T13:31:00Z"
-    }
-}
-```
+        ```json title="session_file.json"
+        {
+            "description": "Local Storage VM Backup Session",
+            "name": "local_vm_backup",
+            "freezer_session_version": 2,
+            "jobs": [
+                "local_storage_vm_job"
+            ],
+            "schedule": {
+                "schedule_date": "2025-10-07T13:31:00Z"
+            }
+        }
+        ```
 
-Register the session:
+2. Register the session:
 
-=== "Command"
+    === "Command"
 
-    ```bash
-    freezer session-create --file session_file.json 
+        ```bash
+        freezer session-create --file session_file.json 
 
-    freezer session-list
-    ```
+        freezer session-list
+        ```
 
-=== "Expected Output"
+    === "Expected Output"
 
-    ```bash
-    Session c6a7fcfd06134b788f0a34e8454174b1 created
+        ```bash
+        Session c6a7fcfd06134b788f0a34e8454174b1 created
 
-    +----------------------------------+---------------------------------+--------+--------+--------+
-    | Session ID                       | Description                     | Status | Result | # Jobs |
-    +----------------------------------+---------------------------------+--------+--------+--------+
-    | c6a7fcfd06134b788f0a34e8454174b1 | Local Storage VM Backup Session | active | None   |      0 |
-    +----------------------------------+---------------------------------+--------+--------+--------+
-    ```
+        +----------------------------------+---------------------------------+--------+--------+--------+
+        | Session ID                       | Description                     | Status | Result | # Jobs |
+        +----------------------------------+---------------------------------+--------+--------+--------+
+        | c6a7fcfd06134b788f0a34e8454174b1 | Local Storage VM Backup Session | active | None   |      0 |
+        +----------------------------------+---------------------------------+--------+--------+--------+
+        ```
 
-Note session-id from above, Add existing job to this session (job-id's are arbitrary):
-
-``` bash
-freezer session-add-job \
-        --session-id c6a7fcfd06134b788f0a34e8454174b1 \
-        --job-id 9999
-```
-
-Start a session with a specific job (job-* are arbitrary):
-
-=== "Command"
+3. Note the session-id from above. Add an existing job to this session (job-id's are arbitrary):
 
     ```bash
-    freezer session-start \
+    freezer session-add-job \
             --session-id c6a7fcfd06134b788f0a34e8454174b1 \
-            --job-id 9999 \
-            --job-tag 0
+            --job-id 9999
     ```
 
-=== "Expected Output"
+4. Start a session with a specific job (job-* are arbitrary):
 
-    ``` bash
-    Session c6a7fcfd06134b788f0a34e8454174b1 start requested
-    ```
+    === "Command"
+
+        ```bash
+        freezer session-start \
+                --session-id c6a7fcfd06134b788f0a34e8454174b1 \
+                --job-id 9999 \
+                --job-tag 0
+        ```
+
+    === "Expected Output"
+
+        ```bash
+        Session c6a7fcfd06134b788f0a34e8454174b1 start requested
+        ```
 
 ---
 
-### Backup Retention Policy
+### :material-clock-alert: Backup Retention Policy
 
 Freezer backups stored in Swift can accumulate over time. The `swift_retention_policy.py`
 script automates object expiration and container cleanup for Freezer backup containers.
@@ -834,4 +857,4 @@ The script operates in two phases:
     ```
 
 For full documentation and troubleshooting, see
-[`scripts/freezer_retention/README.md`](https://github.com/rackerlabs/genestack/blob/main/scripts/freezer_retention/README.md).
+[`scripts/freezer_retention/README.md`](openstack-freezer-backup-retention.md).

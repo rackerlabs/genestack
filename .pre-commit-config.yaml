@@ -1,4 +1,6 @@
 ---
+exclude: ^submodules/
+
 default_install_hook_types:
   - pre-commit
   - commit-msg
@@ -68,5 +70,6 @@ repos:
       - id: ansible-lint
         stages:
           - manual
+        files: ^(ansible/.*\.(yaml|yml)|requirements\.yml|\.ansible-lint)$
         additional_dependencies:
-          - ansible
+          - ansible-core==2.17.14

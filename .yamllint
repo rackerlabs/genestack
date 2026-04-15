@@ -1,13 +1,18 @@
 ---
 extends: default
 rules:
+  document-start: disable
   indentation:
     spaces: 2
   line-length: disable
-  comments:
-    min-spaces-from-content: 1
-  brackets:
-    forbid: non-empty
+  comments: disable
+  truthy: disable
+  comments-indentation: false
+  braces:
+    max-spaces-inside: 1
+  octal-values:
+    forbid-implicit-octal: true
+    forbid-explicit-octal: true
   new-line-at-end-of-file: enable
 ignore:
   - submodules/

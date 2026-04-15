@@ -233,11 +233,13 @@ nav:
           - Monitoring and Observability:
               - Monitoring and Observability Overview: monitoring-observability-overview.md
               - Getting Started: monitoring-getting-started.md
-              - Opentelemetry: monitoring-opentelemetry.md
+              - OpenTelemetry: monitoring-opentelemetry.md
               - Prometheus: monitoring-prometheus.md
               - Loki: monitoring-loki.md
+              - Tempo: monitoring-tempo.md
               - Grafana: monitoring-grafana.md
-              - Openstack Metrics Exporter: prometheus-openstack-metrics-exporter.md
+              - OpenStack Exporter: openstack-exporter.md
+              - OpenStack Metrics Exporter: prometheus-openstack-metrics-exporter.md
               - Custom Node Metrics: prometheus-custom-node-metrics.md
               - Pushgateway: prometheus-pushgateway.md
               - Barbican Exporter: openstack-barbican-exporter.md
@@ -295,6 +297,7 @@ nav:
           - Compute:
               - Nova Flavor Creation: openstack-flavors.md
               - Nova CPU Allocation Ratio: openstack-cpu-allocation-ratio.md
+              - Nested Virtualization: openstack-nested-virtualization.md
               - Nova PCI Passthrough: openstack-pci-passthrough.md
               - Nova External Ceph Storage: openstack-compute-ceph-store.md
               - Host Aggregates: openstack-host-aggregates.md

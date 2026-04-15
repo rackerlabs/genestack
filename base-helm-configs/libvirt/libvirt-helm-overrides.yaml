@@ -12,6 +12,8 @@ conf:
     enabled: false
   libvirt:
     listen_addr: "0.0.0.0"
+  init_modules:
+    enabled: true
 dependencies:
   dynamic:
     targeted:

@@ -1,63 +1,40 @@
 # OpenStack Exporter
 
-OpenStack Exporter is used to monitor and collect metrics from OpenStack services. It provides visibility into various OpenStack components and their performance metrics through Prometheus.
+OpenStack Exporter probes OpenStack API endpoints and exposes their availability metrics to Prometheus.
+
+## Paths
+
+- Local chart: `/opt/genestack/base-helm-configs/openstack-api-exporter-chart/`
+- Service overrides: `/etc/genestack/helm-configs/openstack-api-exporter-chart/`
+- Kustomize overlay: `/etc/genestack/kustomize/openstack-api-exporter-chart/overlay/`
 
 ## Prerequisites
 
-- Kubernetes cluster
-- Prometheus Operator installed
-- Access to OpenStack Keystone service
-- Helm (if using Helm installation)
+- `kube-prometheus-stack` installed
+- `keystone-auth-openstack-exporter` secret available in the `monitoring` namespace
 
-## Installation
-
-### 1. Create Authentication Secret
-
-First, create the Keystone authentication secret in the prometheus namespace:
+The supported way to generate the Keystone secret is:
 
 ```shell
-kubectl --namespace prometheus \
-        create secret generic keystone-auth-openstack-exporter \
-        --type Opaque \
-        --from-literal=AUTH_URL="http://keystone-api.openstack.svc.cluster.local:5000/v3" \
-        --from-literal=USERNAME="admin" \
-        --from-literal=PASSWORD="$(kubectl get secret keystone-admin -n openstack -o jsonpath={.data.password} | base64 -d -w0)" \
-        --from-literal=USER_DOMAIN_NAME="Default" \
-        --from-literal=PROJECT_NAME="admin" \
-        --from-literal=PROJECT_DOMAIN_NAME="Default"
+/opt/genestack/bin/create-secrets.sh
 ```
 
-!!! Install the openstack exporter by just running the install script - `/opt/genestack/bin/install-openstack-exporter.sh`
-```shell
---8<-- "bin/install-openstack-exporter.sh"
-```
-
-!!! success
-If the installation is successful, you should see the exporter pod in the prometheus namespace.
-
-``` shell
-kubectl get pods -n openstack -l app=openstack-exporter
-```
-
-## Test and Verify
-Can verify the metrics by just port-forwarding and curl command.
-Which port the service is running can be seen by the following command,
-```shell
-kubectl get svc -n prometheus | grep openstack-exporter
-```
-
-Port Forwarding of openstack-exporter service to see the metrics:-
-``` shell
-kubectl port-forward svc/openstack-exporter -n prometheus 9180:<service-port>
-```
-Run Curl command in another window - curl localhost:9180/metrics
-
-
-Also we can we can see the metrics on the prometheus GUI under the target path using following command,
+## Install
 
 ```shell
-kubectl port-forward svc/kube-prometheus-stack-prometheus -n prometheus 9090:9090
+/opt/genestack/bin/install-openstack-exporter.sh
 ```
 
-open the link on a browser - http://localhost:9090/targets
-And select the serviceMonitor as "serviceMonitor/prometheus/openstack-exporter/0", Then will see it is showing up and all the details about it.
+## Verify
+
+```shell
+kubectl -n monitoring get pods -l app=openstack-exporter
+kubectl -n monitoring get svc,servicemonitor | grep openstack-exporter
+kubectl -n monitoring port-forward svc/openstack-exporter 9180:<service-port>
+```
+
+Then open Prometheus and confirm the `openstack-exporter` ServiceMonitor target is healthy:
+
+```shell
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
+```

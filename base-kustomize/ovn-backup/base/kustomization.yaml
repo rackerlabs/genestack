@@ -8,10 +8,10 @@ secretGenerator:
 configMapGenerator:
   - name: ovn-backup-script
     files:
-    - ovn-backup.sh
+      - ovn-backup.sh
   - name: ovn-backup-config
     envs:
-    - ovn-backup.config
+      - ovn-backup.config
 sortOptions:
   order: fifo
 resources:

@@ -1,20 +1,22 @@
 # Prometheus Pushgateway
 
-_Prometheus_ can use a _pushgateway_ to gather metrics from short-lived jobs, like
-Kubernetes _CronJobs_. The pushgateway stays up to allow _Promethus_ to gather
-the metrics. The short-lived job can push metrics to the gateway and terminate.
+Prometheus Pushgateway is useful for short-lived jobs, such as Kubernetes `CronJob` workloads, that need to push metrics before they exit.
 
-In particular, _Genestack_ can use the _pushgateway_ to collect metrics from
-the OVN backup _CronJob_.
+## Paths
 
-## Installation
+- Base Helm values: `/opt/genestack/base-helm-configs/prometheus-pushgateway/`
+- Service overrides: `/etc/genestack/helm-configs/prometheus-pushgateway/`
+- Kustomize overlay: `/etc/genestack/kustomize/prometheus-pushgateway/overlay/`
 
-Install the PushGateway Exporter
+## Install
 
-??? example "`/opt/genestack/bin/install-prometheus-pushgateway.sh`"
+```shell
+/opt/genestack/bin/install-prometheus-pushgateway.sh
+```
 
-    ``` shell
-    --8<-- "bin/install-prometheus-pushgateway.sh"
-    ```
+## Verify
 
-If the installation is successful, you should see the prometheus-pushgateway pod running in the prometheus namespace.
+```shell
+kubectl -n monitoring get pods -l app.kubernetes.io/instance=prometheus-pushgateway
+kubectl -n monitoring get servicemonitor prometheus-pushgateway
+```

@@ -12,8 +12,8 @@ metadata:
     meta.helm.sh/release-namespace: "openstack"
 spec:
   tags:
-  - management # available tags are 'management', 'policymaker', 'monitoring' and 'administrator'
-  - policymaker
+    - management # available tags are 'management', 'policymaker', 'monitoring' and 'administrator'
+    - policymaker
   rabbitmqClusterReference:
     name: rabbitmq # rabbitmqCluster must exist in the same namespace as this resource
     namespace: openstack

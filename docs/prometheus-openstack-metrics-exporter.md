@@ -11,7 +11,7 @@ For more information see: [Prometheus docs](https://prometheus.io) and [Openstac
 
 ### Create clouds-yaml secret
 
-Modify `/etc/genestack/helm-configs/monitoring/openstack-metrics-exporter/clouds-yaml` with the appropriate settings and create the secret.
+Modify `/etc/genestack/helm-configs/openstack-metrics-exporter/clouds-yaml` with the appropriate settings and create the secret.
 
 !!! tip
 
@@ -28,7 +28,7 @@ printf -v m "$(cat ~/.config/openstack/clouds.yaml)"; \
 !!! example "generated file will look similar to this"
 
     ``` yaml
-    --8<-- "base-helm-configs/monitoring/openstack-metrics-exporter/clouds-yaml"
+    --8<-- "base-helm-configs/openstack-metrics-exporter/clouds-yaml"
     ```
 
 If you're using self-signed certs then you may need to add keystone certificates to the generated clouds yaml:
@@ -61,7 +61,7 @@ With the secret created you can now deploy the **openstack-metrics-exporter** he
     helm upgrade --install os-metrics /opt/genestack/submodules/openstack-exporter/charts/prometheus-openstack-exporter \
                 --namespace=openstack \
                 --timeout 15m \
-                -f /opt/genestack/base-helm-configs/monitoring/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml \
+                -f /opt/genestack/base-helm-configs/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml \
                 --set clouds_yaml_config="$(kubectl --namespace openstack get secret clouds-yaml-secret -o jsonpath='{.data.generated-clouds-yaml}' | base64 -d)"
     ```
 
@@ -71,7 +71,7 @@ With the secret created you can now deploy the **openstack-metrics-exporter** he
     helm upgrade --install os-metrics /opt/genestack/submodules/openstack-exporter/charts/prometheus-openstack-exporter \
                 --namespace=openstack \
                 --timeout 15m \
-                -f /opt/genestack/base-helm-configs/monitoring/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml \
+                -f /opt/genestack/base-helm-configs/openstack-metrics-exporter/openstack-metrics-exporter-helm-overrides.yaml \
                 --set clouds_yaml_config="$(kubectl --namespace openstack get secret clouds-yaml-secret -o jsonpath='{.data.generated-clouds-certs-yaml}' | base64 -d)"
     ```
 

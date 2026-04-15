@@ -4,9 +4,9 @@ name: Helm GitHub Actions for Tempo
 on:
   pull_request:
     paths:
-      - base-helm-configs/monitoring/tempo/**
+      - base-helm-configs/tempo/**
       - base-kustomize/tempo/**
-      - .github/workflows/helm-tempo.yaml
+      - .github/workflows/helm-grafana-tempo.yaml
 jobs:
   helm:
     strategy:
@@ -23,16 +23,16 @@ jobs:
           version: v3.14.3
           token: ${{ secrets.GITHUB_TOKEN }}
         id: helm
-      - name: Add open-telemetry repo to helm
+      - name: Add grafana repo to helm
         run: |
-          ${{ steps.helm.outputs.helm-path }} repo add grafana-community https://grafana-community.github.io/helm-charts
+          ${{ steps.helm.outputs.helm-path }} repo add grafana https://grafana.github.io/helm-charts
           ${{ steps.helm.outputs.helm-path }} repo update
       - name: Run Helm Template
         run: |
-          ${{ steps.helm.outputs.helm-path }} template tempo grafana-community/tempo \
+          ${{ steps.helm.outputs.helm-path }} template tempo grafana/tempo \
             --create-namespace \
-            --namespace=prometheus \
-            -f ${{ github.workspace }}//base-helm-configs/monitoring/tempo/tempo-helm-overrides.yaml \
+            --namespace=monitoring \
+            -f ${{ github.workspace }}/base-helm-configs/tempo/tempo-helm-overrides.yaml \
             --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
             --post-renderer-args tempo/${{ matrix.overlays }} > /tmp/rendered.yaml
       - name: Return helm Build

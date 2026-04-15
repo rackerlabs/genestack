@@ -9,6 +9,8 @@
 SERVICE_NAME_DEFAULT="opentelemetry-kube-stack"
 SERVICE_NAMESPACE="monitoring"
 
+source "$(dirname "$0")/monitoring-common.sh"
+
 # Helm
 HELM_REPO_NAME_DEFAULT="open-telemetry"
 HELM_REPO_URL_DEFAULT="https://open-telemetry.github.io/opentelemetry-helm-charts"
@@ -18,22 +20,68 @@ GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
 GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 
 # Define service-specific override directories based on the framework
-SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/monitoring/${SERVICE_NAME_DEFAULT}"
+SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME_DEFAULT}"
 SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME_DEFAULT}"
+
+# Define the Global Overrides directory used in the common installer pattern
+GLOBAL_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR}/helm-configs/global_overrides"
+
+monitoring_ensure_namespace "${SERVICE_NAMESPACE}"
+monitoring_label_namespace_for_talos "${SERVICE_NAMESPACE}"
+monitoring_ensure_mariadb_monitoring_secret
+monitoring_ensure_rabbitmq_monitoring_secret
+monitoring_ensure_postgres_monitoring_secret
+
+adopt_existing_resources_for_helm() {
+    local manifest_file="$1"
+    local resources
+
+    resources="$(kubectl -n openstack get -f "${manifest_file}" -o name 2>/dev/null || true)"
+    if [[ -z "${resources}" ]]; then
+        return 0
+    fi
+
+    while IFS= read -r resource; do
+        [[ -n "${resource}" ]] || continue
+        kubectl -n openstack label --overwrite "${resource}" app.kubernetes.io/managed-by=Helm >/dev/null
+        kubectl -n openstack annotate --overwrite "${resource}" \
+            meta.helm.sh/release-name="${SERVICE_NAME_DEFAULT}" \
+            meta.helm.sh/release-namespace="${SERVICE_NAMESPACE}" >/dev/null
+    done <<< "${resources}"
+}
+
+adopt_existing_resources_for_helm "${GENESTACK_BASE_DIR}/base-kustomize/${SERVICE_NAME_DEFAULT}/base/mariadb-monitoring-user-create.yaml"
+adopt_existing_resources_for_helm "${GENESTACK_BASE_DIR}/base-kustomize/${SERVICE_NAME_DEFAULT}/base/mariadb-monitoring-user-grant.yaml"
+adopt_existing_resources_for_helm "${GENESTACK_BASE_DIR}/base-kustomize/${SERVICE_NAME_DEFAULT}/base/rabbitmq-monitoring-user-create.yaml"
+adopt_existing_resources_for_helm "${GENESTACK_BASE_DIR}/base-kustomize/${SERVICE_NAME_DEFAULT}/base/rabbitmq-monitoring-user-grant.yaml"
 
 # Read the desired chart version from VERSION_FILE
 VERSION_FILE="${GENESTACK_OVERRIDES_DIR}/helm-chart-versions.yaml"
+FALLBACK_VERSION_FILE="${GENESTACK_BASE_DIR}/helm-chart-versions.yaml"
+
+extract_service_version() {
+    local version_file="$1"
+
+    [[ -f "${version_file}" ]] || return 0
+    grep "^[[:space:]]*${SERVICE_NAME_DEFAULT}:" "${version_file}" | sed "s/.*${SERVICE_NAME_DEFAULT}: *//" || true
+}
 
 if [ ! -f "$VERSION_FILE" ]; then
     echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE" >&2
     exit 1
 fi
 
-# Extract version dynamically using the SERVICE_NAME_DEFAULT variable
-SERVICE_VERSION=$(grep "^[[:space:]]*${SERVICE_NAME_DEFAULT}:" "$VERSION_FILE" | sed "s/.*${SERVICE_NAME_DEFAULT}: *//")
+SERVICE_VERSION="$(extract_service_version "${VERSION_FILE}")"
+
+if [[ -z "${SERVICE_VERSION}" && "${FALLBACK_VERSION_FILE}" != "${VERSION_FILE}" ]]; then
+    SERVICE_VERSION="$(extract_service_version "${FALLBACK_VERSION_FILE}")"
+    if [[ -n "${SERVICE_VERSION}" ]]; then
+        echo "Warning: ${SERVICE_NAME_DEFAULT} is missing from ${VERSION_FILE}; using ${FALLBACK_VERSION_FILE} instead." >&2
+    fi
+fi
 
 if [ -z "$SERVICE_VERSION" ]; then
-    echo "Error: Could not extract version for '$SERVICE_NAME_DEFAULT' from $VERSION_FILE" >&2
+    echo "Error: Could not extract version for '$SERVICE_NAME_DEFAULT' from ${VERSION_FILE} or ${FALLBACK_VERSION_FILE}" >&2
     exit 1
 fi
 
@@ -85,6 +133,20 @@ if [[ -d "$SERVICE_BASE_OVERRIDES" ]]; then
             overrides_args+=("-f" "$file")
         fi
     done
+fi
+
+# Include all YAML files from the GLOBAL configuration directory
+# NOTE: Files here override base settings and are applied before service-specific ones.
+if [[ -d "$GLOBAL_OVERRIDES_DIR" ]]; then
+    echo "Including global overrides from directory: $GLOBAL_OVERRIDES_DIR"
+    for file in "$GLOBAL_OVERRIDES_DIR"/*.yaml; do
+        if [[ -e "$file" ]]; then
+            echo " - $file"
+            overrides_args+=("-f" "$file")
+        fi
+    done
+else
+    echo "Warning: Global override directory not found: $GLOBAL_OVERRIDES_DIR"
 fi
 
 # Include all YAML files from the custom SERVICE configuration directory

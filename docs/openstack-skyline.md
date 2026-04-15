@@ -63,7 +63,7 @@ Manual secret generation is only required if you haven't run the `create-skyline
             --from-literal=prometheus_basic_auth_password="" \
             --from-literal=prometheus_basic_auth_user="" \
             --from-literal=prometheus_enable_basic_auth="false" \
-            --from-literal=prometheus_endpoint="http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090"
+            --from-literal=prometheus_endpoint="http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090"
     ```
 
 ## Run the deployment

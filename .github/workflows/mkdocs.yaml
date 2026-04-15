@@ -7,13 +7,13 @@ on:
     paths:
       - mkdocs.yml
       - "docs/**"
-      - ".github/workflows/mkdocs.yml"
+      - ".github/workflows/mkdocs.yaml"
       - "releasenotes/notes/**"
   pull_request:
     paths:
       - mkdocs.yml
       - "docs/**"
-      - ".github/workflows/mkdocs.yml"
+      - ".github/workflows/mkdocs.yaml"
       - "releasenotes/notes/**"
   workflow_dispatch:
 
@@ -40,7 +40,7 @@ jobs:
       - run: pandoc /tmp/reno.rst -f rst -t markdown -o docs/release-notes.md
       - run: python scripts/generate_product_matrix.py
       - run: mkdocs build --strict
-      - uses: actions/upload-pages-artifact@main
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: site/
 
@@ -49,7 +49,7 @@ jobs:
     needs: build
 
     # ensure we only run on commits to the main branch
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.repository == 'rackerlabs/genestack'
 
     runs-on: ubuntu-latest
 

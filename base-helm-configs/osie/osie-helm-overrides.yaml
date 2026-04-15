@@ -24,13 +24,13 @@ smtp:
   from: support@rackspace.com
   fromDisplayName: Rackspace OpenStack Flex
 ui:
- replicaCount: 3
+  replicaCount: 3
 admin:
- replicaCount: 3
+  replicaCount: 3
 api:
- replicaCount: 3
+  replicaCount: 3
 mongodb:
-   architecture: replicaset
-   replicaCount: 3
+  architecture: replicaset
+  replicaCount: 3
 redis:
-   architecture: replication
+  architecture: replication

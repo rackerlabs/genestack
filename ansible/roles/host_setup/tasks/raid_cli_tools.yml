@@ -1,4 +1,3 @@
----
 - name: Gather the package facts before install
   ansible.builtin.package_facts:
     manager: auto
@@ -23,7 +22,9 @@
         http_agent: Chrome/1337
         validate_certs: false
         dest: "{{ dell_tools.download_path }}"
-        status_code: [200, 304]
+        status_code:
+          - 200
+          - 304
         mode: '0755'
     - name: Extract PERCCLI tar.gz
       ansible.builtin.unarchive:
@@ -84,12 +85,14 @@
       ansible.builtin.uri:
         url: "{{ item.url }}"
         dest: "{{ item.download_file }}"
-        status_code: [200, 304]     # accept Not Modified
+        status_code:              # accept Not Modified
+          - 200
+          - 304
         mode: "0644"
       loop: "{{ hp_tools.repo_keys }}"
       when: hp_tools.repo_keys is defined
       register: download_keys_url
-      changed_when: download_keys_url.status == 200   # 304 -> not changed
+      changed_when: download_keys_url.status == 200 # 304 -> not changed
       retries: 2
       delay: 4
       until: download_keys_url is success

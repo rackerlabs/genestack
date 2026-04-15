@@ -166,16 +166,16 @@ spec:
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:
-          - matchExpressions:
-            - key: role
-              operator: In
-              values:
-              - storage-node
+            - matchExpressions:
+                - key: role
+                  operator: In
+                  values:
+                    - storage-node
       tolerations:
-      - key: storage-node
-        operator: Exists
-      - effect: PreferNoSchedule
-        operator: Exists
+        - key: storage-node
+          operator: Exists
+        - effect: PreferNoSchedule
+          operator: Exists
   # placement:
   #   all:
   #     nodeAffinity:

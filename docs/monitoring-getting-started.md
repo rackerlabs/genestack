@@ -1,890 +1,240 @@
 # Getting Started with Genestack Monitoring
 
-This guide walks you through setting up a complete observability stack for your Genestack deployment. The monitoring system provides unified telemetry collection across metrics, logs, and traces using industry-standard open-source tools.
+This guide documents the supported monitoring install flow for Genestack. The monitoring stack is installed component-by-component, and each component uses the same override layout as the rest of the platform:
 
----
+- Helm overrides: `/etc/genestack/helm-configs/<service>`
+- Kustomize overlays: `/etc/genestack/kustomize/<service>/overlay`
 
-## Overview
+That service-specific layout is the Genestack standard. The docs still group the monitoring stack conceptually so you can reason about it as one system:
 
-The Genestack observability stack includes:
+- [Prometheus](monitoring-prometheus.md) for metrics storage, scraping, and alerting
+- [Loki](monitoring-loki.md) for logs
+- [Tempo](monitoring-tempo.md) for traces
+- [Grafana](monitoring-grafana.md) for dashboards and datasources
+- [OpenTelemetry](monitoring-opentelemetry.md) for telemetry collection and infrastructure receivers
+- [OpenStack Exporter](openstack-exporter.md) for OpenStack API availability probes
+- [Pushgateway](prometheus-pushgateway.md) for short-lived job metrics
 
-- **OpenTelemetry** - Universal telemetry collection and processing (metrics, logs, traces)
-- **Prometheus** - Time-series database and metrics storage
-- **Loki** - Log aggregation and querying system
-- **Tempo** - Distributed tracing backend
-- **Grafana** - Unified visualization platform for all telemetry types
-- **AlertManager** - Alert routing and notification management
+The supported install order is:
 
-### Architecture
-
-All components are deployed in the `monitoring` namespace for simplified management and access control.
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Monitoring Namespace                     │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  OpenTelemetry Collectors                                   │
-│    ↓ Collect ↓                                              │
-│  Metrics, Logs, Traces from:                                │
-│    • Kubernetes (nodes, pods, containers)                   │
-│    • OpenStack services (Nova, Neutron, etc.)               │
-│    • Infrastructure (MySQL, RabbitMQ, etc.)                 │
-│                                                             │
-│  ↓ Store in ↓                                               │
-│                                                             │
-│  Prometheus (metrics) + Loki (logs) + Tempo (traces)        │
-│                                                             │
-│  ↓ Visualize in ↓                                           │
-│                                                             │
-│  Grafana (dashboards, alerts, exploration)                  │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### What Gets Monitored
-
-| Component | Metrics | Logs | Traces |
-|-----------|---------|------|--------|
-| **Kubernetes** | Node/pod/container resources | Container logs, K8s events | N/A |
-| **OpenStack** | API performance | Service logs (Nova, Neutron, etc.) | Request flows |
-| **Databases** | Connections, queries, locks | Query logs | Slow query traces |
-| **Message Queues** | Messages, consumers, memory | RabbitMQ logs | Message processing |
-| **Cache** | Hit ratio, evictions | Memcached logs | Cache operations |
-
----
+1. `kube-prometheus-stack`
+2. `loki`
+3. `tempo`
+4. `grafana`
+5. `opentelemetry-kube-stack`
 
 ## Prerequisites
 
-Before proceeding, ensure you have:
+- A bootstrapped Genestack host
+- `kubectl` pointed at the target cluster
+- `helm` 3.x
+- `yq` 4.x
+- A generated `/etc/genestack/kubesecrets.yaml`
 
-- ✅ A running Genestack deployment
-- ✅ Helm 3.x installed
-- ✅ `kubectl` access to your Kubernetes cluster
-- ✅ Cluster admin or namespace admin permissions
-- ✅ Sufficient cluster resources (see [resource requirements](#resource-requirements))
+Run bootstrap first:
 
-### Required Tools
-
-```bash
-# Verify installations
-helm version
-kubectl version
-yq --version  # For YAML manipulation (v4+)
-```
-
-### Namespace Preparation
-
-```bash
-# Create the monitoring namespace
-kubectl create namespace monitoring
-
-# Label it for easy identification
-kubectl label namespace monitoring \
-  name=monitoring \
-  monitoring=enabled
-```
-
----
-
-## Installation Steps
-
-Follow these steps in order to build your complete observability stack.
-
----
-
-## Step 1: Install the Prometheus Stack
-
-The kube-prometheus-stack is the foundation of your metrics infrastructure. It provides time-series storage, alerting, and scraping capabilities.
-
-### What Gets Installed
-
-- **Prometheus Operator** - Manages Prometheus lifecycle via CRDs
-- **Prometheus Server** - Collects and stores metrics (15-day retention)
-- **AlertManager** - Routes alerts to notification channels
-- **Grafana** - Pre-configured with Prometheus datasource (optional, we'll install separately)
-
-### Installation
-
-```bash
-# Install using Genestack script
-bin/install-kube-prometheus-stack.sh
-
-# Or install manually with Helm
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update
-
-helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
-  -n monitoring \
-  --create-namespace \
-  -f /etc/genestack/helm-configs/prometheus/prometheus-helm-overrides.yaml
-```
-
-### Verify Installation
-
-```bash
-# Check pods are running
-kubectl -n monitoring get pods -l app.kubernetes.io/name=prometheus
-
-# Expected output:
-# prometheus-kube-prometheus-stack-prometheus-0   Running
-# alertmanager-kube-prometheus-stack-alertmanager-0   Running
-
-# Check Prometheus targets
-kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090 &
-# Open: http://localhost:9090/targets
-# You should see targets for node-exporter and kube-state-metrics
-```
-
-**📚 For detailed configuration, see the [Prometheus installation guide](monitoring-prometheus.md).**
-
----
-
-## Step 2: Install Loki
-
-Loki provides cost-effective log aggregation using label-based indexing (similar to Prometheus but for logs).
-
-### What Gets Installed
-
-- **Loki Gateway** - Receives logs from collectors
-- **Loki Write** - Ingests and indexes logs
-- **Loki Read** - Serves log queries
-- **Loki Backend** - Handles compaction and retention
-
-### Installation
-
-```bash
-# Install using Genestack script
-bin/install-loki.sh
-
-# Or install manually with Helm
-helm repo add grafana https://grafana.github.io/helm-charts
-helm repo update
-
-helm install loki grafana/loki \
-  -n monitoring \
-  -f /etc/genestack/helm-configs/loki/loki-helm-overrides.yaml
-```
-
-**📚 For detailed configuration, see the [Loki installation guide](monitoring-loki.md).**
-
-
-### Verify Installation
-
-```bash
-# Check Loki pods
-kubectl -n monitoring get pods -l app.kubernetes.io/name=loki
-
-# Test Loki readiness
-kubectl -n monitoring port-forward svc/loki-gateway 3100:80 &
-curl http://localhost:3100/ready
-# Expected: ready
-```
-
-### Key Features
-
-- **Label-based indexing** - Only indexes labels, not log content (cost-effective)
-- **LogQL** - Query language similar to PromQL
-- **S3 backend** - Long-term storage in object storage
-- **Multi-tenancy** - Namespace isolation support
-
----
-
-## Step 3: Install Tempo
-
-Tempo provides distributed tracing for tracking requests across microservices.
-
-### What Gets Installed
-
-- **Tempo Distributor** - Receives traces from applications
-- **Tempo Ingester** - Writes traces to storage
-- **Tempo Query Frontend** - Serves trace queries
-- **Tempo Compactor** - Compacts and manages trace data
-
-### Installation
-
-```bash
-# Install using Genestack script
-bin/install-tempo.sh
-
-# Or install manually with Helm
-helm install tempo grafana/tempo \
-  -n monitoring \
-  -f /etc/genestack/helm-configs/tempo/tempo-helm-overrides.yaml
-```
-
-### Verify Installation
-
-```bash
-# Check Tempo pods
-kubectl -n monitoring get pods -l app.kubernetes.io/name=tempo
-
-# Test Tempo readiness
-kubectl -n monitoring port-forward svc/tempo 3100:3100 &
-curl http://localhost:3100/ready
-# Expected: ready
-```
-
-### Key Features
-
-- **TraceQL** - Query language for searching traces
-- **S3 backend** - Cost-effective trace storage
-- **Trace correlation** - Links traces to logs and metrics
-- **OpenTelemetry native** - First-class OTLP support
-
----
-
-**📚 For more information, see the [Tempo installation guide](monitoring-tempo.md).**
-
-
-## Step 4: Install OpenTelemetry
-
-OpenTelemetry provides unified telemetry collection, processing, and export for metrics, logs, and traces.
-
-### What Gets Installed
-
-#### Daemon Collectors (DaemonSet - one per node)
-
-Collects telemetry from each node:
-- Container logs from `/var/log/pods`
-- Host metrics (CPU, memory, disk, network)
-- OTLP metrics and traces from applications
-- Kubernetes events
-
-#### Deployment Collector (Single pod)
-
-Collects infrastructure metrics:
-- MySQL/MariaDB metrics (connections, queries, locks)
-- PostgreSQL metrics (backends, deadlocks, transactions)
-- RabbitMQ metrics (messages, queues, consumers)
-- Memcached metrics (hit ratio, evictions)
-- Metallb metrics
-- Cert Manager metrics
-- Kube OVN metrics
-- HTTP endpoint health checks
-
-### Prerequisites
-
-Before installing OpenTelemetry we'll need secrets for various services we're gather metrics from. 
-If this is a fresh cluster deployment we'll need to create the secrets in the `monitoring` namespace:
-
-??? example "Create MariaDB secret"
 ```shell
-kubectl --namespace monitoring \
-  create secret generic mariadb-monitoring \
-  --type Opaque \
-  --from-literal=username="monitoring" \
-  --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
+/opt/genestack/bootstrap.sh
 ```
 
-??? example "Create Postgres secret"
+Bootstrap creates the monitoring override directories under `/etc/genestack` so the install scripts can use the same pattern as the rest of Genestack. After bootstrap you should have:
+
+- `/etc/genestack/helm-configs/kube-prometheus-stack`
+- `/etc/genestack/helm-configs/loki`
+- `/etc/genestack/helm-configs/tempo`
+- `/etc/genestack/helm-configs/grafana`
+- `/etc/genestack/helm-configs/opentelemetry-kube-stack`
+- `/etc/genestack/helm-configs/prometheus-pushgateway`
+- `/etc/genestack/helm-configs/openstack-api-exporter-chart`
+- `/etc/genestack/helm-configs/openstack-metrics-exporter`
+- `/etc/genestack/kustomize/kube-prometheus-stack/overlay`
+- `/etc/genestack/kustomize/loki/overlay`
+- `/etc/genestack/kustomize/tempo/overlay`
+- `/etc/genestack/kustomize/grafana/overlay`
+- `/etc/genestack/kustomize/opentelemetry-kube-stack/overlay`
+
+Generate the shared secrets file before installing Grafana or OpenTelemetry:
+
 ```shell
-kubectl --namespace monitoring \
-  create secret generic postgres-monitoring \
-  --type Opaque \
-  --from-literal=username="monitoring" 
-  --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64}; echo;)"
+/opt/genestack/bin/create-secrets.sh
 ```
 
-??? example "Create RabbitMQ secret in openstack namespace"
+## Namespace Preparation
+
+Create the monitoring namespace if it does not already exist:
+
 ```shell
-kubectl --namespace openstack \
-  create secret generic rabbitmq-monitoring-user \
-  --type Opaque \
-  --from-literal=username="monitoring" \
-  --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64}; echo;)"
+kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
 ```
-For now we'll have to copy the secret into the monitoring namespace as well. 
 
-??? example "Copy RabbitMQ secret to monitoring namespace"
+!!! info "Talos-only"
+
+    Label the `monitoring` namespace before installing components that need privileged host access.
+    Skip this on Kubespray unless your cluster enforces the same restriction.
+
+    ```shell
+    kubectl label namespace monitoring \
+      pod-security.kubernetes.io/enforce=privileged \
+      pod-security.kubernetes.io/enforce-version=latest \
+      pod-security.kubernetes.io/warn=privileged \
+      pod-security.kubernetes.io/warn-version=latest \
+      pod-security.kubernetes.io/audit=privileged \
+      pod-security.kubernetes.io/audit-version=latest \
+      --overwrite
+    ```
+
+The monitoring install scripts also apply these labels automatically when the provider is set to `talos`.
+
+## Install kube-prometheus-stack
+
+Prometheus, Alertmanager, node-exporter, and kube-state-metrics are installed first:
+
 ```shell
-kubectl get secret rabbitmq-monitoring-user \
-  -n openstack -o yaml \
-  | sed 's/namespace: openstack/namespace: monitoring/' \
-  | kubectl apply -f -
+/opt/genestack/bin/install-kube-prometheus-stack.sh
 ```
 
-### Installation
+Verify the deployment:
 
-```bash
-# Install using Genestack script
-bin/install-opentelemetry-kube-stack.sh
-
-# Or install manually with Helm
-helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
-helm repo update
-
-helm install opentelemetry-kube-stack open-telemetry/opentelemetry-operator \
-  -n monitoring \
-  -f /etc/genestack/helm-configs/opentelemetry/otel-helm-overrides.yaml
+```shell
+kubectl -n monitoring get pods -l app.kubernetes.io/instance=kube-prometheus-stack
+kubectl -n monitoring get servicemonitors
 ```
 
-### Verify Installation
+Use `/etc/genestack/helm-configs/kube-prometheus-stack/` for service-specific overrides and `/etc/genestack/kustomize/kube-prometheus-stack/overlay/` for post-render patches.
 
-```bash
-# Check daemon collectors (one per node)
-kubectl -n monitoring get pods -l app.kubernetes.io/instance=opentelemetry-kube-stack-daemon
+## Choose Loki Storage and Install Loki
 
-# Check deployment collector
-kubectl -n monitoring get pods -l app.kubernetes.io/instance=opentelemetry-kube-stack-deployment
+The default Loki base values use a single-binary filesystem deployment that is suitable for labs and first-pass validation. If you want object storage, add a service override file in `/etc/genestack/helm-configs/loki/` before installing.
 
-# Verify logs are being collected
-kubectl -n monitoring logs daemonset/opentelemetry-kube-stack-daemon-collector --tail=50
+Available examples:
 
-# Verify metrics are being sent to Prometheus
-kubectl -n monitoring logs deployment/opentelemetry-kube-stack-deployment-collector --tail=50 | grep "prometheusremotewrite"
-```
-**📚 For more information, see the [Opentelemetry installation guide](monitoring-opentelemetry.md).**
+- Generic S3-compatible: `/opt/genestack/base-helm-configs/loki/loki-helm-s3-overrides.yaml.example`
+- Rook/Ceph RGW: `/opt/genestack/base-helm-configs/loki/loki-helm-rook-rgw-overrides.yaml.example`
+- Swift: `/opt/genestack/base-helm-configs/loki/loki-helm-swift-overrides.yaml.example`
+- MinIO: `/opt/genestack/base-helm-configs/loki/loki-helm-minio-overrides.yaml.example`
 
+If you are using Rook/Ceph RGW, the helper below creates the object-store user, buckets, Kubernetes secret, and service override files for Loki and Tempo:
 
-### Key Features
-
-- **Vendor-neutral** - Industry standard for telemetry collection
-- **Multi-protocol** - Supports OTLP, Jaeger, Zipkin
-- **Processing pipeline** - Transform, filter, batch telemetry data
-- **Auto-instrumentation** - Kubernetes metadata enrichment
-
-### Configuration
-
-OpenTelemetry exporters are configured to send data to:
-- **Prometheus** - `http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/write`
-- **Loki** - `http://loki-gateway.monitoring.svc.cluster.local/otlp`
-- **Tempo** - `http://tempo.monitoring.svc.cluster.local:4318`
-
-All within the same `monitoring` namespace for simplified networking.
-
----
-
-## Step 5: Install Grafana
-
-Grafana provides unified visualization for metrics, logs, and traces with pre-built and custom dashboards.
-
-### What Gets Installed
-
-- **Grafana Server** - Web UI and API
-- **MariaDB** - Database for dashboards and users
-- **Pre-configured Datasources**:
-  - Prometheus (metrics)
-  - Loki (logs)
-  - Tempo (traces)
-
-### Installation
-
-```bash
-# Install using Genestack script
-bin/install-grafana.sh
-
-# Or install manually with Helm
-helm install grafana grafana/grafana \
-  -n monitoring \
-  -f /etc/genestack/helm-configs/grafana/grafana-helm-overrides.yaml
+```shell
+/opt/genestack/bin/setup-monitoring-rgw-storage.sh
 ```
 
-### Create Grafana Database
+The helper uses `mc` (the MinIO Client) to create the buckets. If `mc` is not already on `PATH`, the script downloads a temporary copy automatically. Restricted environments must either allow HTTPS access to `dl.min.io` or install `mc` manually before running the helper.
 
-```bash
-# Apply the MariaDB manifest
-kubectl apply -f base-kustomize/grafana/base/grafana-database.yaml
+You can override the defaults with environment variables such as `ROOK_NAMESPACE`, `RGW_STORE_NAME`, `RGW_TOOLBOX_DEPLOYMENT`, and `TARGET_NAMESPACE`.
 
-# Wait for database to be ready
-kubectl -n monitoring wait --for=condition=ready pod \
-  -l app.kubernetes.io/name=mariadb,app.kubernetes.io/instance=grafana \
-  --timeout=300s
+Install Loki:
+
+```shell
+/opt/genestack/bin/install-loki.sh
 ```
 
-### Access Grafana
+If your cluster DNS service is not named `coredns`, add a Loki override file that sets `global.dnsService` before installing. The Loki gateway uses this value to generate its NGINX resolver configuration.
 
-```bash
-# Get admin password
+Verify Loki:
+
+```shell
+kubectl -n monitoring get pods -l app.kubernetes.io/instance=loki
+kubectl -n monitoring port-forward svc/loki-gateway 3100:80
+curl http://127.0.0.1:3100/ready
+```
+
+## Choose Tempo Storage and Install Tempo
+
+The default Tempo base values use PVC-backed local storage. For object storage, add a service override file in `/etc/genestack/helm-configs/tempo/` before installing.
+
+Available examples:
+
+- Generic S3-compatible: `/opt/genestack/base-helm-configs/tempo/tempo-helm-s3-overrides.yaml.example`
+- Rook/Ceph RGW: `/opt/genestack/base-helm-configs/tempo/tempo-helm-rook-rgw-overrides.yaml.example`
+
+Install Tempo:
+
+```shell
+/opt/genestack/bin/install-tempo.sh
+```
+
+Verify Tempo:
+
+```shell
+kubectl -n monitoring get pods -l app.kubernetes.io/instance=tempo
+kubectl -n monitoring port-forward svc/tempo 3200:3200
+curl http://127.0.0.1:3200/ready
+```
+
+## Install Grafana
+
+Grafana uses `/etc/genestack/helm-configs/grafana/` for service overrides. Set `custom_host` there if you are publishing Grafana through an ingress or gateway.
+
+The Grafana installer ensures the `grafana-db` secret exists in `monitoring`. If you generated `/etc/genestack/kubesecrets.yaml` with `create-secrets.sh`, that secret will be applied automatically.
+
+Install Grafana:
+
+```shell
+/opt/genestack/bin/install-grafana.sh
+```
+
+Verify Grafana:
+
+```shell
+kubectl -n monitoring get pods -l app.kubernetes.io/instance=grafana
+kubectl -n monitoring port-forward svc/grafana 3000:80
 kubectl -n monitoring get secret grafana -o jsonpath='{.data.admin-password}' | base64 -d
-echo
-
-# Port-forward to Grafana
-kubectl -n monitoring port-forward svc/grafana 3000:80
-
-# Open browser to http://localhost:3000
-# Username: admin
-# Password: (from above command)
 ```
 
-### Verify Datasources
+## Install OpenTelemetry
 
-After logging in:
-1. Go to **Configuration** → **Data Sources**
-2. Verify these datasources are configured and working:
-   - ✅ **Prometheus** - `http://kube-prometheus-stack-prometheus.monitoring.svc:9090`
-   - ✅ **Loki** - `http://loki-gateway.monitoring.svc`
-   - ✅ **Tempo** - `http://tempo.monitoring.svc:3100`
-3. Click **Test** on each datasource to verify connectivity
+The OpenTelemetry stack deploys the operator, daemon collector, and deployment collector. The default configuration enables MySQL, RabbitMQ, and Memcached telemetry, and includes placeholder `httpcheck` targets you can customize for your environment. PostgreSQL telemetry is available, but it is not enabled by default.
 
-### Import Dashboards
+Before installation, the script:
 
-```bash
-# Import Kubernetes cluster monitoring dashboard
-python3 scripts/import-grafana-dashboard.py \
-  --grafana-url http://localhost:3000 \
-  --dashboard-id 7249 \
-  --api-key <your-api-key>
+- ensures the `monitoring` namespace exists
+- applies Talos namespace labels when appropriate
+- creates or applies the `mariadb-monitoring` secret in `openstack`
+- creates or applies the `rabbitmq-monitoring-user` secret in `openstack`
+- copies `mariadb-monitoring` into `monitoring`
+- applies the MariaDB monitoring `User` and `Grant` resources in `openstack`
+- applies the RabbitMQ monitoring `User` and `Permission` resources in `openstack`
+- copies `rabbitmq-monitoring-user` into `monitoring`
 
-# Or manually import via UI:
-# Dashboards → Import → Enter dashboard ID from grafana.com
+If you run PostgreSQL and want OpenTelemetry to scrape it, add a service override file in `/etc/genestack/helm-configs/opentelemetry-kube-stack/` before installation. Start from `/opt/genestack/base-helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-postgresql-overrides.yaml.example`, then adjust the secret and endpoint values for your environment.
+
+Install OpenTelemetry:
+
+```shell
+/opt/genestack/bin/install-opentelemetry-kube-stack.sh
 ```
 
-**📚 For more information, see the [Grafana documentation](monitoring-grafana.md).**
+Verify OpenTelemetry:
 
----
-
-## Step 6: Deploy Service-Specific Metric Exporters (Optional)
-
-The OpenTelemetry deployment collector already provides metrics for:
-- MySQL/MariaDB
-- PostgreSQL
-- RabbitMQ
-- Memcached
-
-However, if you need additional service-specific exporters, they are available for deployment.
-
-### Available Exporters And Additional Metrics Services
-
-- **OpenStack Exporter** - [OpenStack API metrics](prometheus-openstack-metrics-exporter.md)
-- **Custom Node Metrics** - [Custom Node Metrics](prometheus-custom-node-metrics.md)
-- **Push Gateway** - [Prometheus Push Gateway](prometheus-pushgateway.md)
-
-### When to Use Additional Exporters
-
-Use additional exporters when:
-- You need metrics not provided by OpenTelemetry receivers
-- You want more granular metrics than OTel provides
-- You're integrating third-party services with specific exporters
-
-**Note**: Most infrastructure metrics are already collected by OpenTelemetry, so additional exporters may not be necessary.
-
----
-
-## Step 7: Configure AlertManager
-
-AlertManager handles alert routing and notifications. Configure it to send alerts to your preferred channels.
-
-### Available Integrations
-
-- **Slack** - Send alerts to Slack channels ([guide](alertmanager-slack.md))
-- **Email** - SMTP-based email notifications
-- **PagerDuty** - Incident management integration
-- **Webhooks** - Custom HTTP endpoints
-- **OpsGenie** - On-call management
-- **VictorOps** - Incident response
-
-### Configure Slack Alerts (Example)
-
-```bash
-# Edit AlertManager configuration
-kubectl -n monitoring edit secret alertmanager-kube-prometheus-stack-alertmanager
-
-# Add Slack webhook configuration
-receivers:
-  - name: 'slack-notifications'
-    slack_configs:
-      - api_url: 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'
-        channel: '#alerts'
-        title: 'Cluster Alert'
-        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
-
-route:
-  receiver: 'slack-notifications'
-  group_by: ['alertname', 'cluster']
-  group_wait: 10s
-  group_interval: 10s
-  repeat_interval: 12h
+```shell
+kubectl -n monitoring get pods -l app.kubernetes.io/instance=opentelemetry-kube-stack
+kubectl -n monitoring get opentelemetrycollectors
 ```
 
-### Test AlertManager
+## Post-Install Checks
 
-```bash
-# Port-forward to AlertManager
-kubectl -n monitoring port-forward svc/kube-prometheus-stack-alertmanager 9093:9093
+After the full stack is installed, confirm the major paths work:
 
-# Open browser to http://localhost:9093
-# You should see the AlertManager UI with configured receivers
-```
-
-**📚 For detailed configuration, see [AlertManager Slack integration](alertmanager-slack.md).**
-
----
-
-## Step 8: Customize Alerting Rules
-
-### Default Alerting Rules
-
-Prometheus includes default alerting rules for common scenarios. View them:
-
-```bash
-# List PrometheusRule resources
-kubectl -n monitoring get prometheusrule
-
-# View specific rule
-kubectl -n monitoring get prometheusrule kube-prometheus-stack-kubernetes-resources -o yaml
-```
-
-### Custom Alerting Rules
-
-Create custom alerting rules in `/etc/genestack/helm-configs/prometheus/alerting_rules.yaml`:
-
-```yaml
-apiVersion: monitoring.coreos.com/v1
-kind: PrometheusRule
-metadata:
-  name: genestack-custom-alerts
-  namespace: monitoring
-spec:
-  groups:
-    - name: database-alerts
-      interval: 30s
-      rules:
-        # High MySQL connection usage
-        - alert: MySQLConnectionsHigh
-          expr: |
-            (mysql_connection_count{state="open"} / 1000) > 0.8
-          for: 5m
-          labels:
-            severity: warning
-          annotations:
-            summary: "MySQL connection usage high"
-            description: "MySQL is using {{ $value }}% of max connections"
-        
-        # PostgreSQL deadlocks
-        - alert: PostgreSQLDeadlocks
-          expr: |
-            rate(postgresql_deadlocks[5m]) > 0
-          for: 5m
-          labels:
-            severity: warning
-          annotations:
-            summary: "PostgreSQL deadlocks detected"
-            description: "Database {{ $labels.database }} has deadlocks"
-        
-        # RabbitMQ message backlog
-        - alert: RabbitMQBacklog
-          expr: |
-            rabbitmq_message_current{state="ready"} > 10000
-          for: 10m
-          labels:
-            severity: warning
-          annotations:
-            summary: "RabbitMQ queue backlog"
-            description: "Queue {{ $labels.queue }} has {{ $value }} messages ready"
-
-    - name: openstack-alerts
-      interval: 30s
-      rules:
-        # Nova API down
-        - alert: NovaAPIDown
-          expr: |
-            httpcheck_error{http_url=~".*nova.*"} == 1
-          for: 5m
-          labels:
-            severity: critical
-          annotations:
-            summary: "Nova API is down"
-            description: "Nova API endpoint {{ $labels.http_url }} is unreachable"
-```
-
-Apply the custom rules:
-
-```bash
-kubectl apply -f /etc/genestack/helm-configs/prometheus/alerting_rules.yaml
-```
-
-## Verification and Testing
-
-### End-to-End Verification
-
-Run through this checklist to ensure everything is working:
-
-#### 1. Check All Pods Running
-
-```bash
+```shell
 kubectl -n monitoring get pods
-
-# Expected pods:
-# - prometheus-kube-prometheus-stack-prometheus-0
-# - alertmanager-kube-prometheus-stack-alertmanager-0
-# - loki-write-*, loki-read-*, loki-backend-*
-# - tempo-*
-# - grafana-*
-# - opentelemetry-kube-stack-daemon-collector-* (one per node)
-# - opentelemetry-kube-stack-deployment-collector-*
-```
-
-#### 2. Verify Metrics Collection
-
-```bash
-# Port-forward to Prometheus
-kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090 &
-
-# Open http://localhost:9090/targets
-# Verify targets are up and being scraped
-
-# Query for metrics
-curl -s 'http://localhost:9090/api/v1/query?query=up' | jq '.data.result[] | select(.value[1]=="1") | .metric.job' | sort -u
-
-# Should see jobs like:
-# "kube-state-metrics"
-# "node-exporter"
-# "opentelemetry-deployment"
-# "rabbitmq"
-# "mysql"
-```
-
-#### 3. Verify Logs Collection
-
-```bash
-# Port-forward to Loki
-kubectl -n monitoring port-forward svc/loki-gateway 3100:80 &
-
-# Query for recent logs
-curl -s 'http://localhost:3100/loki/api/v1/query?query={namespace="kube-system"}&limit=5' | jq '.data.result'
-
-# Should return log entries
-```
-
-#### 4. Verify Traces (If Applications are Instrumented)
-
-```bash
-# Port-forward to Tempo
-kubectl -n monitoring port-forward svc/tempo 3100:3100 &
-
-# Check Tempo is ready
-curl http://localhost:3100/ready
-# Expected: ready
-```
-
-#### 5. Test Grafana Dashboards
-
-```bash
-# Access Grafana
-kubectl -n monitoring port-forward svc/grafana 3000:80
-
-# Open http://localhost:3000
-# Navigate to Dashboards → Browse
-# Open "Kubernetes / Compute Resources / Cluster"
-# Verify metrics are displaying
-```
-
-#### 6. Test Alerting
-
-Create a test alert:
-
-```yaml
-# test-alert.yaml
-apiVersion: monitoring.coreos.com/v1
-kind: PrometheusRule
-metadata:
-  name: test-alert
-  namespace: monitoring
-spec:
-  groups:
-    - name: test
-      rules:
-        - alert: TestAlert
-          expr: vector(1)
-          labels:
-            severity: warning
-          annotations:
-            summary: "This is a test alert"
-```
-
-```bash
-# Apply test alert
-kubectl apply -f test-alert.yaml
-
-# Wait 30 seconds, then check AlertManager
-kubectl -n monitoring port-forward svc/kube-prometheus-stack-alertmanager 9093:9093 &
-
-# Open http://localhost:9093
-# You should see the test alert firing
-
-# Cleanup
-kubectl -n monitoring delete prometheusrule test-alert
-```
-
----
-
-## Resource Requirements
-
-### Minimum (Small Cluster - Dev/Test)
-
-Total for monitoring namespace:
-
-| Component | CPU | Memory | Storage |
-|-----------|-----|--------|---------|
-| Prometheus | 2 cores | 4Gi | 50Gi |
-| Loki | 1 core | 2Gi | 20Gi |
-| Tempo | 500m | 1Gi | 10Gi |
-| Grafana | 500m | 512Mi | 10Gi |
-| OTel (per node) | 500m | 512Mi | - |
-| OTel (deployment) | 500m | 512Mi | - |
-| **Total** | ~6 cores | ~10Gi | 90Gi |
-
-### Production (Large Cluster)
-
-| Component | CPU | Memory | Storage |
-|-----------|-----|--------|---------|
-| Prometheus | 4 cores | 16Gi | 500Gi |
-| Loki | 4 cores | 8Gi | 100Gi + S3 |
-| Tempo | 2 cores | 4Gi | 50Gi + S3 |
-| Grafana | 1 core | 2Gi | 10Gi |
-| OTel (per node) | 2 cores | 2Gi | - |
-| OTel (deployment) | 1 core | 1Gi | - |
-| **Total** | ~15 cores | ~35Gi | 660Gi |
-
-**Note**: Storage can be reduced significantly by using S3 backends for Loki and Tempo.
-
----
-
-## Common Issues and Troubleshooting
-
-### No Metrics Appearing in Prometheus
-
-**Check**:
-```bash
-# Verify OpenTelemetry is sending metrics
-kubectl -n monitoring logs deployment/opentelemetry-kube-stack-deployment-collector | grep prometheusremotewrite
-
-# Check Prometheus targets
+kubectl -n monitoring get servicemonitors,podmonitors,opentelemetrycollectors
 kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
-# Open: http://localhost:9090/targets
 ```
 
-**Fix**: Verify exporter endpoints in OpenTelemetry config point to `monitoring` namespace.
+Use Grafana to confirm that Prometheus, Loki, Tempo, and Alertmanager datasources are healthy. Then verify:
 
-### No Logs in Loki
+- metrics are being scraped into Prometheus
+- logs are queryable in Loki
+- traces are queryable in Tempo
+- OpenTelemetry collectors are forwarding telemetry successfully
 
-**Check**:
-```bash
-# Verify logsCollection preset is enabled
-kubectl get opentelemetrycollector -n monitoring opentelemetry-kube-stack-daemon -o yaml | grep -A 5 "logsCollection"
+## Component Guides
 
-# Check Loki gateway is reachable
-kubectl -n monitoring exec daemonset/opentelemetry-kube-stack-daemon-collector -- wget -O- http://loki-gateway/ready
-```
-
-**Fix**: Ensure `logsCollection.enabled: true` in OpenTelemetry values.yaml.
-
-### Grafana Datasources Not Working
-
-**Check**:
-```bash
-# Verify datasource URLs
-# Should all reference monitoring namespace:
-# - http://kube-prometheus-stack-prometheus.monitoring.svc:9090
-# - http://loki-gateway.monitoring.svc
-# - http://tempo.monitoring.svc:3100
-```
-
-**Fix**: Update datasource configuration in Grafana Helm values.
-
-### High Memory Usage
-
-**Check**:
-```bash
-kubectl -n monitoring top pods
-```
-
-**Fix**: 
-- Increase memory limits in Helm values
-- Reduce retention periods
-- Enable S3 backends for long-term storage
-
----
-
-## Next Steps
-
-Once your monitoring stack is deployed:
-
-### 1. Explore Grafana
-- **Dashboards** → Browse pre-built Kubernetes dashboards
-- **Explore** → Use Prometheus/Loki/Tempo query interfaces
-- **Alerting** → View active alerts and alert rules
-
-### 2. Verify Metrics Collection
-```bash
-# Check all targets are being scraped
-kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
-# Open: http://localhost:9090/targets
-```
-
-### 3. Test Log Searching
-```bash
-# Access Grafana → Explore → Select Loki datasource
-# Query: {namespace="openstack"}
-# Try: {namespace="openstack"} |= "ERROR"
-```
-
-### 4. Create Custom Dashboards
-- Use Grafana dashboard editor
-- Query Prometheus for metrics
-- Query Loki for logs
-- Combine multiple datasources in one dashboard
-
-### 5. Tune Alert Thresholds
-- Review default alerts in PrometheusRules
-- Adjust thresholds based on your baseline
-- Add custom alerts for your services
-
-### 6. Set Up Long-Term Storage (Production)
-- Configure S3 backends for Loki and Tempo
-- Set up Thanos for long-term Prometheus metrics
-- Configure backup strategies
-
-### 7. Enable Security
-- Configure TLS for external access
-- Set up authentication (LDAP, OAuth)
-- Configure NetworkPolicies for namespace isolation
-- Rotate default credentials
-
----
-
-## Additional Resources
-
-### Documentation
-
-- [Observability Stack Overview](monitoring-observability-overview.md) - Comprehensive architecture guide
-- [Base Component Metrics Reference](monitoring-otel-base-metrics.md) - K8s and related component metrics 
-- [Prometheus Documentation](monitoring-prometheus.md) - Prometheus-specific configuration
-- [Grafana Documentation](monitoring-grafana.md) - Grafana-specific configuration
-- [AlertManager Slack Integration](alertmanager-slack.md) - Slack notifications
-
-### External Documentation
-
-- [OpenTelemetry Documentation](https://opentelemetry.io/docs/)
-- [Prometheus Documentation](https://prometheus.io/docs/)
-- [Loki Documentation](https://grafana.com/docs/loki/)
-- [Tempo Documentation](https://grafana.com/docs/tempo/)
-- [Grafana Documentation](https://grafana.com/docs/grafana/)
-
-### Community
-
-- [Genestack GitHub](https://github.com/rackerlabs/genestack)
-- [CNCF Observability Resources](https://landscape.cncf.io/card-mode?category=observability-and-analysis)
-
----
-
-## Summary
-
-You now have a complete observability stack providing:
-
-✅ **Metrics** - Time-series data from Kubernetes, OpenStack, and infrastructure  
-✅ **Logs** - Centralized log aggregation from all services  
-✅ **Traces** - Distributed tracing for request flows  
-✅ **Alerting** - Automated notifications for issues  
-✅ **Visualization** - Unified dashboards for all telemetry  
-
-The stack is:
-- **Unified** - All components in `monitoring` namespace
-- **Scalable** - Handles large-scale deployments
-- **Open Source** - No vendor lock-in
-- **Production-Ready** - Battle-tested technologies
-
-**Happy monitoring!** 🎉
-
----
+- [Prometheus](monitoring-prometheus.md)
+- [Loki](monitoring-loki.md)
+- [Tempo](monitoring-tempo.md)
+- [Grafana](monitoring-grafana.md)
+- [OpenTelemetry](monitoring-opentelemetry.md)
+- [OpenStack Exporter](openstack-exporter.md)
+- [Pushgateway](prometheus-pushgateway.md)
