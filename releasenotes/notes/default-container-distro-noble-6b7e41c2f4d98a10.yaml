@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    Updated ``scripts/genestack.rc`` to default
+    ``CONTAINER_DISTRO_VERSION`` to ``noble`` for Ubuntu 24.04 while keeping
+    ``OPENSTACK_RELEASE`` at ``2026.1``. This changes the sourced bootstrap
+    environment from ``ubuntu:jammy`` to ``ubuntu:noble``.
+  - |
+    ``bootstrap.sh`` does not change behavior as part of this update beyond
+    reporting the new distro value in its status output.
