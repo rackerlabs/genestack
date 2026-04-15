@@ -30,6 +30,7 @@ monitoring_ensure_namespace "${SERVICE_NAMESPACE}"
 monitoring_label_namespace_for_talos "${SERVICE_NAMESPACE}"
 monitoring_ensure_mariadb_monitoring_secret
 monitoring_ensure_rabbitmq_monitoring_secret
+monitoring_ensure_postgres_monitoring_secret
 
 adopt_existing_resources_for_helm() {
     local manifest_file="$1"
