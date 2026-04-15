@@ -45,7 +45,7 @@ PostgreSQL telemetry is optional and not enabled by default. If you want to coll
 You can start from `/opt/genestack/base-helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-postgresql-overrides.yaml.example`, then adjust the secret and endpoint values for your environment.
 
 You will also need to ensure that you've re-installed the Postgres operator to create the `postgres-monitoring-user` within the postgres cluster.
-See [Postgressql installation docs](infrastructure-postgresql.md) for more information. 
+See [PostgreSQL installation docs](infrastructure-postgresql.md) for more information. 
 
 The supported way to seed the generated secrets file is:
 
