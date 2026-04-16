@@ -88,4 +88,20 @@ cloud-config document:
 This avoids the common case where a user-supplied `#cloud-config` replaces the
 provider's `runcmd` or `packages` content.
 
+Provider-owned services still need explicit ordering. In practice, the shell
+payload should write systemd units that wait for cloud-init to finish before
+running provider bootstrap logic, otherwise package installs or service actions
+from user-data can still contend with provider bootstrap on first boot.
+
+For long-running or network-sensitive bootstrap steps, prefer provider-owned
+helper scripts with explicit retries and install checks. For example:
+
+* restore any required provider repo files such as explicit Rackspace apt
+  sources
+* wait for cloud-init completion and package manager quiescence before running
+  provider bootstrap
+* check for existing agent installs with explicit scripts rather than a single
+  hard-coded unit path
+* fetch remote bootstrap assets with bounded retries and clear failure logging
+
 See [cloud-init docs](https://cloudinit.readthedocs.io/en/latest/reference/datasources/openstack.html) for more details.
