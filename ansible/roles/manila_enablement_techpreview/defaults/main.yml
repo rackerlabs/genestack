@@ -1,0 +1,84 @@
+---
+# defaults file for manila_enablement_techpreview
+
+# =========================================================================
+# Manila service image
+# =========================================================================
+manila_service_image_version: noble
+manila_service_image_name: manila-service-image
+manila_service_image_id: ""
+manila_service_instance_flavor_id: ""
+manila_service_instance_flavor_name: m1.medium
+manila_service_instance_password: ""
+
+# =========================================================================
+# Manila networking
+# =========================================================================
+# The service network (manila-service-network) is created and managed
+# entirely by Manila's NeutronNetworkHelper at runtime.  It carves /28
+# subnets per share server from service_network_cidr (default 10.254.0.0/16).
+# No Ansible pre-provisioning is needed.
+
+# =========================================================================
+# Build paths and environment
+# =========================================================================
+manila_tmp_dir: /tmp
+manila_build_dir: "{{ manila_tmp_dir }}/manila-service-image-build"
+manila_venv_dir: "{{ manila_tmp_dir }}/manila-service-image-build/manila-tox-image-build"
+manila_keypair_name: manila-service-keypair
+genestack_rc: /opt/genestack/scripts/genestack.rc
+genestack_venv: /home/ubuntu/.venvs/genestack
+ubuntu_home: /home/ubuntu
+manila_os_auth_url: ""
+manila_region_name: RegionOne
+manila_os_endpoint_type: internal
+os_cloud: default
+manila_region: RegionOne
+
+# =========================================================================
+# Helm config — driver template to merge into the existing overrides file.
+# The selected template is deep-merged into the manila-helm-overrides.yaml
+# that already lives at /etc/genestack/helm-configs/manila/.
+# Switch this to a different template when using an alternate backend driver.
+# =========================================================================
+manila_driver_config_template: manila_default_helm_config.yaml
+
+# =========================================================================
+# Gateway and kustomize
+# =========================================================================
+# The region component used in gateway hostnames
+# (e.g. manila.api.<region_lower>.rackspacecloud.com).
+# Auto-detected from /etc/genestack/helm-configs/global_overrides/endpoints.yaml
+# at runtime; this default is the fallback.
+manila_gateway_region_lower: ""
+
+# =========================================================================
+# Secrets
+# =========================================================================
+manila_force_recreate_secrets: false
+
+# =========================================================================
+# Force / mode flags for image builder
+# =========================================================================
+# Default (no flags):
+#   Idempotent — skip keypair/image creation if they already exist.
+#
+# force_rebuild_image=true  (option 1):
+#   Verifies k8s secret fingerprint matches OpenStack keypair.
+#   Deletes existing Glance image, rebuilds, re-uploads.
+#
+# force_recreate_keypair=true  (option 2):
+#   Deletes and re-creates OpenStack keypair from k8s secret.
+#   Then rebuilds and re-uploads the image.
+#
+# force_full_recreation=true  (option 3 — nuclear):
+#   Deletes and regenerates ALL K8s secrets (rabbitmq, db, admin, keypair),
+#   syncs new RabbitMQ and MariaDB passwords to backing services,
+#   then performs all actions of options 1 and 2.
+#
+# Higher options are supersets of lower ones.
+# manila_force_recreate_secrets=true is equivalent to option 3 for secrets
+# only (no image rebuild unless cascaded via manila_secrets_recreated).
+force_rebuild_image: false
+force_recreate_keypair: false
+force_full_recreation: false

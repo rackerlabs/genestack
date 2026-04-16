@@ -1,0 +1,70 @@
+- name: Pre-requisites for enabling Manila
+  hosts: localhost
+  vars:
+    manila_os_endpoint_type: internal
+    manila_os_interface: "{{ manila_os_endpoint_type }}"
+    manila_os_username: admin
+    manila_os_project_name: admin
+    manila_os_tenant_name: '{{ manila_os_project_name }}'
+    manila_os_auth_type: password
+    manila_os_auth_url: http://keystone-api.openstack.svc.cluster.local:5000/v3
+    manila_os_user_domain_name: default
+    manila_os_project_domain_name: "{{ manila_os_user_domain_name }}"
+    manila_os_region_name: RegionOne
+    manila_os_identity_api_version: 3
+    manila_os_auth_version: 3
+    manila_nova_endpoint_type: "{{ manila_os_endpoint_type }}"
+    manila_helm_values_file: "{{ manila_helm_file | default(lookup('env', 'HOME') ~ '/manila_provider.yaml') }}"
+  pre_tasks:
+    - name: Retrieve Keystone admin password from K8s secret
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        name: keystone-admin
+        namespace: openstack
+      register: keystone_secret
+      no_log: true
+      tags:
+        - always
+
+    - name: Set manila_os_password from K8s secret
+      ansible.builtin.set_fact:
+        manila_os_password: "{{ keystone_secret.resources[0].data.password | b64decode }}"
+      no_log: true
+      when: keystone_secret.resources | length > 0
+      tags:
+        - always
+
+    - name: Check for credentials
+      ansible.builtin.fail:
+        msg: >-
+          Could not retrieve the Keystone admin password. Ensure the
+          keystone-admin secret exists in the openstack namespace, or
+          pass -e manila_os_password=<password> on the command line.
+      when: manila_os_password is undefined or manila_os_password | length == 0
+      tags:
+        - always
+
+    - name: Set OpenStack environment facts
+      ansible.builtin.set_fact:
+        manila_os_env:
+          OS_ENDPOINT_TYPE: "{{ manila_os_endpoint_type }}"
+          OS_INTERFACE: "{{ manila_os_interface }}"
+          OS_USERNAME: "{{ manila_os_username }}"
+          OS_PASSWORD: "{{ manila_os_password }}"
+          OS_PROJECT_NAME: "{{ manila_os_project_name }}"
+          OS_TENANT_NAME: 'admin'
+          OS_AUTH_TYPE: password
+          OS_AUTH_URL: "{{ manila_os_auth_url }}"
+          OS_USER_DOMAIN_NAME: "{{ manila_os_user_domain_name }}"
+          OS_PROJECT_DOMAIN_NAME: "{{ manila_os_project_domain_name }}"
+          OS_REGION_NAME: "{{ manila_os_region_name }}"
+          OS_IDENTITY_API_VERSION: "{{ manila_os_identity_api_version }}"
+          OS_AUTH_VERSION: "{{ manila_os_auth_version }}"
+          NOVA_ENDPOINT_TYPE: "{{ manila_nova_endpoint_type }}"
+      no_log: true
+      tags:
+        - always
+  roles:
+    - role: manila_enablement_techpreview
+      environment: "{{ manila_os_env }}"
