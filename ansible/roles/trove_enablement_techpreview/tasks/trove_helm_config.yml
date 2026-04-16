@@ -1,0 +1,261 @@
+---
+# Configure Trove Helm values by deep-merging the driver config template
+# into the existing trove-helm-overrides.yaml.
+
+# =========================================================================
+# PART 1: GATHER REQUIRED IDS
+# =========================================================================
+
+- name: Get Trove management network ID for management_networks
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      source {{ genestack_venv }}/bin/activate
+      openstack --os-cloud {{ os_cloud }} network show {{ trove_mgmt_network_name }} \
+        -f value -c id
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_mgmt_network_id
+  changed_when: false
+
+- name: Get trove security group ID
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      source {{ genestack_venv }}/bin/activate
+      openstack --os-cloud {{ os_cloud }} security group show {{ trove_secgroup_name }} \
+        -f value -c id
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_secgroup_id
+  changed_when: false
+
+- name: Get trove admin password from K8s secret (if not already set)
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      kubectl --namespace openstack get secret trove-admin \
+        -o jsonpath='{.data.password}' | base64 -d
+    executable: /bin/bash
+  register: _trove_admin_password_helm
+  changed_when: false
+  no_log: true
+  when: _trove_admin_password is not defined or _trove_admin_password.stdout is not defined
+
+- name: Resolve trove admin password
+  ansible.builtin.set_fact:
+    _trove_resolved_admin_pw: >-
+      {{ (_trove_admin_password.stdout | default(''))
+         if (_trove_admin_password is defined and _trove_admin_password.stdout is defined)
+         else (_trove_admin_password_helm.stdout | default('')) }}
+  no_log: true
+
+# =========================================================================
+# PART 2: TEMPLATE THE HELM CONFIG FRAGMENT
+# =========================================================================
+
+- name: Ensure trove helm config directory exists
+  ansible.builtin.file:
+    path: "{{ helm_config_base }}/trove"
+    state: directory
+    mode: "0755"
+
+- name: Template Trove helm config fragment
+  ansible.builtin.template:
+    src: "{{ trove_helm_config_template }}"
+    dest: /tmp/trove_helm_config_fragment.yaml
+    mode: "0644"
+
+# =========================================================================
+# PART 3: DEEP-MERGE INTO EXISTING OVERRIDES
+# =========================================================================
+
+- name: Deep-merge Trove helm config into trove-helm-overrides.yaml
+  ansible.builtin.script:
+    cmd: >-
+      deep_merge_yaml.py
+      {{ helm_config_base }}/trove/trove-helm-overrides.yaml
+      /tmp/trove_helm_config_fragment.yaml
+    executable: python3
+  register: _helm_merge_result
+  changed_when: true
+
+- name: Remove temporary helm config fragment
+  ansible.builtin.file:
+    path: /tmp/trove_helm_config_fragment.yaml
+    state: absent
+
+- name: Report Trove helm config merge
+  ansible.builtin.debug:
+    msg: >-
+      Trove helm overrides updated at {{ helm_config_base }}/trove/trove-helm-overrides.yaml
+      (management_networks={{ _trove_mgmt_network_id.stdout | trim }},
+       management_security_groups={{ _trove_secgroup_id.stdout | trim }},
+       nova_keypair={{ trove_keypair_name }})
+
+# =========================================================================
+# PART 4: GUEST VM CONNECTIVITY VIA MGMT NETWORK
+# =========================================================================
+# Trove guest VMs attach to the mgmt provider network and need to reach
+# RabbitMQ and Keystone. We create a Neutron port on the mgmt network
+# (OVN-managed, security-group-enforced), then use MetalLB to bind
+# K8s services to that IP. Cloud-init injects /etc/hosts so the
+# guestagent.conf hostnames resolve to the mgmt-network IP.
+
+# --- Step 1: Create Neutron port on mgmt network for services VIP ---
+
+- name: Check if Trove services VIP port exists on mgmt network
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} port show {{ trove_services_port_name }}
+      -f value -c fixed_ips
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_svc_port_check
+  changed_when: false
+  failed_when: false
+
+- name: Create Trove services VIP port on management provider network
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} port create
+      --network {{ trove_mgmt_network_name }}
+      --security-group {{ trove_services_secgroup_name }}
+      {{ trove_services_port_name }}
+      -f value -c fixed_ips
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_svc_port_create
+  when: _trove_svc_port_check.rc != 0
+
+- name: Get Trove services VIP IP address
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} port show {{ trove_services_port_name }}
+      -f json
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_svc_port_info
+  changed_when: false
+
+- name: Extract Trove services VIP IP
+  ansible.builtin.set_fact:
+    trove_services_vip: >-
+      {{ (_trove_svc_port_info.stdout | from_json).fixed_ips[0].ip_address }}
+
+- name: Report Trove services VIP
+  ansible.builtin.debug:
+    msg: "Trove services VIP on mgmt network: {{ trove_services_vip }}"
+
+# --- Step 2: Create MetalLB pool for the mgmt network VIP ---
+
+- name: Apply MetalLB IPAddressPool and L2Advertisement for Trove services
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      cat <<'EOF' | kubectl apply -f -
+      apiVersion: metallb.io/v1beta1
+      kind: IPAddressPool
+      metadata:
+        name: trove-services-pool
+        namespace: metallb-system
+      spec:
+        addresses:
+          - {{ trove_services_vip }}/32
+        autoAssign: false
+      ---
+      apiVersion: metallb.io/v1beta1
+      kind: L2Advertisement
+      metadata:
+        name: trove-services-advertisement
+        namespace: metallb-system
+      spec:
+        ipAddressPools:
+          - trove-services-pool
+      EOF
+    executable: /bin/bash
+  changed_when: true
+
+# --- Step 3: Create/update K8s services on the mgmt network VIP ---
+
+- name: Apply RabbitMQ and Keystone LoadBalancer services for Trove
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      cat <<'EOF' | kubectl apply -f -
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: rabbitmq-trove-flat
+        namespace: openstack
+        annotations:
+          metallb.universe.tf/address-pool: trove-services-pool
+          metallb.universe.tf/allow-shared-ip: "trove-services-vip"
+      spec:
+        type: LoadBalancer
+        loadBalancerIP: {{ trove_services_vip }}
+        ports:
+          - name: amqp
+            port: 5672
+            targetPort: 5672
+            protocol: TCP
+        selector:
+          app.kubernetes.io/name: rabbitmq
+      ---
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: keystone-trove-flat
+        namespace: openstack
+        annotations:
+          metallb.universe.tf/address-pool: trove-services-pool
+          metallb.universe.tf/allow-shared-ip: "trove-services-vip"
+      spec:
+        type: LoadBalancer
+        loadBalancerIP: {{ trove_services_vip }}
+        ports:
+          - name: ks-pub
+            port: 5000
+            targetPort: ks-pub
+            protocol: TCP
+        selector:
+          application: keystone
+          component: api
+      EOF
+    executable: /bin/bash
+  changed_when: true
+
+# --- Step 4: Cloud-init ConfigMap for /etc/hosts injection ---
+
+- name: Template Trove guest cloud-init file
+  ansible.builtin.template:
+    src: trove-mysql-cloudinit.j2
+    dest: /tmp/mysql.cloudinit
+    mode: "0644"
+  vars:
+    trove_services_vip_ip: "{{ trove_services_vip }}"
+
+- name: Create or update trove-guest-cloudinit ConfigMap
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      kubectl create configmap trove-guest-cloudinit \
+        --namespace openstack \
+        --from-file=mysql.cloudinit=/tmp/mysql.cloudinit \
+        --dry-run=client -o yaml | kubectl apply -f -
+    executable: /bin/bash
+  register: _cloudinit_cm_result
+  changed_when: "'configured' in _cloudinit_cm_result.stdout or 'created' in _cloudinit_cm_result.stdout"
+
+- name: Remove temporary cloud-init file
+  ansible.builtin.file:
+    path: /tmp/mysql.cloudinit
+    state: absent
