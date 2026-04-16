@@ -1,0 +1,12 @@
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  gnocchi:
+    metricd:
+      workers: 1
+  gnocchi_api_wsgi:
+    wsgi:
+      processes: 1
+      threads: 1

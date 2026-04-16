@@ -1,0 +1,79 @@
+---
+all:
+  vars:
+    cloud_name: "{{ lab_name_prefix }}-lab-0"
+    ansible_python_interpreter: "/usr/bin/python3"
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o IdentitiesOnly=yes"
+    ansible_ssh_private_key_file: "{{ lab_ssh_key_pem_path }}"
+  hosts:
+    {{ lab_name_prefix }}-0.{{ gateway_domain }}:
+      ansible_host: {{ worker_0_ip }}
+    {{ lab_name_prefix }}-1.{{ gateway_domain }}:
+      ansible_host: {{ worker_1_ip }}
+    {{ lab_name_prefix }}-2.{{ gateway_domain }}:
+      ansible_host: {{ worker_2_ip }}
+  children:
+    k8s_cluster:
+      vars:
+        cluster_name: cluster.local
+        kube_ovn_central_hosts: '{% raw %}{{ groups["ovn_network_nodes"] }}{% endraw %}'
+        kube_ovn_default_interface_name: br-mgmt
+        kube_ovn_iface: br-mgmt
+      children:
+        broken_etcd:
+          children: null
+        broken_kube_control_plane:
+          children: null
+        # OpenStack Controllers
+        openstack_control_plane:
+          hosts:
+            {{ lab_name_prefix }}-0.{{ gateway_domain }}: null
+            {{ lab_name_prefix }}-1.{{ gateway_domain }}: null
+            {{ lab_name_prefix }}-2.{{ gateway_domain }}: null
+        # Edge Nodes
+        ovn_network_nodes:
+          hosts:
+            {{ lab_name_prefix }}-0.{{ gateway_domain }}: null
+            {{ lab_name_prefix }}-1.{{ gateway_domain }}: null
+            {{ lab_name_prefix }}-2.{{ gateway_domain }}: null
+        # Tenant Prod Nodes
+        openstack_compute_nodes:
+          vars:
+            enable_iscsi: true
+            custom_multipath: false
+          hosts:
+            {{ lab_name_prefix }}-0.{{ gateway_domain }}: null
+            {{ lab_name_prefix }}-1.{{ gateway_domain }}: null
+            {{ lab_name_prefix }}-2.{{ gateway_domain }}: null
+        # Block Nodes
+        storage_nodes:
+          vars:
+            enable_iscsi: true
+            storage_network_multipath: false
+          children:
+            cinder_storage_nodes:
+              hosts:
+                {{ lab_name_prefix }}-0.cluster.local: null
+                {{ lab_name_prefix }}-1.cluster.local: null
+                {{ lab_name_prefix }}-2.cluster.local: null
+          hosts:
+            {{ lab_name_prefix }}-0.cluster.local: null
+            {{ lab_name_prefix }}-1.cluster.local: null
+            {{ lab_name_prefix }}-2.cluster.local: null
+        # ETCD Nodes
+        etcd:
+          hosts:
+            {{ lab_name_prefix }}-0.{{ gateway_domain }}: null
+            {{ lab_name_prefix }}-1.{{ gateway_domain }}: null
+            {{ lab_name_prefix }}-2.{{ gateway_domain }}: null
+        # Kubernetes Nodes
+        kube_control_plane:
+          hosts:
+            {{ lab_name_prefix }}-0.{{ gateway_domain }}: null
+            {{ lab_name_prefix }}-1.{{ gateway_domain }}: null
+            {{ lab_name_prefix }}-2.{{ gateway_domain }}: null
+        kube_node:
+          hosts:
+            {{ lab_name_prefix }}-0.{{ gateway_domain }}: null
+            {{ lab_name_prefix }}-1.{{ gateway_domain }}: null
+            {{ lab_name_prefix }}-2.{{ gateway_domain }}: null

@@ -1,0 +1,8 @@
+galaxy_info:
+  author: Daniel With
+  description: Pre-configuration and service configuration for hyperconverged lab OpenStack deployments on Genestack
+  company: Rackspace Technology
+  license: Apache-2.0
+  min_ansible_version: 2.15.8
+  galaxy_tags: []
+dependencies: []
