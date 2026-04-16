@@ -1,0 +1,12 @@
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  placement:
+    oslo_messaging_notifications:
+      driver: noop
+  placement_api_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1

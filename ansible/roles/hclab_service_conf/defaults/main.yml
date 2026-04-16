@@ -1,0 +1,170 @@
+---
+# defaults for hclab_service_conf
+
+# Base paths
+genestack_config_base: /etc/genestack
+helm_config_base: "{{ genestack_config_base }}/helm-configs"
+metallb_manifest_path: "{{ genestack_config_base }}/manifests/metallb/metallb-openstack-service-lb.yml"
+endpoints_config_path: "{{ helm_config_base }}/global_overrides/endpoints.yaml"
+openstack_components_config_path: "{{ genestack_config_base }}/openstack-components.yaml"
+inventory_config_path: "{{ genestack_config_base }}/inventory/inventory.yaml"
+
+# Lab naming
+lab_name_prefix: hyperconverged
+
+# Domain / networking
+gateway_domain: cluster.local
+
+# MetalLB
+metal_lb_ip: ""
+
+# Node IPs (populated by the calling script or inventory)
+worker_0_ip: ""
+worker_1_ip: ""
+worker_2_ip: ""
+
+# OpenStack service include/exclude lists
+include_services: []
+exclude_services: []
+
+# Service helm override toggle — set to false to skip writing a service's override
+write_envoyproxy_gateway_overrides: true
+write_barbican_overrides: true
+write_blazar_overrides: true
+write_cinder_overrides: true
+write_trove_overrides: true
+write_glance_overrides: true
+write_gnocchi_overrides: true
+write_heat_overrides: true
+write_keystone_overrides: true
+write_neutron_overrides: true
+write_magnum_overrides: true
+write_nova_overrides: true
+write_octavia_overrides: true
+write_placement_overrides: true
+write_masakari_overrides: true
+write_manila_overrides: true
+write_cloudkitty_overrides: true
+write_freezer_overrides: true
+write_zaqar_overrides: true
+
+# Inventory
+write_inventory: true
+
+# SSH key management for cinder volume setup
+lab_ssh_key_pem_path: "/home/ubuntu/.ssh/{{ lab_name_prefix }}-key.pem"
+lab_ssh_key_pub_path: "/home/ubuntu/.ssh/{{ lab_name_prefix }}-key.pub"
+
+# Cinder volume setup
+cinder_volume_device: /dev/vdd
+cinder_volume_group: cinder-volumes-1
+cinder_storage_network_interface: ansible_enp3s0
+cinder_storage_network_interface_secondary: ansible_enp3s0
+
+# =========================================================================
+# Manila preconf
+# =========================================================================
+manila_service_image_version: noble
+manila_service_image_name: manila-service-image
+manila_dib_distribution_mirror: "http://mirror.rackspace.com/ubuntu"
+manila_service_image_id: ""
+manila_service_instance_flavor_id: ""
+manila_service_instance_flavor_name: m1.medium
+manila_service_instance_password: ""
+
+manila_tmp_dir: /tmp
+manila_build_dir: "{{ manila_tmp_dir }}/manila-service-image-build"
+manila_venv_dir: "{{ manila_tmp_dir }}/manila-service-image-build/manila-tox-image-build"
+manila_keypair_name: manila-service-keypair
+genestack_rc: /opt/genestack/scripts/genestack.rc
+genestack_venv: /home/ubuntu/.venvs/genestack
+ubuntu_home: /home/ubuntu
+manila_os_auth_url: ""
+manila_region: RegionOne
+manila_os_endpoint_type: internal
+os_cloud: default
+
+# Helm config — driver template to merge into the existing overrides file
+manila_driver_config_template: manila_default_helm_config.yaml
+
+# Secrets
+manila_force_recreate_secrets: false
+
+# Force / mode flags for image builder
+force_rebuild_image: false
+force_recreate_keypair: false
+force_full_recreation: false
+
+# Whether to run manila preconf at all (also defers manila from parallel deploy).
+# Manila is opt-in only (-i manila) — default is no manila.
+run_manila_preconf: false
+
+# Whether to defer octavia from the parallel deploy (for preconf before install).
+# Octavia is opt-in only (-i octavia) — default is no octavia.
+run_octavia_preconf: false
+
+# Whether to defer trove from the parallel deploy (for preconf before install).
+# Trove is opt-in only (-i trove) — default is no trove.
+run_trove_preconf: false
+
+# =========================================================================
+# Trove — full lifecycle defaults
+# =========================================================================
+
+# Networking and access
+trove_keypair_name: trove-access-keypair
+trove_secgroup_name: trove-access-secgroup
+trove_secgroup_remote_ip: "0.0.0.0/0"
+trove_ssh_key_filename: trove_ssh_key
+trove_flat_network_name: flat
+trove_services_port_name: trove-services-vip-port
+trove_services_secgroup_name: trove-services-secgroup
+
+# Guest image (built with diskimage-builder, mirroring Manila pattern)
+trove_guest_image_name: trove-mysql-8.4
+trove_guest_image_os_release: jammy
+trove_dib_distribution_mirror: "http://mirror.rackspace.com/ubuntu"
+trove_mysql_version: "8.4"
+# OpenStack release branch to clone for DIB elements (e.g. 2024.2, 2025.1).
+trove_openstack_release: "2024.2"
+
+# Datastore
+trove_datastore_name: mysql
+trove_datastore_version_name: "8.4"
+
+# Build paths
+trove_tmp_dir: /tmp
+trove_build_dir: "{{ trove_tmp_dir }}/trove-image-build"
+trove_venv_dir: "{{ trove_tmp_dir }}/trove-image-build/trove-dib-build"
+trove_region_name: RegionOne
+trove_os_endpoint_type: internal
+
+# Helm config
+trove_helm_config_template: trove_default_helm_config.yaml
+
+# Gateway
+trove_gateway_region_lower: ""
+
+# Post-setup resources
+create_post_setup_resources: false
+test_flavor_name: "{{ lab_name_prefix }}-test"
+test_flavor_ram: 2048
+test_flavor_disk: 10
+test_flavor_vcpus: 2
+flat_network_subnet_cidr: 192.168.102.0/24
+flat_network_gateway: 192.168.102.1
+flat_network_pool_start: 192.168.102.100
+flat_network_pool_end: 192.168.102.109
+
+# Trove management provider network (physnet2 / br-mgmt)
+# Gives guest VMs direct L2 access to the MetalLB VIP.
+trove_mgmt_network_name: trove-mgmt-net
+trove_mgmt_subnet_name: trove-mgmt-subnet
+trove_mgmt_pool_start: 192.168.100.200
+trove_mgmt_pool_end: 192.168.100.220
+
+# Router and tenant network (for Trove, general tenant use)
+lab_router_name: "{{ lab_name_prefix }}-router"
+lab_tenant_net_name: "{{ lab_name_prefix }}-net"
+lab_tenant_subnet_name: "{{ lab_name_prefix }}-subnet"
+lab_tenant_subnet_cidr: 192.168.100.0/24

@@ -1,0 +1,30 @@
+[DEFAULT]
+log_file = /var/log/trove/trove-guestagent.log
+log_dir = /var/log/trove
+debug = True
+control_exchange = trove
+transport_url = rabbit://trove:{{ _trove_rabbitmq_password.stdout }}@rabbitmq.openstack.svc.cluster.local:5672/trove
+trove_auth_url = http://keystone-api.openstack.svc.cluster.local:5000/v3
+
+[service_credentials]
+auth_url = http://keystone-api.openstack.svc.cluster.local:5000/v3
+username = trove
+password = {{ _trove_admin_password.stdout }}
+user_domain_name = service
+project_name = service
+project_domain_name = service
+region_name = {{ trove_region_name }}
+auth_type = password
+
+[mysql]
+docker = false
+backup_strategy = InnoBackupEx
+backup_incremental_strategy = InnoBackupExIncremental
+replication_strategy = MysqlGTIDReplication
+replication_namespace = trove.guestagent.strategies.replication.mysql_gtid
+mount_point = /var/lib/mysql
+root_on_create = true
+usage_timeout = 400
+volume_support = true
+ignore_users = os_admin
+ignore_dbs = mysql, information_schema, performance_schema, sys

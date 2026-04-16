@@ -1,0 +1,190 @@
+---
+images:
+  tags:
+    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_sync: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
+    image_repo_sync: "docker.io/docker:17.07.0"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    manila: "ghcr.io/rackerlabs/genestack-images/manila:2024.1-1765845249"
+    manila_api: "ghcr.io/rackerlabs/genestack-images/manila:2024.1-1765845249"
+    manila_data: "ghcr.io/rackerlabs/genestack-images/manila:2024.1-1765845249"
+    manila_db_sync: "ghcr.io/rackerlabs/genestack-images/manila:2024.1-1765845249"
+    manila_scheduler: "ghcr.io/rackerlabs/genestack-images/manila:2024.1-1765845249"
+    manila_share: "ghcr.io/rackerlabs/genestack-images/manila:2024.1-1765845249"
+    manila_processor: "ghcr.io/rackerlabs/genestack-images/manila:2024.1-1765845249"
+    manila_storage_init: "ghcr.io/rackerlabs/genestack-images/manila:2024.1-1765845249"
+    rabbit_init: "docker.io/rabbitmq:3.13-management"
+  pull_policy: "Always"
+
+# NOTE: (brew) requests cpu/mem values based on a three node
+# hyperconverged lab (/scripts/hyperconverged-lab.sh).
+# limit values based on defaults from the openstack-helm charts unless defined
+pod:
+  replicas:
+    api: 2
+    data: 2
+    scheduler: 2
+    share: 3
+  lifecycle:
+    upgrades:
+      deployments:
+        rolling_update:
+          max_unavailable: 20%
+
+  resources:
+    enabled: true
+    api:
+      requests:
+        memory: "256Mi"
+        cpu: "500m"
+      limits:
+        memory: "2048Mi"
+        cpu: "2000m"
+    data:
+      requests:
+        memory: "256Mi"
+        cpu: "500m"
+      limits:
+        memory: "2048Mi"
+        cpu: "2000m"
+    scheduler:
+      requests:
+        memory: "256Mi"
+        cpu: "500m"
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+    share:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "2048Mi"
+        cpu: "2000m"
+
+bootstrap:
+  enabled: false
+
+dependencies:
+  static:
+    api:
+      jobs:
+        - manila-db-sync
+        - manila-ks-user
+        - manila-ks-endpoints
+    data:
+      jobs:
+        - manila-db-sync
+        - manila-ks-user
+        - manila-ks-endpoints
+    share:
+      jobs:
+        - manila-db-sync
+        - manila-ks-user
+        - manila-ks-endpoints
+    scheduler:
+      jobs:
+        - manila-db-sync
+        - manila-ks-user
+        - manila-ks-endpoints
+    manager:
+      jobs:
+        - manila-db-sync
+        - manila-ks-user
+        - manila-ks-endpoints
+    db_sync:
+      jobs: []
+
+conf:
+  manila:
+    DEFAULT:
+      default_share_type: generic
+      default_share_group_type: generic
+      enabled_share_backends: generic
+      storage_availability_zone: az1
+      backend_availability_zone: az1
+      share_name_template: "share-%s"
+      rootwrap_config: /etc/manila/rootwrap.conf
+      api_paste_config: /etc/manila/api-paste.ini
+      scheduler_default_share_group_filters: AvailabilityZoneFilter,DriverFilter
+      capacity_weight_multiplier: 1.0
+      enable_new_services: true
+      debug: true
+    generic:
+      share_backend_name: GENERIC
+      share_driver: manila.share.drivers.generic.GenericShareDriver
+      driver_handles_share_servers: true
+      connect_share_server_to_tenant_network: true
+      service_network_name: manila-service-network
+      manila_service_keypair_name: manila-service-keypair
+      path_to_private_key: /var/lib/openstack/.ssh/manila-service-keypair.pem
+      path_to_public_key: /var/lib/openstack/.ssh/manila-service-keypair.pub
+      network_config_group: generic_network
+      volume_api_class: manila.volume.cinder.API
+      max_time_to_create_volume: 180
+      max_time_to_extend_volume: 180
+      max_time_to_attach: 120
+      volume_name_template: "manila-share-%s"
+      volume_snapshot_name_template: "manila-snapshot-%s"
+      share_volume_fstype: ext4
+      service_image_id: {{manila_service_image_id}}
+      service_image_name: manila-service-image
+      service_instance_user: manila
+      service_instance_flavor_id: {{manila_service_instance_flavor_id}}
+      service_instance_name_template: "%s"
+      service_instance_security_group: manila-service-sg
+      backend_availability_zone: az1
+      storage_availability_zone: az1
+      lvm_share_volume_group: cinder-volumes-1
+      cinder_volume_type: Standard
+    generic_network:
+      interface_driver: manila.network.linux.interface.NoopInterfaceDriver
+    cinder:
+      cross_az_attach: true
+    barbican:
+      barbican_endpoint_type: internal
+    key_manager:
+      backend: barbican
+    database:
+      max_retries: -1
+    oslo_policy:
+      policy_file: /etc/manila/policy.yaml
+    oslo_concurrency:
+      lock_path: /var/lib/manila/tmp
+    oslo_messaging_notifications:
+      driver: noop
+    oslo_middleware:
+      enable_proxy_headers_parsing: true
+    oslo_messaging_rabbit:
+      rabbit_ha_queues: true
+  manila_api_uwsgi:
+    uwsgi:
+      add-header: "Connection: close"
+      buffer-size: 65535
+      die-on-term: true
+      enable-threads: true
+      exit-on-reload: false
+      hook-master-start: unix_signal:15 gracefully_kill_them_all
+      lazy-apps: true
+      log-x-forwarded-for: true
+      master: true
+      procname-prefix-spaced: "manila-api:"
+      route-user-agent: '^kube-probe.* donotlog:'
+      thunder-lock: true
+      worker-reload-mercy: 80
+      wsgi-file: /var/lib/openstack/bin/manila-wsgi
+      processes: 1
+  logging:
+    logger_root:
+      level: DEBUG
+      handlers: stdout
+    logger_manila:
+      level: DEBUG
+      handlers: stdout
+
+manifests:
+  deployment_share: true

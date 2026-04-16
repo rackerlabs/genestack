@@ -1,0 +1,11 @@
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  freezer_api_uwsgi:
+    uwsgi:
+      processes: 1
+  freezer:
+    oslo_messaging_notifications:
+      driver: noop

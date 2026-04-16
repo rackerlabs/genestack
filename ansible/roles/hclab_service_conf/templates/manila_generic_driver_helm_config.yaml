@@ -1,0 +1,45 @@
+---
+conf:
+  manila:
+    DEFAULT:
+      default_share_type: generic
+      default_share_group_type: generic
+      enabled_share_backends: generic
+      storage_availability_zone: az1
+      backend_availability_zone: az1
+      share_name_template: "share-%s"
+      rootwrap_config: /etc/manila/rootwrap.conf
+      api_paste_config: /etc/manila/api-paste.ini
+      scheduler_default_share_group_filters: AvailabilityZoneFilter,DriverFilter
+      capacity_weight_multiplier: 1.0
+      enable_new_services: true
+      debug: true
+    generic:
+      share_backend_name: GENERIC
+      share_driver: manila.share.drivers.generic.GenericShareDriver
+      driver_handles_share_servers: true
+      connect_share_server_to_tenant_network: true
+      service_network_name: manila-service-network
+      manila_service_keypair_name: manila-service-keypair
+      path_to_private_key: /var/lib/openstack/.ssh/manila-service-keypair.pem
+      path_to_public_key: /var/lib/openstack/.ssh/manila-service-keypair.pub
+      network_config_group: generic_network
+      volume_api_class: manila.volume.cinder.API
+      max_time_to_create_volume: 180
+      max_time_to_extend_volume: 180
+      max_time_to_attach: 120
+      volume_name_template: "manila-share-%s"
+      volume_snapshot_name_template: "manila-snapshot-%s"
+      share_volume_fstype: ext4
+      service_image_id: {{manila_service_image_id}}
+      service_image_name: manila-service-image
+      service_instance_user: manila
+      service_instance_flavor_id: {{manila_service_instance_flavor_id}}
+      service_instance_name_template: "%s"
+      service_instance_security_group: manila-service-sg
+      backend_availability_zone: az1
+      storage_availability_zone: az1
+      lvm_share_volume_group: cinder-volumes-1
+      cinder_volume_type: Standard
+    generic_network:
+      interface_driver: manila.network.linux.interface.NoopInterfaceDriver
