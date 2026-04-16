@@ -121,7 +121,7 @@ If you must override it, edit:
     /etc/genestack/inventory/group_vars/k8s_cluster/k8s_cluster.yaml
 
 Set:
-    # kube_version: 1.34.3
+    kube_version: 1.34.3
 
 # Upgrade the Control Plane and etcd Nodes First
 

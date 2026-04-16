@@ -15,6 +15,7 @@ To use the K8S environment for OpenStack all of the nodes MUST be labeled. The f
 | **openstack-compute-node** | str|`enabled` | Defines which nodes will run OpenStack Compute |
 | **openstack-network-node** | str|`enabled` | Defines which nodes will run OpenStack Networking |
 | **openstack-storage-node** | str|`enabled` | Defines which nodes will run OpenStack Storage |
+| **longhorn.io/storage-node** | str|`enabled` | Defines which nodes will run Longhorn storage components and host Longhorn replicas |
 | **node-role.kubernetes.io/worker** |str| `worker` | Defines which nodes are designated kubernetes workers |
 
 !!! example
@@ -33,6 +34,9 @@ To use the K8S environment for OpenStack all of the nodes MUST be labeled. The f
 
     # Label the openstack storage nodes
     kubectl label node $(kubectl get nodes | awk '/storage/ {print $1}') openstack-storage-node=enabled
+
+    # Label the Longhorn storage nodes
+    kubectl label node $(kubectl get nodes | awk '/controller|storage/ {print $1}') longhorn.io/storage-node=enabled
 
     # With OVN we need the compute nodes to be "network" nodes as well. While they will be configured for networking, they wont be gateways.
     kubectl label node $(kubectl get nodes | awk '/compute/ {print $1}') openstack-network-node=enabled
