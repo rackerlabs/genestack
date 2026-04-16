@@ -316,7 +316,7 @@ used by the SAML2 identity provider.
         When using the Keycloak the *shibboleth2.xml* file must be updated to include signing for all requests and responses.
 
         The *shibboleth2.xml* file must be updated to include the following options, commonly the URLs marked with `example.com`.
-        In this example the username attribute 
+        In this example the username attribute
 
         ``` xml
         <ApplicationDefaults entityID="https://keystone.api.example.com/v3"
@@ -470,7 +470,6 @@ You're also welcome to generate your own mapping to suit your needs; however, if
         ]
         ```
 
-
 The example mapping **JSON** file can be found within the genestack repository at `etc/keystone/saml-mapping.json`.
 
 #### Register the SAML mapping within Keystone
@@ -525,38 +524,25 @@ Now run the helm deployment to update keystone to use the new federation setup.
 
 ### Redeploy the Skyline UI with SSO Enabled
 
-Finally update the Skyline configuration to use the SAML2 identity provider.
+Before running the deployment, you need to edit the `skyline-helm-overrides.yaml` file to include the following configuration options.
 
-``` shell
-echo sso-protocols: $(echo -n '["IDENTITY_PROVIDER_NAME"]' | base64)
-echo sso-enabled: $(echo -n 'true' | base64)
-echo sso-region: $(echo -n 'RegionOne' | base64)
-echo keystone-endpoint: $(echo  -n 'https://keystone.api.example.com/v3' | base64)
+``` yaml
+openstack:
+  sso_enabled: true
+  sso_protocols:
+    - IDENTITY_PROVIDER_NAME
+  sso_region: RegionOne
+  keystone-endpoint: https://keystone.api.example.com/v3
 ```
 
-!!! example "Output of the above command"
+With the above configuration, the Skyline UI will be updated to use the SSO authentication method. The `IDENTITY_PROVIDER_NAME` should be
+replaced with the name of your identity provider (e.g., `Auth0`, `OKTA`). The `keystone-endpoint` should be updated to the public URL of
+the Keystone API.
 
-    ``` yaml
-    sso-protocols: WyJJREVOVElUWV9QUk9WSURFUl9OQU1FIl0=
-    sso-enabled: dHJ1ZQ==
-    sso_region: UmVnaW9uT25l
-    keystone-endpoint: aHR0cHM6Ly9rZXlzdG9uZS5hcGkuZXhhbXBsZS5jb20vdjM=
-    ```
-
-    !!! note "The Keystone Endpoint must be the public endpoint"
-
-        The Keystone URL must be the URL of your Public Cloud Keystone service.
-
-Edit the `skyline-apiserver-secrets` secret to include the new SSO configuration options.
+Rerun the helm deployment to update the Skyline UI with SSO support.
 
 ``` shell
-kubectl -n openstack edit secrets skyline-apiserver-secrets
-```
-
-Run the following command to update the skyline-apiserver deployment.
-
-``` shell
-kubectl -n openstack rollout restart deployment skyline
+/opt/genestack/bin/install-skyline.sh
 ```
 
 !!! genestack "Using the API with WebSSO and Federation"
@@ -569,12 +555,12 @@ kubectl -n openstack rollout restart deployment skyline
 
     ``` yaml
     rxt-application-credential:
-        auth_type: v3applicationcredential
-        auth:
-            auth_url: http://localhost:5000/v3
-            application_credential_id: ${APP_CRED_ID}
-            application_credential_secret: ${APP_CRED_SECRET}
-        region_name: RegionOne
-        interface: internal
-        identity_api_version: "3"
+      auth_type: v3applicationcredential
+      auth:
+        auth_url: http://localhost:5000/v3
+        application_credential_id: ${APP_CRED_ID}
+        application_credential_secret: ${APP_CRED_SECRET}
+      region_name: RegionOne
+      interface: internal
+      identity_api_version: "3"
     ```

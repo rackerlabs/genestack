@@ -72,6 +72,8 @@ cloudkitty_admin_password=$(generate_password 32)
 metadata_shared_secret_password=$(generate_password 32)
 placement_db_password=$(generate_password 32)
 placement_admin_password=$(generate_password 32)
+skyline_db_password=$(generate_password 32)
+skyline_admin_password=$(generate_password 32)
 nova_db_password=$(generate_password 32)
 nova_admin_password=$(generate_password 32)
 nova_keystone_service_password=$(generate_password 32)
@@ -410,6 +412,24 @@ metadata:
 type: Opaque
 data:
   password: $(echo -n $placement_admin_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: skyline-db-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $skyline_db_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: skyline-admin
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $skyline_admin_password | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret
@@ -1041,16 +1061,6 @@ type: Opaque
 data:
   password: $(echo -n $zaqar_keystone_test_password | base64 -w0)
 EOF
-
-# Check if skylinesecrets.yaml exists and append it
-SKYLINE_SECRETS_FILE="/etc/genestack/skylinesecrets.yaml"
-if [[ -f ${SKYLINE_SECRETS_FILE} ]]; then
-    echo "Found existing ${SKYLINE_SECRETS_FILE}, appending skyline secrets..."
-    cat ${SKYLINE_SECRETS_FILE} >> "${GENERATED_FILE}"
-    echo "Skyline secrets appended from ${SKYLINE_SECRETS_FILE}"
-else
-    echo "Note: ${SKYLINE_SECRETS_FILE} not found. Run create-skyline-secrets.sh to add skyline secrets."
-fi
 
 # Check if kube-ovn-tls secret exists, and copy to openstack namespace if it does
 if kubectl -n kube-system get secret kube-ovn-tls >/dev/null 2>&1

@@ -17,7 +17,7 @@ spec:
     - "skyline.your.domain.tld"
   rules:
     - backendRefs:
-        - name: skyline-apiserver
+        - name: skyline-api
           port: 9999
       sessionPersistence:
         sessionName: SkylineSession
