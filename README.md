@@ -34,21 +34,3 @@ platform is ready to go with batteries included.
 Genestack is making use of some homegrown solutions, community operators, and OpenStack-Helm. Everything
 in Genestack comes together to form cloud in a new and exciting way; all built with opensource solutions
 to manage cloud infrastructure in the way you need it.
-
-## RXT Container Builds
-
-![release-ceilometer](https://github.com/rackerlabs/genestack/actions/workflows/release-ceilometer.yaml/badge.svg?event=push)
-
-![release-gnocchi](https://github.com/rackerlabs/genestack/actions/workflows/release-gnocchi.yaml/badge.svg?event=push)
-
-![release-horizon-rxt](https://github.com/rackerlabs/genestack/actions/workflows/release-horizon-rxt.yml/badge.svg?event=push)
-
-![release-keystone-rxt](https://github.com/rackerlabs/genestack/actions/workflows/release-keystone-rxt.yml/badge.svg?event=push)
-
-![release-neutron-oslodb](https://github.com/rackerlabs/genestack/actions/workflows/release-neutron-oslodb.yaml/badge.svg?event=push)
-
-![release-nova-oslodb](https://github.com/rackerlabs/genestack/actions/workflows/release-nova-oslodb.yaml/badge.svg?event=push)
-
-![release-nova-uefi](https://github.com/rackerlabs/genestack/actions/workflows/release-nova-uefi.yml/badge.svg?event=push)
-
-![release-octavia-ovn](https://github.com/rackerlabs/genestack/actions/workflows/release-octavia-ovn.yml/badge.svg?event=push)
