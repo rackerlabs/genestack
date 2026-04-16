@@ -1,0 +1,102 @@
+---
+# Create the default Manila share type after Manila has been deployed.
+# This task requires the Manila API to be running (post Helm install).
+# Idempotent — skips creation if the share type already exists.
+# Gracefully skips ALL tasks if the Manila API is not reachable.
+
+- name: Check if Manila API is reachable
+  ansible.builtin.shell: |
+    source {{ genestack_venv }}/bin/activate
+    set -a
+    source {{ genestack_rc }}
+    set +a
+    openstack --os-cloud={{ os_cloud }} share type list -f json 2>/dev/null
+  args:
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _manila_api_check
+  changed_when: false
+  failed_when: false
+
+- name: Skip share type setup if Manila API is not available
+  ansible.builtin.debug:
+    msg: "Manila API is not reachable — skipping share type setup. Run with --tags manila_post_deploy after Manila is deployed."
+  when: _manila_api_check.rc != 0
+
+- name: Check if generic share type already exists
+  ansible.builtin.shell: |
+    source {{ genestack_venv }}/bin/activate
+    set -a
+    source {{ genestack_rc }}
+    set +a
+    openstack --os-cloud={{ os_cloud }} share type show generic -f json 2>/dev/null
+  args:
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _share_type_check
+  changed_when: false
+  failed_when: false
+  when: _manila_api_check.rc == 0
+
+- name: Create generic share type
+  ansible.builtin.shell: |
+    source {{ genestack_venv }}/bin/activate
+    set -a
+    source {{ genestack_rc }}
+    set +a
+    openstack --os-cloud={{ os_cloud }} share type create generic true \
+      --description "Generic Manila share type" \
+      --public true \
+      --snapshot-support true \
+      --create-share-from-snapshot-support true \
+      --revert-to-snapshot-support false \
+      --extra-specs \
+        share_backend_name=generic
+  args:
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when:
+    - _manila_api_check.rc == 0
+    - _share_type_check.rc != 0
+
+- name: Set generic share type as default
+  ansible.builtin.shell: |
+    source {{ genestack_venv }}/bin/activate
+    set -a
+    source {{ genestack_rc }}
+    set +a
+    openstack --os-cloud={{ os_cloud }} share type set generic --default
+  args:
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when:
+    - _manila_api_check.rc == 0
+    - _share_type_check.rc != 0
+  # --default may not be available on all versions; fall back gracefully
+  failed_when: false
+
+- name: Display generic share type
+  ansible.builtin.shell: |
+    source {{ genestack_venv }}/bin/activate
+    set -a
+    source {{ genestack_rc }}
+    set +a
+    openstack --os-cloud={{ os_cloud }} share type show generic -f json
+  args:
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _share_type_info
+  changed_when: false
+  when: _manila_api_check.rc == 0
+
+- name: Show share type details
+  ansible.builtin.debug:
+    msg: "{{ _share_type_info.stdout | from_json }}"
+  when:
+    - _manila_api_check.rc == 0
+    - _share_type_info.stdout | default('') | length > 0

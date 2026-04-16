@@ -1,0 +1,28 @@
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  enable_iscsi: true
+  nova:
+    DEFAULT:
+      osapi_compute_workers: 1
+      metadata_workers: 1
+    conductor:
+      workers: 1
+    schedule:
+      workers: 1
+    oslo_messaging_notifications:
+      driver: noop
+    libvirt:
+      virt_type: qemu
+      images_type: qcow2
+      images_path: /var/lib/nova/instances
+  nova_api_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1
+  nova_metadata_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1

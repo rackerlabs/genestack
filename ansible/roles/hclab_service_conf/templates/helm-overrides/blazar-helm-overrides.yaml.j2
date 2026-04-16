@@ -1,0 +1,12 @@
+---
+pod:
+  resources:
+    enabled: false
+
+conf:
+  blazar_api_uwsgi:
+    uwsgi:
+      processes: 1
+  blazar:
+    oslo_messaging_notifications:
+      driver: noop

@@ -1,0 +1,60 @@
+---
+- name: Update /etc/hosts with lab node entries on jump host
+  ansible.builtin.blockinfile:
+    path: /etc/hosts
+    block: |
+      {{ worker_0_ip }} {{ lab_name_prefix }}-0.cluster.local {{ lab_name_prefix }}-0
+      {{ worker_1_ip }} {{ lab_name_prefix }}-1.cluster.local {{ lab_name_prefix }}-1
+      {{ worker_2_ip }} {{ lab_name_prefix }}-2.cluster.local {{ lab_name_prefix }}-2
+    marker: "# {mark} hyperconverged lab nodes"
+  become: true
+
+- name: Update /etc/hosts with lab node entries on {{ item }}
+  ansible.builtin.blockinfile:
+    path: /etc/hosts
+    block: |
+      {{ worker_0_ip }} {{ lab_name_prefix }}-0.cluster.local {{ lab_name_prefix }}-0
+      {{ worker_1_ip }} {{ lab_name_prefix }}-1.cluster.local {{ lab_name_prefix }}-1
+      {{ worker_2_ip }} {{ lab_name_prefix }}-2.cluster.local {{ lab_name_prefix }}-2
+    marker: "# {mark} hyperconverged lab nodes"
+  become: true
+  delegate_to: "{{ item }}"
+  vars:
+    ansible_connection: ssh
+  loop:
+    - "{{ lab_name_prefix }}-1.cluster.local"
+    - "{{ lab_name_prefix }}-2.cluster.local"
+
+- name: Create physical volume on {{ cinder_volume_device }} ({{ item }})
+  ansible.builtin.command:
+    cmd: pvcreate {{ cinder_volume_device }}
+  become: true
+  register: pvcreate_result
+  changed_when: pvcreate_result.rc == 0
+  failed_when:
+    - pvcreate_result.rc != 0
+    - "'already' not in pvcreate_result.stderr"
+  delegate_to: "{{ item }}"
+  vars:
+    ansible_connection: ssh
+  loop:
+    - "{{ lab_name_prefix }}-0.cluster.local"
+    - "{{ lab_name_prefix }}-1.cluster.local"
+    - "{{ lab_name_prefix }}-2.cluster.local"
+
+- name: Create volume group {{ cinder_volume_group }} ({{ item }})
+  ansible.builtin.command:
+    cmd: vgcreate {{ cinder_volume_group }} {{ cinder_volume_device }}
+  become: true
+  register: vgcreate_result
+  changed_when: vgcreate_result.rc == 0
+  failed_when:
+    - vgcreate_result.rc != 0
+    - "'already' not in vgcreate_result.stderr"
+  delegate_to: "{{ item }}"
+  vars:
+    ansible_connection: ssh
+  loop:
+    - "{{ lab_name_prefix }}-0.cluster.local"
+    - "{{ lab_name_prefix }}-1.cluster.local"
+    - "{{ lab_name_prefix }}-2.cluster.local"

@@ -1,0 +1,53 @@
+---
+# tasks file for trove_enablement_techpreview
+#
+# Tag strategy:
+#   --tags secrets       → pre-create Trove K8s secrets (rabbitmq, db, admin, ssh)
+#   --tags client        → install python-troveclient in genestack venv
+#   --tags image_build   → guest image build/upload (requires troveclient)
+#   --tags pre_deploy    → secrets, gateway, kustomize, endpoints, helm config
+#   --tags post_deploy   → datastore version creation (requires Trove API running)
+#   (no tags)            → runs everything in order
+
+- name: Import tasks to pre-create Trove K8s secrets
+  import_tasks: trove_k8s_secrets.yml
+  tags:
+    - secrets
+    - pre_deploy
+
+- name: Import tasks to install python-troveclient
+  import_tasks: trove_client_install.yml
+  tags:
+    - client
+
+- name: Import tasks to create keypair, security group, and openrc
+  import_tasks: trove_preconf.yml
+  tags:
+    - pre_deploy
+
+- name: Import tasks to build and upload Trove guest image
+  import_tasks: trove_guest_image_builder.yml
+  become: true
+  become_user: ubuntu
+  tags:
+    - image_build
+
+- name: Import tasks to create gateway listener, route, kustomize overlay, and endpoints
+  import_tasks: trove_gateway_and_kustomize.yml
+  tags:
+    - pre_deploy
+
+- name: Import tasks to configure Trove Helm values
+  import_tasks: trove_helm_config.yml
+  tags:
+    - pre_deploy
+
+- name: Import tasks to create Trove keypair (requires trove Keystone user)
+  import_tasks: trove_preconf_keypair.yml
+  tags:
+    - post_deploy
+
+- name: Import tasks to create Trove datastore and version
+  import_tasks: trove_datastore_setup.yml
+  tags:
+    - post_deploy

@@ -1,0 +1,57 @@
+---
+- name: Ensure yq is installed
+  ansible.builtin.shell: |
+    set -o pipefail
+    if ! /usr/local/bin/yq --version &>/dev/null; then
+      ARCH=$(uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
+      wget -q "https://github.com/mikefarah/yq/releases/download/v4.47.2/yq_linux_${ARCH}.tar.gz" -O - | tar xz
+      sudo mv "yq_linux_${ARCH}" /usr/local/bin/yq
+      sudo chmod +x /usr/local/bin/yq
+    fi
+  args:
+    executable: /bin/bash
+    creates: /usr/local/bin/yq
+
+- name: Copy base openstack-components.yaml
+  ansible.builtin.copy:
+    src: /opt/genestack/openstack-components.yaml
+    dest: "{{ openstack_components_config_path }}"
+    mode: "0644"
+    remote_src: true
+    force: false
+
+- name: Enable included OpenStack services
+  ansible.builtin.command:
+    cmd: "/usr/local/bin/yq -i '.components.{{ item }} = true' {{ openstack_components_config_path }}"
+  loop: "{{ include_services | select() | list }}"
+  changed_when: true
+  when: include_services | select() | list | length > 0
+
+- name: Disable excluded OpenStack services
+  ansible.builtin.command:
+    cmd: "/usr/local/bin/yq -i '.components.{{ item }} = false' {{ openstack_components_config_path }}"
+  loop: "{{ exclude_services | select() | list }}"
+  changed_when: true
+  when: exclude_services | select() | list | length > 0
+
+# Services that require pre-configuration (image builds, amphora setup, etc.)
+# MUST be excluded from setup-openstack.sh's parallel deploy and installed
+# separately after preconf completes. This overrides any include/exclude
+# setting above. Manila, Octavia, and Trove are all opt-in (-i).
+- name: Force Manila to false in components (deferred install)
+  ansible.builtin.command:
+    cmd: "/usr/local/bin/yq -i '.components.manila = false' {{ openstack_components_config_path }}"
+  changed_when: true
+  when: run_manila_preconf | default(false) | bool
+
+- name: Force Octavia to false in components (deferred install)
+  ansible.builtin.command:
+    cmd: "/usr/local/bin/yq -i '.components.octavia = false' {{ openstack_components_config_path }}"
+  changed_when: true
+  when: run_octavia_preconf | default(false) | bool
+
+- name: Force Trove to false in components (deferred install)
+  ansible.builtin.command:
+    cmd: "/usr/local/bin/yq -i '.components.trove = false' {{ openstack_components_config_path }}"
+  changed_when: true
+  when: run_trove_preconf | default(false) | bool

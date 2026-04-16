@@ -1,0 +1,114 @@
+---
+# Configure Manila Helm values after image creation and network setup.
+# - Resolves image ID from OpenStack if not already set as a fact
+# - Retrieves the service instance password from the manila-admin k8s secret
+# - Creates /etc/genestack/helm-configs/global_overrides/secrets.yaml
+#   with the password (kept out of the main helm config template)
+# - Deep-merges the driver config template into the existing manila-helm-overrides.yaml
+
+- name: Retrieve Manila service image ID from OpenStack
+  ansible.builtin.shell: |
+    set -o pipefail
+    source {{ genestack_venv }}/bin/activate
+    set -a
+    source {{ genestack_rc }}
+    set +a
+    openstack --os-cloud={{ os_cloud }} image show {{ manila_service_image_name }} \
+      -f json | jq -r .id
+  args:
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _helm_image_id_result
+  changed_when: false
+  when: manila_service_image_id | length == 0
+
+- name: Set manila_service_image_id fact from OpenStack
+  ansible.builtin.set_fact:
+    manila_service_image_id: "{{ _helm_image_id_result.stdout | trim }}"
+  when: manila_service_image_id | length == 0
+
+- name: Retrieve Manila service flavor ID from OpenStack
+  ansible.builtin.shell: |
+    set -o pipefail
+    source {{ genestack_venv }}/bin/activate
+    set -a
+    source {{ genestack_rc }}
+    set +a
+    openstack --os-cloud={{ os_cloud }} flavor show {{ manila_service_instance_flavor_name }} \
+      -f json | jq -r .id
+  args:
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _helm_flavor_id_result
+  changed_when: false
+  when: manila_service_instance_flavor_id | length == 0
+
+- name: Set manila_service_instance_flavor_id fact from OpenStack
+  ansible.builtin.set_fact:
+    manila_service_instance_flavor_id: "{{ _helm_flavor_id_result.stdout | trim }}"
+  when: manila_service_instance_flavor_id | length == 0
+
+- name: Retrieve Manila service instance password from K8s secret
+  ansible.builtin.shell: |
+    set -o pipefail
+    source {{ genestack_venv }}/bin/activate
+    set -a
+    source {{ genestack_rc }}
+    set +a
+    kubectl -n openstack get secrets/manila-admin \
+      --template={{ '{{' }}.data.password{{ '}}' }} | base64 -d
+  args:
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _manila_password_result
+  changed_when: false
+  no_log: true
+
+- name: Set manila_service_instance_password fact
+  ansible.builtin.set_fact:
+    manila_service_instance_password: "{{ _manila_password_result.stdout }}"
+  no_log: true
+
+- name: Ensure global_overrides directory exists
+  ansible.builtin.file:
+    path: /etc/genestack/helm-configs/global_overrides
+    state: directory
+    mode: "0755"
+
+- name: Merge Manila service instance password into global_overrides secrets.yaml
+  ansible.builtin.script:
+    cmd: >-
+      merge_manila_secret.py
+      /etc/genestack/helm-configs/global_overrides/secrets.yaml
+    executable: python3
+  environment:
+    _MANILA_SVC_PW: "{{ manila_service_instance_password }}"
+  no_log: true
+
+- name: Ensure Manila helm-configs directory exists
+  ansible.builtin.file:
+    path: /etc/genestack/helm-configs/manila
+    state: directory
+    mode: "0755"
+
+- name: Template selected driver config to temporary file
+  ansible.builtin.template:
+    src: "{{ manila_driver_config_template }}"
+    dest: /tmp/manila_driver_config_fragment.yaml
+    mode: "0644"
+
+- name: Deep-merge driver config into existing manila-helm-overrides.yaml
+  ansible.builtin.script:
+    cmd: >-
+      deep_merge_yaml.py
+      /etc/genestack/helm-configs/manila/manila-helm-overrides.yaml
+      /tmp/manila_driver_config_fragment.yaml
+    executable: python3
+
+- name: Remove temporary driver config fragment
+  ansible.builtin.file:
+    path: /tmp/manila_driver_config_fragment.yaml
+    state: absent

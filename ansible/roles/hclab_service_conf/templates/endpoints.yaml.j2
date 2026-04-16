@@ -1,0 +1,280 @@
+pod:
+  resources:
+    enabled: false
+
+endpoints:
+  baremetal:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: ironic.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  compute:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: nova.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  compute_metadata:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: metadata.{{ gateway_domain }}
+    port:
+      metadata:
+        public: 443
+    scheme:
+      public: https
+  compute_novnc_proxy:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: novnc.{{ gateway_domain }}
+    port:
+      novnc_proxy:
+        public: 443
+    scheme:
+      public: https
+  cloudformation:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: cloudformation.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  cloudwatch:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: cloudwatch.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  container_infra:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: magnum.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  key_manager:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: barbican.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  dashboard:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: horizon.{{ gateway_domain }}
+    port:
+      web:
+        public: 443
+    scheme:
+      public: https
+  metric:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: gnocchi.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  reservation:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: blazar.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  backup:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: freezer.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  rating:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: cloudkitty.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  instance_ha:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: masakari.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  identity:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: keystone.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+        admin: 80
+    scheme:
+      public: https
+  ingress:
+    port:
+      ingress:
+        public: 443
+  image:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: glance.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  load_balancer:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: octavia.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  network:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: neutron.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  orchestration:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: heat.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  placement:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: placement.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  share:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: manila.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  sharev2:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: manila.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  volume:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: cinder.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  volumev2:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: cinder.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  volumev3:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: cinder.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  database:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: trove.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
+  messaging:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: zaqar.{{ gateway_domain }}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https

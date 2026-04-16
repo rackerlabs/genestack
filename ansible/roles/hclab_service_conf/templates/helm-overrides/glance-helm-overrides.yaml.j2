@@ -1,0 +1,16 @@
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  glance:
+    DEFAULT:
+      workers: 2
+    oslo_messaging_notifications:
+      driver: noop
+  glance_api_uwsgi:
+    uwsgi:
+      processes: 1
+volume:
+  class_name: general
+  size: 20Gi

@@ -1,0 +1,7 @@
+---
+- name: Write endpoints configuration
+  ansible.builtin.template:
+    src: endpoints.yaml.j2
+    dest: "{{ endpoints_config_path }}"
+    mode: "0644"
+    force: false

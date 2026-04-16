@@ -1,0 +1,26 @@
+---
+# Playbook: hclab-service-conf
+#
+# Configures OpenStack service Helm overrides, MetalLB, endpoints, inventory,
+# and optional cinder volume setup for the hyperconverged lab environment.
+#
+# Usage:
+#   ansible-playbook hclab-service-conf.yml \
+#     -e metal_lb_ip=192.168.100.10 \
+#     -e gateway_domain=cluster.local \
+#     -e worker_0_ip=192.168.100.11 \
+#     -e worker_1_ip=192.168.100.12 \
+#     -e worker_2_ip=192.168.100.13
+#
+# Tags:
+#   metallb, helm_overrides, endpoints, openstack_components, inventory,
+#   cinder, ssh_config, cinder_volume_setup,
+#   manila_preconf_secrets, manila_preconf, manila_post_deploy,
+#   trove_preconf, trove_post_deploy, post_setup
+
+- name: Configure hyperconverged lab OpenStack services
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  roles:
+    - role: hclab_service_conf
