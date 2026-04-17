@@ -1,0 +1,40 @@
+---
+upgrade:
+  - |
+    Genestack ``release-2026.1`` deploys Envoy Gateway ``v1.7.0`` from the Helm
+    chart. Sites upgrading from older Genestack releases may move directly from
+    Envoy Gateway ``v1.5.3`` to ``v1.7.0``.
+  - |
+    Upgrade Gateway API and Envoy Gateway CRDs before upgrading the Envoy
+    Gateway Helm release. Sites using the Gateway API ``experimental`` channel
+    should keep that channel during the CRD upgrade unless they have explicitly
+    validated a later migration back to ``standard``.
+  - |
+    Sites using ``BackendTLSPolicy`` should consider an incremental upgrade path
+    instead of a direct jump to ``v1.7.0``. A safer path is Envoy Gateway
+    ``v1.5.3`` to ``v1.5.8`` to ``v1.7.0``, followed by updating any
+    ``BackendTLSPolicy`` resources from ``gateway.networking.k8s.io/v1alpha3``
+    to ``v1``.
+  - |
+    After upgrading to Envoy Gateway ``v1.7.0``, review ``Gateway``,
+    ``HTTPRoute``, ``GRPCRoute``, and policy resources for stricter validation
+    behavior. Invalid route filters that may have been tolerated by older
+    versions can now be rejected. In particular, Envoy Gateway ``v1.7.0`` may
+    return direct ``500`` responses for ``HTTPRoute`` and ``GRPCRoute``
+    resources that use invalid filters.
+  - |
+    After upgrading Envoy Gateway, validate user-facing routes and any
+    observability integrations. Envoy Gateway ``v1.7.0`` changes default metric
+    tagging behavior and may require updates to dashboards, alerts, or
+    recording rules that depend on previous metric names or label layouts.
+deprecations:
+  - |
+    Envoy Gateway ``v1.7.0`` deprecates the OpenTelemetry access log
+    ``resources`` field in favor of ``resourceAttributes``. Sites using custom
+    OpenTelemetry access log configuration should update manifests and overrides
+    accordingly.
+  - |
+    Envoy Gateway ``v1.7.0`` changes the default ``stats_tags`` handling to
+    improve Prometheus metrics output. Existing dashboards and alerting content
+    may continue to work in some environments, but operators should review and
+    update any metric queries that depend on the older label structure.
