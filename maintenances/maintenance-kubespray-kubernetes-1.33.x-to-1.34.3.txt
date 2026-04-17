@@ -1,226 +1,226 @@
-Flex Kubespray and Kubernetes Upgrade from 1.33.x to 1.34.3
+### Flex Kubespray and Kubernetes Upgrade from 1.33.x to 1.34.3
 
-Notes
+### Notes
 
-(opt) refers to /opt, the standard install path for Genestack.
-(etc) refers to /etc, the standard override path for Genestack.
-The version of Kubernetes and Kubespray is bundled with the specific release of Genestack unless explicitly overridden.
-Kubernetes does not support skipping multiple minor releases in a single upgrade. Step through each minor version.
+# (opt) refers to /opt, the standard install path for Genestack.
+# (etc) refers to /etc, the standard override path for Genestack.
+# The version of Kubernetes and Kubespray is bundled with the specific release of Genestack unless explicitly overridden.
+# Kubernetes does not support skipping multiple minor releases in a single upgrade. Step through each minor version.
 
-Prep
+### Prep
 
-Deployment Node
+## Deployment Node
 
-Create a tmux logging directory:
-    mkdir -p ~/maintenances
+# Create a tmux logging directory:
+mkdir -p ~/maintenances
 
-Configure tmux pane logging:
-    grep -q tmux.log 2>/dev/null ~/.tmux.conf || cat <<'EOT' >> ~/.tmux.conf
-    bind-key H pipe-pane -o "exec cat >>~/maintenances/'#W-tmux.log'" \; display-message 'Toggled logging to ~/maintenances/#W-tmux.log'
-    EOT
+# Configure tmux pane logging:
+grep -q tmux.log 2>/dev/null ~/.tmux.conf || cat <<'EOT' >> ~/.tmux.conf
+bind-key H pipe-pane -o "exec cat >>~/maintenances/'#W-tmux.log'" \; display-message 'Toggled logging to ~/maintenances/#W-tmux.log'
+# EOT
 
-Start a tmux session for the maintenance:
-    # tmux new -s <name_of_maint>
-    export PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w $(date +%s) \$ '
+# Start a tmux session for the maintenance:
+# tmux new -s <name_of_maint>
+export PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w $(date +%s) \$ '
 
-To enable screen logging, press Ctrl+b then H.
+# To enable screen logging, press Ctrl+b then H.
 
-Create monitoring suppression.
-This work still needs to be fleshed out.
+# Create monitoring suppression.
+# This work still needs to be fleshed out.
 
-Disable HPA:
-    cd ~/maintenances
-    /opt/genestack/scripts/manage_hpa.sh lock --dry-run
-    /opt/genestack/scripts/manage_hpa.sh lock
+# Disable HPA:
+cd ~/maintenances
+/opt/genestack/scripts/manage_hpa.sh lock --dry-run
+/opt/genestack/scripts/manage_hpa.sh lock
 
-Disable the self-healing Octavia LB systemd service:
-    sudo systemctl disable --now check-octavia-ovn.timer
-    sudo systemctl stop check-octavia-ovn.service
+# Disable the self-healing Octavia LB systemd service:
+# sudo systemctl disable --now check-octavia-ovn.timer
+# sudo systemctl stop check-octavia-ovn.service
 
-Raise file descriptor limits in the current shell:
-    ulimit -n 65535
+# Raise file descriptor limits in the current shell:
+# ulimit -n 65535
 
-Kubespray
+### Kubespray
 
-Validate Kubespray Version
+## Validate Kubespray Version
 
-For Kubernetes 1.34.3, Kubespray v2.30.0 is required.
+# For Kubernetes 1.34.3, Kubespray v2.30.0 is required.
 
-Check the current submodule version:
-    cd /opt/genestack/submodules/kubespray
-    git status
+# Check the current submodule version:
+cd /opt/genestack/submodules/kubespray
+git status
 
-Expected:
-    # HEAD detached at v2.30.0
+# Expected:
+# HEAD detached at v2.30.0
 
-If Kubespray is not at the desired version:
-    cd /opt/genestack/submodules/kubespray
-    git fetch --tags
-    git checkout v2.30.0
+# If Kubespray is not at the desired version:
+cd /opt/genestack/submodules/kubespray
+git fetch --tags
+git checkout v2.30.0
 
-Ensure kubeadm Upgrade Task Is Patched
+## Ensure kubeadm Upgrade Task Is Patched
 
-This patch must exist so controller upgrades do not block on the CreateJob preflight check:
-    # diff --git a/roles/kubernetes/control-plane/tasks/kubeadm-upgrade.yml b/roles/kubernetes/control-plane/tasks/kubeadm-upgrade.yml
-    # index 523956d1d..b3a454a4c 100644
-    # --- a/roles/kubernetes/control-plane/tasks/kubeadm-upgrade.yml
-    # +++ b/roles/kubernetes/control-plane/tasks/kubeadm-upgrade.yml
-    # @@ -17,6 +17,7 @@
-    #      --force
-    #      {%- else %}
-    #      --config={{ kube_config_dir }}/kubeadm-config.yaml
-    # +    --ignore-preflight-errors=CreateJob
-    #      {%- endif %}
-    #      {%- if kube_version is version('1.32.0', '>=') %}
-    #      --skip-phases={{ kubeadm_init_phases_skip | join(',') }}
+# This patch must exist so controller upgrades do not block on the CreateJob preflight check:
+# diff --git a/roles/kubernetes/control-plane/tasks/kubeadm-upgrade.yml b/roles/kubernetes/control-plane/tasks/kubeadm-upgrade.yml
+# index 523956d1d..b3a454a4c 100644
+# --- a/roles/kubernetes/control-plane/tasks/kubeadm-upgrade.yml
+# +++ b/roles/kubernetes/control-plane/tasks/kubeadm-upgrade.yml
+# @@ -17,6 +17,7 @@
+#      --force
+#      {%- else %}
+#      --config={{ kube_config_dir }}/kubeadm-config.yaml
+# +    --ignore-preflight-errors=CreateJob
+#      {%- endif %}
+#      {%- if kube_version is version('1.32.0', '>=') %}
+#      --skip-phases={{ kubeadm_init_phases_skip | join(',') }}
 
-If the change is missing, edit this file:
-    /opt/genestack/submodules/kubespray/roles/kubernetes/control-plane/tasks/kubeadm-upgrade.yml
+# If the change is missing, edit this file:
+/opt/genestack/submodules/kubespray/roles/kubernetes/control-plane/tasks/kubeadm-upgrade.yml
 
-Add this line:
-    # --ignore-preflight-errors=CreateJob
+# Add this line:
+# --ignore-preflight-errors=CreateJob
 
-Validate Inventory and Node Reachability
+## Validate Inventory and Node Reachability
 
-Confirm all inventory nodes are reachable:
-    ansible -m ping all
-    ansible all -m shell -a "uptime -p"
+# Confirm all inventory nodes are reachable:
+ansible -m ping all
+ansible all -m shell -a "uptime -p"
 
-Check Kubernetes node readiness:
-    kubectl get nodes | grep NotReady
+# Check Kubernetes node readiness:
+kubectl get nodes | grep NotReady
 
-If any node cannot be reached, decide whether to repair the failed node first or exclude it from inventory and remove it from Kubernetes before continuing.
+# If any node cannot be reached, decide whether to repair the failed node first or exclude it from inventory and remove it from Kubernetes before continuing.
 
-Example cleanup flow for a dead node:
-    # kubectl cordon <node-name>
-    # kubectl drain <node-name> --ignore-daemonsets --delete-emptydir-data
-    # kubectl delete node <node-name>
-    # kubectl get pods -A -o wide | grep <node-name>
-    # kubectl delete pod <pod_name> -n <namespace> --force --grace-period=0
+# Example cleanup flow for a dead node:
+# kubectl cordon <node-name>
+# kubectl drain <node-name> --ignore-daemonsets --delete-emptydir-data
+# kubectl delete node <node-name>
+# kubectl get pods -A -o wide | grep <node-name>
+# kubectl delete pod <pod_name> -n <namespace> --force --grace-period=0
 
-Refresh Ansible Facts
+## Refresh Ansible Facts
 
-Refresh Ansible facts:
-    cd /opt/genestack/submodules/kubespray
-    ansible-playbook playbooks/facts.yml --become
+# Refresh Ansible facts:
+cd /opt/genestack/submodules/kubespray
+ansible-playbook playbooks/facts.yml --become
 
-If fact regeneration fails and stale facts need cleanup:
-    cd /tmp
-    # rm -f <fact-cache-pattern>
+# If fact regeneration fails and stale facts need cleanup:
+cd /tmp
+# rm -f <fact-cache-pattern>
 
-Kubernetes
+### Kubernetes
 
-Determine the Target Kubernetes Version
+## Determine the Target Kubernetes Version
 
-The bundled version can be found in:
-    /opt/genestack/ansible/inventory/genestack/group_vars/k8s_cluster/k8s_cluster.yaml
+# The bundled version can be found in:
+/opt/genestack/ansible/inventory/genestack/group_vars/k8s_cluster/k8s_cluster.yaml
 
-Look for the kube_version variable.
+# Look for the kube_version variable.
 
-If you must override it, edit:
-    /etc/genestack/inventory/group_vars/k8s_cluster/k8s_cluster.yaml
+# If you must override it, edit:
+/etc/genestack/inventory/group_vars/k8s_cluster/k8s_cluster.yaml
 
-Set:
+# Set:
     kube_version: 1.34.3
 
-Upgrade the Control Plane and etcd Nodes First
+## Upgrade the Control Plane and etcd Nodes First
 
-Run the control plane and etcd upgrade:
-    cd /opt/genestack/submodules/kubespray
-    ansible-playbook cluster.yml -e upgrade_cluster_setup=true -e kube_version=1.34.3 --become --limit "kube_control_plane:etcd" --list-hosts
-    ansible-playbook cluster.yml -e upgrade_cluster_setup=true -e kube_version=1.34.3 --become --limit "kube_control_plane:etcd"
-    kubectl get nodes -l node-role.kubernetes.io/control-plane
+# Run the control plane and etcd upgrade:
+cd /opt/genestack/submodules/kubespray
+ansible-playbook cluster.yml -e upgrade_cluster_setup=true -e kube_version=1.34.3 --become --limit "kube_control_plane:etcd" --list-hosts
+ansible-playbook cluster.yml -e upgrade_cluster_setup=true -e kube_version=1.34.3 --become --limit "kube_control_plane:etcd"
+kubectl get nodes -l node-role.kubernetes.io/control-plane
 
-Expected:
-    # Control-plane and etcd nodes report Kubernetes version 1.34.3
+# Expected:
+# Control-plane and etcd nodes report Kubernetes version 1.34.3
 
-Upgrade OpenStack Worker and Network Nodes
+## Upgrade OpenStack Worker and Network Nodes
 
-Run the worker and network node upgrade:
-    ansible-playbook cluster.yml -e upgrade_cluster_setup=true -e kube_version=1.34.3 --become --limit "openstack_control_plane:ovn_network_nodes" --list-hosts
-    ansible-playbook cluster.yml -e upgrade_cluster_setup=true -e kube_version=1.34.3 --become --limit "openstack_control_plane:ovn_network_nodes"
-    kubectl get nodes -l openstack-control-plane=enabled
+# Run the worker and network node upgrade:
+ansible-playbook cluster.yml -e upgrade_cluster_setup=true -e kube_version=1.34.3 --become --limit "openstack_control_plane:ovn_network_nodes" --list-hosts
+ansible-playbook cluster.yml -e upgrade_cluster_setup=true -e kube_version=1.34.3 --become --limit "openstack_control_plane:ovn_network_nodes"
+kubectl get nodes -l openstack-control-plane=enabled
 
-Expected:
-    # OpenStack worker and network nodes report Kubernetes version 1.34.3
+# Expected:
+# OpenStack worker and network nodes report Kubernetes version 1.34.3
 
-Upgrade Compute Nodes
+## Upgrade Compute Nodes
 
-Run the compute node upgrade:
-    ansible-playbook cluster.yml -e upgrade_cluster_setup=true -e kube_version=1.34.3 --become --limit "flex_compute_nodes" --list-hosts
-    ansible-playbook cluster.yml -e upgrade_cluster_setup=true -e kube_version=1.34.3 --become --limit "flex_compute_nodes"
-    kubectl get nodes -l openstack-compute-node=enabled
+# Run the compute node upgrade:
+ansible-playbook cluster.yml -e upgrade_cluster_setup=true -e kube_version=1.34.3 --become --limit "flex_compute_nodes" --list-hosts
+ansible-playbook cluster.yml -e upgrade_cluster_setup=true -e kube_version=1.34.3 --become --limit "flex_compute_nodes"
+kubectl get nodes -l openstack-compute-node=enabled
 
-Expected:
-    # Compute nodes report Kubernetes version 1.34.3
+# Expected:
+# Compute nodes report Kubernetes version 1.34.3
 
-Upgrade Block Nodes
+## Upgrade Block Nodes
 
-Run the block node upgrade:
-    ansible-playbook cluster.yml -e upgrade_cluster_setup=true -e kube_version=1.34.3 --become --limit "storage_nodes" --list-hosts
-    ansible-playbook cluster.yml -e upgrade_cluster_setup=true -e kube_version=1.34.3 --become --limit "storage_nodes"
-    kubectl get nodes -l openstack-storage-node=enabled
+# Run the block node upgrade:
+ansible-playbook cluster.yml -e upgrade_cluster_setup=true -e kube_version=1.34.3 --become --limit "storage_nodes" --list-hosts
+ansible-playbook cluster.yml -e upgrade_cluster_setup=true -e kube_version=1.34.3 --become --limit "storage_nodes"
+kubectl get nodes -l openstack-storage-node=enabled
 
-Expected:
-    # Block nodes report Kubernetes version 1.34.3
+# Expected:
+# Block nodes report Kubernetes version 1.34.3
 
-Install a Matching kubectl
+## Install a Matching kubectl
 
-Install the matching kubectl version:
-    /opt/genestack/scripts/install_kubectl.sh
+# Install the matching kubectl version:
+/opt/genestack/scripts/install_kubectl.sh
 
-Post-Maint
+### Post-Maint
 
-Re-enable HPA:
-    cd ~/maintenances
-    /opt/genestack/scripts/manage_hpa.sh unlock --dry-run
-    /opt/genestack/scripts/manage_hpa.sh unlock
+# Re-enable HPA:
+cd ~/maintenances
+/opt/genestack/scripts/manage_hpa.sh unlock --dry-run
+/opt/genestack/scripts/manage_hpa.sh unlock
 
-Re-enable the self-healing Octavia LB service:
-    sudo systemctl enable --now check-octavia-ovn.timer
-    sudo systemctl start check-octavia-ovn.service
+# Re-enable the self-healing Octavia LB service:
+# sudo systemctl enable --now check-octavia-ovn.timer
+# sudo systemctl start check-octavia-ovn.service
 
-Optional rolling restart of neutron-server:
-    kubectl -n openstack rollout restart deployment neutron-server
+# Optional rolling restart of neutron-server:
+kubectl -n openstack rollout restart deployment neutron-server
 
-Inspect neutron-server logs:
-    kubectl -n openstack logs deployment/neutron-server --all-containers -f
+# Inspect neutron-server logs:
+kubectl -n openstack logs deployment/neutron-server --all-containers -f
 
-Validate functionality in Skyline.
-Log in successfully.
-Navigate all Skyline panels and confirm data loads.
-Create an instance.
-Create a volume.
-Create a container.
+# Validate functionality in Skyline.
+# Log in successfully.
+# Navigate all Skyline panels and confirm data loads.
+# Create an instance.
+# Create a volume.
+# Create a container.
 
-Troubleshooting
+### Troubleshooting
 
-Manual kubeadm Upgrade on the First Controller
+## Manual kubeadm Upgrade on the First Controller
 
-If the health check fails during upgrade, manually upgrade the first controller:
-    sudo /usr/local/bin/kubeadm upgrade apply -y 1.34.3 --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=CreateJob
-    sudo /usr/local/bin/kubeadm upgrade node
+# If the health check fails during upgrade, manually upgrade the first controller:
+# sudo /usr/local/bin/kubeadm upgrade apply -y 1.34.3 --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=CreateJob
+# sudo /usr/local/bin/kubeadm upgrade node
 
-Re-Apply the kubeadm Upgrade Task Patch
+## Re-Apply the kubeadm Upgrade Task Patch
 
-If the prior workaround still fails, re-check this patch:
-    # diff --git a/roles/kubernetes/control-plane/tasks/kubeadm-upgrade.yml b/roles/kubernetes/control-plane/tasks/kubeadm-upgrade.yml
-    # index 523956d1d..b3a454a4c 100644
-    # --- a/roles/kubernetes/control-plane/tasks/kubeadm-upgrade.yml
-    # +++ b/roles/kubernetes/control-plane/tasks/kubeadm-upgrade.yml
-    # @@ -17,6 +17,7 @@
-    #      --force
-    #      {%- else %}
-    #      --config={{ kube_config_dir }}/kubeadm-config.yaml
-    # +    --ignore-preflight-errors=CreateJob
-    #      {%- endif %}
-    #      {%- if kube_version is version('1.32.0', '>=') %}
-    #      --skip-phases={{ kubeadm_init_phases_skip | join(',') }}
+# If the prior workaround still fails, re-check this patch:
+# diff --git a/roles/kubernetes/control-plane/tasks/kubeadm-upgrade.yml b/roles/kubernetes/control-plane/tasks/kubeadm-upgrade.yml
+# index 523956d1d..b3a454a4c 100644
+# --- a/roles/kubernetes/control-plane/tasks/kubeadm-upgrade.yml
+# +++ b/roles/kubernetes/control-plane/tasks/kubeadm-upgrade.yml
+# @@ -17,6 +17,7 @@
+#      --force
+#      {%- else %}
+#      --config={{ kube_config_dir }}/kubeadm-config.yaml
+# +    --ignore-preflight-errors=CreateJob
+#      {%- endif %}
+#      {%- if kube_version is version('1.32.0', '>=') %}
+#      --skip-phases={{ kubeadm_init_phases_skip | join(',') }}
 
-Then rerun:
-    cd /opt/genestack/submodules/kubespray
-    ansible-playbook cluster.yml -e upgrade_cluster_setup=true -e kube_version=1.34.3 --become --limit "kube_control_plane:etcd"
-    kubectl get nodes -l node-role.kubernetes.io/control-plane
+# Then rerun:
+cd /opt/genestack/submodules/kubespray
+ansible-playbook cluster.yml -e upgrade_cluster_setup=true -e kube_version=1.34.3 --become --limit "kube_control_plane:etcd"
+kubectl get nodes -l node-role.kubernetes.io/control-plane
 
-Expected:
-    # Control-plane and etcd nodes report Kubernetes version 1.34.3
+# Expected:
+# Control-plane and etcd nodes report Kubernetes version 1.34.3
