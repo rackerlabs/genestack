@@ -115,14 +115,13 @@ ln -s /opt/genestack/base-kustomize/skyline/aio /etc/genestack/kustomize/skyline
 
 ## Uninstall the Existing Kustomize Deployment
 
-# Run a dry-run or blast-radius check if one exists:
-kubectl --namespace openstack delete -k /opt/genestack/base-kustomize/skyline/base --dry-run=client
-
-# Expected:
-# - Lists all resources that will be deleted
-
-# Run the maintenance command:
-kubectl --namespace openstack delete -k /opt/genestack/base-kustomize/skyline/base
+# Run the maintenance command, these commands cleanup old, now abandoned resources.
+kubectl --namespace openstack delete deployment skyline
+kubectl --namespace openstack delete service skyline-apiserver
+kubectl --namespace openstack delete secret skyline-apiserver-secrets
+kubectl --namespace openstack delete grant skyline-grant
+kubectl --namespace openstack delete users skyline
+kubectl --namespace openstack delete database skyline
 
 # Verify deletion:
 kubectl --namespace openstack get pods -l application=skyline
@@ -134,24 +133,38 @@ kubectl --namespace openstack get svc skyline-apiserver
 
 ## Create the Skyline Database Password Secret
 
-# The Helm chart requires a new secret named skyline-db-password with the key db-password
+# The Helm chart requires a new secret named skyline-db-password with the key db-password and an skyline-admin with the key password.
 # This is separate from the existing skyline-apiserver-secrets secret
 
 # Generate a secure random password:
-export DB_PASSWORD=$(openssl rand -base64 32)
+export DB_PASSWORD=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c32)
 
 # Create the secret with the database password:
 kubectl --namespace openstack create secret generic skyline-db-password \
-  --from-literal=db-password="$DB_PASSWORD"
+  --from-literal=password="$DB_PASSWORD"
 
 # If the secret already exists, update it instead:
-kubectl --namespace openstack patch secret skyline-db-password --type=merge -p "{\"data\":{\"db-password\":\"$(echo -n "$DB_PASSWORD" | base64)\"}}"
+kubectl --namespace openstack patch secret skyline-db-password --type=merge -p "{\"data\":{\"password\":\"$(echo -n "$DB_PASSWORD" | base64)\"}}"
 
 # Verify the secret was created:
 kubectl --namespace openstack get secret skyline-db-password -o yaml
 
+# Generate a secure random password:
+export SKYLINE_ADMIN_PASSWORD=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c32)
+
+# Create the secret with the database password:
+kubectl --namespace openstack create secret generic skyline-admin \
+  --from-literal=password="$SKYLINE_ADMIN_PASSWORD"
+
+# If the secret already exists, update it instead:
+kubectl --namespace openstack patch secret skyline-admin --type=merge -p "{\"data\":{\"password\":\"$(echo -n "$SKYLINE_ADMIN_PASSWORD" | base64)\"}}"
+
+# Verify the secret was created:
+kubectl --namespace openstack get secret skyline-admin -o yaml
+
 # Expected:
-# - The secret contains the db-password key with the base64-encoded password
+# - The db secret contains the db-password key with the base64-encoded password
+# - The admin secret contains the password key with the base64-encoded password
 
 ## Run the Maintenance
 
@@ -164,6 +177,13 @@ kubectl --namespace openstack get secret skyline-db-password -o yaml
 # - All pods transition to Running state
 
 # If the maintenance must be split into stages, list each stage as a separate command block with validation after each stage.
+
+# Update the gateway configuration to point to the new skyline API service if necessary.
+# The the old service name was `skyline-apiserver`, new service is be named `skyline-api`.
+# Update the gateway configuration to point to this new service.
+
+# The HTTPRoute for the skyline API can be patched using the ``custom-skyline-gateway-route.yaml`` file.
+kubectl apply -f /etc/genestack/gateway-api/routes/custom-skyline-gateway-route.yaml
 
 ### Post-Maint
 
