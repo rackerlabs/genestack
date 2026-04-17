@@ -46,9 +46,9 @@ SHOW STATUS LIKE 'wsrep_cluster_size';
 SHOW STATUS LIKE 'wsrep_cluster_status';
 SHOW STATUS LIKE 'wsrep_ready';"
 kubectl exec -i "$PRIMARY_POD" -n openstack -- mariadb-dump \
--u root -p"$MARIADB_ROOT_PASSWORD" --all-databases --single-transaction \
---routines --triggers > mariadb-cluster-full-backup-$(date +%Y%m%d-%H%M).sql
-ls -lh mariadb-cluster-full-backup-*.sql | tail -1
+  -u root -p"$MARIADB_ROOT_PASSWORD" --all-databases --single-transaction \
+  --routines --triggers > mariadb-cluster-full-backup-$(date +%Y%m%d-%H%M).sql
+  ls -lh mariadb-cluster-full-backup-*.sql | tail -1
 
 ### Execute
 

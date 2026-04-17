@@ -87,27 +87,27 @@ done
 # The two values above cover all user-deployed components in the Longhorn Helm chart.
 # The setting above under defaultSettings covers the system-managed components.
 # The individual component definitions below are optional overrides and are listed for completeness.
-longhornManager:
+#longhornManager:
 #   nodeSelector:
 #     longhorn.io/storage-node: "enabled"
 #
-longhornDriver:
+#longhornDriver:
 #   nodeSelector:
 #     longhorn.io/storage-node: "enabled"
 #
-longhornUI:
+#longhornUI:
 #   nodeSelector:
 #     longhorn.io/storage-node: "enabled"
 #
-longhornConversionWebhook:
+#longhornConversionWebhook:
 #   nodeSelector:
 #     longhorn.io/storage-node: "enabled"
 #
-longhornAdmissionWebhook:
+#longhornAdmissionWebhook:
 #   nodeSelector:
 #     longhorn.io/storage-node: "enabled"
 #
-longhornRecoveryBackend:
+#longhornRecoveryBackend:
 #   nodeSelector:
 #     longhorn.io/storage-node: "enabled"
 
