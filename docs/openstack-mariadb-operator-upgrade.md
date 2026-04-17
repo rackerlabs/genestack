@@ -507,8 +507,10 @@ Skip 25.08.0
 
     and you can directly jump from `0.38.1 → 25.8.4`
 
-!!! warning "Kubernetes version requirement"
-    25.8.4 requires Kubernetes >= 1.34.
+!!! warning "Kubernetes version compatibility"
+    Confirm Kubernetes version compatibility against the upstream chart metadata
+    before performing the `0.38.1 -> 25.8.4` hop. Do not assume a fixed
+    minimum cluster version from this runbook alone.
 
 ??? bug "Known Issue: Webhook cert validation loop"
     If operator pods are stuck logging:
@@ -552,13 +554,14 @@ No special steps required beyond the standard preflight and upgrade.
 !!! note "References"
     - [Release 26.3.0](https://github.com/mariadb-operator/mariadb-operator/releases/tag/26.3.0)
 
-!!! danger "Breaking Change: `syncBinlog` type change (Replication clusters)"
-    `syncBinlog` changed from **boolean** to **integer**. This affects
-    **Primary/Replica (replication)** clusters. Galera clusters without
-    `replication` in their spec are not affected.
+!!! danger "Replication config change carried into 26.3.0"
+    In the `25.x` replication line, `syncBinlog` changed from **boolean** to
+    **integer**. This affects **Primary/Replica (replication)** clusters.
+    Galera clusters without `replication` in their spec are not affected.
 
-    If the existing MariaDB CR has `syncBinlog: true`, the new webhook will
-    reject patches. Remove the webhook before patching:
+    If the existing MariaDB CR still stores `syncBinlog: true`, the newer
+    webhook can reject updates during the `25.10.4 -> 26.3.0` hop. Remove the
+    webhook before patching:
 
     ```bash
     kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
@@ -569,13 +572,14 @@ No special steps required beyond the standard preflight and upgrade.
     Then re-run the install script to restore the webhook.
 
 !!! danger "Breaking Change: Image configuration format"
-    Image configuration in Helm values changed from string to structured format:
+    Review the `26.3.0` Helm values schema carefully before upgrading.
+    Several image sections now use structured `repository` + `tag` values.
 
     === "Old Format"
 
         ```yaml
         config:
-          mariadbImageName: repo/image:tag_version
+          mariadbImageName: repo/image
         ```
 
     === "New Format"
@@ -588,7 +592,10 @@ No special steps required beyond the standard preflight and upgrade.
         ```
 
     Ensure `/etc/genestack/helm-configs/mariadb-operator/mariadb-operator-helm-overrides.yaml`
-    uses the new format for `maxscaleImage, exporterImage, exporterMaxscaleImage` image sections before upgrading to 26.3.0.
+    matches the `26.3.0` schema for `maxscaleImage`, `exporterImage`, and
+    `exporterMaxscaleImage` before upgrading. Do not assume that every legacy
+    image-related key disappears; compare the full overrides file against the
+    target chart schema.
 
 !!! info "New CRD"
     A new CRD is added with this version: `pointintimerecoveries.k8s.mariadb.com`

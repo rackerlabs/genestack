@@ -1,0 +1,98 @@
+MariaDB Operator Galera Maintenance: 25.8.4 to 25.10.4
+
+Validation
+
+This maintenance upgrades the MariaDB Operator for a Galera-backed MariaDB cluster from 25.8.4 to 25.10.4.
+Do not step through every 25.10.x patch. Upgrade directly to 25.10.4.
+Never delete MariaDB CRDs during this maintenance.
+
+Major operational risks:
+- Deleting MariaDB CRDs will remove the MariaDB pods.
+- Updating the primary before replicas risks losing Galera quorum.
+
+Goal
+
+Upgrade the MariaDB Operator from 25.8.4 to 25.10.4 for a Galera cluster and return the cluster healthy after the hop.
+
+Prep
+
+Deployment Node
+
+Verify current versions and target availability:
+
+helm list -A | grep mariadb
+helm status mariadb-operator -n mariadb-system
+helm repo update mariadb-operator
+helm search repo mariadb-operator/mariadb-operator --versions | head -20
+
+Expected:
+- The current version is 25.8.4.
+- The target version is 25.10.4.
+
+Retrieve the MariaDB root password and current primary, verify Galera health, and create a backup:
+
+export MARIADB_ROOT_PASSWORD=$(kubectl get secret mariadb -n openstack \
+  -o jsonpath='{.data.root-password}' | base64 -d)
+export PRIMARY_POD=$(kubectl get mariadb mariadb-cluster -n openstack -o jsonpath="{.status.currentPrimary}")
+kubectl exec -it "$PRIMARY_POD" -n openstack -- mariadb -u root -p"$MARIADB_ROOT_PASSWORD" -e "
+SHOW STATUS LIKE 'wsrep_cluster_size';
+SHOW STATUS LIKE 'wsrep_cluster_status';
+SHOW STATUS LIKE 'wsrep_ready';"
+kubectl exec -i "$PRIMARY_POD" -n openstack -- mariadb-dump \
+  -u root -p"$MARIADB_ROOT_PASSWORD" --all-databases --single-transaction \
+  --routines --triggers > mariadb-cluster-full-backup-$(date +%Y%m%d-%H%M).sql
+ls -lh mariadb-cluster-full-backup-*.sql | tail -1
+
+Execute
+
+Update the Target Version
+
+Edit /etc/genestack/helm-chart-versions.yaml:
+
+mariadb-operator: 25.10.4
+
+Apply Required Overrides or Patches
+
+Update the MariaDB image for 25.10.4 compatibility, enable autoUpdateDataPlane: true, and apply:
+
+kubectl --namespace openstack apply -k /etc/genestack/kustomize/mariadb-cluster/overlay
+
+Run the Maintenance
+
+kubectl scale deployment mariadb-operator -n mariadb-system --replicas=0
+kubectl scale deployment mariadb-operator-webhook -n mariadb-system --replicas=0
+kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
+kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook 2>/dev/null || true
+helm uninstall mariadb-operator -n mariadb-system
+/opt/genestack/bin/install-mariadb-operator.sh
+kubectl --namespace openstack apply -k /etc/genestack/kustomize/mariadb-cluster/overlay
+
+Post-Maint
+
+Verify the release, CRs, and Galera health:
+
+helm list -A | grep mariadb
+kubectl get mariadb -n openstack -o yaml | grep -B1 autoFailover
+kubectl get pods -n mariadb-system -o wide
+kubectl get pods -n openstack | grep mariadb
+kubectl exec -it "$PRIMARY_POD" -n openstack -- mariadb -u root -p"$MARIADB_ROOT_PASSWORD" -e "
+SHOW STATUS LIKE 'wsrep_cluster_size';
+SHOW STATUS LIKE 'wsrep_cluster_status';
+SHOW STATUS LIKE 'wsrep_ready';"
+
+Expected:
+- The operator version is 25.10.4.
+- autoFailover is present in the MariaDB CR output.
+- wsrep_cluster_status is Primary.
+
+Troubleshooting
+
+Rollback
+
+Restore the previous chart version in /etc/genestack/helm-chart-versions.yaml and rerun:
+
+/opt/genestack/bin/install-mariadb-operator.sh
+
+Sources
+
+https://github.com/mariadb-operator/mariadb-operator/releases/tag/25.8.1
