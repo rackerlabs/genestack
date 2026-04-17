@@ -1,0 +1,38 @@
+---
+upgrade:
+  - |
+    Genestack ``release-2026.1`` deploys MetalLB ``0.15.2`` from the Helm
+    chart. Sites upgrading from older Genestack releases may move directly from
+    MetalLB ``0.13.9`` through ``0.13.12`` and skip the ``0.14.x`` series.
+  - |
+    Sites that already manage MetalLB with Helm should upgrade the existing
+    chart release. Older environments that originally installed MetalLB through
+    kubespray or another non-Helm path may have existing MetalLB resources that
+    conflict with a Helm-managed deployment; remove the conflicting MetalLB
+    resources before installing the chart-managed release.
+  - |
+    Do not replace ``Service`` annotations with the ``metallb.io`` prefix until
+    after MetalLB has been upgraded. Perform the MetalLB upgrade first, then
+    update the annotation prefix on Services and related manifests.
+  - |
+    After upgrading MetalLB, review all ``Service`` objects and any
+    site-specific overrides or custom manifests for annotations using the
+    ``metallb.universe.tf`` prefix and replace them with ``metallb.io``
+    equivalents. In typical Genestack deployments this most often affects
+    externally exposed services such as MariaDB, RabbitMQ, Grafana, and
+    envoyproxy-gateway.
+  - |
+    After updating manifests or overrides to use the ``metallb.io`` annotation
+    prefix, redeploy any components or operators that manage ``LoadBalancer``
+    Services. Otherwise they may continue to recreate deprecated
+    ``metallb.universe.tf`` annotation keys on managed Services.
+deprecations:
+  - |
+    MetalLB deprecated the ``metallb.universe.tf`` annotation prefix in
+    ``0.14.9`` in favor of ``metallb.io``. For example, replace
+    ``metallb.universe.tf/address-pool`` with ``metallb.io/address-pool``.
+  - |
+    The deprecated prefix remains accepted in MetalLB ``0.15.2`` for backward
+    compatibility, which allows the MetalLB upgrade to complete before Services
+    are cleaned up. Operators should still remove the old keys after upgrading
+    because future MetalLB releases may remove that compatibility.
