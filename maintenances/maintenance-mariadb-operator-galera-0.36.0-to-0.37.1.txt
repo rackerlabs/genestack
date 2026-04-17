@@ -1,26 +1,26 @@
-MariaDB Operator Galera Maintenance: 0.36.0 to 0.37.1
+### MariaDB Operator Galera Maintenance: 0.36.0 to 0.37.1
 
-Validation
+### Validation
 
-This maintenance upgrades the MariaDB Operator for a Galera-backed MariaDB cluster from 0.36.0 to 0.37.1.
-Skip 0.37.0 and upgrade directly to 0.37.1.
-Never delete MariaDB CRDs during this maintenance. Deleting the CRDs will delete the MariaDB pods.
+# This maintenance upgrades the MariaDB Operator for a Galera-backed MariaDB cluster from 0.36.0 to 0.37.1.
+# Skip 0.37.0 and upgrade directly to 0.37.1.
+# Never delete MariaDB CRDs during this maintenance. Deleting the CRDs will delete the MariaDB pods.
 
-Major operational risks:
-- Deleting MariaDB CRDs will remove the MariaDB pods.
-- Updating the primary before replicas risks losing Galera quorum.
+# Major operational risks:
+# - Deleting MariaDB CRDs will remove the MariaDB pods.
+# - Updating the primary before replicas risks losing Galera quorum.
 
-Goal
+### Goal
 
-Upgrade the MariaDB Operator from 0.36.0 to 0.37.1 for a Galera cluster and return the cluster to a healthy Primary state.
+# Upgrade the MariaDB Operator from 0.36.0 to 0.37.1 for a Galera cluster and return the cluster to a healthy Primary state.
 
-Prep
+### Prep
 
-Deployment Node
+## Deployment Node
 
-Run this maintenance from the Genestack deployment host.
+# Run this maintenance from the Genestack deployment host.
 
-Verify current installed versions:
+# Verify current installed versions:
 
 helm list -A | grep mariadb
 helm status mariadb-operator -n mariadb-system
@@ -28,31 +28,31 @@ helm status mariadb-operator-crds -n mariadb-system
 helm repo update mariadb-operator
 helm search repo mariadb-operator/mariadb-operator --versions | head -20
 
-Expected:
-- The current version is 0.36.0.
-- The target version 0.37.1 is available.
+# Expected:
+# - The current version is 0.36.0.
+# - The target version 0.37.1 is available.
 
-Retrieve the MariaDB root password and current primary:
+# Retrieve the MariaDB root password and current primary:
 
 export MARIADB_ROOT_PASSWORD=$(kubectl get secret mariadb -n openstack \
-  -o jsonpath='{.data.root-password}' | base64 -d)
+-o jsonpath='{.data.root-password}' | base64 -d)
 export PRIMARY_POD=$(kubectl get mariadb mariadb-cluster -n openstack -o jsonpath="{.status.currentPrimary}")
 
-Confirm this cluster is Galera:
+# Confirm this cluster is Galera:
 
 kubectl get mariadb mariadb-cluster -n openstack -o jsonpath="{.spec.galera.enabled}"
 
-Expected:
-- The command returns true.
+# Expected:
+# - The command returns true.
 
-Create and verify a backup:
+# Create and verify a backup:
 
 kubectl exec -i "$PRIMARY_POD" -n openstack -- mariadb-dump \
-  -u root -p"$MARIADB_ROOT_PASSWORD" --all-databases --single-transaction \
-  --routines --triggers > mariadb-cluster-full-backup-$(date +%Y%m%d-%H%M).sql
+-u root -p"$MARIADB_ROOT_PASSWORD" --all-databases --single-transaction \
+--routines --triggers > mariadb-cluster-full-backup-$(date +%Y%m%d-%H%M).sql
 ls -lh mariadb-cluster-full-backup-*.sql | tail -1
 
-Verify Galera health:
+# Verify Galera health:
 
 kubectl exec -it "$PRIMARY_POD" -n openstack -- mariadb -u root -p"$MARIADB_ROOT_PASSWORD" -e "
 SHOW STATUS LIKE 'wsrep_cluster_size';
@@ -62,15 +62,15 @@ kubectl get mariadb -n openstack
 kubectl get pods -l app.kubernetes.io/name=mariadb -n openstack
 kubectl get crd | grep mariadb
 
-Expected:
-- wsrep_cluster_status is Primary.
-- wsrep_ready is ON.
+# Expected:
+# - wsrep_cluster_status is Primary.
+# - wsrep_ready is ON.
 
-Execute
+### Execute
 
-Update the Target Version
+## Update the Target Version
 
-Edit /etc/genestack/helm-chart-versions.yaml:
+# Edit /etc/genestack/helm-chart-versions.yaml:
 
 mariadb-operator: 0.37.1
 
@@ -78,33 +78,33 @@ Confirm:
 
 grep mariadb-operator /etc/genestack/helm-chart-versions.yaml
 
-Apply Required Overrides or Patches
+## Apply Required Overrides or Patches
 
-Update the MariaDB image in /etc/genestack/kustomize/mariadb-cluster/base/mariadb-replication.yaml to the image compatible with 0.37.1, then enable autoUpdateDataPlane: true in the overlay or base manifest and apply:
+# Update the MariaDB image in /etc/genestack/kustomize/mariadb-cluster/base/mariadb-replication.yaml to the image compatible with 0.37.1, then enable autoUpdateDataPlane: true in the overlay or base manifest and apply:
 
 kubectl --namespace openstack apply -k /etc/genestack/kustomize/mariadb-cluster/overlay
 
-Run the Maintenance
+## Run the Maintenance
 
-Scale down the operator and remove webhooks:
+# Scale down the operator and remove webhooks:
 
 kubectl scale deployment mariadb-operator -n mariadb-system --replicas=0
 kubectl scale deployment mariadb-operator-webhook -n mariadb-system --replicas=0
 kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
 kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook 2>/dev/null || true
 
-Reinstall the operator:
+# Reinstall the operator:
 
 helm uninstall mariadb-operator -n mariadb-system
 /opt/genestack/bin/install-mariadb-operator.sh
 
-Disable autoUpdateDataPlane after the hop finishes and reapply:
+# Disable autoUpdateDataPlane after the hop finishes and reapply:
 
 kubectl --namespace openstack apply -k /etc/genestack/kustomize/mariadb-cluster/overlay
 
-Post-Maint
+### Post-Maint
 
-Verify the release and pods:
+# Verify the release and pods:
 
 helm list -A | grep mariadb
 helm status mariadb-operator -n mariadb-system
@@ -112,31 +112,31 @@ kubectl get pods -n mariadb-system -o wide
 kubectl get pods -n openstack | grep mariadb
 kubectl get mariadb -n openstack
 
-Re-run Galera health checks:
+# Re-run Galera health checks:
 
 kubectl exec -it "$PRIMARY_POD" -n openstack -- mariadb -u root -p"$MARIADB_ROOT_PASSWORD" -e "
 SHOW STATUS LIKE 'wsrep_cluster_size';
 SHOW STATUS LIKE 'wsrep_cluster_status';
 SHOW STATUS LIKE 'wsrep_ready';"
 
-Expected:
-- The operator version is 0.37.1.
-- wsrep_cluster_status is Primary.
-- wsrep_ready is ON.
+# Expected:
+# - The operator version is 0.37.1.
+# - wsrep_cluster_status is Primary.
+# - wsrep_ready is ON.
 
-Troubleshooting
+### Troubleshooting
 
-Common Failure Signal
+## Common Failure Signal
 
-If the cluster loses quorum or the operator does not reconcile after reinstall, stop and do not continue.
+# If the cluster loses quorum or the operator does not reconcile after reinstall, stop and do not continue.
 
-Rollback
+## Rollback
 
-Restore the last known good chart version in /etc/genestack/helm-chart-versions.yaml, keep the CRDs in place, and rerun:
+# Restore the last known good chart version in /etc/genestack/helm-chart-versions.yaml, keep the CRDs in place, and rerun:
 
 /opt/genestack/bin/install-mariadb-operator.sh
 
-Sources
+### Sources
 
-https://github.com/mariadb-operator/mariadb-operator/releases/tag/0.37.1
-https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_0.37.1.md
+# https://github.com/mariadb-operator/mariadb-operator/releases/tag/0.37.1
+# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_0.37.1.md

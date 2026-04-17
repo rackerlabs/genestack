@@ -1,69 +1,69 @@
-Longhorn Maintenance: 1.10.2 to 1.11.1
+### Longhorn Maintenance: 1.10.2 to 1.11.1
 
-Validation
+### Validation
 
-Kubernetes 1.33.4 satisfies the published Longhorn minimum of Kubernetes v1.25+.
-Upstream explicitly supports upgrading Longhorn v1.11.1 from v1.10.x.
-The latest stable 1.11.x release is 1.11.1.
-Upstream recommends manual checks before upgrade. Ensure no important volume is faulted, avoid failed BackingImage objects, and create a Longhorn system backup first.
+# Kubernetes 1.33.4 satisfies the published Longhorn minimum of Kubernetes v1.25+.
+# Upstream explicitly supports upgrading Longhorn v1.11.1 from v1.10.x.
+# The latest stable 1.11.x release is 1.11.1.
+# Upstream recommends manual checks before upgrade. Ensure no important volume is faulted, avoid failed BackingImage objects, and create a Longhorn system backup first.
 
-Goal
+### Goal
 
-Upgrade Longhorn from 1.10.2 to 1.11.1 while preserving the storage-node placement restrictions already introduced in earlier maintenance.
+# Upgrade Longhorn from 1.10.2 to 1.11.1 while preserving the storage-node placement restrictions already introduced in earlier maintenance.
 
-Prep
+### Prep
 
-Deployment Node
+## Deployment Node
 
-Confirm current health:
-    kubectl version
-    kubectl -n longhorn-system get pods -o wide
-    kubectl -n longhorn-system get volumes.longhorn.io -o custom-columns=VOLUME:.metadata.name,STATE:.status.state,ROBUSTNESS:.status.robustness
-    kubectl -n longhorn-system get backingimages.longhorn.io
+# Confirm current health:
+kubectl version
+kubectl -n longhorn-system get pods -o wide
+kubectl -n longhorn-system get volumes.longhorn.io -o custom-columns=VOLUME:.metadata.name,STATE:.status.state,ROBUSTNESS:.status.robustness
+kubectl -n longhorn-system get backingimages.longhorn.io
 
-Confirm selector settings are still correct:
-    kubectl get nodes -L longhorn.io/storage-node
-    kubectl -n longhorn-system get settings.longhorn.io system-managed-components-node-selector -o yaml
+# Confirm selector settings are still correct:
+kubectl get nodes -L longhorn.io/storage-node
+kubectl -n longhorn-system get settings.longhorn.io system-managed-components-node-selector -o yaml
 
-Prevent Longhorn from Using Unlabeled Nodes
+## Prevent Longhorn from Using Unlabeled Nodes
 
-Disable Longhorn scheduling on any node that does not have longhorn.io/storage-node=enabled:
-    for node in $(kubectl get nodes -l 'longhorn.io/storage-node!=enabled' -o name | sed 's|node/||'); do
-      kubectl -n longhorn-system patch nodes.longhorn.io "$node" --type merge -p '{"spec":{"allowScheduling":false}}'
-    done
+# Disable Longhorn scheduling on any node that does not have longhorn.io/storage-node=enabled:
+for node in $(kubectl get nodes -l 'longhorn.io/storage-node!=enabled' -o name | sed 's|node/||'); do
+kubectl -n longhorn-system patch nodes.longhorn.io "$node" --type merge -p '{"spec":{"allowScheduling":false}}'
+done
 
-Request replica eviction on any node that does not have longhorn.io/storage-node=enabled:
-    for node in $(kubectl get nodes -l 'longhorn.io/storage-node!=enabled' -o name | sed 's|node/||'); do
-      kubectl -n longhorn-system patch nodes.longhorn.io "$node" --type merge -p '{"spec":{"evictionRequested":true}}'
-    done
+# Request replica eviction on any node that does not have longhorn.io/storage-node=enabled:
+for node in $(kubectl get nodes -l 'longhorn.io/storage-node!=enabled' -o name | sed 's|node/||'); do
+kubectl -n longhorn-system patch nodes.longhorn.io "$node" --type merge -p '{"spec":{"evictionRequested":true}}'
+done
 
-If you need to confirm or repair a node manually, use the Longhorn UI.
-Longhorn UI -> Node
-Select the node
-Edit Node and Disks
-Set Scheduling to Disable
-Set Eviction Requested to Enable
-Save
+# If you need to confirm or repair a node manually, use the Longhorn UI.
+# Longhorn UI -> Node
+# Select the node
+# Edit Node and Disks
+# Set Scheduling to Disable
+# Set Eviction Requested to Enable
+# Save
 
-After replicas are gone, remove the Longhorn node CR for any node that should remain in Kubernetes but should no longer remain in Longhorn:
-    for node in $(kubectl get nodes -l 'longhorn.io/storage-node!=enabled' -o name | sed 's|node/||'); do
-      kubectl -n longhorn-system delete nodes.longhorn.io "$node"
-    done
+# After replicas are gone, remove the Longhorn node CR for any node that should remain in Kubernetes but should no longer remain in Longhorn:
+for node in $(kubectl get nodes -l 'longhorn.io/storage-node!=enabled' -o name | sed 's|node/||'); do
+kubectl -n longhorn-system delete nodes.longhorn.io "$node"
+done
 
-Optional but recommended. Create a Longhorn system backup before the hop.
-Longhorn UI -> System Backup
-Create
-Wait for backup completion before upgrading
+# Optional but recommended. Create a Longhorn system backup before the hop.
+# Longhorn UI -> System Backup
+# Create
+# Wait for backup completion before upgrading
 
-Execute
+### Execute
 
-Bump the Chart Version
+## Bump the Chart Version
 
-Edit /etc/genestack/helm-chart-versions.yaml:
+# Edit /etc/genestack/helm-chart-versions.yaml:
     charts:
       longhorn: 1.11.1
 
-Retain the node-selector override file:
+# Retain the node-selector override file:
     ---
     global:
       nodeSelector:
@@ -72,243 +72,243 @@ Retain the node-selector override file:
     defaultSettings:
       systemManagedComponentsNodeSelector: "longhorn.io/storage-node:enabled"
 
-    # The two values above cover all user-deployed components in the Longhorn Helm chart.
-    # The setting above under defaultSettings covers the system-managed components.
-    # The individual component definitions below are optional overrides and are listed for completeness.
-    # longhornManager:
-    #   nodeSelector:
-    #     longhorn.io/storage-node: "enabled"
-    #
-    # longhornDriver:
-    #   nodeSelector:
-    #     longhorn.io/storage-node: "enabled"
-    #
-    # longhornUI:
-    #   nodeSelector:
-    #     longhorn.io/storage-node: "enabled"
-    #
-    # longhornConversionWebhook:
-    #   nodeSelector:
-    #     longhorn.io/storage-node: "enabled"
-    #
-    # longhornAdmissionWebhook:
-    #   nodeSelector:
-    #     longhorn.io/storage-node: "enabled"
-    #
-    # longhornRecoveryBackend:
-    #   nodeSelector:
-    #     longhorn.io/storage-node: "enabled"
+# The two values above cover all user-deployed components in the Longhorn Helm chart.
+# The setting above under defaultSettings covers the system-managed components.
+# The individual component definitions below are optional overrides and are listed for completeness.
+longhornManager:
+#   nodeSelector:
+#     longhorn.io/storage-node: "enabled"
+#
+longhornDriver:
+#   nodeSelector:
+#     longhorn.io/storage-node: "enabled"
+#
+longhornUI:
+#   nodeSelector:
+#     longhorn.io/storage-node: "enabled"
+#
+longhornConversionWebhook:
+#   nodeSelector:
+#     longhorn.io/storage-node: "enabled"
+#
+longhornAdmissionWebhook:
+#   nodeSelector:
+#     longhorn.io/storage-node: "enabled"
+#
+longhornRecoveryBackend:
+#   nodeSelector:
+#     longhorn.io/storage-node: "enabled"
 
-Execute the Upgrade
+## Execute the Upgrade
 
-Run the upgrade:
-    /opt/genestack/bin/install-longhorn.sh
+# Run the upgrade:
+/opt/genestack/bin/install-longhorn.sh
 
-Post-Maint
+### Post-Maint
 
-Confirm all Longhorn pods are healthy and scheduled only on labeled nodes:
-    kubectl -n longhorn-system get pods -o wide --sort-by=.spec.nodeName
+# Confirm all Longhorn pods are healthy and scheduled only on labeled nodes:
+kubectl -n longhorn-system get pods -o wide --sort-by=.spec.nodeName
 
-Confirm Longhorn settings survived the hop:
-    kubectl -n longhorn-system get settings.longhorn.io system-managed-components-node-selector -o yaml
+# Confirm Longhorn settings survived the hop:
+kubectl -n longhorn-system get settings.longhorn.io system-managed-components-node-selector -o yaml
 
-Confirm all volumes remain healthy:
-    kubectl -n longhorn-system get volumes.longhorn.io -o custom-columns=VOLUME:.metadata.name,STATE:.status.state,ROBUSTNESS:.status.robustness
+# Confirm all volumes remain healthy:
+kubectl -n longhorn-system get volumes.longhorn.io -o custom-columns=VOLUME:.metadata.name,STATE:.status.state,ROBUSTNESS:.status.robustness
 
-Confirm no failed pre-upgrade checks were recorded:
-    kubectl -n longhorn-system get events --sort-by=.lastTimestamp | tail -n 40
+# Confirm no failed pre-upgrade checks were recorded:
+kubectl -n longhorn-system get events --sort-by=.lastTimestamp | tail -n 40
 
-Check for attached volumes still running through an out-of-date instance-manager image:
-    VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh
+# Check for attached volumes still running through an out-of-date instance-manager image:
+VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh
 
-Filter the report to a single workload family while keeping the header row:
-    VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search mariadb
+# Filter the report to a single workload family while keeping the header row:
+VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search mariadb
 
-If the script returns rows, the volume engine is already upgraded but the workload is still attached through an older instance-manager pod. These old instance-manager pods are not removed until the workload pod is restarted or otherwise detached from the volume.
+# If the script returns rows, the volume engine is already upgraded but the workload is still attached through an older instance-manager pod. These old instance-manager pods are not removed until the workload pod is restarted or otherwise detached from the volume.
 
-Workload Restart Patterns After 1.10.2 to 1.11.1
+## Workload Restart Patterns After 1.10.2 to 1.11.1
 
-This cleanup is optional and is not required for a successful Longhorn upgrade. It is expected Longhorn behavior for older instance-manager pods to remain while attached workloads continue using them. These old instance-manager pods will be removed naturally as the associated volumes are recreated, detached, or reattached over time.
+# This cleanup is optional and is not required for a successful Longhorn upgrade. It is expected Longhorn behavior for older instance-manager pods to remain while attached workloads continue using them. These old instance-manager pods will be removed naturally as the associated volumes are recreated, detached, or reattached over time.
 
-Use the script output to identify the workload pods that are still attached through an older instance-manager image. Treat each workload family according to its controller type and failure domain. Restart one workload member at a time, wait for the replacement pod to become Ready, rerun the script, and confirm the PVC is no longer attached through the old instance-manager image before proceeding.
+# Use the script output to identify the workload pods that are still attached through an older instance-manager image. Treat each workload family according to its controller type and failure domain. Restart one workload member at a time, wait for the replacement pod to become Ready, rerun the script, and confirm the PVC is no longer attached through the old instance-manager image before proceeding.
 
-MariaDB cluster (operator or StatefulSet):
-    # Identify replica members and the current primary before restarting anything
-    kubectl -n <namespace> get pods -l app.kubernetes.io/name=mariadb -o wide
-    kubectl -n <namespace> get mariadbs.k8s.mariadb.com
+# MariaDB cluster (operator or StatefulSet):
+# Identify replica members and the current primary before restarting anything
+kubectl -n <namespace> get pods -l app.kubernetes.io/name=mariadb -o wide
+kubectl -n <namespace> get mariadbs.k8s.mariadb.com
 
-    # Confirm replication is healthy and that the cluster can tolerate one member restart
-    MARIADB_ROOT_PASSWORD="$(kubectl -n <namespace> get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)"
-    kubectl -n <namespace> exec -it <mariadb-primary-pod> -- mariadb -uroot -p"${MARIADB_ROOT_PASSWORD}" -e 'SHOW REPLICA STATUS\G'
-    kubectl -n <namespace> exec -it <mariadb-primary-pod> -- mariadb -uroot -p"${MARIADB_ROOT_PASSWORD}" -e 'SHOW PROCESSLIST;'
+# Confirm replication is healthy and that the cluster can tolerate one member restart
+MARIADB_ROOT_PASSWORD="$(kubectl -n <namespace> get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)"
+kubectl -n <namespace> exec -it <mariadb-primary-pod> -- mariadb -uroot -p"${MARIADB_ROOT_PASSWORD}" -e 'SHOW REPLICA STATUS\G'
+kubectl -n <namespace> exec -it <mariadb-primary-pod> -- mariadb -uroot -p"${MARIADB_ROOT_PASSWORD}" -e 'SHOW PROCESSLIST;'
 
-    # Delete or roll only one replica pod at a time to force CSI detach and reattach
-    kubectl -n <namespace> delete pod <mariadb-replica-pod>
+# Delete or roll only one replica pod at a time to force CSI detach and reattach
+kubectl -n <namespace> delete pod <mariadb-replica-pod>
 
-    # Wait for the replacement pod to become Ready and rejoin replication
-    kubectl -n <namespace> get pod <mariadb-replica-pod> -w
-    kubectl -n <namespace> exec -it <mariadb-primary-pod> -- mariadb -uroot -p"${MARIADB_ROOT_PASSWORD}" -e 'SHOW REPLICA STATUS\G'
+# Wait for the replacement pod to become Ready and rejoin replication
+kubectl -n <namespace> get pod <mariadb-replica-pod> -w
+kubectl -n <namespace> exec -it <mariadb-primary-pod> -- mariadb -uroot -p"${MARIADB_ROOT_PASSWORD}" -e 'SHOW REPLICA STATUS\G'
 
-    # Recheck cluster health, then continue to the next replica
-    kubectl -n <namespace> get pods -l app.kubernetes.io/name=mariadb
-    VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search mariadb
+# Recheck cluster health, then continue to the next replica
+kubectl -n <namespace> get pods -l app.kubernetes.io/name=mariadb
+VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search mariadb
 
-    # Restart the primary only after all replicas are healthy and the application maintenance window allows it
-    kubectl -n <namespace> delete pod <mariadb-primary-pod>
+# Restart the primary only after all replicas are healthy and the application maintenance window allows it
+kubectl -n <namespace> delete pod <mariadb-primary-pod>
 
-RabbitMQ cluster (operator):
-    # Identify all RabbitMQ members and confirm cluster quorum is healthy
-    kubectl -n <namespace> get pods | grep rabbitmq
-    kubectl -n <namespace> exec -it <rabbitmq-pod> -- rabbitmq-diagnostics cluster_status
+# RabbitMQ cluster (operator):
+# Identify all RabbitMQ members and confirm cluster quorum is healthy
+kubectl -n <namespace> get pods | grep rabbitmq
+kubectl -n <namespace> exec -it <rabbitmq-pod> -- rabbitmq-diagnostics cluster_status
 
-    # Verify mirrored or quorum queues are synchronized before each restart
-    kubectl -n <namespace> exec -it <rabbitmq-pod> -- rabbitmqctl list_queues name type messages consumers
+# Verify mirrored or quorum queues are synchronized before each restart
+kubectl -n <namespace> exec -it <rabbitmq-pod> -- rabbitmqctl list_queues name type messages consumers
 
-    # Delete one RabbitMQ pod at a time and let the operator recreate it
-    kubectl -n <namespace> delete pod <rabbitmq-pod>
+# Delete one RabbitMQ pod at a time and let the operator recreate it
+kubectl -n <namespace> delete pod <rabbitmq-pod>
 
-    # Wait for the replacement pod to become Ready and rejoin the cluster
-    kubectl -n <namespace> get pod <rabbitmq-pod> -w
-    kubectl -n <namespace> exec -it <rabbitmq-pod> -- rabbitmq-diagnostics cluster_status
+# Wait for the replacement pod to become Ready and rejoin the cluster
+kubectl -n <namespace> get pod <rabbitmq-pod> -w
+kubectl -n <namespace> exec -it <rabbitmq-pod> -- rabbitmq-diagnostics cluster_status
 
-    # Verify queue health and cluster status before moving to the next member
-    kubectl -n <namespace> exec -it <rabbitmq-pod> -- rabbitmqctl list_queues name type messages consumers
-    VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search rabbitmq
+# Verify queue health and cluster status before moving to the next member
+kubectl -n <namespace> exec -it <rabbitmq-pod> -- rabbitmqctl list_queues name type messages consumers
+VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search rabbitmq
 
-    # Never restart the full cluster at once during Longhorn cleanup
-    VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search rabbitmq
+# Never restart the full cluster at once during Longhorn cleanup
+VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search rabbitmq
 
-PostgreSQL cluster (operator):
-    # Identify primary and replica members before making changes
-    kubectl -n <namespace> get pods | grep postgres
-    kubectl -n <namespace> exec -it <postgres-primary-pod> -- psql -U postgres -c 'select client_addr, state, sync_state from pg_stat_replication;'
+# PostgreSQL cluster (operator):
+# Identify primary and replica members before making changes
+kubectl -n <namespace> get pods | grep postgres
+kubectl -n <namespace> exec -it <postgres-primary-pod> -- psql -U postgres -c 'select client_addr, state, sync_state from pg_stat_replication;'
 
-    # Confirm streaming replication is healthy and replicas are caught up
-    kubectl -n <namespace> exec -it <postgres-replica-pod> -- psql -U postgres -c 'select pg_is_in_recovery();'
-    kubectl -n <namespace> exec -it <postgres-primary-pod> -- psql -U postgres -c 'select application_name, replay_lag from pg_stat_replication;'
+# Confirm streaming replication is healthy and replicas are caught up
+kubectl -n <namespace> exec -it <postgres-replica-pod> -- psql -U postgres -c 'select pg_is_in_recovery();'
+kubectl -n <namespace> exec -it <postgres-primary-pod> -- psql -U postgres -c 'select application_name, replay_lag from pg_stat_replication;'
 
-    # Restart one replica pod at a time first so each volume detaches and reattaches cleanly
-    kubectl -n <namespace> delete pod <postgres-replica-pod>
+# Restart one replica pod at a time first so each volume detaches and reattaches cleanly
+kubectl -n <namespace> delete pod <postgres-replica-pod>
 
-    # Wait for the replacement replica to return to Ready and resume replication
-    kubectl -n <namespace> get pod <postgres-replica-pod> -w
-    kubectl -n <namespace> exec -it <postgres-primary-pod> -- psql -U postgres -c 'select client_addr, state, sync_state from pg_stat_replication;'
+# Wait for the replacement replica to return to Ready and resume replication
+kubectl -n <namespace> get pod <postgres-replica-pod> -w
+kubectl -n <namespace> exec -it <postgres-primary-pod> -- psql -U postgres -c 'select client_addr, state, sync_state from pg_stat_replication;'
 
-    # Recheck cluster health before continuing
-    kubectl -n <namespace> get pods | grep postgres
-    VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search postgres
+# Recheck cluster health before continuing
+kubectl -n <namespace> get pods | grep postgres
+VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search postgres
 
-    # Restart the primary only after replicas are healthy and a controlled switchover or brief write interruption is acceptable
-    kubectl -n <namespace> delete pod <postgres-primary-pod>
+# Restart the primary only after replicas are healthy and a controlled switchover or brief write interruption is acceptable
+kubectl -n <namespace> delete pod <postgres-primary-pod>
 
-StatefulSet backed cache or storage nodes:
-    Examples include Memcached, Redis, Loki backend, Loki write, and similar ordinal pods.
-    # Identify the StatefulSet members still listed by the script
-    VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search <app-name>
-    kubectl -n <namespace> get statefulset
+# StatefulSet backed cache or storage nodes:
+# Examples include Memcached, Redis, Loki backend, Loki write, and similar ordinal pods.
+# Identify the StatefulSet members still listed by the script
+VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search <app-name>
+kubectl -n <namespace> get statefulset
 
-    # Confirm the service can tolerate a single member restart
-    kubectl -n <namespace> get pods -l app.kubernetes.io/name=<app-name>
-    kubectl -n <namespace> get endpoints <service-name>
+# Confirm the service can tolerate a single member restart
+kubectl -n <namespace> get pods -l app.kubernetes.io/name=<app-name>
+kubectl -n <namespace> get endpoints <service-name>
 
-    # Delete one pod at a time and wait for the same ordinal to return to Ready
-    kubectl -n <namespace> delete pod <statefulset-pod>
-    kubectl -n <namespace> get pod <statefulset-pod> -w
+# Delete one pod at a time and wait for the same ordinal to return to Ready
+kubectl -n <namespace> delete pod <statefulset-pod>
+kubectl -n <namespace> get pod <statefulset-pod> -w
 
-    # Verify the application shard, replica, or ring membership is healthy before moving on
-    kubectl -n <namespace> get pods -l app.kubernetes.io/name=<app-name>
-    VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search <app-name>
+# Verify the application shard, replica, or ring membership is healthy before moving on
+kubectl -n <namespace> get pods -l app.kubernetes.io/name=<app-name>
+VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search <app-name>
 
-Prometheus and Alertmanager StatefulSets:
-    # Confirm the monitoring stack is healthy and that temporary loss of one member is acceptable
-    kubectl -n prometheus get pods
-    kubectl -n prometheus get endpoints
+# Prometheus and Alertmanager StatefulSets:
+# Confirm the monitoring stack is healthy and that temporary loss of one member is acceptable
+kubectl -n prometheus get pods
+kubectl -n prometheus get endpoints
 
-    # Restart one StatefulSet pod at a time
-    kubectl -n <namespace> delete pod <prometheus-or-alertmanager-pod>
+# Restart one StatefulSet pod at a time
+kubectl -n <namespace> delete pod <prometheus-or-alertmanager-pod>
 
-    # Wait for the replacement pod to become Ready and for targets, WAL replay, and peer membership to stabilize
-    kubectl -n <namespace> get pod <prometheus-or-alertmanager-pod> -w
-    kubectl -n <namespace> get pods
+# Wait for the replacement pod to become Ready and for targets, WAL replay, and peer membership to stabilize
+kubectl -n <namespace> get pod <prometheus-or-alertmanager-pod> -w
+kubectl -n <namespace> get pods
 
-    # Rerun the script before proceeding to the next member
-    VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search <prometheus-or-alertmanager-name>
+# Rerun the script before proceeding to the next member
+VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search <prometheus-or-alertmanager-name>
 
-Single pod or low replica Deployments:
-    Examples include Grafana or other deployment-managed services with one PVC-backed pod.
-    # Confirm a brief restart is acceptable for the service
-    kubectl -n <namespace> get deployment <deployment-name>
-    kubectl -n <namespace> get pod -l app.kubernetes.io/name=<app-name>
+# Single pod or low replica Deployments:
+# Examples include Grafana or other deployment-managed services with one PVC-backed pod.
+# Confirm a brief restart is acceptable for the service
+kubectl -n <namespace> get deployment <deployment-name>
+kubectl -n <namespace> get pod -l app.kubernetes.io/name=<app-name>
 
-    # Use rollout restart on the Deployment when possible so the controller manages pod replacement
-    kubectl -n <namespace> rollout restart deployment/<deployment-name>
+# Use rollout restart on the Deployment when possible so the controller manages pod replacement
+kubectl -n <namespace> rollout restart deployment/<deployment-name>
 
-    # Wait for the replacement pod to become Ready and verify the service is healthy
-    kubectl -n <namespace> rollout status deployment/<deployment-name>
-    kubectl -n <namespace> get pod -l app.kubernetes.io/name=<app-name>
+# Wait for the replacement pod to become Ready and verify the service is healthy
+kubectl -n <namespace> rollout status deployment/<deployment-name>
+kubectl -n <namespace> get pod -l app.kubernetes.io/name=<app-name>
 
-    # Rerun the script to confirm the PVC is no longer attached through the older instance-manager image
-    VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search <app-name>
+# Rerun the script to confirm the PVC is no longer attached through the older instance-manager image
+VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search <app-name>
 
-Deployment consumers sharing an RWX volume:
-    Examples include Glance API or any deployment with multiple pods sharing the same Longhorn-backed RWX volume.
-    # Confirm the shared volume is healthy before restarting consumers
-    kubectl -n longhorn-system get volumes.longhorn.io
-    kubectl -n <namespace> get pod -l app.kubernetes.io/name=<app-name>
+# Deployment consumers sharing an RWX volume:
+# Examples include Glance API or any deployment with multiple pods sharing the same Longhorn-backed RWX volume.
+# Confirm the shared volume is healthy before restarting consumers
+kubectl -n longhorn-system get volumes.longhorn.io
+kubectl -n <namespace> get pod -l app.kubernetes.io/name=<app-name>
 
-    # Restart one pod at a time so at least one consumer remains available when the application requires it
-    kubectl -n <namespace> delete pod <consumer-pod>
+# Restart one pod at a time so at least one consumer remains available when the application requires it
+kubectl -n <namespace> delete pod <consumer-pod>
 
-    # Wait for the replacement pod to become Ready and verify the application still has access to the shared volume
-    kubectl -n <namespace> get pod <consumer-pod> -w
-    kubectl -n <namespace> get pod -l app.kubernetes.io/name=<app-name>
+# Wait for the replacement pod to become Ready and verify the application still has access to the shared volume
+kubectl -n <namespace> get pod <consumer-pod> -w
+kubectl -n <namespace> get pod -l app.kubernetes.io/name=<app-name>
 
-    # Continue until each consumer pod previously reported by the script has been recreated
-    VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search <app-name>
+# Continue until each consumer pod previously reported by the script has been recreated
+VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search <app-name>
 
-Other operator-managed or storage-backed workloads:
-    # Identify the controller type, replica count, and quorum or failover behavior before restarting pods
-    kubectl -n <namespace> get pod <pod-name> -o yaml | egrep 'ownerReferences:|kind:|name:'
-    kubectl -n <namespace> get pods
+# Other operator-managed or storage-backed workloads:
+# Identify the controller type, replica count, and quorum or failover behavior before restarting pods
+kubectl -n <namespace> get pod <pod-name> -o yaml | egrep 'ownerReferences:|kind:|name:'
+kubectl -n <namespace> get pods
 
-    # Prefer restarting replicas or followers before leaders or primaries
-    kubectl -n <namespace> get pods -o wide
+# Prefer restarting replicas or followers before leaders or primaries
+kubectl -n <namespace> get pods -o wide
 
-    # Restart one pod at a time
-    kubectl -n <namespace> delete pod <pod-name>
+# Restart one pod at a time
+kubectl -n <namespace> delete pod <pod-name>
 
-    # After each restart, verify application health and rerun the script before continuing
-    kubectl -n <namespace> get pod <pod-name> -w
-    VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search <workload-name>
+# After each restart, verify application health and rerun the script before continuing
+kubectl -n <namespace> get pod <pod-name> -w
+VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search <workload-name>
 
-Suggested restart order by risk:
-    1. Single pod or low replica Deployments with brief restart tolerance.
-    2. StatefulSet backed caches or horizontally replicated storage consumers one pod at a time.
-    3. Operator managed clustered data services one replica at a time after confirming quorum and replication health.
-    4. Primaries, leaders, or shared-volume consumers that require tighter coordination.
+# Suggested restart order by risk:
+# 1. Single pod or low replica Deployments with brief restart tolerance.
+# 2. StatefulSet backed caches or horizontally replicated storage consumers one pod at a time.
+# 3. Operator managed clustered data services one replica at a time after confirming quorum and replication health.
+# 4. Primaries, leaders, or shared-volume consumers that require tighter coordination.
 
-Troubleshooting
+### Troubleshooting
 
-If Old Instance-Managers Remain After the Upgrade
+## If Old Instance-Managers Remain After the Upgrade
 
-Do not delete old instance-manager pods directly while attached workloads are still using them.
+# Do not delete old instance-manager pods directly while attached workloads are still using them.
 
-Instead:
-    1. Run VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh
-    2. Group results by workload type and controller.
-    3. Use --search <workload-name> to focus on one workload family while keeping the header row.
-    4. Restart one workload pod at a time.
-    5. Wait for the pod to return to Ready.
-    6. Rerun the script and verify the PVC moved off the old instance-manager image.
+# Instead:
+# 1. Run VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh
+# 2. Group results by workload type and controller.
+# 3. Use --search <workload-name> to focus on one workload family while keeping the header row.
+# 4. Restart one workload pod at a time.
+# 5. Wait for the pod to return to Ready.
+# 6. Rerun the script and verify the PVC moved off the old instance-manager image.
 
-Examples:
-    kubectl -n grafana rollout restart deployment/grafana
-    kubectl -n openstack delete pod rabbitmq-server-2
-    kubectl -n prometheus delete pod prometheus-kube-prometheus-stack-prometheus-0
-    VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search rabbitmq
+# Examples:
+kubectl -n grafana rollout restart deployment/grafana
+kubectl -n openstack delete pod rabbitmq-server-2
+kubectl -n prometheus delete pod prometheus-kube-prometheus-stack-prometheus-0
+VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search rabbitmq
 
-Sources
+### Sources
 
-https://longhorn.io/docs/1.11.1/deploy/upgrade/longhorn-manager/
-https://longhorn.io/docs/1.11.1/important-notes/
-https://github.com/longhorn/longhorn
+# https://longhorn.io/docs/1.11.1/deploy/upgrade/longhorn-manager/
+# https://longhorn.io/docs/1.11.1/important-notes/
+# https://github.com/longhorn/longhorn
