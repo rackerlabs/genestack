@@ -45,6 +45,8 @@
       label: "openstack-storage-plane=enabled"
     - hosts: "{{ groups['cinder_storage_nodes'] |default([]) }}"
       label: "openstack-storage-node=enabled"
+    - hosts: "{{ groups['longhorn_storage_nodes'] |default([]) }}"
+      label: "longhorn.io/storage-node=enabled"
     - hosts: "{{ groups['storage_nodes'] |default([]) }}"
       role: "storage-node"
     - hosts: "{{ groups['ceph_storage_nodes'] |default([]) }}"

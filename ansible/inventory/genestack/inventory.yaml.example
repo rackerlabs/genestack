@@ -118,6 +118,11 @@ all:
                 storage-01.env1.example.local: null
                 storage-02.env1.example.local: null
                 storage-03.env1.example.local: null
+            longhorn_storage_nodes:  # nodes used for Longhorn storage labeled as longhorn.io/storage-node=enabled
+              hosts:
+                controller-01.env1.example.local: null
+                controller-02.env1.example.local: null
+                controller-03.env1.example.local: null
         openstack_compute_nodes:  # nodes used for nova compute labeled as openstack-compute-node=enabled
           hosts:
             compute-01.env1.example.local: null
