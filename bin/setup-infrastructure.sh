@@ -212,13 +212,6 @@ else
 fi
 kubectl apply -f /etc/genestack/kubesecrets.yaml
 
-if [ -f /etc/genestack/skylinesecrets.yaml ]; then
-  echo "Reusing existing /etc/genestack/skylinesecrets.yaml"
-else
-  /opt/genestack/bin/create-skyline-secrets.sh
-fi
-kubectl apply -f /etc/genestack/skylinesecrets.yaml
-
 # Deploy mariadb
 /opt/genestack/bin/install-mariadb-operator.sh
 echo "Waiting for the mariadb-operator-webhook to be available"

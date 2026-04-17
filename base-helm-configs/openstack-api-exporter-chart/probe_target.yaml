@@ -29,7 +29,7 @@ services:
     endpoint: http://placement-api.openstack.svc.cluster.local:8778
   - name: skyline-api
     endpoint: >
-      http://skyline-apiserver.openstack.svc.cluster.local:9999/api/openstack/skyline
+      http://skyline-api.openstack.svc.cluster.local:9999/api/openstack/skyline
   - name: nova-metadata
     endpoint: http://nova-metadata.openstack.svc.cluster.local:8775
   - name: nova-novncproxy

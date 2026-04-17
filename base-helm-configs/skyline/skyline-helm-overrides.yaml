@@ -1,0 +1,90 @@
+---
+images:
+  pull_policy: IfNotPresent
+  tags:
+    skyline_db_sync: ghcr.io/rackerlabs/genestack-images/skyline:2025.1-latest
+    skyline: ghcr.io/rackerlabs/genestack-images/skyline:2025.1-latest
+    skyline_nginx: ghcr.io/rackerlabs/genestack-images/skyline:2025.1-latest
+    db_init: ghcr.io/rackerlabs/genestack-images/openstack-client:latest
+    dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/openstack-client:latest
+
+endpoints:
+  fluentd:
+    namespace: fluentbit
+  identity:
+    port:
+      api:
+        default: 5000
+        internal: 5000
+        public: 80
+        service: 5000
+  oslo_db:
+    host_fqdn_override:
+      default: mariadb-cluster-primary.openstack.svc.cluster.local
+    hosts:
+      default: mariadb-cluster-primary
+    scheme:
+      default: mysql
+      skyline: mysql
+  oslo_cache:
+    host_fqdn_override:
+      default: memcached.openstack.svc.cluster.local
+    hosts:
+      default: memcached
+
+pod:
+  replicas:
+    skyline: 1
+  resources:
+    enabled: false
+    skyline:
+      requests:
+        memory: "512Mi"
+        cpu: "100m"
+      limits:
+        memory: "2048Mi"
+        cpu: "2000m"
+  security_context:
+    skyline:
+      container:
+        skyline:
+          runAsUser: 42424
+          readOnlyRootFilesystem: true
+        nginx:
+          runAsUser: 0
+
+dependencies:
+  static:
+    db_sync:
+      jobs: []
+
+conf:
+  skyline:
+    default:
+      debug: true
+    openstack:
+      interface_type: internal
+      default_region: RegionOne
+      enforce_new_defaults: true
+
+manifests:
+  certificates: false
+  configmap_bin: true
+  configmap_etc: true
+  deployment: true
+  job_db_init: true
+  job_db_sync: true
+  job_db_drop: false
+  secret_db: true
+  secret_keystone: true
+  job_ks_user: true
+  service: true
+  ingress: false
+  service_ingress: false
+  secret_registry: true
+
+network:
+  skyline:
+    ingress:
+      public: false
