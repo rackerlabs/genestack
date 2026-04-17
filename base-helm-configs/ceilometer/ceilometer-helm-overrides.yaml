@@ -37,6 +37,7 @@ images:
 conf:
   ceilometer:
     DEFAULT:
+      libvirt_uri: qemu+unix:///system?socket=/var/run/libvirt/libvirt-sock
       debug: "false"
       # NOTE: If you need to enable debug, it is highly recommended to uncomment the below lines
       # to ensure logs are ceilometer does not spam the logs
