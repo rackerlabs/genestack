@@ -11,7 +11,7 @@ spec:
   gatewayClassName: eg
   infrastructure:
     annotations:
-      metallb.universe.tf/address-pool: gateway-api-external
+      metallb.io/address-pool: gateway-api-external
   listeners:
     - name: cluster-http
       port: 80
