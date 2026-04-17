@@ -1,0 +1,175 @@
+MariaDB Operator Replication Maintenance: 25.10.4 to 26.3.0
+
+Validation
+
+This maintenance upgrades the MariaDB Operator for a primary/replica MariaDB cluster from 25.10.4 to 26.3.0.
+Never delete MariaDB CRDs during this maintenance.
+
+Major operational risks:
+- Deleting MariaDB CRDs will remove the MariaDB pods.
+- The 25.x replication line changed syncBinlog from boolean to integer, and the 26.3.0 webhook can reject legacy syncBinlog: true values until the MariaDB CR is patched to syncBinlog: 1.
+- The 26.3.0 Helm overrides require the 26.3.0 image schema for maxscaleImage, exporterImage, and exporterMaxscaleImage.
+- Replication must be revalidated after the operator hop.
+
+Goal
+
+Upgrade the MariaDB Operator from 25.10.4 to 26.3.0 for a primary/replica cluster and restore healthy replication.
+
+Prep
+
+Deployment Node
+
+Verify current versions, target availability, and override format:
+
+helm list -A | grep mariadb
+helm status mariadb-operator -n mariadb-system
+helm repo update mariadb-operator
+helm search repo mariadb-operator/mariadb-operator --versions | head -20
+grep -n "mariadbImageName\\|mariadbImage:\\|maxscaleImage\\|exporterImage\\|exporterMaxscaleImage" \
+  /etc/genestack/helm-configs/mariadb-operator/mariadb-operator-helm-overrides.yaml
+
+Expected:
+- The current version is 25.10.4.
+- The target version is 26.3.0.
+- The override file has been reviewed against the 26.3.0 image schema where required.
+
+Retrieve the MariaDB root password and current primary, verify replication health, and create a backup:
+
+export MARIADB_ROOT_PASSWORD=$(kubectl get secret mariadb -n openstack \
+  -o jsonpath='{.data.root-password}' | base64 -d)
+export PRIMARY_POD=$(kubectl get mariadb mariadb-cluster -n openstack -o jsonpath="{.status.currentPrimary}")
+kubectl exec -it mariadb-cluster-1 -n openstack -- mariadb -u root -p"$MARIADB_ROOT_PASSWORD" -e "
+SHOW REPLICA STATUS\G"
+kubectl exec -i "$PRIMARY_POD" -n openstack -- mariadb-dump \
+  -u root -p"$MARIADB_ROOT_PASSWORD" --all-databases --single-transaction \
+  --routines --triggers > mariadb-cluster-full-backup-$(date +%Y%m%d-%H%M).sql
+ls -lh mariadb-cluster-full-backup-*.sql | tail -1
+
+Execute
+
+Update the Target Version
+
+Edit /etc/genestack/helm-chart-versions.yaml:
+
+mariadb-operator: 26.3.0
+
+Apply Required Overrides or Patches
+
+Update the MariaDB image for 26.3.0 compatibility, verify the 26.3.0 image schema in /etc/genestack/helm-configs/mariadb-operator/mariadb-operator-helm-overrides.yaml, patch syncBinlog if the CR still stores the old boolean value, enable autoUpdateDataPlane: true, and apply:
+
+kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
+kubectl -n openstack patch mariadb mariadb-cluster --type merge \
+  -p '{"spec":{"replication":{"syncBinlog":1}}}'
+kubectl --namespace openstack apply -k /etc/genestack/kustomize/mariadb-cluster/overlay
+
+Run the Maintenance
+
+kubectl scale deployment mariadb-operator -n mariadb-system --replicas=0
+kubectl scale deployment mariadb-operator-webhook -n mariadb-system --replicas=0
+kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
+kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook 2>/dev/null || true
+helm uninstall mariadb-operator -n mariadb-system
+/opt/genestack/bin/install-mariadb-operator.sh
+kubectl --namespace openstack apply -k /etc/genestack/kustomize/mariadb-cluster/overlay
+export MARIADB_NAME=mariadb-cluster
+export MARIADB_NAMESPACE=openstack
+cat >/tmp/migrate-replication.sh <<'EOF'
+#!/bin/bash
+
+set -eo pipefail
+
+if [[ -z "$MARIADB_NAME" || -z "$MARIADB_NAMESPACE" || -z "$MARIADB_ROOT_PASSWORD" ]]; then
+  echo "Error: MARIADB_NAME, MARIADB_NAMESPACE and MARIADB_ROOT_PASSWORD env vars must be set."
+  exit 1
+fi
+
+function exec_sql {
+  local pod=$1
+  local sql=$2
+  kubectl exec -n "$MARIADB_NAMESPACE" "$pod" -- mariadb -u root -p"$MARIADB_ROOT_PASSWORD" -e "$sql"
+}
+
+function wait_for_ready_replication {
+  local pod=$1
+  local timeout=300
+  local interval=10
+  local elapsed=0
+
+  while [[ $elapsed -lt $timeout ]]; do
+    exec_sql "$pod" "SHOW REPLICA STATUS\\G" | tee /tmp/replication_status_$pod_$MARIADB_NAMESPACE.txt
+
+    if grep -q "Slave_IO_Running: Yes" /tmp/replication_status_$pod_$MARIADB_NAMESPACE.txt && \
+       grep -q "Slave_SQL_Running: Yes" /tmp/replication_status_$pod_$MARIADB_NAMESPACE.txt; then
+      return 0
+    fi
+
+    sleep $interval
+    ((elapsed+=interval))
+  done
+
+  echo "Error: Replication did not become ready on $pod within 5 minutes."
+  exit 1
+}
+
+PODS=$(kubectl get pods -n "$MARIADB_NAMESPACE" \
+  -l app.kubernetes.io/instance=$MARIADB_NAME \
+  -o jsonpath="{.items[*].metadata.name}")
+PRIMARY_POD=$(kubectl get mariadb "$MARIADB_NAME" -n "$MARIADB_NAMESPACE" \
+  -o jsonpath="{.status.currentPrimary}")
+
+for POD in $PODS; do
+  if [[ "$POD" == "$PRIMARY_POD" ]]; then
+    continue
+  fi
+
+  exec_sql "$POD" "STOP SLAVE 'mariadb-operator';"
+  exec_sql "$POD" "RESET SLAVE 'mariadb-operator' ALL;"
+  kubectl delete pod "$POD" -n "$MARIADB_NAMESPACE"
+  kubectl wait --for=condition=Ready pod/"$POD" -n "$MARIADB_NAMESPACE" --timeout=5m
+  wait_for_ready_replication "$POD"
+done
+EOF
+chmod +x /tmp/migrate-replication.sh
+/tmp/migrate-replication.sh
+
+Post-Maint
+
+Verify the release, new CRD, and replication health:
+
+helm list -A | grep mariadb
+kubectl get crd pointintimerecoveries.k8s.mariadb.com
+kubectl get pods -n mariadb-system -o wide
+kubectl get pods -n openstack | grep mariadb
+kubectl exec -it mariadb-cluster-1 -n openstack -- mariadb -u root -p"$MARIADB_ROOT_PASSWORD" -e "
+SHOW REPLICA STATUS\G"
+
+Expected:
+- The operator version is 26.3.0.
+- pointintimerecoveries.k8s.mariadb.com exists.
+- Slave_IO_Running: Yes
+- Slave_SQL_Running: Yes
+
+Troubleshooting
+
+Common Failure Signal
+
+If the webhook rejects MariaDB CR updates after the hop, stop and confirm syncBinlog has been converted from the older boolean form to the newer integer form.
+
+Rollback
+
+Restore the previous chart version in /etc/genestack/helm-chart-versions.yaml and rerun:
+
+/opt/genestack/bin/install-mariadb-operator.sh
+
+Additional Recovery Actions
+
+If replication threads remain stuck after the migration:
+
+kubectl exec -it mariadb-cluster-1 -n openstack -- mariadb \
+  -u root -p"$MARIADB_ROOT_PASSWORD" -e "SHOW PROCESSLIST;"
+kubectl exec -it mariadb-cluster-1 -n openstack -- mariadb \
+  -u root -p"$MARIADB_ROOT_PASSWORD" -e "KILL <thread_id>;"
+
+Sources
+
+https://github.com/mariadb-operator/mariadb-operator/releases/tag/26.3.0
