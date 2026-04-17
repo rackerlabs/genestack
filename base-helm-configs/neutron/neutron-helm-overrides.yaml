@@ -1,33 +1,33 @@
 ---
 images:
   tags:
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    neutron_db_sync: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_dhcp: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_l3: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_l2gw: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_linuxbridge_agent: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_metadata: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_ovn_metadata: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_ovn_vpn: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_openvswitch_agent: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_server: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_rpc_server: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_bagpipe_bgp: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_netns_cleanup_cron: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    neutron_db_sync: "ghcr.io/rackerlabs/genestack-images/neutron:2025.1-latest"
+    neutron_dhcp: "ghcr.io/rackerlabs/genestack-images/neutron:2025.1-latest"
+    neutron_l3: "ghcr.io/rackerlabs/genestack-images/neutron:2025.1-latest"
+    neutron_l2gw: "ghcr.io/rackerlabs/genestack-images/neutron:2025.1-latest"
+    neutron_linuxbridge_agent: "ghcr.io/rackerlabs/genestack-images/neutron:2025.1-latest"
+    neutron_metadata: "ghcr.io/rackerlabs/genestack-images/neutron:2025.1-latest"
+    neutron_ovn_metadata: "ghcr.io/rackerlabs/genestack-images/neutron:2025.1-latest"
+    neutron_ovn_vpn: "ghcr.io/rackerlabs/genestack-images/neutron:2025.1-latest"
+    neutron_openvswitch_agent: "ghcr.io/rackerlabs/genestack-images/neutron:2025.1-latest"
+    neutron_server: "ghcr.io/rackerlabs/genestack-images/neutron:2025.1-latest"
+    neutron_rpc_server: "ghcr.io/rackerlabs/genestack-images/neutron:2025.1-latest"
+    neutron_bagpipe_bgp: "ghcr.io/rackerlabs/genestack-images/neutron:2025.1-latest"
+    neutron_netns_cleanup_cron: "ghcr.io/rackerlabs/genestack-images/neutron:2025.1-latest"
     test: null
     purge_test: "quay.io/rackspace/rackerlabs-ospurge:latest"
     rabbit_init: null
     netoffload: null
-    neutron_sriov_agent: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_sriov_agent_init: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_bgp_dragent: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
-    neutron_ironic_agent: "ghcr.io/rackerlabs/genestack-images/neutron:2024.1-latest"
+    neutron_sriov_agent: "ghcr.io/rackerlabs/genestack-images/neutron:2025.1-latest"
+    neutron_sriov_agent_init: "ghcr.io/rackerlabs/genestack-images/neutron:2025.1-latest"
+    neutron_bgp_dragent: "ghcr.io/rackerlabs/genestack-images/neutron:2025.1-latest"
+    neutron_ironic_agent: "ghcr.io/rackerlabs/genestack-images/neutron:2025.1-latest"
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
     image_repo_sync: null
 
@@ -193,8 +193,7 @@ conf:
       router_scheduler_driver: neutron.scheduler.l3_agent_scheduler.AZLeastRoutersScheduler
       rpc_state_report_workers: 2
       rpc_workers: 2
-      # NOTE(cloudnull): in 2025.1 we can add firewall_v2
-      service_plugins: "ovn-router,ovn-vpnaas,qos,metering,trunk,segments"
+      service_plugins: "ovn-router,ovn-vpnaas,qos,metering,trunk,segments,firewall_v2"
     cache:
       enabled: true
       backend: dogpile.cache.memcached
@@ -203,12 +202,11 @@ conf:
         type: multistring
         values:
           - "VPN:strongswan:neutron_vpnaas.services.vpn.service_drivers.ovn_ipsec.IPsecOvnVPNDriver:default"
-          # - "FIREWALL_V2:fwaas_db:neutron_fwaas.services.firewall.service_drivers.ovn.firewall_l3_driver.OVNFwaasDriver:default"
+          - "FIREWALL_V2:fwaas_db:neutron_fwaas.services.firewall.service_drivers.ovn.firewall_l3_driver.OVNFwaasDriver:default"
     fwaas:
       agent_version: v2
       driver: neutron_fwaas.services.firewall.service_drivers.ovn.firewall_l3_driver.OVNFwaasDriver
-      # NOTE(cloudnull): in 2025.1 we can enable this
-      enabled: false
+      enabled: true
     agent:
       extensions: vpnaas,metadata
       availability_zone: az1
@@ -293,12 +291,10 @@ conf:
     ml2_conf:
       agent:
         availability_zone: az1
-        # NOTE(cloudnull): in 2025.1 we can add fwaas_v2
-        extensions: "fip_qos,gateway_ip_qos"
-      fwaas:
-        firewall_l2_driver: noop
+        # NOTE(cloudnull): in 2025.1 we can enable fwaas_v2
+        enabled: true
       ml2:
-        extension_drivers: "port_security,qos"
+        extension_drivers: "port_security,qos,fwaas_v2"
         mechanism_drivers: ovn
         tenant_network_types: geneve
         type_drivers: "flat,vlan,geneve"
@@ -403,6 +399,7 @@ manifests:
   pod_rally_test: false
   secret_db: false
   secret_ingress_tls: false
+  secret_keystone: false
   secret_rabbitmq: false
   service_ingress_server: false
   deployment_rpc_server: false
