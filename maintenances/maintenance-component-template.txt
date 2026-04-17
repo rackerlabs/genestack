@@ -1,13 +1,13 @@
-### Component Maintenance: <component-name> <from-version> to <to-version>
+Component Maintenance: <component-name> <from-version> to <to-version>
 
-## Notes
+Notes
 
 (opt) refers to /opt, the standard install path for Genestack.
 (etc) refers to /etc, the standard override path for Genestack.
 Replace all placeholder values in angle brackets before using this runbook.
 Keep this runbook operational. Prefer exact commands, exact file paths, expected outputs, and explicit validation steps.
 
-## Validation
+Validation
 
 State the validated source version.
 State the validated target version.
@@ -15,15 +15,15 @@ State the validated Kubernetes version or platform dependency, if relevant.
 State whether the upgrade path is directly supported or if intermediate versions are required.
 State the major operational risks for this maintenance.
 
-## Goal
+Goal
 
 Describe the exact maintenance outcome in one or two lines.
 Example:
 Upgrade <component-name> from <from-version> to <to-version> without service regression and with all workloads returning healthy.
 
-## Prep
+Prep
 
-# Deployment Node
+Deployment Node
 
 Identify the deployment host or bastion that should be used for the maintenance.
 
@@ -52,7 +52,7 @@ Expected:
 
 If backups are required but missing, stop and create them before continuing.
 
-# Configuration Review
+Configuration Review
 
 Identify the configuration files or values that control this component:
     # <path>
@@ -63,7 +63,7 @@ Verify the current config:
 
 If any non-standard override exists, document it in the maintenance log before continuing.
 
-# Pre-Change Safety Checks
+Pre-Change Safety Checks
 
 Check for unhealthy pods, jobs, or dependent services:
     # <command>
@@ -73,9 +73,9 @@ Check for open alerts or known blockers:
 
 If any critical dependency is unhealthy, stop and resolve it first.
 
-## Execute
+Execute
 
-# Update the Target Version
+Update the Target Version
 
 Edit the version source of truth:
     # <path>
@@ -85,7 +85,7 @@ Set:
 
 If this maintenance requires an intermediate version, perform each hop separately and validate after each hop.
 
-# Apply Required Overrides or Patches
+Apply Required Overrides or Patches
 
 Update the required override file:
     # <path>
@@ -95,7 +95,7 @@ Set:
 
 If no overrides are required, explicitly say so in the final runbook.
 
-# Run the Maintenance
+Run the Maintenance
 
 Run a dry-run or blast-radius check if one exists:
     # <command>
@@ -108,7 +108,7 @@ Run the maintenance command:
 
 If the maintenance must be split into stages, list each stage as a separate command block with validation after each stage.
 
-# UI Steps
+UI Steps
 
 If UI actions are required, list them one line at a time.
 <Component UI> -> <Section>
@@ -118,7 +118,7 @@ Save
 
 If no UI steps are required, remove this subsection.
 
-## Post-Maint
+Post-Maint
 
 Verify the deployed version:
     # <command>
@@ -147,15 +147,15 @@ Expected:
 Re-enable anything disabled during prep:
     # <command>
 
-## Troubleshooting
+Troubleshooting
 
-# Common Failure Signal
+Common Failure Signal
 
 Describe the most likely failure indicator.
 Example:
 If the upgrade fails with <specific error>, stop and do not continue to post-maint validation.
 
-# Rollback
+Rollback
 
 List the rollback trigger.
 List the rollback command or procedure:
@@ -164,7 +164,7 @@ List the rollback command or procedure:
 Expected:
     # <expected rollback state>
 
-# Additional Recovery Actions
+Additional Recovery Actions
 
 If pods remain stuck:
     # <command>
@@ -178,7 +178,7 @@ Select <object>
 Set <field> to <value>
 Save
 
-## Sources
+Sources
 
 <raw URL>
 <raw URL>

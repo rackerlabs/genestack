@@ -1,15 +1,15 @@
-### Flex Kubespray and Kubernetes Upgrade from 1.33.x to 1.34.3
+Flex Kubespray and Kubernetes Upgrade from 1.33.x to 1.34.3
 
-## Notes
+Notes
 
 (opt) refers to /opt, the standard install path for Genestack.
 (etc) refers to /etc, the standard override path for Genestack.
 The version of Kubernetes and Kubespray is bundled with the specific release of Genestack unless explicitly overridden.
 Kubernetes does not support skipping multiple minor releases in a single upgrade. Step through each minor version.
 
-## Prep
+Prep
 
-# Deployment Node
+Deployment Node
 
 Create a tmux logging directory:
     mkdir -p ~/maintenances
@@ -40,9 +40,9 @@ Disable the self-healing Octavia LB systemd service:
 Raise file descriptor limits in the current shell:
     ulimit -n 65535
 
-## Kubespray
+Kubespray
 
-# Validate Kubespray Version
+Validate Kubespray Version
 
 For Kubernetes 1.34.3, Kubespray v2.30.0 is required.
 
@@ -58,7 +58,7 @@ If Kubespray is not at the desired version:
     git fetch --tags
     git checkout v2.30.0
 
-# Ensure kubeadm Upgrade Task Is Patched
+Ensure kubeadm Upgrade Task Is Patched
 
 This patch must exist so controller upgrades do not block on the CreateJob preflight check:
     # diff --git a/roles/kubernetes/control-plane/tasks/kubeadm-upgrade.yml b/roles/kubernetes/control-plane/tasks/kubeadm-upgrade.yml
@@ -80,7 +80,7 @@ If the change is missing, edit this file:
 Add this line:
     # --ignore-preflight-errors=CreateJob
 
-# Validate Inventory and Node Reachability
+Validate Inventory and Node Reachability
 
 Confirm all inventory nodes are reachable:
     ansible -m ping all
@@ -98,7 +98,7 @@ Example cleanup flow for a dead node:
     # kubectl get pods -A -o wide | grep <node-name>
     # kubectl delete pod <pod_name> -n <namespace> --force --grace-period=0
 
-# Refresh Ansible Facts
+Refresh Ansible Facts
 
 Refresh Ansible facts:
     cd /opt/genestack/submodules/kubespray
@@ -108,9 +108,9 @@ If fact regeneration fails and stale facts need cleanup:
     cd /tmp
     # rm -f <fact-cache-pattern>
 
-## Kubernetes
+Kubernetes
 
-# Determine the Target Kubernetes Version
+Determine the Target Kubernetes Version
 
 The bundled version can be found in:
     /opt/genestack/ansible/inventory/genestack/group_vars/k8s_cluster/k8s_cluster.yaml
@@ -123,7 +123,7 @@ If you must override it, edit:
 Set:
     kube_version: 1.34.3
 
-# Upgrade the Control Plane and etcd Nodes First
+Upgrade the Control Plane and etcd Nodes First
 
 Run the control plane and etcd upgrade:
     cd /opt/genestack/submodules/kubespray
@@ -134,7 +134,7 @@ Run the control plane and etcd upgrade:
 Expected:
     # Control-plane and etcd nodes report Kubernetes version 1.34.3
 
-# Upgrade OpenStack Worker and Network Nodes
+Upgrade OpenStack Worker and Network Nodes
 
 Run the worker and network node upgrade:
     ansible-playbook cluster.yml -e upgrade_cluster_setup=true -e kube_version=1.34.3 --become --limit "openstack_control_plane:ovn_network_nodes" --list-hosts
@@ -144,7 +144,7 @@ Run the worker and network node upgrade:
 Expected:
     # OpenStack worker and network nodes report Kubernetes version 1.34.3
 
-# Upgrade Compute Nodes
+Upgrade Compute Nodes
 
 Run the compute node upgrade:
     ansible-playbook cluster.yml -e upgrade_cluster_setup=true -e kube_version=1.34.3 --become --limit "flex_compute_nodes" --list-hosts
@@ -154,7 +154,7 @@ Run the compute node upgrade:
 Expected:
     # Compute nodes report Kubernetes version 1.34.3
 
-# Upgrade Block Nodes
+Upgrade Block Nodes
 
 Run the block node upgrade:
     ansible-playbook cluster.yml -e upgrade_cluster_setup=true -e kube_version=1.34.3 --become --limit "storage_nodes" --list-hosts
@@ -164,12 +164,12 @@ Run the block node upgrade:
 Expected:
     # Block nodes report Kubernetes version 1.34.3
 
-# Install a Matching kubectl
+Install a Matching kubectl
 
 Install the matching kubectl version:
     /opt/genestack/scripts/install_kubectl.sh
 
-## Post-Maint
+Post-Maint
 
 Re-enable HPA:
     cd ~/maintenances
@@ -193,15 +193,15 @@ Create an instance.
 Create a volume.
 Create a container.
 
-## Troubleshooting
+Troubleshooting
 
-# Manual kubeadm Upgrade on the First Controller
+Manual kubeadm Upgrade on the First Controller
 
 If the health check fails during upgrade, manually upgrade the first controller:
     sudo /usr/local/bin/kubeadm upgrade apply -y 1.34.3 --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=CreateJob
     sudo /usr/local/bin/kubeadm upgrade node
 
-# Re-Apply the kubeadm Upgrade Task Patch
+Re-Apply the kubeadm Upgrade Task Patch
 
 If the prior workaround still fails, re-check this patch:
     # diff --git a/roles/kubernetes/control-plane/tasks/kubeadm-upgrade.yml b/roles/kubernetes/control-plane/tasks/kubeadm-upgrade.yml

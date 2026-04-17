@@ -1,45 +1,31 @@
-### Longhorn Maintenance: 1.8.0 to 1.9.1
+Longhorn Maintenance: 1.10.2 to 1.11.1
 
-## Validation
+Validation
 
-Kubernetes 1.33.4 satisfies the upstream Longhorn requirement of Kubernetes v1.25+ for upgrades to Longhorn v1.8.0 or newer.
-Upstream explicitly supports upgrading Longhorn v1.9.1 from v1.8.x.
-Upstream node-selector guidance for v1.9.1 confirms that both user-deployed components and system-managed components must be constrained, and warns that instance-manager changes may not apply immediately while volumes remain attached.
+Kubernetes 1.33.4 satisfies the published Longhorn minimum of Kubernetes v1.25+.
+Upstream explicitly supports upgrading Longhorn v1.11.1 from v1.10.x.
+The latest stable 1.11.x release is 1.11.1.
+Upstream recommends manual checks before upgrade. Ensure no important volume is faulted, avoid failed BackingImage objects, and create a Longhorn system backup first.
 
-## Goal
+Goal
 
-Upgrade Genestack Longhorn from 1.8.0 to 1.9.1 while ensuring Longhorn pods and replicas only run on nodes labeled longhorn.io/storage-node=enabled.
+Upgrade Longhorn from 1.10.2 to 1.11.1 while preserving the storage-node placement restrictions already introduced in earlier maintenance.
 
-## Prep
+Prep
 
-# Deployment Node
+Deployment Node
 
-Verify Kubernetes and current Longhorn state:
+Confirm current health:
     kubectl version
     kubectl -n longhorn-system get pods -o wide
-    kubectl -n longhorn-system get nodes.longhorn.io
+    kubectl -n longhorn-system get volumes.longhorn.io -o custom-columns=VOLUME:.metadata.name,STATE:.status.state,ROBUSTNESS:.status.robustness
+    kubectl -n longhorn-system get backingimages.longhorn.io
+
+Confirm selector settings are still correct:
+    kubectl get nodes -L longhorn.io/storage-node
     kubectl -n longhorn-system get settings.longhorn.io system-managed-components-node-selector -o yaml
 
-Inventory current node labels and current Longhorn placement:
-    kubectl get nodes -L longhorn.io/storage-node,openstack-compute-node,openstack-storage-node
-    kubectl get pv -o custom-columns=PV:.metadata.name,CLAIM_NS:.spec.claimRef.namespace,CLAIM:.spec.claimRef.name,SC:.spec.storageClassName,VOLUME:.spec.csi.volumeHandle
-    kubectl -n longhorn-system get replicas.longhorn.io -o custom-columns=REPLICA:.metadata.name,VOLUME:.spec.volumeName,NODE:.spec.nodeID,STATE:.status.currentState
-
-Confirm volumes are healthy before maintenance:
-    kubectl -n longhorn-system get volumes.longhorn.io -o custom-columns=VOLUME:.metadata.name,STATE:.status.state,ROBUSTNESS:.status.robustness,OWNER:.status.ownerID
-
-If any important volume is faulted, stop and resolve that first.
-
-# Select Storage Nodes
-
-Apply the Longhorn storage label only to nodes that are allowed to host Longhorn pods and volume replicas:
-    # kubectl label node <node-a> longhorn.io/storage-node=enabled --overwrite
-    # kubectl label node <node-b> longhorn.io/storage-node=enabled --overwrite
-
-Verify:
-    kubectl get nodes -L longhorn.io/storage-node
-
-# Prevent Longhorn from Using Unlabeled Nodes
+Prevent Longhorn from Using Unlabeled Nodes
 
 Disable Longhorn scheduling on any node that does not have longhorn.io/storage-node=enabled:
     for node in $(kubectl get nodes -l 'longhorn.io/storage-node!=enabled' -o name | sed 's|node/||'); do
@@ -59,23 +45,25 @@ Set Scheduling to Disable
 Set Eviction Requested to Enable
 Save
 
-Watch replica movement until no replicas remain on disallowed nodes:
-    kubectl -n longhorn-system get replicas.longhorn.io -o custom-columns=REPLICA:.metadata.name,VOLUME:.spec.volumeName,NODE:.spec.nodeID,STATE:.status.currentState --watch
-
 After replicas are gone, remove the Longhorn node CR for any node that should remain in Kubernetes but should no longer remain in Longhorn:
     for node in $(kubectl get nodes -l 'longhorn.io/storage-node!=enabled' -o name | sed 's|node/||'); do
       kubectl -n longhorn-system delete nodes.longhorn.io "$node"
     done
 
-If you need to confirm or repair a node manually, use the Longhorn UI.
-Longhorn UI -> Node
-Select the node
-Confirm no replicas remain
-Delete
+Optional but recommended. Create a Longhorn system backup before the hop.
+Longhorn UI -> System Backup
+Create
+Wait for backup completion before upgrading
 
-# Update Longhorn Overrides
+Execute
 
-Create or update /etc/genestack/helm-configs/longhorn/longhorn.yaml with:
+Bump the Chart Version
+
+Edit /etc/genestack/helm-chart-versions.yaml:
+    charts:
+      longhorn: 1.11.1
+
+Retain the node-selector override file:
     ---
     global:
       nodeSelector:
@@ -111,35 +99,26 @@ Create or update /etc/genestack/helm-configs/longhorn/longhorn.yaml with:
     #   nodeSelector:
     #     longhorn.io/storage-node: "enabled"
 
-# Bump the Chart Version
-
-Edit /etc/genestack/helm-chart-versions.yaml:
-    charts:
-      longhorn: 1.9.1
-
-## Execute
+Execute the Upgrade
 
 Run the upgrade:
     /opt/genestack/bin/install-longhorn.sh
 
-## Post-Maint
+Post-Maint
 
-Confirm pods are running only on allowed nodes:
+Confirm all Longhorn pods are healthy and scheduled only on labeled nodes:
     kubectl -n longhorn-system get pods -o wide --sort-by=.spec.nodeName
 
-Confirm the setting was applied:
+Confirm Longhorn settings survived the hop:
     kubectl -n longhorn-system get settings.longhorn.io system-managed-components-node-selector -o yaml
 
-Expected:
-    # value: longhorn.io/storage-node:enabled
-
-Confirm Longhorn nodes not intended for storage are unschedulable or absent:
-    kubectl -n longhorn-system get nodes.longhorn.io -o yaml | egrep 'name:|allowScheduling:'
-
-Confirm volumes remain healthy:
+Confirm all volumes remain healthy:
     kubectl -n longhorn-system get volumes.longhorn.io -o custom-columns=VOLUME:.metadata.name,STATE:.status.state,ROBUSTNESS:.status.robustness
 
-Check for attached volumes still running through an old instance-manager image:
+Confirm no failed pre-upgrade checks were recorded:
+    kubectl -n longhorn-system get events --sort-by=.lastTimestamp | tail -n 40
+
+Check for attached volumes still running through an out-of-date instance-manager image:
     VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh
 
 Filter the report to a single workload family while keeping the header row:
@@ -147,7 +126,7 @@ Filter the report to a single workload family while keeping the header row:
 
 If the script returns rows, the volume engine is already upgraded but the workload is still attached through an older instance-manager pod. These old instance-manager pods are not removed until the workload pod is restarted or otherwise detached from the volume.
 
-# Workload Restart Patterns After 1.8.0 to 1.9.1
+Workload Restart Patterns After 1.10.2 to 1.11.1
 
 This cleanup is optional and is not required for a successful Longhorn upgrade. It is expected Longhorn behavior for older instance-manager pods to remain while attached workloads continue using them. These old instance-manager pods will be removed naturally as the associated volumes are recreated, detached, or reattached over time.
 
@@ -308,25 +287,9 @@ Suggested restart order by risk:
     3. Operator managed clustered data services one replica at a time after confirming quorum and replication health.
     4. Primaries, leaders, or shared-volume consumers that require tighter coordination.
 
-## Troubleshooting
+Troubleshooting
 
-# If System-Managed Pods Stay on the Wrong Nodes
-
-System-managed node-selector changes may not apply immediately while volumes are attached.
-
-If needed, detach remaining volumes or stop workloads that keep them attached.
-
-Re-save the System Managed Components Node Selector setting in the Longhorn UI.
-Longhorn UI -> Setting
-General
-System Managed Components Node Selector
-Set to longhorn.io/storage-node:enabled
-Save
-
-Re-check pod placement:
-    kubectl -n longhorn-system get pods -o wide --sort-by=.spec.nodeName
-
-# If Old Instance-Managers Remain After the Upgrade
+If Old Instance-Managers Remain After the Upgrade
 
 Do not delete old instance-manager pods directly while attached workloads are still using them.
 
@@ -344,11 +307,8 @@ Examples:
     kubectl -n prometheus delete pod prometheus-kube-prometheus-stack-prometheus-0
     VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search rabbitmq
 
-For operator managed clustered services such as RabbitMQ or PostgreSQL, restart only one member at a time and verify cluster health between restarts.
+Sources
 
-## Sources
-
-https://longhorn.io/docs/1.9.1/deploy/upgrade/longhorn-manager/
-https://longhorn.io/docs/1.9.1/advanced-resources/deploy/node-selector/
-https://longhorn.io/docs/1.9.1/references/settings/
+https://longhorn.io/docs/1.11.1/deploy/upgrade/longhorn-manager/
 https://longhorn.io/docs/1.11.1/important-notes/
+https://github.com/longhorn/longhorn

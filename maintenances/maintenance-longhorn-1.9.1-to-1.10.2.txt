@@ -1,31 +1,30 @@
-### Longhorn Maintenance: 1.10.2 to 1.11.1
+Longhorn Maintenance: 1.9.1 to 1.10.2
 
-## Validation
+Validation
 
 Kubernetes 1.33.4 satisfies the published Longhorn minimum of Kubernetes v1.25+.
-Upstream explicitly supports upgrading Longhorn v1.11.1 from v1.10.x.
-The latest stable 1.11.x release is 1.11.1.
-Upstream recommends manual checks before upgrade. Ensure no important volume is faulted, avoid failed BackingImage objects, and create a Longhorn system backup first.
+Upstream explicitly supports upgrading Longhorn v1.10.1 from v1.9.x. 1.10.2 is the latest stable 1.10.x patch.
+This is the highest-risk hop because Longhorn v1.10 removes the longhorn.io/v1beta1 API and the deprecated replica.status.evictionRequested field.
+Upstream documents a mandatory CRD stored-version migration and verification step before the 1.10 upgrade, and there is a real 1.33.4 field report showing upgrade failure when v1beta1 remained in CRD stored versions.
 
-## Goal
+Goal
 
-Upgrade Longhorn from 1.10.2 to 1.11.1 while preserving the storage-node placement restrictions already introduced in earlier maintenance.
+Upgrade Longhorn from 1.9.1 to 1.10.2 only after confirming CRDs no longer store v1beta1 data.
 
-## Prep
+Prep
 
-# Deployment Node
+Deployment Node
 
-Confirm current health:
+Confirm current version and cluster health:
     kubectl version
     kubectl -n longhorn-system get pods -o wide
     kubectl -n longhorn-system get volumes.longhorn.io -o custom-columns=VOLUME:.metadata.name,STATE:.status.state,ROBUSTNESS:.status.robustness
-    kubectl -n longhorn-system get backingimages.longhorn.io
 
-Confirm selector settings are still correct:
+Confirm node-selector settings still restrict Longhorn to storage nodes:
     kubectl get nodes -L longhorn.io/storage-node
     kubectl -n longhorn-system get settings.longhorn.io system-managed-components-node-selector -o yaml
 
-# Prevent Longhorn from Using Unlabeled Nodes
+Prevent Longhorn from Using Unlabeled Nodes
 
 Disable Longhorn scheduling on any node that does not have longhorn.io/storage-node=enabled:
     for node in $(kubectl get nodes -l 'longhorn.io/storage-node!=enabled' -o name | sed 's|node/||'); do
@@ -50,20 +49,42 @@ After replicas are gone, remove the Longhorn node CR for any node that should re
       kubectl -n longhorn-system delete nodes.longhorn.io "$node"
     done
 
-Optional but recommended. Create a Longhorn system backup before the hop.
-Longhorn UI -> System Backup
-Create
-Wait for backup completion before upgrading
+Verify CRD stored versions before the upgrade:
+    kubectl get crd -l app.kubernetes.io/name=longhorn -o=jsonpath='{range .items[*]}{.metadata.name}{": "}{.status.storedVersions}{"\n"}{end}'
 
-## Execute
+If every Longhorn CRD already shows only ["v1beta2"], skip the migration section and continue.
 
-# Bump the Chart Version
+Execute
+
+Required CRD Migration for the 1.10 Upgrade
+
+Run the upstream migration procedure before the upgrade:
+    kubectl patch validatingwebhookconfiguration longhorn-webhook-validator --type=merge -p "$(kubectl get validatingwebhookconfiguration longhorn-webhook-validator -o json | jq '.webhooks[0].rules |= map(if .apiGroups == ["longhorn.io"] and .resources == ["settings"] then .operations |= map(select(. != "UPDATE")) else . end)')"
+    migration_time="$(date +%Y-%m-%dT%H:%M:%S)"
+    crds=($(kubectl get crd -l app.kubernetes.io/name=longhorn -o json | jq -r '.items[] | select(.status.storedVersions | index("v1beta1")) | .metadata.name'))
+    for crd in "${crds[@]}"; do
+      echo "Migrating ${crd} ..."
+      for name in $(kubectl -n longhorn-system get "$crd" -o jsonpath='{.items[*].metadata.name}'); do
+        kubectl patch "${crd}" "${name}" -n longhorn-system --type=merge -p='{"metadata":{"annotations":{"migration-time":"'"${migration_time}"'"}}}'
+      done
+      kubectl patch crd "${crd}" --subresource=status --type=merge -p '{"status":{"storedVersions":["v1beta2"]}}'
+    done
+
+Verify migration success:
+    kubectl get crd -l app.kubernetes.io/name=longhorn -o=jsonpath='{range .items[*]}{.metadata.name}{": "}{.status.storedVersions}{"\n"}{end}'
+
+Expected:
+    # Every Longhorn CRD shows only ["v1beta2"]
+
+Do not proceed until every Longhorn CRD shows only ["v1beta2"].
+
+Bump the Chart Version
 
 Edit /etc/genestack/helm-chart-versions.yaml:
     charts:
-      longhorn: 1.11.1
+      longhorn: 1.10.2
 
-Retain the node-selector override file:
+Keep the same node-selector override file in /etc/genestack/helm-configs/longhorn/longhorn.yaml:
     ---
     global:
       nodeSelector:
@@ -99,24 +120,27 @@ Retain the node-selector override file:
     #   nodeSelector:
     #     longhorn.io/storage-node: "enabled"
 
-# Execute the Upgrade
+Execute the Upgrade
 
 Run the upgrade:
     /opt/genestack/bin/install-longhorn.sh
 
-## Post-Maint
+Post-Maint
 
-Confirm all Longhorn pods are healthy and scheduled only on labeled nodes:
+Confirm the pre-upgrade check did not fail:
+    kubectl -n longhorn-system get events --sort-by=.lastTimestamp | tail -n 40
+
+Confirm all Longhorn pods are running:
     kubectl -n longhorn-system get pods -o wide --sort-by=.spec.nodeName
 
-Confirm Longhorn settings survived the hop:
-    kubectl -n longhorn-system get settings.longhorn.io system-managed-components-node-selector -o yaml
+Confirm CRDs still show only v1beta2:
+    kubectl get crd -l app.kubernetes.io/name=longhorn -o=jsonpath='{range .items[*]}{.metadata.name}{": "}{.status.storedVersions}{"\n"}{end}'
 
-Confirm all volumes remain healthy:
+Expected:
+    # Every Longhorn CRD shows only ["v1beta2"]
+
+Confirm volumes are healthy:
     kubectl -n longhorn-system get volumes.longhorn.io -o custom-columns=VOLUME:.metadata.name,STATE:.status.state,ROBUSTNESS:.status.robustness
-
-Confirm no failed pre-upgrade checks were recorded:
-    kubectl -n longhorn-system get events --sort-by=.lastTimestamp | tail -n 40
 
 Check for attached volumes still running through an out-of-date instance-manager image:
     VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh
@@ -126,7 +150,7 @@ Filter the report to a single workload family while keeping the header row:
 
 If the script returns rows, the volume engine is already upgraded but the workload is still attached through an older instance-manager pod. These old instance-manager pods are not removed until the workload pod is restarted or otherwise detached from the volume.
 
-# Workload Restart Patterns After 1.10.2 to 1.11.1
+Workload Restart Patterns After 1.9.1 to 1.10.2
 
 This cleanup is optional and is not required for a successful Longhorn upgrade. It is expected Longhorn behavior for older instance-manager pods to remain while attached workloads continue using them. These old instance-manager pods will be removed naturally as the associated volumes are recreated, detached, or reattached over time.
 
@@ -287,13 +311,21 @@ Suggested restart order by risk:
     3. Operator managed clustered data services one replica at a time after confirming quorum and replication health.
     4. Primaries, leaders, or shared-volume consumers that require tighter coordination.
 
-## Troubleshooting
+Troubleshooting
 
-# If Old Instance-Managers Remain After the Upgrade
+Rollback Signal
 
-Do not delete old instance-manager pods directly while attached workloads are still using them.
+If the upgrade fails with an error mentioning status.storedVersions[0]: Invalid value: "v1beta1", stop and roll back. That indicates the CRD migration was incomplete.
 
-Instead:
+Helm rollback pattern:
+    helm history longhorn -n longhorn-system
+    # helm rollback longhorn <REVISION> -n longhorn-system
+
+If Old Instance-Managers Remain After the Upgrade
+
+Longhorn may keep an older instance-manager pod alive until each attached workload pod is restarted and its volume is detached and reattached through the new instance-manager image.
+
+Safe workflow:
     1. Run VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh
     2. Group results by workload type and controller.
     3. Use --search <workload-name> to focus on one workload family while keeping the header row.
@@ -307,8 +339,9 @@ Examples:
     kubectl -n prometheus delete pod prometheus-kube-prometheus-stack-prometheus-0
     VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search rabbitmq
 
-## Sources
+Sources
 
-https://longhorn.io/docs/1.11.1/deploy/upgrade/longhorn-manager/
+https://longhorn.io/docs/1.10.1/deploy/upgrade/longhorn-manager/
+https://longhorn.io/docs/1.10.0/important-notes/
 https://longhorn.io/docs/1.11.1/important-notes/
-https://github.com/longhorn/longhorn
+https://github.com/longhorn/longhorn/issues/11886

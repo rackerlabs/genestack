@@ -131,9 +131,9 @@ Longhorn upgrades in Genestack should follow the supported staged maintenance ho
 
 Operator runbooks for each hop are available under `maintenances/`:
 
-- `maintenances/maintenance-longhorn-1.8.0-to-1.9.1.md`
-- `maintenances/maintenance-longhorn-1.9.1-to-1.10.2.md`
-- `maintenances/maintenance-longhorn-1.10.2-to-1.11.1.md`
+- `maintenances/maintenance-longhorn-1.8.0-to-1.9.1.txt`
+- `maintenances/maintenance-longhorn-1.9.1-to-1.10.2.txt`
+- `maintenances/maintenance-longhorn-1.10.2-to-1.11.1.txt`
 
 !!! warning
 
