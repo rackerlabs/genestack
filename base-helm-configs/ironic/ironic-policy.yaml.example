@@ -1,0 +1,334 @@
+conf:
+  policy:
+    # Multi-tenant BYON model:
+    # - system admins keep cloud-wide control
+    # - project admins/managers can bring their own nodes
+    # - project members can operate owned/leased nodes
+    # - project readers can view owned/leased nodes
+    #
+    # IMPORTANT:
+    # - Review against your exact Ironic release before deployment.
+    # - Keep secrets masked unless you have a very specific reason not to.
+
+    # Internal flag for public API routes
+    "public_api": "is_public_api:True"
+
+    # Show or mask secrets within node driver information in API responses
+    "show_password": "!"
+
+    # Show or mask secrets within instance information in API responses
+    "show_instance_secrets": "!"
+
+    # Rule to match service role usage with a service project
+    "service_role": "role:service and project_name:%(config.service_project_name)s"
+
+    # Create Node records
+    "baremetal:node:create": "(role:admin and system_scope:all) or (role:service and system_scope:all)"
+
+    # Create node records owned by the associated user project
+    "baremetal:node:create:self_owned_node": "(role:admin) or (role:manager) or (role:service)"
+
+    # Retrieve multiple Node records, filtered by owner or client project_id
+    "baremetal:node:list": "(role:reader) or (role:service)"
+
+    # Retrieve multiple Node records without project filtering
+    "baremetal:node:list_all": "(role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role"
+
+    # Retrieve a single Node record
+    "baremetal:node:get": "((role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role) or (role:reader and (project_id:%(node.owner)s or project_id:%(node.lessee)s)) or (role:service and project_id:%(node.owner)s)"
+
+    # Threshold for filtered node information visibility
+    "baremetal:node:get:filter_threshold": "(role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role"
+
+    # Visibility of node last_error
+    "baremetal:node:get:last_error": "((role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:reader and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Visibility of node reservation
+    "baremetal:node:get:reservation": "((role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:reader and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Visibility of node driver_internal_info
+    "baremetal:node:get:driver_internal_info": "((role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:reader and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Visibility of node driver_info
+    "baremetal:node:get:driver_info": "((role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:reader and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Update node driver_info
+    "baremetal:node:update:driver_info": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:member and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Update node properties
+    "baremetal:node:update:properties": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:member and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Update node chassis_uuid
+    "baremetal:node:update:chassis_uuid": "role:admin and system_scope:all"
+
+    # Update node instance_uuid
+    "baremetal:node:update:instance_uuid": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:member and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Update node lessee
+    "baremetal:node:update:lessee": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:member and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Update node owner
+    "baremetal:node:update:owner": "(role:member and system_scope:all) or rule:service_role"
+
+    # Update node driver / driver interfaces
+    "baremetal:node:update:driver_interfaces": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:admin and project_id:%(node.owner)s) or (role:manager and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Update node network_data
+    "baremetal:node:update:network_data": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:member and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Update node conductor_group
+    "baremetal:node:update:conductor_group": "(role:member and system_scope:all) or rule:service_role"
+
+    # Update node name
+    "baremetal:node:update:name": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:member and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Update node retired / retired_reason
+    "baremetal:node:update:retired": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:member and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Generalized node update
+    "baremetal:node:update": "((role:member and system_scope:all) or rule:service_role) or (role:member and (project_id:%(node.owner)s or project_id:%(node.lessee)s)) or (role:service and system_scope:all)"
+
+    # Update node extra
+    "baremetal:node:update_extra": "((role:member and system_scope:all) or rule:service_role) or (role:member and (project_id:%(node.owner)s or project_id:%(node.lessee)s)) or (role:service and system_scope:all)"
+
+    # Update node instance_info
+    "baremetal:node:update_instance_info": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:member and project_id:%(node.owner)s) or (role:admin and project_id:%(node.lessee)s) or (role:manager and project_id:%(node.lessee)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Update node owner even when provisioned
+    "baremetal:node:update_owner_provisioned": "role:admin and system_scope:all"
+
+    # Delete Node records
+    "baremetal:node:delete": "role:admin and system_scope:all"
+
+    # Delete self-owned Node records
+    "baremetal:node:delete:self_owned_node": "role:admin and project_id:%(node.owner)s"
+
+    # Validate Nodes
+    "baremetal:node:validate": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:member and project_id:%(node.owner)s) or (role:admin and project_id:%(node.lessee)s) or (role:manager and project_id:%(node.lessee)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Set maintenance
+    "baremetal:node:set_maintenance": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:member and project_id:%(node.owner)s) or (role:admin and project_id:%(node.lessee)s) or (role:manager and project_id:%(node.lessee)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Clear maintenance
+    "baremetal:node:clear_maintenance": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:member and project_id:%(node.owner)s) or (role:admin and project_id:%(node.lessee)s) or (role:manager and project_id:%(node.lessee)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Get boot device
+    "baremetal:node:get_boot_device": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:admin and project_id:%(node.owner)s) or (role:manager and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Set boot device
+    "baremetal:node:set_boot_device": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:admin and project_id:%(node.owner)s) or (role:manager and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Get indicator state
+    "baremetal:node:get_indicator_state": "((role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role) or (role:reader and (project_id:%(node.owner)s or project_id:%(node.lessee)s)) or (role:service and project_id:%(node.owner)s)"
+
+    # Set indicator state
+    "baremetal:node:set_indicator_state": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:member and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Inject NMI
+    "baremetal:node:inject_nmi": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:admin and project_id:%(node.owner)s) or (role:manager and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Get node states
+    "baremetal:node:get_states": "((role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role) or (role:reader and (project_id:%(node.owner)s or project_id:%(node.lessee)s)) or (role:service and project_id:%(node.owner)s)"
+
+    # Set power state
+    "baremetal:node:set_power_state": "((role:member and system_scope:all) or rule:service_role) or (role:member and (project_id:%(node.owner)s or project_id:%(node.lessee)s)) or (role:service and system_scope:all)"
+
+    # Set boot mode
+    "baremetal:node:set_boot_mode": "((role:member and system_scope:all) or rule:service_role) or (role:member and (project_id:%(node.owner)s or project_id:%(node.lessee)s)) or (role:service and system_scope:all)"
+
+    # Set secure boot
+    "baremetal:node:set_secure_boot": "((role:member and system_scope:all) or rule:service_role) or (role:member and (project_id:%(node.owner)s or project_id:%(node.lessee)s)) or (role:service and system_scope:all)"
+
+    # Set provision state
+    "baremetal:node:set_provision_state": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:member and project_id:%(node.owner)s) or (role:admin and project_id:%(node.lessee)s) or (role:manager and project_id:%(node.lessee)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Allow clean steps
+    "baremetal:node:set_provision_state:clean_steps": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:member and project_id:%(node.owner)s) or (role:admin and project_id:%(node.lessee)s) or (role:manager and project_id:%(node.lessee)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Allow service steps
+    "baremetal:node:set_provision_state:service_steps": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:member and project_id:%(node.owner)s) or (role:admin and project_id:%(node.lessee)s) or (role:manager and project_id:%(node.lessee)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Set RAID state
+    "baremetal:node:set_raid_state": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:member and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Get console
+    "baremetal:node:get_console": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:member and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Set console state
+    "baremetal:node:set_console_state": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:member and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # List VIFs
+    "baremetal:node:vif:list": "((role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role) or (role:reader and (project_id:%(node.owner)s or project_id:%(node.lessee)s)) or (role:service and project_id:%(node.owner)s)"
+
+    # Attach VIF
+    "baremetal:node:vif:attach": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:member and project_id:%(node.owner)s) or (role:admin and project_id:%(node.lessee)s) or (role:manager and project_id:%(node.lessee)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Detach VIF
+    "baremetal:node:vif:detach": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:member and project_id:%(node.owner)s) or (role:admin and project_id:%(node.lessee)s) or (role:manager and project_id:%(node.lessee)s) or (role:service and project_id:%(node.owner)s)"
+
+    # List traits
+    "baremetal:node:traits:list": "((role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role) or (role:reader and (project_id:%(node.owner)s or project_id:%(node.lessee)s)) or (role:service and project_id:%(node.owner)s)"
+
+    # Set traits
+    "baremetal:node:traits:set": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:admin and project_id:%(node.owner)s) or (role:manager and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Delete traits
+    "baremetal:node:traits:delete": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:admin and project_id:%(node.owner)s) or (role:manager and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Get BIOS
+    "baremetal:node:bios:get": "((role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role) or (role:reader and (project_id:%(node.owner)s or project_id:%(node.lessee)s)) or (role:service and project_id:%(node.owner)s)"
+
+    # Disable cleaning
+    "baremetal:node:disable_cleaning": "role:admin and system_scope:all"
+
+    # Get node history
+    "baremetal:node:history:get": "((role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:reader and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Get node inventory
+    "baremetal:node:inventory:get": "((role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:reader and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Update node shard
+    "baremetal:node:update:shard": "role:admin and system_scope:all"
+
+    # Get shards
+    "baremetal:shards:get": "(role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role"
+
+    # Update parent_node
+    "baremetal:node:update:parent_node": "(role:member and system_scope:all) or rule:service_role"
+
+    # Update disable_power_off
+    "baremetal:node:update:disable_power_off": "role:admin and system_scope:all"
+
+    # Get firmware
+    "baremetal:node:firmware:get": "((role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role) or (role:reader and (project_id:%(node.owner)s or project_id:%(node.lessee)s)) or (role:service and project_id:%(node.owner)s)"
+
+    # Attach virtual media
+    "baremetal:node:vmedia:attach": "((role:member and system_scope:all) or rule:service_role) or (role:member and (project_id:%(node.owner)s or project_id:%(node.lessee)s)) or (role:service and system_scope:all)"
+
+    # Detach virtual media
+    "baremetal:node:vmedia:detach": "((role:member and system_scope:all) or rule:service_role) or (role:member and (project_id:%(node.owner)s or project_id:%(node.lessee)s)) or (role:service and system_scope:all)"
+
+    # Get virtual media
+    "baremetal:node:vmedia:get": "((role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role) or (role:reader and (project_id:%(node.owner)s or project_id:%(node.lessee)s)) or (role:service and project_id:%(node.owner)s)"
+
+    # Get ports
+    "baremetal:port:get": "((role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role) or (role:reader and (project_id:%(node.owner)s or project_id:%(node.lessee)s)) or (role:service and project_id:%(node.owner)s)"
+
+    # List ports
+    "baremetal:port:list": "(role:reader) or (role:service)"
+
+    # List all ports
+    "baremetal:port:list_all": "(role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role"
+
+    # Create port
+    "baremetal:port:create": "(role:admin and system_scope:all) or (role:service and system_scope:all) or (role:admin and project_id:%(node.owner)s) or (role:manager and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Delete port
+    "baremetal:port:delete": "(role:admin and system_scope:all) or (role:service and system_scope:all) or (role:admin and project_id:%(node.owner)s) or (role:manager and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Update port
+    "baremetal:port:update": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:admin and project_id:%(node.owner)s) or (role:manager and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Get portgroups
+    "baremetal:portgroup:get": "((role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role) or (role:reader and (project_id:%(node.owner)s or project_id:%(node.lessee)s)) or (role:service and project_id:%(node.owner)s)"
+
+    # Create portgroup
+    "baremetal:portgroup:create": "(role:admin and system_scope:all) or (role:service and system_scope:all) or (role:admin and project_id:%(node.owner)s) or (role:manager and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Delete portgroup
+    "baremetal:portgroup:delete": "(role:admin and system_scope:all) or (role:service and system_scope:all) or (role:admin and project_id:%(node.owner)s) or (role:manager and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # Update portgroup
+    "baremetal:portgroup:update": "((role:member and system_scope:all) or rule:service_role) or (role:service and system_scope:all) or (role:admin and project_id:%(node.owner)s) or (role:manager and project_id:%(node.owner)s) or (role:service and project_id:%(node.owner)s)"
+
+    # List portgroups
+    "baremetal:portgroup:list": "(role:reader) or (role:service)"
+
+    # List all portgroups
+    "baremetal:portgroup:list_all": "(role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role"
+
+    # Get chassis
+    "baremetal:chassis:get": "(role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role"
+
+    # Create chassis
+    "baremetal:chassis:create": "role:admin and system_scope:all"
+
+    # Delete chassis
+    "baremetal:chassis:delete": "role:admin and system_scope:all"
+
+    # Update chassis
+    "baremetal:chassis:update": "(role:member and system_scope:all) or rule:service_role"
+
+    # Get drivers
+    "baremetal:driver:get": "(role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role"
+
+    # Get driver properties
+    "baremetal:driver:get_properties": "(role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role"
+
+    # Get RAID logical disk properties
+    "baremetal:driver:get_raid_logical_disk_properties": "(role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role"
+
+    # Node vendor passthru
+    "baremetal:node:vendor_passthru": "role:admin and system_scope:all"
+
+    # Driver vendor passthru
+    "baremetal:driver:vendor_passthru": "role:admin and system_scope:all"
+
+    # IPA heartbeat
+    "baremetal:node:ipa_heartbeat": ""
+
+    # IPA lookup
+    "baremetal:driver:ipa_lookup": ""
+
+    # IPA continue inspection
+    "baremetal:driver:ipa_continue_inspection": ""
+
+    # Get conductors
+    "baremetal:conductor:get": "(role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role"
+
+    # Get allocations
+    "baremetal:allocation:get": "((role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role) or (role:reader and project_id:%(allocation.owner)s)"
+
+    # List allocations
+    "baremetal:allocation:list": "(role:reader) or (role:service)"
+
+    # List all allocations
+    "baremetal:allocation:list_all": "(role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role"
+
+    # Create allocations
+    "baremetal:allocation:create": "((role:member and system_scope:all) or rule:service_role) or (role:member)"
+
+    # Create restricted allocations
+    "baremetal:allocation:create_restricted": "(role:member and system_scope:all) or rule:service_role"
+
+    # Delete allocations
+    "baremetal:allocation:delete": "((role:member and system_scope:all) or rule:service_role) or (role:member and project_id:%(allocation.owner)s)"
+
+    # Update allocations
+    "baremetal:allocation:update": "((role:member and system_scope:all) or rule:service_role) or (role:member and project_id:%(allocation.owner)s)"
+
+    # Legacy-prevention allocation helper
+    "baremetal:allocation:create_pre_rbac": "(rule:is_member and role:baremetal_admin) or (is_admin_project:True and role:admin)"
+
+    # Post events
+    "baremetal:events:post": "role:admin and system_scope:all"
+
+    # Get inspection rule
+    "baremetal:inspection_rule:get": "(role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role"
+
+    # List all inspection rules
+    "baremetal:inspection_rule:list_all": "(role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role"
+
+    # Create inspection rule
+    "baremetal:inspection_rule:create": "role:admin and system_scope:all"
+
+    # Update inspection rule
+    "baremetal:inspection_rule:update": "role:admin and system_scope:all"
+
+    # Delete inspection rule
+    "baremetal:inspection_rule:delete": "role:admin and system_scope:all"
+
+  ironic:
+    oslo_policy:
+      enforce_scope: true
+      enforce_new_defaults: true

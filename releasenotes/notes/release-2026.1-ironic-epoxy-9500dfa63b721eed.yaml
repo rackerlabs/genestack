@@ -1,0 +1,165 @@
+---
+prelude: >
+  Ironic has been upgraded from OpenStack 2025.1 (Epoxy). This release
+  introduces major improvements in deployment workflows, image handling,
+  and Redfish interoperability, along with important security hardening
+  around image sources. The Epoxy cycle continues the transition toward
+  container-native provisioning and improved standards compliance, while
+  tightening validation and access controls across the service.
+features:
+  - |
+    **Container Image Deployment (OCI Support)**: Ironic now supports deploying
+    images directly from OCI/container registries. This enables operators to
+    manage bare metal images using standard container tooling and workflows,
+    improving consistency across infrastructure and application pipelines.
+  - |
+    **bootc Deploy Interface**: A new ``bootc`` deploy interface has been
+    introduced to support bootable container images. This enables direct
+    provisioning of container-native operating systems onto bare metal,
+    aligning with modern immutable infrastructure practices.
+  - |
+    **Zstandard Image Support**: Deployment workflows now automatically detect
+    and handle Zstandard (``.zst``) compressed images, reducing storage and
+    transfer overhead without requiring manual decompression steps.
+  - |
+    **Rootless Container Console Support**: Added support for systemd-managed,
+    rootless Podman containers to provide VNC console services. This improves
+    security by removing the need for privileged containers in console access.
+  - |
+    **Enhanced Hardware Inspection Rules**: Inspection rule processing now
+    supports additional comparison operators (``le``, ``ge``, ``ne``), enabling
+    more expressive and flexible hardware introspection and classification.
+  - |
+    **Service State Improvements**: Nodes can now be unprovisioned while in
+    ``service wait`` state, improving operational flexibility for long-running
+    service workflows such as cleaning or firmware updates.
+  - |
+    **Improved Glance Integration**: Image access via Keystone authentication
+    tokens is now enabled by default, improving security and consistency when
+    retrieving images from Glance.
+  - |
+    **Redfish Interoperability Enhancements**: Expanded support for vendor
+    implementations with improved handling of boot device configuration,
+    boot modes, and power state synchronization.
+issues:
+  - |
+    **Large Image Handling Sensitivity**: Although improved, deployments using
+    very large images may still experience resource pressure (CPU/memory)
+    during download and checksum operations. Validation in staging environments
+    is recommended.
+  - |
+    **Stricter Validation May Surface Failures**: Improvements in error handling
+    (network binding, inspection, and deployment validation) may expose issues
+    that were previously ignored or silently handled.
+  - |
+    **Mixed Redfish Environments**: While compatibility has improved, hardware
+    inconsistencies across vendors may still require validation due to stricter
+    boot parameter enforcement.
+upgrade:
+  - |
+    **Default Image Auth Behavior Changed**: The configuration option
+    ``[DEFAULT]allow_image_access_via_auth_token`` now defaults to ``True``.
+    Operators must ensure Glance images are accessible via appropriate
+    visibility (public/community) or adjust policies to avoid deployment failures.
+  - |
+    **file:// Image Access Restrictions (Security Hardening)**: Access to local
+    image files via ``file://`` URLs is now restricted using the
+    ``[conductor]file_url_allowed_paths`` allowlist.
+
+    Operators upgrading from 2024.2 must explicitly configure allowed paths
+    if they rely on local image sources, otherwise deployments will fail.
+
+    Example configuration:
+
+    .. code-block:: ini
+
+      [conductor]
+      file_url_allowed_paths = /var/lib/ironic/images,/opt/local_images
+  - |
+    **Redfish Boot Behavior Changes**: Some Redfish drivers now require more
+    complete boot parameter payloads. Existing automation or custom tooling
+    interacting with Redfish should be validated against hardware.
+  - |
+    **Stronger Validation and Error Handling**: Networking, inspection, and
+    deployment workflows now enforce stricter validation. Automation relying
+    on previously lenient behavior may require updates.
+  - |
+    **Performance Tuning Changes**: Image download behavior has changed
+    (streaming checksum, larger chunk sizes). Operators should validate
+    performance characteristics, especially in constrained environments.
+deprecations:
+  - |
+    **Unrestricted file:// Image Usage Deprecated**: Direct use of ``file://``
+    image URLs without explicit allowlisting is deprecated and will be further
+    restricted in future releases.
+  - |
+    **Legacy Redfish Boot Handling**: Minimal or implicit boot parameter usage
+    is being phased out. Operators should transition to fully specified boot
+    configurations for consistent cross-vendor behavior.
+  - |
+    **ironic-inspector Deprecation (Maintenance Mode)**:
+    The ``ironic-inspector`` project has entered maintenance mode and will
+    only receive bug fixes and minor updates going forward. Its functionality
+    is being gradually integrated directly into the Ironic service.
+
+    A preview of the integrated inspection capabilities was introduced during
+    the Caracal release cycle, with full deprecation of ``ironic-inspector``
+    expected in subsequent releases.
+  - |
+    **Reference**: [ironic-inspector](https://docs.openstack.org/releasenotes/ironic-inspector/en_GB/2023.2.html)
+security:
+  - |
+    **OSSA-2025-001 – Local File Exposure via file:// URLs**:
+    Fixed a vulnerability where improper validation of ``file://`` image paths
+    could allow access to arbitrary local files readable by the ironic-conductor.
+
+    This issue is mitigated by introducing the
+    ``[conductor]file_url_allowed_paths`` configuration option.
+  - |
+    **Path Restriction Hardening**: Additional safeguards have been introduced
+    to prevent access to sensitive filesystem locations. Future releases will
+    further restrict access to paths such as ``/dev``, ``/proc``, and ``/sys``.
+  - |
+    **Reference**: [security-issues](https://docs.openstack.org/releasenotes/ironic/2025.1.html?utm_source=#security-issues)
+fixes:
+  - |
+    **Authentication Performance Improvements**: Optimized HTTP Basic
+    authentication using bcrypt caching, significantly reducing API and
+    conductor overhead under load.
+  - |
+    **Redfish Stability Fixes**: Resolved race conditions and improved power
+    state reconciliation with BMCs, reducing deployment and cleaning failures.
+  - |
+    **Firmware Update Reliability**: Fixed issues where firmware updates could
+    become stuck in ``service`` workflows.
+  - |
+    **Swift Data Handling Fixes**: Corrected storage format inconsistencies for
+    inventory and plugin data stored in Swift.
+  - |
+    **Image Download Optimization**: Improved efficiency through streaming
+    checksum calculation and larger chunk sizes, reducing deployment time.
+  - |
+    **Inspection and Runbook Validation Fixes**: Addressed validation gaps in
+    inspection hooks and runbook execution.
+  - |
+    **General Redfish Compatibility Fixes**: Multiple fixes across vendors to
+    improve interoperability and reduce provisioning errors.
+  - |
+    **Reference**: [bug-fixes](https://docs.openstack.org/releasenotes/ironic/2025.1.html?utm_source=#bug-fixes)
+other:
+  - |
+    **Operational Recommendation**: Due to security changes and stricter
+    validation, a full pre-upgrade validation is strongly recommended,
+    including:
+    - Image accessibility (Glance/file://)
+    - Redfish hardware compatibility
+    - Inspection rule behavior
+    - Network binding workflows
+  - |
+    **Upgrade Strategy**: Perform rolling upgrades of conductors where possible
+    and validate node state transitions (especially cleaning and deployment)
+    before upgrading all regions.
+  - |
+    **Ecosystem Alignment**: This release aligns Ironic more closely with
+    container-native infrastructure trends and improved OpenStack RBAC and
+    security models introduced across Epoxy.
