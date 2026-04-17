@@ -1,0 +1,27 @@
+---
+other:
+  - |
+    Added staged Longhorn upgrade guidance for moving Genestack storage from
+    Longhorn 1.8.0 to 1.11.1 using the supported maintenance hops
+    1.8.0 -> 1.9.1 -> 1.10.2 -> 1.11.1. The release adds operator runbooks for
+    each hop under ``maintenances/`` and documents the required Longhorn
+    override settings in ``/etc/genestack/helm-configs/longhorn/longhorn.yaml``
+    so both user-deployed and system-managed components stay pinned to
+    ``longhorn.io/storage-node=enabled`` nodes via
+    ``defaultSettings.systemManagedComponentsNodeSelector``. It also adds the
+    ``longhorn_storage_nodes`` Ansible inventory group so operators can label
+    every node intended to host Longhorn managers, drivers, instance-managers,
+    and volume replicas with ``longhorn.io/storage-node=enabled``.
+
+    The guidance also covers the required CRD stored-version migration and
+    verification step before the 1.9.1 -> 1.10.2 upgrade. For post-upgrade
+    validation, it documents the expected Longhorn behavior where older
+    instance-manager pods may remain while attached workloads continue using
+    them, clarifies that this cleanup is optional rather than a required
+    upgrade gate, and adds the helper script
+    ``/opt/genestack/scripts/longhorn-old-instance-managers.sh`` to report PVCs,
+    attached pods, Longhorn volumes, and instance-manager images. The helper
+    script supports ``--search`` for narrowing output by attached pod name while
+    preserving headers, and the runbooks include workload-specific restart
+    guidance for operators who choose to accelerate cleanup during a
+    maintenance window.

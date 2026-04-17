@@ -38,6 +38,14 @@ kubectl label node -l node-role.kubernetes.io/control-plane longhorn.io/storage-
 
     It is possible to replace `-l node-role.kubernetes.io/control-plane` with the name of your node. If you have multiple storage nodes, that are not also controllers.
 
+!!! note
+
+    This `longhorn.io/storage-node=enabled` label is the same label referenced by
+    the Longhorn Helm node selectors in `/etc/genestack/helm-configs/longhorn/longhorn.yaml`.
+    Apply it to every node that should host Longhorn managers, drivers,
+    instance-managers, and volume replicas before running the deployment or
+    upgrade.
+
 ### Create the Helm Values File
 
 Before deploying Longhorn, it’s best practice to customize the chart’s values to suit your environment. One of the most common customizations is telling Longhorn where to run
@@ -49,10 +57,20 @@ its services and components—in this case, on nodes that have the label `longho
 !!! example "longhorn.yaml"
 
     ``` yaml
-    --8<-- "base-helm-configs/longhorn/longhorn-helm-overrides.yaml"
+    global:
+      nodeSelector:
+        longhorn.io/storage-node: "enabled"
+
+    defaultSettings:
+      systemManagedComponentsNodeSelector: "longhorn.io/storage-node:enabled"
+
+    # The two values above cover all user-deployed components in the Longhorn
+    # Helm chart and the system-managed components created by Longhorn.
+    # Individual component overrides can still be added when needed.
     ```
 
-    - `nodeSelector` ensures that the respective component is only scheduled onto nodes labeled `longhorn.io/storage-node=enabled`.
+    - `global.nodeSelector` ensures Longhorn chart-managed pods are scheduled onto nodes labeled `longhorn.io/storage-node=enabled`.
+    - `defaultSettings.systemManagedComponentsNodeSelector` ensures Longhorn system-managed components such as instance managers also stay on the labeled storage nodes.
     - This configuration helps separate storage responsibilities from other workloads if you have a mixed cluster.
 
 For additional customization, you can review the full list of supported values in Longhorn’s
@@ -103,6 +121,29 @@ already present.
     --8<-- "bin/install-longhorn.sh"
     ```
 
+## Upgrade Workflow
+
+Longhorn upgrades in Genestack should follow the supported staged maintenance hops:
+
+1. `1.8.0 -> 1.9.1`
+2. `1.9.1 -> 1.10.2`
+3. `1.10.2 -> 1.11.1`
+
+Operator runbooks for each hop are available under `maintenances/`:
+
+- `maintenances/maintenance-longhorn-1.8.0-to-1.9.1.md`
+- `maintenances/maintenance-longhorn-1.9.1-to-1.10.2.md`
+- `maintenances/maintenance-longhorn-1.10.2-to-1.11.1.md`
+- `maintenances/maintenance-longhorn-1.8.0-to-1.9.1.txt`
+- `maintenances/maintenance-longhorn-1.9.1-to-1.10.2.txt`
+- `maintenances/maintenance-longhorn-1.10.2-to-1.11.1.txt`
+
+!!! warning
+
+    The `1.9.1 -> 1.10.2` hop requires the Longhorn CRD stored-version migration
+    and verification steps documented in the corresponding maintenance runbook.
+    Do not skip that check.
+
 ## Validate the Deployment
 
 After the Helm deployment finishes, you’ll want to verify that everything is running correctly.
@@ -147,6 +188,33 @@ You should see an entry for the newly created volume, and it should be in an att
     ```
 
 Once you verify the test deployment, you can remove the Pod and related resources if you like. This helps keep your cluster clean if the test is no longer needed.
+
+## Post-Upgrade Validation
+
+After a Longhorn upgrade, validate both the cluster health and any remaining older
+instance-manager pods:
+
+``` shell
+kubectl -n longhorn-system get pods -o wide --sort-by=.spec.nodeName
+kubectl -n longhorn-system get volumes.longhorn.io -o custom-columns=VOLUME:.metadata.name,STATE:.status.state,ROBUSTNESS:.status.robustness
+VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh
+```
+
+To narrow the helper script output to a single workload family while preserving
+the header row:
+
+``` shell
+VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh --search mariadb
+```
+
+!!! note
+
+    Older instance-manager pods remaining after an upgrade is expected Longhorn
+    behavior while attached workloads continue using them. Cleanup is optional
+    and is not required for a successful upgrade. These pods will be removed
+    naturally as the associated volumes are recreated, detached, or reattached
+    over time. The maintenance runbooks include workload-specific guidance for
+    operators who choose to accelerate that cleanup during a maintenance window.
 
 ## StorageClass Configuration
 

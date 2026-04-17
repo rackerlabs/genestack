@@ -6,7 +6,7 @@ resources:
 patches:
   - target:
       kind: HorizontalPodAutoscaler
-      name: skyline-apiserver
+      name: skyline-api-server
     patch: |-
       - op: replace
         path: /spec/minReplicas
