@@ -2,8 +2,5 @@ sortOptions:
   order: fifo
 resources:
   - skyline-mariadb-database.yaml
-  - services.yaml
-  - configmap-bin.yaml
-  - deployment-apiserver.yaml
-  - hpa-skyline-apiserver.yaml
-  - pdb-apiserver.yaml
+  - all.yaml
+  - hpa-skyline-api-server.yaml
