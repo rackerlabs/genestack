@@ -55,6 +55,18 @@ issues:
     **Mixed Redfish Environments**: While compatibility has improved, hardware
     inconsistencies across vendors may still require validation due to stricter
     boot parameter enforcement.
+  - |
+    **Upstream Helm Chart Issues**: The upstream Helm chart for the Epoxy
+    release has several issues. Some fixes are present in the master branch
+    but have not been backported to earlier releases. A patched version that
+    includes all fixes can be downloaded from the internal repository at
+    ``https://artifactory.containers.rackspacecloud.com/repository/genestack-charts``.
+  - |
+    **Nova ConfigDrive Fix**: The Nova virt driver ConfigDrive
+    issue ``bug-2148059`` has been fixed in the internal
+    ``nova_compute_ironic`` image for the Epoxy release. The updated image can
+    be downloaded from the internal repository at
+    ``artifactory.containers-internal.rackspacecloud.com/genestack-images/nova:2025.1-latest``.
 upgrade:
   - |
     **Default Image Auth Behavior Changed**: The configuration option

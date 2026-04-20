@@ -8,32 +8,6 @@ OpenStack Ironic is the bare metal provisioning service in OpenStack. It allows 
 
 This document is intended for operators who already have a working OpenStack environment and need a practical guide for day-to-day Ironic provisioning tasks.
 
-## Purpose
-
-This guide walks through the following workflow:
-
-1. Create a flavor for bare metal use.
-2. Map the flavor to a custom resource class.
-3. Enroll a node in Ironic.
-4. Configure node properties, driver information, and boot interfaces.
-5. Create network ports.
-6. Validate and transition the node through the required states.
-7. Create a server using either PXE/iPXE or virtual media boot.
-
-Ironic supports multiple boot interfaces. PXE is the standard network boot mechanism, while virtual media typically relies on the BMC to mount boot media remotely instead of using traditional PXE infrastructure.
-
-## References
-
-- [Drivers, hardware types, and hardware interfaces for Ironic](https://docs.openstack.org/ironic/latest/admin/drivers.html)
-- [Enabling drivers and hardware types](https://docs.openstack.org/ironic/latest/install/enabling-drivers.html)
-- [Boot interface](https://docs.openstack.org/ironic/latest/admin/interfaces/boot.html)
-- [Bare Metal service features](https://docs.openstack.org/ironic/latest/admin/features.html)
-- [Configuration and operation](https://docs.openstack.org/ironic/latest/admin/operation.html)
-- [Architecture and implementation details](https://docs.openstack.org/ironic/latest/admin/architecture.html)
-- [Create flavors](https://docs.openstack.org/ironic/latest/install/configure-nova-flavors.html)
-- [Deploying with Bare Metal service](https://docs.openstack.org/ironic/latest/user/deploy.html)
-- [Enrolling hardware with Ironic](https://docs.openstack.org/ironic/latest/install/enrollment.html)
-
 ## Scope And Assumptions
 
 This guide assumes the following:
@@ -43,7 +17,7 @@ This guide assumes the following:
 - Required deployment, cleaning, and tenant images are already uploaded to Glance.
 - The target node BMC is reachable from the Ironic conductor.
 - For PXE or iPXE boot, the provisioning network and network boot services are already configured.
-- For virtual media boot, the provisioning network is configured and the hardware supports a virtual media boot interface such as `redfish-virtual-media`.
+- For virtual media boot, the provisioning network is configured and the hardware supports a virtual media boot interface such as redfish-virtual-media.
 
 Nova may not see a newly available node immediately after enrollment because the resource tracker updates periodically. In many environments this sync happens every 60 seconds, so a short delay is expected.
 
@@ -62,6 +36,8 @@ Set node properties / driver info / boot interface
    ->
 Create port(s)
    ->
+Validate node
+   ->
 Manage node
    ->
 Provide node
@@ -69,20 +45,25 @@ Provide node
 Create server with matching flavor and required image
 ```
 
-Each step has a specific purpose:
+## Purpose
 
-- Create a flavor to define the bare metal instance shape for users.
-- Set a resource class mapping so Nova can match the flavor to the correct Ironic node.
-- Enroll the physical node into Ironic with the correct driver and interfaces.
-- Set properties and driver details such as hardware specs, BMC credentials, and boot method.
-- Create ports so the node can participate in provisioning and tenant networking.
-- Manage the node so Ironic can validate and prepare it.
-- Provide the node so it becomes available for scheduling.
-- Create the server using the matching flavor and image.
+This guide walks through the following workflow:
+
+1. Create a flavor for bare metal server
+2. Set a resource class mapping so Nova can match the flavor to the correct Ironic node
+3. Enroll the physical node into Ironic with the correct driver and interfaces
+4. Set properties and driver details such as hardware specs, BMC credentials, and boot method
+5. Create ports so the node can participate in provisioning and tenant networking
+6. Validate step verifies that required fields are present and the interfaces such as power, management, deploy, boot, and others report valid/usable for the baremetal node
+7. Manage step moves the bare metal node from enroll to manageable by starting verification and confirming that Ironic can control the node using the configured interfaces and credentials.
+8. Provide the node to transition it into the available state, making it ready for scheduling.
+9. Create a server with the matching flavor and image using either PXE/iPXE or virtual media boot.
+
+Ironic supports multiple boot interfaces. PXE is the standard network boot mechanism, while virtual media typically relies on the BMC to mount boot media remotely instead of using traditional PXE infrastructure.
 
 ## Prerequisites
 
-Before enrolling any node, verify that the OpenStack environment and required services are ready.
+Before enrolling a node, ensure that the OpenStack environment and all required services are properly configured and available. Also create the dedicated provisioning network, if it does not already exist.
 
 ### Source Administrative Credentials
 
@@ -90,41 +71,6 @@ Source the administrative OpenStack RC file:
 
 ```bash
 source admin-openrc
-```
-
-### Verify Core Resources
-
-Verify that the expected OpenStack resources are available:
-
-```bash
-openstack flavor list
-openstack image list
-openstack network list
-openstack keypair list
-```
-
-### Verify Ironic Services And Drivers
-
-Confirm that the Ironic conductors are running and that the required drivers are active:
-
-```bash
-openstack baremetal conductor list
-+-------------+-----------------+-------+
-| Hostname    | Conductor Group | Alive |
-+-------------+-----------------+-------+
-| controller3 |                 | True  |
-| controller2 |                 | True  |
-| controller1 |                 | True  |
-+-------------+-----------------+-------+
-
-openstack baremetal driver list
-+---------------------+---------------------------------------+
-| Supported driver(s) | Active host(s)                        |
-+---------------------+---------------------------------------+
-| idrac               | controller3, controller2, controller1 |
-| ipmi                | controller3, controller2, controller1 |
-| redfish             | controller3, controller2, controller1 |
-+---------------------+---------------------------------------+
 ```
 
 ### Create The Ironic Provisioning Network
@@ -148,7 +94,7 @@ openstack subnet create \
   ironic-subnet1
 ```
 
-### Create Bare Metal Flavors
+### Create Bare Metal Flavor
 
 Bare metal flavors are used mainly for scheduling and user-facing size definitions. Standard resource properties are set to `0`, while a custom resource class is used for matching.
 
@@ -196,6 +142,41 @@ openstack image create ipa-centos9-stable-2025.2-aki --public \
 openstack image create ipa-centos9-stable-2025.2-ari --public \
    --disk-format ari --container-format ari \
    --file ipa-centos9-stable-2025.2.initramfs
+```
+
+### Verify Core Resources
+
+Verify that the expected OpenStack resources are available:
+
+```bash
+openstack flavor list
+openstack image list
+openstack network list
+openstack keypair list
+```
+
+### Verify Ironic Services And Drivers
+
+Confirm that the Ironic conductors are running and that the required drivers are active:
+
+```bash
+openstack baremetal conductor list
++-------------+-----------------+-------+
+| Hostname    | Conductor Group | Alive |
++-------------+-----------------+-------+
+| controller3 |                 | True  |
+| controller2 |                 | True  |
+| controller1 |                 | True  |
++-------------+-----------------+-------+
+
+openstack baremetal driver list
++---------------------+---------------------------------------+
+| Supported driver(s) | Active host(s)                        |
++---------------------+---------------------------------------+
+| idrac               | controller3, controller2, controller1 |
+| ipmi                | controller3, controller2, controller1 |
+| redfish             | controller3, controller2, controller1 |
++---------------------+---------------------------------------+
 ```
 
 ## Enroll A Bare Metal Node
@@ -372,3 +353,16 @@ openstack server list
 ```
 
 If you need to target a specific bare metal host, use the scheduler hint shown in the example command.
+
+## References
+
+- [Drivers, hardware types, and hardware interfaces for Ironic](https://docs.openstack.org/ironic/latest/admin/drivers.html)
+- [Enabling drivers and hardware types](https://docs.openstack.org/ironic/latest/install/enabling-drivers.html)
+- [Boot interface](https://docs.openstack.org/ironic/latest/admin/interfaces/boot.html)
+- [Bare Metal service features](https://docs.openstack.org/ironic/latest/admin/features.html)
+- [Configuration and operation](https://docs.openstack.org/ironic/latest/admin/operation.html)
+- [Architecture and implementation details](https://docs.openstack.org/ironic/latest/admin/architecture.html)
+- [Create flavors](https://docs.openstack.org/ironic/latest/install/configure-nova-flavors.html)
+- [Deploying with Bare Metal service](https://docs.openstack.org/ironic/latest/user/deploy.html)
+- [Enrolling hardware with Ironic](https://docs.openstack.org/ironic/latest/install/enrollment.html)
+- [Networking with the Baremetal service](https://docs.openstack.org/ironic/latest/admin/networking.html)

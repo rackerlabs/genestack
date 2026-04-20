@@ -26,21 +26,24 @@ conf:
     DEFAULT:
       grub_config_path: "EFI/ubuntu/grub.cfg"
       log_config_append: /etc/ironic/logging.conf
-      tempdir: /tmp
+      tempdir: /var/lib/ironic/tmp
       default_deploy_interface: "direct"
       default_inspect_interface: "agent"
       default_network_interface: "flat"
       enabled_hardware_types: "ilo,ipmi,redfish,idrac"
+      enabled_bios_interfaces: "ilo,no-bios,idrac-redfish,redfish"
       enabled_boot_interfaces: "pxe,ipxe,redfish-virtual-media,redfish-https,ilo-virtual-media,ilo-pxe"
+      enabled_console_interfaces: "no-console"
       enabled_deploy_interfaces: "direct,ramdisk"
+      enabled_firmware_interfaces: "redfish,no-firmware"
       enabled_inspect_interfaces: "ilo,agent,no-inspect,inspector,idrac-redfish,redfish"
       enabled_management_interfaces: "ilo,ipmitool,idrac-redfish,redfish"
-      enabled_network_interfaces: "flat,neutron"
+      enabled_network_interfaces: "flat,neutron,noop"
       enabled_power_interfaces: "ilo,ipmitool,idrac-redfish,redfish"
       enabled_raid_interfaces: "agent,idrac-redfish,redfish,no-raid"
-      enabled_vendor_interfaces: "ipmitool,ilo,idrac-redfish,redfish,idrac-wsman,no-vendor"
-      enabled_bios_interfaces: "ilo,no-bios,idrac-redfish,redfish"
-      enabled_console_interfaces: "no-console"
+      enabled_rescue_interfaces: "no-rescue,agent"
+      enabled_storage_interfaces: "noop"
+      enabled_vendor_interfaces: "ipmitool,ilo,idrac-redfish,redfish,no-vendor"
     conductor:
       sync_power_state_interval: "60"
       automated_clean: "False"
@@ -55,9 +58,7 @@ conf:
       continue_if_disk_secure_erase_fails: "False"
       power_off_after_deploy_failure: "True"
       default_boot_option: "local"
-      # NOTE: The following setting is arbitrarily set to the ironic-conductor address,
-      # which should be auto-populated in each conductor pod but is not due to a bug.
-      http_url: "http://10.240.0.181:8080"
+      iso_master_path: "/var/lib/ironic/master_iso_images"
     agent:
       efi_boot_partition: "/boot/efi"
       image_download_source: "http"
