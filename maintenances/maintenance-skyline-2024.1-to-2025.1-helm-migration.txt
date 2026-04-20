@@ -1,0 +1,249 @@
+### Skyline Maintenance: 2024.1 to 2025.1 Helm Migration
+
+### Notes
+
+# (opt) refers to /opt, the standard install path for Genestack.
+# (etc) refers to /etc, the standard override path for Genestack.
+# Replace all placeholder values in angle brackets before using this runbook.
+# Keep this runbook operational. Prefer exact commands, exact file paths, expected outputs, and explicit validation steps.
+
+### Validation
+
+# Kubernetes 1.33.x satisfies the published OpenStack Helm Skyline chart minimum.
+# Upgrading from Skyline 2024.1 (kustomize) to 2025.1 (Helm) requires uninstalling the kustomize deployment and installing the Helm chart.
+# The existing skyline-apiserver-secrets Kubernetes secret is compatible with the Helm chart and does not need to be recreated.
+# This migration removes the kustomize-based deployment and replaces it with the upstream OpenStack Helm chart.
+
+### Goal
+
+# Migrate Skyline from kustomize 2024.1 to Helm 2025.1 without service regression and with all workloads returning healthy.
+
+### Prep
+
+## Deployment Node
+
+# Identify the deployment host or bastion that should be used for the maintenance.
+
+# Verify current Skyline health:
+kubectl --namespace openstack get pods -l application=skyline
+kubectl --namespace openstack get svc skyline-apiserver
+kubectl --namespace openstack get secret skyline-apiserver-secrets -o yaml
+
+# Expected:
+# - All Skyline pods are in Running state
+# - The skyline-apiserver service exists and has endpoints
+# - The skyline-apiserver-secrets secret exists with all required keys
+
+# Verify current deployed version:
+kubectl --namespace openstack get deployment skyline-apiserver -o jsonpath="{.spec.template.spec.containers[0].image}"
+
+# Expected:
+# - Version 2024.1.x or similar from the kustomize deployment
+
+# Verify existing secrets are in place:
+kubectl --namespace openstack get secret skyline-apiserver-secrets -o jsonpath='{.data}' | base64 -d | python3 -m json.tool
+
+# Expected:
+# - service-username: skyline
+# - service-password: <password>
+# - service-domain: service
+# - service-project: service
+# - service-project-domain: service
+# - db-endpoint: mariadb-cluster-primary.openstack.svc.cluster.local
+# - db-name: skyline
+# - db-username: skyline
+# - db-password: <password>
+# - secret-key: <key>
+# - keystone-endpoint: http://keystone-api.openstack.svc.cluster.local:5000/v3
+# - default-region: RegionOne
+
+# If the secret does not exist or is missing keys, create it before continuing:
+# See the "Creating the Skyline Database Password Secret" section below
+
+# Verify node or workload placement, if relevant:
+kubectl --namespace openstack get nodes -L longhorn.io/storage-node
+
+# Verify backups, snapshots, or restore points are available:
+# This is a Helm migration, so no database backup is required beyond the existing MariaDB backups
+
+# If backups are required but missing, stop and create them before continuing.
+
+## Pre-Change Safety Checks
+
+# Check for unhealthy pods, jobs, or dependent services:
+kubectl --namespace openstack get pods -A -o wide | grep -E 'Running|Pending|Failed'
+kubectl --namespace openstack get events --sort-by=.lastTimestamp | tail -n 20
+
+# Check for open alerts or known blockers:
+kubectl --namespace openstack get events --field-selector type=Warning
+
+# If any critical dependency is unhealthy, stop and resolve it first.
+
+### Execute
+
+## Update the Target Version
+
+# Edit /etc/genestack/helm-chart-versions.yaml:
+charts:
+  skyline: 2025.2.9+c665eedfa
+
+# If this maintenance requires an intermediate version, perform each hop separately and validate after each hop.
+
+## Apply Required Overrides or Patches
+
+# The skyline-helm-overrides.yaml file will need to be craeted /etc/genestack/base-helm-configs/skyline/skyline-helm-overrides.yaml
+mkdir -p /etc/genestack/helm-configs/skyline
+
+# At a minimum there will need to be a single override that sets the region name.
+cat >/etc/genestack/helm-configs/skyline/skyline-helm-overrides.yaml<<EOF
+---
+conf:
+  skyline:
+    openstack:
+      default_region: RegionOne
+EOF
+
+# Review and update if necessary:
+# - images: Set the correct Genestack image tag
+# - endpoints: Configure database and identity endpoints
+# - conf.skyline: Configure Skyline application settings
+
+# Craete the skyline kustomize setup
+mkdir -p /etc/genestack/kustomize/skyline
+ln -s /opt/genestack/base-kustomize/skyline/base /etc/genestack/kustomize/skyline/base
+ln -s /opt/genestack/base-kustomize/skyline/aio /etc/genestack/kustomize/skyline/aio
+
+## Uninstall the Existing Kustomize Deployment
+
+# Run the maintenance command, these commands cleanup old, now abandoned resources.
+kubectl --namespace openstack delete deployment skyline
+kubectl --namespace openstack delete service skyline-apiserver
+kubectl --namespace openstack delete secret skyline-apiserver-secrets
+kubectl --namespace openstack delete grant skyline-grant
+kubectl --namespace openstack delete users skyline
+kubectl --namespace openstack delete database skyline
+
+# Verify deletion:
+kubectl --namespace openstack get pods -l application=skyline
+kubectl --namespace openstack get svc skyline-apiserver
+
+# Expected:
+# - No Skyline pods remain
+# - The skyline-apiserver service is deleted
+
+## Create the Skyline Database Password Secret
+
+# The Helm chart requires a new secret named skyline-db-password with the key db-password and an skyline-admin with the key password.
+# This is separate from the existing skyline-apiserver-secrets secret
+
+# Generate a secure random password:
+export DB_PASSWORD=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c32)
+
+# Create the secret with the database password:
+kubectl --namespace openstack create secret generic skyline-db-password \
+  --from-literal=password="$DB_PASSWORD"
+
+# If the secret already exists, update it instead:
+kubectl --namespace openstack patch secret skyline-db-password --type=merge -p "{\"data\":{\"password\":\"$(echo -n "$DB_PASSWORD" | base64)\"}}"
+
+# Verify the secret was created:
+kubectl --namespace openstack get secret skyline-db-password -o yaml
+
+# Generate a secure random password:
+export SKYLINE_ADMIN_PASSWORD=$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c32)
+
+# Create the secret with the database password:
+kubectl --namespace openstack create secret generic skyline-admin \
+  --from-literal=password="$SKYLINE_ADMIN_PASSWORD"
+
+# If the secret already exists, update it instead:
+kubectl --namespace openstack patch secret skyline-admin --type=merge -p "{\"data\":{\"password\":\"$(echo -n "$SKYLINE_ADMIN_PASSWORD" | base64)\"}}"
+
+# Verify the secret was created:
+kubectl --namespace openstack get secret skyline-admin -o yaml
+
+# Expected:
+# - The db secret contains the db-password key with the base64-encoded password
+# - The admin secret contains the password key with the base64-encoded password
+
+## Run the Maintenance
+
+# Run the Helm installation script:
+/opt/genestack/bin/install-skyline.sh
+
+# Expected:
+# - The script fetches the chart version from helm-chart-versions.yaml
+# - The script installs or upgrades the Skyline Helm chart
+# - All pods transition to Running state
+
+# If the maintenance must be split into stages, list each stage as a separate command block with validation after each stage.
+
+# Update the gateway configuration to point to the new skyline API service if necessary.
+# The the old service name was `skyline-apiserver`, new service is be named `skyline-api`.
+# Update the gateway configuration to point to this new service.
+
+# The HTTPRoute for the skyline API can be patched using the ``custom-skyline-gateway-route.yaml`` file.
+kubectl apply -f /etc/genestack/gateway-api/routes/custom-skyline-gateway-route.yaml
+
+### Post-Maint
+
+# Verify the deployed version:
+kubectl --namespace openstack get pods -l application=skyline -o jsonpath="{.items[0].spec.containers[0].image}"
+
+# Expected:
+# - Version 2025.1-latest or similar from the Helm chart
+
+# Verify workload health:
+kubectl --namespace openstack get pods -l application=skyline -o wide
+
+# Expected:
+# - All Skyline pods are in Running state
+# - All pods are Ready
+
+# Verify dependent services:
+kubectl --namespace openstack get svc skyline-apiserver
+kubectl --namespace openstack get endpoints skyline-apiserver
+
+# Verify logs or events for upgrade failures:
+kubectl --namespace openstack logs -l application=skyline -c skyline-apiserver | tail -n 50
+kubectl --namespace openstack get events --sort-by=.lastTimestamp | grep -i skyline | tail -n 20
+
+# Verify user-facing functionality:
+# Access the Skyline dashboard via the Gateway API route
+# Test authentication and basic API operations
+
+# Expected:
+# - The Skyline dashboard is accessible
+# - Authentication works correctly
+# - API endpoints respond successfully
+
+# Re-enable anything disabled during prep:
+# No specific re-enablement required for this migration
+
+### Troubleshooting
+
+## Common Failure Signal
+
+# Describe the most likely failure indicator.
+# Example:
+# If the pods remain in Pending state, check for node selector mismatches or resource constraints.
+# If the pods fail to start, check the logs for database connection errors or secret key mismatches.
+
+## Additional Recovery Actions
+
+# If pods remain stuck:
+kubectl --namespace openstack delete pod -l application=skyline
+kubectl --namespace openstack get pods -l application=skyline -w
+
+# If settings do not reconcile:
+kubectl --namespace openstack rollout restart deployment/skyline-apiserver -n openstack
+
+# If manual UI intervention is required:
+# Skyline UI -> Settings
+# Review and update configuration as needed
+
+### Sources
+
+# https://docs.openstack.org/openstack-helm/latest/admin/skyline.html
+# https://github.com/openstack-k8s-operators/openstack-operator
+# https://docs.rackspacecloud.com/openstack-skyline/
