@@ -1,0 +1,211 @@
+### RabbitMQ Control Plane Maintenance: 2.17.0 to 2.17.1
+
+### Notes
+
+# Scope: this runbook upgrades the RabbitMQ Cluster Operator from 2.17.0 to 2.17.1 and also reconciles the RabbitMQ Messaging Topology Operator using the version pinned in /etc/genestack/kustomize/rabbitmq-topology-operator/base/kustomization.yaml.
+# Both operators are installed in Genestack via kubectl apply -k against their respective base kustomization manifests.
+# The Cluster Operator and the Messaging Topology Operator do not share the same upstream version line. The compatible companion release pinned for the topology operator is v1.19.1.
+# Genestack pins the RabbitMQ server image in the RabbitmqCluster spec, so operator default image changes must not be allowed to drift the cluster image.
+
+
+### Validation
+
+# Kubernetes 1.34 is within the published support envelope because the RabbitMQ Cluster Operator and the Messaging Topology Operator install guides require Kubernetes 1.19+ and recommend 1.25+.
+# This hop upgrades the RabbitMQ Cluster Operator from 2.17.0 to 2.17.1 and re-applies the compatible RabbitMQ Messaging Topology Operator manifest pinned at v1.19.1.
+# Upstream release notes for RabbitMQ Cluster Operator 2.17.1 warn that upgrading to this operator version updates RabbitMQ clusters and causes a rolling update of the underlying StatefulSet.
+# The RabbitMQ Messaging Topology Operator is tested with the latest release of the RabbitMQ Cluster Operator and requires the Cluster Operator and a healthy RabbitMQ cluster.
+
+# Major operational risks:
+# - If reconciliation is not paused first, the RabbitMQ cluster can begin its rolling restart immediately after the cluster-operator deployment updates.
+# - If the RabbitmqCluster manifest is no longer pinned to the intended RabbitMQ image, a later operator reconcile can introduce unexpected server-image drift.
+# - If the topology operator cannot authenticate with the RabbitMQ cluster's generated default-user secret, topology reconciliation will fail after the upgrade.
+# - After the topology-operator upgrade, the old validatingwebhookconfiguration topology.rabbitmq.com may need to be deleted so the webhook resources reconcile cleanly.
+# - If webhook-server-cert is not auto-generated during the topology-operator upgrade, manual cleanup may be required.
+# - Never delete the rabbitmqclusters.rabbitmq.com CRD or the topology CRDs during this maintenance.
+
+### Goal
+
+# Upgrade the RabbitMQ control plane for this hop by applying the target RabbitMQ Cluster Operator manifest, re-applying the compatible RabbitMQ Messaging Topology Operator manifest, and returning the three-node RabbitMQ cluster to healthy quorum.
+
+### Prep
+
+## Deployment Node
+
+# Use a deployment host with kubectl access to the management cluster and the /etc/genestack tree.
+
+# Verify current control-plane state, RabbitMQ cluster health, and current RabbitMQ image pin:
+kubectl version
+kubectl -n rabbitmq-system get deployment rabbitmq-cluster-operator -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+kubectl -n rabbitmq-system get deployment messaging-topology-operator -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+kubectl -n rabbitmq-system get pods -o wide
+kubectl -n openstack get rabbitmqcluster rabbitmq -o yaml | egrep 'image:|pauseReconciliation|replicas:'
+kubectl -n openstack get pods -l app.kubernetes.io/name=rabbitmq -o wide
+kubectl -n openstack exec rabbitmq-server-0 -- rabbitmq-diagnostics cluster_status
+kubectl -n openstack exec rabbitmq-server-0 -- rabbitmqctl list_queues name type messages consumers durable
+kubectl get validatingwebhookconfiguration topology.rabbitmq.com --ignore-not-found -o yaml
+kubectl -n rabbitmq-system get secret webhook-server-cert
+
+# Expected:
+# - The cluster-operator image tag ends in 2.17.0.
+# - The messaging-topology-operator deployment is present and Available in rabbitmq-system.
+# - rabbitmq-server-0, rabbitmq-server-1, and rabbitmq-server-2 are Running and Ready.
+# - rabbitmq-diagnostics cluster_status reports all expected running_nodes.
+# - The RabbitmqCluster spec.image remains pinned to rabbitmq:4.1.4-management.
+
+# If the current cluster-operator version does not match 2.17.0, stop and reassess the starting point.
+
+# Verify backups or restore points exist before the rolling restart:
+kubectl -n openstack get rabbitmqcluster rabbitmq -o yaml > rabbitmq-cluster-pre-2.17.1.yaml
+kubectl -n rabbitmq-system get deployment rabbitmq-cluster-operator -o yaml > rabbitmq-cluster-operator-pre-2.17.1.yaml
+kubectl -n rabbitmq-system get deployment messaging-topology-operator -o yaml > rabbitmq-topology-operator-pre-2.17.1.yaml
+ls -lh rabbitmq-cluster-pre-2.17.1.yaml rabbitmq-cluster-operator-pre-2.17.1.yaml rabbitmq-topology-operator-pre-2.17.1.yaml
+
+# Expected:
+# - All manifest backup files were written on the deployment host.
+
+## Configuration Review
+
+# Verify both operator manifest sources of truth:
+sed -n '1,80p' /etc/genestack/kustomize/rabbitmq-operator/base/kustomization.yaml
+sed -n '1,80p' /etc/genestack/kustomize/rabbitmq-topology-operator/base/kustomization.yaml
+
+# Verify the RabbitMQ cluster manifest is still explicitly pinned:
+kubectl -n openstack get rabbitmqcluster rabbitmq -o jsonpath='{.spec.image}{"\n"}'
+
+# If any non-standard RabbitmqCluster override exists, document it in the maintenance log before continuing.
+
+## Pre-Change Safety Checks
+
+# Check for unhealthy dependencies and active alerts:
+kubectl get pods -A | egrep 'CrashLoopBackOff|Error|ImagePullBackOff'
+kubectl -n rabbitmq-system logs deployment/messaging-topology-operator --tail=100
+kubectl -n openstack get events --sort-by=.lastTimestamp | tail -n 40
+
+# If any critical dependency is unhealthy, stop and resolve it first.
+
+### Execute
+
+## Update the Target Version
+
+# Edit /etc/genestack/kustomize/rabbitmq-operator/base/kustomization.yaml and set:
+# resources:
+#   - https://github.com/rabbitmq/cluster-operator/releases/download/v2.17.1/cluster-operator.yml
+
+# Verify /etc/genestack/kustomize/rabbitmq-topology-operator/base/kustomization.yaml still points at the compatible topology-operator pin:
+# resources:
+#   - https://github.com/rabbitmq/messaging-topology-operator/releases/download/v1.19.1/messaging-topology-operator-with-certmanager.yaml
+
+## Apply Required Overrides or Patches
+
+# No RabbitmqCluster override changes are required for this hop.
+# Keep spec.image pinned to rabbitmq:4.1.4-management in the RabbitmqCluster manifest.
+# No topology-operator manifest override changes are required beyond keeping the compatible pinned release in the topology-operator base kustomization.
+
+## Run the Maintenance
+
+# Pause reconciliation so the cluster-operator deployment can be upgraded before the RabbitMQ StatefulSet begins rolling:
+kubectl -n openstack label rabbitmqcluster rabbitmq rabbitmq.com/pauseReconciliation=true --overwrite
+kubectl -n openstack get rabbitmqcluster rabbitmq --show-labels
+
+# Apply the new cluster-operator manifest and wait for the deployment to be available:
+kubectl apply -k /etc/genestack/kustomize/rabbitmq-operator/base
+kubectl -n rabbitmq-system rollout status deployment/rabbitmq-cluster-operator --timeout=5m
+kubectl -n rabbitmq-system get deployment rabbitmq-cluster-operator -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+
+# Apply the compatible topology-operator manifest and wait for its deployment to be available:
+kubectl apply -k /etc/genestack/kustomize/rabbitmq-topology-operator/base
+kubectl -n rabbitmq-system rollout status deployment/messaging-topology-operator --timeout=5m
+kubectl -n rabbitmq-system get deployment messaging-topology-operator -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+kubectl delete validatingwebhookconfiguration topology.rabbitmq.com --ignore-not-found
+
+# Re-apply the RabbitMQ cluster manifest so the pinned server image remains explicit:
+kubectl apply -k /etc/genestack/kustomize/rabbitmq-cluster/overlay
+
+# Resume reconciliation when the maintenance window is ready for the rolling restart:
+kubectl -n openstack label rabbitmqcluster rabbitmq rabbitmq.com/pauseReconciliation-
+
+# Watch the cluster roll one pod at a time:
+kubectl -n openstack rollout status statefulset/rabbitmq-server --timeout=15m
+kubectl -n openstack get pods -l app.kubernetes.io/name=rabbitmq -w
+
+### Post-Maint
+
+# Verify the deployed control-plane versions:
+kubectl -n rabbitmq-system get deployment rabbitmq-cluster-operator -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+kubectl -n rabbitmq-system get deployment messaging-topology-operator -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+
+# Expected:
+# - The cluster-operator image tag ends in 2.17.1.
+# - The topology operator deployment is running from the compatible pinned release v1.19.1.
+
+# Verify RabbitMQ cluster and topology-operator health after the roll:
+kubectl -n openstack get rabbitmqcluster rabbitmq -o wide
+kubectl -n openstack get pods -l app.kubernetes.io/name=rabbitmq -o wide
+kubectl -n openstack exec rabbitmq-server-0 -- rabbitmq-diagnostics cluster_status
+kubectl -n openstack exec rabbitmq-server-0 -- rabbitmqctl list_queues name type messages consumers durable
+kubectl -n rabbitmq-system get pods -o wide
+kubectl -n rabbitmq-system get secret webhook-server-cert
+kubectl get validatingwebhookconfiguration topology.rabbitmq.com --ignore-not-found -o name
+
+# Verify logs and events for upgrade failures:
+kubectl -n rabbitmq-system logs deployment/rabbitmq-cluster-operator --tail=200
+kubectl -n rabbitmq-system logs deployment/messaging-topology-operator --tail=200
+kubectl -n openstack get events --sort-by=.lastTimestamp | tail -n 40
+
+# Verify the pause label is gone:
+kubectl -n openstack get rabbitmqcluster rabbitmq --show-labels
+
+### Troubleshooting
+
+## Common Failure Signal
+
+# If the StatefulSet begins rolling before the cluster-operator deployment has been updated and validated, stop and confirm whether the pauseReconciliation label was applied successfully.
+# If topology resources stop reconciling after the hop, stop and inspect messaging-topology-operator logs for authentication or webhook errors.
+# If webhook-server-cert is not present after the topology-operator upgrade, the topology operator may not have re-generated its serving certificate.
+
+## Rollback
+
+# Roll back the cluster-operator manifest in /etc/genestack/kustomize/rabbitmq-operator/base/kustomization.yaml to v2.17.0, keep the topology-operator manifest on the compatible pinned release, and re-apply both manifests:
+kubectl -n openstack label rabbitmqcluster rabbitmq rabbitmq.com/pauseReconciliation=true --overwrite
+kubectl apply -k /etc/genestack/kustomize/rabbitmq-operator/base
+kubectl -n rabbitmq-system rollout status deployment/rabbitmq-cluster-operator --timeout=5m
+kubectl apply -k /etc/genestack/kustomize/rabbitmq-topology-operator/base
+kubectl -n rabbitmq-system rollout status deployment/messaging-topology-operator --timeout=5m
+kubectl delete validatingwebhookconfiguration topology.rabbitmq.com --ignore-not-found
+kubectl -n openstack label rabbitmqcluster rabbitmq rabbitmq.com/pauseReconciliation-
+kubectl -n openstack rollout status statefulset/rabbitmq-server --timeout=15m
+
+# Expected:
+# - The cluster-operator image tag ends in 2.17.0.
+# - The topology operator returns to Available.
+# - The RabbitMQ cluster returns to Ready.
+
+## Additional Recovery Actions
+
+# If webhook-server-cert was not auto-generated after the topology-operator upgrade, delete any stale copy and restart the topology operator so it can recreate the certificate:
+kubectl -n rabbitmq-system delete secret webhook-server-cert --ignore-not-found
+kubectl -n rabbitmq-system rollout restart deployment/messaging-topology-operator
+kubectl -n rabbitmq-system rollout status deployment/messaging-topology-operator --timeout=5m
+kubectl -n rabbitmq-system get secret webhook-server-cert
+
+# If one RabbitMQ pod does not rejoin quorum after the roll or topology reconciliation fails:
+kubectl -n openstack describe pod rabbitmq-server-0
+kubectl -n openstack describe pod rabbitmq-server-1
+kubectl -n openstack describe pod rabbitmq-server-2
+kubectl -n openstack logs rabbitmq-server-0 --tail=200
+kubectl -n openstack logs rabbitmq-server-1 --tail=200
+kubectl -n openstack logs rabbitmq-server-2 --tail=200
+kubectl -n rabbitmq-system describe deployment messaging-topology-operator
+kubectl -n rabbitmq-system logs deployment/messaging-topology-operator --tail=400
+
+### Sources
+
+# https://www.rabbitmq.com/kubernetes/operator/install-operator
+# https://www.rabbitmq.com/kubernetes/operator/install-topology-operator
+# https://www.rabbitmq.com/kubernetes/operator/using-operator
+# https://www.rabbitmq.com/kubernetes/operator/using-topology-operator
+# https://www.rabbitmq.com/kubernetes/operator/upgrade-operator
+# https://github.com/rabbitmq/cluster-operator/releases/tag/v2.17.1
+# https://github.com/rabbitmq/messaging-topology-operator/releases/tag/v1.19.1
+# https://github.com/rabbitmq/messaging-topology-operator
+# /Users/chris.breu/code/flex/genestack/docs/infrastructure-rabbitmq.md
