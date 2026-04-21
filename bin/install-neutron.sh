@@ -184,6 +184,11 @@ helm_command=(
     "$@"
 )
 
+# Create the neutron-keystone-admin secret by copying the keystone-keystone-admin secret and replacing 'keystone' with 'neutron' in the name and data keys.
+kubectl --namespace openstack get secrets keystone-keystone-admin -o yaml | \
+  sed -e '/keystone/{s/keystone/neutron/}' | \
+    kubectl --namespace openstack apply --force -f -
+
 echo "Executing Helm command (arguments are quoted safely):"
 printf '%q ' "${helm_command[@]}"
 echo
