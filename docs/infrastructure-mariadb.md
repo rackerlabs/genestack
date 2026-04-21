@@ -68,6 +68,15 @@ kubectl --namespace mariadb-system get pods -w
 
     Replication in MariaDB involves synchronizing data between a primary database and one or more replicas, enabling continuous data availability even in the event of hardware failures or outages. By using MariaDB replication, OpenStack deployments can achieve improved fault tolerance and load balancing, ensuring that critical cloud services remain operational and performant at all times.
 
+    Genestack's supported replication baseline for MariaDB `11.8.5` on mariadb-operator
+    `26.3.0` is intentionally both crash-safe and backward compatible with older
+    OpenStack tables. The active replication manifest is the canonical source of truth
+    and keeps `binlog_format=ROW`, `innodb_flush_log_at_trx_commit=1`, and
+    `sync_binlog=1` for durable primary/replica operation while also pinning
+    `character-set-server=utf8mb3` and `collation-server=utf8mb3_general_ci`.
+    This charset/collation pairing is required so Alembic migrations can create new
+    foreign keys against pre-`11.8.5` tables without collation mismatch failures.
+
     !!! note "Replication setup"
 
         Updating the `replication` configuration to include the `replication` resource will deploy a primary MariaDB instance along with one or more replicas, providing a simple yet effective way to enhance database availability and performance in OpenStack environments.
