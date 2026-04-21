@@ -1,29 +1,22 @@
-# ironic-helm-overrides.yml
-# Helm overrides for OpenStack Ironic based on openstack-helm/ironic/values.yaml
-# Integrated with Keystone, Glance, Nova, Cinder, Horizon, and Neutron configurations
-# Date: April 03, 2025
-
 ---
 images:
   tags:
-    ironic_manage_cleaning_network: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ironic_retrive_cleaning_network: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ironic_retrive_swift_config: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ironic_db_sync: "ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ironic_manage_cleaning_network: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ironic_retrive_cleaning_network: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ironic_retrive_swift_config: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ironic_db_sync: "ghcr.io/rackerlabs/genestack-images/ironic-api:2025.1-latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     rabbit_init: null
-    ironic_api: "ghcr.io/rackerlabs/genestack-images/ironic-api:2024.1-latest"
-    ironic_conductor: "ghcr.io/rackerlabs/genestack-images/ironic-conductor:2024.1-latest"
-    ironic_pxe: "ghcr.io/rackerlabs/genestack-images/ironic-pxe:2024.1-latest"
-    ironic_pxe_init: "ghcr.io/rackerlabs/genestack-images/ironic-pxe:2024.1-latest"
-    ironic_pxe_http: "docker.io/nginx:1.13.3" # Retained from openstack-helm default
-    ironic_inspector: "ghcr.io/rackerlabs/genestack-images/ironic-inspector:2024.1-latest"
-    ironic_inspector_db_sync: "ghcr.io/rackerlabs/genestack-images/ironic-inspector:2024.1-latest"
+    ironic_api: "ghcr.io/rackerlabs/genestack-images/ironic-api:2025.1-latest"
+    ironic_conductor: "ghcr.io/rackerlabs/genestack-images/ironic-conductor:2025.1-latest"
+    ironic_pxe: "ghcr.io/rackerlabs/genestack-images/ironic-pxe:2025.1-latest"
+    ironic_pxe_init: "ghcr.io/rackerlabs/genestack-images/ironic-pxe:2025.1-latest"
+    ironic_pxe_http: "docker.io/nginx:1.29.8" # Retained from openstack-helm master branch
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
     image_repo_sync: null
   pull_policy: "IfNotPresent"
@@ -31,19 +24,62 @@ images:
 conf:
   ironic:
     DEFAULT:
+      grub_config_path: "EFI/ubuntu/grub.cfg"
       log_config_append: /etc/ironic/logging.conf
-      tempdir: /tmp
+      tempdir: /var/lib/ironic/tmp
       default_deploy_interface: "direct"
       default_inspect_interface: "agent"
-      default_network_interface: "neutron"
-      enabled_hardware_types: "ipmi,redfish"
-      enabled_boot_interfaces: "pxe,ipxe"
+      default_network_interface: "flat"
+      enabled_hardware_types: "ilo,ipmi,redfish,idrac"
+      enabled_bios_interfaces: "ilo,no-bios,idrac-redfish,redfish"
+      enabled_boot_interfaces: "pxe,ipxe,redfish-virtual-media,redfish-https,ilo-virtual-media,ilo-pxe"
+      enabled_console_interfaces: "no-console"
       enabled_deploy_interfaces: "direct,ramdisk"
-      enabled_inspect_interfaces: "agent,no-inspect,redfish"
-      enabled_management_interfaces: "ipmitool,redfish"
-      enabled_network_interfaces: "flat,neutron"
-      enabled_power_interfaces: "ipmitool,redfish"
-      enabled_raid_interfaces: "no-raid"
+      enabled_firmware_interfaces: "redfish,no-firmware"
+      enabled_inspect_interfaces: "ilo,agent,no-inspect,inspector,idrac-redfish,redfish"
+      enabled_management_interfaces: "ilo,ipmitool,idrac-redfish,redfish"
+      enabled_network_interfaces: "flat,neutron,noop"
+      enabled_power_interfaces: "ilo,ipmitool,idrac-redfish,redfish"
+      enabled_raid_interfaces: "agent,idrac-redfish,redfish,no-raid"
+      enabled_rescue_interfaces: "no-rescue,agent"
+      enabled_storage_interfaces: "noop"
+      enabled_vendor_interfaces: "ipmitool,ilo,idrac-redfish,redfish,no-vendor"
+    conductor:
+      sync_power_state_interval: "60"
+      automated_clean: "False"
+      heartbeat_timeout: "7200"
+      deploy_callback_timeout: "7200"
+      inspect_timeout: "3600"
+      image_convert_on_size_mismatch: "True"
+    deploy:
+      erase_devices_priority: "10"
+      shred_random_overwrite_iterations: "0"
+      shred_final_overwrite_with_zeros: "True"
+      continue_if_disk_secure_erase_fails: "False"
+      power_off_after_deploy_failure: "True"
+      default_boot_option: "local"
+      iso_master_path: "/var/lib/ironic/master_iso_images"
+    agent:
+      efi_boot_partition: "/boot/efi"
+      image_download_source: "http"
+      deploy_logs_collect: "always"
+      deploy_logs_storage_backend: "local"
+      deploy_logs_local_path: "/var/lib/ironic/logs"
+    pxe:
+      kernel_append_params: "nofb nomodeset vga=normal ipa-debug=1"
+      images_path: /var/lib/openstack-helm/ironic/images
+      instance_master_path: /var/lib/openstack-helm/ironic/master_images
+      tftp_root: /var/lib/openstack-helm/tftpboot
+      tftp_master_path: /var/lib/openstack-helm/tftpboot/master_images
+      pxe_bootfile_name: "undionly.kpxe"
+      uefi_pxe_bootfile_name: "ipxe.efi"
+      ipxe_enabled: true
+    ilo:
+      use_web_server_for_images: "True"
+      kernel_append_params: "nofb nomodeset vga=normal ipa-debug=1"
+    redfish:
+      use_swift: false
+      kernel_append_params: "nofb nomodeset vga=normal ipa-debug=1"
     cache:
       enabled: true
       backend: dogpile.cache.memcached
@@ -58,7 +94,6 @@ conf:
       max_retries: -1
     glance:
       auth_type: password
-      num_retries: 8
     keystone_authtoken:
       auth_type: password
       auth_version: v3
@@ -66,10 +101,16 @@ conf:
       service_token_roles: service
       service_token_roles_required: true
       service_type: baremetal
+    nova:
+      auth_type: password
+      service_type: compute
+      valid_interfaces: internal
     neutron:
       auth_type: password
       cleaning_network: "baremetal-cleaning-network"
       provisioning_network: "baremetal-provisioning-network"
+    service_catalog:
+      valid_interfaces: public
     oslo_messaging_rabbit:
       amqp_durable_queues: false
       rabbit_ha_queues: false
@@ -79,23 +120,13 @@ conf:
       rabbit_interval_max: 10
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
-      heartbeat_in_pthread: true # Note: Deprecation warning for 2024.2
       kombu_reconnect_delay: 0.5
-    pxe:
-      pxe_append_params: "nofb nomodeset vga=normal ipa-debug=1"
-      images_path: /var/lib/openstack-helm/ironic/images
-      instance_master_path: /var/lib/openstack-helm/ironic/master_images
-      tftp_root: /var/lib/openstack-helm/tftpboot
-      tftp_master_path: /var/lib/openstack-helm/tftpboot/master_images
-      pxe_bootfile_name: "undionly.kpxe"
-      uefi_pxe_bootfile_name: "ipxe.efi"
-      ipxe_enabled: true
-    service_catalog:
-      valid_interfaces: public
-  ironic_inspector:
-    DEFAULT:
-      processing_hooks: "$processing.default_hooks,ramdisk_error"
-      ramdisk_logs_dir: "/var/log/ironic-inspector/ramdisk/"
+    oslo_policy:
+      # enforce_scope: Deprecated, will be removed in 2025.2. OpenStack always enforces scope checks.
+      enforce_scope: false
+      # enforce_new_defaults: Enable to use new policy defaults instead of deprecated ones for stricter RBAC.
+      enforce_new_defaults: false
+    policy: []
   logging:
     logger_root:
       level: INFO
@@ -112,6 +143,7 @@ network:
     neutron_network_name: baremetal-provisioning-network
     neutron_subnet_name: baremetal-provisioning-network
     neutron_provider_network: physnet2
+    # NOTE: The following subnet configuration is aligned with dedicated provisioning network settings in Neutron's.
     neutron_subnet_gateway: 172.24.6.1/24
     neutron_subnet_cidr: 172.24.6.0/24
     neutron_subnet_alloc_start: 172.24.6.100
@@ -125,14 +157,14 @@ bootstrap:
       enabled: true
       ks_user: ironic
     # NOTE: if source_base is null the source will be used as is
-    source_base: http://tarballs.openstack.org/ironic-python-agent/tinyipa/files
+    source_base: https://tarballs.opendev.org/openstack/ironic-python-agent/dib/files
     structured:
       ironic-agent.initramfs:
-        source: tinyipa-stable-2024.1.gz
+        source: ipa-centos9-stable-2026.1.initramfs
         disk_format: ari
         container_format: ari
       ironic-agent.kernel:
-        source: tinyipa-stable-2024.1.vmlinuz
+        source: ipa-centos9-stable-2026.1.kernel
         disk_format: aki
         container_format: aki
   network:
@@ -209,6 +241,37 @@ endpoints:
         internal: 9292
         public: 80
         service: 9292
+  volumev3:
+    name: cinderv3
+    hosts:
+      default: cinder-api
+      public: cinder
+    host_fqdn_override:
+      default: cinder-api.openstack.svc.cluster.local
+    path:
+      default: '/v3/%(tenant_id)s'
+      healthcheck: /healthcheck
+    port:
+      api:
+        default: 8776
+        public: 80
+  compute:
+    name: nova
+    hosts:
+      default: nova-api
+      public: nova
+    host_fqdn_override:
+      default: nova-api.openstack.svc.cluster.local
+    path:
+      default: "/v2.1/"
+    scheme:
+      default: 'http'
+    port:
+      api:
+        default: 8774
+        public: 80
+      novncproxy:
+        default: 6080
   network:
     hosts:
       default: neutron-server
@@ -259,7 +322,7 @@ pod:
 manifests:
   deployment_api: true
   ingress_api: false
-  job_bootstrap: false
+  job_bootstrap: true
   job_db_drop: false
   job_db_init: false
   job_db_sync: true
