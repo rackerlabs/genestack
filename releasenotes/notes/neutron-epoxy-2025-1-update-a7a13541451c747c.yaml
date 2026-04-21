@@ -1,0 +1,33 @@
+---
+prelude: >
+    Update Neutron to Epoxy (2025.1) release with enhanced OVN backend support and firewall_v2 enabled.
+features:
+  - |
+    Enabled firewall_v2 service plugin and extension driver for ML2/OVN backend.
+  - |
+    Updated Neutron container images to genestack-images/neutron:2025.1-latest.
+  - |
+    Updated the Neutron helm chart version to 2025.1.17+95bf0bf6e.
+upgrade:
+  - |
+    Firewall_v2 is now enabled by default. Existing firewall policies will be migrated automatically.
+  - |
+    The Neutron API now requires the ``start-time=%t`` variable in uWSGI configuration.
+  - |
+    Neutron resource tag limit of 50 tags per resource is now enforced. Resources with more than 50 tags
+    will need to be modified to reduce tag count before upgrades.
+  - |
+    Neutron OVN ``ovn_emit_need_to_frag`` option is now enabled by default. This may impact performance
+    on kernels older than 5.2. Consider setting to ``False`` if using older kernels.
+  - |
+    The Neutron ``[DEFAULT] interface_driver`` option now defaults to ``openvswitch`` and is not required
+    when using OVN mechanism driver.
+other:
+  - |
+    The Neutron Address Group support added to OVN mechanism driver.
+  - |
+    Neutron DNS records can now be configured as local to OVN using ``[ovn]dns_records_ovn_owned`` option.
+  - |
+    Neutron HA routers can now use conntrackd for connection state synchronization across router instances.
+  - |
+    Neutron QoS floating IP rules now take precedence over router rules when both are present.
