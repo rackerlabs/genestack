@@ -85,6 +85,7 @@ This document describes the metrics collected by the current OpenTelemetry + Pro
 - `resource_to_telemetry_conversion` is enabled on the Prometheus remote write exporter, so OTel resource attributes become Prometheus labels.
 - `target_info` is disabled on the Prometheus remote write exporter.
 - The `httpcheck` receiver is configured with targets, but it is **currently commented out of the deployment metrics pipeline**. Its metric families are documented below so the reference stays complete for the configured receiver.
+- `libvirt` metrics are collected by a Prometheus receiver scrape in the daemon collector against a node-local `libvirt_exporter` endpoint and then remote-written to Prometheus.
 
 ---
 
@@ -169,7 +170,118 @@ That means this config does **not** collect hostmetrics process metrics such as:
 
 ---
 
-### 2. OTLP Application Metrics
+### 2. Libvirt Metrics (from libvirt_exporter via Prometheus receiver)
+
+**Source**: Prometheus receiver scrape job `libvirt` against the node-local `libvirt_exporter` endpoint  
+**Collector**: OTel DaemonSet  
+**Collection Interval**: `30s`  
+**Typical Scrape Target**: `localhost:9474/metrics` (or equivalent node-local endpoint)  
+**Labels**: `domain`, `host_name`, `instance_name`, `instance_id`, `project_name`, `project_id`, `user_name`, `user_id`, `flavor_name`, `job`, `instance`, plus converted resource attributes
+
+**Important label note**:
+- `instance` is the exporter scrape endpoint (for example `localhost:9474`), not the Nova instance UUID.
+- For VM identity and OpenStack metadata, use `libvirt_domain_openstack_info` labels such as `instance_name`, `instance_id`, `project_name`, `user_name`, and `flavor_name`.
+- For compute host selection, prefer `host_name`.
+
+#### Inventory and Metadata Metrics
+
+| Metric Name | Type | Description | Labels |
+|-------------|------|-------------|--------|
+| `libvirt_domains` | Gauge | Number of libvirt domains visible to the exporter | - |
+| `libvirt_domain_timed_out` | Gauge | Whether scraping metrics for a specific domain timed out | `domain` |
+| `libvirt_domain_openstack_info` | Gauge | OpenStack / Nova metadata exported as labels | `domain`, `host_name`, `instance_name`, `instance_id`, `project_name`, `project_id`, `user_name`, `user_id`, `flavor_name` |
+| `libvirt_domain_info` | Gauge | Static domain metadata such as OS type and architecture exported as labels | `domain`, `os_type`, `os_type_machine`, `os_type_arch` |
+| `libvirt_domain_info_state` | Gauge | Domain state code with descriptive state label | `domain`, `state_desc` |
+
+#### Domain Compute and Memory Overview Metrics
+
+| Metric Name | Type | Description | Labels |
+|-------------|------|-------------|--------|
+| `libvirt_domain_info_cpu_time_seconds_total` | Counter | Total CPU time consumed by the domain | `domain` |
+| `libvirt_domain_info_virtual_cpus` | Gauge | Configured virtual CPU count for the domain | `domain` |
+| `libvirt_domain_info_maximum_memory_bytes` | Gauge | Maximum configured memory for the domain | `domain` |
+| `libvirt_domain_info_memory_usage_bytes` | Gauge | Current memory usage reported for the domain | `domain` |
+
+#### Domain Memory Stats Metrics
+
+| Metric Name | Type | Description | Labels |
+|-------------|------|-------------|--------|
+| `libvirt_domain_memory_stats_available_bytes` | Gauge | Memory available to the guest | `domain` |
+| `libvirt_domain_memory_stats_current_balloon_bytes` | Gauge | Current balloon size | `domain` |
+| `libvirt_domain_memory_stats_disk_caches_bytes` | Gauge | Guest memory used for reclaimable disk cache | `domain` |
+| `libvirt_domain_memory_stats_hugetlb_pgalloc_total` | Counter | Successful guest hugepage allocations via balloon reporting | `domain` |
+| `libvirt_domain_memory_stats_hugetlb_pgfail_total` | Counter | Failed guest hugepage allocations via balloon reporting | `domain` |
+| `libvirt_domain_memory_stats_last_update_timestamp_seconds` | Gauge | Timestamp of the last memory stats update | `domain` |
+| `libvirt_domain_memory_stats_major_fault_total` | Counter | Major page faults reported for the domain | `domain` |
+| `libvirt_domain_memory_stats_maximum_bytes` | Gauge | Maximum guest memory available to the domain | `domain` |
+| `libvirt_domain_memory_stats_minor_fault_total` | Counter | Minor page faults reported for the domain | `domain` |
+| `libvirt_domain_memory_stats_rss_bytes` | Gauge | Resident set size of the process backing the domain | `domain` |
+| `libvirt_domain_memory_stats_swap_in_bytes` | Counter | Bytes swapped into guest memory | `domain` |
+| `libvirt_domain_memory_stats_swap_out_bytes` | Counter | Bytes swapped out from guest memory | `domain` |
+| `libvirt_domain_memory_stats_unused_bytes` | Gauge | Unused memory inside the guest | `domain` |
+| `libvirt_domain_memory_stats_usable_bytes` | Gauge | Usable guest memory, similar to Linux `MemAvailable` | `domain` |
+| `libvirt_domain_memory_stats_used_percent` | Gauge | Guest memory utilization percentage | `domain` |
+
+#### Block Device Metrics
+
+| Metric Name | Type | Description | Labels |
+|-------------|------|-------------|--------|
+| `libvirt_domain_block_stats_info` | Gauge | Block device metadata exported as labels | `domain`, `disk_type`, `driver_cache`, `driver_discard`, `driver_name`, `driver_type`, `serial`, `source_file`, `target_bus`, `target_device` |
+| `libvirt_domain_block_stats_capacity_bytes` | Gauge | Logical capacity of the block device backing image | `domain`, `target_device` |
+| `libvirt_domain_block_stats_flush_requests_total` | Counter | Flush requests issued to the block device | `domain`, `target_device` |
+| `libvirt_domain_block_stats_flush_time_seconds_total` | Counter | Time spent flushing the block device cache | `domain`, `target_device` |
+| `libvirt_domain_block_stats_read_bytes_total` | Counter | Bytes read from the block device | `domain`, `target_device` |
+| `libvirt_domain_block_stats_read_requests_total` | Counter | Read requests issued to the block device | `domain`, `target_device` |
+| `libvirt_domain_block_stats_read_time_seconds_total` | Counter | Time spent in block reads | `domain`, `target_device` |
+| `libvirt_domain_block_stats_write_bytes_total` | Counter | Bytes written to the block device | `domain`, `target_device` |
+| `libvirt_domain_block_stats_write_requests_total` | Counter | Write requests issued to the block device | `domain`, `target_device` |
+| `libvirt_domain_block_stats_write_time_seconds_total` | Counter | Time spent in block writes | `domain`, `target_device` |
+
+#### Network Interface Metrics
+
+| Metric Name | Type | Description | Labels |
+|-------------|------|-------------|--------|
+| `libvirt_domain_interface_stats_info` | Gauge | Interface metadata exported as labels | `domain`, `interface_type`, `mac_address`, `model_type`, `mtu_size`, `source_bridge`, `target_device` |
+| `libvirt_domain_interface_stats_receive_bytes_total` | Counter | Bytes received on the guest interface | `domain`, `target_device` |
+| `libvirt_domain_interface_stats_receive_drops_total` | Counter | Dropped received packets on the guest interface | `domain`, `target_device` |
+| `libvirt_domain_interface_stats_receive_errors_total` | Counter | Receive errors on the guest interface | `domain`, `target_device` |
+| `libvirt_domain_interface_stats_receive_packets_total` | Counter | Packets received on the guest interface | `domain`, `target_device` |
+| `libvirt_domain_interface_stats_transmit_bytes_total` | Counter | Bytes transmitted on the guest interface | `domain`, `target_device` |
+| `libvirt_domain_interface_stats_transmit_drops_total` | Counter | Dropped transmitted packets on the guest interface | `domain`, `target_device` |
+| `libvirt_domain_interface_stats_transmit_errors_total` | Counter | Transmit errors on the guest interface | `domain`, `target_device` |
+| `libvirt_domain_interface_stats_transmit_packets_total` | Counter | Packets transmitted on the guest interface | `domain`, `target_device` |
+
+#### Domain Job Metrics
+
+| Metric Name | Type | Description | Labels |
+|-------------|------|-------------|--------|
+| `libvirt_domain_job_info_data_processed_bytes` | Gauge | Data bytes already processed by the active domain job | `domain`, `host_name` |
+| `libvirt_domain_job_info_data_remaining_bytes` | Gauge | Data bytes remaining for the active domain job | `domain`, `host_name` |
+| `libvirt_domain_job_info_data_total_bytes` | Gauge | Total data bytes for the active domain job | `domain`, `host_name` |
+| `libvirt_domain_job_info_file_processed_bytes` | Gauge | File bytes already processed by the active domain job | `domain`, `host_name` |
+| `libvirt_domain_job_info_file_remaining_bytes` | Gauge | File bytes remaining for the active domain job | `domain`, `host_name` |
+| `libvirt_domain_job_info_file_total_bytes` | Gauge | Total file bytes for the active domain job | `domain`, `host_name` |
+| `libvirt_domain_job_info_memory_processed_bytes` | Gauge | Memory bytes already processed by the active domain job | `domain`, `host_name` |
+| `libvirt_domain_job_info_memory_remaining_bytes` | Gauge | Memory bytes remaining for the active domain job | `domain`, `host_name` |
+| `libvirt_domain_job_info_memory_total_bytes` | Gauge | Total memory bytes for the active domain job | `domain`, `host_name` |
+| `libvirt_domain_job_info_time_elapsed_seconds` | Gauge | Time elapsed for the active domain job | `domain`, `host_name` |
+| `libvirt_domain_job_info_time_remaining_seconds` | Gauge | Estimated time remaining for the active domain job | `domain`, `host_name` |
+| `libvirt_domain_job_info_type` | Gauge | Domain job type code | `domain`, `host_name` |
+
+**Note**: Domain job metrics are most useful during live migration, block copy, or other active libvirt jobs. It is normal for job-oriented panels to be sparse or empty when no domain jobs are running.
+
+#### vCPU Metrics
+
+| Metric Name | Type | Description | Labels |
+|-------------|------|-------------|--------|
+| `libvirt_domain_vcpu_current` | Gauge | Number of currently online vCPUs for the domain | `domain` |
+| `libvirt_domain_vcpu_delay_seconds_total` | Counter | Time a vCPU spent delayed in the run queue | `domain`, `vcpu` |
+| `libvirt_domain_vcpu_maximum` | Gauge | Maximum number of vCPUs allowed for the domain | `domain` |
+| `libvirt_domain_vcpu_state` | Gauge | Per-vCPU state code | `domain`, `vcpu`, `state_desc` |
+| `libvirt_domain_vcpu_time_seconds_total` | Counter | CPU time used by a specific vCPU | `domain`, `vcpu` |
+| `libvirt_domain_vcpu_wait_seconds_total` | Counter | Time a specific vCPU spent waiting | `domain`, `vcpu` |
+
+### 3. OTLP Application Metrics
 
 **Source**: Applications sending metrics to OTel collector via OTLP  
 **Collector**: OTel Deployment
@@ -192,7 +304,7 @@ Applications instrumented with OpenTelemetry SDKs can send custom metrics. These
 
 ---
 
-### 3. kubeletstats Metrics (DISABLED)
+### 4. kubeletstats Metrics (DISABLED)
 
 **Status**: ⚠️ **DISABLED**
 
@@ -200,7 +312,7 @@ The `kubeletMetrics` preset is disabled in both the daemon and deployment collec
 
 ---
 
-### 4. HTTP Endpoint Check Metrics
+### 5. HTTP Endpoint Check Metrics
 
 **Source**: `httpcheck` receiver  
 **Collector**: OTel Deployment  
@@ -910,6 +1022,17 @@ The config also defines synthetic HTTP endpoint checks for major OpenStack APIs.
 | `node` | Kube-OVN / Prometheus | Node associated with metric |
 | `target` | HTTP check receiver | Endpoint being checked |
 | `method` | HTTP check receiver | HTTP method used for the check |
+| `domain` | libvirt exporter | Libvirt domain identifier, often OpenStack `instance-...` |
+| `instance_name` | `libvirt_domain_openstack_info` | OpenStack / Nova server name |
+| `instance_id` | `libvirt_domain_openstack_info` | OpenStack / Nova server UUID |
+| `project_name` | `libvirt_domain_openstack_info` | OpenStack project / tenant identifier or name |
+| `project_id` | `libvirt_domain_openstack_info` | OpenStack project UUID |
+| `user_name` | `libvirt_domain_openstack_info` | OpenStack user name |
+| `user_id` | `libvirt_domain_openstack_info` | OpenStack user identifier |
+| `flavor_name` | `libvirt_domain_openstack_info` | OpenStack flavor associated with the domain |
+| `state_desc` | libvirt exporter | Human-readable libvirt state label for a domain or vCPU |
+| `target_device` | libvirt exporter | Guest block device or interface device name |
+| `vcpu` | libvirt exporter | Virtual CPU index within a domain |
 
 ### Labels from Prometheus ServiceMonitors
 
@@ -922,6 +1045,8 @@ The config also defines synthetic HTTP endpoint checks for major OpenStack APIs.
 | `namespace` | Namespace |
 | `pod` | Pod name, when available |
 | `node` | Node name, when added by relabeling |
+
+**Libvirt-specific note**: for the libvirt scrape job, `instance` is typically the exporter endpoint (for example `localhost:9474`) and should not be treated as the VM UUID. For dashboard filtering and joins, prefer `host_name` for compute selection and `instance_name` / `instance_id` from `libvirt_domain_openstack_info` for VM identity.
 
 ---
 
@@ -952,6 +1077,20 @@ kubectl logs -n monitoring deployment/opentelemetry-kube-stack-deployment-collec
 1. Verify the daemon collector is running on each node.
 2. Confirm the `hostmetrics` receiver is active in the daemon collector metrics pipeline.
 3. Check for permissions or host mount issues if hostmetrics suddenly drops out.
+
+---
+
+### Missing Libvirt Metrics
+
+1. Verify the libvirt exporter is running with the libvirt workload on each compute node.
+2. Confirm the daemon collector has an active Prometheus scrape job for `libvirt`.
+3. Verify the exporter endpoint is reachable from the collector pod, for example `curl http://localhost:9474/metrics` or the configured node-local address.
+4. If the exporter is running as a sidecar, confirm the libvirt socket path is correct inside the container.
+5. Check collector logs for Prometheus scrape failures:
+```bash
+kubectl logs -n monitoring daemonset/opentelemetry-kube-stack-daemon-collector -c otc-container | grep -i libvirt
+```
+6. Check exporter logs for libvirt connection failures or missing socket errors.
 
 ---
 
@@ -1036,6 +1175,7 @@ If Prometheus is struggling with too many series:
    - per-target pinger metrics
    - per-target HTTP check metrics
    - high-label OTLP application metrics
+   - libvirt per-domain / per-interface / per-block-device / per-vCPU metrics
    - kube-state-metrics object labels
 
 ---
@@ -1059,6 +1199,7 @@ Base configuration collects metrics from:
 
 1. **OTel Collectors (Remote Write to Prometheus)**:
    - Host metrics via `hostmetrics`
+   - Libvirt hypervisor and per-domain metrics via OTel Prometheus receiver scraping `libvirt_exporter`
    - Application OTLP metrics
    - MySQL metrics via OTel receiver
    - PostgreSQL metrics via OTel receiver
@@ -1094,6 +1235,7 @@ Base configuration collects metrics from:
 | Metric Prefix | Source | Collection Method | What It Measures |
 |--------------|--------|-------------------|------------------|
 | `system_*` | hostmetrics receiver | OTel DaemonSet → Remote Write | Node-level system metrics |
+| `libvirt_*` | `libvirt_exporter` | OTel DaemonSet Prometheus scrape → Remote Write | Hypervisor, VM, OpenStack metadata, disk, interface, job, and vCPU metrics |
 | `httpcheck.*` | HTTP check receiver | OTel Deployment → Remote Write when enabled | Endpoint availability and latency checks |
 | `mysql.*` | MySQL receiver | OTel Deployment → Remote Write | MariaDB/MySQL server health and usage |
 | `postgresql.*` | PostgreSQL receiver | OTel Deployment → Remote Write | PostgreSQL usage and transaction metrics |
