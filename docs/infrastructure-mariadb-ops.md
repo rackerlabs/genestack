@@ -73,7 +73,9 @@ This command will create a job that runs the backup process immediately, creatin
     backups. If it does not already exist, it's important to create the
     database with the correct charset and collate values. Failing to do so can
     result in errors such as `Foreign Key Constraint is Incorrectly Formed`
-    during DB upgrades.
+    during DB upgrades. This matches the replication cluster baseline, which
+    intentionally keeps `utf8mb3` / `utf8mb3_general_ci` as the server default
+    so Alembic migrations can add foreign keys to older pre-`11.8.5` tables.
 
     ```
     CREATE DATABASE ${DATABASE_NAME} DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;

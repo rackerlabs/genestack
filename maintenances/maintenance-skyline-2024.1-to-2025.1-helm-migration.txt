@@ -60,8 +60,11 @@ kubectl --namespace openstack get secret skyline-apiserver-secrets -o jsonpath='
 # If the secret does not exist or is missing keys, create it before continuing:
 # See the "Creating the Skyline Database Password Secret" section below
 
-# Verify node or workload placement, if relevant:
-kubectl --namespace openstack get nodes -L longhorn.io/storage-node
+# Verify the target control-plane nodes are labeled for Skyline placement:
+kubectl get nodes -L openstack-control-plane
+
+# Expected:
+# - At least one target node shows openstack-control-plane=enabled
 
 # Verify backups, snapshots, or restore points are available:
 # This is a Helm migration, so no database backup is required beyond the existing MariaDB backups
@@ -94,9 +97,19 @@ charts:
 # The skyline-helm-overrides.yaml file will need to be craeted /etc/genestack/base-helm-configs/skyline/skyline-helm-overrides.yaml
 mkdir -p /etc/genestack/helm-configs/skyline
 
-# At a minimum there will need to be a single override that sets the region name.
+# At a minimum there will need to be overrides for the region name and Skyline's
+# chart-supported node placement labels. The upstream openstack-helm/skyline
+# chart uses labels.skyline and labels.job node selector keys rather than a
+# generic nodeSelector block.
 cat >/etc/genestack/helm-configs/skyline/skyline-helm-overrides.yaml<<EOF
 ---
+labels:
+  skyline:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  job:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
 conf:
   skyline:
     openstack:
@@ -107,6 +120,7 @@ EOF
 # - images: Set the correct Genestack image tag
 # - endpoints: Configure database and identity endpoints
 # - conf.skyline: Configure Skyline application settings
+# - labels.skyline / labels.job: Keep placement on nodes labeled openstack-control-plane=enabled
 
 # Craete the skyline kustomize setup
 mkdir -p /etc/genestack/kustomize/skyline

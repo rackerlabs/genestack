@@ -201,6 +201,13 @@ to match the version compatible with the operator chart version being deployed.
 With every release update you must update this image **before** upgrading the
 mariadb-cluster (Galera or Replication).
 
+For replication clusters, treat this file as the canonical MariaDB baseline. In
+addition to the image tag, preserve the crash-safe replication settings
+(`binlog_format=ROW`, `innodb_flush_log_at_trx_commit=1`, `sync_binlog=1`) and
+the compatibility defaults (`character-set-server=utf8mb3`,
+`collation-server=utf8mb3_general_ci`) required for Alembic migrations against
+older OpenStack tables.
+
 ??? info "Finding the compatible MariaDB image"
     Check the `config.mariadbImage` value in the upstream chart's `values.yaml` at the
     corresponding tag:
