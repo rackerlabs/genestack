@@ -39,10 +39,14 @@ spec:
     enabled: false
   myCnf: |
     [mariadb]
+    # Preserve legacy OpenStack table compatibility during Alembic FK migrations.
+    character-set-server=utf8mb3
+    collation-server=utf8mb3_general_ci
     bind-address=0.0.0.0
     default_storage_engine=InnoDB
     binlog_format=ROW
-    binlog_expire_logs_seconds=172800
+    # Keep binlogs long enough for replica recovery and PITR workflows.
+    binlog_expire_logs_seconds=604800
     innodb_autoinc_lock_mode=2
     max_allowed_packet=256M
     max_connections=10240
