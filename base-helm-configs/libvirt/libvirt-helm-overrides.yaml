@@ -2,6 +2,7 @@
 images:
   tags:
     libvirt: ghcr.io/rackerlabs/genestack-images/libvirt:latest
+    libvirt_exporter: ghcr.io/inovex/prometheus-libvirt-exporter:2.2.0
     ceph_config_helper: docker.io/openstackhelm/ceph-config-helper:ubuntu_jammy_19.2.3-1-20250815
     dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
 network:
@@ -21,6 +22,9 @@ dependencies:
         libvirt:
           pod: []  # In a hybrid deployment, we don't want to run ovn-controller on the same node as libvirt
 pod:
+  sidecars:
+    libvirt_exporter:
+      enabled: true
   lifecycle:
     upgrades:
       daemonsets:
