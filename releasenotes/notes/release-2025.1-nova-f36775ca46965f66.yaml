@@ -17,6 +17,11 @@ features:
   - |
     Added runtime class and priority class hooks in pod templates for improved
     scheduling and workload isolation customization.
+  - |
+    Genestack now enables ``use_rootwrap_daemon = true`` in the base Nova Helm
+    overrides under ``conf.nova.DEFAULT``. This aligns Nova compute
+    configuration with the recommended OpenStack 2025.1 guidance for compute
+    nodes and reduces rootwrap overhead for privileged operations.
 
 issues:
   - |
@@ -53,3 +58,8 @@ upgrade:
     The new Nova helm chart iterates through endpoints.identity.auth
     for user configuration. endpoints.identity.auth may require
     modification/removal.
+  - |
+    Environments overriding ``conf.nova.DEFAULT.use_rootwrap_daemon`` should
+    reconcile those settings with the new base default. Validate that
+    ``nova-rootwrap-daemon`` and the related sudoers/rootwrap configuration are
+    present in the deployed Nova compute image before rollout.

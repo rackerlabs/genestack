@@ -96,6 +96,7 @@ conf:
       osapi_compute_workers: 2
       preallocate_images: space
       service_down_time: 120
+      use_rootwrap_daemon: true
       vif_plugging_is_fatal: true
       vif_plugging_timeout: 300
       cross_az_attach: true
