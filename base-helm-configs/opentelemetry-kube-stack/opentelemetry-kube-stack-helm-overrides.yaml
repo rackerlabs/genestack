@@ -329,6 +329,15 @@ collectors:
             network: {}
             paging: {}
 
+        prometheus/libvirt:
+          config:
+            scrape_configs:
+              - job_name: libvirt
+                scrape_interval: 30s
+                metrics_path: /metrics
+                static_configs:
+                  - targets: ["localhost:9474"]
+
         filelog/k8s_containers:
           max_concurrent_files: 1024
           fingerprint_size: 1024
@@ -736,6 +745,7 @@ collectors:
           metrics:
             receivers:
               - hostmetrics
+              - prometheus/libvirt
             processors:
               - attributes/add-node-labels
               - resourcedetection/env

@@ -1,0 +1,3559 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Exporter Targets Up",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 0,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum(up{job=\"libvirt\"})",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "description": "Count of Prometheus scrape targets currently up for the selected libvirt job/compute targets.",
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Selected VMs",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 3,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "count(max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "description": "VM/domain count using libvirt_domain_openstack_info so project, flavor, user, and domain filters apply.",
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Running VMs",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 6,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "count(libvirt_domain_info_state{job=\"libvirt\",state_desc=~\"running|Running\"} * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Shut Off / Shutdown",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 9,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "count(libvirt_domain_info_state{job=\"libvirt\",state_desc=~\"shut ?off|Shut ?off|shutoff|Shutoff|shutdown|Shutdown\"} * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Paused / Suspended",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 12,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "count(libvirt_domain_info_state{job=\"libvirt\",state_desc=~\"paused|Paused|suspended|Suspended\"} * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Crashed",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 15,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "count(libvirt_domain_info_state{job=\"libvirt\",state_desc=~\"crashed|Crashed|crash.*|Crash.*\"} * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Timed Out Domains",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 18,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum(floor((libvirt_domain_timed_out{job=\"libvirt\"}) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"})))",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "description": "Domain-level exporter timeouts. Non-zero values usually mean libvirt calls exceeded exporter timeout.",
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "Compute Hosts",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 21,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "count(count by(host_name) (max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"})))",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Provisioned vCPUs",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 0,
+        "y": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum((libvirt_domain_info_virtual_cpus{job=\"libvirt\"}) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "Provisioned RAM",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "gbytes",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum((libvirt_domain_info_maximum_memory_bytes{job=\"libvirt\"}) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"})) / 1024^3",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 11,
+      "type": "stat",
+      "title": "Memory In Use",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "gbytes",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum((libvirt_domain_info_memory_usage_bytes{job=\"libvirt\"}) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"})) / 1024^3",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "CPU Used (5m)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(libvirt_domain_info_cpu_time_seconds_total{job=\"libvirt\"}[5m]) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "description": "Approximate CPU cores consumed across selected domains over the last 5 minutes.",
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 13,
+      "type": "piechart",
+      "title": "Domain State Distribution",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "count by (state_desc) (libvirt_domain_info_state{job=\"libvirt\"} * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "pieType": "pie",
+        "tooltip": {
+          "mode": "single"
+        },
+        "displayLabels": [
+          "name",
+          "percent"
+        ]
+      }
+    },
+    {
+      "id": 14,
+      "type": "bargauge",
+      "title": "Domains by Compute",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "count by(host_name) (max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "{{host_name}}",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "options": {
+        "displayMode": "basic",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "showUnfilled": true,
+        "valueMode": "color",
+        "minVizHeight": 16,
+        "minVizWidth": 8
+      },
+      "description": "Grouped by OpenStack compute host_name from libvirt_domain_openstack_info."
+    },
+    {
+      "id": 15,
+      "type": "bargauge",
+      "title": "Domains by Project",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "topk(12, count by(project_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "{{project_name}}",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "options": {
+        "displayMode": "basic",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "showUnfilled": true,
+        "valueMode": "color",
+        "minVizHeight": 16,
+        "minVizWidth": 8
+      }
+    },
+    {
+      "id": 16,
+      "type": "bargauge",
+      "title": "Provisioned vCPUs by Flavor",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "topk(12, sum by(flavor_name) (libvirt_domain_info_virtual_cpus{job=\"libvirt\"} * on(domain, host_name) group_left(flavor_name) max by (domain, host_name, instance_name, instance_id, flavor_name, user_name, user_id, project_name, project_id) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"})))",
+          "legendFormat": "{{flavor_name}}",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "options": {
+        "displayMode": "basic",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "showUnfilled": true,
+        "valueMode": "color",
+        "minVizHeight": 16,
+        "minVizWidth": 8
+      }
+    },
+    {
+      "id": 17,
+      "type": "bargauge",
+      "title": "Domains by User",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "topk(12, count by(user_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "{{user_name}}",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "options": {
+        "displayMode": "basic",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "showUnfilled": true,
+        "valueMode": "color",
+        "minVizHeight": 16,
+        "minVizWidth": 8
+      }
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "CPU Consumption by Compute",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short",
+          "decimals": 2,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum by(host_name) (rate(libvirt_domain_info_cpu_time_seconds_total{job=\"libvirt\"}[5m]) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "{{host_name}}",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "description": "Per-compute CPU usage in cores derived from libvirt_domain_info_cpu_time_seconds_total. Grouped by OpenStack compute host_name from libvirt_domain_openstack_info.",
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 19,
+      "type": "timeseries",
+      "title": "Top 10 VMs by CPU Consumption",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short",
+          "decimals": 2,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "topk(10, sum by(domain, instance_name, host_name) (rate(libvirt_domain_info_cpu_time_seconds_total{job=\"libvirt\"}[5m]) * on(domain, host_name) group_left(instance_name) max by (domain, host_name, instance_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"})))",
+          "legendFormat": "{{instance_name}} ({{host_name}})",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 20,
+      "type": "timeseries",
+      "title": "Top 10 VMs by vCPU Scheduler Delay",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short",
+          "decimals": 4,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "topk(10, sum by(domain, instance_name, host_name) (rate(libvirt_domain_vcpu_delay_seconds_total{job=\"libvirt\"}[5m]) * on(domain, host_name) group_left(instance_name) max by (domain, host_name, instance_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"})))",
+          "legendFormat": "{{instance_name}} ({{host_name}})",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "description": "Higher values mean vCPUs are spending more time queued and waiting to run.",
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "Current Online vCPUs by Compute",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none",
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum by(host_name) ((libvirt_domain_vcpu_current{job=\"libvirt\"}) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "{{host_name}}",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Grouped by OpenStack compute host_name from libvirt_domain_openstack_info."
+    },
+    {
+      "id": 22,
+      "type": "timeseries",
+      "title": "Aggregate Memory: Usage vs Available vs Usable vs RSS",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 40
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "gbytes",
+          "decimals": 2,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum((libvirt_domain_info_memory_usage_bytes{job=\"libvirt\"}) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"})) / 1024^3",
+          "legendFormat": "Used",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum((libvirt_domain_memory_stats_available_bytes{job=\"libvirt\"}) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"})) / 1024^3",
+          "legendFormat": "Available",
+          "refId": "B",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum((libvirt_domain_memory_stats_usable_bytes{job=\"libvirt\"}) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"})) / 1024^3",
+          "legendFormat": "Usable",
+          "refId": "C",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum((libvirt_domain_memory_stats_rss_bytes{job=\"libvirt\"}) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"})) / 1024^3",
+          "legendFormat": "RSS",
+          "refId": "D",
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 23,
+      "type": "bargauge",
+      "title": "Top 10 VMs by Memory Used %",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 40
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "percent",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "topk(10, (libvirt_domain_memory_stats_used_percent{job=\"libvirt\"}) * on(domain, host_name) group_left(instance_name) max by (domain, host_name, instance_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "{{instance_name}} ({{host_name}})",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "options": {
+        "displayMode": "basic",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "showUnfilled": true,
+        "valueMode": "color",
+        "minVizHeight": 16,
+        "minVizWidth": 8
+      }
+    },
+    {
+      "id": 24,
+      "type": "timeseries",
+      "title": "Balloon / Reclaimable Memory",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 48
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "gbytes",
+          "decimals": 2,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum((libvirt_domain_memory_stats_current_balloon_bytes{job=\"libvirt\"}) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"})) / 1024^3",
+          "legendFormat": "Current balloon",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum((libvirt_domain_memory_stats_unused_bytes{job=\"libvirt\"}) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"})) / 1024^3",
+          "legendFormat": "Unused",
+          "refId": "B",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum((libvirt_domain_memory_stats_usable_bytes{job=\"libvirt\"}) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"})) / 1024^3",
+          "legendFormat": "Usable",
+          "refId": "C",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum((libvirt_domain_memory_stats_disk_caches_bytes{job=\"libvirt\"}) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"})) / 1024^3",
+          "legendFormat": "Disk caches",
+          "refId": "D",
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 25,
+      "type": "timeseries",
+      "title": "Swap In / Swap Out",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 48
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "Bps",
+          "decimals": 2,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(libvirt_domain_memory_stats_swap_in_bytes{job=\"libvirt\"}[5m]) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "Swap in",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(libvirt_domain_memory_stats_swap_out_bytes{job=\"libvirt\"}[5m]) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "Swap out",
+          "refId": "B",
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 26,
+      "type": "timeseries",
+      "title": "Major / Minor Fault Rates",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 48
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "ops",
+          "decimals": 2,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(libvirt_domain_memory_stats_major_fault_total{job=\"libvirt\"}[5m]) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "Major faults",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(libvirt_domain_memory_stats_minor_fault_total{job=\"libvirt\"}[5m]) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "Minor faults",
+          "refId": "B",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(libvirt_domain_memory_stats_hugetlb_pgalloc_total{job=\"libvirt\"}[5m]) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "HugeTLB alloc",
+          "refId": "C",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(libvirt_domain_memory_stats_hugetlb_pgfail_total{job=\"libvirt\"}[5m]) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "HugeTLB fail",
+          "refId": "D",
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 27,
+      "type": "timeseries",
+      "title": "Network Throughput by Compute",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 56
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "Bps",
+          "decimals": 2,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum by(host_name) (rate(libvirt_domain_interface_stats_receive_bytes_total{job=\"libvirt\",target_device=~\"$nic\"}[5m]) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "RX {{host_name}}",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum by(host_name) (rate(libvirt_domain_interface_stats_transmit_bytes_total{job=\"libvirt\",target_device=~\"$nic\"}[5m]) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "TX {{host_name}}",
+          "refId": "B",
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Grouped by OpenStack compute host_name from libvirt_domain_openstack_info."
+    },
+    {
+      "id": 28,
+      "type": "timeseries",
+      "title": "Top 10 VMs by Total Network Throughput",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 56
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "Bps",
+          "decimals": 2,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "topk(10, sum by(domain, instance_name, host_name) (((rate(libvirt_domain_interface_stats_receive_bytes_total{job=\"libvirt\",target_device=~\"$nic\"}[5m]) + rate(libvirt_domain_interface_stats_transmit_bytes_total{job=\"libvirt\",target_device=~\"$nic\"}[5m])) * on(domain, host_name) group_left(instance_name) max by (domain, host_name, instance_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))))",
+          "legendFormat": "{{instance_name}} ({{host_name}})",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 29,
+      "type": "timeseries",
+      "title": "Network Packets per Second",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 64
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "ops",
+          "decimals": 2,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum by(host_name) (rate(libvirt_domain_interface_stats_receive_packets_total{job=\"libvirt\",target_device=~\"$nic\"}[5m]) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "RX {{host_name}}",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum by(host_name) (rate(libvirt_domain_interface_stats_transmit_packets_total{job=\"libvirt\",target_device=~\"$nic\"}[5m]) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "TX {{host_name}}",
+          "refId": "B",
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Grouped by OpenStack compute host_name from libvirt_domain_openstack_info."
+    },
+    {
+      "id": 30,
+      "type": "timeseries",
+      "title": "Network Errors / Drops",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 64
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "ops",
+          "decimals": 3,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(libvirt_domain_interface_stats_receive_errors_total{job=\"libvirt\",target_device=~\"$nic\"}[5m]) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "RX errors",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(libvirt_domain_interface_stats_receive_drops_total{job=\"libvirt\",target_device=~\"$nic\"}[5m]) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "RX drops",
+          "refId": "B",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(libvirt_domain_interface_stats_transmit_errors_total{job=\"libvirt\",target_device=~\"$nic\"}[5m]) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "TX errors",
+          "refId": "C",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(libvirt_domain_interface_stats_transmit_drops_total{job=\"libvirt\",target_device=~\"$nic\"}[5m]) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "TX drops",
+          "refId": "D",
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 31,
+      "type": "timeseries",
+      "title": "Disk Throughput by Compute",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 72
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "Bps",
+          "decimals": 2,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum by(host_name) (rate(libvirt_domain_block_stats_read_bytes_total{job=\"libvirt\",target_device=~\"$disk\"}[5m]) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "Read {{host_name}}",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum by(host_name) (rate(libvirt_domain_block_stats_write_bytes_total{job=\"libvirt\",target_device=~\"$disk\"}[5m]) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "Write {{host_name}}",
+          "refId": "B",
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Grouped by OpenStack compute host_name from libvirt_domain_openstack_info."
+    },
+    {
+      "id": 32,
+      "type": "timeseries",
+      "title": "Disk IOPS by Compute",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 72
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "iops",
+          "decimals": 2,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum by(host_name) (rate(libvirt_domain_block_stats_read_requests_total{job=\"libvirt\",target_device=~\"$disk\"}[5m]) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "Read IOPS {{host_name}}",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum by(host_name) (rate(libvirt_domain_block_stats_write_requests_total{job=\"libvirt\",target_device=~\"$disk\"}[5m]) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "Write IOPS {{host_name}}",
+          "refId": "B",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "sum by(host_name) (rate(libvirt_domain_block_stats_flush_requests_total{job=\"libvirt\",target_device=~\"$disk\"}[5m]) * on(domain, host_name) group_left max by (domain, host_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "Flush {{host_name}}",
+          "refId": "C",
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Grouped by OpenStack compute host_name from libvirt_domain_openstack_info."
+    },
+    {
+      "id": 33,
+      "type": "timeseries",
+      "title": "Top 10 Disks by Throughput",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 80
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "Bps",
+          "decimals": 2,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "topk(10, sum by(domain, target_device, instance_name, host_name) (((rate(libvirt_domain_block_stats_read_bytes_total{job=\"libvirt\",target_device=~\"$disk\"}[5m]) + rate(libvirt_domain_block_stats_write_bytes_total{job=\"libvirt\",target_device=~\"$disk\"}[5m])) * on(domain, host_name) group_left(instance_name) max by (domain, host_name, instance_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))))",
+          "legendFormat": "{{instance_name}} {{target_device}} ({{host_name}})",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 34,
+      "type": "timeseries",
+      "title": "Average Disk Latency",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 80
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "s",
+          "decimals": 4,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "topk(10, (sum by(domain, target_device, instance_name, host_name) ((rate(libvirt_domain_block_stats_read_time_seconds_total{job=\"libvirt\",target_device=~\"$disk\"}[5m]) * on(domain, host_name) group_left(instance_name) max by (domain, host_name, instance_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))) / clamp_min(sum by(domain, target_device, instance_name, host_name) ((rate(libvirt_domain_block_stats_read_requests_total{job=\"libvirt\",target_device=~\"$disk\"}[5m]) * on(domain, host_name) group_left(instance_name) max by (domain, host_name, instance_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))), 0.001)))",
+          "legendFormat": "Read {{instance_name}} {{target_device}} ({{host_name}})",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "topk(10, (sum by(domain, target_device, instance_name, host_name) ((rate(libvirt_domain_block_stats_write_time_seconds_total{job=\"libvirt\",target_device=~\"$disk\"}[5m]) * on(domain, host_name) group_left(instance_name) max by (domain, host_name, instance_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))) / clamp_min(sum by(domain, target_device, instance_name, host_name) ((rate(libvirt_domain_block_stats_write_requests_total{job=\"libvirt\",target_device=~\"$disk\"}[5m]) * on(domain, host_name) group_left(instance_name) max by (domain, host_name, instance_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))), 0.001)))",
+          "legendFormat": "Write {{instance_name}} {{target_device}} ({{host_name}})",
+          "refId": "B",
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 35,
+      "type": "bargauge",
+      "title": "Top Active Domain Job Progress",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 88
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "percent",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "topk(10, ((100 * ((libvirt_domain_job_info_data_processed_bytes{job=\"libvirt\"} + libvirt_domain_job_info_memory_processed_bytes{job=\"libvirt\"} + libvirt_domain_job_info_file_processed_bytes{job=\"libvirt\"}) / clamp_min((libvirt_domain_job_info_data_total_bytes{job=\"libvirt\"} + libvirt_domain_job_info_memory_total_bytes{job=\"libvirt\"} + libvirt_domain_job_info_file_total_bytes{job=\"libvirt\"}), 1))) * on(domain, host_name) group_left(instance_name, project_name, flavor_name, user_name) max by (domain, host_name, instance_name, project_name, flavor_name, user_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"})))",
+          "legendFormat": "{{instance_name}} ({{host_name}})",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "description": "Uses libvirt_domain_job_info_* metrics and joins Nova metadata from libvirt_domain_openstack_info on domain + host_name.",
+      "options": {
+        "displayMode": "basic",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "showUnfilled": true,
+        "valueMode": "color",
+        "minVizHeight": 16,
+        "minVizWidth": 8
+      }
+    },
+    {
+      "id": 36,
+      "type": "timeseries",
+      "title": "Job Remaining / Elapsed Time",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 88
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "s",
+          "decimals": 1,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "insertNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "topk(10, (libvirt_domain_job_info_time_remaining_seconds{job=\"libvirt\"}) * on(domain, host_name) group_left(instance_name) max by (domain, host_name, instance_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "Remaining {{instance_name}} ({{host_name}})",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "topk(10, (libvirt_domain_job_info_time_elapsed_seconds{job=\"libvirt\"}) * on(domain, host_name) group_left(instance_name) max by (domain, host_name, instance_name) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"}))",
+          "legendFormat": "Elapsed {{instance_name}} ({{host_name}})",
+          "refId": "B",
+          "range": true
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Uses libvirt_domain_job_info_time_remaining_seconds and libvirt_domain_job_info_time_elapsed_seconds."
+    },
+    {
+      "id": 37,
+      "type": "table",
+      "title": "OpenStack VM Inventory / Current State",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 96
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "libvirt_domain_info_state{job=\"libvirt\"} * on(domain, host_name) group_left(instance_name, instance_id, flavor_name, user_name, user_id, project_name, project_id) max by (domain, host_name, instance_name, instance_id, flavor_name, user_name, user_id, project_name, project_id) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"})",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "description": "Inventory-style table from libvirt_domain_openstack_info joined with libvirt_domain_info_state.",
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "domain",
+            "desc": false
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value": "state_code"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "type": "table",
+      "title": "Block Device Inventory",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 106
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "libvirt_domain_block_stats_info{job=\"libvirt\",target_device=~\"$disk\"} * on(domain, host_name) group_left(instance_name, instance_id, flavor_name, user_name, user_id, project_name, project_id) max by (domain, host_name, instance_name, instance_id, flavor_name, user_name, user_id, project_name, project_id) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"})",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "description": "Block metadata from libvirt_domain_block_stats_info with OpenStack labels attached.",
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "domain",
+            "desc": false
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value": "present"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "type": "table",
+      "title": "Interface Inventory",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 106
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "expr": "libvirt_domain_interface_stats_info{job=\"libvirt\",target_device=~\"$nic\"} * on(domain, host_name) group_left(instance_name, instance_id, flavor_name, user_name, user_id, project_name, project_id) max by (domain, host_name, instance_name, instance_id, flavor_name, user_name, user_id, project_name, project_id) (libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\",domain=~\"$domain\"})",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "description": "Interface metadata from libvirt_domain_interface_stats_info with OpenStack labels attached.",
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "domain",
+            "desc": false
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value": "present"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": [
+    "libvirt",
+    "openstack",
+    "nova",
+    "prometheus",
+    "inovex",
+    "exact-metrics"
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "Prometheus",
+        "type": "datasource",
+        "query": "prometheus",
+        "refresh": 1,
+        "options": [],
+        "current": {
+          "text": "Prometheus",
+          "value": "Prometheus"
+        }
+      },
+      {
+        "name": "compute",
+        "label": "Compute Host",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "$datasource"
+        },
+        "query": "label_values(libvirt_domain_openstack_info{job=\"libvirt\"}, host_name)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "refresh": 1,
+        "sort": 1,
+        "current": {
+          "text": [
+            "All"
+          ],
+          "value": [
+            ".*"
+          ]
+        },
+        "options": []
+      },
+      {
+        "name": "instance",
+        "label": "Exporter Instance (hidden)",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "$datasource"
+        },
+        "query": "label_values(libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\"}, instance)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "refresh": 1,
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": [],
+        "hide": 2
+      },
+      {
+        "name": "project",
+        "label": "Project",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "$datasource"
+        },
+        "query": "label_values(libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\"}, project_name)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "refresh": 1,
+        "sort": 1,
+        "current": {
+          "text": [
+            "All"
+          ],
+          "value": [
+            ".*"
+          ]
+        },
+        "options": []
+      },
+      {
+        "name": "flavor",
+        "label": "Flavor",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "$datasource"
+        },
+        "query": "label_values(libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\"}, flavor_name)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "refresh": 1,
+        "sort": 1,
+        "current": {
+          "text": [
+            "All"
+          ],
+          "value": [
+            ".*"
+          ]
+        },
+        "options": []
+      },
+      {
+        "name": "user",
+        "label": "User",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "$datasource"
+        },
+        "query": "label_values(libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\"}, user_name)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "refresh": 1,
+        "sort": 1,
+        "current": {
+          "text": [
+            "All"
+          ],
+          "value": [
+            ".*"
+          ]
+        },
+        "options": []
+      },
+      {
+        "name": "domain",
+        "label": "Domain",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "$datasource"
+        },
+        "query": "label_values(libvirt_domain_openstack_info{job=\"libvirt\",host_name=~\"$compute\",project_name=~\"$project\",flavor_name=~\"$flavor\",user_name=~\"$user\"}, domain)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "refresh": 1,
+        "sort": 1,
+        "current": {
+          "text": [
+            "All"
+          ],
+          "value": [
+            ".*"
+          ]
+        },
+        "options": []
+      },
+      {
+        "name": "disk",
+        "label": "Disk",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "$datasource"
+        },
+        "query": "label_values(libvirt_domain_block_stats_capacity_bytes{job=\"libvirt\",domain=~\"$domain\"}, target_device)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "refresh": 1,
+        "sort": 1,
+        "current": {
+          "text": [
+            "All"
+          ],
+          "value": [
+            ".*"
+          ]
+        },
+        "options": []
+      },
+      {
+        "name": "nic",
+        "label": "NIC",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "$datasource"
+        },
+        "query": "label_values(libvirt_domain_interface_stats_receive_bytes_total{job=\"libvirt\",domain=~\"$domain\"}, target_device)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "refresh": 1,
+        "sort": 1,
+        "current": {
+          "text": [
+            "All"
+          ],
+          "value": [
+            ".*"
+          ]
+        },
+        "options": []
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "OpenStack Libvirt Advanced Dashboard (inovex exporter, exact metric set)",
+  "uid": "openstack-libvirt-inovex",
+  "version": 1,
+  "weekStart": ""
+}

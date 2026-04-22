@@ -1,3 +1,14 @@
 ---
 resources:
   - all.yaml
+
+patches:
+  - target:
+      kind: DaemonSet
+      name: libvirt-libvirt-default
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/1/args
+        value:
+         - --libvirt.uri=/run/libvirt/libvirt-sock-ro
+         - --web.listen-address=:9474
