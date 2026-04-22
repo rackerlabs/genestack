@@ -14,7 +14,8 @@ Complete overview of the monitoring and observability stack for Rackspace Genest
 6. [What Gets Monitored](#what-gets-monitored)
 7. [Access Points](#access-points)
 8. [Key Features](#key-features)
-9. [Summary](#summary)
+9. [Collected Metrics]
+10. [Summary](#summary)(monitoring-otel-base-metrics.md)
 
 ---
 
