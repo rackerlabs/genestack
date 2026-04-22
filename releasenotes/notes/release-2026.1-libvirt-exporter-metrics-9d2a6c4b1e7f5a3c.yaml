@@ -1,0 +1,28 @@
+---
+prelude: |
+  Genestack now documents and supports enabling libvirt exporter metrics as a
+  per-cluster override instead of changing the base libvirt Helm defaults. This
+  keeps the base deployment minimal while allowing environments with
+  Prometheus Operator to opt into libvirt metrics collection.
+
+features:
+  - |
+    Operators can enable the libvirt exporter sidecar and PodMonitor through a
+    cluster-specific libvirt Helm override by setting
+    ``pod.sidecars.libvirt_exporter.enabled: true`` and
+    ``manifests.podmonitor: true``.
+  - |
+    The recommended per-cluster override can also retain
+    ``conf.init_modules.enabled: true`` where nested virtualization support is
+    required on compute hosts.
+
+issues:
+  - |
+    ``manifests.podmonitor`` only has effect in environments with Prometheus
+    Operator CRDs installed, and useful metrics require the
+    ``libvirt_exporter`` sidecar to be enabled at the same time.
+
+other:
+  - |
+    Genestack base libvirt Helm overrides remain unchanged; this metrics
+    enablement is intended to be applied in cluster-specific override files.
