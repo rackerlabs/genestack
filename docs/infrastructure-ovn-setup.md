@@ -13,12 +13,12 @@ Post deployment we need to setup neutron to work with our integrated OVN environ
 | <div style="width:220px">key</div> | type | <div style="width:128px">value</div>  | notes |
 |:-----|--|:----------------:|:------|
 | **ovn.openstack.org/int_bridge** | str | `br-int` | The name of the integration bridge that will be used. |
-| **ovn.openstack.org/bridges** | str | `br-ex` | Comma separated list of bridges that will be created and plugged into OVS for a given node. |
-| **ovn.openstack.org/ports** | str | `br-ex:bond1` | Comma separated list of bridge mappings. Maps values from the **bridges** annotation to physical devices or bonds on a given node.  |
+| **ovn.openstack.org/bridges** | str | `br-ex,br-pxe` | Comma separated list of bridges that will be created and plugged into OVS for a given node. |
+| **ovn.openstack.org/ports** | str | `br-ex:bond0,br-pxe:vlanXYZ` | Comma separated list of bridge mappings. Maps values from the **bridges** annotation to physical devices or bonds on a given node.  |
 | **ovn.openstack.org/bonds** | str | `br-ex:bond0:eno1+eno3:balance-tcp:active` | Comma separated list of bond definitions. Format: `bridge:bondname:member1+member2:mode:lacp`. Creates OVS bonds with specified members. |
 | **ovn.openstack.org/bond-options** | str | `bond0:mii-monitor-interval=100,lacp-time=fast` | Comma separated list of additional bond options. Format: `bondname:option1=value1,option2=value2`. Supports MII monitoring, LACP timing, and other OVS bond parameters. |
 | **ovn.openstack.org/vlans** | str | `bond0.126:bond0:126:1500` | Comma separated list of host VLAN interfaces that **ovn-setup** should create before attaching ports. Format: `interface_name:parent_interface:vlan_id:mtu`. |
-| **ovn.openstack.org/mappings** | str | `physnet1:br-ex` | Comma separated list of neutron mappings. Maps a value that will be used in neutron to a value found in the **ports** or **bonds** annotation. Every provider network name listed in this annotation will have a unique mac address generated per-host. |
+| **ovn.openstack.org/mappings** | str | `physnet1:br-ex,physnet2:br-pxe` | Comma separated list of neutron mappings. Maps a value that will be used in neutron to a value found in the **ports** or **bonds** annotation. Every provider network name listed in this annotation will have a unique mac address generated per-host. |
 | **ovn.openstack.org/availability_zones** | str | `az1` | Colon separated list of Availability Zones a given node will serve. |
 | **ovn.openstack.org/gateway** | str| `enabled` | If set to `enabled`, the node will be marked as a gateway. |
 
@@ -56,6 +56,18 @@ kubectl annotate \
         ovn.openstack.org/bridges='br-ex'
 ```
 
+!!! note
+
+    The Ironic functional example here annotates all nodes; however, not all nodes have to have the same setup. If the `ovn.openstack.org/bridges` is already configured, use `--overwrite` when annotating the nodes.
+
+``` shell
+kubectl annotate \
+        nodes \
+        -l openstack-compute-node=enabled -l openstack-network-node=enabled \
+        ovn.openstack.org/bridges='br-ex,br-pxe'
+```
+    
+
 ### Set `ovn.openstack.org/ports`
 
 Set the port mapping for OVS interfaces to a local physical interface on a given machine. This option uses a colon between the OVS bridge and the physical interface, `OVS_BRIDGE:PHYSICAL_INTERFACE_NAME`. Multiple bridge mappings can be defined by separating values with a comma.
@@ -68,8 +80,19 @@ Set the port mapping for OVS interfaces to a local physical interface on a given
 kubectl annotate \
         nodes \
         -l openstack-compute-node=enabled -l openstack-network-node=enabled \
-        ovn.openstack.org/ports='br-ex:bond1'
+        ovn.openstack.org/ports='br-ex:bond0'
 ```
+
+!!! note
+
+    If setting up Ironic, the port mapping should reference the provisioning vlan interface (e.g., `br-ex:bond0,br-pxe:vlanXYZ`) instead of individual physical interfaces. If the `ovn.openstack.org/ports` is already configured, use `--overwrite` when annotating the nodes.
+
+```shell
+# Update vlanXYZ with your interface name for provisioning network
+kubectl annotate nodes -l openstack-control-plane=enabled \
+  ovn.openstack.org/ports='br-ex:bond0,br-pxe:vlanXYZ'
+```
+
 
 ### Set `ovn.openstack.org/vlans` (Optional)
 
@@ -181,6 +204,18 @@ kubectl annotate \
         -l openstack-compute-node=enabled -l openstack-network-node=enabled \
         ovn.openstack.org/mappings='physnet1:br-ex'
 ```
+
+!!! note
+
+    Set the Neutron bridge mapping for Ironic provisioning network. Neutron interfaces are string value and can be anything you want. The `NEUTRON_INTERFACE` value defined will be used when you create provider type networks after the cloud is online. If the `ovn.openstack.org/mappings` is already configured, use `--overwrite` when annotating the nodes.
+
+``` shell
+kubectl annotate \
+        nodes \
+        -l openstack-compute-node=enabled -l openstack-network-node=enabled \
+        ovn.openstack.org/mappings='physnet1:br-ex,physnet2:br-pxe'
+```
+
 
 ### Set `ovn.openstack.org/availability_zones`
 
