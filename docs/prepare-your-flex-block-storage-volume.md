@@ -8,16 +8,18 @@ After you have created and attached your Flex Block Storage volume, you must pre
 
 ### Connect to your server via SSH
 
-Using SSH, log in to the server as root by using its IP address and root password. You can find the server's IP address in the Skyline portal under Compute > Instances.
+Using SSH, log in to the server using your SSH key and the default non-privileged user for your image (e.g. `ubuntu`, `debian`, `centos`). You can find the server's IP address in the Skyline portal under Compute > Instances.
 
 ``` shell
-ssh root@{server_ip_address}
+ssh ubuntu@{server_ip_address}
 ```
+
+Use `sudo` to run commands that require root privileges.
 
 After you log in, list the disks on your server. Your volume typically displays as the last drive in this list. In the following example, the 20 GB volume is attached to `/dev/vdc`.
 
 ``` shell
-fdisk -l
+sudo fdisk -l
 ```
 
 ![List disks on your server](assets/images/prepare-volume-step1.png)
