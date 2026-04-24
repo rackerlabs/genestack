@@ -48,12 +48,13 @@ spec:
     # Keep binlogs long enough for replica recovery and PITR workflows.
     binlog_expire_logs_seconds=604800
     innodb_autoinc_lock_mode=2
+    innodb_snapshot_isolation=OFF
     max_allowed_packet=256M
     max_connections=10240
     open_files_limit=10240
     max-connect-errors=1000000
     innodb_rollback_on_timeout=1
-    performance_schema=ON
+    performance_schema=OFF
     innodb_log_buffer_size=33554432
     innodb_flush_log_at_trx_commit=1
     ignore_db_dirs=lost+found
