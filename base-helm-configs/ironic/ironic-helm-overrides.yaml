@@ -205,7 +205,8 @@ dependencies:
         - endpoint: internal
           service: oslo_messaging
     db_sync:
-      jobs: []
+      jobs:
+        - ironic-db-init
 
 endpoints:
   baremetal:
