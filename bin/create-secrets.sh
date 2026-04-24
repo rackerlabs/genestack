@@ -88,10 +88,6 @@ designate_rabbitmq_password=$(generate_password 64)
 neutron_rabbitmq_password=$(generate_password 64)
 neutron_db_password=$(generate_password 32)
 neutron_admin_password=$(generate_password 32)
-neutron_keystone_nova=$(generate_password 32)
-neutron_keystone_placement=$(generate_password 32)
-neutron_keystone_designate=$(generate_password 32)
-neutron_keystone_ironic=$(generate_password 32)
 neutron_keystone_test_password=$(generate_password 32)
 horizon_secret_key=$(generate_password 64)
 horizon_db_password=$(generate_password 32)
@@ -579,42 +575,6 @@ metadata:
 type: Opaque
 data:
   password: $(echo -n $neutron_admin_password | base64 -w0)
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: neutron-keystone-nova
-  namespace: openstack
-type: Opaque
-data:
-  password: $(echo -n $neutron_keystone_nova | base64 -w0)
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: neutron-keystone-placement
-  namespace: openstack
-type: Opaque
-data:
-  password: $(echo -n $neutron_keystone_placement | base64 -w0)
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: neutron-keystone-designate
-  namespace: openstack
-type: Opaque
-data:
-  password: $(echo -n $neutron_keystone_designate | base64 -w0)
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: neutron-keystone-ironic
-  namespace: openstack
-type: Opaque
-data:
-  password: $(echo -n $neutron_keystone_ironic | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret
