@@ -1,8 +1,9 @@
 ---
 # --------- HPE / HP ---------
-hpe_sdr_url: "https://downloads.linux.hpe.com/SDR"
+hpe_downloads_base_url_default: "https://downloads.linux.hpe.com"
+hpe_sdr_url: "{{ hpe_downloads_base_url | default(hpe_downloads_base_url_default, true) }}/SDR"
 hpe_gpg_keyring: "/usr/share/keyrings/hpePublicKey.gpg"
-hpe_repo_base: "https://downloads.linux.hpe.com/SDR/repo/mcp"
+hpe_repo_base: "{{ hpe_sdr_url }}/repo/mcp"
 hpe_mcp_version: "current"
 
 hpe_repo_str: "[signed-by={{ hpe_gpg_keyring }}] {{ hpe_repo_base }}"
@@ -24,7 +25,7 @@ hp_tools:
     state: "present"
     repo_list_file: "mcp"
   rpm:
-    url: "https://downloads.linux.hpe.com/repo/mcp"
+    url: "{{ hpe_downloads_base_url | default(hpe_downloads_base_url_default, true) }}/repo/mcp"
     dist: "{{ ansible_distribution }}"
     dist_ver: "{{ ansible_distribution_version }}"
     arch: "{{ ansible_architecture }}"
@@ -32,12 +33,13 @@ hp_tools:
   package: "ssacli"
 
 # --------- Dell ---------
+dell_downloads_base_url_default: "https://dl.dell.com"
 dell_perc_file_tar_gz: "PERCCLI_7.2616.0_Linux.tar.gz"
 dell_tmp_dir: "/tmp/perccli"
 
 dell_tools:
   file_tar_gz: "{{ dell_perc_file_tar_gz }}"
-  url: "https://dl.dell.com/FOLDER11213122M/1/{{ dell_perc_file_tar_gz }}"
+  url: "{{ dell_downloads_base_url | default(dell_downloads_base_url_default, true) }}/FOLDER11213122M/1/{{ dell_perc_file_tar_gz }}"
   tmp_dir: "{{ dell_tmp_dir }}"
   download_path: "{{ dell_tmp_dir }}/{{ dell_perc_file_tar_gz }}"
   deb_file: "{{ dell_tmp_dir }}/perccli_007.2616.0000.0000_all.deb"
