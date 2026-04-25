@@ -1271,6 +1271,7 @@ function configureGenestackRemote() {
         declare -f writeServiceHelmOverrides
         declare -f writeEndpointsConfig
         declare -f writeOpenstackComponentsConfig
+        declare -f detectPlatform
         declare -f ensureYq
         declare -f installYq
 
@@ -1279,6 +1280,7 @@ export HYPERCONVERGED_CINDER_VOLUME=$HYPERCONVERGED_CINDER_VOLUME
 export INCLUDE_LIST=("${INCLUDE_LIST[@]}")
 export EXCLUDE_LIST=("${EXCLUDE_LIST[@]}")
 set -e
+detectPlatform
 ensureYq
 writeMetalLBConfig '${metal_lb_ip}' '/etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml'
 writeServiceHelmOverrides '/etc/genestack/helm-configs'
@@ -1303,11 +1305,13 @@ function runGenestackSetupRemote() {
 
     {
         declare -f runGenestackSetup
+        declare -f detectPlatform
         declare -f ensureYq
         declare -f installYq
 
         cat <<EOF
 set -e
+detectPlatform
 ensureYq
 runGenestackSetup "${gateway_domain}" "${acme_email}" ${disable_openstack}
 EOF
@@ -1441,11 +1445,13 @@ function createPostSetupResourcesRemote() {
 
     {
         declare -f createPostSetupResources
+        declare -f detectPlatform
         declare -f ensureYq
         declare -f installYq
 
         cat <<EOF
 set -e
+detectPlatform
 ensureYq
 createPostSetupResources "${lab_prefix}"
 EOF
