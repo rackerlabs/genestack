@@ -1,0 +1,50 @@
+# Product Matrix for release-2026.1.0
+
+This matrix is automatically generated from `helm-chart-versions.yaml`.
+
+| Chart Name | Version |
+| :--- | :--- |
+| **barbican** | `2025.1.5+4d4d4e25c` |
+| **barbican-exporter** | `0.1.0` |
+| **blazar** | `2025.1.3+4d4d4e25c` |
+| **blazar-reservation-splitter** | `0.1.0` |
+| **ceilometer** | `2025.1.10+4d4d4e25c` |
+| **cert-manager** | `v1.19.2` |
+| **cinder** | `2025.1.13+4d4d4e25c` |
+| **cloudkitty** | `2025.1.2+ebb1488dc` |
+| **designate** | `2025.2.6+f3906fe15` |
+| **envoyproxy-gateway** | `v1.7.0` |
+| **freezer** | `2025.2.0+18607738c` |
+| **glance** | `2025.1.4+ed289c1cd` |
+| **gnocchi** | `2025.1.1+0161bea65` |
+| **grafana** | `10.1.0` |
+| **heat** | `2025.2.12+3bc47c1e9` |
+| **horizon** | `2024.2.264+13651f45-628a320c` |
+| **ironic** | `2024.2.121+13651f45-628a320c` |
+| **keystone** | `2025.1.5+ed289c1cd` |
+| **kube-ovn** | `v1.15.4` |
+| **kube-prometheus-stack** | `78.3.0` |
+| **libvirt** | `2025.1.4+ed289c1cd` |
+| **loki** | `6.52.0` |
+| **longhorn** | `1.11.1` |
+| **magnum** | `2025.1.4+4d4d4e25c` |
+| **manila** | `2025.1.3+e6801dcd0` |
+| **mariadb-operator** | `26.3.0` |
+| **masakari** | `2025.2.0+eaefa0173` |
+| **memcached** | `2025.2.2+c31cd6c96` |
+| **metallb** | `v0.15.2` |
+| **neutron** | `2025.1.17+95bf0bf6e` |
+| **nova** | `2025.1.19+ed289c1cd` |
+| **octavia** | `2025.1.18+12458c92d` |
+| **opentelemetry-kube-stack** | `0.13.1` |
+| **placement** | `2025.1.2+0cd784591` |
+| **postgres-operator** | `1.15.1` |
+| **prometheus-pushgateway** | `3.4.2` |
+| **redis-operator** | `0.24.0` |
+| **redis-replication** | `0.17.0` |
+| **redis-sentinel** | `0.16.12` |
+| **sealed-secrets** | `2.17.4` |
+| **skyline** | `2025.2.9+c665eedfa` |
+| **tempo** | `1.24.4` |
+| **trove** | `2025.2.3+01091eeab` |
+| **zaqar** | `2025.2.0+2d37d445c` |
