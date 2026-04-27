@@ -1,0 +1,342 @@
+### Envoy Gateway Maintenance: 1.5.3 to 1.7.0
+
+### Notes
+
+# (opt) refers to /opt, the standard install path for Genestack.
+# (etc) refers to /etc, the standard override path for Genestack.
+# Replace all placeholder values in angle brackets before using this runbook.
+# Keep this runbook operational. Prefer exact commands, exact file paths, expected outputs, and explicit validation steps.
+# This runbook upgrades Gateway API and Envoy Gateway CRDs first, then upgrades Envoy Gateway.
+# Depending on your deployment, your steps may need to be adjusted, but CRDs should always be upgraded first.
+
+### Validation
+
+# Validated source version: Envoy Gateway 1.5.3
+# Validated target version: Envoy Gateway 1.7.0
+# Supported upgrade path: direct upgrade from Envoy Gateway 1.5.3 to 1.7.0
+# If using BackendTLSPolicy, consider an incremental path instead:
+#   1.5.3 -> 1.5.8 -> 1.7.0
+# For BackendTLSPolicy sites, update BackendTLSPolicy resources from
+# gateway.networking.k8s.io/v1alpha3 to v1 after the intermediate upgrade.
+# Gateway API and Envoy Gateway CRDs must be upgraded before upgrading the Envoy Gateway Helm release.
+# Sites already using Gateway API experimental CRDs should keep the experimental channel during the CRD upgrade unless a later migration to standard has been separately validated.
+# Envoy Gateway 1.7.0 introduces stricter validation for HTTPRoute and GRPCRoute filters.
+# Invalid filters that may have been tolerated by older versions can now be rejected or can return direct 500 responses.
+# Envoy Gateway 1.7.0 also changes default metric tagging behavior, so dashboards, alert rules, or recording rules may require follow-up updates.
+
+### Goal
+
+# Upgrade Envoy Gateway from 1.5.3 to 1.7.0 with CRDs upgraded first and with all Gateway, HTTPRoute, and user-facing traffic checks returning healthy after the change.
+
+### Prep
+
+## Deployment Node
+
+# Use the Genestack deployment host or bastion that has:
+# - kubectl access to the target cluster
+# - helm, jq, yq, grep, sed
+# - /opt/genestack checked out to the target Genestack release
+# - /etc/genestack populated for the target site
+
+# Create a working directory for this maintenance:
+export MAINT_DIR=/home/ubuntu/envoy-1.5.3-maint
+mkdir -p "$MAINT_DIR"
+
+# Backup current components:
+kubectl get crd -o yaml > "$MAINT_DIR/crds-all.yaml"
+kubectl get gateway -A -o yaml > "$MAINT_DIR/gateways-all.yaml"
+kubectl get httproute -A -o yaml > "$MAINT_DIR/httproutes-all.yaml"
+kubectl get gatewayclass -o yaml > "$MAINT_DIR/gatewayclasses-all.yaml"
+kubectl get envoyproxy,clienttrafficpolicy,backendtrafficpolicy,securitypolicy -A -o yaml > "$MAINT_DIR/envoy-gateway-resources.yaml"
+helm get values envoyproxy-gateway -n envoyproxy-gateway-system -a > "$MAINT_DIR/helm-values.yaml"
+
+# Verify current cluster or platform health:
+kubectl get nodes
+kubectl get pods -A --no-headers | awk '$4 != "Running" && $4 != "Completed" {print}'
+
+# Expected:
+# - Nodes are Ready
+# - No unexpected pods are in Pending, Failed, CrashLoopBackOff, ImagePullBackOff, or Error states
+
+# Verify the current deployed version:
+helm -n envoyproxy-gateway-system list
+kubectl -n envoyproxy-gateway-system get deployment envoy-gateway -o jsonpath='{range .spec.template.spec.containers[*]}{.image}{"\n"}{end}'
+
+# Expected:
+# - Helm release exists in namespace envoyproxy-gateway-system
+# - Envoy Gateway image version is v1.5.3
+
+# Verify Gateway API CRD version and channel:
+for crd in $(kubectl get crd -o name | grep 'gateway.networking.k8s.io'); do
+  echo "=== $crd ==="
+  echo -n "bundle-version: "
+  kubectl get "$crd" -o jsonpath='{.metadata.annotations.gateway\.networking\.k8s\.io/bundle-version}'
+  echo
+  echo -n "channel: "
+  kubectl get "$crd" -o jsonpath='{.metadata.annotations.gateway\.networking\.k8s\.io/channel}'
+  echo
+  echo -n "served versions: "
+  kubectl get "$crd" -o jsonpath='{range .spec.versions[*]}{.name}{" "}{end}'
+  echo
+  echo
+done
+
+# Verify Envoy Gateway CRDs:
+for crd in $(kubectl get crd -o name | grep 'gateway.envoyproxy.io'); do
+  echo "=== $crd ==="
+  echo -n "established: "
+  kubectl get "$crd" -o jsonpath='{range .status.conditions[?(@.type=="Established")]}{.status}{end}'
+  echo
+  echo -n "accepted names: "
+  kubectl get "$crd" -o jsonpath='{.status.acceptedNames.kind}'
+  echo
+  echo -n "served versions: "
+  kubectl get "$crd" -o jsonpath='{range .spec.versions[*]}{.name}{"("}{.served}{") "}{end}'
+  echo
+  echo
+done
+
+# Expected:
+# - Gateway API CRDs show the currently deployed bundle version and expected channel
+# - Envoy Gateway CRDs are Established=True
+# - Envoy Gateway CRDs serve v1alpha1(true)
+
+# If the current deployed version does not match Envoy Gateway 1.5.3, stop and reassess.
+# This runbook was validated against 1.5.3 as the source version.
+
+# Verify backups, snapshots, or restore points are available:
+ls -lah "$MAINT_DIR"
+
+# Expected:
+# - Backup files exist in $MAINT_DIR
+
+# If backups are required but missing, stop and create them before continuing.
+
+## Configuration Review
+
+# Identify the configuration files or values that control this component:
+# - /etc/genestack/helm-chart-versions.yaml
+# - /opt/genestack/base-kustomize/envoyproxy-gateway/
+# - /etc/genestack/kustomize/envoyproxy-gateway/
+# - /etc/genestack/helm-configs/envoyproxy-gateway/
+
+# Verify the current chart version:
+grep '^[[:space:]]*envoyproxy-gateway:' /etc/genestack/helm-chart-versions.yaml
+
+# Expected:
+# - /etc/genestack/helm-chart-versions.yaml contains envoyproxy-gateway: v1.5.3 before the install step
+
+# If any non-standard override exists, document it in the maintenance log before continuing.
+
+## Pre-Change Safety Checks
+
+# Check for unhealthy pods, jobs, or dependent services:
+kubectl get pods -A --no-headers | awk '$4 != "Running" && $4 != "Completed" {print}'
+
+# Check for open alerts or known blockers:
+kubectl get events -A --sort-by='.lastTimestamp' | tail -n 100
+
+# If any critical dependency is unhealthy, stop and resolve it first.
+
+### Execute
+
+## Update the Target Version
+
+# Update the Envoy Gateway chart version in /etc/genestack/helm-chart-versions.yaml:
+sed -E -i 's/^([[:space:]]*envoyproxy-gateway:[[:space:]]*)v[0-9.]+/\1v1.7.0/' /etc/genestack/helm-chart-versions.yaml
+
+# Verify the version is updated:
+grep '^[[:space:]]*envoyproxy-gateway:' /etc/genestack/helm-chart-versions.yaml
+
+# Expected:
+# - envoyproxy-gateway: v1.7.0
+
+# If this site uses BackendTLSPolicy and requires an intermediate version, perform each hop separately and validate after each stage.
+
+## Upgrade CRDs
+
+# If NOT using Gateway API experimental CRDs:
+cd "$MAINT_DIR"
+helm pull oci://docker.io/envoyproxy/gateway-helm --version v1.7.0 --untar
+kubectl apply --server-side --force-conflicts -f ./gateway-helm/crds/gatewayapi-crds.yaml
+kubectl apply --server-side --force-conflicts -f ./gateway-helm/crds/generated
+
+# If using Gateway API experimental CRDs instead, use this path and do not run the non-experimental path:
+# cd "$MAINT_DIR"
+# kubectl apply --server-side --force-conflicts \
+#   -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/experimental-install.yaml
+# helm template eg-crds oci://docker.io/envoyproxy/gateway-crds-helm \
+#   --version v1.7.0 \
+#   --set crds.gatewayAPI.enabled=true \
+#   --set crds.gatewayAPI.channel=experimental \
+#   --set crds.envoyGateway.enabled=true \
+#   | kubectl apply --server-side -f -
+
+# Verify Gateway API CRDs after the CRD step:
+for crd in $(kubectl get crd -o name | grep 'gateway.networking.k8s.io'); do
+  echo "=== $crd ==="
+  echo -n "bundle-version: "
+  kubectl get "$crd" -o jsonpath='{.metadata.annotations.gateway\.networking\.k8s\.io/bundle-version}'
+  echo
+  echo -n "channel: "
+  kubectl get "$crd" -o jsonpath='{.metadata.annotations.gateway\.networking\.k8s\.io/channel}'
+  echo
+  echo -n "served versions: "
+  kubectl get "$crd" -o jsonpath='{range .spec.versions[*]}{.name}{" "}{end}'
+  echo
+  echo
+done
+
+# Verify Envoy Gateway CRDs after the CRD step:
+for crd in $(kubectl get crd -o name | grep 'gateway.envoyproxy.io'); do
+  echo "=== $crd ==="
+  echo -n "established: "
+  kubectl get "$crd" -o jsonpath='{range .status.conditions[?(@.type=="Established")]}{.status}{end}'
+  echo
+  echo -n "accepted names: "
+  kubectl get "$crd" -o jsonpath='{.status.acceptedNames.kind}'
+  echo
+  echo -n "served versions: "
+  kubectl get "$crd" -o jsonpath='{range .spec.versions[*]}{.name}{"("}{.served}{") "}{end}'
+  echo
+  echo
+done
+
+# Expected:
+# - Gateway API CRDs show the target bundle version and correct channel
+# - Envoy Gateway CRDs are Established=True
+# - Envoy Gateway CRDs serve v1alpha1(true)
+
+## Upgrade Envoy Gateway
+
+# Run the maintenance command:
+/opt/genestack/bin/install-envoy-gateway.sh
+
+# Expected:
+# - The script fetches v1.7.0 from /etc/genestack/helm-chart-versions.yaml
+# - The Helm release upgrades successfully
+# - The envoy-gateway deployment rolls out successfully
+
+## Re-apply Genestack Gateway Configuration
+
+# Re-apply the Genestack gateway objects after the chart upgrade:
+/opt/genestack/bin/setup-envoy-gateway.sh -d <YOUR_DOMAIN> -e <YOUR_EMAIL>
+
+# If this site does not use ACME, omit the -e option.
+
+### Post-Maint
+
+# Verify the deployed version:
+grep '^[[:space:]]*envoyproxy-gateway:' /etc/genestack/helm-chart-versions.yaml
+helm list -n envoyproxy-gateway-system -f envoyproxy-gateway -o json | jq -r '.[0].app_version'
+kubectl get deployments -n envoyproxy-gateway-system -o json \
+| jq -r '
+  .items[]
+  | .metadata.name as $name
+  | .spec.template.spec.containers[]
+  | "\($name)\t\(.name)\t\(.image)"
+' | column -t
+
+# Expected:
+# - /etc/genestack/helm-chart-versions.yaml contains v1.7.0
+# - Helm app_version reports v1.7.0
+# - Images include docker.io/envoyproxy/gateway:v1.7.0
+
+# Verify workload health:
+kubectl -n envoyproxy-gateway-system get deployment,pods
+
+# Expected:
+# - envoy-gateway deployment is Available
+# - Envoy Gateway pods are Running and Ready
+
+# Verify Gateway and route health:
+kubectl -n envoy-gateway get gateway
+kubectl -n envoy-gateway describe gateway flex-gateway
+kubectl get httproute -A
+
+# Expected:
+# - Gateway is Accepted and Programmed
+# - HTTPRoutes do not show invalid parent or filter conditions
+
+# Verify logs or events for upgrade failures:
+kubectl logs -n envoyproxy-gateway-system deployment/envoy-gateway --tail=100
+kubectl get events -A --sort-by='.lastTimestamp' | tail -n 100
+
+# Verify user-facing functionality:
+curl -kis https://keystone.<YOUR_DOMAIN>/v3
+
+# Expected:
+# - HTTPS endpoint responds successfully
+# - No unexpected 5xx responses are returned by the gateway
+
+### Troubleshooting
+
+## Common Failure Signal
+
+# If any of the following occur, stop and do not proceed to post-maintenance signoff:
+# - kubectl apply --server-side for the CRDs fails with conflicts, validation errors, or no matches for kind
+# - envoy-gateway in envoyproxy-gateway-system does not become Available
+# - kubectl -n envoy-gateway get gateway shows the Gateway is not Accepted or not Programmed
+# - kubectl get httproute -A shows routes with unresolved parents or invalid status conditions
+# - Envoy Gateway or Envoy proxy pods fail to start, crash loop, or never become Ready
+# - User-facing endpoint checks such as curl -kis https://keystone.<YOUR_DOMAIN>/v3 fail, time out, or return 5xx
+# - Controller logs show schema or reconciliation errors after the upgrade
+# - Helm upgrade fails because a post-rendered dependency is missing, such as a referenced namespace or CRD
+
+## Additional Recovery Actions
+
+# If the CRD apply fails:
+# - Confirm you used the correct CRD channel: experimental if the site already uses experimental CRDs
+# - Re-run the CRD apply step before retrying the Helm upgrade
+# - If using BackendTLSPolicy, stop and reassess whether the incremental path is required
+
+# If the Helm upgrade fails:
+helm -n envoyproxy-gateway-system status envoyproxy-gateway
+helm -n envoyproxy-gateway-system history envoyproxy-gateway
+
+# If the failure mentions a missing namespace or rendered object, fix that dependency first and rerun the install.
+# Do not proceed until Helm reports a healthy release.
+
+# If Gateway or routes are not accepted:
+kubectl -n envoy-gateway describe gateway flex-gateway
+kubectl get httproute -A
+
+# Look for route validation failures introduced by the newer Envoy Gateway version.
+# Check for invalid filters or policy references.
+
+# If user-facing traffic fails after upgrade:
+kubectl -n envoyproxy-gateway-system get deployment,pods
+kubectl logs -n envoyproxy-gateway-system deployment/envoy-gateway --tail=200
+
+# Confirm the Gateway is accepted and programmed.
+# Confirm Envoy Gateway pods are running and ready.
+# Check logs from envoy-gateway and any Envoy data-plane pods.
+
+### Rollback
+
+## Rollback trigger
+
+# Roll back if:
+# - Envoy Gateway fails to become healthy
+# - Gateway or HTTPRoute functionality does not recover
+
+## Rollback procedure
+
+helm -n envoyproxy-gateway-system history envoyproxy-gateway
+helm -n envoyproxy-gateway-system rollback envoyproxy-gateway <PREVIOUS_REVISION>
+
+# Do not roll back CRDs.
+# If CRD rollback is necessary, treat that as a separate recovery event and rebuild or restore with a dedicated plan.
+
+# Expected:
+# - Envoy Gateway returns to the previous healthy Helm revision
+# - Gateway and HTTPRoute reachability is restored
+
+### Sources
+
+# https://gateway.envoyproxy.io/news/releases/notes/v1.7.0/
+# https://gateway.envoyproxy.io/news/releases/matrix/
+# https://gateway.envoyproxy.io/v1.7/install/install-helm/
+# https://docs.rackspacecloud.com/infrastructure-envoy-gateway-api/
+# https://docs.rackspacecloud.com/genestack-structure-and-files/
+# https://docs.rackspacecloud.com/release-notes/

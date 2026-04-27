@@ -86,7 +86,7 @@ spec:
   primaryService:
     metadata:
       annotations:
-        metallb.universe.tf/address-pool: primary
+        metallb.io/address-pool: primary
     type: LoadBalancer
   replicas: 3
   replication:
@@ -102,12 +102,12 @@ spec:
   secondaryService:
     metadata:
       annotations:
-        metallb.universe.tf/address-pool: primary
+        metallb.io/address-pool: primary
     type: LoadBalancer
   service:
     metadata:
       annotations:
-        metallb.universe.tf/address-pool: primary
+        metallb.io/address-pool: primary
     type: LoadBalancer
   storage:
     resizeInUseVolumes: true
