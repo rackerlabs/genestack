@@ -133,7 +133,9 @@ nav:
       - Components: genestack-components.md
       - Swift Object Storage: openstack-object-storage-swift.md
       - Release Notes: release-notes.md
+      - Release 2026.1.0: release-2026.1.0.md
       - Product Matrix: product-matrix.md
+      - Product Matrix 2026.1.0: product-matrix-2026.1.0.md
   - Design Guide:
       - Introduction: openstack-cloud-design-intro.md
       - SDLC: sdlc.md
