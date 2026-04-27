@@ -4,7 +4,7 @@ This page is the navigation index for versioned Genestack release notes.
 
 ## Available Releases
 
-- [Release 2026.1](release-2026.1.md)
+- [Release 2026.1.0](release-2026.1.0.md)
 
 ## Maintainer Notes
 
@@ -14,7 +14,5 @@ Example generation workflow:
 
 ```shell
 pip install -r doc-requirements.txt -r dev-requirements.txt
-apt update && apt install -y pandoc
-reno report -o /tmp/reno.rst
-pandoc /tmp/reno.rst -f rst -t markdown -o docs/release-<version>.md
+python scripts/generate_release_docs.py --release release-2026.1.0
 ```
