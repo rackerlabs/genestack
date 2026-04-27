@@ -8,13 +8,11 @@ on:
       - mkdocs.yml
       - "docs/**"
       - ".github/workflows/mkdocs.yaml"
-      - "releasenotes/notes/**"
   pull_request:
     paths:
       - mkdocs.yml
       - "docs/**"
       - ".github/workflows/mkdocs.yaml"
-      - "releasenotes/notes/**"
   workflow_dispatch:
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
@@ -35,10 +33,6 @@ jobs:
         with:
           python-version: 3.x
       - run: pip install -r doc-requirements.txt
-      - run: sudo wget https://github.com/jgm/pandoc/releases/download/3.6.3/pandoc-3.6.3-1-amd64.deb && sudo apt install -y ./pandoc-3.6.3-1-amd64.deb
-      - run: reno report -o /tmp/reno.rst
-      - run: pandoc /tmp/reno.rst -f rst -t markdown -o docs/release-notes.md
-      - run: python scripts/generate_product_matrix.py
       - run: mkdocs build --strict
       - uses: actions/upload-pages-artifact@v3
         with:
