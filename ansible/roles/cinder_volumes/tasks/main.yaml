@@ -106,6 +106,7 @@
     state: present
     virtualenv: "{{ cinder_virtualenv_path }}"
     virtualenv_command: python3 -m venv
+    extra_args: "-c https://releases.openstack.org/constraints/upper/{{ cinder_release_branch | regex_replace('^(stable|unmaintained)/', '') }}"
 
 - name: "Get Python site-packages path from virtualenv"
   command: "{{ cinder_virtualenv_path }}/bin/python -c 'import site; print(site.getsitepackages()[0])'"
