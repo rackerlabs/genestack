@@ -137,13 +137,15 @@ echo
 
 ## Install egctl Binary (Post-Installation)
 
+GITHUB_MIRROR_URL="${GITHUB_MIRROR_URL:-https://github.com}"
+
 # Install egctl
 if [ ! -f "/usr/local/bin/egctl" ]; then
     echo "Installing egctl CLI..."
     sudo mkdir -p /opt/egctl-install
     pushd /opt/egctl-install || exit 1
         # Use the extracted version for wget
-        sudo wget "https://github.com/envoyproxy/gateway/releases/download/${SERVICE_VERSION}/egctl_${SERVICE_VERSION}_linux_amd64.tar.gz" -O egctl.tar.gz
+        sudo wget "${GITHUB_MIRROR_URL}/envoyproxy/gateway/releases/download/${SERVICE_VERSION}/egctl_${SERVICE_VERSION}_linux_amd64.tar.gz" -O egctl.tar.gz
         sudo tar -xvf egctl.tar.gz
         sudo install -o root -g root -m 0755 bin/linux/amd64/egctl /usr/local/bin/egctl
         /usr/local/bin/egctl completion bash > /tmp/egctl.bash
