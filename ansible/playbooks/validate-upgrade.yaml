@@ -1,0 +1,2094 @@
+---
+# Copyright 2026-Present, Rackspace Technology, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+- name: Validate a Genestack upgrade and report compact OK/FAILED results
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    openstack_namespace: openstack
+    openstack_cloud: ""
+    event_check_enabled: true
+    openstack_components_file: /opt/genestack/openstack-components.yaml
+    default_component_states:
+      aodh: false
+      barbican: true
+      blazar: false
+      ceilometer: false
+      cinder: false
+      cloudkitty: false
+      designate: false
+      freezer: false
+      glance: true
+      gnocchi: false
+      heat: false
+      horizon: false
+      ironic: false
+      keystone: true
+      magnum: false
+      manila: false
+      masakari: false
+      mistral: false
+      neutron: true
+      nova: true
+      octavia: false
+      placement: true
+      senlin: false
+      skyline: true
+      trove: false
+      watcher: false
+      zaqar: false
+    warning_pattern_map:
+      aodh:
+        - "horizontalpodautoscaler/aodh-"
+        - "permission/rabbitmq-monitoring-permission-aodh"
+        - "user/aodh"
+      barbican:
+        - "horizontalpodautoscaler/barbican-"
+        - "permission/rabbitmq-monitoring-permission-barbican"
+        - "user/barbican"
+      blazar:
+        - "horizontalpodautoscaler/blazar-"
+        - "permission/rabbitmq-monitoring-permission-blazar"
+        - "user/blazar"
+      ceilometer:
+        - "horizontalpodautoscaler/ceilometer-"
+        - "permission/rabbitmq-monitoring-permission-ceilometer"
+        - "user/ceilometer"
+      cinder:
+        - "horizontalpodautoscaler/cinder-"
+        - "permission/rabbitmq-monitoring-permission-cinder"
+        - "user/cinder"
+      cloudkitty:
+        - "horizontalpodautoscaler/cloudkitty-"
+        - "permission/rabbitmq-monitoring-permission-cloudkitty"
+        - "user/cloudkitty"
+      designate:
+        - "horizontalpodautoscaler/designate-"
+        - "permission/rabbitmq-monitoring-permission-designate"
+        - "user/designate"
+      freezer:
+        - "horizontalpodautoscaler/freezer-"
+        - "permission/rabbitmq-monitoring-permission-freezer"
+        - "user/freezer"
+      glance:
+        - "horizontalpodautoscaler/glance-"
+        - "permission/rabbitmq-monitoring-permission-glance"
+        - "user/glance"
+      gnocchi:
+        - "horizontalpodautoscaler/gnocchi-"
+        - "permission/rabbitmq-monitoring-permission-gnocchi"
+        - "user/gnocchi"
+      heat:
+        - "horizontalpodautoscaler/heat-"
+        - "permission/rabbitmq-monitoring-permission-heat"
+        - "user/heat"
+      horizon:
+        - "horizontalpodautoscaler/horizon-"
+        - "permission/rabbitmq-monitoring-permission-horizon"
+        - "user/horizon"
+      ironic:
+        - "horizontalpodautoscaler/ironic-"
+        - "permission/rabbitmq-monitoring-permission-ironic"
+        - "user/ironic"
+      keystone:
+        - "horizontalpodautoscaler/keystone-"
+        - "permission/rabbitmq-monitoring-permission-keystone"
+        - "user/keystone"
+      magnum:
+        - "horizontalpodautoscaler/magnum-"
+        - "permission/rabbitmq-monitoring-permission-magnum"
+        - "user/magnum"
+      manila:
+        - "horizontalpodautoscaler/manila-"
+        - "permission/rabbitmq-monitoring-permission-manila"
+        - "user/manila"
+      masakari:
+        - "horizontalpodautoscaler/masakari-"
+        - "permission/rabbitmq-monitoring-permission-masakari"
+        - "user/masakari"
+      mistral:
+        - "horizontalpodautoscaler/mistral-"
+        - "permission/rabbitmq-monitoring-permission-mistral"
+        - "user/mistral"
+      neutron:
+        - "horizontalpodautoscaler/neutron-"
+        - "permission/rabbitmq-monitoring-permission-neutron"
+        - "user/neutron"
+      nova:
+        - "horizontalpodautoscaler/nova-"
+        - "permission/rabbitmq-monitoring-permission-nova"
+        - "user/nova"
+      octavia:
+        - "horizontalpodautoscaler/octavia-"
+        - "permission/rabbitmq-monitoring-permission-octavia"
+        - "user/octavia"
+      placement:
+        # Placement has no service RabbitMQ user, but monitoring permission resources may still be rendered.
+        - "horizontalpodautoscaler/placement-"
+        - "permission/rabbitmq-monitoring-permission-placement"
+      senlin:
+        - "horizontalpodautoscaler/senlin-"
+        - "permission/rabbitmq-monitoring-permission-senlin"
+        - "user/senlin"
+      skyline:
+        # Skyline is HTTP-facing only here, so there is no service RabbitMQ user pattern.
+        - "horizontalpodautoscaler/skyline-"
+      trove:
+        - "horizontalpodautoscaler/trove-"
+        - "permission/rabbitmq-monitoring-permission-trove"
+        - "user/trove"
+      zaqar:
+        - "horizontalpodautoscaler/zaqar-"
+        - "permission/rabbitmq-monitoring-permission-zaqar"
+        - "user/zaqar"
+      watcher:
+        - "horizontalpodautoscaler/watcher-"
+        - "permission/rabbitmq-monitoring-permission-watcher"
+        - "user/watcher"
+    openstack_admin_client_label_selectors:
+      - application=openstack-admin-client
+      - app=openstack-admin-client
+    run_tenant_smoke: false
+    smoke_image: ""
+    smoke_flavor: ""
+    smoke_network: ""
+    smoke_subnet: ""
+    smoke_external_network: PUBLICNET
+    smoke_subnet_cidr: 192.168.251.0/24
+    smoke_router_name: ""
+    smoke_security_group_name: ""
+    smoke_keypair_name: ""
+    smoke_private_key_path: ""
+    smoke_existing_keypair_name: ""
+    smoke_existing_private_key_path: ""
+    smoke_ssh_user: ubuntu
+    smoke_ssh_port: 22
+    smoke_ssh_wait_timeout: 300
+    smoke_ssh_extra_args: ""
+    smoke_volume_size: 1
+    smoke_server_name: "upgrade-smoke-vm"
+    smoke_volume_name: "upgrade-smoke-vol"
+    smoke_snapshot_name: ""
+    smoke_volume_snapshot_name: ""
+    smoke_artifact_dir: /tmp/validate-upgrade-artifacts
+    smoke_create_network_resources: true
+    smoke_run_server_snapshot: true
+    smoke_run_volume_snapshot: true
+    smoke_run_octavia_test: false
+    smoke_run_heat_test: false
+    smoke_run_barbican_test: false
+    smoke_run_designate_test: false
+    smoke_octavia_provider: ""
+    smoke_designate_zone: ""
+    smoke_designate_record_name: "smoke"
+    validation_summary_path: /tmp/validate-upgrade-summary.md
+
+  tasks:
+    - name: Initialize validation result list
+      ansible.builtin.set_fact:
+        validation_results: []
+
+    - name: Locate the OpenStack admin client pod
+      ansible.builtin.command:
+        argv:
+          - kubectl
+          - --namespace
+          - "{{ openstack_namespace }}"
+          - get
+          - pod
+          - -l
+          - "{{ item }}"
+          - -o
+          - json
+      loop: "{{ openstack_admin_client_label_selectors }}"
+      register: admin_client_lookup
+      changed_when: false
+      failed_when: false
+
+    - name: Look up the OpenStack admin client pod by exact name
+      ansible.builtin.command:
+        argv:
+          - kubectl
+          - --namespace
+          - "{{ openstack_namespace }}"
+          - get
+          - pod
+          - openstack-admin-client
+          - -o
+          - json
+      register: admin_client_exact_lookup
+      changed_when: false
+      failed_when: false
+
+    - name: Select a matching OpenStack admin client pod
+      vars:
+        admin_client_label_matches: >-
+          {{
+            admin_client_lookup.results
+            | map(attribute='stdout')
+            | reject('equalto', '')
+            | map('from_json')
+            | map(attribute='items')
+            | reject('equalto', [])
+            | list
+          }}
+      ansible.builtin.set_fact:
+        openstack_admin_client_pod: >-
+          {{
+            admin_client_label_matches[0][0].metadata.name
+            if (admin_client_label_matches | length) > 0
+            else (
+              (admin_client_exact_lookup.stdout | from_json).metadata.name
+              if admin_client_exact_lookup.rc == 0
+              else omit
+            )
+          }}
+      when:
+        - >
+          (
+            (
+              admin_client_lookup.results
+              | map(attribute='stdout')
+              | reject('equalto', '')
+              | map('from_json')
+              | map(attribute='items')
+              | reject('equalto', [])
+              | list
+              | length
+            ) > 0
+          )
+          or
+          (admin_client_exact_lookup.rc == 0)
+
+    - name: Record admin client discovery result
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'openstack-admin-client pod',
+                  'ok': openstack_admin_client_pod is defined,
+                  'detail': (
+                    openstack_admin_client_pod
+                    if openstack_admin_client_pod is defined
+                    else 'No matching pod found in namespace ' ~ openstack_namespace
+                  )
+                }
+              ]
+          }}
+
+    - name: Stop when the OpenStack admin client pod is missing
+      ansible.builtin.meta: end_play
+      when: openstack_admin_client_pod is not defined
+
+    - name: Get Kubernetes node state
+      ansible.builtin.command:
+        argv:
+          - kubectl
+          - get
+          - nodes
+          - -o
+          - json
+      register: kubernetes_nodes
+      changed_when: false
+      failed_when: false
+
+    - name: Build list of not-ready Kubernetes nodes
+      vars:
+        kubernetes_node_items: "{{ (kubernetes_nodes.stdout | from_json)['items'] if kubernetes_nodes.rc == 0 else [] }}"
+      ansible.builtin.set_fact:
+        not_ready_kubernetes_nodes: |-
+          {% set nodes = namespace(bad=[]) %}
+          {% for node in kubernetes_node_items %}
+          {% set ready_status = (
+            node.status.conditions
+            | selectattr('type', 'equalto', 'Ready')
+            | map(attribute='status')
+            | list
+            | first
+            | default('False')
+          ) %}
+          {% if ready_status != 'True' %}
+          {% set _ = nodes.bad.append(node.metadata.name) %}
+          {% endif %}
+          {% endfor %}
+          {{ nodes.bad }}
+      when: kubernetes_nodes.rc == 0
+
+    - name: Record Kubernetes node state
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'Kubernetes nodes Ready',
+                  'ok': (
+                    kubernetes_nodes.rc == 0
+                    and (not_ready_kubernetes_nodes | default([]) | length) == 0
+                  ),
+                  'detail': (
+                    'All nodes are Ready'
+                    if kubernetes_nodes.rc == 0 and (not_ready_kubernetes_nodes | default([]) | length) == 0
+                    else (
+                      'Not Ready nodes: ' ~ ((not_ready_kubernetes_nodes | default([])) | join(', '))
+                      if kubernetes_nodes.rc == 0
+                      else (kubernetes_nodes.stderr | default(kubernetes_nodes.stdout, true) | trim)
+                    )
+                  )
+                }
+              ]
+          }}
+
+    - name: Get pod state for the OpenStack namespace
+      ansible.builtin.command:
+        argv:
+          - kubectl
+          - --namespace
+          - "{{ openstack_namespace }}"
+          - get
+          - pods
+          - -o
+          - json
+      register: openstack_pods
+      changed_when: smoke_designate_zone_create.rc == 0
+      failed_when: false
+
+    - name: Record OpenStack pod state
+      vars:
+        pod_items: "{{ (openstack_pods.stdout | from_json)['items'] if openstack_pods.rc == 0 else [] }}"
+        unhealthy_pods: >-
+          {{
+            pod_items
+            | rejectattr('status.phase', 'equalto', 'Running')
+            | rejectattr('status.phase', 'equalto', 'Succeeded')
+            | map(attribute='metadata.name')
+            | list
+          }}
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'OpenStack pods healthy',
+                  'ok': openstack_pods.rc == 0 and (unhealthy_pods | length) == 0,
+                  'detail': (
+                    'All pods are Running or Succeeded'
+                    if openstack_pods.rc == 0 and (unhealthy_pods | length) == 0
+                    else (
+                      'Unhealthy pods: ' ~ (unhealthy_pods | join(', '))
+                      if openstack_pods.rc == 0
+                      else (openstack_pods.stderr | default(openstack_pods.stdout, true) | trim)
+                    )
+                  )
+                }
+              ]
+          }}
+
+    - name: Get job state for the OpenStack namespace
+      ansible.builtin.command:
+        argv:
+          - kubectl
+          - --namespace
+          - "{{ openstack_namespace }}"
+          - get
+          - jobs
+          - -o
+          - json
+      register: openstack_jobs
+      changed_when: smoke_octavia_lb.rc == 0
+      failed_when: false
+
+    - name: Load component state file when present
+      ansible.builtin.stat:
+        path: "{{ openstack_components_file }}"
+      register: openstack_components_file_stat
+
+    - name: Read component state file
+      ansible.builtin.set_fact:
+        openstack_components_config: "{{ lookup('file', openstack_components_file) | from_yaml }}"
+      when: openstack_components_file_stat.stat.exists
+
+    - name: Build effective component states
+      ansible.builtin.set_fact:
+        component_states: >-
+          {{
+            default_component_states
+            | combine(
+                (openstack_components_config.components | default({}))
+                if (openstack_components_config is defined)
+                else {},
+                recursive=True
+              )
+          }}
+
+    - name: Build ignored warning patterns from disabled components
+      ansible.builtin.set_fact:
+        ignored_warning_event_patterns: |-
+          {% set patterns = [] %}
+          {% for component_name, enabled in component_states.items() %}
+          {% if not enabled %}
+          {% for pattern in warning_pattern_map.get(component_name, []) %}
+          {% set _ = patterns.append(pattern) %}
+          {% endfor %}
+          {% endif %}
+          {% endfor %}
+          {{ patterns }}
+
+    - name: Get warning events
+      ansible.builtin.command:
+        argv:
+          - kubectl
+          - get
+          - events
+          - -A
+          - --field-selector
+          - type=Warning
+          - --sort-by=.metadata.creationTimestamp
+          - -o
+          - json
+      register: warning_events
+      changed_when: smoke_heat_stack.rc == 0
+      failed_when: false
+      when: event_check_enabled | bool
+
+    - name: Build normalized warning event lines
+      vars:
+        warning_event_items: "{{ (warning_events.stdout | from_json)['items'] if warning_events.rc == 0 else [] }}"
+      ansible.builtin.set_fact:
+        warning_event_lines: |-
+          {% set lines = [] %}
+          {% for item in warning_event_items %}
+          {% set message = (item.message | default('') | regex_replace('\\s*\\n\\s*', ' | ') | trim) %}
+          {% set namespace = item.metadata.namespace | default('') %}
+          {% set reason = item.reason | default('') %}
+          {% set kind = item.involvedObject.kind | default('') %}
+          {% set name = item.involvedObject.name | default('') %}
+          {% set _ = lines.append(namespace ~ ' | ' ~ reason ~ ' | ' ~ kind ~ ' | ' ~ name ~ ' | ' ~ message) %}
+          {% endfor %}
+          {{ lines }}
+      when:
+        - event_check_enabled | bool
+        - warning_events.rc == 0
+
+    - name: Classify warning events
+      ansible.builtin.set_fact:
+        ignored_warning_events: |-
+          {% set ignored = [] %}
+          {% for line in warning_event_lines | default([]) %}
+          {% set match = namespace(found=false) %}
+          {% for pattern in ignored_warning_event_patterns %}
+          {% if (line | regex_search(pattern)) %}
+          {% set match.found = true %}
+          {% endif %}
+          {% endfor %}
+          {% if match.found %}
+          {% set _ = ignored.append(line) %}
+          {% endif %}
+          {% endfor %}
+          {{ ignored }}
+        actionable_warning_events: |-
+          {% set actionable = [] %}
+          {% for line in warning_event_lines | default([]) %}
+          {% set match = namespace(found=false) %}
+          {% for pattern in ignored_warning_event_patterns %}
+          {% if (line | regex_search(pattern)) %}
+          {% set match.found = true %}
+          {% endif %}
+          {% endfor %}
+          {% if not match.found %}
+          {% set _ = actionable.append(line) %}
+          {% endif %}
+          {% endfor %}
+          {{ actionable }}
+      when:
+        - event_check_enabled | bool
+        - warning_events.rc == 0
+
+    - name: Record warning event status
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'Warning events',
+                  'ok': (
+                    warning_events.rc == 0
+                    and (actionable_warning_events | default([]) | length) == 0
+                  ),
+                  'detail': (
+                    'No actionable warning events found'
+                    if warning_events.rc == 0 and (actionable_warning_events | default([]) | length) == 0
+                    else (
+                      ((actionable_warning_events | default([]) | length) | string)
+                      ~ ' actionable warning event(s); see "Actionable Warning Events" section'
+                      if warning_events.rc == 0
+                      else (warning_events.stderr | default(warning_events.stdout, true) | trim)
+                    )
+                  )
+                }
+              ]
+          }}
+      when: event_check_enabled | bool
+
+    - name: Record OpenStack job state
+      vars:
+        job_items: "{{ (openstack_jobs.stdout | from_json)['items'] if openstack_jobs.rc == 0 else [] }}"
+        failed_jobs: >-
+          {{
+            job_items
+            | selectattr('status.failed', 'defined')
+            | selectattr('status.failed', 'gt', 0)
+            | map(attribute='metadata.name')
+            | list
+          }}
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'OpenStack jobs healthy',
+                  'ok': openstack_jobs.rc == 0 and (failed_jobs | length) == 0,
+                  'detail': (
+                    'No failed jobs'
+                    if openstack_jobs.rc == 0 and (failed_jobs | length) == 0
+                    else (
+                      'Failed jobs: ' ~ (failed_jobs | join(', '))
+                      if openstack_jobs.rc == 0
+                      else (openstack_jobs.stderr | default(openstack_jobs.stdout, true) | trim)
+                    )
+                  )
+                }
+              ]
+          }}
+
+    - name: Build optional OpenStack cloud argument
+      ansible.builtin.set_fact:
+        openstack_cloud_argv: "{{ ['--os-cloud', openstack_cloud] if (openstack_cloud | length) > 0 else [] }}"
+
+    - name: Issue an OpenStack token
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['token', 'issue', '-f', 'json']
+          }}
+      register: openstack_token
+      changed_when: smoke_barbican_secret.rc == 0
+      failed_when: false
+
+    - name: Record token issuance
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'OpenStack token issue',
+                  'ok': openstack_token.rc == 0,
+                  'detail': (
+                    'Token issued successfully'
+                    if openstack_token.rc == 0
+                    else (openstack_token.stderr | default(openstack_token.stdout, true) | trim)
+                  )
+                }
+              ]
+          }}
+
+    - name: List OpenStack services
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['service', 'list', '-f', 'json']
+          }}
+      register: openstack_services
+      changed_when: smoke_server_snapshot.rc == 0
+      failed_when: false
+
+    - name: Record service catalog presence
+      vars:
+        service_items: "{{ openstack_services.stdout | from_json if openstack_services.rc == 0 else [] }}"
+        required_services:
+          - keystone
+          - nova
+          - neutron
+          - glance
+          - cinderv3
+          - placement
+        service_names: "{{ service_items | map(attribute='Name') | list }}"
+        missing_services: "{{ required_services | difference(service_names) }}"
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'Core service catalog',
+                  'ok': openstack_services.rc == 0 and (missing_services | length) == 0,
+                  'detail': (
+                    'All required services found'
+                    if openstack_services.rc == 0 and (missing_services | length) == 0
+                    else (
+                      'Missing services: ' ~ (missing_services | join(', '))
+                      if openstack_services.rc == 0
+                      else (openstack_services.stderr | default(openstack_services.stdout, true) | trim)
+                    )
+                  )
+                }
+              ]
+          }}
+
+    - name: List OpenStack endpoints
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['endpoint', 'list', '-f', 'json']
+          }}
+      register: openstack_endpoints
+      changed_when: smoke_volume_snapshot.rc == 0
+      failed_when: false
+
+    - name: Record endpoint presence
+      vars:
+        endpoint_items: "{{ openstack_endpoints.stdout | from_json if openstack_endpoints.rc == 0 else [] }}"
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'OpenStack endpoints',
+                  'ok': openstack_endpoints.rc == 0 and (endpoint_items | length) > 0,
+                  'detail': (
+                    (endpoint_items | length | string) ~ ' endpoints returned'
+                    if openstack_endpoints.rc == 0 and (endpoint_items | length) > 0
+                    else (openstack_endpoints.stderr | default(openstack_endpoints.stdout, true) | trim)
+                  )
+                }
+              ]
+          }}
+
+    - name: List compute services
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['compute', 'service', 'list', '-f', 'json']
+          }}
+      register: compute_services
+      changed_when: smoke_server_create.rc == 0
+      failed_when: false
+
+    - name: Record compute service health
+      vars:
+        compute_items: "{{ compute_services.stdout | from_json if compute_services.rc == 0 else [] }}"
+        unhealthy_compute_services: >-
+          {{
+            compute_items
+            | rejectattr('State', 'equalto', 'up')
+            | map(attribute='Binary')
+            | list
+          }}
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'Nova compute services',
+                  'ok': compute_services.rc == 0 and (unhealthy_compute_services | length) == 0,
+                  'detail': (
+                    'All compute services report state up'
+                    if compute_services.rc == 0 and (unhealthy_compute_services | length) == 0
+                    else (
+                      'Non-up services: ' ~ (unhealthy_compute_services | join(', '))
+                      if compute_services.rc == 0
+                      else (compute_services.stderr | default(compute_services.stdout, true) | trim)
+                    )
+                  )
+                }
+              ]
+          }}
+
+    - name: List hypervisors
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['hypervisor', 'list', '-f', 'json']
+          }}
+      register: hypervisors
+      changed_when: smoke_floating_ip_create.rc == 0
+      failed_when: false
+
+    - name: Record hypervisor visibility
+      vars:
+        hypervisor_items: "{{ hypervisors.stdout | from_json if hypervisors.rc == 0 else [] }}"
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'Hypervisors visible',
+                  'ok': hypervisors.rc == 0 and (hypervisor_items | length) > 0,
+                  'detail': (
+                    (hypervisor_items | length | string) ~ ' hypervisors returned'
+                    if hypervisors.rc == 0 and (hypervisor_items | length) > 0
+                    else (hypervisors.stderr | default(hypervisors.stdout, true) | trim)
+                  )
+                }
+              ]
+          }}
+
+    - name: List volume services
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['volume', 'service', 'list', '-f', 'json']
+          }}
+      register: volume_services
+      changed_when: smoke_volume_create.rc == 0
+      failed_when: false
+
+    - name: Record volume service health
+      vars:
+        volume_items: "{{ volume_services.stdout | from_json if volume_services.rc == 0 else [] }}"
+        unhealthy_volume_services: >-
+          {{
+            volume_items
+            | rejectattr('State', 'equalto', 'up')
+            | map(attribute='Binary')
+            | list
+          }}
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'Cinder services',
+                  'ok': volume_services.rc == 0 and (unhealthy_volume_services | length) == 0,
+                  'detail': (
+                    'All Cinder services report state up'
+                    if volume_services.rc == 0 and (unhealthy_volume_services | length) == 0
+                    else (
+                      'Non-up services: ' ~ (unhealthy_volume_services | join(', '))
+                      if volume_services.rc == 0
+                      else (volume_services.stderr | default(volume_services.stdout, true) | trim)
+                    )
+                  )
+                }
+              ]
+          }}
+
+    - name: Ensure smoke artifact directory exists
+      ansible.builtin.file:
+        path: "{{ smoke_artifact_dir }}"
+        state: directory
+        mode: "0700"
+      when: run_tenant_smoke | bool
+
+    - name: Build effective smoke resource names
+      ansible.builtin.set_fact:
+        effective_smoke_network: "{{ smoke_network if (smoke_network | length) > 0 else smoke_server_name ~ '-net' }}"
+        effective_smoke_subnet: "{{ smoke_subnet if (smoke_subnet | length) > 0 else smoke_server_name ~ '-subnet' }}"
+        effective_smoke_router: "{{ smoke_router_name if (smoke_router_name | length) > 0 else smoke_server_name ~ '-router' }}"
+        effective_smoke_security_group: "{{ smoke_security_group_name if (smoke_security_group_name | length) > 0 else smoke_server_name ~ '-secgroup' }}"
+        effective_smoke_keypair: "{{ smoke_existing_keypair_name if (smoke_existing_keypair_name | length) > 0 else (smoke_keypair_name if (smoke_keypair_name | length) > 0 else smoke_server_name ~ '-keypair') }}"
+        effective_smoke_private_key_path: "{{ smoke_existing_private_key_path if (smoke_existing_private_key_path | length) > 0 else (smoke_private_key_path if (smoke_private_key_path | length) > 0 else smoke_artifact_dir ~ '/' ~ smoke_server_name ~ '-keypair.pem') }}"
+        effective_smoke_snapshot_name: "{{ smoke_snapshot_name if (smoke_snapshot_name | length) > 0 else smoke_server_name ~ '-snapshot' }}"
+        effective_smoke_volume_snapshot_name: "{{ smoke_volume_snapshot_name if (smoke_volume_snapshot_name | length) > 0 else smoke_volume_name ~ '-snapshot' }}"
+        effective_smoke_heat_stack_name: "{{ smoke_server_name ~ '-heat-stack' }}"
+        effective_smoke_barbican_secret_name: "{{ smoke_server_name ~ '-barbican-secret' }}"
+        effective_smoke_octavia_lb_name: "{{ smoke_server_name ~ '-lb' }}"
+        effective_smoke_octavia_listener_name: "{{ smoke_server_name ~ '-listener' }}"
+        effective_smoke_octavia_pool_name: "{{ smoke_server_name ~ '-pool' }}"
+        effective_smoke_designate_zone: "{{ smoke_designate_zone }}"
+      when: run_tenant_smoke | bool
+
+    - name: Check existing smoke private key path
+      ansible.builtin.stat:
+        path: "{{ effective_smoke_private_key_path }}"
+      register: smoke_existing_private_key_stat
+      when:
+        - run_tenant_smoke | bool
+        - smoke_existing_keypair_name | length > 0
+
+    - name: Build smoke input validation state
+      vars:
+        smoke_input_errors: |-
+          {% set errors = [] %}
+          {% if (smoke_image | length) == 0 %}
+          {% set _ = errors.append('Set smoke_image to a known-good image name or ID.') %}
+          {% endif %}
+          {% if (smoke_flavor | length) == 0 %}
+          {% set _ = errors.append('Set smoke_flavor to a known-good flavor name or ID.') %}
+          {% endif %}
+          {% if (smoke_ssh_user | length) == 0 %}
+          {% set _ = errors.append('Set smoke_ssh_user to the guest login account for the image.') %}
+          {% endif %}
+          {% if (smoke_network | length) == 0 and not (smoke_create_network_resources | bool) %}
+          {% set _ = errors.append('Provide smoke_network or leave smoke_create_network_resources=true.') %}
+          {% endif %}
+          {% if (smoke_existing_keypair_name | length == 0) != (smoke_existing_private_key_path | length == 0) %}
+          {% set _ = errors.append('If using an existing keypair, set both smoke_existing_keypair_name and smoke_existing_private_key_path.') %}
+          {% endif %}
+          {% if
+            (smoke_existing_keypair_name | length > 0)
+            and (
+              smoke_existing_private_key_stat is not defined
+              or not (smoke_existing_private_key_stat.stat.exists | default(false))
+            )
+          %}
+          {% set _ = errors.append('The existing private key file was not found at ' ~ effective_smoke_private_key_path ~ '.') %}
+          {% endif %}
+          {% if
+            (smoke_run_octavia_test | bool)
+            and (component_states.octavia | default(false))
+            and (smoke_network | length) > 0
+            and (smoke_subnet | length) == 0
+          %}
+          {% set _ = errors.append('Set smoke_subnet when running the Octavia smoke test against an existing network.') %}
+          {% endif %}
+          {{ errors }}
+      ansible.builtin.set_fact:
+        smoke_inputs_ok: "{{ (smoke_input_errors | from_yaml | length) == 0 }}"
+        smoke_input_error_messages: "{{ smoke_input_errors | from_yaml }}"
+      when: run_tenant_smoke | bool
+
+    - name: Validate smoke test inputs when enabled
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'Tenant smoke inputs',
+                  'ok': smoke_inputs_ok | default(false),
+                  'detail': (
+                    'Smoke test inputs supplied'
+                    if smoke_inputs_ok | default(false)
+                    else ((smoke_input_error_messages | default([])) | join(' '))
+                  )
+                }
+              ]
+          }}
+      when: run_tenant_smoke | bool
+
+    - name: Create smoke test keypair in OpenStack
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['keypair', 'create', effective_smoke_keypair, '-f', 'json']
+          }}
+      register: smoke_keypair_create
+      changed_when: smoke_keypair_create.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_inputs_ok | default(false)
+        - smoke_existing_keypair_name | length == 0
+
+    - name: Write generated smoke private key
+      ansible.builtin.copy:
+        dest: "{{ effective_smoke_private_key_path }}"
+        mode: "0600"
+        content: "{{ (smoke_keypair_create.stdout | from_json).private_key }}"
+      when:
+        - run_tenant_smoke | bool
+        - smoke_inputs_ok | default(false)
+        - smoke_existing_keypair_name | length == 0
+        - smoke_keypair_create is defined
+        - smoke_keypair_create.rc == 0
+
+    - name: Create smoke security group
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['security', 'group', 'create', effective_smoke_security_group, '-f', 'json']
+          }}
+      register: smoke_security_group_create
+      changed_when: smoke_security_group_create.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_inputs_ok | default(false)
+
+    - name: Create smoke security group rules
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + item
+          }}
+      loop:
+        - ['security', 'group', 'rule', 'create', '--protocol', 'tcp', '--dst-port', (smoke_ssh_port | string), effective_smoke_security_group]
+        - ['security', 'group', 'rule', 'create', '--protocol', 'icmp', effective_smoke_security_group]
+        - ['security', 'group', 'rule', 'create', '--protocol', 'tcp', '--dst-port', '80', effective_smoke_security_group]
+      register: smoke_security_group_rules
+      changed_when: smoke_router_add_subnet.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_inputs_ok | default(false)
+        - smoke_security_group_create is defined
+        - smoke_security_group_create.rc == 0
+
+    - name: Create smoke network
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['network', 'create', effective_smoke_network, '-f', 'json']
+          }}
+      register: smoke_network_create
+      changed_when: smoke_network_create.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_inputs_ok | default(false)
+        - smoke_network | length == 0
+        - smoke_create_network_resources | bool
+
+    - name: Create smoke subnet
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['subnet', 'create', '--network', effective_smoke_network, '--subnet-range', smoke_subnet_cidr, effective_smoke_subnet, '-f', 'json']
+          }}
+      register: smoke_subnet_create
+      changed_when: smoke_subnet_create.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_inputs_ok | default(false)
+        - smoke_network | length == 0
+        - smoke_create_network_resources | bool
+        - smoke_network_create is defined
+        - smoke_network_create.rc == 0
+
+    - name: Create smoke router
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['router', 'create', effective_smoke_router, '-f', 'json']
+          }}
+      register: smoke_router_create
+      changed_when: smoke_router_create.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_inputs_ok | default(false)
+        - smoke_network | length == 0
+        - smoke_create_network_resources | bool
+        - smoke_subnet_create is defined
+        - smoke_subnet_create.rc == 0
+
+    - name: Set smoke router external gateway
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['router', 'set', '--external-gateway', smoke_external_network, effective_smoke_router]
+          }}
+      register: smoke_router_gateway
+      changed_when: smoke_router_gateway.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_inputs_ok | default(false)
+        - smoke_network | length == 0
+        - smoke_create_network_resources | bool
+        - smoke_router_create is defined
+        - smoke_router_create.rc == 0
+
+    - name: Add smoke subnet to router
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['router', 'add', 'subnet', effective_smoke_router, effective_smoke_subnet]
+          }}
+      register: smoke_router_add_subnet
+      changed_when: smoke_router_add_subnet.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_inputs_ok | default(false)
+        - smoke_network | length == 0
+        - smoke_create_network_resources | bool
+        - smoke_router_gateway is defined
+        - smoke_router_gateway.rc == 0
+
+    - name: Create smoke test server
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['server', 'create', '--wait', '--flavor', smoke_flavor, '--image', smoke_image, '--network', effective_smoke_network, '--security-group', effective_smoke_security_group, '--key-name', effective_smoke_keypair, smoke_server_name, '-f', 'json']
+          }}
+      register: smoke_server_create
+      changed_when: smoke_server_create.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_inputs_ok | default(false)
+
+    - name: Record smoke server creation
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'Tenant smoke server boot',
+                  'ok': smoke_server_create is defined and smoke_server_create.rc == 0,
+                  'detail': (
+                    'Server created successfully'
+                    if smoke_server_create is defined and smoke_server_create.rc == 0
+                    else (
+                      smoke_server_create.stderr
+                      | default(smoke_server_create.stdout, true)
+                      | default('Server was not created', true)
+                      | trim
+                    )
+                  )
+                }
+              ]
+          }}
+      when: run_tenant_smoke | bool
+
+    - name: Get smoke server port details
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['port', 'list', '--server', smoke_server_name, '-f', 'json']
+          }}
+      register: smoke_server_ports
+      changed_when: smoke_router_create.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_server_create is defined
+        - smoke_server_create.rc == 0
+
+    - name: Set smoke server fixed IP
+      ansible.builtin.set_fact:
+        smoke_server_fixed_ip: "{{ ((smoke_server_ports.stdout | from_json)[0].Fixed_IPs[0]['ip_address']) }}"
+      when:
+        - run_tenant_smoke | bool
+        - smoke_server_ports is defined
+        - smoke_server_ports.rc == 0
+
+    - name: Create floating IP for smoke server
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['floating', 'ip', 'create', smoke_external_network, '-f', 'json']
+          }}
+      register: smoke_floating_ip_create
+      changed_when: smoke_floating_ip_create.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_server_create is defined
+        - smoke_server_create.rc == 0
+
+    - name: Associate floating IP to smoke server
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['server', 'add', 'floating', 'ip', smoke_server_name, (smoke_floating_ip_create.stdout | from_json).floating_ip_address]
+          }}
+      register: smoke_floating_ip_associate
+      changed_when: smoke_floating_ip_associate.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_floating_ip_create is defined
+        - smoke_floating_ip_create.rc == 0
+
+    - name: Record smoke networking workflow
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'Tenant smoke networking',
+                  'ok': (
+                    smoke_security_group_create is defined
+                    and smoke_security_group_create.rc == 0
+                    and smoke_floating_ip_create is defined
+                    and smoke_floating_ip_create.rc == 0
+                    and smoke_floating_ip_associate is defined
+                    and smoke_floating_ip_associate.rc == 0
+                  ),
+                  'detail': (
+                    'Security group, network path, and floating IP configured'
+                    if (
+                      smoke_security_group_create is defined
+                      and smoke_security_group_create.rc == 0
+                      and smoke_floating_ip_create is defined
+                      and smoke_floating_ip_create.rc == 0
+                      and smoke_floating_ip_associate is defined
+                      and smoke_floating_ip_associate.rc == 0
+                    )
+                    else 'Smoke networking workflow failed'
+                  )
+                }
+              ]
+          }}
+      when: run_tenant_smoke | bool
+
+    - name: Wait for smoke SSH port
+      ansible.builtin.wait_for:
+        host: "{{ (smoke_floating_ip_create.stdout | from_json).floating_ip_address }}"
+        port: "{{ smoke_ssh_port }}"
+        timeout: "{{ smoke_ssh_wait_timeout }}"
+      register: smoke_wait_for_ssh
+      changed_when: smoke_subnet_create.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_floating_ip_create is defined
+        - smoke_floating_ip_create.rc == 0
+
+    - name: Capture baseline guest block devices
+      ansible.builtin.command:
+        argv: >-
+          {{
+            [
+              'ssh',
+              '-i', effective_smoke_private_key_path,
+              '-o', 'BatchMode=yes',
+              '-o', 'ConnectTimeout=10',
+              '-o', 'StrictHostKeyChecking=no',
+              '-o', 'UserKnownHostsFile=/dev/null'
+            ]
+            + (smoke_ssh_extra_args.split() if (smoke_ssh_extra_args | length) > 0 else [])
+            + [
+              smoke_ssh_user ~ '@' ~ (smoke_floating_ip_create.stdout | from_json).floating_ip_address,
+              'lsblk -dn -o NAME,TYPE'
+            ]
+          }}
+      register: smoke_guest_lsblk_before
+      changed_when: smoke_network_create.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_wait_for_ssh is defined
+        - not (smoke_wait_for_ssh.failed | default(false))
+
+    - name: Record smoke SSH reachability
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'Tenant smoke SSH reachability',
+                  'ok': smoke_guest_lsblk_before is defined and smoke_guest_lsblk_before.rc == 0,
+                  'detail': (
+                    'SSH login succeeded for ' ~ smoke_ssh_user
+                    if smoke_guest_lsblk_before is defined and smoke_guest_lsblk_before.rc == 0
+                    else (
+                      smoke_guest_lsblk_before.stderr
+                      | default(smoke_wait_for_ssh.msg, true)
+                      | default('SSH login failed', true)
+                      | trim
+                    )
+                  )
+                }
+              ]
+          }}
+      when: run_tenant_smoke | bool
+
+    - name: Create a smoke test volume
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['volume', 'create', '--size', (smoke_volume_size | string), smoke_volume_name, '-f', 'json']
+          }}
+      register: smoke_volume_create
+      changed_when: smoke_volume_create.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_server_create is defined
+        - smoke_server_create.rc == 0
+
+    - name: Wait for smoke volume to become available
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['volume', 'show', smoke_volume_name, '-f', 'json']
+          }}
+      register: smoke_volume_status
+      until:
+        - smoke_volume_status.rc == 0
+        - (smoke_volume_status.stdout | from_json).status == 'available'
+      retries: 20
+      delay: 15
+      changed_when: smoke_security_group_create.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_volume_create is defined
+        - smoke_volume_create.rc == 0
+
+    - name: Attach smoke test volume
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['server', 'add', 'volume', smoke_server_name, smoke_volume_name]
+          }}
+      register: smoke_volume_attach
+      changed_when: smoke_volume_attach.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_volume_status is defined
+        - smoke_volume_status.rc == 0
+
+    - name: Wait for smoke volume to become in-use
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['volume', 'show', smoke_volume_name, '-f', 'json']
+          }}
+      register: smoke_volume_in_use
+      until:
+        - smoke_volume_in_use.rc == 0
+        - (smoke_volume_in_use.stdout | from_json).status == 'in-use'
+      retries: 20
+      delay: 10
+      changed_when: smoke_keypair_create.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_volume_attach is defined
+        - smoke_volume_attach.rc == 0
+
+    - name: Capture guest block devices after attach
+      ansible.builtin.command:
+        argv: >-
+          {{
+            [
+              'ssh',
+              '-i', effective_smoke_private_key_path,
+              '-o', 'BatchMode=yes',
+              '-o', 'ConnectTimeout=10',
+              '-o', 'StrictHostKeyChecking=no',
+              '-o', 'UserKnownHostsFile=/dev/null'
+            ]
+            + (smoke_ssh_extra_args.split() if (smoke_ssh_extra_args | length) > 0 else [])
+            + [
+              smoke_ssh_user ~ '@' ~ (smoke_floating_ip_create.stdout | from_json).floating_ip_address,
+              'lsblk -dn -o NAME,TYPE'
+            ]
+          }}
+      register: smoke_guest_lsblk_after
+      changed_when: false
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_volume_in_use is defined
+        - smoke_volume_in_use.rc == 0
+
+    - name: Record smoke volume workflow
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'Tenant smoke volume attach',
+                  'ok': (
+                    smoke_volume_create is defined
+                    and smoke_volume_create.rc == 0
+                    and smoke_volume_status is defined
+                    and smoke_volume_status.rc == 0
+                    and smoke_volume_attach is defined
+                    and smoke_volume_attach.rc == 0
+                    and smoke_volume_in_use is defined
+                    and smoke_volume_in_use.rc == 0
+                  ),
+                  'detail': (
+                    'Volume created, became available, attached, and reached in-use'
+                    if (
+                      smoke_volume_create is defined
+                      and smoke_volume_create.rc == 0
+                      and smoke_volume_status is defined
+                      and smoke_volume_status.rc == 0
+                      and smoke_volume_attach is defined
+                      and smoke_volume_attach.rc == 0
+                      and smoke_volume_in_use is defined
+                      and smoke_volume_in_use.rc == 0
+                    )
+                    else 'Smoke volume workflow failed'
+                  )
+                },
+                {
+                  'name': 'Tenant smoke in-guest disk visibility',
+                  'ok': (
+                    smoke_guest_lsblk_before is defined
+                    and smoke_guest_lsblk_before.rc == 0
+                    and smoke_guest_lsblk_after is defined
+                    and smoke_guest_lsblk_after.rc == 0
+                    and (smoke_guest_lsblk_before.stdout | trim) != (smoke_guest_lsblk_after.stdout | trim)
+                  ),
+                  'detail': (
+                    'Guest block device list changed after attach'
+                    if (
+                      smoke_guest_lsblk_before is defined
+                      and smoke_guest_lsblk_before.rc == 0
+                      and smoke_guest_lsblk_after is defined
+                      and smoke_guest_lsblk_after.rc == 0
+                      and (smoke_guest_lsblk_before.stdout | trim) != (smoke_guest_lsblk_after.stdout | trim)
+                    )
+                    else 'Guest block device list did not change after attach'
+                  )
+                }
+              ]
+          }}
+      when: run_tenant_smoke | bool
+
+    - name: Create server snapshot
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['server', 'image', 'create', '--wait', '--name', effective_smoke_snapshot_name, smoke_server_name, '-f', 'json']
+          }}
+      register: smoke_server_snapshot
+      changed_when: smoke_server_snapshot.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_run_server_snapshot | bool
+        - smoke_server_create is defined
+        - smoke_server_create.rc == 0
+
+    - name: Record server snapshot result
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'Tenant smoke snapshot flow',
+                  'ok': smoke_server_snapshot is defined and smoke_server_snapshot.rc == 0,
+                  'detail': (
+                    'Server snapshot created successfully'
+                    if smoke_server_snapshot is defined and smoke_server_snapshot.rc == 0
+                    else (smoke_server_snapshot.stderr | default('Server snapshot failed', true) | trim)
+                  )
+                }
+              ]
+          }}
+      when:
+        - run_tenant_smoke | bool
+        - smoke_run_server_snapshot | bool
+
+    - name: Remove smoke test volume from server
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['server', 'remove', 'volume', smoke_server_name, smoke_volume_name]
+          }}
+      register: smoke_volume_detach
+      changed_when: smoke_volume_detach.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_volume_attach is defined
+        - smoke_volume_attach.rc == 0
+
+    - name: Wait for smoke volume to become available again
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['volume', 'show', smoke_volume_name, '-f', 'json']
+          }}
+      register: smoke_volume_available_again
+      until:
+        - smoke_volume_available_again.rc == 0
+        - (smoke_volume_available_again.stdout | from_json).status == 'available'
+      retries: 20
+      delay: 15
+      changed_when: false
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_volume_detach is defined
+        - smoke_volume_detach.rc == 0
+
+    - name: Create volume snapshot
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['volume', 'snapshot', 'create', '--force', '--volume', smoke_volume_name, effective_smoke_volume_snapshot_name, '-f', 'json']
+          }}
+      register: smoke_volume_snapshot
+      changed_when: smoke_volume_snapshot.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_run_volume_snapshot | bool
+        - smoke_volume_available_again is defined
+        - smoke_volume_available_again.rc == 0
+
+    - name: Record volume snapshot result
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'Tenant smoke volume snapshot flow',
+                  'ok': smoke_volume_snapshot is defined and smoke_volume_snapshot.rc == 0,
+                  'detail': (
+                    'Volume snapshot created successfully'
+                    if smoke_volume_snapshot is defined and smoke_volume_snapshot.rc == 0
+                    else (smoke_volume_snapshot.stderr | default('Volume snapshot failed', true) | trim)
+                  )
+                }
+              ]
+          }}
+      when:
+        - run_tenant_smoke | bool
+        - smoke_run_volume_snapshot | bool
+
+    - name: Run Barbican smoke test
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['secret', 'store', '--name', effective_smoke_barbican_secret_name, '--payload', 'smoke-validation', '-f', 'json']
+          }}
+      register: smoke_barbican_secret
+      changed_when: smoke_barbican_secret.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_run_barbican_test | bool
+        - component_states.barbican | default(false)
+
+    - name: Record Barbican smoke test
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'Barbican smoke test',
+                  'ok': smoke_barbican_secret is defined and smoke_barbican_secret.rc == 0,
+                  'detail': (
+                    'Barbican secret stored successfully'
+                    if smoke_barbican_secret is defined and smoke_barbican_secret.rc == 0
+                    else (smoke_barbican_secret.stderr | default('Barbican secret store failed', true) | trim)
+                  )
+                }
+              ]
+          }}
+      when:
+        - run_tenant_smoke | bool
+        - smoke_run_barbican_test | bool
+        - component_states.barbican | default(false)
+
+    - name: Create local Heat smoke template
+      ansible.builtin.copy:
+        dest: "{{ smoke_artifact_dir }}/heat-smoke.yaml"
+        mode: "0644"
+        content: |
+          heat_template_version: 2018-08-31
+          description: Smoke validation stack
+          resources: {}
+      when:
+        - run_tenant_smoke | bool
+        - smoke_run_heat_test | bool
+        - component_states.heat | default(false)
+
+    - name: Copy Heat smoke template into admin client pod
+      ansible.builtin.command:
+        argv:
+          - kubectl
+          - --namespace
+          - "{{ openstack_namespace }}"
+          - cp
+          - "{{ smoke_artifact_dir }}/heat-smoke.yaml"
+          - "{{ openstack_admin_client_pod }}:/tmp/heat-smoke.yaml"
+      register: smoke_heat_template_copy
+      changed_when: false
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_run_heat_test | bool
+        - component_states.heat | default(false)
+
+    - name: Create Heat smoke stack
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['stack', 'create', '--wait', '--template', '/tmp/heat-smoke.yaml', effective_smoke_heat_stack_name, '-f', 'json']
+          }}
+      register: smoke_heat_stack
+      changed_when: smoke_heat_stack.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_run_heat_test | bool
+        - component_states.heat | default(false)
+        - smoke_heat_template_copy is defined
+        - smoke_heat_template_copy.rc == 0
+
+    - name: Record Heat smoke test
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'Heat smoke test',
+                  'ok': smoke_heat_stack is defined and smoke_heat_stack.rc == 0,
+                  'detail': (
+                    'Heat stack created successfully'
+                    if smoke_heat_stack is defined and smoke_heat_stack.rc == 0
+                    else (smoke_heat_stack.stderr | default('Heat stack create failed', true) | trim)
+                  )
+                }
+              ]
+          }}
+      when:
+        - run_tenant_smoke | bool
+        - smoke_run_heat_test | bool
+        - component_states.heat | default(false)
+
+    - name: Build optional Octavia provider argument
+      ansible.builtin.set_fact:
+        octavia_provider_argv: "{{ ['--provider', smoke_octavia_provider] if (smoke_octavia_provider | length) > 0 else [] }}"
+      when:
+        - run_tenant_smoke | bool
+        - smoke_run_octavia_test | bool
+        - component_states.octavia | default(false)
+
+    - name: Create Octavia smoke load balancer
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['loadbalancer', 'create', '--wait', '--vip-subnet-id', effective_smoke_subnet]
+            + (octavia_provider_argv | default([]))
+            + ['--name', effective_smoke_octavia_lb_name, '-f', 'json']
+          }}
+      register: smoke_octavia_lb
+      changed_when: smoke_octavia_lb.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_run_octavia_test | bool
+        - component_states.octavia | default(false)
+        - smoke_server_fixed_ip is defined
+
+    - name: Create Octavia smoke listener
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['loadbalancer', 'listener', 'create', '--protocol', 'TCP', '--protocol-port', (smoke_ssh_port | string), '--name', effective_smoke_octavia_listener_name, effective_smoke_octavia_lb_name, '-f', 'json']
+          }}
+      register: smoke_octavia_listener
+      changed_when: smoke_octavia_listener.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_octavia_lb is defined
+        - smoke_octavia_lb.rc == 0
+
+    - name: Create Octavia smoke pool
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['loadbalancer', 'pool', 'create', '--protocol', 'TCP', '--lb-algorithm', 'SOURCE_IP_PORT', '--listener', effective_smoke_octavia_listener_name, '--name', effective_smoke_octavia_pool_name, '-f', 'json']
+          }}
+      register: smoke_octavia_pool
+      changed_when: smoke_octavia_pool.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_octavia_listener is defined
+        - smoke_octavia_listener.rc == 0
+
+    - name: Create Octavia smoke health monitor
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['loadbalancer', 'healthmonitor', 'create', '--delay', '5', '--max-retries', '3', '--timeout', '5', '--type', 'TCP', effective_smoke_octavia_pool_name, '-f', 'json']
+          }}
+      register: smoke_octavia_hm
+      changed_when: smoke_octavia_hm.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_octavia_pool is defined
+        - smoke_octavia_pool.rc == 0
+
+    - name: Add smoke member to Octavia pool
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['loadbalancer', 'member', 'create', '--address', smoke_server_fixed_ip, '--protocol-port', (smoke_ssh_port | string), effective_smoke_octavia_pool_name, '-f', 'json']
+          }}
+      register: smoke_octavia_member
+      changed_when: smoke_octavia_member.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_octavia_hm is defined
+        - smoke_octavia_hm.rc == 0
+
+    - name: Wait for Octavia load balancer to settle
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['loadbalancer', 'show', effective_smoke_octavia_lb_name, '-f', 'json']
+          }}
+      register: smoke_octavia_status
+      until:
+        - smoke_octavia_status.rc == 0
+        - (smoke_octavia_status.stdout | from_json).provisioning_status == 'ACTIVE'
+      retries: 30
+      delay: 10
+      changed_when: false
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_octavia_member is defined
+        - smoke_octavia_member.rc == 0
+
+    - name: Record Octavia smoke test
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'Octavia smoke test',
+                  'ok': smoke_octavia_status is defined and smoke_octavia_status.rc == 0,
+                  'detail': (
+                    'Load balancer reached ACTIVE provisioning state'
+                    if smoke_octavia_status is defined and smoke_octavia_status.rc == 0
+                    else (smoke_octavia_status.stderr | default('Octavia smoke test failed', true) | trim)
+                  )
+                }
+              ]
+          }}
+      when:
+        - run_tenant_smoke | bool
+        - smoke_run_octavia_test | bool
+        - component_states.octavia | default(false)
+
+    - name: Create Designate smoke zone
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['zone', 'create', '--email', 'admin@example.com', effective_smoke_designate_zone, '-f', 'json']
+          }}
+      register: smoke_designate_zone_create
+      changed_when: smoke_designate_zone_create.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_run_designate_test | bool
+        - component_states.designate | default(false)
+        - effective_smoke_designate_zone | length > 0
+
+    - name: Create Designate smoke recordset
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['recordset', 'create', '--type', 'A', '--record', (smoke_floating_ip_create.stdout | from_json).floating_ip_address, effective_smoke_designate_zone, smoke_designate_record_name ~ '.' ~ (effective_smoke_designate_zone | regex_replace('\\.$', '')), '-f', 'json']
+          }}
+      register: smoke_designate_recordset
+      changed_when: smoke_designate_recordset.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_designate_zone_create is defined
+        - smoke_designate_zone_create.rc == 0
+        - smoke_floating_ip_create is defined
+        - smoke_floating_ip_create.rc == 0
+
+    - name: Record Designate smoke test
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'Designate smoke test',
+                  'ok': smoke_designate_recordset is defined and smoke_designate_recordset.rc == 0,
+                  'detail': (
+                    'Zone and recordset created successfully'
+                    if smoke_designate_recordset is defined and smoke_designate_recordset.rc == 0
+                    else (smoke_designate_recordset.stderr | default('Designate smoke test failed', true) | trim)
+                  )
+                }
+              ]
+          }}
+      when:
+        - run_tenant_smoke | bool
+        - smoke_run_designate_test | bool
+        - component_states.designate | default(false)
+        - effective_smoke_designate_zone | length > 0
+
+    - name: Delete Designate smoke zone
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['zone', 'delete', effective_smoke_designate_zone]
+          }}
+      register: smoke_designate_zone_delete
+      changed_when: smoke_designate_zone_delete.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_designate_zone_create is defined
+        - smoke_designate_zone_create.rc == 0
+
+    - name: Delete Octavia smoke load balancer
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['loadbalancer', 'delete', '--cascade', '--wait', effective_smoke_octavia_lb_name]
+          }}
+      register: smoke_octavia_lb_delete
+      changed_when: smoke_octavia_lb_delete.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_octavia_lb is defined
+        - smoke_octavia_lb.rc == 0
+
+    - name: Delete Heat smoke stack
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['stack', 'delete', '--wait', effective_smoke_heat_stack_name]
+          }}
+      register: smoke_heat_stack_delete
+      changed_when: smoke_heat_stack_delete.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_heat_stack is defined
+        - smoke_heat_stack.rc == 0
+
+    - name: Delete Barbican smoke secret
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['secret', 'delete', ((smoke_barbican_secret.stdout | from_json)['Secret href'])]
+          }}
+      register: smoke_barbican_secret_delete
+      changed_when: smoke_barbican_secret_delete.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_barbican_secret is defined
+        - smoke_barbican_secret.rc == 0
+
+    - name: Delete server snapshot image
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['image', 'delete', effective_smoke_snapshot_name]
+          }}
+      register: smoke_server_snapshot_delete
+      changed_when: smoke_server_snapshot_delete.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_server_snapshot is defined
+        - smoke_server_snapshot.rc == 0
+
+    - name: Delete smoke volume snapshot
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['volume', 'snapshot', 'delete', effective_smoke_volume_snapshot_name]
+          }}
+      register: smoke_volume_snapshot_delete
+      changed_when: smoke_volume_snapshot_delete.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_volume_snapshot is defined
+        - smoke_volume_snapshot.rc == 0
+
+    - name: Delete smoke test server
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['server', 'delete', '--wait', smoke_server_name]
+          }}
+      register: smoke_server_delete
+      changed_when: smoke_server_delete.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_server_create is defined
+        - smoke_server_create.rc == 0
+
+    - name: Delete smoke floating IP
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['floating', 'ip', 'delete', (smoke_floating_ip_create.stdout | from_json).floating_ip_address]
+          }}
+      register: smoke_floating_ip_delete
+      changed_when: smoke_floating_ip_delete.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_floating_ip_create is defined
+        - smoke_floating_ip_create.rc == 0
+
+    - name: Delete smoke volume
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['volume', 'delete', smoke_volume_name]
+          }}
+      register: smoke_volume_delete
+      changed_when: smoke_volume_delete.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_volume_create is defined
+        - smoke_volume_create.rc == 0
+
+    - name: Remove smoke subnet from router
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['router', 'remove', 'subnet', effective_smoke_router, effective_smoke_subnet]
+          }}
+      register: smoke_router_remove_subnet
+      changed_when: smoke_router_remove_subnet.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_router_add_subnet is defined
+        - smoke_router_add_subnet.rc == 0
+
+    - name: Delete smoke router
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['router', 'delete', effective_smoke_router]
+          }}
+      register: smoke_router_delete
+      changed_when: smoke_router_delete.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_router_create is defined
+        - smoke_router_create.rc == 0
+
+    - name: Delete smoke subnet
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['subnet', 'delete', effective_smoke_subnet]
+          }}
+      register: smoke_subnet_delete
+      changed_when: smoke_subnet_delete.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_subnet_create is defined
+        - smoke_subnet_create.rc == 0
+
+    - name: Delete smoke network
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['network', 'delete', effective_smoke_network]
+          }}
+      register: smoke_network_delete
+      changed_when: smoke_network_delete.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_network_create is defined
+        - smoke_network_create.rc == 0
+
+    - name: Delete smoke security group
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['security', 'group', 'delete', effective_smoke_security_group]
+          }}
+      register: smoke_security_group_delete
+      changed_when: smoke_security_group_delete.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_security_group_create is defined
+        - smoke_security_group_create.rc == 0
+
+    - name: Delete generated smoke keypair
+      ansible.builtin.command:
+        argv: >-
+          {{
+            ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
+            + openstack_cloud_argv
+            + ['keypair', 'delete', effective_smoke_keypair]
+          }}
+      register: smoke_keypair_delete
+      changed_when: smoke_keypair_delete.rc == 0
+      failed_when: false
+      when:
+        - run_tenant_smoke | bool
+        - smoke_existing_keypair_name | length == 0
+        - smoke_keypair_create is defined
+        - smoke_keypair_create.rc == 0
+
+    - name: Print validation summary
+      ansible.builtin.debug:
+        msg: |
+          Upgrade validation summary
+          {% for result in validation_results %}
+          {{ "%-32s" | format(result.name ~ ':') }} {{ 'OK' if result.ok else 'FAILED' }}{% if not result.ok %} - {{ result.detail | replace('\n', ' | ') }}{% endif %}
+          {% endfor %}
+          {% if event_check_enabled | bool and (ignored_warning_events | default([]) | length) > 0 %}
+          Ignored warning events:
+          {% for line in ignored_warning_events | default([]) %}
+          - {{ line }}
+          {% endfor %}
+          {% endif %}
+
+    - name: Capture summary generation timestamp
+      ansible.builtin.set_fact:
+        validation_generated_at: "{{ lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ') }}"
+
+    - name: Write validation summary document
+      ansible.builtin.template:
+        src: templates/validate-upgrade-summary.md.j2
+        dest: "{{ validation_summary_path }}"
+        mode: "0644"
+
+    - name: Fail if any validation failed
+      ansible.builtin.fail:
+        msg: >-
+          Upgrade validation failed. Review {{ validation_summary_path }} for the failed checks.
+      when:
+        - validation_results | selectattr('ok', 'equalto', false) | list | length > 0
