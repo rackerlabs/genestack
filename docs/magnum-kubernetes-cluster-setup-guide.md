@@ -1,4 +1,7 @@
-# Magnum Kubernetes Cluster Setup Guide
+# Magnum Kubernetes Cluster Setup Guide (Legacy)
+
+!!! warning "Deprecated — Heat-Based Provisioning"
+    This guide covers the **legacy Heat-based** cluster provisioning workflow using Fedora CoreOS images. For new deployments using **Cluster API (CAPI)** with Flatcar images, refer to the [Magnum Enablement Guide](openstack-magnum.md), which covers management cluster setup, CAPI-based workload cluster creation, scaling, upgrades, and image building.
 
 !!! note
 
