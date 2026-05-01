@@ -932,12 +932,18 @@ echo "Applying rax.mirror -> archive.ubuntu.com workaround on jump host and work
 #    Signed-By: keyring paths in DEB822 format).
 # 3) apt-get clean flushes /var/lib/apt/lists so apt-update re-fetches
 #    InRelease fresh rather than serving a cached bad signature.
-APT_FIX_CMD='sudo sed -i "s|rax\.mirror\.rackspace\.com|archive.ubuntu.com|g" /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true; for f in /etc/apt/sources.list.d/*rax.mirror.rackspace.com*; do [ -e "$f" ] && sudo rm -f "$f"; done 2>/dev/null || true; sudo apt-get clean >/dev/null; sudo apt-get update >/dev/null'
+# Apt lock wait + sed/rm + apt-get update. The lock wait keeps us from
+# colliding with cloud-init / unattended-upgrades, which on a freshly
+# booted node hold the apt locks for several minutes after first boot.
+APT_FIX_CMD='for _i in $(seq 1 60); do sudo fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock /var/cache/apt/archives/lock >/dev/null 2>&1 || break; echo "  waiting for apt locks (${_i}/60)..."; sleep 5; done; sudo sed -i "s|rax\.mirror\.rackspace\.com|archive.ubuntu.com|g" /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true; for f in /etc/apt/sources.list.d/*rax.mirror.rackspace.com*; do [ -e "$f" ] && sudo rm -f "$f"; done 2>/dev/null || true; sudo apt-get clean >/dev/null; sudo apt-get update >/dev/null'
 
 _ssh "${APT_FIX_CMD}"
 
+# Don't `set -e` here — we want to iterate over every worker and report
+# any individual failures at the end, rather than aborting on the first
+# bad node and leaving the others unfixed.
 _ssh <<APTFIX_WORKERS
-set -e
+APT_FAILED_NODES=()
 # -0 is the jump host (already patched above); only the other two workers
 # need to be reached via SSH from the jump host.
 for node in ${LAB_NAME_PREFIX}-1 ${LAB_NAME_PREFIX}-2; do
@@ -947,8 +953,31 @@ for node in ${LAB_NAME_PREFIX}-1 ${LAB_NAME_PREFIX}-2; do
         sleep 5
     done
     echo "  Patching apt sources on \$node..."
-    ssh \$node '${APT_FIX_CMD}'
+    if ! ssh \$node '${APT_FIX_CMD}'; then
+        echo "  ERROR: apt fix failed on \$node — will verify and report" >&2
+        APT_FAILED_NODES+=(\$node)
+    fi
 done
+
+# A failed apt-get update doesn't necessarily mean the sources are still
+# pointing at rax.mirror — the sed step is independent and runs first.
+# Verify each previously-failed node by checking if any rax.mirror reference
+# remains in the apt config; if not, it's a transient lock issue we can
+# ignore. If references remain, fail the workaround so the operator catches
+# it before host-setup tries to apt-get on that node.
+HARD_FAILED=()
+for node in "\${APT_FAILED_NODES[@]}"; do
+    if ssh \$node "grep -rq 'rax\\.mirror\\.rackspace\\.com' /etc/apt/ 2>/dev/null"; then
+        HARD_FAILED+=(\$node)
+    else
+        echo "  \$node: sources clean despite apt-get update failure (transient lock)"
+    fi
+done
+if [ \${#HARD_FAILED[@]} -gt 0 ]; then
+    echo "ERROR: rax.mirror references still present on: \${HARD_FAILED[*]}" >&2
+    echo "       host-setup will fail on these nodes. Re-run apt fix manually." >&2
+    exit 1
+fi
 APTFIX_WORKERS
 #############################################################################
 # END WORKAROUND
