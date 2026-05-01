@@ -99,72 +99,20 @@
 # PART 4: GUEST VM CONNECTIVITY VIA MGMT NETWORK
 # =========================================================================
 # Trove guest VMs attach to the mgmt provider network and need to reach
-# RabbitMQ and Keystone. We allocate one IP from the trove-mgmt subnet
-# pool (via a one-shot Neutron port) to use as a VIP, then have MetalLB
-# announce that IP on the underlay management VLAN where the K8s
-# LoadBalancer Services live.
+# RabbitMQ and Keystone. The VIP is a fixed IP outside the trove-mgmt
+# subnet's allocation pool (defaults/main.yml:trove_services_vip). MetalLB
+# announces it on the underlay VLAN; outer-cloud port-security on the
+# worker primary ports must allow it as a source IP (handled by
+# hcl-builder.sh at worker-port-create time).
 #
-# IMPORTANT: the Neutron port is *deleted* immediately after we read its
-# IP. If we leave it around as an unbound port on the trove-mgmt logical
-# switch, the inner cloud's OVN responds to ARP for the VIP with the
-# port's MAC and traffic gets stuck inside OVN — never reaching MetalLB
-# on the underlay. The IP stays "claimed" via the MetalLB IPAddressPool
-# (kept idempotent below), so a second run reads it back rather than
-# allocating a fresh IP.
-
-# --- Step 1a: Idempotency check — read VIP from existing MetalLB pool ---
-
-- name: Check for existing MetalLB trove-services-pool (idempotent path)
-  ansible.builtin.shell:
-    cmd: |
-      kubectl -n metallb-system get ipaddresspool trove-services-pool \
-        -o jsonpath='{.spec.addresses[0]}' 2>/dev/null
-    executable: /bin/bash
-  register: _trove_existing_vip_pool
-  changed_when: false
-  failed_when: false
-
-- name: Reuse VIP from existing MetalLB pool when present
-  ansible.builtin.set_fact:
-    trove_services_vip: "{{ _trove_existing_vip_pool.stdout | regex_replace('/32$', '') }}"
-  when: _trove_existing_vip_pool.stdout | length > 0
-
-# --- Step 1b: Fresh allocation — create one-shot Neutron port to grab an
-# IP from the trove-mgmt subnet pool, then delete it immediately. ---
-
-- name: Allocate fresh VIP from trove-mgmt subnet pool (one-shot)
-  when: _trove_existing_vip_pool.stdout | length == 0
-  block:
-    - name: Create one-shot Neutron port to allocate VIP IP
-      ansible.builtin.shell:
-        cmd: >
-          source {{ genestack_venv }}/bin/activate &&
-          openstack --os-cloud {{ os_cloud }} port create
-          --network {{ trove_mgmt_network_name }}
-          --security-group {{ trove_services_secgroup_name }}
-          {{ trove_services_port_name }}
-          -f json
-        executable: /bin/bash
-      environment:
-        HOME: "{{ ubuntu_home }}"
-      register: _trove_svc_port_create
-      changed_when: true
-
-    - name: Extract VIP IP from created port
-      ansible.builtin.set_fact:
-        trove_services_vip: >-
-          {{ (_trove_svc_port_create.stdout | from_json).fixed_ips[0].ip_address }}
-
-    - name: Delete the one-shot Neutron port (OVN must not own this IP)
-      ansible.builtin.shell:
-        cmd: >
-          source {{ genestack_venv }}/bin/activate &&
-          openstack --os-cloud {{ os_cloud }} port delete
-          {{ trove_services_port_name }}
-        executable: /bin/bash
-      environment:
-        HOME: "{{ ubuntu_home }}"
-      changed_when: true
+# Why a fixed VIP outside the pool: any earlier "allocate via Neutron port"
+# scheme had to choose between (a) leaving the unbound port around and
+# letting inner OVN hijack ARP for the VIP, or (b) deleting the port,
+# which freed the IP back to Neutron's pool — where it could be reassigned
+# to a guest VM (the guest then talked to itself on 5672 → ECONNREFUSED).
+# Reserving the IP by *not including it in the allocation pool* avoids
+# both: no Neutron port exists for the IP, so OVN doesn't intercept, and
+# Neutron can't allocate it to anyone else.
 
 - name: Report Trove services VIP
   ansible.builtin.debug:

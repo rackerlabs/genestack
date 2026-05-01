@@ -158,10 +158,19 @@ flat_network_pool_end: 192.168.102.109
 
 # Trove management provider network (physnet2 / br-mgmt)
 # Gives guest VMs direct L2 access to the MetalLB VIP.
+#
+# Layout of 192.168.100.0/24 inside the trove-mgmt subnet:
+#   .200 - .218   guest VM mgmt-NIC allocations  (Neutron pool)
+#   .219          trove-services VIP             (reserved, MetalLB only)
+#   .220          spare buffer
+# The VIP sits *outside* Neutron's allocation pool deliberately — Neutron
+# never creates a port for it, so the inner cloud's OVN never intercepts
+# ARP for it, and the outer cloud's MetalLB-L2 speaker can answer freely.
 trove_mgmt_network_name: trove-mgmt-net
 trove_mgmt_subnet_name: trove-mgmt-subnet
 trove_mgmt_pool_start: 192.168.100.200
-trove_mgmt_pool_end: 192.168.100.220
+trove_mgmt_pool_end: 192.168.100.218
+trove_services_vip: 192.168.100.219
 
 # Router and tenant network (for Trove, general tenant use)
 lab_router_name: "{{ lab_name_prefix }}-router"
