@@ -1118,37 +1118,100 @@ if [ "${DISABLE_OPENSTACK}" = "true" ]; then
 fi
 
 #############################################################################
-# Phase 4b: Create br-service OVS bridge for Trove management network
-# An empty OVS bridge mapped as physnet2, giving the inner OpenStack a
-# provider network on the same L2 as the MetalLB VIP. Guest VMs on this
-# network reach RabbitMQ and Keystone directly — matching the production
-# pattern where guest VMs join the management VLAN.
-# No physical interface needed — OVN handles traffic via geneve tunnels.
+# Phase 4b: Wire trove physnet2 to br-service via OVN node annotations
+#
+# Trove guest VMs need L2 reach to MetalLB-announced VIPs (e.g. the
+# trove-services-vip carrying RabbitMQ + Keystone). MetalLB advertises on
+# the host management VLAN — the same L2 segment the workers' enp5s0 sits
+# on (the third NIC, attached to LAB_NAME_PREFIX-net via TROVE_MGMT_*_PORT).
+#
+# To get there we need:
+#   1. br-service exists on every chassis as an OVS bridge.
+#   2. enp5s0 is a port of br-service (not br-ex).
+#   3. ovn-bridge-mappings includes physnet2:br-service.
+#
+# All three are owned by the genestack ovn-setup daemonset (deployed by
+# setup-infrastructure.sh), which reconciles bridges/ports/mappings off
+# `ovn.openstack.org/*` node annotations. We update the annotations here
+# and let the daemon do the work.
+#
+# `setup-infrastructure.sh` initially set bridges='br-ex',
+# ports='br-ex:enp5s0', mappings='physnet1:br-ex' — which is wrong for our
+# use case (enp5s0 is the trove mgmt port, not an external-network port).
+# This block reassigns enp5s0 to br-service.
+#
+# enp5s0's Linux interface stays DOWN by default (its Neutron port is
+# created with --no-fixed-ip), so we also force it up on each worker.
 #############################################################################
 
 if svc_enabled trove; then
-    echo "Creating br-service OVS bridge on all nodes for Trove services..."
+    echo "Reassigning enp5s0 from br-ex to br-service via OVN node annotations..."
     _ssh <<'EOC'
 set -e
-BRIDGE="br-service"
 
-for pod in $(kubectl get pods -n kube-system -l app=ovs -o name); do
-    NODE=$(kubectl get ${pod} -n kube-system -o jsonpath='{.spec.nodeName}')
-    echo "Configuring ${BRIDGE} on ${NODE}..."
+# Overwrite annotations on every openstack-network/compute-labelled node.
+# `--overwrite` ensures we replace the values setup-infrastructure.sh set
+# rather than failing with "annotation already exists".
+kubectl annotate --overwrite \
+    nodes -l openstack-compute-node=enabled -l openstack-network-node=enabled \
+    ovn.openstack.org/bridges='br-ex,br-service'
 
-    if ! kubectl exec -n kube-system ${pod} -- ovs-vsctl br-exists ${BRIDGE} 2>/dev/null; then
-        kubectl exec -n kube-system ${pod} -- ovs-vsctl add-br ${BRIDGE}
-        echo "  Created ${BRIDGE}"
+kubectl annotate --overwrite \
+    nodes -l openstack-compute-node=enabled -l openstack-network-node=enabled \
+    ovn.openstack.org/ports='br-service:enp5s0'
+
+kubectl annotate --overwrite \
+    nodes -l openstack-compute-node=enabled -l openstack-network-node=enabled \
+    ovn.openstack.org/mappings='physnet1:br-ex,physnet2:br-service'
+
+# The ovn-setup daemonset reconciles on annotation change. Force a fresh
+# pass by deleting its sentinel label so the readiness check re-runs.
+kubectl label --overwrite \
+    nodes -l openstack-compute-node=enabled \
+    ovn.openstack.org/configured-
+
+# Wait for daemon to converge: every chassis should show enp5s0 on
+# br-service (and *not* on br-ex), with physnet2:br-service in mappings.
+echo "Waiting for ovn-setup daemon to reconcile (enp5s0 → br-service)..."
+DEADLINE=$(($(date +%s) + 240))
+while [ $(date +%s) -lt $DEADLINE ]; do
+    ALL_GOOD=true
+    for pod in $(kubectl -n kube-system get pods -l app=ovs -o name); do
+        NODE=$(kubectl -n kube-system get ${pod} -o jsonpath='{.spec.nodeName}')
+        SVCPORTS=$(kubectl -n kube-system exec ${pod} -c openvswitch -- \
+            ovs-vsctl list-ports br-service 2>/dev/null || echo "")
+        MAPPING=$(kubectl -n kube-system exec ${pod} -c openvswitch -- \
+            ovs-vsctl get Open_vSwitch . external-ids:ovn-bridge-mappings 2>/dev/null | tr -d '"')
+        if echo "${SVCPORTS}" | grep -q '^enp5s0$' \
+                && echo "${MAPPING}" | grep -q 'physnet2:br-service'; then
+            continue
+        fi
+        ALL_GOOD=false
+        echo "  ${NODE}: not ready (br-service ports=${SVCPORTS//$'\n'/,}, mappings=${MAPPING})"
+        break
+    done
+    if [ "${ALL_GOOD}" = "true" ]; then
+        echo "All chassis have enp5s0 on br-service and physnet2 mapped."
+        break
     fi
-
-    CURRENT=$(kubectl exec -n kube-system ${pod} -- ovs-vsctl get Open_vSwitch . external-ids:ovn-bridge-mappings 2>/dev/null | tr -d '"')
-    if ! echo "${CURRENT}" | grep -q "physnet2"; then
-        kubectl exec -n kube-system ${pod} -- ovs-vsctl set Open_vSwitch . \
-            external-ids:ovn-bridge-mappings="${CURRENT},physnet2:${BRIDGE}"
-        echo "  Updated mappings: ${CURRENT},physnet2:${BRIDGE}"
-    fi
+    sleep 10
 done
-echo "br-service setup complete"
+if [ "${ALL_GOOD}" != "true" ]; then
+    echo "ERROR: ovn-setup did not converge to enp5s0 on br-service in 240s" >&2
+    exit 1
+fi
+
+# Bring enp5s0 up on every worker — its OpenStack port has --no-fixed-ip
+# so cloud-init never brings it up, and OVS happily holds a DOWN port
+# without warning. ARP from the trove guest can't reach metallb until the
+# kernel link is operationally up.
+echo "Bringing enp5s0 up on each worker..."
+for node in $(kubectl get nodes -l openstack-network-node=enabled -o name | sed 's|^node/||'); do
+    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no ${node} \
+        'sudo ip link set enp5s0 up' \
+        && echo "  ${node}: enp5s0 up" \
+        || echo "  ${node}: WARNING failed to bring enp5s0 up"
+done
 EOC
 fi
 
@@ -1454,6 +1517,44 @@ fi
 if [ ${#PREP_PIDS[@]} -gt 0 ]; then
     echo "Waiting for parallel prep to complete..."
     wait_pids PREP_PIDS PREP_NAMES
+fi
+
+#############################################################################
+# Phase 7b: Allow Trove services VIP as a source on each worker's primary
+# port in the OUTER cloud
+#
+# Trove's helm_config task allocated a VIP from the trove-mgmt subnet pool
+# and parked it in a MetalLB IPAddressPool. MetalLB-L2 announces from the
+# host's primary NIC (enp3s0 → WORKER_X_PORT in the outer cloud) — the
+# only NIC with an IP in the VIP's subnet. The outer cloud's port-security
+# on WORKER_X_PORT only allows METAL_LB_IP as a source IP; without an
+# explicit allowed-address-pair for the trove VIP, MetalLB's ARP replies
+# get dropped and trove guests can't reach RabbitMQ/Keystone via the VIP.
+#
+# Runs after Phase 7 because the VIP only exists once trove_helm_config
+# has applied the IPAddressPool. Uses the outer-cloud OS_CLOUD that the
+# script was launched with.
+#############################################################################
+
+if svc_enabled trove; then
+    TROVE_SVC_VIP=$(_ssh "kubectl -n metallb-system get ipaddresspool trove-services-pool -o jsonpath='{.spec.addresses[0]}' 2>/dev/null" \
+                    | tr -d '\r' | sed 's|/.*||')
+    if [ -n "${TROVE_SVC_VIP}" ]; then
+        echo "Allowing Trove services VIP ${TROVE_SVC_VIP} on each worker's outer-cloud mgmt port..."
+        for _idx in 0 1 2; do
+            _port_name="${LAB_NAME_PREFIX}-${_idx}-mgmt-port"
+            _existing=$(openstack port show "${_port_name}" -f value -c allowed_address_pairs 2>/dev/null \
+                        | tr -d '\n')
+            if echo "${_existing}" | grep -q "${TROVE_SVC_VIP}"; then
+                echo "  ${_port_name}: ${TROVE_SVC_VIP} already permitted"
+            else
+                openstack port set --allowed-address ip-address="${TROVE_SVC_VIP}" "${_port_name}"
+                echo "  ${_port_name}: added allowed-address ${TROVE_SVC_VIP}"
+            fi
+        done
+    else
+        echo "WARNING: trove-services-pool not found via kubectl on jump host; skipping outer-cloud allowed-address update" >&2
+    fi
 fi
 
 #############################################################################

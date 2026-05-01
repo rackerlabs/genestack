@@ -99,57 +99,72 @@
 # PART 4: GUEST VM CONNECTIVITY VIA MGMT NETWORK
 # =========================================================================
 # Trove guest VMs attach to the mgmt provider network and need to reach
-# RabbitMQ and Keystone. We create a Neutron port on the mgmt network
-# (OVN-managed, security-group-enforced), then use MetalLB to bind
-# K8s services to that IP. Cloud-init injects /etc/hosts so the
-# guestagent.conf hostnames resolve to the mgmt-network IP.
+# RabbitMQ and Keystone. We allocate one IP from the trove-mgmt subnet
+# pool (via a one-shot Neutron port) to use as a VIP, then have MetalLB
+# announce that IP on the underlay management VLAN where the K8s
+# LoadBalancer Services live.
+#
+# IMPORTANT: the Neutron port is *deleted* immediately after we read its
+# IP. If we leave it around as an unbound port on the trove-mgmt logical
+# switch, the inner cloud's OVN responds to ARP for the VIP with the
+# port's MAC and traffic gets stuck inside OVN — never reaching MetalLB
+# on the underlay. The IP stays "claimed" via the MetalLB IPAddressPool
+# (kept idempotent below), so a second run reads it back rather than
+# allocating a fresh IP.
 
-# --- Step 1: Create Neutron port on mgmt network for services VIP ---
+# --- Step 1a: Idempotency check — read VIP from existing MetalLB pool ---
 
-- name: Check if Trove services VIP port exists on mgmt network
+- name: Check for existing MetalLB trove-services-pool (idempotent path)
   ansible.builtin.shell:
-    cmd: >
-      source {{ genestack_venv }}/bin/activate &&
-      openstack --os-cloud {{ os_cloud }} port show {{ trove_services_port_name }}
-      -f value -c fixed_ips
+    cmd: |
+      kubectl -n metallb-system get ipaddresspool trove-services-pool \
+        -o jsonpath='{.spec.addresses[0]}' 2>/dev/null
     executable: /bin/bash
-  environment:
-    HOME: "{{ ubuntu_home }}"
-  register: _trove_svc_port_check
+  register: _trove_existing_vip_pool
   changed_when: false
   failed_when: false
 
-- name: Create Trove services VIP port on management provider network
-  ansible.builtin.shell:
-    cmd: >
-      source {{ genestack_venv }}/bin/activate &&
-      openstack --os-cloud {{ os_cloud }} port create
-      --network {{ trove_mgmt_network_name }}
-      --security-group {{ trove_services_secgroup_name }}
-      {{ trove_services_port_name }}
-      -f value -c fixed_ips
-    executable: /bin/bash
-  environment:
-    HOME: "{{ ubuntu_home }}"
-  register: _trove_svc_port_create
-  when: _trove_svc_port_check.rc != 0
-
-- name: Get Trove services VIP IP address
-  ansible.builtin.shell:
-    cmd: >
-      source {{ genestack_venv }}/bin/activate &&
-      openstack --os-cloud {{ os_cloud }} port show {{ trove_services_port_name }}
-      -f json
-    executable: /bin/bash
-  environment:
-    HOME: "{{ ubuntu_home }}"
-  register: _trove_svc_port_info
-  changed_when: false
-
-- name: Extract Trove services VIP IP
+- name: Reuse VIP from existing MetalLB pool when present
   ansible.builtin.set_fact:
-    trove_services_vip: >-
-      {{ (_trove_svc_port_info.stdout | from_json).fixed_ips[0].ip_address }}
+    trove_services_vip: "{{ _trove_existing_vip_pool.stdout | regex_replace('/32$', '') }}"
+  when: _trove_existing_vip_pool.stdout | length > 0
+
+# --- Step 1b: Fresh allocation — create one-shot Neutron port to grab an
+# IP from the trove-mgmt subnet pool, then delete it immediately. ---
+
+- name: Allocate fresh VIP from trove-mgmt subnet pool (one-shot)
+  when: _trove_existing_vip_pool.stdout | length == 0
+  block:
+    - name: Create one-shot Neutron port to allocate VIP IP
+      ansible.builtin.shell:
+        cmd: >
+          source {{ genestack_venv }}/bin/activate &&
+          openstack --os-cloud {{ os_cloud }} port create
+          --network {{ trove_mgmt_network_name }}
+          --security-group {{ trove_services_secgroup_name }}
+          {{ trove_services_port_name }}
+          -f json
+        executable: /bin/bash
+      environment:
+        HOME: "{{ ubuntu_home }}"
+      register: _trove_svc_port_create
+      changed_when: true
+
+    - name: Extract VIP IP from created port
+      ansible.builtin.set_fact:
+        trove_services_vip: >-
+          {{ (_trove_svc_port_create.stdout | from_json).fixed_ips[0].ip_address }}
+
+    - name: Delete the one-shot Neutron port (OVN must not own this IP)
+      ansible.builtin.shell:
+        cmd: >
+          source {{ genestack_venv }}/bin/activate &&
+          openstack --os-cloud {{ os_cloud }} port delete
+          {{ trove_services_port_name }}
+        executable: /bin/bash
+      environment:
+        HOME: "{{ ubuntu_home }}"
+      changed_when: true
 
 - name: Report Trove services VIP
   ansible.builtin.debug:

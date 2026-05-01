@@ -5,9 +5,9 @@ pod:
 conf:
   neutron:
     DEFAULT:
-      api_workers: 1
-      rpc_workers: 1
-      rpc_state_report_workers: 1
+      api_workers: 4
+      rpc_workers: 4
+      rpc_state_report_workers: 2
     oslo_messaging_notifications:
       driver: noop
   plugins:
