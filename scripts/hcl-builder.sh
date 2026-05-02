@@ -1311,88 +1311,74 @@ if [ "${DISABLE_OPENSTACK}" = "true" ]; then
 fi
 
 #############################################################################
-# Phase 4b: Wire trove physnet2 to br-service via OVN node annotations
+# Phase 4b: Wire trove physnet2 to br-service directly on each worker's OVS
 #
 # Trove guest VMs need L2 reach to MetalLB-announced VIPs (e.g. the
 # trove-services-vip carrying RabbitMQ + Keystone). MetalLB advertises on
 # the host management VLAN — the same L2 segment the workers' enp5s0 sits
 # on (the third NIC, attached to LAB_NAME_PREFIX-net via TROVE_MGMT_*_PORT).
 #
-# To get there we need:
-#   1. br-service exists on every chassis as an OVS bridge.
+# To get there we need on every worker:
+#   1. br-service exists as an OVS bridge.
 #   2. enp5s0 is a port of br-service (not br-ex).
 #   3. ovn-bridge-mappings includes physnet2:br-service.
+#   4. enp5s0 is operationally UP.
 #
-# All three are owned by the genestack ovn-setup daemonset (deployed by
-# setup-infrastructure.sh), which reconciles bridges/ports/mappings off
-# `ovn.openstack.org/*` node annotations. We update the annotations here
-# and let the daemon do the work.
-#
-# `setup-infrastructure.sh` initially set bridges='br-ex',
-# ports='br-ex:enp5s0', mappings='physnet1:br-ex' — which is wrong for our
-# use case (enp5s0 is the trove mgmt port, not an external-network port).
-# This block reassigns enp5s0 to br-service.
+# Originally this was driven by genestack's `ovn-setup` daemonset, which
+# reconciles bridges/ports/mappings from `ovn.openstack.org/*` node
+# annotations. In practice that daemon goes silent in some installs (no
+# `ovn.openstack.org/configured` label ever appears, no observable
+# pod-level error, no convergence after 4 minutes). Rather than debug the
+# indirection on every run, we drive ovs-vsctl directly on each worker
+# via `kubectl exec` into the always-running kube-ovn `ovs` pod. This is:
+#   - synchronous: each ovs-vsctl returns success/failure inline
+#   - idempotent: --may-exist / --if-exists handle re-runs
+#   - one round-trip per worker, no waiting
 #
 # enp5s0's Linux interface stays DOWN by default (its Neutron port is
 # created with --no-fixed-ip), so we also force it up on each worker.
 #############################################################################
 
 if svc_enabled trove; then
-    echo "Reassigning enp5s0 from br-ex to br-service via OVN node annotations..."
+    echo "Wiring enp5s0 → br-service directly via kube-ovn ovs pods..."
     _ssh <<'EOC'
 set -e
 
-# Overwrite annotations on every openstack-network/compute-labelled node.
-# `--overwrite` ensures we replace the values setup-infrastructure.sh set
-# rather than failing with "annotation already exists".
-kubectl annotate --overwrite \
-    nodes -l openstack-compute-node=enabled -l openstack-network-node=enabled \
-    ovn.openstack.org/bridges='br-ex,br-service'
+# Iterate over the kube-ovn ovs pods (one per node). The pod name and the
+# node it runs on come from a single jsonpath query so we don't have to
+# do per-pod kubectl get.
+OVS_PODS=$(kubectl -n kube-system get pods -l app=ovs \
+    -o jsonpath='{range .items[*]}{.metadata.name}|{.spec.nodeName}{"\n"}{end}')
 
-kubectl annotate --overwrite \
-    nodes -l openstack-compute-node=enabled -l openstack-network-node=enabled \
-    ovn.openstack.org/ports='br-service:enp5s0'
-
-kubectl annotate --overwrite \
-    nodes -l openstack-compute-node=enabled -l openstack-network-node=enabled \
-    ovn.openstack.org/mappings='physnet1:br-ex,physnet2:br-service'
-
-# The ovn-setup daemonset reconciles on annotation change. Force a fresh
-# pass by deleting its sentinel label so the readiness check re-runs.
-kubectl label --overwrite \
-    nodes -l openstack-compute-node=enabled \
-    ovn.openstack.org/configured-
-
-# Wait for daemon to converge: every chassis should show enp5s0 on
-# br-service (and *not* on br-ex), with physnet2:br-service in mappings.
-echo "Waiting for ovn-setup daemon to reconcile (enp5s0 → br-service)..."
-DEADLINE=$(($(date +%s) + 240))
-while [ $(date +%s) -lt $DEADLINE ]; do
-    ALL_GOOD=true
-    for pod in $(kubectl -n kube-system get pods -l app=ovs -o name); do
-        NODE=$(kubectl -n kube-system get ${pod} -o jsonpath='{.spec.nodeName}')
-        SVCPORTS=$(kubectl -n kube-system exec ${pod} -c openvswitch -- \
-            ovs-vsctl list-ports br-service 2>/dev/null || echo "")
-        MAPPING=$(kubectl -n kube-system exec ${pod} -c openvswitch -- \
-            ovs-vsctl get Open_vSwitch . external-ids:ovn-bridge-mappings 2>/dev/null | tr -d '"')
-        if echo "${SVCPORTS}" | grep -q '^enp5s0$' \
-                && echo "${MAPPING}" | grep -q 'physnet2:br-service'; then
-            continue
-        fi
-        ALL_GOOD=false
-        echo "  ${NODE}: not ready (br-service ports=${SVCPORTS//$'\n'/,}, mappings=${MAPPING})"
-        break
-    done
-    if [ "${ALL_GOOD}" = "true" ]; then
-        echo "All chassis have enp5s0 on br-service and physnet2 mapped."
-        break
-    fi
-    sleep 10
-done
-if [ "${ALL_GOOD}" != "true" ]; then
-    echo "ERROR: ovn-setup did not converge to enp5s0 on br-service in 240s" >&2
+if [ -z "${OVS_PODS}" ]; then
+    echo "ERROR: no kube-ovn ovs pods found in kube-system (label app=ovs)" >&2
     exit 1
 fi
+
+while IFS='|' read -r POD_NAME NODE_NAME; do
+    [ -z "${POD_NAME}" ] && continue
+    echo "  ${NODE_NAME}: br-service add, move enp5s0, set physnet2 mapping"
+
+    # Compose the OVS state in one ovs-vsctl invocation so it's atomic per node.
+    # --may-exist makes the bridge/port adds idempotent; --if-exists makes the
+    # del-port a no-op if enp5s0 isn't on br-ex (which is the case after the
+    # first run).
+    kubectl -n kube-system exec "${POD_NAME}" -c openvswitch -- \
+        ovs-vsctl --may-exist add-br br-service \
+        -- --if-exists del-port br-ex enp5s0 \
+        -- --may-exist add-port br-service enp5s0 \
+        -- set Open_vSwitch . external-ids:ovn-bridge-mappings='physnet1:br-ex,physnet2:br-service'
+
+    # Verify enp5s0 actually landed on br-service
+    SVCPORTS=$(kubectl -n kube-system exec "${POD_NAME}" -c openvswitch -- \
+        ovs-vsctl list-ports br-service 2>/dev/null || true)
+    if ! echo "${SVCPORTS}" | grep -q '^enp5s0$'; then
+        echo "ERROR: ${NODE_NAME}: enp5s0 not on br-service after ovs-vsctl (got: ${SVCPORTS//$'\n'/,})" >&2
+        exit 1
+    fi
+done <<< "${OVS_PODS}"
+
+echo "All chassis: enp5s0 on br-service, physnet2:br-service in bridge-mappings."
 
 # Bring enp5s0 up on every worker — its OpenStack port has --no-fixed-ip
 # so cloud-init never brings it up, and OVS happily holds a DOWN port
