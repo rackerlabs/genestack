@@ -6,6 +6,27 @@
 - Smoke test enabled: `{{ run_tenant_smoke | bool }}`
 - Overall result: `{% if (validation_results | selectattr('ok', 'equalto', false) | list | length) == 0 %}PASS{% else %}FAIL{% endif %}`
 
+## Smoke Test Configuration
+- Enabled: `{{ run_tenant_smoke | bool }}`
+- Image: `{% if smoke_image | length > 0 %}{{ smoke_image }}{% else %}<not set>{% endif %}`
+- Flavor: `{% if smoke_flavor | length > 0 %}{{ smoke_flavor }}{% else %}<not set>{% endif %}`
+- Tenant network: `{% if smoke_network | length > 0 %}{{ smoke_network }}{% else %}<create temporary network>{% endif %}`
+- External network for floating IPs: `{{ smoke_external_network }}`
+- Create temporary network resources: `{{ smoke_create_network_resources | bool }}`
+- Keypair mode: `{% if smoke_existing_keypair_name | length > 0 %}existing keypair {{ smoke_existing_keypair_name }}{% else %}generate temporary keypair{% endif %}`
+- SSH user/port: `{{ smoke_ssh_user }}:{{ smoke_ssh_port }}`
+- SSH command retries: `{{ smoke_ssh_command_retries }} x {{ smoke_ssh_command_delay }}s`
+- Volume size: `{{ smoke_volume_size }} GiB`
+- Server snapshot test: `{{ smoke_run_server_snapshot | bool }}`
+- Volume snapshot test: `{{ smoke_run_volume_snapshot | bool }}`
+- Octavia test: `{{ smoke_run_octavia_test | bool }}`
+- Heat test: `{{ smoke_run_heat_test | bool }}`
+- Barbican test: `{{ smoke_run_barbican_test | bool }}`
+- Designate test: `{{ smoke_run_designate_test | bool }}`
+{% if not (run_tenant_smoke | bool) %}
+- Skip reason: `run_tenant_smoke` is false. Smoke tests only run when enabled with an extra var or inventory/group var.
+{% endif %}
+
 ## Checks
 {% set checks = namespace(lines=[]) %}
 {% for result in validation_results %}
@@ -58,7 +79,7 @@
 {% if event_check_enabled | bool %}
 ## Component States
 {% set components = namespace(lines=[]) %}
-{% for component_name, enabled in (component_states | default({}) | dictsort) %}
+{% for component_name, enabled in (effective_component_states | default({}) | dictsort) %}
 {% set _ = components.lines.append('- `' ~ component_name ~ '`: `' ~ ('enabled' if enabled else 'disabled') ~ '`') %}
 {% endfor %}
 {{ components.lines | join('\n') }}
