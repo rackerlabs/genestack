@@ -120,13 +120,19 @@ trove_flat_network_name: flat
 trove_services_port_name: trove-services-vip-port
 trove_services_secgroup_name: trove-services-secgroup
 
-# Guest image (built with diskimage-builder, mirroring Manila pattern)
-trove_guest_image_name: trove-mysql-8.4
-trove_guest_image_os_release: jammy
-trove_dib_distribution_mirror: "http://mirror.rackspace.com/ubuntu"
+# Guest image (built with diskimage-builder, mirroring Manila pattern).
+# trove_guest_image_name embeds the OS release so changing
+# trove_guest_image_os_release triggers an automatic rebuild — the
+# state-detection step looks up the image by name, sees it doesn't
+# exist, and runs disk-image-create.
+trove_guest_image_os_release: noble
 trove_mysql_version: "8.4"
-# OpenStack release branch to clone for DIB elements (e.g. 2024.2, 2025.1).
-trove_openstack_release: "2024.2"
+trove_guest_image_name: "trove-mysql-{{ trove_mysql_version }}-{{ trove_guest_image_os_release }}"
+trove_dib_distribution_mirror: "http://mirror.rackspace.com/ubuntu"
+# OpenStack release branch to clone for DIB elements. Match the rest of
+# the stack (Epoxy = 2025.1) so the guest agent's keystonemiddleware /
+# oslo libraries line up with what the control plane is running.
+trove_openstack_release: "2025.1"
 
 # Datastore
 trove_datastore_name: mysql
@@ -171,6 +177,14 @@ trove_mgmt_subnet_name: trove-mgmt-subnet
 trove_mgmt_pool_start: 192.168.100.200
 trove_mgmt_pool_end: 192.168.100.218
 trove_services_vip: 192.168.100.219
+
+# Default route the trove-mgmt subnet hands to guest VMs. Must be an IP
+# answered by the *outer* cloud's router on physnet2 — the inner cloud
+# (this lab) doesn't run a router on this provider net. Set to "" to
+# revert to --gateway none (the guest will have no default route, so
+# external DNS / docker pulls will fail).
+# Rackspace flex labs conventionally expose .1 of the mgmt CIDR.
+trove_mgmt_subnet_gateway: "192.168.100.1"
 
 # Router and tenant network (for Trove, general tenant use)
 lab_router_name: "{{ lab_name_prefix }}-router"

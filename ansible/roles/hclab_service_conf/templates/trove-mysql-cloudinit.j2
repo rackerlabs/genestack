@@ -10,6 +10,18 @@ MIME-Version: 1.0
 echo '{{ trove_services_vip_ip }} rabbitmq.openstack.svc.cluster.local' >> /etc/hosts
 echo '{{ trove_services_vip_ip }} keystone-api.openstack.svc.cluster.local' >> /etc/hosts
 
+# Trove management subnet is --no-dhcp / --gateway none, so the base
+# image's default /etc/resolv.conf (typically a symlink to systemd-resolved
+# with no upstream) leaves the guest with no working resolver. Replace
+# the symlink with a static file pointing at public resolvers.
+rm -f /etc/resolv.conf
+cat >/etc/resolv.conf <<RESOLV
+nameserver 1.1.1.1
+nameserver 8.8.8.8
+options timeout:2 attempts:2
+RESOLV
+chattr +i /etc/resolv.conf 2>/dev/null || true
+
 --==TROVE_BOUNDARY==
 Content-Type: text/cloud-config; charset="us-ascii"
 MIME-Version: 1.0

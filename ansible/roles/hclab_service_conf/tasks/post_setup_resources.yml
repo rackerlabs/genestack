@@ -131,12 +131,20 @@
   when: create_trove_mgmt_network | default(false) | bool
 
 - name: Create Trove management subnet on physnet2
+  # --dns-nameserver populates the subnet's metadata even with --no-dhcp;
+  # cloud-init reads it from config-drive at first boot and writes
+  # /etc/resolv.conf in the guest. Cloudflare + Google as a public pair.
+  # --gateway points at the outer cloud's router on physnet2 so guests
+  # have a default route (needed for docker pull and arbitrary DNS).
+  # When trove_mgmt_subnet_gateway is "", falls back to --gateway none.
   ansible.builtin.command:
     cmd: >
       openstack --os-cloud default subnet create
       --subnet-range {{ lab_tenant_subnet_cidr }}
-      --gateway none
+      --gateway {{ trove_mgmt_subnet_gateway if (trove_mgmt_subnet_gateway | default('') | length > 0) else 'none' }}
       --no-dhcp
+      --dns-nameserver 1.1.1.1
+      --dns-nameserver 8.8.8.8
       --allocation-pool start={{ trove_mgmt_pool_start }},end={{ trove_mgmt_pool_end }}
       --network {{ trove_mgmt_network_name }}
       {{ trove_mgmt_subnet_name }}

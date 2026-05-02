@@ -300,7 +300,20 @@ EOF
       --gateway=192.168.50.1 \
       "${tenant}-subnet" 2>/dev/null || echo "  (subnet already exists)"
 
-    echo "  Created: ${tenant}-network / ${tenant}-subnet (192.168.50.0/24)"
+    # Trove (and any service that needs floating IPs / external reach) requires
+    # the user-facing subnet to be attached to a router with an external gateway.
+    # Without this, `openstack database instance create --is-public` fails with:
+    #   Subnet ... is not associated with router.
+    openstack --os-cloud="${tenant}" router create \
+      --project="${tenant}" \
+      --external-gateway flat \
+      "${tenant}-router" 2>/dev/null || echo "  (router already exists)"
+
+    openstack --os-cloud="${tenant}" router add subnet \
+      "${tenant}-router" "${tenant}-subnet" 2>/dev/null \
+      || echo "  (subnet already attached to router)"
+
+    echo "  Created: ${tenant}-network / ${tenant}-subnet (192.168.50.0/24) / ${tenant}-router → flat"
   done
 
   # Restore default clouds.yaml search path for admin commands

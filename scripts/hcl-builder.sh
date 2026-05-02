@@ -74,18 +74,24 @@ export DISABLE_OPENSTACK="${DISABLE_OPENSTACK:-false}"
 # Helpers
 #############################################################################
 
+# BALABIT_TARGET and BALABIT_SSH_OPTS_STR are populated by Phase 1b below.
+# Until then they default to the "no Balabit" form (direct ssh to the
+# jump host), which lets the helpers be safely defined ahead of the
+# JUMP_HOST_VIP allocation. None of the helpers are *called* before
+# Phase 1b runs.
+#
+# BALABIT_SSH_OPTS_STR is intentionally unquoted at use sites — bash
+# word-splits it into separate argv. None of our option values contain
+# spaces (KexAlgorithms=+x, Ciphers=a,b,c, etc.), so this is safe.
+BALABIT_TARGET="${SSH_USERNAME:-ubuntu}@${JUMP_HOST_VIP:-}"
+BALABIT_SSH_OPTS_STR="-o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+
 _ssh() {
-    ssh -o ForwardAgent=yes \
-        -o UserKnownHostsFile=/dev/null \
-        -o StrictHostKeyChecking=no \
-        -t ${SSH_USERNAME}@${JUMP_HOST_VIP} "$@"
+    ssh ${BALABIT_SSH_OPTS_STR} -t "${BALABIT_TARGET}" "$@"
 }
 
 _ssh_bg() {
-    ssh -o ForwardAgent=yes \
-        -o UserKnownHostsFile=/dev/null \
-        -o StrictHostKeyChecking=no \
-        ${SSH_USERNAME}@${JUMP_HOST_VIP} "$@"
+    ssh ${BALABIT_SSH_OPTS_STR} "${BALABIT_TARGET}" "$@"
 }
 
 wait_pids() {
@@ -412,8 +418,8 @@ function prepareJumpHostSource() {
         echo "Copying the development source code to the jump host"
         rsync -avz \
             --exclude='.git' \
-            -e "ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" \
-            ${DEV_PATH}/ ${SSH_USERNAME}@${JUMP_HOST_VIP}:/opt/genestack/
+            -e "ssh ${BALABIT_SSH_OPTS_STR}" \
+            ${DEV_PATH}/ "${BALABIT_TARGET}:/opt/genestack/"
     else
         cloneGenestackOnJumpHost
     fi
@@ -798,20 +804,127 @@ for _idx in 0 1 2; do
 done
 
 #############################################################################
-# Phase 1: Wait for Jump Host SSH Access
+# Phase 1b: Configure SSH transport (direct or via Balabit ControlMaster)
+#
+# Some clouds (Rackspace internal) sit behind a Balabit Shell Control Box
+# gateway. Empirically Balabit's session policy *blocks port forwarding*:
+# `ssh -fN -L` returns 0 and the local listener binds, but the gateway
+# never establishes the back-end direct-tcpip channel — bytes go in and
+# nothing comes back. The only thing Balabit's policy reliably allows is
+# the inband `gu=USER@DEST@VIP@GATEWAY` form for interactive sessions.
+#
+# So instead of a tunnel, we route every ssh/scp/rsync through Balabit
+# directly using the gu= form, with ControlMaster + ControlPersist so
+# we only pay the gateway-auth latency on the first call. Subsequent
+# ssh invocations reuse the master socket and are local-fast.
+#
+# When BALABIT_GATEWAY is set:
+#   1. Wait for openstack server status=ACTIVE on the jump host.
+#   2. Build BALABIT_TARGET = "gu=USER@DEST@VIP@GATEWAY" and
+#      BALABIT_SSH_OPTS_STR with legacy crypto + ControlMaster opts.
+#   3. Open the master connection (retry until the back-end sshd
+#      answers a no-op `exit` command — proves end-to-end auth).
+#   4. Trap EXIT to close the master socket cleanly.
+#
+# When BALABIT_GATEWAY is unset, BALABIT_TARGET stays at the direct
+# ${SSH_USERNAME}@${JUMP_HOST_VIP} form — no behavior change for users
+# whose clouds don't sit behind Balabit.
 #############################################################################
 
-echo "Waiting for the jump host to be ready"
+# ----- Wait for the jump host to reach ACTIVE -----
+# Whether Balabit is involved or not, every downstream step depends on
+# the VM being scheduled. Surface ERROR state immediately if Nova fails.
+echo "Waiting for ${LAB_NAME_PREFIX}-0 to reach ACTIVE"
+_active_attempts=0
+_active_max=120  # ~10 min at 5s sleep
+while true; do
+    _status=$(openstack server show ${LAB_NAME_PREFIX}-0 -f value -c status 2>/dev/null || echo "UNKNOWN")
+    if [ "${_status}" = "ACTIVE" ]; then
+        break
+    fi
+    if [ "${_status}" = "ERROR" ]; then
+        echo "ERROR: ${LAB_NAME_PREFIX}-0 reached ERROR state — aborting" >&2
+        openstack server show ${LAB_NAME_PREFIX}-0 >&2 || true
+        exit 1
+    fi
+    _active_attempts=$((_active_attempts + 1))
+    if [ ${_active_attempts} -ge ${_active_max} ]; then
+        echo "ERROR: ${LAB_NAME_PREFIX}-0 never reached ACTIVE (last status: ${_status})" >&2
+        exit 1
+    fi
+    if [ $((_active_attempts % 6)) -eq 0 ]; then
+        echo "  ...status=${_status} (attempt ${_active_attempts}/${_active_max})"
+    fi
+    sleep 5
+done
+echo "  ${LAB_NAME_PREFIX}-0 is ACTIVE"
+
+if [ -n "${BALABIT_GATEWAY:-}" ]; then
+    BALABIT_USER="${BALABIT_USER:-${USER}}"
+    BALABIT_DEST_USER="${BALABIT_DEST_USER:-${SSH_USERNAME}}"
+    BALABIT_CONTROL_PATH="/tmp/hcl-builder-ssh-$$.sock"
+
+    # Build the ssh transport: target is the inband gu= form; opts cover
+    # legacy crypto (Balabit speaks dh-group1-sha1, aes128-ctr, etc.),
+    # GSSAPI off (avoids a multi-second auth probe delay), and a master
+    # socket so subsequent calls don't re-auth through the gateway.
+    # None of these option values contain spaces, so word-splitting at
+    # use sites (`ssh ${BALABIT_SSH_OPTS_STR} ...`) is safe.
+    BALABIT_TARGET="gu=${BALABIT_USER}@${BALABIT_DEST_USER}@${JUMP_HOST_VIP}@${BALABIT_GATEWAY}"
+    BALABIT_SSH_OPTS_STR="-o ForwardAgent=yes \
+-o UserKnownHostsFile=/dev/null \
+-o StrictHostKeyChecking=accept-new \
+-o GSSAPIAuthentication=no \
+-o KexAlgorithms=+diffie-hellman-group1-sha1 \
+-o Ciphers=aes128-ctr,aes192-ctr,aes256-ctr,aes128-cbc,3des-cbc \
+-o MACs=hmac-sha2-512,hmac-sha2-256,hmac-md5,hmac-sha1,umac-64@openssh.com \
+-o ControlMaster=auto \
+-o ControlPath=${BALABIT_CONTROL_PATH} \
+-o ControlPersist=2h \
+-o ServerAliveInterval=60 \
+-o ServerAliveCountMax=120"
+
+    # Stash the real public IP for the final summary
+    export JUMP_HOST_VIP_REAL="${JUMP_HOST_VIP}"
+
+    # Clean up any stale master socket from a previous aborted run
+    if [ -S "${BALABIT_CONTROL_PATH}" ]; then
+        echo "Cleaning up stale ssh control socket at ${BALABIT_CONTROL_PATH}"
+        rm -f "${BALABIT_CONTROL_PATH}"
+    fi
+
+    # Tear the master socket down on script exit (success, failure, Ctrl-C)
+    trap 'ssh '"${BALABIT_SSH_OPTS_STR}"' -O exit "'"${BALABIT_TARGET}"'" 2>/dev/null || true; rm -f "'"${BALABIT_CONTROL_PATH}"'" 2>/dev/null || true' EXIT
+
+    echo "Opening Balabit ControlMaster connection via ${BALABIT_GATEWAY}"
+    echo "  (every subsequent ssh/scp/rsync rides this socket — first connect can take ~10s)"
+fi
+
+#############################################################################
+# Phase 1: Wait for Jump Host SSH Access
+#############################################################################
+# Bumped to ~16 min (240 × 4s) — Rackspace flex VMs can take 5+ minutes
+# of cloud-init before sshd answers public-key auth. ConnectTimeout=4
+# keeps each attempt bounded so total wall time is predictable.
+#
+# This loop also serves as the ControlMaster opener when BALABIT_GATEWAY
+# is set — the first successful ssh call establishes the master socket,
+# and every subsequent _ssh / scp / rsync rides it.
+
+echo "Waiting for the jump host to accept SSH auth"
 COUNT=0
-while ! ssh -o ConnectTimeout=2 -o ConnectionAttempts=3 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -q ${SSH_USERNAME}@${JUMP_HOST_VIP} exit; do
-    sleep 2
-    echo "SSH is not ready, Trying again..."
+while ! ssh ${BALABIT_SSH_OPTS_STR} -o ConnectTimeout=8 -q "${BALABIT_TARGET}" exit 2>/dev/null; do
+    sleep 4
     COUNT=$((COUNT + 1))
-    if [ $COUNT -gt 60 ]; then
-        echo "Failed to ssh into the jump host"
+    if [ $((COUNT % 15)) -eq 0 ]; then
+        echo "  ...SSH still not ready (attempt ${COUNT}/240)"
+    fi
+    if [ $COUNT -gt 240 ]; then
+        echo "Failed to ssh into the jump host after ~16 min"
         exit 1
     fi
 done
+echo "  Jump host is ready"
 
 #############################################################################
 # Phase 1: Create and Attach Lab Volumes (when cinder is in -i)
@@ -885,10 +998,10 @@ echo "Worker IPs: ${WORKER_0_IP}, ${WORKER_1_IP}, ${WORKER_2_IP}"
 #############################################################################
 
 echo "Copying SSH keys to jump host..."
-scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
+scp ${BALABIT_SSH_OPTS_STR} \
     ~/.ssh/${LAB_NAME_PREFIX}-key.pem \
     ~/.ssh/${LAB_NAME_PREFIX}-key.pub \
-    ${SSH_USERNAME}@${JUMP_HOST_VIP}:/home/${SSH_USERNAME}/.ssh/
+    "${BALABIT_TARGET}:/home/${SSH_USERNAME}/.ssh/"
 _ssh "chmod 600 ~/.ssh/${LAB_NAME_PREFIX}-key.pem && chmod 644 ~/.ssh/${LAB_NAME_PREFIX}-key.pub"
 
 #############################################################################
@@ -1010,6 +1123,29 @@ APTFIX_WORKERS
 #############################################################################
 # END WORKAROUND
 #############################################################################
+
+#############################################################################
+# Install diagnostic tools on all 3 nodes
+#
+# When something goes wrong on the data path (MetalLB ARP, port-security,
+# OVN bridge mappings, DNS) the first thing the operator reaches for is
+# arping/tcpdump/dig. A naked Ubuntu cloud image has none of these, and
+# without them the only way to investigate is to abandon the lab and
+# reproduce locally. Burn the 30s of apt time up front.
+#############################################################################
+DIAG_PACKAGES="iputils-arping tcpdump dnsutils mtr-tiny traceroute"
+
+echo "Installing diagnostic tools on jump host: ${DIAG_PACKAGES}"
+_ssh "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ${DIAG_PACKAGES}"
+
+echo "Installing diagnostic tools on worker nodes..."
+_ssh <<DIAG_WORKERS
+for node in ${LAB_NAME_PREFIX}-1 ${LAB_NAME_PREFIX}-2; do
+    echo "  Installing on \$node..."
+    ssh -o StrictHostKeyChecking=no \$node "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ${DIAG_PACKAGES}" \
+        || echo "  WARNING: diag-tools install failed on \$node (non-fatal)"
+done
+DIAG_WORKERS
 
 #############################################################################
 # Phase 2: Bootstrap, Inventory, and Kubespray
@@ -1954,10 +2090,10 @@ EOC
     echo "Running tests at level: ${TEST_LEVEL}"
     _ssh "sudo TEST_RESULTS_DIR=/tmp/test-results /opt/genestack/scripts/tests/run-all-tests.sh ${TEST_LEVEL}"
     mkdir -p test-results
-    scp -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
-        ${SSH_USERNAME}@${JUMP_HOST_VIP}:/tmp/test-results/*.xml ./test-results/ 2>/dev/null || echo "No test result XML files found"
-    scp -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
-        ${SSH_USERNAME}@${JUMP_HOST_VIP}:/tmp/test-results/*.txt ./test-results/ 2>/dev/null || echo "No test result text files found"
+    scp ${BALABIT_SSH_OPTS_STR} \
+        "${BALABIT_TARGET}:/tmp/test-results/*.xml" ./test-results/ 2>/dev/null || echo "No test result XML files found"
+    scp ${BALABIT_SSH_OPTS_STR} \
+        "${BALABIT_TARGET}:/tmp/test-results/*.txt" ./test-results/ 2>/dev/null || echo "No test result text files found"
 fi
 
 #############################################################################
@@ -1986,6 +2122,22 @@ ALL_SERVICES=("${CORE_SERVICES[@]}")
 for s in "${PRECONF_SERVICES[@]}"; do svc_enabled "$s" && ALL_SERVICES+=("$s"); done
 svc_enabled skyline && ALL_SERVICES+=("skyline")
 
+# When going through Balabit, the public IP isn't directly reachable —
+# show the inband gu= command the user can paste to get a shell. The
+# script's own ControlMaster socket is gone after EXIT, so we print a
+# self-contained command rather than referencing it.
+_DISPLAY_JUMP_VIP="${JUMP_HOST_VIP_REAL:-${JUMP_HOST_VIP}}"
+if [ -n "${BALABIT_GATEWAY:-}" ]; then
+    _SSH_HINT="ssh -A \\
+    -o KexAlgorithms=+diffie-hellman-group1-sha1 \\
+    -o Ciphers=aes128-ctr,aes192-ctr,aes256-ctr,aes128-cbc,3des-cbc \\
+    -o MACs=hmac-sha2-512,hmac-sha2-256,hmac-md5,hmac-sha1,umac-64@openssh.com \\
+    -o GSSAPIAuthentication=no \\
+    \"gu=${BALABIT_USER}@${BALABIT_DEST_USER}@${_DISPLAY_JUMP_VIP}@${BALABIT_GATEWAY}\""
+else
+    _SSH_HINT="ssh ${SSH_USERNAME}@${_DISPLAY_JUMP_VIP}"
+fi
+
 { cat | tee /tmp/output.txt; } <<EOF
 ================================================================================
 HCL Builder — Hyperconverged Lab Deployment Complete!
@@ -1994,7 +2146,7 @@ HCL Builder — Hyperconverged Lab Deployment Complete!
 Deployment took ${SECONDS} seconds to complete.
 
 Cluster Information:
-  - Jump Host Address: ${JUMP_HOST_VIP}
+  - Jump Host Address: ${_DISPLAY_JUMP_VIP}
   - MetalLB Internal IP: ${METAL_LB_IP}
   - MetalLB Public VIP: ${METAL_LB_VIP}
 
@@ -2002,7 +2154,7 @@ Services Installed: ${ALL_SERVICES[*]}
 Extras: ${EXTRAS[*]:-none}
 
 SSH Access:
-  ssh ${SSH_USERNAME}@${JUMP_HOST_VIP}
+  ${_SSH_HINT}
 
 Kubernetes Access (from jump host):
   kubectl get nodes
