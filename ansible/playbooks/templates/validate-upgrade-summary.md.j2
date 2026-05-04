@@ -38,6 +38,17 @@
 {% endfor %}
 {{ checks.lines | join('\n') }}
 
+## OpenStack Component Images
+{% if openstack_component_image_lines | default([]) | length == 0 %}
+- None captured
+{% else %}
+{% set image_inventory = namespace(lines=[]) %}
+{% for line in openstack_component_image_lines | default([]) %}
+{% set _ = image_inventory.lines.append('- ' ~ line) %}
+{% endfor %}
+{{ image_inventory.lines | join('\n') }}
+{% endif %}
+
 ## Failed Checks
 {% set failed_results = validation_results | selectattr('ok', 'equalto', false) | list %}
 {% if failed_results | length == 0 %}

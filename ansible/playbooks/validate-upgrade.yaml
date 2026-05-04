@@ -12,6 +12,47 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# Usage:
+#
+#   cd /opt/genestack/ansible/playbooks
+#   ansible-playbook validate-upgrade.yaml
+#
+# The default run performs Kubernetes/OpenStack control-plane checks and writes a
+# markdown report to /tmp/validate-upgrade-summary.md. To run tenant smoke tests,
+# provide a known-good image, flavor, SSH user, external network, and any optional
+# service tests you want enabled:
+#
+#   ansible-playbook validate-upgrade.yaml \
+#     -e '{
+#       "run_tenant_smoke": true,
+#       "smoke_image": "Ubuntu 24.04",
+#       "smoke_flavor": "gp.8.2.4",
+#       "smoke_ssh_user": "ubuntu",
+#       "smoke_external_network": "PUBLICNET",
+#       "component_states": {
+#         "heat": true,
+#         "barbican": true,
+#         "designate": true,
+#         "octavia": true
+#       },
+#       "smoke_run_heat_test": true,
+#       "smoke_run_barbican_test": true,
+#       "smoke_run_designate_test": true,
+#       "smoke_run_octavia_test": true
+#     }'
+#
+# Useful options:
+#   - validation_summary_path: where to write the markdown report.
+#   - openstack_namespace: Kubernetes namespace containing OpenStack services.
+#   - openstack_cloud: optional clouds.yaml entry for OpenStack CLI calls.
+#   - openstack_components_file: component state file used to classify warnings.
+#   - component_states: per-component overrides for smoke tests and warning
+#     classification.
+#   - smoke_network/smoke_subnet: use an existing tenant network and subnet
+#     instead of creating temporary tenant network resources.
+#   - smoke_existing_keypair_name/smoke_existing_private_key_path: use an
+#     existing keypair instead of generating a temporary keypair.
 
 - name: Validate a Genestack upgrade and report compact OK/FAILED results
   hosts: localhost
@@ -398,6 +439,47 @@
                       if openstack_pods.rc == 0
                       else (openstack_pods.stderr | default(openstack_pods.stdout, true) | trim)
                     )
+                  )
+                }
+              ]
+          }}
+
+    - name: Build OpenStack component image inventory
+      vars:
+        pod_items: "{{ (openstack_pods.stdout | from_json)['items'] if openstack_pods.rc == 0 else [] }}"
+        component_image_lines_json: |-
+          {% set lines = [] %}
+          {% for pod in pod_items %}
+          {% set labels = pod.metadata.labels | default({}) %}
+          {% set app_name = labels.application | default(labels.get('app.kubernetes.io/name', labels.app | default(pod.metadata.name | regex_replace('-[a-f0-9]{8,10}(-[a-z0-9]{5})?$', '')))) %}
+          {% set component_name = labels.component | default(labels.get('app.kubernetes.io/component', '')) %}
+          {% set logical_component = app_name ~ ('/' ~ component_name if component_name | length > 0 else '') %}
+          {% for container in (pod.spec.initContainers | default([])) + (pod.spec.containers | default([])) %}
+          {% set image = container.image | default('') %}
+          {% if image | length > 0 %}
+          {% set _ = lines.append(logical_component ~ ' | ' ~ container.name ~ ' | ' ~ image) %}
+          {% endif %}
+          {% endfor %}
+          {% endfor %}
+          {{ lines | unique | sort | to_json }}
+      ansible.builtin.set_fact:
+        openstack_component_image_lines: "{{ component_image_lines_json | from_json }}"
+      when:
+        - openstack_pods.rc == 0
+
+    - name: Record OpenStack component image inventory
+      ansible.builtin.set_fact:
+        validation_results: >-
+          {{
+            validation_results
+            + [
+                {
+                  'name': 'OpenStack component image inventory',
+                  'ok': openstack_component_image_lines is defined and (openstack_component_image_lines | length) > 0,
+                  'detail': (
+                    ((openstack_component_image_lines | length) | string) ~ ' unique component/container image reference(s) captured'
+                    if openstack_component_image_lines is defined and (openstack_component_image_lines | length) > 0
+                    else 'No component image references captured'
                   )
                 }
               ]
@@ -2304,7 +2386,7 @@
           {{
             ['kubectl', '--namespace', openstack_namespace, 'exec', openstack_admin_client_pod, '--', 'openstack']
             + openstack_cloud_argv
-            + ['loadbalancer', 'pool', 'create', '--protocol', 'TCP', '--lb-algorithm', 'SOURCE_IP_PORT', '--listener', effective_smoke_octavia_listener_name, '--name', effective_smoke_octavia_pool_name, '-f', 'json']
+            + ['loadbalancer', 'pool', 'create', '--protocol', 'TCP', '--lb-algorithm', 'ROUND_ROBIN', '--listener', effective_smoke_octavia_listener_name, '--name', effective_smoke_octavia_pool_name, '-f', 'json']
           }}
       register: smoke_octavia_pool
       changed_when: (smoke_octavia_pool.rc | default(1)) == 0
@@ -2799,6 +2881,12 @@
           {% for result in validation_results %}
           {{ "%-32s" | format(result.name ~ ':') }} {{ 'OK' if result.ok else 'FAILED' }}{% if not result.ok %} - {{ result.detail | replace('\n', ' | ') }}{% endif %}
           {% endfor %}
+          {% if openstack_component_image_lines | default([]) | length > 0 %}
+          OpenStack component images:
+          {% for line in openstack_component_image_lines | default([]) %}
+          - {{ line }}
+          {% endfor %}
+          {% endif %}
           {% if event_check_enabled | bool and (ignored_warning_events | default([]) | length) > 0 %}
           Ignored warning events:
           {% for line in ignored_warning_events | default([]) %}
