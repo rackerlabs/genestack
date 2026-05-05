@@ -129,13 +129,19 @@ trove_mysql_version: "8.4"
 trove_guest_image_name: "trove-mysql-{{ trove_mysql_version }}-{{ trove_guest_image_os_release }}"
 trove_dib_distribution_mirror: "http://mirror.rackspace.com/ubuntu"
 # OpenStack release branch to clone for DIB elements + guest-agent.
-# 2026.1 is the first stable that emits a my.cnf compatible with MySQL
-# 8.4: the `default_authentication_plugin` line (removed in 8.4, fatal
-# at mysqld startup if present) is now version-gated to <8.4 only.
-# 2024.2 and 2025.1 emit it unconditionally and crash mysqld 8.4.
-# The guest-agent's RPC against an older control-plane (2025.1
-# conductor/taskmanager image) is wire-compatible via oslo.messaging.
-trove_openstack_release: "2026.1"
+# Must match the trove server-side image (api/taskmanager/conductor)
+# in trove-helm-overrides.yaml: a 2026.1 guest agent talking to a
+# 2025.1 conductor produces silently-dropped RPC heartbeats — the
+# encrypted-RPC implementation changed between 23.x and 25.x, so the
+# conductor cannot decrypt the agent's messages, the periodic status
+# update never lands in the DB, and the taskmanager polling
+# `_service_is_active` times out at 30 min with `Build error:
+# guestagent timeout` even though prepare succeeded and mysqld is
+# healthy. The my.cnf "unknown variable default_authentication_plugin"
+# panic that motivated the original bump is rendered server-side, so
+# the configmap-overlay (trove-mysql-config-template-override) fixes
+# it without the guest needing 2026.1.
+trove_openstack_release: "2025.1"
 
 # Datastore
 trove_datastore_name: mysql
