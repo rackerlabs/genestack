@@ -164,6 +164,31 @@
   changed_when: false
   when: _trove_do_build | bool
 
+# Patch trove's ubuntu-guest DIB element for noble compatibility.
+#
+# Trove's stable/2025.1 ubuntu-guest/pre-install.d/11-baseline-tools
+# script tries to `apt-get install ntp`, but `ntp` is not a package on
+# Ubuntu Noble (24.04) — Canonical replaced it with chrony /
+# systemd-timesyncd. apt-get fails with:
+#
+#   E: Error, pkgProblemResolver::Resolve generated breaks, this may be
+#   caused by held packages.
+#
+# and the build aborts. Replace `ntp` with `chrony` in the install
+# list and in the post-install systemctl-enable script so the build
+# proceeds cleanly. (Noble cloud rootfs already has chrony; this just
+# makes sure the trove DIB element doesn't blow up trying to enable a
+# unit that doesn't exist.)
+- name: Patch trove ubuntu-guest DIB element ntp→chrony for noble compat
+  ansible.builtin.replace:
+    path: "{{ trove_build_dir }}/trove/integration/scripts/files/elements/ubuntu-guest/{{ item }}"
+    regexp: '\bntp\b'
+    replace: 'chrony'
+  loop:
+    - pre-install.d/11-baseline-tools
+    - post-install.d/12-ntp
+  when: _trove_do_build | bool
+
 - name: Build Trove guest image with disk-image-create
   ansible.builtin.shell: |
     source {{ trove_venv_dir }}/bin/activate
