@@ -4,10 +4,13 @@
 # =========================================================================
 # Trove guest image (built with diskimage-builder, mirroring Manila pattern)
 # =========================================================================
-trove_guest_image_name: trove-mysql-8.4
-trove_guest_image_os_release: jammy
-trove_dib_distribution_mirror: "http://mirror.rackspace.com/ubuntu"
+trove_guest_image_os_release: noble
 trove_mysql_version: "8.4"
+# Embed mysql_version + os_release in the image name so different
+# datastore versions or Ubuntu bases don't collide on a single Glance
+# image. Mirrors hclab_service_conf's pattern.
+trove_guest_image_name: "trove-mysql-{{ trove_mysql_version }}-{{ trove_guest_image_os_release }}"
+trove_dib_distribution_mirror: "http://mirror.rackspace.com/ubuntu"
 # OpenStack release branch to clone for DIB elements + guest-agent.
 # 2026.1 is the first stable that emits a my.cnf compatible with MySQL
 # 8.4: the `default_authentication_plugin` line (removed in 8.4, fatal
