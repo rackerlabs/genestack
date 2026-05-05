@@ -6,14 +6,35 @@ Content-Type: text/x-shellscript; charset="us-ascii"
 MIME-Version: 1.0
 
 #!/bin/bash
-# K8s service reachability via Neutron port on flat network
+# K8s service reachability via the trove-mgmt-bridge anchor pod on
+# trove-mgmt-net (geneve overlay). The anchor IP runs haproxy that
+# forwards 5672/5000 to the in-cluster Services.
 echo '{{ trove_services_vip_ip }} rabbitmq.openstack.svc.cluster.local' >> /etc/hosts
 echo '{{ trove_services_vip_ip }} keystone-api.openstack.svc.cluster.local' >> /etc/hosts
 
-# Trove management subnet is --no-dhcp / --gateway none, so the base
-# image's default /etc/resolv.conf (typically a symlink to systemd-resolved
-# with no upstream) leaves the guest with no working resolver. Replace
-# the symlink with a static file pointing at public resolvers.
+# Write the guest-agent transport_url + control_exchange. Without this,
+# trove-guestagent has no transport_url, falls back to localhost:5672,
+# and loops ECONNREFUSED forever. We do this in the shellscript section
+# (not via cloud-config write_files) because trove-taskmanager appends
+# its own write_files block to the same cloud-config part — duplicate
+# top-level YAML keys collapse to the last one and our entry is silently
+# dropped.
+mkdir -p /etc/trove/conf.d
+echo '{{ trove_guest_transport_conf_b64 }}' | base64 -d > /etc/trove/conf.d/transport.conf
+chown ubuntu:root /etc/trove/conf.d/transport.conf
+chmod 0640 /etc/trove/conf.d/transport.conf
+
+# guest-agent.service may have started already (it depends on
+# network.target, not cloud-init.target), so it likely loaded its config
+# before transport.conf was written. Force a restart so it picks up the
+# transport_url; without this it loops ECONNREFUSED to localhost:5672.
+systemctl try-restart guest-agent.service || true
+
+# The mgmt subnet is --no-dhcp / --gateway none. The guest's *other*
+# vNIC (the customer tenant network) supplies DHCP, default route, and
+# resolver normally — but in the lab we hard-pin public resolvers as a
+# safety net so cloud-init's package fetches and docker pulls work even
+# if the tenant network's DNS lookup is slow.
 rm -f /etc/resolv.conf
 cat >/etc/resolv.conf <<RESOLV
 nameserver 1.1.1.1

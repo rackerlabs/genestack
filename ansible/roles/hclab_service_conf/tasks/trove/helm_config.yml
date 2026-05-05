@@ -96,107 +96,184 @@
        nova_keypair={{ trove_keypair_name }})
 
 # =========================================================================
-# PART 4: GUEST VM CONNECTIVITY VIA MGMT NETWORK
+# PART 4: GUEST VM CONNECTIVITY — trove-mgmt-bridge DaemonSet
 # =========================================================================
-# Trove guest VMs attach to the mgmt provider network and need to reach
-# RabbitMQ and Keystone. The VIP is a fixed IP outside the trove-mgmt
-# subnet's allocation pool (defaults/main.yml:trove_services_vip). MetalLB
-# announces it on the underlay VLAN; outer-cloud port-security on the
-# worker primary ports must allow it as a source IP (handled by
-# hcl-builder.sh at worker-port-create time).
-#
-# Why a fixed VIP outside the pool: any earlier "allocate via Neutron port"
-# scheme had to choose between (a) leaving the unbound port around and
-# letting inner OVN hijack ARP for the VIP, or (b) deleting the port,
-# which freed the IP back to Neutron's pool — where it could be reassigned
-# to a guest VM (the guest then talked to itself on 5672 → ECONNREFUSED).
-# Reserving the IP by *not including it in the allocation pool* avoids
-# both: no Neutron port exists for the IP, so OVN doesn't intercept, and
-# Neutron can't allocate it to anyone else.
+# Trove guest VMs sit on trove-mgmt-net (geneve overlay) and reach
+# RabbitMQ + Keystone via per-chassis "anchor" pods that proxy 5672/5000
+# to the in-cluster Services through cluster DNS. Each anchor pod's
+# Neutron LSP is bound to a specific chassis via --host=, mirroring the
+# Octavia health-manager pattern.
 
-- name: Report Trove services VIP
-  ansible.builtin.debug:
-    msg: "Trove services VIP on mgmt network: {{ trove_services_vip }}"
+- name: Get trove services security group ID
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} security group show
+      {{ trove_services_secgroup_name }} -f value -c id
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_svc_sg_id
+  changed_when: false
 
-# --- Step 2: Create MetalLB pool for the mgmt network VIP ---
+# --- Step 1: Per-chassis anchor ports on trove-mgmt-net ---
 
-- name: Apply MetalLB IPAddressPool and L2Advertisement for Trove services
+- name: Create per-chassis anchor ports on trove-mgmt-net
+  ansible.builtin.script:
+    cmd: >-
+      create_trove_mgmt_ports.sh
+      {{ trove_mgmt_network_name }}
+      {{ _trove_svc_sg_id.stdout | trim }}
+      {{ trove_mgmt_subnet_name }}
+      {{ trove_mgmt_anchor_base_offset }}
+      {{ os_cloud }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  changed_when: true
+
+# --- Step 2: Per-node port-info ConfigMap + init script & haproxy ConfigMaps ---
+
+# The init container is a stripped-down OVS image without the openstack
+# CLI. We pre-resolve each anchor port's LSP UUID, IP, and prefix length
+# here in ansible (where the genestack venv has openstack), and ship them
+# into the cluster as a ConfigMap with one shell-sourceable file per node.
+# The init script reads /etc/trove-mgmt-bridge/ports/<short-node-name>.
+
+- name: Render trove-mgmt-bridge port-info ConfigMap
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      cat <<'EOF' | kubectl apply -f -
-      apiVersion: metallb.io/v1beta1
-      kind: IPAddressPool
-      metadata:
-        name: trove-services-pool
-        namespace: metallb-system
-      spec:
-        addresses:
-          - {{ trove_services_vip }}/32
-        autoAssign: false
-      ---
-      apiVersion: metallb.io/v1beta1
-      kind: L2Advertisement
-      metadata:
-        name: trove-services-advertisement
-        namespace: metallb-system
-      spec:
-        ipAddressPools:
-          - trove-services-pool
-      EOF
+      source {{ genestack_venv }}/bin/activate
+
+      tmp=$(mktemp)
+      trap 'rm -f "$tmp"' EXIT
+
+      PREFIX_LEN=$(openstack --os-cloud {{ os_cloud }} subnet show \
+        {{ trove_mgmt_subnet_name }} -f value -c cidr | awk -F/ '{print $2}')
+
+      {
+        echo "apiVersion: v1"
+        echo "kind: ConfigMap"
+        echo "metadata:"
+        echo "  name: trove-mgmt-bridge-ports"
+        echo "  namespace: openstack"
+        echo "data:"
+        for port in $(openstack --os-cloud {{ os_cloud }} port list \
+                       --device-owner trove:management-bridge \
+                       -f value -c Name | sort); do
+          short="${port#trove-mgmt-bridge-port-}"
+          info=$(openstack --os-cloud {{ os_cloud }} port show "$port" -f json)
+          lsp=$(echo "$info" | jq -r .id)
+          mac=$(echo "$info" | jq -r .mac_address)
+          ip=$(echo "$info"  | jq -r '.fixed_ips[0].ip_address')
+          echo "  ${short}: |"
+          echo "    LSP_UUID=${lsp}"
+          echo "    LSP_MAC=${mac}"
+          echo "    IP_ADDR=${ip}"
+          echo "    PREFIX_LEN=${PREFIX_LEN}"
+        done
+      } > "$tmp"
+
+      kubectl apply -f "$tmp"
     executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
   changed_when: true
 
-# --- Step 3: Create/update K8s services on the flat network VIP ---
-
-- name: Apply RabbitMQ and Keystone LoadBalancer services for Trove
+- name: Apply trove-mgmt-bridge init-script ConfigMap
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      cat <<'EOF' | kubectl apply -f -
-      apiVersion: v1
-      kind: Service
-      metadata:
-        name: rabbitmq-trove-flat
-        namespace: openstack
-        annotations:
-          metallb.universe.tf/address-pool: trove-services-pool
-          metallb.universe.tf/allow-shared-ip: "trove-services-vip"
-      spec:
-        type: LoadBalancer
-        loadBalancerIP: {{ trove_services_vip }}
-        ports:
-          - name: amqp
-            port: 5672
-            targetPort: 5672
-            protocol: TCP
-        selector:
-          app.kubernetes.io/name: rabbitmq
-      ---
-      apiVersion: v1
-      kind: Service
-      metadata:
-        name: keystone-trove-flat
-        namespace: openstack
-        annotations:
-          metallb.universe.tf/address-pool: trove-services-pool
-          metallb.universe.tf/allow-shared-ip: "trove-services-vip"
-      spec:
-        type: LoadBalancer
-        loadBalancerIP: {{ trove_services_vip }}
-        ports:
-          - name: ks-pub
-            port: 5000
-            targetPort: ks-pub
-            protocol: TCP
-        selector:
-          application: keystone
-          component: api
-      EOF
+      kubectl -n openstack create configmap trove-mgmt-bridge-init \
+        --from-file=bridge-init.sh={{ role_path }}/files/trove-mgmt-bridge-init.sh \
+        --dry-run=client -o yaml | kubectl apply -f -
     executable: /bin/bash
   changed_when: true
 
-# --- Step 4: Cloud-init ConfigMap for /etc/hosts injection ---
+- name: Render trove-mgmt-bridge haproxy.cfg
+  ansible.builtin.template:
+    src: trove-mgmt-bridge-haproxy.cfg.j2
+    dest: /tmp/trove-mgmt-bridge-haproxy.cfg
+    mode: "0644"
+
+- name: Apply trove-mgmt-bridge haproxy ConfigMap
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      kubectl -n openstack create configmap trove-mgmt-bridge-haproxy \
+        --from-file=haproxy.cfg=/tmp/trove-mgmt-bridge-haproxy.cfg \
+        --dry-run=client -o yaml | kubectl apply -f -
+    executable: /bin/bash
+  changed_when: true
+
+- name: Remove temporary haproxy.cfg
+  ansible.builtin.file:
+    path: /tmp/trove-mgmt-bridge-haproxy.cfg
+    state: absent
+
+# --- Step 3: trove-mgmt-bridge DaemonSet ---
+
+- name: Render trove-mgmt-bridge DaemonSet manifest
+  ansible.builtin.template:
+    src: trove-mgmt-bridge-daemonset.yaml.j2
+    dest: /tmp/trove-mgmt-bridge-daemonset.yaml
+    mode: "0644"
+
+- name: Apply trove-mgmt-bridge DaemonSet
+  ansible.builtin.shell:
+    cmd: kubectl apply -f /tmp/trove-mgmt-bridge-daemonset.yaml
+    executable: /bin/bash
+  changed_when: true
+
+- name: Remove temporary DaemonSet manifest
+  ansible.builtin.file:
+    path: /tmp/trove-mgmt-bridge-daemonset.yaml
+    state: absent
+
+- name: Wait for trove-mgmt-bridge DaemonSet to roll out
+  ansible.builtin.shell:
+    cmd: kubectl -n openstack rollout status ds/trove-mgmt-bridge --timeout=180s
+    executable: /bin/bash
+  changed_when: false
+
+# --- Step 4: Cloud-init ConfigMap pointing trove guests at the anchor IP ---
+
+- name: Render & base64-encode trove-guest transport.conf
+  # Single shell that reads the rabbit creds from the K8s secret, builds
+  # the transport.conf content, and base64-encodes it. Avoids Jinja
+  # backslash-newline pitfalls.
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      U=$(kubectl -n openstack get secret trove-rabbitmq-password \
+            -o jsonpath='{.data.username}' | base64 -d)
+      P=$(kubectl -n openstack get secret trove-rabbitmq-password \
+            -o jsonpath='{.data.password}' | base64 -d)
+      cat <<EOF | base64 -w0
+      [DEFAULT]
+      transport_url = rabbit://${U}:${P}@rabbitmq.openstack.svc.cluster.local:5672/trove
+      control_exchange = trove
+
+      [oslo_messaging_rabbit]
+      # Must match the conductor's RabbitMQ settings (in
+      # trove-helm-overrides.yaml: conf.trove.oslo_messaging_rabbit) or
+      # exchange/queue redeclares fail with PRECONDITION_FAILED. We use
+      # classic non-durable queues here; production HA can re-enable
+      # quorum queues by flipping these on both sides simultaneously.
+      rabbit_quorum_queue = false
+      rabbit_transient_quorum_queue = false
+      amqp_durable_queues = false
+      EOF
+    executable: /bin/bash
+  register: _trove_transport_b64
+  changed_when: false
+  no_log: true
+
+- name: Set trove_guest_transport_conf_b64 fact
+  ansible.builtin.set_fact:
+    trove_guest_transport_conf_b64: "{{ _trove_transport_b64.stdout | trim }}"
+  no_log: true
 
 - name: Template Trove guest cloud-init file
   ansible.builtin.template:
@@ -204,7 +281,7 @@
     dest: /tmp/mysql.cloudinit
     mode: "0644"
   vars:
-    trove_services_vip_ip: "{{ trove_services_vip }}"
+    trove_services_vip_ip: "{{ trove_services_anchor_ip }}"
 
 - name: Create or update trove-guest-cloudinit ConfigMap
   ansible.builtin.shell:

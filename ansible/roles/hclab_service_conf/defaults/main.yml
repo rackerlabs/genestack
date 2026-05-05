@@ -117,7 +117,6 @@ trove_secgroup_name: trove-access-secgroup
 trove_secgroup_remote_ip: "0.0.0.0/0"
 trove_ssh_key_filename: trove_ssh_key
 trove_flat_network_name: flat
-trove_services_port_name: trove-services-vip-port
 trove_services_secgroup_name: trove-services-secgroup
 
 # Guest image (built with diskimage-builder, mirroring Manila pattern).
@@ -162,29 +161,32 @@ flat_network_gateway: 192.168.102.1
 flat_network_pool_start: 192.168.102.100
 flat_network_pool_end: 192.168.102.109
 
-# Trove management provider network (physnet2 / br-mgmt)
-# Gives guest VMs direct L2 access to the MetalLB VIP.
+# Trove management overlay network (geneve, no physnet)
+# Per-chassis "anchor" pods on this overlay run haproxy proxying
+# RabbitMQ + Keystone to trove guest VMs (see trove-mgmt-bridge
+# DaemonSet). Replaces the previous physnet2 + MetalLB-VIP design.
 #
-# Layout of 192.168.100.0/24 inside the trove-mgmt subnet:
-#   .200 - .218   guest VM mgmt-NIC allocations  (Neutron pool)
-#   .219          trove-services VIP             (reserved, MetalLB only)
-#   .220          spare buffer
-# The VIP sits *outside* Neutron's allocation pool deliberately — Neutron
-# never creates a port for it, so the inner cloud's OVN never intercepts
-# ARP for it, and the outer cloud's MetalLB-L2 speaker can answer freely.
+# Layout of 172.31.0.0/24 inside the trove-mgmt subnet:
+#   .10 - .12     trove-mgmt-bridge anchor ports — one per chassis,
+#                 pinned by --fixed-ip and bound by --host=<node>.
+#   .20 - .250    trove guest VM mgmt-NIC allocations (Neutron pool).
 trove_mgmt_network_name: trove-mgmt-net
 trove_mgmt_subnet_name: trove-mgmt-subnet
-trove_mgmt_pool_start: 192.168.100.200
-trove_mgmt_pool_end: 192.168.100.218
-trove_services_vip: 192.168.100.219
+trove_mgmt_subnet_cidr: 172.31.0.0/24
+trove_mgmt_anchor_base_offset: 10
+trove_mgmt_pool_start: 172.31.0.20
+trove_mgmt_pool_end: 172.31.0.250
 
-# Default route the trove-mgmt subnet hands to guest VMs. Must be an IP
-# answered by the *outer* cloud's router on physnet2 — the inner cloud
-# (this lab) doesn't run a router on this provider net. Set to "" to
-# revert to --gateway none (the guest will have no default route, so
-# external DNS / docker pulls will fail).
-# Rackspace flex labs conventionally expose .1 of the mgmt CIDR.
-trove_mgmt_subnet_gateway: "192.168.100.1"
+# Anchor IP that trove guest cloud-init injects for rabbitmq /
+# keystone-api hostnames. First anchor (NET_PREFIX.<offset>). For HA
+# this can later be swapped for an OVN load_balancer VIP across all
+# anchors.
+trove_services_anchor_ip: 172.31.0.10
+
+# Trove guest mgmt vNIC has no default route via this overlay; the
+# customer tenant network attached at instance create supplies internet
+# / DNS. Empty string ⇒ "--gateway none" at subnet create time.
+trove_mgmt_subnet_gateway: ""
 
 # Router and tenant network (for Trove, general tenant use)
 lab_router_name: "{{ lab_name_prefix }}-router"

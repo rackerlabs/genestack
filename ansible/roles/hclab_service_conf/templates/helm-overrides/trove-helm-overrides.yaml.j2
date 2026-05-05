@@ -27,8 +27,24 @@ conf:
       nova_keypair: "{{ trove_keypair_name }}"
     network:
       enable_access_check: false
+      # network_isolation=true makes the guest agent bring down the
+      # customer-tenant NIC during prepare, which kills internet access
+      # the agent needs to docker pull mysql. Disable so ens3 stays up
+      # and prepare can pull the datastore image.
+      network_isolation: false
     oslo_messaging_notifications:
       driver: noop
+    # Disable quorum queues so the conductor and the trove-guestagent
+    # (which has no built-in option to enable them — even oslo
+    # rabbit_quorum_queue=true via /etc/trove/conf.d isn't applied to its
+    # consumer queue declaration) agree on plain classic non-durable
+    # queues. Without this, the conductor declares "guestagent.<id>" as
+    # quorum/durable=true, the agent's declare with durable=false fails
+    # PRECONDITION_FAILED, and the agent crashloops.
+    oslo_messaging_rabbit:
+      rabbit_quorum_queue: false
+      rabbit_transient_quorum_queue: false
+      amqp_durable_queues: false
   trove_api_uwsgi:
     uwsgi:
       processes: 1

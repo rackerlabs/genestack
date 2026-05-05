@@ -109,19 +109,20 @@
     - "'already' not in (router_attach_result.stderr | default(''))"
 
 # =========================================================================
-# Trove management provider network on physnet2 (br-mgmt / enp3s0)
-# This gives guest VMs direct L2 access to the management network where
-# MetalLB VIPs live. Services (RabbitMQ, Keystone) are exposed on this
-# network via MetalLB, reachable from guest VMs without routing.
+# Trove management overlay network (geneve)
+# Path-B design: trove-mgmt-net is a pure OVN overlay. Guest VMs reach
+# RabbitMQ + Keystone via the trove-mgmt-bridge DaemonSet, which plumbs
+# per-chassis anchor LSPs into pod netns and runs haproxy. No physnet,
+# no MetalLB, no host-side bridge plumbing required.
 # Only runs when Trove is enabled — gated by create_trove_mgmt_network.
 # =========================================================================
 
-- name: Create Trove management provider network on physnet2
+- name: Create Trove management overlay network (geneve)
   ansible.builtin.command:
     cmd: >
       openstack --os-cloud default network create
-      --share --availability-zone-hint az1
-      --provider-network-type flat --provider-physical-network physnet2
+      --share
+      --provider-network-type geneve
       {{ trove_mgmt_network_name }}
   register: trove_mgmt_net_result
   changed_when: trove_mgmt_net_result.rc == 0
@@ -130,17 +131,15 @@
     - "'already exists' not in trove_mgmt_net_result.stderr"
   when: create_trove_mgmt_network | default(false) | bool
 
-- name: Create Trove management subnet on physnet2
+- name: Create Trove management subnet on overlay
   # --dns-nameserver populates the subnet's metadata even with --no-dhcp;
-  # cloud-init reads it from config-drive at first boot and writes
-  # /etc/resolv.conf in the guest. Cloudflare + Google as a public pair.
-  # --gateway points at the outer cloud's router on physnet2 so guests
-  # have a default route (needed for docker pull and arbitrary DNS).
-  # When trove_mgmt_subnet_gateway is "", falls back to --gateway none.
+  # cloud-init reads it from config-drive at first boot. Internet reach
+  # for the guest comes from its other vNIC (the customer tenant network
+  # the user attaches at instance create), so no gateway is needed here.
   ansible.builtin.command:
     cmd: >
       openstack --os-cloud default subnet create
-      --subnet-range {{ lab_tenant_subnet_cidr }}
+      --subnet-range {{ trove_mgmt_subnet_cidr }}
       --gateway {{ trove_mgmt_subnet_gateway if (trove_mgmt_subnet_gateway | default('') | length > 0) else 'none' }}
       --no-dhcp
       --dns-nameserver 1.1.1.1

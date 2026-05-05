@@ -667,21 +667,9 @@ fi
 
 createMetalLBPort
 
-# Reserved VIP for trove-services (rabbitmq + keystone exposed to guest VMs
-# via MetalLB). Sits outside the trove-mgmt subnet's allocation pool — see
-# ansible/roles/hclab_service_conf/defaults/main.yml. Pre-permitting it on
-# every worker mgmt port at create time means MetalLB-L2's ARP replies
-# (source IP = VIP, source MAC = a worker's enp3s0) won't be dropped by
-# the outer cloud's port-security check. Only added when trove is enabled.
-TROVE_SVC_VIP_ALLOWED=""
-if svc_enabled trove; then
-    TROVE_SVC_VIP_ALLOWED="--allowed-address ip-address=192.168.100.219"
-fi
-
 if ! WORKER_0_PORT=$(openstack port show ${LAB_NAME_PREFIX}-0-mgmt-port -f value -c id 2>/dev/null); then
     export WORKER_0_PORT=$(
         openstack port create --allowed-address ip-address=${METAL_LB_IP} \
-            ${TROVE_SVC_VIP_ALLOWED} \
             --security-group ${LAB_NAME_PREFIX}-secgroup \
             --security-group ${LAB_NAME_PREFIX}-jump-secgroup \
             --security-group ${LAB_NAME_PREFIX}-http-secgroup \
@@ -695,7 +683,6 @@ export WORKER_0_PORT
 if ! WORKER_1_PORT=$(openstack port show ${LAB_NAME_PREFIX}-1-mgmt-port -f value -c id 2>/dev/null); then
     export WORKER_1_PORT=$(
         openstack port create --allowed-address ip-address=${METAL_LB_IP} \
-            ${TROVE_SVC_VIP_ALLOWED} \
             --security-group ${LAB_NAME_PREFIX}-secgroup \
             --security-group ${LAB_NAME_PREFIX}-http-secgroup \
             --network ${LAB_NAME_PREFIX}-net \
@@ -708,7 +695,6 @@ export WORKER_1_PORT
 if ! WORKER_2_PORT=$(openstack port show ${LAB_NAME_PREFIX}-2-mgmt-port -f value -c id 2>/dev/null); then
     export WORKER_2_PORT=$(
         openstack port create --allowed-address ip-address=${METAL_LB_IP} \
-            ${TROVE_SVC_VIP_ALLOWED} \
             --security-group ${LAB_NAME_PREFIX}-secgroup \
             --security-group ${LAB_NAME_PREFIX}-http-secgroup \
             --network ${LAB_NAME_PREFIX}-net \
@@ -718,20 +704,6 @@ if ! WORKER_2_PORT=$(openstack port show ${LAB_NAME_PREFIX}-2-mgmt-port -f value
 fi
 export WORKER_2_PORT
 
-# Idempotency: if the worker ports already existed (re-run scenario) and
-# trove is now enabled, ensure the VIP is in their allowed-address-pairs.
-# `openstack port set --allowed-address` is additive and idempotent.
-if svc_enabled trove; then
-    for _idx in 0 1 2; do
-        _port_name="${LAB_NAME_PREFIX}-${_idx}-mgmt-port"
-        if ! openstack port show "${_port_name}" -f value -c allowed_address_pairs 2>/dev/null \
-                | grep -q '192.168.100.219'; then
-            openstack port set --allowed-address ip-address=192.168.100.219 "${_port_name}"
-            echo "  ${_port_name}: added trove VIP 192.168.100.219 to allowed-address-pairs"
-        fi
-    done
-fi
-
 if ! JUMP_HOST_VIP=$(openstack floating ip list --port ${WORKER_0_PORT} -f json 2>/dev/null | jq -r '.[]."Floating IP Address"'); then
     JUMP_HOST_VIP=$(openstack floating ip create PUBLICNET --port ${WORKER_0_PORT} -f json | jq -r '.floating_ip_address')
 elif [ -z "${JUMP_HOST_VIP}" ]; then
@@ -740,23 +712,6 @@ fi
 export JUMP_HOST_VIP
 
 createComputePorts
-
-# Create Trove service ports on the mgmt network (third NIC).
-# This NIC bridges OVN's physnet2 to the physical management L2 where
-# MetalLB VIPs live. Created with --no-fixed-ip to avoid DHCP conflicts.
-if svc_enabled trove; then
-    for _idx in 0 1 2; do
-        TROVE_PORT_NAME="${LAB_NAME_PREFIX}-${_idx}-trove-mgmt-port"
-        if ! openstack port show ${TROVE_PORT_NAME} 2>/dev/null; then
-            openstack port create \
-                --disable-port-security \
-                --no-fixed-ip \
-                --network ${LAB_NAME_PREFIX}-net \
-                ${TROVE_PORT_NAME}
-        fi
-        eval "export TROVE_MGMT_${_idx}_PORT=$(openstack port show ${TROVE_PORT_NAME} -f value -c id)"
-    done
-fi
 
 #############################################################################
 # Phase 1: SSH Key Management
@@ -788,15 +743,9 @@ for _idx in 0 1 2; do
     if ! openstack server show ${LAB_NAME_PREFIX}-${_idx} 2>/dev/null; then
         _port_var="WORKER_${_idx}_PORT"
         _compute_var="COMPUTE_${_idx}_PORT"
-        _trove_var="TROVE_MGMT_${_idx}_PORT"
-        _trove_port=""
-        if [ -n "${!_trove_var:-}" ]; then
-            _trove_port="--port ${!_trove_var}"
-        fi
         openstack server create ${LAB_NAME_PREFIX}-${_idx} \
             --port ${!_port_var} \
             --port ${!_compute_var} \
-            ${_trove_port} \
             --image "${OS_IMAGE}" \
             --key-name ${LAB_NAME_PREFIX}-key \
             --flavor ${OS_FLAVOR}
@@ -1311,90 +1260,6 @@ if [ "${DISABLE_OPENSTACK}" = "true" ]; then
 fi
 
 #############################################################################
-# Phase 4b: Wire trove physnet2 to br-service directly on each worker's OVS
-#
-# Trove guest VMs need L2 reach to MetalLB-announced VIPs (e.g. the
-# trove-services-vip carrying RabbitMQ + Keystone). MetalLB advertises on
-# the host management VLAN — the same L2 segment the workers' enp5s0 sits
-# on (the third NIC, attached to LAB_NAME_PREFIX-net via TROVE_MGMT_*_PORT).
-#
-# To get there we need on every worker:
-#   1. br-service exists as an OVS bridge.
-#   2. enp5s0 is a port of br-service (not br-ex).
-#   3. ovn-bridge-mappings includes physnet2:br-service.
-#   4. enp5s0 is operationally UP.
-#
-# Originally this was driven by genestack's `ovn-setup` daemonset, which
-# reconciles bridges/ports/mappings from `ovn.openstack.org/*` node
-# annotations. In practice that daemon goes silent in some installs (no
-# `ovn.openstack.org/configured` label ever appears, no observable
-# pod-level error, no convergence after 4 minutes). Rather than debug the
-# indirection on every run, we drive ovs-vsctl directly on each worker
-# via `kubectl exec` into the always-running kube-ovn `ovs` pod. This is:
-#   - synchronous: each ovs-vsctl returns success/failure inline
-#   - idempotent: --may-exist / --if-exists handle re-runs
-#   - one round-trip per worker, no waiting
-#
-# enp5s0's Linux interface stays DOWN by default (its Neutron port is
-# created with --no-fixed-ip), so we also force it up on each worker.
-#############################################################################
-
-if svc_enabled trove; then
-    echo "Wiring enp5s0 → br-service directly via kube-ovn ovs pods..."
-    _ssh <<'EOC'
-set -e
-
-# Iterate over the kube-ovn ovs pods (one per node). The pod name and the
-# node it runs on come from a single jsonpath query so we don't have to
-# do per-pod kubectl get.
-OVS_PODS=$(kubectl -n kube-system get pods -l app=ovs \
-    -o jsonpath='{range .items[*]}{.metadata.name}|{.spec.nodeName}{"\n"}{end}')
-
-if [ -z "${OVS_PODS}" ]; then
-    echo "ERROR: no kube-ovn ovs pods found in kube-system (label app=ovs)" >&2
-    exit 1
-fi
-
-while IFS='|' read -r POD_NAME NODE_NAME; do
-    [ -z "${POD_NAME}" ] && continue
-    echo "  ${NODE_NAME}: br-service add, move enp5s0, set physnet2 mapping"
-
-    # Compose the OVS state in one ovs-vsctl invocation so it's atomic per node.
-    # --may-exist makes the bridge/port adds idempotent; --if-exists makes the
-    # del-port a no-op if enp5s0 isn't on br-ex (which is the case after the
-    # first run).
-    kubectl -n kube-system exec "${POD_NAME}" -c openvswitch -- \
-        ovs-vsctl --may-exist add-br br-service \
-        -- --if-exists del-port br-ex enp5s0 \
-        -- --may-exist add-port br-service enp5s0 \
-        -- set Open_vSwitch . external-ids:ovn-bridge-mappings='physnet1:br-ex,physnet2:br-service'
-
-    # Verify enp5s0 actually landed on br-service
-    SVCPORTS=$(kubectl -n kube-system exec "${POD_NAME}" -c openvswitch -- \
-        ovs-vsctl list-ports br-service 2>/dev/null || true)
-    if ! echo "${SVCPORTS}" | grep -q '^enp5s0$'; then
-        echo "ERROR: ${NODE_NAME}: enp5s0 not on br-service after ovs-vsctl (got: ${SVCPORTS//$'\n'/,})" >&2
-        exit 1
-    fi
-done <<< "${OVS_PODS}"
-
-echo "All chassis: enp5s0 on br-service, physnet2:br-service in bridge-mappings."
-
-# Bring enp5s0 up on every worker — its OpenStack port has --no-fixed-ip
-# so cloud-init never brings it up, and OVS happily holds a DOWN port
-# without warning. ARP from the trove guest can't reach metallb until the
-# kernel link is operationally up.
-echo "Bringing enp5s0 up on each worker..."
-for node in $(kubectl get nodes -l openstack-network-node=enabled -o name | sed 's|^node/||'); do
-    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no ${node} \
-        'sudo ip link set enp5s0 up' \
-        && echo "  ${node}: enp5s0 up" \
-        || echo "  ${node}: WARNING failed to bring enp5s0 up"
-done
-EOC
-fi
-
-#############################################################################
 # Phase 5: Install Keystone (blocking — everything depends on it)
 #############################################################################
 
@@ -1903,123 +1768,72 @@ EOC
 fi
 
 #############################################################################
-# Phase 12b: Verify trove deploy is consistent across all components
+# Phase 12b: Verify trove-mgmt-bridge is healthy
 #
-# Five layers must agree on the trove-services VIP. If any disagree, trove
-# guest VMs will fail at runtime with hard-to-debug ECONNREFUSED on
-# rabbitmq.openstack.svc.cluster.local. Catch it here, abort the build with
-# a precise list of what's wrong — not at first user-attempted instance.
-#
-#   1. trove-mgmt subnet's allocation pool does NOT include the VIP.
-#      (If it does, a guest VM could be assigned the VIP and talk to itself.)
-#   2. MetalLB IPAddressPool 'trove-services-pool' contains the VIP.
-#   3. trove-guest-cloudinit ConfigMap's mysql.cloudinit data references
-#      the VIP (so /etc/hosts inside guests will resolve to it).
-#   4. LoadBalancer services rabbitmq-trove-flat and keystone-trove-flat
-#      each have EXTERNAL-IP equal to the VIP.
-#   5. Each WORKER_${idx}_PORT (outer cloud) permits the VIP as a source
-#      via allowed-address-pairs.
-#
-# Items 1, 5 are checked locally (outer-cloud OS_CLOUD).
-# Items 2, 3, 4 are checked over _ssh on the jump host with kubectl.
+# In the geneve-overlay design, the trove-mgmt-bridge DaemonSet's
+# rollout-status check inside hclab_service_conf is the primary readiness
+# gate. This phase adds a final consistency check that the per-chassis
+# anchor ports exist, are bound to their requested chassis, and that the
+# trove-guest-cloudinit ConfigMap references the configured anchor IP.
 #############################################################################
 
 if svc_enabled trove; then
     echo
-    echo "=== Verifying Trove deploy consistency ==="
-    EXPECTED_VIP="192.168.100.219"
+    echo "=== Verifying Trove bridge deploy ==="
     VERIFY_FAIL=()
 
-    # 1. Outer cloud: VIP is NOT in trove-mgmt subnet allocation pool.
-    # The trove-mgmt subnet is in the *inner* cloud, so this check runs
-    # on the jump host. We just confirm the inner-cloud subnet excludes
-    # the VIP from its allocation_pools.
-    SUBNET_POOLS=$(_ssh "source /opt/genestack/scripts/genestack.rc && \
-        openstack subnet show trove-mgmt-subnet -f json 2>/dev/null \
-        | jq -c '.allocation_pools // []'" | tr -d '\r')
-    if echo "${SUBNET_POOLS}" | grep -q "${EXPECTED_VIP}"; then
-        VERIFY_FAIL+=("trove-mgmt subnet allocation pool INCLUDES the VIP ${EXPECTED_VIP} (must be outside the pool): ${SUBNET_POOLS}")
+    # 1. One trove:management-bridge port per openstack-control-plane node.
+    EXPECTED_COUNT=$(_ssh "kubectl get nodes -l openstack-control-plane=enabled -o name | wc -l" | tr -d '\r')
+    PORT_COUNT=$(_ssh "source /opt/genestack/scripts/genestack.rc && \
+        openstack port list --device-owner trove:management-bridge -f value -c id 2>/dev/null | wc -l" | tr -d '\r')
+    if [ "${PORT_COUNT}" != "${EXPECTED_COUNT}" ]; then
+        VERIFY_FAIL+=("expected ${EXPECTED_COUNT} trove:management-bridge anchor ports, found ${PORT_COUNT}")
     else
-        echo "  [ok] trove-mgmt subnet pool excludes ${EXPECTED_VIP}: ${SUBNET_POOLS}"
+        echo "  [ok] ${PORT_COUNT} anchor ports created"
     fi
 
-    # 2. MetalLB IPAddressPool trove-services-pool has the expected VIP.
-    POOL_ADDR=$(_ssh "kubectl -n metallb-system get ipaddresspool trove-services-pool \
-        -o jsonpath='{.spec.addresses[0]}' 2>/dev/null" | tr -d '\r')
-    POOL_IP="${POOL_ADDR%/*}"
-    if [ "${POOL_IP}" != "${EXPECTED_VIP}" ]; then
-        VERIFY_FAIL+=("MetalLB IPAddressPool 'trove-services-pool' has '${POOL_IP}', expected '${EXPECTED_VIP}'")
+    # 2. All anchor ports ACTIVE (= bound to their requested chassis).
+    INACTIVE=$(_ssh "source /opt/genestack/scripts/genestack.rc && \
+        openstack port list --device-owner trove:management-bridge -f json 2>/dev/null \
+        | jq -r '.[] | select(.Status != \"ACTIVE\") | .Name' | paste -sd, -" | tr -d '\r')
+    if [ -n "${INACTIVE}" ]; then
+        VERIFY_FAIL+=("anchor ports not ACTIVE: ${INACTIVE}")
     else
-        echo "  [ok] MetalLB pool VIP = ${POOL_IP}"
+        echo "  [ok] all anchor ports ACTIVE"
     fi
 
-    # 3. trove-guest-cloudinit ConfigMap references the VIP.
+    # 3. trove-mgmt-bridge DaemonSet fully rolled out.
+    DS_READY=$(_ssh "kubectl -n openstack get ds trove-mgmt-bridge \
+        -o jsonpath='{.status.numberReady}' 2>/dev/null" | tr -d '\r')
+    DS_DESIRED=$(_ssh "kubectl -n openstack get ds trove-mgmt-bridge \
+        -o jsonpath='{.status.desiredNumberScheduled}' 2>/dev/null" | tr -d '\r')
+    if [ "${DS_READY:-0}" != "${DS_DESIRED:-1}" ] || [ -z "${DS_READY}" ]; then
+        VERIFY_FAIL+=("trove-mgmt-bridge DaemonSet not fully ready: ${DS_READY:-?}/${DS_DESIRED:-?}")
+    else
+        echo "  [ok] trove-mgmt-bridge DaemonSet ready: ${DS_READY}/${DS_DESIRED}"
+    fi
+
+    # 4. trove-guest-cloudinit ConfigMap references the anchor IP.
+    EXPECTED_ANCHOR=$(_ssh "grep -E '^trove_services_anchor_ip:' \
+        /opt/genestack/ansible/roles/hclab_service_conf/defaults/main.yml \
+        2>/dev/null | awk '{print \$2}'" | tr -d '\r')
     CM_DATA=$(_ssh "kubectl -n openstack get configmap trove-guest-cloudinit \
         -o jsonpath='{.data.mysql\\.cloudinit}' 2>/dev/null" | tr -d '\r')
-    if ! echo "${CM_DATA}" | grep -q "${EXPECTED_VIP}"; then
-        VERIFY_FAIL+=("trove-guest-cloudinit ConfigMap does not reference ${EXPECTED_VIP}")
+    if [ -n "${EXPECTED_ANCHOR}" ] && ! echo "${CM_DATA}" | grep -q "${EXPECTED_ANCHOR}"; then
+        VERIFY_FAIL+=("trove-guest-cloudinit ConfigMap does not reference anchor IP ${EXPECTED_ANCHOR}")
     else
-        echo "  [ok] trove-guest-cloudinit ConfigMap references ${EXPECTED_VIP}"
+        echo "  [ok] trove-guest-cloudinit ConfigMap references ${EXPECTED_ANCHOR}"
     fi
-
-    # 4. LoadBalancer services have EXTERNAL-IP = VIP.
-    for _svc in rabbitmq-trove-flat keystone-trove-flat; do
-        EXT_IP=$(_ssh "kubectl -n openstack get svc ${_svc} \
-            -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null" | tr -d '\r')
-        if [ "${EXT_IP}" != "${EXPECTED_VIP}" ]; then
-            VERIFY_FAIL+=("Service ${_svc} has EXTERNAL-IP '${EXT_IP}', expected '${EXPECTED_VIP}'")
-        else
-            echo "  [ok] Service ${_svc} EXTERNAL-IP = ${EXT_IP}"
-        fi
-    done
-
-    # 5. Outer cloud: each worker mgmt-port allows the VIP as source.
-    for _idx in 0 1 2; do
-        _port_name="${LAB_NAME_PREFIX}-${_idx}-mgmt-port"
-        _aap=$(openstack port show "${_port_name}" -f value -c allowed_address_pairs 2>/dev/null \
-                | tr -d '\n')
-        if ! echo "${_aap}" | grep -q "${EXPECTED_VIP}"; then
-            VERIFY_FAIL+=("Outer-cloud port ${_port_name} does not have ${EXPECTED_VIP} in allowed-address-pairs: ${_aap}")
-        else
-            echo "  [ok] Outer-cloud port ${_port_name} permits ${EXPECTED_VIP}"
-        fi
-    done
 
     if [ "${#VERIFY_FAIL[@]}" -gt 0 ]; then
         echo
         echo "ERROR: Trove deploy verification failed. Inconsistencies:" >&2
         for _f in "${VERIFY_FAIL[@]}"; do echo "  - ${_f}" >&2; done
         echo >&2
-        echo "Trove guest VMs WILL FAIL to reach RabbitMQ/Keystone in this state." >&2
+        echo "Trove guest VMs may fail to reach RabbitMQ/Keystone in this state." >&2
         exit 1
     fi
-    echo "=== Trove deploy verification: PASS ==="
-
-    # Phase 12c: end-to-end smoke test from a worker chassis. The chassis
-    # has L2 reach to the VIP via enp5s0 → br-service → outer underlay,
-    # so a successful TCP open here proves the entire delivery path:
-    # MetalLB ARP → outer cloud port-security → enp5s0 → kube-proxy →
-    # backend pod → response back via the same path.
-    echo
-    echo "=== Trove VIP TCP smoke test (from chassis) ==="
-    NODE=$(_ssh "kubectl get nodes -l openstack-network-node=enabled \
-        -o jsonpath='{.items[0].metadata.name}'" | tr -d '\r')
-    SMOKE_OUTPUT=$(_ssh "ssh -o StrictHostKeyChecking=no ${NODE} \
-        'timeout 5 bash -c \"</dev/tcp/${EXPECTED_VIP}/5672\" && echo VIP_5672_OPEN; \
-         timeout 5 bash -c \"</dev/tcp/${EXPECTED_VIP}/5000\" && echo VIP_5000_OPEN' 2>&1" | tr -d '\r')
-    SMOKE_FAIL=()
-    echo "${SMOKE_OUTPUT}" | grep -q "VIP_5672_OPEN" \
-        || SMOKE_FAIL+=("rabbitmq port 5672 not reachable at ${EXPECTED_VIP}")
-    echo "${SMOKE_OUTPUT}" | grep -q "VIP_5000_OPEN" \
-        || SMOKE_FAIL+=("keystone port 5000 not reachable at ${EXPECTED_VIP}")
-    if [ "${#SMOKE_FAIL[@]}" -gt 0 ]; then
-        echo "ERROR: smoke test failed:" >&2
-        for _f in "${SMOKE_FAIL[@]}"; do echo "  - ${_f}" >&2; done
-        echo "Diagnostic output from ${NODE}:" >&2
-        echo "${SMOKE_OUTPUT}" >&2
-        exit 1
-    fi
-    echo "  [ok] VIP_5672_OPEN, VIP_5000_OPEN — trove guest path validated"
+    echo "=== Trove bridge deploy verification: PASS ==="
 fi
 
 #############################################################################

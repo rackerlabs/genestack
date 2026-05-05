@@ -120,7 +120,7 @@
     cmd: >
       source {{ genestack_venv }}/bin/activate &&
       openstack --os-cloud {{ os_cloud }} security group rule create
-      --protocol tcp --dst-port 5672 --remote-ip {{ lab_tenant_subnet_cidr }} {{ trove_services_secgroup_name }}
+      --protocol tcp --dst-port 5672 --remote-ip {{ trove_mgmt_subnet_cidr }} {{ trove_services_secgroup_name }}
     executable: /bin/bash
   environment:
     HOME: "{{ ubuntu_home }}"
@@ -131,7 +131,7 @@
     cmd: >
       source {{ genestack_venv }}/bin/activate &&
       openstack --os-cloud {{ os_cloud }} security group rule create
-      --protocol tcp --dst-port 5000 --remote-ip {{ lab_tenant_subnet_cidr }} {{ trove_services_secgroup_name }}
+      --protocol tcp --dst-port 5000 --remote-ip {{ trove_mgmt_subnet_cidr }} {{ trove_services_secgroup_name }}
     executable: /bin/bash
   environment:
     HOME: "{{ ubuntu_home }}"
