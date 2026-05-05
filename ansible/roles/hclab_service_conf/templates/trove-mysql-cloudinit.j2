@@ -24,6 +24,19 @@ echo '{{ trove_guest_transport_conf_b64 }}' | base64 -d > /etc/trove/conf.d/tran
 chown ubuntu:root /etc/trove/conf.d/transport.conf
 chmod 0640 /etc/trove/conf.d/transport.conf
 
+# Pre-baked datastore image — load it before guest-agent tries to
+# docker pull at prepare time. The image was injected into /var/lib/
+# trove-images/datastore.tar by virt-customize during build, so guests
+# don't need internet at prepare time. Wait briefly for docker.service
+# to be ready (cloud-init final can race ahead of multi-user.target).
+if [ -f /var/lib/trove-images/datastore.tar ]; then
+  for _i in 1 2 3 4 5; do
+    if docker info >/dev/null 2>&1; then break; fi
+    sleep 2
+  done
+  docker load -i /var/lib/trove-images/datastore.tar 2>&1 | head -3
+fi
+
 # guest-agent.service may have started already (it depends on
 # network.target, not cloud-init.target), so it likely loaded its config
 # before transport.conf was written. Force a restart so it picks up the

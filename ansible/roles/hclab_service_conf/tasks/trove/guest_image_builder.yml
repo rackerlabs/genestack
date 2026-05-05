@@ -197,6 +197,65 @@
   when: _trove_do_build | bool
 
 # =========================================================================
+# PART 3b: Pre-bake the datastore container image into the guest qcow2
+# =========================================================================
+# Trove's prepare workflow runs `docker pull <datastore>:<version>` from
+# inside the guest. In labs without an internet path from the guest VM
+# (no FIP, inner-cloud SNAT to a non-routable external CIDR, etc.) that
+# pull fails and the agent never starts mysqld.
+#
+# Pre-pull the datastore image as a docker-archive tarball on the build
+# host (skopeo, no daemon needed), then inject it into the qcow2 with
+# virt-customize. The guest's cloud-init shellscript runs `docker load`
+# on first boot before guest-agent restart so the image is already
+# present in the local docker daemon when prepare runs.
+# =========================================================================
+
+- name: Install skopeo + libguestfs-tools for image prebake
+  ansible.builtin.apt:
+    name:
+      - skopeo
+      - libguestfs-tools
+    state: present
+    update_cache: true
+  become: true
+  become_user: root
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  when: _trove_do_build | bool
+
+- name: Pull datastore container image as docker-archive tarball
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      rm -f {{ trove_build_dir }}/datastore-image.tar
+      skopeo copy --override-os linux --override-arch amd64 \
+        docker://docker.io/library/{{ trove_datastore_name }}:{{ trove_datastore_version_name }} \
+        docker-archive:{{ trove_build_dir }}/datastore-image.tar:{{ trove_datastore_name }}:{{ trove_datastore_version_name }}
+    executable: /bin/bash
+  become: true
+  become_user: root
+  retries: 3
+  delay: 10
+  register: _trove_skopeo_pull
+  until: _trove_skopeo_pull.rc == 0
+  when: _trove_do_build | bool
+
+- name: Inject datastore image tarball into qcow2 with virt-customize
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      virt-customize -a {{ trove_build_dir }}/{{ trove_guest_image_name }}.qcow2 \
+        --mkdir /var/lib/trove-images \
+        --upload {{ trove_build_dir }}/datastore-image.tar:/var/lib/trove-images/datastore.tar
+    executable: /bin/bash
+  become: true
+  become_user: root
+  environment:
+    LIBGUESTFS_BACKEND: direct
+  when: _trove_do_build | bool
+
+# =========================================================================
 # PART 6: DELETE OLD GLANCE IMAGE AND UPLOAD NEW ONE
 # =========================================================================
 
