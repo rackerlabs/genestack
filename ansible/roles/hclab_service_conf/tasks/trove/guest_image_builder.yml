@@ -168,12 +168,21 @@
   ansible.builtin.shell: |
     source {{ trove_venv_dir }}/bin/activate
     cd {{ trove_build_dir }}/trove
+    # Use the `ubuntu` element (Canonical's pre-built cloud rootfs from
+    # cloud-images.ubuntu.com) instead of `ubuntu-minimal` (debootstrap
+    # from scratch). The minimal element ships a stripped base that's
+    # missing common debugging tools (no iputils-ping, no traceroute,
+    # no dnsutils — and apt-get sources aren't always wired up to find
+    # them), which makes the guest hard to triage when prepare fails.
+    # The cloud rootfs is the same image millions of public Ubuntu
+    # cloud VMs run on — it's better-tested for cloud-init and network
+    # plumbing, and adds maybe ~150 MB of disk versus the minimal flow.
     disk-image-create -a amd64 \
       -o {{ trove_build_dir }}/{{ trove_guest_image_name }} \
       -t qcow2 \
       --image-size 5 \
       -x \
-      base vm ubuntu-minimal cloud-init-datasources \
+      base vm ubuntu cloud-init-datasources \
       pip-cache guest-agent ubuntu-docker
   args:
     executable: /bin/bash
@@ -245,14 +254,12 @@
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      # The DIB ubuntu-minimal element strips iputils-ping (and never had
-      # iputils-arping), so the resulting qcow2 has no `ping` / `arping` /
-      # `dig` / `traceroute`. Re-add the debugging essentials here while
-      # libguestfs is already spun up — cheaper than re-running
-      # disk-image-create with a different element set, and keeps the
-      # base build minimal.
+      # The Canonical cloud rootfs ships iputils-ping but not arping,
+      # tracepath, traceroute, dnsutils, or tcpdump. Bake those in here
+      # while libguestfs is already spun up so guests are debuggable
+      # out of the box.
       virt-customize -a {{ trove_build_dir }}/{{ trove_guest_image_name }}.qcow2 \
-        --install iputils-ping,iputils-arping,iputils-tracepath,traceroute,dnsutils,tcpdump \
+        --install iputils-arping,iputils-tracepath,traceroute,dnsutils,tcpdump \
         --mkdir /var/lib/trove-images \
         --upload {{ trove_build_dir }}/datastore-image.tar:/var/lib/trove-images/datastore.tar
     executable: /bin/bash
