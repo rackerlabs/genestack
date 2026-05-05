@@ -1,0 +1,67 @@
+- name: Pre-requisites for enabling Trove (Database as a Service)
+  hosts: localhost
+  vars:
+    trove_os_endpoint_type: internal
+    trove_os_interface: "{{ trove_os_endpoint_type }}"
+    trove_os_username: admin
+    trove_os_project_name: admin
+    trove_os_tenant_name: "{{ trove_os_project_name }}"
+    trove_os_auth_type: password
+    trove_os_auth_url: http://keystone-api.openstack.svc.cluster.local:5000/v3
+    trove_os_user_domain_name: default
+    trove_os_project_domain_name: "{{ trove_os_user_domain_name }}"
+    trove_os_region_name: RegionOne
+    trove_os_identity_api_version: 3
+    trove_os_auth_version: 3
+  pre_tasks:
+    - name: Retrieve Keystone admin password from K8s secret
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        name: keystone-admin
+        namespace: openstack
+      register: keystone_secret
+      no_log: true
+      tags:
+        - always
+
+    - name: Set trove_os_password from K8s secret
+      ansible.builtin.set_fact:
+        trove_os_password: "{{ keystone_secret.resources[0].data.password | b64decode }}"
+      no_log: true
+      when: keystone_secret.resources | length > 0
+      tags:
+        - always
+
+    - name: Check for credentials
+      ansible.builtin.fail:
+        msg: >-
+          Could not retrieve the Keystone admin password. Ensure the
+          keystone-admin secret exists in the openstack namespace, or
+          pass -e trove_os_password=<password> on the command line.
+      when: trove_os_password is undefined or trove_os_password | length == 0
+      tags:
+        - always
+
+    - name: Set OpenStack environment facts
+      ansible.builtin.set_fact:
+        trove_os_env:
+          OS_ENDPOINT_TYPE: "{{ trove_os_endpoint_type }}"
+          OS_INTERFACE: "{{ trove_os_interface }}"
+          OS_USERNAME: "{{ trove_os_username }}"
+          OS_PASSWORD: "{{ trove_os_password }}"
+          OS_PROJECT_NAME: "{{ trove_os_project_name }}"
+          OS_TENANT_NAME: "admin"
+          OS_AUTH_TYPE: password
+          OS_AUTH_URL: "{{ trove_os_auth_url }}"
+          OS_USER_DOMAIN_NAME: "{{ trove_os_user_domain_name }}"
+          OS_PROJECT_DOMAIN_NAME: "{{ trove_os_project_domain_name }}"
+          OS_REGION_NAME: "{{ trove_os_region_name }}"
+          OS_IDENTITY_API_VERSION: "{{ trove_os_identity_api_version }}"
+          OS_AUTH_VERSION: "{{ trove_os_auth_version }}"
+      no_log: true
+      tags:
+        - always
+  roles:
+    - role: trove_enablement_techpreview
+      environment: "{{ trove_os_env }}"

@@ -1,0 +1,94 @@
+---
+# trove-mgmt-bridge: per-chassis pod that bridges trove-mgmt-net (geneve
+# overlay) to the in-cluster RabbitMQ + Keystone Services. Each pod's
+# init container plumbs an OVN-bound LSP into its own netns (Octavia
+# health-manager pattern), then haproxy proxies 5672/5000 to the Services
+# via cluster DNS.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: trove-mgmt-bridge
+  namespace: openstack
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: trove-mgmt-bridge
+  namespace: openstack
+  labels:
+    app: trove-mgmt-bridge
+spec:
+  selector:
+    matchLabels:
+      app: trove-mgmt-bridge
+  template:
+    metadata:
+      labels:
+        app: trove-mgmt-bridge
+    spec:
+      serviceAccountName: trove-mgmt-bridge
+      # In hyperconverged labs every node is both control-plane and
+      # compute, so this matches all nodes. In production the same
+      # selector cleanly targets dedicated openstack-control-plane nodes.
+      nodeSelector:
+        openstack-control-plane: enabled
+      # Init container moves t-mgmt0 from root netns into the pod netns
+      # using the host PID of the init process, so we need hostPID=true.
+      hostPID: true
+      tolerations:
+        - operator: Exists
+      volumes:
+        - name: ovs-run
+          hostPath:
+            path: /run/openvswitch
+        - name: port-info
+          configMap:
+            name: trove-mgmt-bridge-ports
+        - name: haproxy-config
+          configMap:
+            name: trove-mgmt-bridge-haproxy
+        - name: init-script
+          configMap:
+            name: trove-mgmt-bridge-init
+            defaultMode: 0755
+      initContainers:
+        - name: ovs-port-setup
+          image: ghcr.io/rackerlabs/genestack-images/ovs:v3.5.1-latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+            capabilities:
+              add: [NET_ADMIN, SYS_ADMIN, NET_RAW]
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: BRIDGE_DEV
+              value: t-mgmt0
+            - name: PORT_INFO_DIR
+              value: /etc/trove-mgmt-bridge/ports
+          command: [/init/bridge-init.sh]
+          volumeMounts:
+            - name: ovs-run
+              mountPath: /run/openvswitch
+            - name: port-info
+              mountPath: /etc/trove-mgmt-bridge/ports
+              readOnly: true
+            - name: init-script
+              mountPath: /init
+              readOnly: true
+      containers:
+        - name: haproxy
+          image: haproxy:2.9-alpine
+          imagePullPolicy: IfNotPresent
+          args: [haproxy, -f, /etc/haproxy/haproxy.cfg, -W]
+          volumeMounts:
+            - name: haproxy-config
+              mountPath: /etc/haproxy
+              readOnly: true
+          readinessProbe:
+            tcpSocket:
+              port: 5672
+            periodSeconds: 5
+            failureThreshold: 6
