@@ -25,6 +25,38 @@ conf:
       management_networks: "{{ trove_management_network_id | default('') }}"
       management_security_groups: "{{ trove_management_secgroup_id | default('') }}"
       nova_keypair: "{{ trove_keypair_name }}"
+      # Disable per-instance RPC encryption.
+      #
+      # With encryption enabled (default), the conductor's
+      # ConductorHostSerializer._deserialize_entity needs to look up
+      # the per-instance key from the DB:
+      #   instance_key = get_instance_encryption_key(instance_id)
+      # which calls trove.instance.models.DBInstance.find_by(id=...).
+      # In trove 23.0.1.dev29 (= 2025.1) running against
+      # SQLAlchemy 2.0.38 (the version pip-resolves into the
+      # genestack-images trove:2025.1-latest container), find_by
+      # raises:
+      #   ArgumentError: Column expression, FROM clause, or other
+      #   columns clause element expected, got
+      #   <class 'trove.instance.models.DBInstance'>
+      # The exception is not caught by ConductorHostSerializer's
+      # `except (ValueError, TypeError)`, oslo.messaging's
+      # dispatcher silently drops the heartbeat (no log because
+      # logging.conf has root=INFO and oslo_messaging at WARNING),
+      # the DB row stays at status_id=23 ("new"), the taskmanager
+      # polls _service_is_active for 30 minutes, and the instance
+      # ERRORs with `Build error: guestagent timeout` even though
+      # mysqld came up healthy.
+      #
+      # With encryption off, the agent's ConductorGuestSerializer
+      # passes the heartbeat as a plain dict (key=None branch);
+      # the conductor's deserializer hits the `except (ValueError,
+      # TypeError)` early-return without ever needing the per-
+      # instance key, and the heartbeat handler runs.
+      #
+      # Re-enable when upstream trove ships SQLAlchemy 2.x compat
+      # for DBInstance.find_by (or we ship a patched trove image).
+      enable_secure_rpc_messaging: false
     network:
       enable_access_check: false
       # network_isolation=true makes the guest agent bring down the

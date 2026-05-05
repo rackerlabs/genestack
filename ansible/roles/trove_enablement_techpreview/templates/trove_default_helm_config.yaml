@@ -37,6 +37,32 @@ conf:
       volume_fstype: ext4
       cinder_volume_type: Standard
       enable_volume_az: true
+      # Disable per-instance RPC encryption.
+      #
+      # The conductor's ConductorHostSerializer needs to call
+      # trove.instance.models.DBInstance.find_by(id=...) to look up
+      # the per-instance key for decrypting agent heartbeats. In
+      # trove 23.0.1.dev29 (genestack-images trove:2025.1-latest)
+      # against SQLAlchemy 2.0.38, find_by raises:
+      #   ArgumentError: Column expression, FROM clause, or other
+      #   columns clause element expected, got
+      #   <class 'trove.instance.models.DBInstance'>
+      # The deserializer's `except (ValueError, TypeError)` doesn't
+      # catch ArgumentError, oslo.messaging silently drops every
+      # heartbeat, the service_statuses row never updates from
+      # status_id=23 ("new"), the taskmanager polls
+      # _service_is_active for 30 minutes, and the instance ERRORs
+      # with `Build error: guestagent timeout` even though mysqld
+      # came up healthy.
+      #
+      # With encryption off, the heartbeat is sent as a plain dict
+      # and the conductor's deserializer takes the early-return
+      # path without ever needing the per-instance key.
+      #
+      # Re-enable when upstream trove ships SQLAlchemy 2.x compat
+      # for DBInstance.find_by (or when we ship a patched trove
+      # container image).
+      enable_secure_rpc_messaging: false
     mysql:
       volume_support: true
     network:
