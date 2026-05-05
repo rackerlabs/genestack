@@ -67,7 +67,31 @@ pod:
           - name: trove-guest-cloudinit
             mountPath: /etc/trove/cloudinit
             readOnly: true
+          # Workaround until ghcr.io/rackerlabs/genestack-images/trove
+          # carries a 2026.1+ template. The 2025.1-latest image's
+          # mysql/config.template emits an unconditional
+          # `default_authentication_plugin = mysql_native_password`,
+          # which mysqld 8.4 rejects. Overlay the patched template so
+          # the server-side render produces a valid my.cnf.
+          - name: trove-mysql-config-template
+            mountPath: /var/lib/openstack/lib/python3.12/site-packages/trove/templates/mysql/config.template
+            subPath: config.template
+            readOnly: true
         volumes:
           - name: trove-guest-cloudinit
             configMap:
               name: trove-guest-cloudinit
+          - name: trove-mysql-config-template
+            configMap:
+              name: trove-mysql-config-template-override
+    trove_conductor:
+      trove_conductor:
+        volumeMounts:
+          - name: trove-mysql-config-template
+            mountPath: /var/lib/openstack/lib/python3.12/site-packages/trove/templates/mysql/config.template
+            subPath: config.template
+            readOnly: true
+        volumes:
+          - name: trove-mysql-config-template
+            configMap:
+              name: trove-mysql-config-template-override

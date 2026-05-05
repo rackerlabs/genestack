@@ -299,3 +299,27 @@
   ansible.builtin.file:
     path: /tmp/mysql.cloudinit
     state: absent
+
+# =========================================================================
+# PART 5: MYSQL CONFIG TEMPLATE OVERRIDE
+# =========================================================================
+# The trove-taskmanager pod renders the mysql my.cnf server-side from
+# trove/templates/mysql/config.template and ships it to the guest agent
+# over the prepare RPC. The genestack-images trove:2025.1-latest image
+# carries an outdated template that emits an unconditional
+# `default_authentication_plugin = mysql_native_password`, which mysqld
+# 8.4 rejects with "unknown variable" on startup. Newer upstream
+# templates gate that line behind a semantic_version check, so we mount
+# the patched template (from trove stable/2026.1) over the in-pod path.
+# Remove this override once a trove image carrying the fixed template
+# is available at ghcr.io/rackerlabs/genestack-images.
+
+- name: Apply trove-mysql-config-template-override ConfigMap
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      kubectl -n openstack create configmap trove-mysql-config-template-override \
+        --from-file=config.template={{ role_path }}/files/trove-mysql-config-template \
+        --dry-run=client -o yaml | kubectl apply -f -
+    executable: /bin/bash
+  changed_when: true
