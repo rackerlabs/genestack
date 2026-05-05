@@ -189,6 +189,26 @@
     - post-install.d/12-ntp
   when: _trove_do_build | bool
 
+# Bake debug tooling into the qcow2 via the DIB package list, NOT via
+# virt-customize --install. virt-customize spins up its own libguestfs
+# appliance VM to run apt, and in this lab the appliance has no working
+# DNS — so `apt-get update` from inside virt-customize fails with
+# "Temporary failure resolving 'mirror.rackspace.com'". DIB runs apt
+# directly on the build host (where DNS works), which is reliable.
+#
+# `iputils-ping` is already in noble's cloud rootfs; `iputils-tracepath`
+# and `tcpdump` are pulled in by trove's guest-agent package list. We
+# just need to add the missing arping, dnsutils, and traceroute.
+- name: Add debug-tooling packages to trove guest-agent DIB package list
+  ansible.builtin.blockinfile:
+    path: "{{ trove_build_dir }}/trove/integration/scripts/files/elements/guest-agent/package-installs.yaml"
+    marker: "# {mark} GENESTACK debug tools"
+    block: |
+      iputils-arping:
+      dnsutils:
+      traceroute:
+  when: _trove_do_build | bool
+
 - name: Build Trove guest image with disk-image-create
   ansible.builtin.shell: |
     source {{ trove_venv_dir }}/bin/activate
@@ -275,16 +295,15 @@
   until: _trove_skopeo_pull.rc == 0
   when: _trove_do_build | bool
 
-- name: Inject datastore image tarball + debug tools into qcow2 with virt-customize
+- name: Inject datastore image tarball into qcow2 with virt-customize
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      # The Canonical cloud rootfs ships iputils-ping but not arping,
-      # tracepath, traceroute, dnsutils, or tcpdump. Bake those in here
-      # while libguestfs is already spun up so guests are debuggable
-      # out of the box.
+      # Don't use virt-customize --install for debug packages — the
+      # libguestfs appliance VM has no working DNS in this lab and
+      # apt-get update fails. Debug tooling is added to the DIB
+      # package list instead, see the blockinfile task above.
       virt-customize -a {{ trove_build_dir }}/{{ trove_guest_image_name }}.qcow2 \
-        --install iputils-arping,iputils-tracepath,traceroute,dnsutils,tcpdump \
         --mkdir /var/lib/trove-images \
         --upload {{ trove_build_dir }}/datastore-image.tar:/var/lib/trove-images/datastore.tar
     executable: /bin/bash
