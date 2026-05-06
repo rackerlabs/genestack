@@ -15,6 +15,16 @@ images:
     ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
 
+# Extend deleted resource retention from default 1day to 90 days.
+# The resources_cleaner cronjob runs `gnocchi resource batch delete "ended_at < '-TTL'"`,
+# permanently removing resources (and their metrics) marked as ended longer than the TTL.
+# A longer retention window provides buffer for:
+#   - Billing reconciliation and historical queries
+#   - Investigating resource revision anomalies
+jobs:
+  resources_cleaner:
+    deleted_resources_ttl: '90d'
+
 ceph_client:
   user_secret_name: gnocchi-temp-keyring
 
