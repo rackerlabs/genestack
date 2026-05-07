@@ -1,0 +1,41 @@
+---
+# Distribute Trove SSH private key to the jump host and worker nodes.
+# Must run AFTER Trove is installed (the trove-ssh K8s secret must exist).
+
+- name: Get trove SSH private key from K8s secret
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      kubectl get secret trove-ssh -n openstack \
+        -o jsonpath='{.data.private-key}' | base64 --decode
+    executable: /bin/bash
+  register: _trove_ssh_private_key
+  changed_when: false
+  no_log: true
+
+# NOTE: Ansible's `shell` module strips trailing newlines from registered
+# stdout. OpenSSH refuses to load a private key file that doesn't end with
+# a newline ("error in libcrypto"), so we append one explicitly.
+- name: Write trove SSH private key on jump host (node-0)
+  ansible.builtin.copy:
+    content: "{{ _trove_ssh_private_key.stdout }}\n"
+    dest: "{{ ubuntu_home }}/.ssh/{{ trove_ssh_key_filename }}"
+    owner: ubuntu
+    group: ubuntu
+    mode: "0600"
+  no_log: true
+
+- name: Write trove SSH private key on {{ item }}
+  ansible.builtin.copy:
+    content: "{{ _trove_ssh_private_key.stdout }}\n"
+    dest: "{{ ubuntu_home }}/.ssh/{{ trove_ssh_key_filename }}"
+    owner: ubuntu
+    group: ubuntu
+    mode: "0600"
+  delegate_to: "{{ item }}"
+  vars:
+    ansible_connection: ssh
+  loop:
+    - "{{ lab_name_prefix }}-1.cluster.local"
+    - "{{ lab_name_prefix }}-2.cluster.local"
+  no_log: true

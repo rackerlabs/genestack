@@ -1,0 +1,12 @@
+---
+pod:
+  resources:
+    enabled: false
+
+conf:
+  barbican_api_uwsgi:
+    uwsgi:
+      processes: 4
+  barbican:
+    oslo_messaging_notifications:
+      driver: noop

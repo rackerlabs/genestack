@@ -1,0 +1,62 @@
+Content-Type: multipart/mixed; boundary="==TROVE_BOUNDARY=="
+MIME-Version: 1.0
+
+--==TROVE_BOUNDARY==
+Content-Type: text/x-shellscript; charset="us-ascii"
+MIME-Version: 1.0
+
+#!/bin/bash
+# K8s service reachability via the trove-mgmt-bridge anchor pod on
+# trove-mgmt-net (geneve overlay). The anchor IP runs haproxy that
+# forwards 5672/5000 to the in-cluster Services.
+echo '{{ trove_services_vip_ip }} rabbitmq.openstack.svc.cluster.local' >> /etc/hosts
+echo '{{ trove_services_vip_ip }} keystone-api.openstack.svc.cluster.local' >> /etc/hosts
+
+# Write the guest-agent transport_url + control_exchange. Without this,
+# trove-guestagent has no transport_url, falls back to localhost:5672,
+# and loops ECONNREFUSED forever. We do this in the shellscript section
+# (not via cloud-config write_files) because trove-taskmanager appends
+# its own write_files block to the same cloud-config part — duplicate
+# top-level YAML keys collapse to the last one and our entry is silently
+# dropped.
+mkdir -p /etc/trove/conf.d
+echo '{{ trove_guest_transport_conf_b64 }}' | base64 -d > /etc/trove/conf.d/transport.conf
+chown ubuntu:root /etc/trove/conf.d/transport.conf
+chmod 0640 /etc/trove/conf.d/transport.conf
+
+# Pre-baked datastore image — load it before guest-agent tries to
+# docker pull at prepare time. The image was injected into /var/lib/
+# trove-images/datastore.tar by virt-customize during build, so guests
+# don't need internet at prepare time. Wait briefly for docker.service
+# to be ready (cloud-init final can race ahead of multi-user.target).
+if [ -f /var/lib/trove-images/datastore.tar ]; then
+  for _i in 1 2 3 4 5; do
+    if docker info >/dev/null 2>&1; then break; fi
+    sleep 2
+  done
+  docker load -i /var/lib/trove-images/datastore.tar 2>&1 | head -3
+fi
+
+# guest-agent.service may have started already (it depends on
+# network.target, not cloud-init.target), so it likely loaded its config
+# before transport.conf was written. Force a restart so it picks up the
+# transport_url; without this it loops ECONNREFUSED to localhost:5672.
+systemctl try-restart guest-agent.service || true
+
+# The mgmt subnet is --no-dhcp / --gateway none. The guest's *other*
+# vNIC (the customer tenant network) supplies DHCP, default route, and
+# resolver normally — but in the lab we hard-pin public resolvers as a
+# safety net so cloud-init's package fetches and docker pulls work even
+# if the tenant network's DNS lookup is slow.
+rm -f /etc/resolv.conf
+cat >/etc/resolv.conf <<RESOLV
+nameserver 1.1.1.1
+nameserver 8.8.8.8
+options timeout:2 attempts:2
+RESOLV
+chattr +i /etc/resolv.conf 2>/dev/null || true
+
+--==TROVE_BOUNDARY==
+Content-Type: text/cloud-config; charset="us-ascii"
+MIME-Version: 1.0
+

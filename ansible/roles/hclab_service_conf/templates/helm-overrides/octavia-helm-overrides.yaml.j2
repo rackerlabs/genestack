@@ -1,0 +1,17 @@
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  octavia:
+    DEFAULT:
+      debug: true
+    oslo_messaging_notifications:
+      driver: noop
+    controller_worker:
+      loadbalancer_topology: SINGLE
+      workers: 1
+  octavia_api_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1

@@ -1,0 +1,18 @@
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  neutron:
+    DEFAULT:
+      api_workers: 4
+      rpc_workers: 4
+      rpc_state_report_workers: 2
+    oslo_messaging_notifications:
+      driver: noop
+  plugins:
+    ml2_conf:
+      ml2_type_flat:
+        flat_networks: "physnet1"
+      ml2_type_vlan:
+        network_vlan_ranges: "physnet1"

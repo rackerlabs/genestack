@@ -1,0 +1,325 @@
+---
+# Configure Trove Helm values by deep-merging the driver config template
+# into the existing trove-helm-overrides.yaml.
+
+# =========================================================================
+# PART 1: GATHER REQUIRED IDS
+# =========================================================================
+
+- name: Get Trove management network ID for management_networks
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      source {{ genestack_venv }}/bin/activate
+      openstack --os-cloud {{ os_cloud }} network show {{ trove_mgmt_network_name }} \
+        -f value -c id
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_mgmt_network_id
+  changed_when: false
+
+- name: Get trove security group ID
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      source {{ genestack_venv }}/bin/activate
+      openstack --os-cloud {{ os_cloud }} security group show {{ trove_secgroup_name }} \
+        -f value -c id
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_secgroup_id
+  changed_when: false
+
+- name: Get trove admin password from K8s secret (if not already set)
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      kubectl --namespace openstack get secret trove-admin \
+        -o jsonpath='{.data.password}' | base64 -d
+    executable: /bin/bash
+  register: _trove_admin_password_helm
+  changed_when: false
+  no_log: true
+  when: _trove_admin_password is not defined or _trove_admin_password.stdout is not defined
+
+- name: Resolve trove admin password
+  ansible.builtin.set_fact:
+    _trove_resolved_admin_pw: >-
+      {{ (_trove_admin_password.stdout | default(''))
+         if (_trove_admin_password is defined and _trove_admin_password.stdout is defined)
+         else (_trove_admin_password_helm.stdout | default('')) }}
+  no_log: true
+
+# =========================================================================
+# PART 2: TEMPLATE THE HELM CONFIG FRAGMENT
+# =========================================================================
+
+- name: Ensure trove helm config directory exists
+  ansible.builtin.file:
+    path: "{{ helm_config_base }}/trove"
+    state: directory
+    mode: "0755"
+
+- name: Template Trove helm config fragment
+  ansible.builtin.template:
+    src: "{{ trove_helm_config_template }}"
+    dest: /tmp/trove_helm_config_fragment.yaml
+    mode: "0644"
+
+# =========================================================================
+# PART 3: DEEP-MERGE INTO EXISTING OVERRIDES
+# =========================================================================
+
+- name: Deep-merge Trove helm config into trove-helm-overrides.yaml
+  ansible.builtin.script:
+    cmd: >-
+      deep_merge_yaml.py
+      {{ helm_config_base }}/trove/trove-helm-overrides.yaml
+      /tmp/trove_helm_config_fragment.yaml
+    executable: python3
+  register: _helm_merge_result
+  changed_when: true
+
+- name: Remove temporary helm config fragment
+  ansible.builtin.file:
+    path: /tmp/trove_helm_config_fragment.yaml
+    state: absent
+
+- name: Report Trove helm config merge
+  ansible.builtin.debug:
+    msg: >-
+      Trove helm overrides updated at {{ helm_config_base }}/trove/trove-helm-overrides.yaml
+      (management_networks={{ _trove_mgmt_network_id.stdout | trim }},
+       management_security_groups={{ _trove_secgroup_id.stdout | trim }},
+       nova_keypair={{ trove_keypair_name }})
+
+# =========================================================================
+# PART 4: GUEST VM CONNECTIVITY — trove-mgmt-bridge DaemonSet
+# =========================================================================
+# Trove guest VMs sit on trove-mgmt-net (geneve overlay) and reach
+# RabbitMQ + Keystone via per-chassis "anchor" pods that proxy 5672/5000
+# to the in-cluster Services through cluster DNS. Each anchor pod's
+# Neutron LSP is bound to a specific chassis via --host=, mirroring the
+# Octavia health-manager pattern.
+
+- name: Get trove services security group ID
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} security group show
+      {{ trove_services_secgroup_name }} -f value -c id
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_svc_sg_id
+  changed_when: false
+
+# --- Step 1: Per-chassis anchor ports on trove-mgmt-net ---
+
+- name: Create per-chassis anchor ports on trove-mgmt-net
+  ansible.builtin.script:
+    cmd: >-
+      create_trove_mgmt_ports.sh
+      {{ trove_mgmt_network_name }}
+      {{ _trove_svc_sg_id.stdout | trim }}
+      {{ trove_mgmt_subnet_name }}
+      {{ trove_mgmt_anchor_base_offset }}
+      {{ os_cloud }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  changed_when: true
+
+# --- Step 2: Per-node port-info ConfigMap + init script & haproxy ConfigMaps ---
+
+# The init container is a stripped-down OVS image without the openstack
+# CLI. We pre-resolve each anchor port's LSP UUID, IP, and prefix length
+# here in ansible (where the genestack venv has openstack), and ship them
+# into the cluster as a ConfigMap with one shell-sourceable file per node.
+# The init script reads /etc/trove-mgmt-bridge/ports/<short-node-name>.
+
+- name: Render trove-mgmt-bridge port-info ConfigMap
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      source {{ genestack_venv }}/bin/activate
+
+      tmp=$(mktemp)
+      trap 'rm -f "$tmp"' EXIT
+
+      PREFIX_LEN=$(openstack --os-cloud {{ os_cloud }} subnet show \
+        {{ trove_mgmt_subnet_name }} -f value -c cidr | awk -F/ '{print $2}')
+
+      {
+        echo "apiVersion: v1"
+        echo "kind: ConfigMap"
+        echo "metadata:"
+        echo "  name: trove-mgmt-bridge-ports"
+        echo "  namespace: openstack"
+        echo "data:"
+        for port in $(openstack --os-cloud {{ os_cloud }} port list \
+                       --device-owner trove:management-bridge \
+                       -f value -c Name | sort); do
+          short="${port#trove-mgmt-bridge-port-}"
+          info=$(openstack --os-cloud {{ os_cloud }} port show "$port" -f json)
+          lsp=$(echo "$info" | jq -r .id)
+          mac=$(echo "$info" | jq -r .mac_address)
+          ip=$(echo "$info"  | jq -r '.fixed_ips[0].ip_address')
+          echo "  ${short}: |"
+          echo "    LSP_UUID=${lsp}"
+          echo "    LSP_MAC=${mac}"
+          echo "    IP_ADDR=${ip}"
+          echo "    PREFIX_LEN=${PREFIX_LEN}"
+        done
+      } > "$tmp"
+
+      kubectl apply -f "$tmp"
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  changed_when: true
+
+- name: Apply trove-mgmt-bridge init-script ConfigMap
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      kubectl -n openstack create configmap trove-mgmt-bridge-init \
+        --from-file=bridge-init.sh={{ role_path }}/files/trove-mgmt-bridge-init.sh \
+        --dry-run=client -o yaml | kubectl apply -f -
+    executable: /bin/bash
+  changed_when: true
+
+- name: Render trove-mgmt-bridge haproxy.cfg
+  ansible.builtin.template:
+    src: trove-mgmt-bridge-haproxy.cfg.j2
+    dest: /tmp/trove-mgmt-bridge-haproxy.cfg
+    mode: "0644"
+
+- name: Apply trove-mgmt-bridge haproxy ConfigMap
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      kubectl -n openstack create configmap trove-mgmt-bridge-haproxy \
+        --from-file=haproxy.cfg=/tmp/trove-mgmt-bridge-haproxy.cfg \
+        --dry-run=client -o yaml | kubectl apply -f -
+    executable: /bin/bash
+  changed_when: true
+
+- name: Remove temporary haproxy.cfg
+  ansible.builtin.file:
+    path: /tmp/trove-mgmt-bridge-haproxy.cfg
+    state: absent
+
+# --- Step 3: trove-mgmt-bridge DaemonSet ---
+
+- name: Render trove-mgmt-bridge DaemonSet manifest
+  ansible.builtin.template:
+    src: trove-mgmt-bridge-daemonset.yaml.j2
+    dest: /tmp/trove-mgmt-bridge-daemonset.yaml
+    mode: "0644"
+
+- name: Apply trove-mgmt-bridge DaemonSet
+  ansible.builtin.shell:
+    cmd: kubectl apply -f /tmp/trove-mgmt-bridge-daemonset.yaml
+    executable: /bin/bash
+  changed_when: true
+
+- name: Remove temporary DaemonSet manifest
+  ansible.builtin.file:
+    path: /tmp/trove-mgmt-bridge-daemonset.yaml
+    state: absent
+
+- name: Wait for trove-mgmt-bridge DaemonSet to roll out
+  ansible.builtin.shell:
+    cmd: kubectl -n openstack rollout status ds/trove-mgmt-bridge --timeout=180s
+    executable: /bin/bash
+  changed_when: false
+
+# --- Step 4: Cloud-init ConfigMap pointing trove guests at the anchor IP ---
+
+- name: Render & base64-encode trove-guest transport.conf
+  # Single shell that reads the rabbit creds from the K8s secret, builds
+  # the transport.conf content, and base64-encodes it. Avoids Jinja
+  # backslash-newline pitfalls.
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      U=$(kubectl -n openstack get secret trove-rabbitmq-password \
+            -o jsonpath='{.data.username}' | base64 -d)
+      P=$(kubectl -n openstack get secret trove-rabbitmq-password \
+            -o jsonpath='{.data.password}' | base64 -d)
+      cat <<EOF | base64 -w0
+      [DEFAULT]
+      transport_url = rabbit://${U}:${P}@rabbitmq.openstack.svc.cluster.local:5672/trove
+      control_exchange = trove
+
+      [oslo_messaging_rabbit]
+      # Must match the conductor's RabbitMQ settings (in
+      # trove-helm-overrides.yaml: conf.trove.oslo_messaging_rabbit) or
+      # exchange/queue redeclares fail with PRECONDITION_FAILED. We use
+      # classic non-durable queues here; production HA can re-enable
+      # quorum queues by flipping these on both sides simultaneously.
+      rabbit_quorum_queue = false
+      rabbit_transient_quorum_queue = false
+      amqp_durable_queues = false
+      EOF
+    executable: /bin/bash
+  register: _trove_transport_b64
+  changed_when: false
+  no_log: true
+
+- name: Set trove_guest_transport_conf_b64 fact
+  ansible.builtin.set_fact:
+    trove_guest_transport_conf_b64: "{{ _trove_transport_b64.stdout | trim }}"
+  no_log: true
+
+- name: Template Trove guest cloud-init file
+  ansible.builtin.template:
+    src: trove-mysql-cloudinit.j2
+    dest: /tmp/mysql.cloudinit
+    mode: "0644"
+  vars:
+    trove_services_vip_ip: "{{ trove_services_anchor_ip }}"
+
+- name: Create or update trove-guest-cloudinit ConfigMap
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      kubectl create configmap trove-guest-cloudinit \
+        --namespace openstack \
+        --from-file=mysql.cloudinit=/tmp/mysql.cloudinit \
+        --dry-run=client -o yaml | kubectl apply -f -
+    executable: /bin/bash
+  register: _cloudinit_cm_result
+  changed_when: "'configured' in _cloudinit_cm_result.stdout or 'created' in _cloudinit_cm_result.stdout"
+
+- name: Remove temporary cloud-init file
+  ansible.builtin.file:
+    path: /tmp/mysql.cloudinit
+    state: absent
+
+# =========================================================================
+# PART 5: MYSQL CONFIG TEMPLATE OVERRIDE
+# =========================================================================
+# The trove-taskmanager pod renders the mysql my.cnf server-side from
+# trove/templates/mysql/config.template and ships it to the guest agent
+# over the prepare RPC. The genestack-images trove:2025.1-latest image
+# carries an outdated template that emits an unconditional
+# `default_authentication_plugin = mysql_native_password`, which mysqld
+# 8.4 rejects with "unknown variable" on startup. Newer upstream
+# templates gate that line behind a semantic_version check, so we mount
+# the patched template (from trove stable/2026.1) over the in-pod path.
+# Remove this override once a trove image carrying the fixed template
+# is available at ghcr.io/rackerlabs/genestack-images.
+
+- name: Apply trove-mysql-config-template-override ConfigMap
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      kubectl -n openstack create configmap trove-mysql-config-template-override \
+        --from-file=config.template={{ role_path }}/files/trove-mysql-config-template \
+        --dry-run=client -o yaml | kubectl apply -f -
+    executable: /bin/bash
+  changed_when: true

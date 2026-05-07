@@ -1,0 +1,12 @@
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  cloudkitty:
+    oslo_messaging_notifications:
+      driver: noop
+  cloudkitty_api_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1

@@ -1,0 +1,94 @@
+---
+# Trove keypair creation (post-deploy): must run AFTER the Trove helm chart
+# is installed, because the trove-ks-user job creates the Keystone user.
+# Nova keypairs are scoped to user+project — the keypair must be created
+# as the 'trove' user in the 'service' project.
+
+# =========================================================================
+# PART 1: GET TROVE CREDENTIALS FROM K8S SECRETS
+# =========================================================================
+
+- name: Get trove SSH public key from K8s secret
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      kubectl get secret trove-ssh -n openstack \
+        -o jsonpath='{.data.public-key}' | base64 --decode
+    executable: /bin/bash
+  register: _trove_ssh_public_key
+  changed_when: false
+
+- name: Get trove admin password from K8s secret
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      kubectl --namespace openstack get secret trove-admin \
+        -o jsonpath='{.data.password}' | base64 -d
+    executable: /bin/bash
+  register: _trove_admin_password
+  changed_when: false
+  no_log: true
+
+# =========================================================================
+# PART 2: WRITE TROVE OPENRC
+# =========================================================================
+
+- name: Write trove-openrc file
+  ansible.builtin.copy:
+    content: |
+      export OS_AUTH_URL=http://keystone-api.openstack.svc.cluster.local:5000/v3
+      export OS_PROJECT_NAME=service
+      export OS_TENANT_NAME=default
+      export OS_PROJECT_DOMAIN_NAME=service
+      export OS_USERNAME=trove
+      export OS_PASSWORD={{ _trove_admin_password.stdout }}
+      export OS_USER_DOMAIN_NAME=service
+      export OS_REGION_NAME=RegionOne
+      export OS_INTERFACE=internal
+      export OS_IDENTITY_API_VERSION="3"
+    dest: "{{ ubuntu_home }}/openrc-trove"
+    owner: ubuntu
+    group: ubuntu
+    mode: "0600"
+  no_log: true
+
+# =========================================================================
+# PART 3: CREATE KEYPAIR (as trove service user)
+# =========================================================================
+
+- name: Check if trove keypair exists (as trove service user)
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      source {{ ubuntu_home }}/openrc-trove &&
+      openstack keypair show {{ trove_keypair_name }} -f json
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_keypair_check
+  changed_when: false
+  failed_when: false
+
+- name: Write trove SSH public key to temp file
+  ansible.builtin.copy:
+    content: "{{ _trove_ssh_public_key.stdout }}"
+    dest: /tmp/trove-access-key.pub
+    mode: "0644"
+  when: _trove_keypair_check.rc != 0
+
+- name: Create trove access keypair (as trove service user)
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      source {{ ubuntu_home }}/openrc-trove &&
+      openstack keypair create
+      --public-key /tmp/trove-access-key.pub {{ trove_keypair_name }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: _trove_keypair_check.rc != 0
+
+- name: Remove temp public key file
+  ansible.builtin.file:
+    path: /tmp/trove-access-key.pub
+    state: absent

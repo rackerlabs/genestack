@@ -1,0 +1,62 @@
+---
+images:
+  tags:
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:1771721167"
+    cinder_api: "ghcr.io/rackerlabs/genestack-images/cinder:2025.1-1771115871"
+    cinder_backup: "ghcr.io/rackerlabs/genestack-images/cinder:2025.1-1771115871"
+    cinder_db_sync: "ghcr.io/rackerlabs/genestack-images/cinder:2025.1-1771115871"
+    cinder_db_purge: "ghcr.io/rackerlabs/genestack-images/cinder:2025.1-1771115871"
+    cinder_scheduler: "ghcr.io/rackerlabs/genestack-images/cinder:2025.1-1771115871"
+    cinder_volume: "ghcr.io/rackerlabs/genestack-images/cinder:2025.1-1771115871"
+    cinder_volume_usage_audit: "ghcr.io/rackerlabs/genestack-images/cinder:2025.1-1771115871"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:1771721167"
+    db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:1771721167"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:1771720239"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:1771721167"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:1771721167"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:1771721167"
+pod:
+  resources:
+    enabled: true
+    api:
+      requests:
+        cpu: "1"
+        memory: "1Gi"
+      limits:
+        cpu: "2"
+        memory: "2Gi"
+    scheduler:
+      requests:
+        cpu: "1"
+        memory: "1Gi"
+      limits:
+        cpu: "2"
+        memory: "2Gi"
+conf:
+  policy:
+    "volume_extension:types_extra_specs:read_sensitive": "rule:xena_system_admin_or_project_reader"
+  cinder:
+    DEFAULT:
+      osapi_volume_workers: 2
+      rpc_response_timeout: 300
+      enabled_backends: "lvmdriver-1"
+      default_volume_type: "Standard"
+      default_availability_zone: "az1"
+  backends:
+    lvmdriver-1:
+      image_volume_cache_enabled: true
+      iscsi_iotype: fileio
+      iscsi_num_targets: 100
+      lvm_type: default
+      target_helper: tgtadm
+      target_port: 3260
+      target_protocol: iscsi
+      volume_backend_name: LVM_iSCSI
+      volume_clear: zero
+      volume_driver: cinder_rxt.rackspace.RXTLVM
+      volume_group: {{ cinder_volume_group }}
+      volume_clear_size: 128
+  cinder_api_uwsgi:
+    uwsgi:
+      processes: 2
+      threads: 1
