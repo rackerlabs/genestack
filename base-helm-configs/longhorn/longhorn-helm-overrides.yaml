@@ -1,16 +1,34 @@
 ---
-longhornDriver:
+global:
   nodeSelector:
     longhorn.io/storage-node: "enabled"
-longhornUI:
-  nodeSelector:
-    longhorn.io/storage-node: "enabled"
-longhornConversionWebhook:
-  nodeSelector:
-    longhorn.io/storage-node: "enabled"
-longhornAdmissionWebhook:
-  nodeSelector:
-    longhorn.io/storage-node: "enabled"
-longhornRecoveryBackend:
-  nodeSelector:
-    longhorn.io/storage-node: "enabled"
+
+  defaultSettings:
+    systemManagedComponentsNodeSelector: "longhorn.io/storage-node:enabled"
+
+# The two values above cover all user-deployed components in the Longhorn Helm chart.
+# The setting above under defaultSettings covers the system-managed components.
+# The individual component definitions below are optional overrides and are listed for completeness.
+#longhornManager:
+#   nodeSelector:
+#     longhorn.io/storage-node: "enabled"
+#
+#longhornDriver:
+#   nodeSelector:
+#     longhorn.io/storage-node: "enabled"
+#
+#longhornUI:
+#   nodeSelector:
+#     longhorn.io/storage-node: "enabled"
+#
+#longhornConversionWebhook:
+#   nodeSelector:
+#     longhorn.io/storage-node: "enabled"
+#
+#longhornAdmissionWebhook:
+#   nodeSelector:
+#     longhorn.io/storage-node: "enabled"
+#
+#longhornRecoveryBackend:
+#   nodeSelector:
+#     longhorn.io/storage-node: "enabled"
