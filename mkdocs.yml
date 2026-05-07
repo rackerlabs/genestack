@@ -318,7 +318,8 @@ nav:
           - Networking:
               - Creating Networks: openstack-neutron-networks.md
           - Containers:
-              - Creating kubernetes clusters: magnum-kubernetes-cluster-setup-guide.md
+              - Creating Kubernetes Clusters (CAPI): openstack-magnum.md
+              - Creating Kubernetes Clusters (Legacy): magnum-kubernetes-cluster-setup-guide.md
           - Loadbalancers:
               - Creating Flavor Profiles and Flavors: octavia-flavor-and-flavorprofile-guide.md
               - Creating Cloud Load Balancers: octavia-loadbalancer-setup-guide.md
