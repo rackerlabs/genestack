@@ -26,6 +26,8 @@ Nova may not see a newly available node immediately after enrollment because the
 The provisioning flow typically follows this sequence:
 
 ```text
+Create provisioning network
+   ->
 Create flavor
    ->
 Set bare metal resource class mapping
@@ -49,21 +51,22 @@ Create server with matching flavor and required image
 
 This guide walks through the following workflow:
 
-1. Create a flavor for bare metal server
-2. Set a resource class mapping so Nova can match the flavor to the correct Ironic node
-3. Enroll the physical node into Ironic with the correct driver and interfaces
-4. Set properties and driver details such as hardware specs, BMC credentials, and boot method
-5. Create ports so the node can participate in provisioning and tenant networking
-6. Validate step verifies that required fields are present and the interfaces such as power, management, deploy, boot, and others report valid/usable for the baremetal node
-7. Manage step moves the bare metal node from enroll to manageable by starting verification and confirming that Ironic can control the node using the configured interfaces and credentials.
-8. Provide the node to transition it into the available state, making it ready for scheduling.
-9. Create a server with the matching flavor and image using either PXE/iPXE or virtual media boot.
+1. Create The Ironic Provisioning Network
+2. Create a flavor for bare metal server
+3. Set a resource class mapping so Nova can match the flavor to the correct Ironic node
+4. Enroll the physical node into Ironic with the correct driver and interfaces
+5. Set properties and driver details such as hardware specs, BMC credentials, and boot method
+6. Create ports so the node can participate in provisioning and tenant networking
+7. Validate step verifies that required fields are present and the interfaces such as power, management, deploy, boot, and others report valid/usable for the baremetal node
+8. Manage step moves the bare metal node from enroll to manageable by starting verification and confirming that Ironic can control the node using the configured interfaces and credentials.
+9. Provide the node to transition it into the available state, making it ready for scheduling.
+10. Create a server with the matching flavor and image using either PXE/iPXE or virtual media boot.
 
 Ironic supports multiple boot interfaces. PXE is the standard network boot mechanism, while virtual media typically relies on the BMC to mount boot media remotely instead of using traditional PXE infrastructure.
 
 ## Prerequisites
 
-Before enrolling a node, ensure that the OpenStack environment and all required services are properly configured and available. Also create the dedicated provisioning network, if it does not already exist.
+Before enrolling a node, ensure that the OpenStack environment and all required services are properly configured and available. 
 
 ### Source Administrative Credentials
 
@@ -83,15 +86,15 @@ openstack network create \
   --provider-physical-network physnet2 \
   --provider-network-type flat \
   --disable-port-security \
-  ironic
+  baremetal-provisioning-network
 
 openstack subnet create \
   --allocation-pool start=172.23.209.11,end=172.23.211.254 \
   --gateway 172.23.208.1 \
   --dns-nameserver 1.1.1.1 \
   --subnet-range 172.23.208.0/22 \
-  --network ironic \
-  ironic-subnet1
+  --network baremetal-provisioning-network \
+  baremetal-provisioning-subnet
 ```
 
 ### Create Bare Metal Flavor
@@ -339,7 +342,7 @@ openstack server create \
   --flavor GP2.XL \
   --image ubuntu-jammy-metal-simple \
   --key-name <nova key name> \
-  --network ironic $node
+  --network baremetal-provisioning-network $node
 
 --hint query='["=", "$hypervisor_hostname", "<baremetal_node_UUID>"]'
 
