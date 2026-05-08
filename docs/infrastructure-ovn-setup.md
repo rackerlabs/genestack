@@ -216,7 +216,7 @@ kubectl annotate \
 With all of the annotations defined, we can now apply the network policy with the following command.
 
 ``` shell
-kubectl apply -k /etc/genestack/kustomize/ovn/base
+kubectl apply -k /etc/genestack/kustomize/ovn/overlay
 ```
 
 After running the setup, nodes will have the label `ovn.openstack.org/configured` with a date stamp when it was configured.
