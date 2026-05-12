@@ -37,6 +37,17 @@ lab_flat_external_gateway_ip: "192.168.102.1"
 lab_flat_external_bridge: "br-ex"
 lab_flat_external_gateway_host: "hyperconverged-0.cluster.local"
 
+# Physical uplink that kube-ovn plumbs into the flat-external bridge
+# (`ovs-vsctl list-ports br-ex` shows this NIC on every chassis). The
+# OVS port itself exists but kube-ovn doesn't ensure the underlying
+# Linux netdev is admin-UP, so the L2 stays segregated per-chassis:
+# each host's br-ex is isolated, OVN routers can only reach a flat-
+# external destination on the same chassis they're scheduled to. Bring
+# the NIC UP everywhere so the three br-ex bridges form one shared L2
+# segment and a single gateway IP on one host serves OVN routers on
+# any chassis.
+lab_flat_external_uplink_iface: "enp4s0"
+
 host_sysstat_enabled: true
 host_sysstat_interval: 1
 host_sysstat_statistics_hour: 23

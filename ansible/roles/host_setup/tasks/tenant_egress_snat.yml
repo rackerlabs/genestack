@@ -126,6 +126,12 @@
       # before re-loading. `-` ignores failure when not present.
       ExecStartPre=-/usr/sbin/nft delete table inet genestack-snat
       ExecStart=/usr/sbin/nft -f /etc/nftables.d/genestack-tenant-snat.nft
+      # Bring the flat-external uplink NIC UP at L2 on every chassis.
+      # kube-ovn plumbs it into br-ex via the physnet1 mapping, but
+      # leaves the underlying Linux netdev admin-DOWN. Without this
+      # the per-host br-ex bridges stay isolated and a single gateway
+      # IP can't serve OVN routers scheduled to other chassis.
+      ExecStart=/usr/sbin/ip link set {{ lab_flat_external_uplink_iface }} up
       {% if _tenant_egress_is_gateway_host | default(false) | bool %}
       # Designated L3 gateway for flat external. OVS auto-creates a
       # Linux netdev matching the bridge name; bring it up and pin the
@@ -173,6 +179,17 @@
   ansible.builtin.command:
     cmd: nft list table inet genestack-snat
   changed_when: false
+  when: lab_tenant_egress_snat_enabled | bool
+  tags:
+    - hosts-config
+    - tenant-egress-snat
+
+- name: Verify flat-external uplink NIC is UP
+  ansible.builtin.command:
+    cmd: ip -br link show dev {{ lab_flat_external_uplink_iface }}
+  register: _flat_uplink_state
+  changed_when: false
+  failed_when: "'UP' not in _flat_uplink_state.stdout"
   when: lab_tenant_egress_snat_enabled | bool
   tags:
     - hosts-config
