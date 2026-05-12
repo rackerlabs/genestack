@@ -102,7 +102,6 @@
               ip saddr {{ lab_flat_external_cidr }} ip daddr != {{ lab_flat_external_cidr }} counter masquerade comment "genestack-tenant-snat"
           }
       }
-  notify: Reload genestack-tenant-snat
   when: lab_tenant_egress_snat_enabled | bool
   tags:
     - hosts-config
@@ -140,34 +139,30 @@
 
       [Install]
       WantedBy=multi-user.target
-  notify:
-    - Systemd daemon reload
-    - Reload genestack-tenant-snat
   when: lab_tenant_egress_snat_enabled | bool
   tags:
     - hosts-config
     - tenant-egress-snat
 
-# Force any pending unit-file / nft drop-in notifies to fire BEFORE
-# the verify tasks below. Without this, handlers run at the very end
-# of the play, so on a unit-file change the service is still running
-# the old ExecStart commands when the verify checks execute — `Verify
-# flat-external gateway IP is on br-ex` then fails because the old
-# unit didn't include the br-ex bring-up. Worse, a failed verify
-# suppresses the handler entirely on that host, so the unit file is
-# updated on disk but never reloaded into systemd. flush_handlers
-# breaks the loop.
-- name: Apply pending genestack-tenant-snat notifies before verification
-  ansible.builtin.meta: flush_handlers
-  tags:
-    - hosts-config
-    - tenant-egress-snat
-
-- name: Ensure genestack-tenant-snat is enabled and started
+# Unconditionally reload+restart on every run instead of going through
+# `notify` handlers. Rationale: the previous handler-based design got
+# stuck across runs — if a verify task failed mid-play, the queued
+# `Reload genestack-tenant-snat` handler was suppressed on that host,
+# the unit file on disk was updated but never (re)loaded into systemd,
+# and subsequent runs found no diff so no notify fired and the host
+# stayed on stale ExecStart content forever. Hard to recover from
+# without manually `systemctl restart`-ing.
+#
+# Since this is a `Type=oneshot RemainAfterExit=yes` service, restart
+# means: run ExecStop (nft delete + ip addr del), then run ExecStart
+# (nft -f + ip link up + ip addr add). It's milliseconds and produces
+# the same end state as the previous run — restarting on every play
+# is cheap, deterministic, and self-healing.
+- name: Reload systemd and (re)start genestack-tenant-snat
   ansible.builtin.systemd:
     name: genestack-tenant-snat.service
     enabled: true
-    state: started
+    state: restarted
     daemon_reload: true
   when: lab_tenant_egress_snat_enabled | bool
   tags:

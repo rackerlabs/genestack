@@ -76,9 +76,3 @@
   ansible.builtin.shell: >-
     udevadm control --reload-rules && udevadm trigger
   failed_when: false
-
-- name: Reload genestack-tenant-snat
-  ansible.builtin.systemd:
-    name: genestack-tenant-snat.service
-    state: restarted
-    daemon_reload: true
