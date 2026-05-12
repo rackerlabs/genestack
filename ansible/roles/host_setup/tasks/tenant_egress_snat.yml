@@ -1,0 +1,100 @@
+---
+# Inner-cloud tenant egress to the public internet.
+#
+# Each tenant's neutron router has an external_gateway_info IP from the
+# lab's "flat" external network (default 192.168.102.0/24). OVN SNATs
+# tenant traffic to that IP and forwards it onto the flat network —
+# which is just an L2 segment plumbed onto the hyperconverged host's
+# br-service / br-flat bridge. Nothing upstream of the host knows how
+# to route 192.168.102.0/24, so reply packets to the SNAT'd source IP
+# never come back. From inside a tenant VM:
+#
+#   testdb3:~$ ping 8.8.8.8
+#   --- 8.8.8.8 ping statistics ---
+#   3 packets transmitted, 0 received, 100% packet loss
+#   testdb3:~$ traceroute 8.8.8.8
+#    1  192.168.50.1     # tenant gateway
+#    2  * * *            # router SNATs to 192.168.102.x and dies here
+#
+# The hyperconverged host itself has working internet (that's how apt
+# and helm work on the overseer). MASQUERADE-ing the flat external
+# CIDR through the host translates 192.168.102.x to the host's own
+# routable address, conntrack maps the reply back, and tenant VMs get
+# functioning outbound — for every tenant, automatically, no per-
+# instance fix required.
+#
+# Idempotency: the systemd unit's ExecStartPre deletes any prior
+# matching rule (with the `genestack-tenant-snat` comment) before
+# ExecStart re-adds it, so re-runs don't accumulate duplicate rules.
+# ExecStop removes the rule cleanly if the unit is disabled.
+#
+# This is a *lab* feature. In a production genestack deployment the
+# flat external network is routable upstream and this MASQUERADE
+# should stay off; toggle via `lab_tenant_egress_snat_enabled`.
+
+- name: Enable IPv4 forwarding for inner-cloud tenant egress
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    state: present
+    sysctl_set: true
+    reload: true
+  when: lab_tenant_egress_snat_enabled | bool
+
+- name: Install systemd unit to MASQUERADE inner-cloud tenant egress
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/genestack-tenant-snat.service
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Genestack lab: MASQUERADE inner-cloud tenant egress ({{ lab_flat_external_cidr }})
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      # Idempotency: delete any prior rule with the same comment first
+      # (ignore failure if it doesn't exist), then add fresh.
+      ExecStartPre=-/usr/sbin/iptables -t nat -D POSTROUTING -s {{ lab_flat_external_cidr }} ! -d {{ lab_flat_external_cidr }} -j MASQUERADE -m comment --comment genestack-tenant-snat
+      ExecStart=/usr/sbin/iptables -t nat -A POSTROUTING -s {{ lab_flat_external_cidr }} ! -d {{ lab_flat_external_cidr }} -j MASQUERADE -m comment --comment genestack-tenant-snat
+      ExecStop=/usr/sbin/iptables -t nat -D POSTROUTING -s {{ lab_flat_external_cidr }} ! -d {{ lab_flat_external_cidr }} -j MASQUERADE -m comment --comment genestack-tenant-snat
+
+      [Install]
+      WantedBy=multi-user.target
+  notify: Systemd daemon reload
+  when: lab_tenant_egress_snat_enabled | bool
+
+- name: Ensure genestack-tenant-snat is enabled and started
+  ansible.builtin.systemd:
+    name: genestack-tenant-snat.service
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: lab_tenant_egress_snat_enabled | bool
+
+- name: Verify MASQUERADE rule is present
+  ansible.builtin.command:
+    cmd: iptables -t nat -C POSTROUTING -s {{ lab_flat_external_cidr }} ! -d {{ lab_flat_external_cidr }} -j MASQUERADE -m comment --comment genestack-tenant-snat
+  changed_when: false
+  when: lab_tenant_egress_snat_enabled | bool
+
+# Cleanup path: if the lab variable is flipped off (or a production
+# deployment imports this role), tear the rule down so the host doesn't
+# silently keep NATing.
+- name: Disable and remove genestack-tenant-snat when feature is off
+  block:
+    - name: Stop and disable genestack-tenant-snat
+      ansible.builtin.systemd:
+        name: genestack-tenant-snat.service
+        enabled: false
+        state: stopped
+      failed_when: false
+    - name: Remove genestack-tenant-snat unit file
+      ansible.builtin.file:
+        path: /etc/systemd/system/genestack-tenant-snat.service
+        state: absent
+      notify: Systemd daemon reload
+  when: not (lab_tenant_egress_snat_enabled | bool)

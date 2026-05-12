@@ -2,6 +2,24 @@
 
 ca_bundle_path: /etc/ssl/certs/ca-certificates.crt
 
+# =========================================================================
+# Inner-cloud tenant egress SNAT (LAB ONLY)
+# =========================================================================
+# In hcl-builder labs the "flat" external network sits on an L2 segment
+# local to the hyperconverged host and isn't routable upstream, so
+# tenant VMs that SNAT through their neutron router's external IP can
+# reach the SNAT IP but their outbound packets to the public internet
+# never get a reply (replies have no route back to 192.168.102.0/24).
+# MASQUERADE-ing the flat external CIDR through the hyperconverged
+# host translates it to the host's own routable address, giving every
+# tenant working outbound automatically.
+#
+# Keep `lab_tenant_egress_snat_enabled: true` for labs. Disable for
+# production deployments where upstream routing handles the flat
+# external network properly.
+lab_tenant_egress_snat_enabled: true
+lab_flat_external_cidr: "192.168.102.0/24"
+
 host_sysstat_enabled: true
 host_sysstat_interval: 1
 host_sysstat_statistics_hour: 23
