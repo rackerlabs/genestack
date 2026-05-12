@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: memcached-memcached
+spec:
+  template:
+    spec:
+      volumes:
+        - name: memcached-data
+          persistentVolumeClaim:
+            claimName: memcached-data
+      containers:
+        - name: memcached
+          volumeMounts:
+            - name: memcached-data
+              mountPath: /var/lib/memcached
+  volumeClaimTemplates:
+    - metadata:
+        name: memcached-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 20Gi
+        storageClassName: general
