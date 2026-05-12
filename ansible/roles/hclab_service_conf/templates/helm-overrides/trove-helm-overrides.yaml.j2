@@ -21,6 +21,7 @@ pod:
 conf:
   trove:
     DEFAULT:
+      control_exchange: trove
       trove_api_workers: 1
       management_networks: "{{ trove_management_network_id | default('') }}"
       management_security_groups: "{{ trove_management_secgroup_id | default('') }}"
