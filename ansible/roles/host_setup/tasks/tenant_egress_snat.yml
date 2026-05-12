@@ -4,7 +4,7 @@
 # Each tenant's neutron router has an external_gateway_info IP from the
 # lab's "flat" external network (default 192.168.102.0/24). OVN SNATs
 # tenant traffic to that IP and forwards it onto the flat network —
-# which is just an L2 segment plumbed onto the hyperconverged host's
+# which is only an L2 segment plumbed onto the hyperconverged host's
 # br-service / br-flat bridge. Nothing upstream of the host knows how
 # to route 192.168.102.0/24, so reply packets to the SNAT'd source IP
 # never come back. From inside a tenant VM:
@@ -23,14 +23,32 @@
 # functioning outbound — for every tenant, automatically, no per-
 # instance fix required.
 #
-# Idempotency: the systemd unit's ExecStartPre deletes any prior
-# matching rule (with the `genestack-tenant-snat` comment) before
-# ExecStart re-adds it, so re-runs don't accumulate duplicate rules.
-# ExecStop removes the rule cleanly if the unit is disabled.
+# Implementation: pure nftables. Noble's default firewall framework is
+# nftables (the `iptables` binary on noble is iptables-nft, which
+# writes into the same nft tables — but using nft directly avoids the
+# legacy/nft ambiguity that `iptables-legacy tables present` warnings
+# hint at). We own a dedicated table `inet genestack-snat` so we don't
+# collide with kube-proxy / docker / ovn rules in `ip nat`, and the
+# whole table is torn down on service stop.
+#
+# Each task is explicitly tagged so `--tags tenant-egress-snat` runs
+# them — Ansible's include_tasks tag inheritance is dynamic and only
+# applies the tag to the include directive itself, not the inner
+# tasks. Explicit tags keep this task file independently runnable.
 #
 # This is a *lab* feature. In a production genestack deployment the
 # flat external network is routable upstream and this MASQUERADE
 # should stay off; toggle via `lab_tenant_egress_snat_enabled`.
+
+- name: Ensure nftables package is installed
+  ansible.builtin.apt:
+    name: nftables
+    state: present
+    update_cache: false
+  when: lab_tenant_egress_snat_enabled | bool
+  tags:
+    - hosts-config
+    - tenant-egress-snat
 
 - name: Enable IPv4 forwarding for inner-cloud tenant egress
   ansible.posix.sysctl:
@@ -39,9 +57,48 @@
     state: present
     sysctl_set: true
     reload: true
+    sysctl_file: /etc/sysctl.d/99-genestack-tenant-snat.conf
   when: lab_tenant_egress_snat_enabled | bool
+  tags:
+    - hosts-config
+    - tenant-egress-snat
 
-- name: Install systemd unit to MASQUERADE inner-cloud tenant egress
+- name: Ensure nftables drop-in directory exists
+  ansible.builtin.file:
+    path: /etc/nftables.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: lab_tenant_egress_snat_enabled | bool
+  tags:
+    - hosts-config
+    - tenant-egress-snat
+
+- name: Write genestack-snat nftables ruleset
+  ansible.builtin.copy:
+    dest: /etc/nftables.d/genestack-tenant-snat.nft
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by genestack hcl-builder-ansible / host_setup role.
+      # SNAT inner-cloud tenant egress through the hyperconverged host.
+      # Lives in its own `inet genestack-snat` table so we don't
+      # interleave with kube-proxy/docker/ovn rules in `ip nat`.
+      table inet genestack-snat {
+          chain postrouting {
+              type nat hook postrouting priority srcnat; policy accept;
+              ip saddr {{ lab_flat_external_cidr }} ip daddr != {{ lab_flat_external_cidr }} counter masquerade comment "genestack-tenant-snat"
+          }
+      }
+  notify: Reload genestack-tenant-snat
+  when: lab_tenant_egress_snat_enabled | bool
+  tags:
+    - hosts-config
+    - tenant-egress-snat
+
+- name: Install genestack-tenant-snat systemd unit
   ansible.builtin.copy:
     dest: /etc/systemd/system/genestack-tenant-snat.service
     owner: root
@@ -49,23 +106,29 @@
     mode: "0644"
     content: |
       [Unit]
-      Description=Genestack lab: MASQUERADE inner-cloud tenant egress ({{ lab_flat_external_cidr }})
-      After=network-online.target
+      Description=Genestack lab: nftables MASQUERADE for inner-cloud tenant egress ({{ lab_flat_external_cidr }})
+      After=network-online.target nftables.service
       Wants=network-online.target
 
       [Service]
       Type=oneshot
       RemainAfterExit=yes
-      # Idempotency: delete any prior rule with the same comment first
-      # (ignore failure if it doesn't exist), then add fresh.
-      ExecStartPre=-/usr/sbin/iptables -t nat -D POSTROUTING -s {{ lab_flat_external_cidr }} ! -d {{ lab_flat_external_cidr }} -j MASQUERADE -m comment --comment genestack-tenant-snat
-      ExecStart=/usr/sbin/iptables -t nat -A POSTROUTING -s {{ lab_flat_external_cidr }} ! -d {{ lab_flat_external_cidr }} -j MASQUERADE -m comment --comment genestack-tenant-snat
-      ExecStop=/usr/sbin/iptables -t nat -D POSTROUTING -s {{ lab_flat_external_cidr }} ! -d {{ lab_flat_external_cidr }} -j MASQUERADE -m comment --comment genestack-tenant-snat
+      # Idempotency: tear down any prior instance of our table before
+      # re-loading. `-` prefix ignores failure when the table doesn't
+      # exist yet (first boot, manual disable).
+      ExecStartPre=-/usr/sbin/nft delete table inet genestack-snat
+      ExecStart=/usr/sbin/nft -f /etc/nftables.d/genestack-tenant-snat.nft
+      ExecStop=-/usr/sbin/nft delete table inet genestack-snat
 
       [Install]
       WantedBy=multi-user.target
-  notify: Systemd daemon reload
+  notify:
+    - Systemd daemon reload
+    - Reload genestack-tenant-snat
   when: lab_tenant_egress_snat_enabled | bool
+  tags:
+    - hosts-config
+    - tenant-egress-snat
 
 - name: Ensure genestack-tenant-snat is enabled and started
   ansible.builtin.systemd:
@@ -74,17 +137,27 @@
     state: started
     daemon_reload: true
   when: lab_tenant_egress_snat_enabled | bool
+  tags:
+    - hosts-config
+    - tenant-egress-snat
 
-- name: Verify MASQUERADE rule is present
+- name: Verify nft table is loaded
   ansible.builtin.command:
-    cmd: iptables -t nat -C POSTROUTING -s {{ lab_flat_external_cidr }} ! -d {{ lab_flat_external_cidr }} -j MASQUERADE -m comment --comment genestack-tenant-snat
+    cmd: nft list table inet genestack-snat
   changed_when: false
   when: lab_tenant_egress_snat_enabled | bool
+  tags:
+    - hosts-config
+    - tenant-egress-snat
 
-# Cleanup path: if the lab variable is flipped off (or a production
-# deployment imports this role), tear the rule down so the host doesn't
-# silently keep NATing.
-- name: Disable and remove genestack-tenant-snat when feature is off
+# Cleanup path: if the lab variable is flipped off (or this role is
+# imported into a production playbook), tear the rule down so the host
+# doesn't silently keep NATing.
+- name: Cleanup genestack-tenant-snat when feature is disabled
+  when: not (lab_tenant_egress_snat_enabled | bool)
+  tags:
+    - hosts-config
+    - tenant-egress-snat
   block:
     - name: Stop and disable genestack-tenant-snat
       ansible.builtin.systemd:
@@ -97,4 +170,11 @@
         path: /etc/systemd/system/genestack-tenant-snat.service
         state: absent
       notify: Systemd daemon reload
-  when: not (lab_tenant_egress_snat_enabled | bool)
+    - name: Remove genestack-tenant-snat nft drop-in
+      ansible.builtin.file:
+        path: /etc/nftables.d/genestack-tenant-snat.nft
+        state: absent
+    - name: Remove sysctl drop-in
+      ansible.builtin.file:
+        path: /etc/sysctl.d/99-genestack-tenant-snat.conf
+        state: absent
