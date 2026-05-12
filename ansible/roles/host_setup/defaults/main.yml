@@ -3,30 +3,38 @@
 ca_bundle_path: /etc/ssl/certs/ca-certificates.crt
 
 # =========================================================================
-# Inner-cloud tenant egress SNAT (LAB ONLY)
+# Inner-cloud tenant egress plumbing (LAB ONLY)
 # =========================================================================
-# In hcl-builder labs the "flat" external network sits on an L2 segment
-# local to the hyperconverged host and isn't routable upstream, so
-# tenant VMs that SNAT through their neutron router's external IP can
-# reach the SNAT IP but their outbound packets to the public internet
-# never get a reply (replies have no route back to 192.168.102.0/24).
-# MASQUERADE-ing the flat external CIDR through the hyperconverged
-# host translates it to the host's own routable address, giving every
-# tenant working outbound automatically.
+# In hcl-builder labs the "flat" external network lives entirely inside
+# OVS — kube-ovn maps the physnet to `br-ex` (`ovs-bridge-mappings =
+# physnet1:br-ex`) — but kube-ovn doesn't bring up the underlying Linux
+# netdevs. Result: each chassis's `br-ex` is isolated, the physical
+# uplink between them is admin-DOWN, and there's nobody to answer ARP
+# for the flat subnet's gateway IP. Tenant traffic from any neutron
+# router on the flat external network dies at hop 2.
+#
+# This role's `tenant_egress_snat.yml` fixes that with two pieces of
+# L2/L3 plumbing wrapped in a oneshot systemd unit:
+#   1. Bring the flat-external physical uplink NIC UP on every chassis
+#      (so the per-chassis br-ex bridges share one L2 segment).
+#   2. On one designated host, bring up the `br-ex` Linux netdev and
+#      pin the flat subnet's gateway_ip on it (so OVN logical routers
+#      can ARP-resolve their next-hop).
+#
+# In the Rackspace hcl-builder outer-cloud topology the outer cloud
+# happens to permit packets sourced from 192.168.102.0/24 onto its
+# upstream, so once the two pieces above are in place tenant outbound
+# works end-to-end with no host-side MASQUERADE. (An earlier version
+# of this role also installed an `inet genestack-snat` nft table — it
+# turned out to be dead code, counter stayed at 0 — and the role now
+# cleans that legacy state up on existing labs. If you port to an
+# outer cloud that filters on source IP, add the MASQUERADE back.)
 #
 # Keep `lab_tenant_egress_snat_enabled: true` for labs. Disable for
 # production deployments where upstream routing handles the flat
-# external network properly.
-#
-# The flat external network lives entirely inside OVS (`physnet1:br-ex`
-# via kube-ovn's bridge mapping). For MASQUERADE to fire we have to
-# expose the OVS bridge to the host's L3 stack: bring up the `br-ex`
-# Linux netdev that OVS auto-creates, assign the flat subnet's
-# gateway_ip to it, and let the host route 192.168.102.0/24 toward
-# its real default route. The OVN router ARPs for the gateway IP, the
-# host answers, traffic enters L3, our nft postrouting MASQUERADE
-# replaces the source with the host's own routable IP, conntrack
-# handles the reply path.
+# external network properly. The variable name is kept (despite no
+# longer mentioning SNAT in implementation) for in-place compatibility
+# with prior lab inventories.
 #
 # Only ONE host can hold the gateway IP (no IP conflicts allowed). For
 # the lab we pin it to the overseer (`hyperconverged-0`); for HA you
