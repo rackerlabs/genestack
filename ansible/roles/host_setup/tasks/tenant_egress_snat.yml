@@ -56,6 +56,17 @@
 #   ExecStop+ExecStart of the new (trimmed) unit, and the legacy-state
 #   cleanup tasks below handle removing the now-unused nft/sysctl
 #   drop-ins.
+# - Ordering with kube-ovn: `host_setup` runs before kube-ovn deploys
+#   in the lab playbook, so on a truly fresh build the `br-ex` OVS
+#   internal port doesn't exist yet on the gateway host. The br-ex
+#   ExecStart lines are `-` prefixed (systemd tolerates failure) so
+#   the unit comes up cleanly; the verify task and a follow-up debug
+#   message handle the same case in ansible. After kube-ovn deploys
+#   later in the playbook, restarting this unit on the gateway host
+#   (`systemctl restart genestack-tenant-snat`) picks up br-ex and
+#   pins the gateway IP. The physical-uplink ExecStart line is NOT
+#   `-` prefixed: that NIC has to exist on every chassis or it's a
+#   real config error worth failing loudly.
 #
 # Disable in production where the flat external network is routable
 # upstream and no host-side plumbing is needed; toggle via
@@ -93,10 +104,14 @@
       ExecStart=/usr/sbin/ip link set {{ lab_flat_external_uplink_iface }} up
       {% if _tenant_egress_is_gateway_host | default(false) | bool %}
       # Designated L3 gateway for flat external. OVS auto-creates a
-      # Linux netdev matching the bridge name; bring it up and pin the
-      # flat subnet's gateway_ip on it so OVN routers can ARP-resolve
-      # their next-hop and packets enter the host's L3 path.
-      ExecStart=/usr/sbin/ip link set {{ lab_flat_external_bridge }} up
+      # Linux netdev matching the bridge name once kube-ovn deploys;
+      # on first host_setup run kube-ovn hasn't deployed yet, so the
+      # next three lines are `-` prefixed and systemd tolerates them
+      # failing. After kube-ovn comes up, a re-run of this role (or
+      # `systemctl restart genestack-tenant-snat` by hand on this
+      # host) brings br-ex up and pins the flat subnet's gateway_ip
+      # so OVN routers can ARP-resolve their next-hop.
+      ExecStart=-/usr/sbin/ip link set {{ lab_flat_external_bridge }} up
       ExecStart=-/usr/sbin/ip addr add {{ lab_flat_external_gateway_ip }}/{{ _tenant_egress_prefix_len }} dev {{ lab_flat_external_bridge }}
       ExecStop=-/usr/sbin/ip addr del {{ lab_flat_external_gateway_ip }}/{{ _tenant_egress_prefix_len }} dev {{ lab_flat_external_bridge }}
       {% endif %}
@@ -149,11 +164,36 @@
     cmd: ip -4 -o addr show dev {{ lab_flat_external_bridge }}
   register: _flat_bridge_addr
   changed_when: false
+  # Three-way outcome:
+  #   - rc != 0 → br-ex doesn't exist yet (kube-ovn not deployed). Don't
+  #     fail here — the next task surfaces this as a heads-up. Re-run
+  #     host_setup (or restart the unit) after kube-ovn comes up.
+  #   - rc == 0 + IP present → success, nothing fires.
+  #   - rc == 0 + IP missing → real config error, fail loudly.
   failed_when:
+    - _flat_bridge_addr.rc == 0
     - (lab_flat_external_gateway_ip ~ "/" ~ _tenant_egress_prefix_len) not in _flat_bridge_addr.stdout
   when:
     - lab_tenant_egress_snat_enabled | bool
     - _tenant_egress_is_gateway_host | default(false) | bool
+  tags:
+    - hosts-config
+    - tenant-egress-snat
+
+- name: Note when br-ex not yet present (kube-ovn deploys later)
+  ansible.builtin.debug:
+    msg: |
+      {{ lab_flat_external_bridge }} is not yet present on this host
+      ({{ inventory_hostname }}) — kube-ovn hasn't created its OVS
+      internal port yet. genestack-tenant-snat.service is installed
+      and started, but the flat-external L3 gateway IP is not yet
+      pinned. After kube-ovn deploys later in the playbook, either
+      re-run host_setup or, on this host:
+        systemctl restart genestack-tenant-snat
+  when:
+    - lab_tenant_egress_snat_enabled | bool
+    - _tenant_egress_is_gateway_host | default(false) | bool
+    - _flat_bridge_addr.rc != 0
   tags:
     - hosts-config
     - tenant-egress-snat
