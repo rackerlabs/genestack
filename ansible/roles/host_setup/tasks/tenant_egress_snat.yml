@@ -148,6 +148,21 @@
     - hosts-config
     - tenant-egress-snat
 
+# Force any pending unit-file / nft drop-in notifies to fire BEFORE
+# the verify tasks below. Without this, handlers run at the very end
+# of the play, so on a unit-file change the service is still running
+# the old ExecStart commands when the verify checks execute — `Verify
+# flat-external gateway IP is on br-ex` then fails because the old
+# unit didn't include the br-ex bring-up. Worse, a failed verify
+# suppresses the handler entirely on that host, so the unit file is
+# updated on disk but never reloaded into systemd. flush_handlers
+# breaks the loop.
+- name: Apply pending genestack-tenant-snat notifies before verification
+  ansible.builtin.meta: flush_handlers
+  tags:
+    - hosts-config
+    - tenant-egress-snat
+
 - name: Ensure genestack-tenant-snat is enabled and started
   ansible.builtin.systemd:
     name: genestack-tenant-snat.service
