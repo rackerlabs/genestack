@@ -3,42 +3,52 @@
 #
 # Each tenant's neutron router has an external_gateway_info IP from the
 # lab's "flat" external network (default 192.168.102.0/24). OVN SNATs
-# tenant traffic to that IP and forwards it onto the flat network —
-# which is only an L2 segment plumbed onto the hyperconverged host's
-# br-service / br-flat bridge. Nothing upstream of the host knows how
-# to route 192.168.102.0/24, so reply packets to the SNAT'd source IP
-# never come back. From inside a tenant VM:
+# tenant traffic to that IP and forwards it onto the flat network.
+# Kube-ovn maps the flat physnet to the `br-ex` OVS bridge (see
+# `ovs-vsctl get Open_vSwitch . external_ids:ovn-bridge-mappings` →
+# `physnet1:br-ex`), but on the hosts `br-ex` is admin DOWN with no
+# IP, so the flat L2 segment is essentially a sink. The OVN router
+# ARPs for its subnet gateway (192.168.102.1) and nobody answers —
+# packets die at hop 2 from a tenant guest.
 #
-#   testdb3:~$ ping 8.8.8.8
-#   --- 8.8.8.8 ping statistics ---
-#   3 packets transmitted, 0 received, 100% packet loss
-#   testdb3:~$ traceroute 8.8.8.8
-#    1  192.168.50.1     # tenant gateway
-#    2  * * *            # router SNATs to 192.168.102.x and dies here
+# Fix: expose the OVS bridge to the host's L3. OVS auto-creates a
+# Linux netdev matching the bridge name; we bring it UP and assign
+# the flat subnet's gateway_ip to it. The OVN router then ARPs
+# successfully, packets enter the host's L3, our nft postrouting
+# MASQUERADE rewrites the source IP to the host's real routable
+# address (default route via enp3s0 / 192.168.100.1), and conntrack
+# tracks the reply path. From the tenant guest's perspective: working
+# outbound to 8.8.8.8, no per-tenant or per-instance fix required.
 #
-# The hyperconverged host itself has working internet (that's how apt
-# and helm work on the overseer). MASQUERADE-ing the flat external
-# CIDR through the host translates 192.168.102.x to the host's own
-# routable address, conntrack maps the reply back, and tenant VMs get
-# functioning outbound — for every tenant, automatically, no per-
-# instance fix required.
+# The L3 gateway IP can live on only one host at a time (no IP
+# conflicts), so we pin it to `lab_flat_external_gateway_host`
+# (default the overseer). Every host still gets the nft MASQUERADE
+# table installed so that if the gateway moves you only need to flip
+# `lab_flat_external_gateway_host`. (For HA, layer keepalived on top
+# of the gateway IP; out of scope for the lab.)
 #
-# Implementation: pure nftables. Noble's default firewall framework is
-# nftables (the `iptables` binary on noble is iptables-nft, which
-# writes into the same nft tables — but using nft directly avoids the
-# legacy/nft ambiguity that `iptables-legacy tables present` warnings
-# hint at). We own a dedicated table `inet genestack-snat` so we don't
-# collide with kube-proxy / docker / ovn rules in `ip nat`, and the
-# whole table is torn down on service stop.
+# Implementation notes:
+# - Pure nftables, owned table `inet genestack-snat` so we don't
+#   collide with kube-proxy/docker/ovn rules in `ip nat`.
+# - Each task has explicit `tags:` because Ansible's `include_tasks`
+#   tag inheritance is dynamic and only applies tags to the include
+#   directive itself, not the inner tasks.
+# - Designated-gateway L3 plumbing is in the same systemd unit as the
+#   MASQUERADE so a single `systemctl restart genestack-tenant-snat`
+#   re-applies everything.
 #
-# Each task is explicitly tagged so `--tags tenant-egress-snat` runs
-# them — Ansible's include_tasks tag inheritance is dynamic and only
-# applies the tag to the include directive itself, not the inner
-# tasks. Explicit tags keep this task file independently runnable.
-#
-# This is a *lab* feature. In a production genestack deployment the
-# flat external network is routable upstream and this MASQUERADE
-# should stay off; toggle via `lab_tenant_egress_snat_enabled`.
+# Disable in production where the flat external network is routable
+# upstream and the host shouldn't NAT for it; toggle via
+# `lab_tenant_egress_snat_enabled`.
+
+- name: Set inner-cloud tenant egress facts
+  ansible.builtin.set_fact:
+    _tenant_egress_prefix_len: "{{ lab_flat_external_cidr.split('/')[1] }}"
+    _tenant_egress_is_gateway_host: "{{ inventory_hostname == lab_flat_external_gateway_host }}"
+  when: lab_tenant_egress_snat_enabled | bool
+  tags:
+    - hosts-config
+    - tenant-egress-snat
 
 - name: Ensure nftables package is installed
   ansible.builtin.apt:
@@ -106,18 +116,26 @@
     mode: "0644"
     content: |
       [Unit]
-      Description=Genestack lab: nftables MASQUERADE for inner-cloud tenant egress ({{ lab_flat_external_cidr }})
-      After=network-online.target nftables.service
+      Description=Genestack lab: flat-external L3 gateway + MASQUERADE ({{ lab_flat_external_cidr }})
+      After=network-online.target ovs-vswitchd.service nftables.service
       Wants=network-online.target
 
       [Service]
       Type=oneshot
       RemainAfterExit=yes
-      # Idempotency: tear down any prior instance of our table before
-      # re-loading. `-` prefix ignores failure when the table doesn't
-      # exist yet (first boot, manual disable).
+      # Idempotency: tear down any prior instance of our nft table
+      # before re-loading. `-` ignores failure when not present.
       ExecStartPre=-/usr/sbin/nft delete table inet genestack-snat
       ExecStart=/usr/sbin/nft -f /etc/nftables.d/genestack-tenant-snat.nft
+      {% if _tenant_egress_is_gateway_host | default(false) | bool %}
+      # Designated L3 gateway for flat external. OVS auto-creates a
+      # Linux netdev matching the bridge name; bring it up and pin the
+      # flat subnet's gateway_ip on it so OVN routers can ARP-resolve
+      # their next-hop and packets enter the host's L3 path.
+      ExecStart=/usr/sbin/ip link set {{ lab_flat_external_bridge }} up
+      ExecStart=-/usr/sbin/ip addr add {{ lab_flat_external_gateway_ip }}/{{ _tenant_egress_prefix_len }} dev {{ lab_flat_external_bridge }}
+      ExecStop=-/usr/sbin/ip addr del {{ lab_flat_external_gateway_ip }}/{{ _tenant_egress_prefix_len }} dev {{ lab_flat_external_bridge }}
+      {% endif %}
       ExecStop=-/usr/sbin/nft delete table inet genestack-snat
 
       [Install]
@@ -146,6 +164,20 @@
     cmd: nft list table inet genestack-snat
   changed_when: false
   when: lab_tenant_egress_snat_enabled | bool
+  tags:
+    - hosts-config
+    - tenant-egress-snat
+
+- name: Verify flat-external gateway IP is on br-ex (gateway host only)
+  ansible.builtin.command:
+    cmd: ip -4 -o addr show dev {{ lab_flat_external_bridge }}
+  register: _flat_bridge_addr
+  changed_when: false
+  failed_when:
+    - (lab_flat_external_gateway_ip ~ "/" ~ _tenant_egress_prefix_len) not in _flat_bridge_addr.stdout
+  when:
+    - lab_tenant_egress_snat_enabled | bool
+    - _tenant_egress_is_gateway_host | default(false) | bool
   tags:
     - hosts-config
     - tenant-egress-snat

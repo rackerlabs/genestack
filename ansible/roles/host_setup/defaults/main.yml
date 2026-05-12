@@ -17,8 +17,25 @@ ca_bundle_path: /etc/ssl/certs/ca-certificates.crt
 # Keep `lab_tenant_egress_snat_enabled: true` for labs. Disable for
 # production deployments where upstream routing handles the flat
 # external network properly.
+#
+# The flat external network lives entirely inside OVS (`physnet1:br-ex`
+# via kube-ovn's bridge mapping). For MASQUERADE to fire we have to
+# expose the OVS bridge to the host's L3 stack: bring up the `br-ex`
+# Linux netdev that OVS auto-creates, assign the flat subnet's
+# gateway_ip to it, and let the host route 192.168.102.0/24 toward
+# its real default route. The OVN router ARPs for the gateway IP, the
+# host answers, traffic enters L3, our nft postrouting MASQUERADE
+# replaces the source with the host's own routable IP, conntrack
+# handles the reply path.
+#
+# Only ONE host can hold the gateway IP (no IP conflicts allowed). For
+# the lab we pin it to the overseer (`hyperconverged-0`); for HA you
+# would layer keepalived on top.
 lab_tenant_egress_snat_enabled: true
 lab_flat_external_cidr: "192.168.102.0/24"
+lab_flat_external_gateway_ip: "192.168.102.1"
+lab_flat_external_bridge: "br-ex"
+lab_flat_external_gateway_host: "hyperconverged-0.cluster.local"
 
 host_sysstat_enabled: true
 host_sysstat_interval: 1
