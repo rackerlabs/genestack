@@ -62,7 +62,7 @@ patches:
               type: DirectoryOrCreate
           - name: etc-modprobe-d
             hostPath:
-              path: /etc/modprobe.d
+              path: /var/etc/modprobe.d
           - name: host-rootfs
             hostPath:
               path: /
