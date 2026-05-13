@@ -1,43 +1,22 @@
 ---
-labels:
-  central:
-    node_selector_key: openstack-control-plane
-    node_selector_value: enabled
-  compute:
-    node_selector_key: openstack-compute-node
-    node_selector_value: enabled
-  ipmi:
-    node_selector_key: openstack-node
-    node_selector_value: enabled
-  notification:
-    node_selector_key: openstack-control-plane
-    node_selector_value: enabled
-  job:
-    node_selector_key: openstack-control-plane
-    node_selector_value: enabled
-  test:
-    node_selector_key: openstack-control-plane
-    node_selector_value: enabled
-
 images:
   tags:
-    test: null
-    ceilometer_db_sync: "ghcr.io/rackerlabs/genestack-images/ceilometer:2025.1-latest"
-    rabbit_init: null
-    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    ceilometer_central: "ghcr.io/rackerlabs/genestack-images/ceilometer:2025.1-latest"
-    ceilometer_compute: "ghcr.io/rackerlabs/genestack-images/ceilometer:2025.1-latest"
-    ceilometer_ipmi: "ghcr.io/rackerlabs/genestack-images/ceilometer:2025.1-latest"
-    ceilometer_notification: "ghcr.io/rackerlabs/genestack-images/ceilometer:2025.1-latest"
-    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    image_repo_sync: null
+    test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
+    ceilometer_db_sync: "quay.io/rackspace/rackerlabs-ceilometer:2024.1-ubuntu_jammy"
+    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
+    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ceilometer_central: "quay.io/rackspace/rackerlabs-ceilometer:2024.1-ubuntu_jammy"
+    ceilometer_compute: "quay.io/rackspace/rackerlabs-ceilometer:2024.1-ubuntu_jammy"
+    ceilometer_ipmi: "quay.io/rackspace/rackerlabs-ceilometer:2024.1-ubuntu_jammy"
+    ceilometer_notification: "quay.io/rackspace/rackerlabs-ceilometer:2024.1-ubuntu_jammy"
+    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
+    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
   pull_policy: "Always"
 
 conf:
   ceilometer:
     DEFAULT:
-      libvirt_uri: qemu+unix:///system?socket=/var/run/libvirt/libvirt-sock
       debug: "false"
       # NOTE: If you need to enable debug, it is highly recommended to uncomment the below lines
       # to ensure logs are ceilometer does not spam the logs
@@ -81,7 +60,6 @@ conf:
           - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/neutron
           - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/heat
           - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/swift
-          - rabbit://rabbitmq:password@rabbitmq.openstack.svc.cluster.local:5672/blazar
     oslo_messaging_notifications:
       driver: messagingv2
       topics:
@@ -101,6 +79,8 @@ conf:
       # https://opendev.org/openstack/oslo.messaging/commit/36fb5bceabe08a982ebd52e4a8f005cd26fdf6b8
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
+      # DEPRECIATION:  (warning) heartbeat_in_pthread will be deprecated in 2024.2
+      heartbeat_in_pthread: true
       # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
       # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
@@ -179,20 +159,22 @@ conf:
           type: datetime
           fields: payload.audit_period_ending
     - event_type:
-        - "volume.exists"
-        - "volume.retype"
-        - "volume.create.*"
-        - "volume.delete.*"
-        - "volume.resize.*"
-        - "volume.attach.*"
-        - "volume.detach.*"
-        - "volume.update.*"
-        - "snapshot.exists"
-        - "snapshot.create.*"
-        - "snapshot.delete.*"
-        - "snapshot.update.*"
-        - "volume.transfer.accept.end"
-        - "snapshot.transfer.accept.end"
+        [
+          "volume.exists",
+          "volume.retype",
+          "volume.create.*",
+          "volume.delete.*",
+          "volume.resize.*",
+          "volume.attach.*",
+          "volume.detach.*",
+          "volume.update.*",
+          "snapshot.exists",
+          "snapshot.create.*",
+          "snapshot.delete.*",
+          "snapshot.update.*",
+          "volume.transfer.accept.end",
+          "snapshot.transfer.accept.end",
+        ]
       traits: &cinder_traits
         user_id:
           fields: payload.user_id
@@ -214,16 +196,18 @@ conf:
         instance_id:
           fields: payload.volume_attachment[0].instance_uuid
     - event_type:
-        - "volume.transfer.*"
-        - "volume.exists"
-        - "volume.retype"
-        - "volume.create.*"
-        - "volume.delete.*"
-        - "volume.resize.*"
-        - "volume.attach.*"
-        - "volume.detach.*"
-        - "volume.update.*"
-        - "snapshot.transfer.accept.end"
+        [
+          "volume.transfer.*",
+          "volume.exists",
+          "volume.retype",
+          "volume.create.*",
+          "volume.delete.*",
+          "volume.resize.*",
+          "volume.attach.*",
+          "volume.detach.*",
+          "volume.update.*",
+          "snapshot.transfer.accept.end",
+        ]
       traits:
         <<: *cinder_traits
         resource_id:
@@ -237,8 +221,7 @@ conf:
           fields: payload.volume_type
         replication_status:
           fields: payload.replication_status
-    - event_type:
-        - "snapshot.transfer.accept.end"
+    - event_type: ["snapshot.transfer.accept.end"]
       traits:
         <<: *cinder_traits
         resource_id:
@@ -246,10 +229,7 @@ conf:
         project_id:
           fields: payload.tenant_id
     - event_type:
-        - "share.create.*"
-        - "share.delete.*"
-        - "share.extend.*"
-        - "share.shrink.*"
+        ["share.create.*", "share.delete.*", "share.extend.*", "share.shrink.*"]
       traits: &share_traits
         share_id:
           fields: payload.share_id
@@ -282,28 +262,26 @@ conf:
         host:
           fields: payload.host
     - event_type:
-        - "snapshot.exists"
-        - "snapshot.create.*"
-        - "snapshot.delete.*"
-        - "snapshot.update.*"
+        [
+          "snapshot.exists",
+          "snapshot.create.*",
+          "snapshot.delete.*",
+          "snapshot.update.*",
+        ]
       traits:
         <<: *cinder_traits
         resource_id:
           fields: payload.snapshot_id
         volume_id:
           fields: payload.volume_id
-    - event_type:
-        - "image_volume_cache.*"
+    - event_type: ["image_volume_cache.*"]
       traits:
         image_id:
           fields: payload.image_id
         host:
           fields: payload.host
     - event_type:
-        - "image.create"
-        - "image.update"
-        - "image.upload"
-        - "image.delete"
+        ["image.create", "image.update", "image.upload", "image.delete"]
       traits: &glance_crud
         project_id:
           fields: payload.owner
@@ -344,9 +322,7 @@ conf:
         project_id:
           fields: payload.tenant_id
         user_id:
-          fields:
-            - "ctxt.trustor_user_id"
-            - "ctxt.user_id"
+          fields: ["ctxt.trustor_user_id", "ctxt.user_id"]
         resource_id:
           fields: payload.stack_identity
         name:
@@ -379,15 +355,17 @@ conf:
           type: datetime
           fields: payload.updated_at
     - event_type:
-        - "identity.user.*"
-        - "identity.project.*"
-        - "identity.group.*"
-        - "identity.role.*"
-        - "identity.OS-TRUST:trust.*"
-        - "identity.region.*"
-        - "identity.service.*"
-        - "identity.endpoint.*"
-        - "identity.policy.*"
+        [
+          "identity.user.*",
+          "identity.project.*",
+          "identity.group.*",
+          "identity.role.*",
+          "identity.OS-TRUST:trust.*",
+          "identity.region.*",
+          "identity.service.*",
+          "identity.endpoint.*",
+          "identity.policy.*",
+        ]
       traits: &identity_crud
         resource_id:
           fields: payload.resource_info
@@ -480,18 +458,20 @@ conf:
         observer_id:
           fields: payload.observer.id
     - event_type:
-        - "network.*"
-        - "subnet.*"
-        - "port.*"
-        - "router.*"
-        - "floatingip.*"
-        - "firewall.*"
-        - "firewall_policy.*"
-        - "firewall_rule.*"
-        - "vpnservice.*"
-        - "ipsecpolicy.*"
-        - "ikepolicy.*"
-        - "ipsec_site_connection.*"
+        [
+          "network.*",
+          "subnet.*",
+          "port.*",
+          "router.*",
+          "floatingip.*",
+          "firewall.*",
+          "firewall_policy.*",
+          "firewall_rule.*",
+          "vpnservice.*",
+          "ipsecpolicy.*",
+          "ikepolicy.*",
+          "ipsec_site_connection.*",
+        ]
       traits: &network_traits
         user_id:
           fields: ctxt.user_id
@@ -503,106 +483,80 @@ conf:
         name:
           fields: payload.network.name
         resource_id:
-          fields:
-            - "payload.network.id"
-            - "payload.id"
+          fields: ["payload.network.id", "payload.id"]
     - event_type: subnet.*
       traits:
         <<: *network_traits
         name:
           fields: payload.subnet.name
         resource_id:
-          fields:
-            - "payload.subnet.id"
-            - "payload.id"
+          fields: ["payload.subnet.id", "payload.id"]
     - event_type: port.*
       traits:
         <<: *network_traits
         name:
           fields: payload.port.name
         resource_id:
-          fields:
-            - "payload.port.id"
-            - "payload.id"
+          fields: ["payload.port.id", "payload.id"]
     - event_type: router.*
       traits:
         <<: *network_traits
         name:
           fields: payload.router.name
         resource_id:
-          fields: payload.router.id
-        event_type:
-          fields: event_type
+          fields: ["payload.router.id", "payload.id"]
     - event_type: floatingip.*
       traits:
         <<: *network_traits
         resource_id:
-          fields: payload.floatingip.id
-        ip_address:
-          fields: payload.floatingip.floating_ip_address
-        event_type:
-          fields: event_type
+          fields: ["payload.floatingip.id", "payload.id"]
     - event_type: firewall.*
       traits:
         <<: *network_traits
         name:
           fields: payload.firewall.name
         resource_id:
-          fields:
-            - "payload.firewall.id"
-            - "payload.id"
+          fields: ["payload.firewall.id", "payload.id"]
     - event_type: firewall_policy.*
       traits:
         <<: *network_traits
         name:
           fields: payload.firewall_policy.name
         resource_id:
-          fields:
-            - "payload.firewall_policy.id"
-            - "payload.id"
+          fields: ["payload.firewall_policy.id", "payload.id"]
     - event_type: firewall_rule.*
       traits:
         <<: *network_traits
         name:
           fields: payload.firewall_rule.name
         resource_id:
-          fields:
-            - "payload.firewall_rule.id"
-            - "payload.id"
+          fields: ["payload.firewall_rule.id", "payload.id"]
     - event_type: vpnservice.*
       traits:
         <<: *network_traits
         name:
           fields: payload.vpnservice.name
         resource_id:
-          fields:
-            - "payload.vpnservice.id"
-            - "payload.id"
+          fields: ["payload.vpnservice.id", "payload.id"]
     - event_type: ipsecpolicy.*
       traits:
         <<: *network_traits
         name:
           fields: payload.ipsecpolicy.name
         resource_id:
-          fields:
-            - "payload.ipsecpolicy.id"
-            - "payload.id"
+          fields: ["payload.ipsecpolicy.id", "payload.id"]
     - event_type: ikepolicy.*
       traits:
         <<: *network_traits
         name:
           fields: payload.ikepolicy.name
         resource_id:
-          fields:
-            - "payload.ikepolicy.id"
-            - "payload.id"
+          fields: ["payload.ikepolicy.id", "payload.id"]
     - event_type: ipsec_site_connection.*
       traits:
         <<: *network_traits
         resource_id:
-          fields:
-            - "payload.ipsec_site_connection.id"
-            - "payload.id"
+          fields: ["payload.ipsec_site_connection.id", "payload.id"]
     - event_type: "*http.*"
       traits: &http_audit
         project_id:
@@ -646,9 +600,7 @@ conf:
         reason_code:
           fields: payload.reason.reasonCode
     - event_type:
-        - "dns.domain.create"
-        - "dns.domain.update"
-        - "dns.domain.delete"
+        ["dns.domain.create", "dns.domain.update", "dns.domain.delete"]
       traits: &dns_domain_traits
         status:
           fields: payload.status
@@ -716,10 +668,12 @@ conf:
         region:
           fields: payload.region
     - event_type:
-        - "trove.instance.create"
-        - "trove.instance.modify_volume"
-        - "trove.instance.modify_flavor"
-        - "trove.instance.delete"
+        [
+          "trove.instance.create",
+          "trove.instance.modify_volume",
+          "trove.instance.modify_flavor",
+          "trove.instance.delete",
+        ]
       traits: &trove_common_traits
         name:
           fields: payload.name
@@ -735,14 +689,10 @@ conf:
           fields: payload.nova_volume_id
     - event_type: trove.instance.create
       traits:
-        <<:
-          - *trove_base_traits
-          - *trove_common_traits
+        <<: [*trove_base_traits, *trove_common_traits]
     - event_type: trove.instance.modify_volume
       traits:
-        <<:
-          - *trove_base_traits
-          - *trove_common_traits
+        <<: [*trove_base_traits, *trove_common_traits]
         old_volume_size:
           type: int
           fields: payload.old_volume_size
@@ -751,9 +701,7 @@ conf:
           fields: payload.modify_at
     - event_type: trove.instance.modify_flavor
       traits:
-        <<:
-          - *trove_base_traits
-          - *trove_common_traits
+        <<: [*trove_base_traits, *trove_common_traits]
         old_instance_size:
           type: int
           fields: payload.old_instance_size
@@ -762,9 +710,7 @@ conf:
           fields: payload.modify_at
     - event_type: trove.instance.delete
       traits:
-        <<:
-          - *trove_base_traits
-          - *trove_common_traits
+        <<: [*trove_base_traits, *trove_common_traits]
         deleted_at:
           type: datetime
           fields: payload.deleted_at
@@ -859,153 +805,6 @@ conf:
           fields: payload.detail
         type:
           fields: payload.type
-    # Blazar events and metrics
-    - event_type:
-        - "lease.create"
-        - "lease.update"
-        - "lease.delete"
-        - "lease.event.start_lease"
-        - "lease.event.before_end_lease"
-        - "lease.event.end_lease"
-      traits: &reservation_traits
-        # Lease identification
-        lease_id:
-          fields:
-            - payload.lease_id
-        name:
-          fields:
-            - payload.name
-        # User and project
-        project_id:
-          fields:
-            - payload.project_id
-        user_id:
-          fields:
-            - payload.user_id
-        trust_id:
-          fields:
-            - payload.trust_id
-        # Lease timing
-        start_date:
-          fields:
-            - payload.start_date
-        end_date:
-          fields:
-            - payload.end_date
-        created_at:
-          fields:
-            - payload.created_at
-        updated_at:
-          fields:
-            - payload.updated_at
-        # Lease status
-        status:
-          fields:
-            - payload.status
-        degraded:
-          fields:
-            - payload.degraded
-    - event_type: "blazar.reservation.physical_host"
-      traits: &physical_host_reservation_traits
-        lease_id:
-          fields: payload.lease_id
-        lease_name:
-          fields: payload.lease_name
-        reservation_id:
-          fields: payload.reservation_id
-        resource_id:
-          fields: payload.resource_id
-        resource_type:
-          fields: payload.resource_type
-        user_id:
-          fields: payload.user_id
-        project_id:
-          fields: payload.project_id
-        reservation_status:
-          fields: payload.reservation_status
-        min:
-          type: int
-          fields: payload.min
-        max:
-          type: int
-          fields: payload.max
-        hypervisor_properties:
-          fields: payload.hypervisor_properties
-        resource_properties:
-          fields: payload.resource_properties
-        before_end:
-          fields: payload.before_end
-        start_date:
-          fields: payload.start_date
-        end_date:
-          fields: payload.end_date
-    - event_type: "blazar.reservation.flavor_instance"
-      traits: &flavor_instance_reservation_traits
-        lease_id:
-          fields: payload.lease_id
-        name:
-          fields: payload.lease_name
-        reservation_id:
-          fields: payload.reservation_id
-        resource_id:
-          fields: payload.resource_id
-        resource_type:
-          fields: payload.resource_type
-        user_id:
-          fields: payload.user_id
-        project_id:
-          fields: payload.project_id
-        reservation_status:
-          fields: payload.reservation_status
-        vcpus:
-          type: int
-          fields: payload.vcpus
-        memory_mb:
-          type: int
-          fields: payload.memory_mb
-        disk_gb:
-          type: int
-          fields: payload.disk_gb
-        amount:
-          type: int
-          fields: payload.amount
-        flavor_id:
-          fields: payload.flavor_id
-        aggregate_id:
-          type: int
-          fields: payload.aggregate_id
-        start_date:
-          fields: payload.start_date
-        end_date:
-          fields: payload.end_date
-    - event_type: "blazar.reservation.virtual_floatingip"
-      traits: &virtual_floatingip_reservation_traits
-        lease_id:
-          fields: payload.lease_id
-        name:
-          fields: payload.lease_name
-        reservation_id:
-          fields: payload.reservation_id
-        resource_id:
-          fields: payload.resource_id
-        resource_type:
-          fields: payload.resource_type
-        user_id:
-          fields: payload.user_id
-        project_id:
-          fields: payload.project_id
-        reservation_status:
-          fields: payload.reservation_status
-        network_id:
-          fields: payload.network_id
-        amount:
-          type: int
-          fields: payload.amount
-        start_date:
-          fields: payload.start_date
-        end_date:
-          fields: payload.end_date
-
   gnocchi_resources:
     archive_policy_default: ceilometer-low
     archive_policies:
@@ -1051,98 +850,6 @@ conf:
             timespan: 365 days
 
     resources:
-      - resource_type: reservation
-        metrics:
-          # Lease lifecycle events (time-series)
-          - "blazar.lease.create"
-          - "blazar.lease.start"
-          - "blazar.lease.before_end"
-          - "blazar.lease.end"
-          - "blazar.lease.delete"
-        attributes:
-          name: resource_metadata.name
-          status: resource_metadata.status
-          start_date: resource_metadata.start_date
-          end_date: resource_metadata.end_date
-        event_create:
-          - lease.event.start_lease
-          - lease.create
-        event_update:
-          - lease.event.start_lease
-          - lease.event.before_end_lease
-          - lease.event.end_lease"
-          - lease.end
-          - lease.update
-        event_delete:
-          - lease.delete
-        event_attributes:
-          id: lease_id
-          name: name
-          start_date: start_date
-          end_date: end_date
-          status: status
-
-      - resource_type: blazar_physical_host_reservation
-        metrics:
-          - "blazar.reservation.host.min"
-          - "blazar.reservation.host.max"
-        attributes:
-          lease_id: resource_metadata.lease_id
-          lease_name: resource_metadata.lease_name
-          resource_type: resource_metadata.resource_type
-          hypervisor_properties: resource_metadata.hypervisor_properties
-          resource_properties: resource_metadata.resource_properties
-          status: resource_metadata.status
-          before_end: resource_metadata.before_end
-        event_create:
-          - blazar.reservation.physical_host
-        event_attributes:
-          id: reservation_id
-          name: name
-          start_date: start_date
-          end_date: end_date
-          status: status
-
-      - resource_type: blazar_flavor_instance_reservation
-        metrics:
-          - "blazar.reservation.flavor.vcpus"
-          - "blazar.reservation.flavor.memory"
-          - "blazar.reservation.flavor.disk"
-          - "blazar.reservation.flavor.amount"
-        attributes:
-          lease_id: resource_metadata.lease_id
-          lease_name: resource_metadata.lease_name
-          resource_type: resource_metadata.resource_type
-          flavor_id: resource_metadata.flavor_id
-          status: resource_metadata.status
-          aggregate_id: resource_metadata.aggregate_id
-        event_create:
-          - blazar.reservation.flavor_instance
-        event_attributes:
-          id: reservation_id
-          name: name
-          start_date: start_date
-          end_date: end_date
-          status: status
-
-      - resource_type: blazar_virtual_floatingip_reservation
-        metrics:
-          - "blazar.reservation.floatingip.amount"
-        attributes:
-          lease_id: resource_metadata.lease_id
-          lease_name: resource_metadata.lease_name
-          resource_type: resource_metadata.resource_type
-          network_id: resource_metadata.flavor_id
-          status: resource_metadata.status
-        event_create:
-          - blazar.reservation.virtual_floatingip
-        event_attributes:
-          id: reservation_id
-          name: name
-          start_date: start_date
-          end_date: end_date
-          status: status
-
       - resource_type: identity
         metrics:
           identity.authenticate.success:
@@ -1338,21 +1045,9 @@ conf:
         metrics:
           bandwidth:
           ip.floating:
-        event_create:
-          - floatingip.create.end
-          - router.create.end
-        event_delete:
-          - floatingip.delete.end
-          - router.delete.end
-        event_update:
-          - floatingip.update.end
-          - router.update.end
+        event_delete: floatingip.delete.end
         event_attributes:
           id: resource_id
-          user_id: user_id
-          project_id: project_id
-          floating_ip_address: ip_address
-          event_type: event_type
 
       - resource_type: stack
         metrics:
@@ -1503,233 +1198,6 @@ conf:
 
   meters:
     metric:
-      # Blazar lease lifecycle and reservation metrics
-      - name: "blazar.lease.create"
-        event_type:
-          - "lease.create"
-        type: "delta"
-        unit: "lease"
-        volume: 1
-        resource_id: $.payload.lease_id
-        project_id: $.payload.project_id
-        user_id: $.payload.user_id
-        metadata:
-          name: $.payload.name
-          status: $.payload.status
-          start_date: $.payload.start_date
-          end_date: $.payload.end_date
-
-      - name: "blazar.lease.start"
-        event_type:
-          - "lease.event.start_lease"
-        type: "delta"
-        unit: "lease"
-        volume: 1
-        resource_id: $.payload.lease_id
-        project_id: $.payload.project_id
-        user_id: $.payload.user_id
-        metadata:
-          name: $.payload.name
-          status: $.payload.status
-          start_date: $.payload.start_date
-          end_date: $.payload.end_date
-
-      - name: "blazar.lease.before_end"
-        event_type:
-          - "lease.event.before_end_lease"
-        type: "delta"
-        unit: "lease"
-        volume: 1
-        resource_id: $.payload.lease_id
-        project_id: $.payload.project_id
-        user_id: $.payload.user_id
-        metadata:
-          name: $.payload.name
-          status: $.payload.status
-          start_date: $.payload.start_date
-          end_date: $.payload.end_date
-
-      - name: "blazar.lease.end"
-        event_type:
-          - "lease.event.end_lease"
-        type: "delta"
-        unit: "lease"
-        volume: 1
-        resource_id: $.payload.lease_id
-        project_id: $.payload.project_id
-        user_id: $.payload.user_id
-        metadata:
-          name: $.payload.name
-          status: $.payload.status
-          start_date: $.payload.start_date
-          end_date: $.payload.end_date
-
-      - name: "blazar.lease.delete"
-        event_type:
-          - "lease.delete"
-        type: "delta"
-        unit: "lease"
-        volume: 1
-        resource_id: $.payload.lease_id
-        project_id: $.payload.project_id
-        user_id: $.payload.user_id
-        metadata:
-          name: $.payload.name
-          status: $.payload.status
-          start_date: $.payload.start_date
-          end_date: $.payload.end_date
-
-      # Physical Host Reservation Metrics
-      - name: "blazar.reservation.host.min"
-        event_type:
-          - "blazar.reservation.physical_host"
-        type: "gauge"
-        unit: "host"
-        volume: $.payload.min
-        resource_id: $.payload.reservation_id
-        project_id: $.payload.project_id
-        user_id: $.payload.user_id
-        metadata:
-          lease_id: $.payload.lease_id
-          lease_name: $.payload.lease_name
-          resource_type: $.payload.resource_type
-          max: $.payload.max
-          hypervisor_properties: $.payload.hypervisor_properties
-          resource_properties: $.payload.resource_properties
-          reservation_status: $.payload.reservation_status
-          before_end: $.payload.before_end
-          start_date: $.payload.start_date
-          end_date: $.payload.end_date
-
-      - name: "blazar.reservation.host.max"
-        event_type:
-          - "blazar.reservation.physical_host"
-        type: "gauge"
-        unit: "host"
-        volume: $.payload.max
-        resource_id: $.payload.reservation_id
-        project_id: $.payload.project_id
-        user_id: $.payload.user_id
-        metadata:
-          lease_id: $.payload.lease_id
-          lease_name: $.payload.lease_name
-          resource_type: $.payload.resource_type
-          min: $.payload.min
-          hypervisor_properties: $.payload.hypervisor_properties
-          resource_properties: $.payload.resource_properties
-          reservation_status: $.payload.reservation_status
-          before_end: $.payload.before_end
-          start_date: $.payload.start_date
-          end_date: $.payload.end_date
-
-      # Virtual Flavor Reservation Metrics
-      - name: "blazar.reservation.flavor.vcpus"
-        event_type:
-          - "blazar.reservation.flavor_instance"
-        type: "gauge"
-        unit: "vcpu"
-        volume: $.payload.vcpus
-        resource_id: $.payload.reservation_id
-        project_id: $.payload.project_id
-        user_id: $.payload.user_id
-        metadata:
-          lease_id: $.payload.lease_id
-          lease_name: $.payload.lease_name
-          resource_type: $.payload.resource_type
-          flavor_id: $.payload.flavor_id
-          memory_mb: $.payload.memory_mb
-          disk_gb: $.payload.disk_gb
-          amount: $.payload.amount
-          reservation_status: $.payload.reservation_status
-          aggregate_id: $.payload.aggregate_id
-          start_date: $.payload.start_date
-          end_date: $.payload.end_date
-
-      - name: "blazar.reservation.flavor.memory"
-        event_type:
-          - "blazar.reservation.flavor_instance"
-        type: "gauge"
-        unit: "MB"
-        volume: $.payload.memory_mb
-        resource_id: $.payload.reservation_id
-        project_id: $.payload.project_id
-        user_id: $.payload.user_id
-        metadata:
-          lease_id: $.payload.lease_id
-          lease_name: $.payload.lease_name
-          resource_type: $.payload.resource_type
-          flavor_id: $.payload.flavor_id
-          vcpus: $.payload.vcpus
-          disk_gb: $.payload.disk_gb
-          amount: $.payload.amount
-          reservation_status: $.payload.reservation_status
-          aggregate_id: $.payload.aggregate_id
-          start_date: $.payload.start_date
-          end_date: $.payload.end_date
-
-      - name: "blazar.reservation.flavor.disk"
-        event_type:
-          - "blazar.reservation.flavor_instance"
-        type: "gauge"
-        unit: "GB"
-        volume: $.payload.disk_gb
-        resource_id: $.payload.reservation_id
-        project_id: $.payload.project_id
-        user_id: $.payload.user_id
-        metadata:
-          lease_id: $.payload.lease_id
-          lease_name: $.payload.lease_name
-          resource_type: $.payload.resource_type
-          flavor_id: $.payload.flavor_id
-          vcpus: $.payload.vcpus
-          memory_mb: $.payload.memory_mb
-          amount: $.payload.amount
-          reservation_status: $.payload.reservation_status
-          aggregate_id: $.payload.aggregate_id
-          start_date: $.payload.start_date
-          end_date: $.payload.end_date
-
-      - name: "blazar.reservation.flavor.amount"
-        event_type:
-          - "blazar.reservation.flavor_instance"
-        type: "gauge"
-        unit: "instance"
-        volume: $.payload.amount
-        resource_id: $.payload.reservation_id
-        project_id: $.payload.project_id
-        user_id: $.payload.user_id
-        metadata:
-          lease_id: $.payload.lease_id
-          lease_name: $.payload.lease_name
-          resource_type: $.payload.resource_type
-          flavor_id: $.payload.flavor_id
-          vcpus: $.payload.vcpus
-          memory_mb: $.payload.memory_mb
-          disk_gb: $.payload.disk_gb
-          reservation_status: $.payload.reservation_status
-          aggregate_id: $.payload.aggregate_id
-          start_date: $.payload.start_date
-          end_date: $.payload.end_date
-
-      # Virtual FloatingIP Reservation Metrics
-      - name: "blazar.reservation.floatingip.amount"
-        event_type:
-          - "blazar.reservation.virtual_floatingip"
-        type: "gauge"
-        unit: "floatingip"
-        volume: $.payload.amount
-        resource_id: $.payload.reservation_id
-        project_id: $.payload.project_id
-        user_id: $.payload.user_id
-        metadata:
-          lease_id: $.payload.lease_id
-          lease_name: $.payload.lease_name
-          resource_type: $.payload.resource_type
-          network_id: $.payload.network_id
-          reservation_status: $.payload.reservation_status
-          start_date: $.payload.start_date
-          end_date: $.payload.end_date
-
       # Image
       - name: "image.size"
         event_type:
@@ -1902,10 +1370,7 @@ conf:
         user_id: $.payload.user_id
         project_id: $.payload.project_id
         resource_id: $.payload.resource_id
-        lookup:
-          - "name"
-          - "unit"
-          - "volume"
+        lookup: ["name", "unit", "volume"]
 
       # Swift
       - name: $.payload.measurements.[*].metric.[*].name
@@ -1916,10 +1381,7 @@ conf:
         resource_id: $.payload.target.id
         user_id: $.payload.initiator.id
         project_id: $.payload.initiator.project_id
-        lookup:
-          - "name"
-          - "unit"
-          - "volume"
+        lookup: ["name", "unit", "volume"]
 
       - name: "memory"
         event_type: &instance_events compute.instance.(?!create.start|update).*
@@ -1957,9 +1419,7 @@ conf:
         type: "gauge"
         unit: "sec"
         volume:
-          fields:
-            - $.payload.created_at
-            - $.payload.launched_at
+          fields: [$.payload.created_at, $.payload.launched_at]
           plugin: "timedelta"
         project_id: $.payload.tenant_id
         resource_id: $.payload.instance_id
@@ -2137,8 +1597,7 @@ conf:
         unit: "s"
         volume:
           fields:
-            - $.payload.audit_period_beginning
-            - $.payload.audit_period_ending
+            [$.payload.audit_period_beginning, $.payload.audit_period_ending]
           plugin: "timedelta"
         project_id: $.payload.tenant_id
         resource_id: $.payload.id
@@ -2155,8 +1614,7 @@ conf:
         unit: "s"
         volume:
           fields:
-            - $.payload.audit_period_beginning
-            - $.payload.audit_period_ending
+            [$.payload.audit_period_beginning, $.payload.audit_period_ending]
           plugin: "timedelta"
         project_id: $.payload.tenant_id
         resource_id: $.payload.instance_id
@@ -2201,29 +1659,10 @@ conf:
           - "*"
         sinks:
           - meter_sink
-      - name: blazar_source
-        channels:
-          - blazar
-        meters:
-          - "*"
-        events:
-          - lease.event.start_lease
-          - lease.event.end_lease
-          - lease.event.before_end_lease
-          - lease.*
-        sinks:
-          - blazar_sink
     sinks:
       - name: meter_sink
         publishers:
           - gnocchi
-      - name: blazar_sink
-        publishers:
-          - gnocchi
-    channels:
-      - name: blazar
-        sources:
-          - blazar_source
   event_pipeline:
     sinks:
       - name: event_sink
@@ -2240,6 +1679,7 @@ dependencies:
     central:
       jobs:
         - ceilometer-db-sync
+        - ceilometer-rabbit-init
         - ceilometer-ks-user
       services:
         - endpoint: internal
@@ -2249,6 +1689,7 @@ dependencies:
     ipmi:
       jobs:
         - ceilometer-db-sync
+        - ceilometer-rabbit-init
         - ceilometer-ks-user
       services:
         - endpoint: internal
@@ -2258,6 +1699,7 @@ dependencies:
     compute:
       jobs:
         - ceilometer-db-sync
+        - ceilometer-rabbit-init
         - ceilometer-ks-user
       services:
         - endpoint: internal
@@ -2270,6 +1712,7 @@ dependencies:
     notification:
       jobs:
         - ceilometer-db-sync
+        - ceilometer-rabbit-init
         - ceilometer-ks-user
       services:
         - endpoint: internal
@@ -2319,20 +1762,12 @@ endpoints:
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
 # limit values based on defaults from the openstack-helm charts unless defined
 pod:
-  affinity:
-    anti:
-      type:
-        default: requiredDuringSchedulingIgnoredDuringExecution
-      topologyKey:
-        default: kubernetes.io/hostname
-      weight:
-        default: 10
   resources:
     enabled: true
     notification:
       requests:
-        memory: "256Mi"
-        cpu: "500m"
+        memory: 256
+        cpu: 500
       limits:
         memory: 2Gi
         cpu: "2000m"
@@ -2361,8 +1796,13 @@ pod:
         timeout: 600
 
 manifests:
+  deployment_api: false
+  deployment_collector: false
+  ingress_api: false
   # using gnocchi so no db init
-  job_rabbit_init: false
-  # Keep enabled because ceilometer workloads depend on the db-sync job completing.
-  job_db_sync: true
+  job_db_init: false
+  job_db_init_mongodb: false
+  job_ks_endpoints: false
+  job_ks_service: false
   secret_mongodb: false
+  service_ingress_api: false

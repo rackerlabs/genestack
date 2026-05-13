@@ -1,33 +1,33 @@
 ---
 images:
   tags:
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    image_repo_sync: null
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    nova_api: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
-    nova_archive_deleted_rows: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
-    nova_cell_setup: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
-    nova_cell_setup_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    nova_compute: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
-    nova_compute_ironic: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
-    nova_compute_ssh: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
-    nova_conductor: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
-    nova_db_sync: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
-    nova_novncproxy: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
-    nova_novncproxy_assets: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
-    nova_scheduler: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
+    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
+    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
+    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    nova_api: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
+    nova_archive_deleted_rows: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
+    nova_cell_setup: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
+    nova_cell_setup_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    nova_compute: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
+    nova_compute_ironic: "docker.io/kolla/ubuntu-source-nova-compute-ironic:wallaby"
+    nova_compute_ssh: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
+    nova_conductor: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
+    nova_db_sync: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
+    nova_novncproxy: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
+    nova_novncproxy_assets: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
+    nova_scheduler: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
     nova_service_cleaner: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
-    nova_spiceproxy: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
-    nova_spiceproxy_assets: "ghcr.io/rackerlabs/genestack-images/nova:2025.1-latest"
+    nova_spiceproxy: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
+    nova_spiceproxy_assets: "quay.io/rackspace/rackerlabs-nova-efi:2024.1-ubuntu_jammy-1737928811"
     nova_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
     nova_wait_for_computes_init: "quay.io/rackspace/rackerlabs-hyperkube-amd64:v1.11.6"
-    rabbit_init: null
-    test: null
+    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
+    test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
 
 network:
   backend:
@@ -77,13 +77,13 @@ dependencies:
         - nova-db-sync
 
 conf:
+  ceph:
+    enabled: false
   logging:
     logger_root:
       handlers:
         - stdout
       level: INFO
-  ceph:
-    enabled: false
   nova:
     DEFAULT:
       block_device_allocate_retries: 180
@@ -96,17 +96,12 @@ conf:
       osapi_compute_workers: 2
       preallocate_images: space
       service_down_time: 120
-      use_rootwrap_daemon: true
       vif_plugging_is_fatal: true
       vif_plugging_timeout: 300
       cross_az_attach: true
       network_allocate_retries: 3
-    cache:
-      enabled: true
-      backend: dogpile.cache.memcached
     api:
-      vendordata_providers:
-        - 'StaticJSON'
+      vendordata_providers: ['StaticJSON']
       vendordata_jsonfile_path: /etc/nova/vendor_data.json
     api_database:
       connection_debug: 0
@@ -141,8 +136,6 @@ conf:
       max_retries: -1
     glance:
       num_retries: 8
-    barbican:
-      barbican_endpoint_type: internal
     key_manager:
       backend: barbican
     keystone_authtoken:
@@ -154,7 +147,9 @@ conf:
       service_type: compute
     libvirt:
       cpu_mode: host-model
+      max_queues: 8
       num_pcie_ports: 16
+      volume_use_multipath: false
     os_vif_ovs:
       ovsdb_connection: "tcp:127.0.0.1:6640"
     oslo_messaging_rabbit:
@@ -368,18 +363,6 @@ pod:
           - name: metadata-api-static-vendordata
             configMap:
               name: static-vendor-data
-    nova_compute_ironic:
-      init_container: null
-      nova_compute_ironic:
-        volumeMounts:
-          - name: metadata-api-static-vendordata
-            mountPath: /etc/nova/vendor_data.json
-            subPath: vendor_data.json
-            readOnly: true
-        volumes:
-          - name: metadata-api-static-vendordata
-            configMap:
-              name: static-vendor-data
     nova_api_metadata:
       init_container: null
       nova_api_metadata:
@@ -397,7 +380,6 @@ manifests:
   deployment_spiceproxy: false
   ingress_metadata: false
   ingress_novncproxy: false
-  ingress_serialproxy: false
   ingress_osapi: false
   ingress_spiceproxy: false
   job_db_init: false
@@ -407,8 +389,6 @@ manifests:
   secret_ingress_tls: false
   service_ingress_metadata: false
   service_ingress_novncproxy: false
-  service_ingress_serialproxy: false
   service_ingress_osapi: false
   service_ingress_spiceproxy: false
   service_spiceproxy: false
-  statefulset_compute_ironic: false

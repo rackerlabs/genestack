@@ -1,15 +1,15 @@
 ---
 images:
   tags:
-    db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    image_repo_sync: null
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    placement: "ghcr.io/rackerlabs/genestack-images/placement:2025.1-latest"
-    placement_db_sync: "ghcr.io/rackerlabs/genestack-images/placement:2025.1-latest"
+    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
+    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
+    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    placement: "quay.io/rackspace/rackerlabs-placement:2024.1-ubuntu_jammy"
+    placement_db_sync: "quay.io/rackspace/rackerlabs-placement:2024.1-ubuntu_jammy"
 
 # NOTE: (brew) requests cpu/mem values based on a three node
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
@@ -51,14 +51,30 @@ conf:
       service_token_roles: service
       service_token_roles_required: true
       service_type: placement
-    cache:
-      enabled: true
-      backend: dogpile.cache.memcached
     oslo_concurrency:
-      lock_path: /tmp/placement
+      lock_path: /tmp/octavia
+    oslo_messaging_notifications:
+      driver: messagingv2
+    oslo_messaging_rabbit:
+      amqp_durable_queues: false
+      rabbit_ha_queues: false
+      rabbit_quorum_queue: true
+      rabbit_transient_quorum_queue: false
+      use_queue_manager: false
+      rabbit_interval_max: 10
+      # Send more frequent heartbeats and fail unhealthy nodes faster
+      # heartbeat_timeout / heartbeat_rate / 2.0 = 30 / 3 / 2.0 = 5
+      # https://opendev.org/openstack/oslo.messaging/commit/36fb5bceabe08a982ebd52e4a8f005cd26fdf6b8
+      heartbeat_rate: 3
+      heartbeat_timeout_threshold: 60
+      # NOTE (deprecation warning) heartbeat_in_pthread will be deprecated in 2024.2
+      heartbeat_in_pthread: true
+      # Setting lower kombu_reconnect_delay should resolve issue with HA failing when one node is down
+      # https://lists.openstack.org/pipermail/openstack-discuss/2023-April/033314.html
+      # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
+      kombu_reconnect_delay: 0.5
     placement:
       randomize_allocation_candidates: true
-      allocation_candidates_generation_strategy: depth-first
     placement_database:
       connection_debug: 0
       connection_recycle_time: 600
@@ -68,8 +84,6 @@ conf:
       use_db_reconnect: true
       pool_timeout: 60
       max_retries: -1
-    workarounds:
-      optimize_for_wide_provider_trees: true
   placement_api_uwsgi:
     uwsgi:
       processes: 2
@@ -95,6 +109,11 @@ endpoints:
       default: memcached.openstack.svc.cluster.local
     hosts:
       default: memcached
+  oslo_messaging:
+    host_fqdn_override:
+      default: rabbitmq.openstack.svc.cluster.local
+    hosts:
+      default: rabbitmq-nodes
 
 dependencies:
   static:

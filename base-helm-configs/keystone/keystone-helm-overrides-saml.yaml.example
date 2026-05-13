@@ -6,8 +6,7 @@ conf:
         - shib
   keystone:
     auth:
-      methods: "saml2,password,token,application_credential,totp"
-      saml2: "rxt"
+      methods: "password,token,saml2,application_credential,totp"
     saml2:
       remote_id_attribute: Shib-Identity-Provider
     federation:

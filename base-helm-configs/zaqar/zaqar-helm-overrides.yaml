@@ -1,14 +1,14 @@
 ---
 images:
   tags:
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest"
-    zaqar_db_sync: "ghcr.io/rackerlabs/genestack-images/zaqar:2025.1-latest"
-    zaqar_api: "ghcr.io/rackerlabs/genestack-images/zaqar:2025.1-latest"
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
+    zaqar_db_sync: "ghcr.io/rackerlabs/genestack-images/zaqar:2024.1-latest"
+    zaqar_api: "ghcr.io/rackerlabs/genestack-images/zaqar:2024.1-latest"
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
     image_repo_sync: null
     test: null

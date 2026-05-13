@@ -10,12 +10,12 @@ labels:
 images:
   pull_policy: IfNotPresent
   tags:
-    skyline_db_sync: ghcr.io/rackerlabs/genestack-images/skyline:2025.1-latest
-    skyline: ghcr.io/rackerlabs/genestack-images/skyline:2025.1-latest
-    skyline_nginx: ghcr.io/rackerlabs/genestack-images/skyline:2025.1-latest
-    db_init: ghcr.io/rackerlabs/genestack-images/openstack-client:latest
+    skyline_db_sync: ghcr.io/rackerlabs/genestack-images/skyline:2024.1-latest
+    skyline: ghcr.io/rackerlabs/genestack-images/skyline:2024.1-latest
+    skyline_nginx: ghcr.io/rackerlabs/genestack-images/skyline:2024.1-latest
+    db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
     dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
-    ks_user: ghcr.io/rackerlabs/genestack-images/openstack-client:latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
 
 endpoints:
   fluentd:

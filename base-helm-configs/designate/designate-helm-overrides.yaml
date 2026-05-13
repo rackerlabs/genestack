@@ -43,24 +43,22 @@ labels:
 
 images:
   tags:
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest"
-    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    designate_db_sync: "ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest"
-    designate_api: "ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest"
-    designate_central: "ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest"
-    designate_mdns: "ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest"
-    designate_worker: "ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest"
-    designate_producer: "ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest"
-    designate_sink: "ghcr.io/rackerlabs/genestack-images/designate:2024.1-latest"
-    designate_service_cleaner: "kernelpanic53/rackerlabs-designate:2026-master" ## TEMP FIX USING MASTER BRANCH AS OF 02-2026
-    image_repo_sync: null
-    rabbit_init: null
-    test: null
+    bootstrap: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    db_drop: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
+    ks_user: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_service: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    ks_endpoints: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
+    dep_check: "quay.io/rackspace/rackerlabs-kubernetes-entrypoint:latest-ubuntu_jammy"
+    designate_db_sync: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
+    designate_api: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
+    designate_central: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
+    designate_mdns: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
+    designate_worker: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
+    designate_producer: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
+    designate_sink: "quay.io/rackspace/rackerlabs-designate:2024.1-ubuntu_jammy"
+    image_repo_sync: "quay.io/rackspace/rackerlabs-docker:17.07.0"
   pull_policy: "IfNotPresent"
   local_registry:
     active: false
@@ -147,9 +145,11 @@ pod:
     enabled: true
     api:
       requests:
-        memory: "384Mi"
-        cpu: "100m"
-      limits: {}
+        memory: {}
+        cpu: {}
+      limits:
+        memory: {}
+        cpu: {}
 
 network:
   api:
@@ -395,9 +395,6 @@ conf:
       enable_api_admin: true
       enabled_extensions_v2: quotas,reports
       workers: 2
-    cache:
-      enabled: true
-      backend: dogpile.cache.memcached
     service:worker:
       enabled: true
       notify: false

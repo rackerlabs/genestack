@@ -13,20 +13,20 @@
 ---
 images:
   tags:
-    db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    db_sync: ghcr.io/rackerlabs/genestack-images/masakari:2024.1-latest
-    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    masakari_api: ghcr.io/rackerlabs/genestack-images/masakari:2024.1-latest
-    masakari_engine: ghcr.io/rackerlabs/genestack-images/masakari:2024.1-latest
-    masakari_host_monitor: ghcr.io/rackerlabs/genestack-images/masakari-monitors:master-latest
-    masakari_process_monitor: ghcr.io/rackerlabs/genestack-images/masakari-monitors:master-latest
-    masakari_instance_monitor: ghcr.io/rackerlabs/genestack-images/masakari-monitors:master-latest
-    masakari_introspective_instance_monitor: ghcr.io/rackerlabs/genestack-images/masakari-monitors:master-latest
+    db_init: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+    db_sync: docker.io/openstackhelm/masakari:2024.1-ubuntu_jammy
+    db_drop: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+    ks_endpoints: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+    ks_service: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+    ks_user: quay.io/airshipit/heat:2024.1-ubuntu_jammy
+    masakari_api: quay.io/rackspace/rackerlabs-masakari:2024.1-ubuntu_jammy
+    masakari_engine: quay.io/rackspace/rackerlabs-masakari:2024.1-ubuntu_jammy
+    # TEMP HOST-MONITOR IMAGE TO FIX: https://review.opendev.org/c/openstack/masakari-monitors/+/951336
+    masakari_host_monitor: kernelpanic53/rackerlabs-masakari-monitors:zhmarvi-ubuntu_jammy_v1.0
+    masakari_process_monitor: quay.io/rackspace/rackerlabs-masakari-monitors:2024.1-ubuntu_jammy
+    masakari_instance_monitor: quay.io/rackspace/rackerlabs-masakari-monitors:2024.1-ubuntu_jammy
     rabbit_init: docker.io/rabbitmq:3.13-management
-    dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
+    dep_check: quay.io/airshipit/kubernetes-entrypoint:latest-ubuntu_focal
   pull_policy: "IfNotPresent"
 
 # NOTE: (brew) requests cpu/mem values based on a three node
@@ -122,11 +122,7 @@ conf:
       nova_catalog_admin_info: compute:nova:adminURL
       service_down_time: 30
       wait_period_after_service_update: 30
-    cache:
-      enabled: true
-      backend: dogpile.cache.memcached
     host_failure:
-      evacuate_all_instances: false
       ignore_instances_in_error_state: true
       add_reserved_host_to_aggregate: true
     instance_failure:
@@ -170,9 +166,6 @@ conf:
   masakarimonitors:
     DEFAULT:
       debug: false
-    cache:
-      enabled: true
-      backend: dogpile.cache.memcached
     api:
       api_interface: internal
     host:
@@ -182,9 +175,6 @@ conf:
       disable_ipmi_checks: true
       corosync_multicast_interfaces: null
       corosync_multicast_ports: null
-    introspectiveinstancemonitor:
-      guest_monitor_interval: 20
-      guest_monitoring_failure_threshold: 5
     kubernetes:
       monitoring_node_labels: "openstack-compute-node=enabled"
   masakari_sudoers: |
@@ -213,4 +203,3 @@ manifests:
   host_monitor: true
   instance_monitor: true
   process_monitor: false
-  introspective_instance_monitor: true
