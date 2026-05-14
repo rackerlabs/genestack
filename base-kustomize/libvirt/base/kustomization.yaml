@@ -10,5 +10,5 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/1/args
         value:
-         - --libvirt.uri=/run/libvirt/libvirt-sock-ro
+         - --libvirt.uri=qemu+unix:///system?socket=/run/libvirt/libvirt-sock-ro
          - --web.listen-address=:9474
