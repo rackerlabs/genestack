@@ -362,6 +362,15 @@ collectors:
                 static_configs:
                   - targets: ["localhost:9474"]
 
+        prometheus/etcd:
+          config:
+            scrape_configs:
+              - job_name: etcd
+                scrape_interval: 30s
+                metrics_path: /metrics
+                static_configs:
+                  - targets: ["localhost:2381"]
+
         filelog/k8s_containers:
           max_concurrent_files: 1024
           fingerprint_size: 1024
@@ -717,6 +726,7 @@ collectors:
             receivers:
               - hostmetrics
               - prometheus/libvirt
+              - prometheus/etcd
             processors:
               - attributes/add-node-labels
               - resourcedetection/env
@@ -1222,7 +1232,7 @@ kubeDns:
   enabled: false
 
 kubeEtcd:
-  enabled: true
+  enabled: false
   service:
     enabled: true
     port: 2381
