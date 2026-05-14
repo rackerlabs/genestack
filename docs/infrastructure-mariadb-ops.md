@@ -301,4 +301,79 @@ EOT
 
 # Delete the restore job
 kubectl -n openstack delete restore/restore-mariadb
+
+# Restore root permissions if below checks can't be executed or db doesn't transition into Running status:
+kubectl -n openstack get mariadb mariadb-cluster
+
+cat << EOT > ~/mysql-root.sql
+CREATE USER IF NOT EXISTS 'root'@'localhost' IDENTIFIED BY '$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)';
+CREATE USER IF NOT EXISTS 'root'@'127.0.0.1' IDENTIFIED BY '$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'127.0.0.1';
+FLUSH PRIVILEGES;
+EOT
+
+kubectl -n openstack cp /root/mysql-root.sql mariadb-cluster-0:/tmp/
+kubectl -n openstack exec -it  mariadb-cluster-0 -- bash
+
+# Update mariadb root credentials
+mariadb -u root -p$MARIADB_ROOT_PASSWORD -e 'source /tmp/mysql-root.sql;'
+rm -f /tmp/mysql-root.sql
+```
+
+### Check database status
+
+Ensure that mariadb is in a operational state after restore including logging into the via service ip:
+
+``` shell
+# kubectl -n openstack get mariadb
+NAME              READY   STATUS    PRIMARY             UPDATES         AGE
+mariadb-cluster   True    Running   mariadb-cluster-1   RollingUpdate   92d
+```
+
+``` shell
+mariadb -u root --host=$(kubectl -n openstack get service mariadb-cluster -o jsonpath='{.spec.clusterIP}') \
+  --password=$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)
+
+# Check for wsrep_cluster_size and wsrep_cluster_status:
+
+MariaDB [(none)]> show status like '%wsrep%clu%';
+
++----------------------------+--------------------------------------+
+| Variable_name              | Value                                |
++----------------------------+--------------------------------------+
+| wsrep_cluster_weight       | 3                                    |
+| wsrep_cluster_capabilities |                                      |
+| wsrep_cluster_conf_id      | 18                                   |
+| wsrep_cluster_size         | 3                                    |
+| wsrep_cluster_state_uuid   | 87e11501-0707-11f1-9102-ea3bb0f527c8 |
+| wsrep_cluster_status       | Primary                              |
++----------------------------+--------------------------------------+
+
+
+MariaDB [(none)]> show databases;
+
++---------------------+
+| Database            |
++---------------------+
+| barbican            |
+| cinder              |
+| glance              |
+| heat                |
+| information_schema  |
+| keystone            |
+| mariadb             |
+| mysql               |
+| neutron             |
+| nova                |
+| nova_api            |
+| nova_cell0          |
+| octavia             |
+| octavia-persistence |
+| performance_schema  |
+| placement           |
+| skyline             |
+| sys                 |
++---------------------+
+18 rows in set (0.001 sec)
 ```
