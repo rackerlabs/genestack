@@ -31,8 +31,9 @@ metadata:
     meta.helm.sh/release-name: "octavia"
     meta.helm.sh/release-namespace: "openstack"
 spec:
-  # If you want the database to be created with a different name than the resource name
-  # name: data-custom
+  # MariaDB-side database name must match the chart's
+  # endpoints.oslo_db_persistence.path (default /octavia_persistence).
+  name: octavia_persistence
   mariaDbRef:
     name: mariadb-cluster
   characterSet: utf8
@@ -102,7 +103,7 @@ spec:
     name: mariadb-cluster
   privileges:
     - "ALL"
-  database: "octavia-persistence"
+  database: "octavia_persistence"
   table: "*"
   username: octavia
   grantOption: true
