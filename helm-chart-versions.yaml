@@ -15,13 +15,13 @@ charts:
   ironic: 2024.2.121+13651f45-628a320c
   keystone: 2024.2.386+ee30dcd8-c84f4dbb
   libvirt: 2024.2.94+64c1b6864
-  magnum: 2025.2.11+c665eedfa
+  magnum: 2025.1.4+4d4d4e25c
   masakari: 2024.2.17+13651f45-628a320c
   manila: 2024.2.18+ee30dcd8-c84f4dbb
   memcached: 2024.2.66+95bb05b29
   neutron: 2024.2.529+13651f45-628a320c
   nova: 2024.2.555+13651f45-628a320c
-  octavia: 2025.2.19+c665eedfa
+  octavia: 2025.1.18+12458c92d
   placement: 2024.2.62+ee30dcd8-c84f4dbb
   trove: 2025.2.9+c665eedfa
   zaqar: 2025.2.7+c665eedfa
