@@ -196,7 +196,7 @@ conf:
       service_plugins: "ovn-router,ovn-vpnaas,qos,metering,trunk,segments,firewall_v2"
     cache:
       enabled: true
-      backend: dogpile.cache.memcached
+      backend: oslo_cache.memcache_pool
     service_providers:
       service_provider:
         type: multistring
@@ -271,7 +271,7 @@ conf:
       metadata_workers: 2
     cache:
       enabled: true
-      backend: dogpile.cache.memcached
+      backend: oslo_cache.memcache_pool
     ovs:
       ovsdb_connection: "tcp:127.0.0.1:6640"
     ovn:
@@ -284,7 +284,7 @@ conf:
   ovn_vpn_agent:
     cache:
       enabled: true
-      backend: dogpile.cache.memcached
+      backend: oslo_cache.memcache_pool
     ovs:
       ovsdb_connection: "tcp:127.0.0.1:6640"
   plugins:

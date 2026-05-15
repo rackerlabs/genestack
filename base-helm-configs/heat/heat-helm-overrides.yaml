@@ -67,7 +67,7 @@ conf:
       server_keystone_endpoint_type: public
     cache:
       enabled: true
-      backend: dogpile.cache.memcached
+      backend: oslo_cache.memcache_pool
     clients_keystone:
       endpoint_type: publicURL
     database:

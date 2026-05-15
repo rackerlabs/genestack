@@ -63,7 +63,7 @@ conf:
       max_token_size: 300
     cache:
       enabled: true
-      backend: dogpile.cache.memcached
+      backend: oslo_cache.memcache_pool
     auth:
       methods: "password,token,application_credential,totp"
       password: rxt

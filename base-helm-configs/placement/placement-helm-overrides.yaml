@@ -53,7 +53,7 @@ conf:
       service_type: placement
     cache:
       enabled: true
-      backend: dogpile.cache.memcached
+      backend: oslo_cache.memcache_pool
     oslo_concurrency:
       lock_path: /tmp/placement
     placement:

@@ -118,7 +118,7 @@ conf:
       log_config_append: /etc/zaqar/logging.conf
     cache:
       enabled: true
-      backend: dogpile.cache.memcached
+      backend: oslo_cache.memcache_pool
     drivers:
       transport: wsgi
       message_store: redis

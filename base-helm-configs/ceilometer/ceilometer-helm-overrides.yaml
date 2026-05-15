@@ -55,6 +55,9 @@ conf:
         type: multistring
         values:
           - gnocchi
+    cache:
+      enabled: true
+      backend: oslo_cache.memcache_pool
     api:
       aodh_url: "NotUsed"
     database:

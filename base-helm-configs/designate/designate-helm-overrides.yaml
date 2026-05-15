@@ -397,7 +397,7 @@ conf:
       workers: 2
     cache:
       enabled: true
-      backend: dogpile.cache.memcached
+      backend: oslo_cache.memcache_pool
     service:worker:
       enabled: true
       notify: false
