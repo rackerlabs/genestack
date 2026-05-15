@@ -53,6 +53,9 @@ endpoints:
       default: memcached
     host_fqdn_override:
       default: memcached.openstack.svc.cluster.local
+    statefulset:
+      name: memcached
+      replicas: 3
 
 pod:
   probes:

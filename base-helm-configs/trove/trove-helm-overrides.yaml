@@ -66,6 +66,9 @@ pod:
       default: memcached.openstack.svc.cluster.local
     hosts:
       default: memcached
+    statefulset:
+      name: memcached
+      replicas: 3
   oslo_messaging:
     host_fqdn_override:
       default: rabbitmq.openstack.svc.cluster.local
@@ -195,6 +198,9 @@ endpoints:
       default: memcached.openstack.svc.cluster.local
     hosts:
       default: memcached
+    statefulset:
+      name: memcached
+      replicas: 3
   oslo_messaging:
     host_fqdn_override:
       default: rabbitmq.openstack.svc.cluster.local

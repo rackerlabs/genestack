@@ -295,6 +295,9 @@ endpoints:
       default: memcached.openstack.svc.cluster.local
     hosts:
       default: memcached
+    statefulset:
+      name: memcached
+      replicas: 3
     port:
       memcache:
         default: 11211
