@@ -15,7 +15,7 @@ images:
     octavia_health_manager_init: "quay.io/rackspace/rackerlabs-heat:2024.1-ubuntu_jammy"
     octavia_housekeeping: "quay.io/rackspace/rackerlabs-octavia-ovn:2024.1-ubuntu_jammy-1737651745"
     octavia_worker: "quay.io/rackspace/rackerlabs-octavia-ovn:2024.1-ubuntu_jammy-1737651745"
-    openvswitch_vswitchd: "docker.io/kolla/centos-source-openvswitch-vswitchd:rocky"
+    openvswitch_vswitchd: "docker.io/openstackhelm/openvswitch:latest-ubuntu_jammy"
     rabbit_init: "quay.io/rackspace/rackerlabs-rabbitmq:3.13-management"
     test: "quay.io/rackspace/rackerlabs-xrally-openstack:2.0.0"
 
@@ -28,6 +28,11 @@ dependencies:
         - octavia-ks-endpoints
     db_sync:
       jobs: []
+    driver_agent:
+      jobs:
+        - octavia-db-sync
+        - octavia-ks-user
+        - octavia-ks-endpoints
     health_manager:
       jobs:
         - octavia-db-sync
