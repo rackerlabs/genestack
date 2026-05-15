@@ -123,6 +123,11 @@ conf:
     uwsgi:
       processes: 2
       threads: 1
+      # The 2025.1.x chart defaults to "octavia.wsgi.api:application",
+      # but the Caracal octavia images do not ship an octavia.wsgi
+      # package; only octavia.api.app.setup_app exists. Use the Caracal
+      # callable so uwsgi can find the WSGI application.
+      module: "octavia.api.app:setup_app()"
 
 endpoints:
   fluentd:
