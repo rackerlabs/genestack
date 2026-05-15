@@ -323,9 +323,16 @@ function prepareJumpHostSource() {
             echo "HYPERCONVERGED_DEV is true, but we've failed to determine the base genestack directory"
             exit 1
         fi
+
         # NOTE: we are assuming an Ubuntu (apt) based instance here
+        # We also fetch and replace the rax-noble pub key because it is
+        # broken in the noble image at this time.
         ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} \
-            "while sudo fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do echo 'Waiting for apt locks to be released...'; sleep 5; done && sudo apt-get update && sudo apt install -y rsync git"
+            'while sudo fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do echo "Waiting for apt locks to be released..."; sleep 5; done
+             tmp="$(mktemp)" && curl -fsSL "https://rax.mirror.rackspace.com/ubuntu/rackspace-ubuntu-noble-keyring.gpg" -o "$tmp"
+             sudo install -d -m 0755 /etc/apt/keyrings && gpg --no-default-keyring --keyring "$tmp" --export --armor | sudo tee /etc/apt/keyrings/rax-noble.asc >/dev/null && rm -f "$tmp"
+             sudo apt-get update && sudo apt install -y rsync git'
+
         echo "Copying the development source code to the jump host"
         rsync -avz \
             -e "ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" \
