@@ -19,11 +19,6 @@ patches:
       name: memcached-memcached-bin
     path: memcached-bin-configmap-patch.yaml
 
-  - path: memcached-service-session-affinity-config-patch.yaml
-    target:
-      kind: Service
-      name: memcached
-
   - path: memcached-statefulset-patch.yaml
     target:
       kind: StatefulSet
