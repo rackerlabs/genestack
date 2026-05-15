@@ -166,6 +166,11 @@ endpoints:
       default: mariadb-cluster-primary.openstack.svc.cluster.local
     hosts:
       default: mariadb-cluster-primary
+  oslo_db_persistence:
+    host_fqdn_override:
+      default: mariadb-cluster-primary.openstack.svc.cluster.local
+    hosts:
+      default: mariadb-cluster-primary
   oslo_cache:
     host_fqdn_override:
       default: memcached.openstack.svc.cluster.local
