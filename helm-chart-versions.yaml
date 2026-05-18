@@ -15,7 +15,7 @@ charts:
   ironic: 2024.2.121+13651f45-628a320c
   keystone: 2024.2.386+ee30dcd8-c84f4dbb
   libvirt: 2024.2.94+64c1b6864
-  magnum: 2025.2.11+c665eedfa
+  magnum: 2025.1.4+0cd784591
   masakari: 2024.2.17+13651f45-628a320c
   manila: 2024.2.18+ee30dcd8-c84f4dbb
   memcached: 2024.2.66+95bb05b29
