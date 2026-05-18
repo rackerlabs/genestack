@@ -8,12 +8,9 @@ resources:
 
 patches:
   - target:
-      kind: HorizontalPodAutoscaler
+      kind: StatefulSet
       name: memcached
     patch: |-
       - op: replace
-        path: /spec/minReplicas
-        value: 1
-      - op: replace
-        path: /spec/maxReplicas
+        path: /spec/replicas
         value: 1

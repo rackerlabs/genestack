@@ -67,7 +67,7 @@ conf:
       server_keystone_endpoint_type: public
     cache:
       enabled: true
-      backend: dogpile.cache.memcached
+      backend: oslo_cache.memcache_pool
     clients_keystone:
       endpoint_type: publicURL
     database:
@@ -187,6 +187,9 @@ endpoints:
       default: memcached.openstack.svc.cluster.local
     hosts:
       default: memcached
+    statefulset:
+      name: memcached
+      replicas: 3
   oslo_messaging:
     host_fqdn_override:
       default: rabbitmq.openstack.svc.cluster.local
