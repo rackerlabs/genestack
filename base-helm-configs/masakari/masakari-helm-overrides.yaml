@@ -105,7 +105,7 @@ endpoints:
     hosts:
       default: memcached
     statefulset:
-      name: memcached
+      name: memcached-memcached
       replicas: 3
   oslo_messaging:
     host_fqdn_override:

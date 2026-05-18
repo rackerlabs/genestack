@@ -9,7 +9,7 @@ resources:
 patches:
   - target:
       kind: StatefulSet
-      name: memcached
+      name: memcached-memcached
     patch: |-
       - op: replace
         path: /spec/replicas
