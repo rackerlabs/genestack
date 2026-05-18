@@ -907,8 +907,36 @@ collectors:
             rabbitmq.node.sockets_used_details.rate:
               enabled: true
 
-        memcached:
-          endpoint: memcached.openstack.svc.cluster.local:11211
+        memcached/memcached-0:
+          endpoint: memcached-memcached-0.memcached.openstack.svc.cluster.local:11211
+          collection_interval: 30s
+          transport: tcp
+          metrics:
+            memcached.operation_hit_ratio:
+              enabled: true
+            memcached.current_items:
+              enabled: true
+            memcached.evictions:
+              enabled: true
+            memcached.bytes:
+              enabled: true
+
+        memcached/memcached-1:
+          endpoint: memcached-memcached-1.memcached.openstack.svc.cluster.local:11211
+          collection_interval: 30s
+          transport: tcp
+          metrics:
+            memcached.operation_hit_ratio:
+              enabled: true
+            memcached.current_items:
+              enabled: true
+            memcached.evictions:
+              enabled: true
+            memcached.bytes:
+              enabled: true
+
+        memcached/memcached-2:
+          endpoint: memcached-memcached-2.memcached.openstack.svc.cluster.local:11211
           collection_interval: 30s
           transport: tcp
           metrics:
@@ -1150,7 +1178,9 @@ collectors:
               - otlp
               - mysql
               - rabbitmq
-              - memcached
+              - memcached/memcached-0
+              - memcached/memcached-1
+              - memcached/memcached-2
               - prometheus/infra
 #              - httpcheck # uncomment to add endpoint checking metrics with above endpoint config...
             processors:
