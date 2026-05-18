@@ -921,6 +921,19 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
+  name: mariadb-backup-secrets
+  namespace: openstack
+type: Opaque
+data:
+  access-key-id: $(echo -n "" | base64)
+  secret-access-key: $(echo -n "" | base64)
+  S3_ENDPOINT: $(echo -n "" | base64)
+  S3_REGION: $(echo -n "$region" | base64)
+  S3_BUCKET: $(echo -n "mariadb-backups" | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
   name: blazar-rabbitmq-password
   namespace: openstack
 type: Opaque
