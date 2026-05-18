@@ -77,6 +77,13 @@ dependencies:
         - nova-db-sync
 
 conf:
+
+  # .archive_deleted_rows here controls the configuration of archiving
+  # deleted rows, which moves them to the shadow table
+  archive_deleted_rows:
+    # run for all cells
+    all_cells: true
+
   logging:
     logger_root:
       handlers:
@@ -397,6 +404,14 @@ pod:
               name: static-vendor-data
 
 manifests:
+
+  # cron_job_archive_deleted_rows moves deleted rows to the shadow
+  # table.
+  #
+  # See additional related config under .conf.archive_deleted_rows and
+  # .jobs.archive_deleted_rows
+  cron_job_archive_deleted_rows: true
+
   deployment_spiceproxy: false
   ingress_metadata: false
   ingress_novncproxy: false
