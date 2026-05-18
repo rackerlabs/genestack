@@ -7,25 +7,19 @@ sortOptions:
 
 resources:
   - all.yaml
-  - hpa.yaml
 
 patches:
   - target:
       kind: StatefulSet
-      name: memcached-memcached
+      name: memcached
     path: memcached-statefulset-extra-env-vars-patch.yaml
 
   - target:
       kind: ConfigMap
-      name: memcached-memcached-bin
+      name: memcached-bin
     path: memcached-bin-configmap-patch.yaml
-
-  - path: memcached-service-session-affinity-config-patch.yaml
-    target:
-      kind: Service
-      name: memcached
 
   - path: memcached-statefulset-patch.yaml
     target:
       kind: StatefulSet
-      name: memcached-memcached
+      name: memcached

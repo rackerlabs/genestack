@@ -55,6 +55,9 @@ conf:
         type: multistring
         values:
           - gnocchi
+    cache:
+      enabled: true
+      backend: oslo_cache.memcache_pool
     api:
       aodh_url: "NotUsed"
     database:
@@ -2298,6 +2301,14 @@ endpoints:
   oslo_messaging:
     host_fqdn_override:
       default: rabbitmq.openstack.svc.cluster.local
+  oslo_cache:
+    host_fqdn_override:
+      default: memcached.openstack.svc.cluster.local
+    hosts:
+      default: memcached
+    statefulset:
+      name: memcached
+      replicas: 3
 
   fluentd:
     namespace: fluentbit

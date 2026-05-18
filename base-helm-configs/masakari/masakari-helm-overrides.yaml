@@ -104,6 +104,9 @@ endpoints:
       default: memcached.openstack.svc.cluster.local
     hosts:
       default: memcached
+    statefulset:
+      name: memcached
+      replicas: 3
   oslo_messaging:
     host_fqdn_override:
       default: rabbitmq.openstack.svc.cluster.local
@@ -124,7 +127,7 @@ conf:
       wait_period_after_service_update: 30
     cache:
       enabled: true
-      backend: dogpile.cache.memcached
+      backend: oslo_cache.memcache_pool
     host_failure:
       evacuate_all_instances: false
       ignore_instances_in_error_state: true
@@ -172,7 +175,7 @@ conf:
       debug: false
     cache:
       enabled: true
-      backend: dogpile.cache.memcached
+      backend: oslo_cache.memcache_pool
     api:
       api_interface: internal
     host:

@@ -127,7 +127,7 @@ conf:
       endpoint_type: internalURL
     cache:
       enabled: true
-      backend: dogpile.cache.memcached
+      backend: oslo_cache.memcache_pool
     oslo_concurrency:
       lock_path: /tmp/octavia
     oslo_messaging_rabbit:
@@ -224,6 +224,9 @@ endpoints:
       default: memcached.openstack.svc.cluster.local
     hosts:
       default: memcached
+    statefulset:
+      name: memcached
+      replicas: 3
   oslo_messaging:
     host_fqdn_override:
       default: rabbitmq.openstack.svc.cluster.local

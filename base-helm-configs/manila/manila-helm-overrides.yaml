@@ -124,6 +124,9 @@ endpoints:
       default: memcached
     host_fqdn_override:
       default: memcached.openstack.svc.cluster.local
+    statefulset:
+      name: memcached
+      replicas: 3
   oslo_messaging:
     hosts:
       default: rabbitmq-nodes
@@ -201,7 +204,7 @@ conf:
       enabled_share_protocols: NFS
     cache:
       enabled: true
-      backend: dogpile.cache.memcached
+      backend: oslo_cache.memcache_pool
     keystone_authtoken:
       auth_type: password
       auth_version: v3

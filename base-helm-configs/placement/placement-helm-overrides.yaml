@@ -53,7 +53,7 @@ conf:
       service_type: placement
     cache:
       enabled: true
-      backend: dogpile.cache.memcached
+      backend: oslo_cache.memcache_pool
     oslo_concurrency:
       lock_path: /tmp/placement
     placement:
@@ -95,6 +95,9 @@ endpoints:
       default: memcached.openstack.svc.cluster.local
     hosts:
       default: memcached
+    statefulset:
+      name: memcached
+      replicas: 3
 
 dependencies:
   static:

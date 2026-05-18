@@ -1,0 +1,16 @@
+---
+upgrade:
+  - |
+    Memcached now serves OpenStack clients through direct per-pod hostnames
+    instead of a session-affinity Service. Each consuming chart's
+    ``endpoints.oslo_cache`` block declares the StatefulSet, so the
+    helm-toolkit endpoint macro renders ``memcache_servers`` as the full
+    pod list (``memcached-0..N.<svc-fqdn>:11211``). Clients shard keys
+    across all replicas and detect dead pods on their own, eliminating the
+    single-VIP failure mode and the need for autoscaling on the cache tier.
+
+other:
+  - |
+    The cache backend was switched to ``oslo_cache.memcache_pool`` to take
+    advantage of long-lived pooled connections and explicit dead-server
+    handling, which pairs naturally with the per-pod server list.
