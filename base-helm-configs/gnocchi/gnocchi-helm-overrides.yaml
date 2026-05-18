@@ -50,6 +50,8 @@ conf:
         </Directory>
     </VirtualHost>
   gnocchi:
+    DEFAULT:
+      coordination_url: memcached://memcached-memcached-0.memcached.openstack.svc.cluster.local:11211?hosts=memcached-memcached-1.memcached.openstack.svc.cluster.local:11211&hosts=memcached-memcached-2.memcached.openstack.svc.cluster.local:11211
     metricd:
       workers: 2
   gnocchi_api_wsgi:
