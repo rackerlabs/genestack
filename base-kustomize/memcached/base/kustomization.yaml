@@ -11,7 +11,7 @@ resources:
 patches:
   - target:
       kind: StatefulSet
-      name: memcached
+      name: memcached-memcached
     path: memcached-statefulset-extra-env-vars-patch.yaml
 
   - target:
@@ -22,4 +22,4 @@ patches:
   - path: memcached-statefulset-patch.yaml
     target:
       kind: StatefulSet
-      name: memcached
+      name: memcached-memcached
