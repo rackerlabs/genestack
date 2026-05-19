@@ -87,6 +87,7 @@ conf:
       # Chart defaults to 1000 rows, but defaults `enabled: false`
       enabled: true
     before:
+      enabled: true
       date: "$(date -u -d '30 days ago' '+%Y-%m-%d %H:%M:%S')"
 
   logging:
