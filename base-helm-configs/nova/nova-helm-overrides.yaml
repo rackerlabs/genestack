@@ -81,6 +81,7 @@ conf:
   archive_deleted_rows:
     all_cells: true
     purge_deleted_rows: true
+    until_completion: false
 
   logging:
     logger_root:
