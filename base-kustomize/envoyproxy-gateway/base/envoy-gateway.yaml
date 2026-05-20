@@ -13,22 +13,10 @@ spec:
     annotations:
       metallb.io/address-pool: gateway-api-external
   listeners:
-    - name: cluster-http
+    - name: http-wildcard-listener
       port: 80
       protocol: HTTP
       hostname: "*.cluster.local"
       allowedRoutes:
         namespaces:
           from: All
-    - name: cluster-tls
-      port: 443
-      protocol: HTTPS
-      hostname: "*.cluster.local"
-      allowedRoutes:
-        namespaces:
-          from: All
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - kind: Secret
-            name: wildcard-cluster-tls-secret
