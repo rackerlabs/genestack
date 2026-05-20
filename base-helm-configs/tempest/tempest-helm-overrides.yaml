@@ -1,0 +1,283 @@
+---
+labels:
+  job:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+
+images:
+  tags:
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
+    tempest_run_tests: "localhost/my-tempest:orig"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    image_repo_sync: null
+  pull_policy: "IfNotPresent"
+
+jobs:
+  run_tests:
+    backoffLimit: 6
+    restartPolicy: OnFailure
+
+pod:
+  user:
+    tempest:
+      uid: 42424
+  security_context:
+    tempest:
+      pod:
+        runAsUser: 42424
+        fsGroup: 42424
+      container:
+        tempest:
+          runAsUser: 42424
+          readOnlyRootFilesystem: false
+  resources:
+    enabled: false
+    jobs:
+      run_tests:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "1024Mi"
+          cpu: "2000m"
+  env:
+    tempest:
+      - name: OS_INTERFACE
+        value: "internal"
+
+dependencies:
+  static:
+    ks_user:
+      services:
+        - service: identity
+          endpoint: internal
+    run_tests:
+      jobs:
+        - tempest-ks-user
+      services:
+        - service: identity
+          endpoint: internal
+    image_repo_sync:
+      services:
+        - endpoint: internal
+          service: local_image_registry
+
+conf:
+  script: |
+    tempest run --exclude-list /etc/tempest/test-blacklist --config-file /etc/tempest/tempest.conf -w 4 --smoke
+  # The following sections can be used to blacklist and whitelist specific tests.
+  # If either section is not empty, it will be used to create an entry in the
+  # tempest-etc configmap and will be mounted into the tempest-run-tests pod
+  blacklist:
+    - tempest\.api\.compute\.flavors\.test_flavors\.FlavorsV2TestJSON\.test_get_flavor
+    - tempest\.api\.compute\.flavors\.test_flavors\.FlavorsV2TestJSON\.test_list_flavors
+    - tempest\.api\.compute\.servers\.test_create_server\.ServersTestBootFromVolume
+    - tempest\.api\.compute\.servers\.test_create_server\.ServersTestJSON
+    - tempest\.api\.compute\.servers\.test_server_addresses\.ServerAddressesTestJSON
+    - tempest\.api\.compute\.servers\.test_create_server\.ServersTestManualDisk
+    - tempest\.api\.compute\.servers\.test_server_actions\.ServerActionsTestJSON
+    - tempest\.api\.network\.test_extensions\.ExtensionsTestJSON\.test_list_show_extensions
+    - tempest\.api\.volume\.test_volumes_list\.VolumesListTestJSON
+    - tempest\.api\.volume\.test_volumes_actions\.VolumesActionsTest
+    - tempest\.scenario\.test_dashboard_basic_ops\.TestDashboardBasicOps\.test_basic_scenario
+    - tempest\.scenario\.test_server_basic_ops\.TestServerBasicOps\.test_server_basic_ops
+    - tempest\.api\.volume\.test_volumes_get\.VolumesGetTest\.test_volume_create_get_update_delete_from_image
+    - tempest\.api\.volume\.test_volumes_get\.VolumesGetTest\.test_volume_create_get_update_delete
+  # whitelist:
+  #   - (?:tempest\.api\.identity\.admin\.v3\.test_groups\.GroupsV3TestJSON\.test_list_groups)
+  #   - (?:tempest\.api\.image\.v2\.test_images\.ListSharedImagesTest\.test_list_images_param_member_status)
+  #   - (?:tempest\.scenario\.test_encrypted_cinder_volumes\.TestEncryptedCinderVolumes\.test_encrypted_cinder_volumes_cryptsetup)
+  #   - (?:tempest\.scenario\.test_encrypted_cinder_volumes\.TestEncryptedCinderVolumes\.test_encrypted_cinder_volumes_luks)
+  #   - (?:tempest\.api\.network\.test_networks\.NetworksIpV6Test\.test_external_network_visibility)
+  #   - (?:tempest\.api\.network\.test_networks\.NetworksTest\.test_external_network_visibility)
+  #   - (?:tempest\.scenario\.test_network_v6\.TestGettingAddress\.test_dualnet_multi_prefix_slaac)
+  #   - (?:tempest\.scenario\.test_network_v6\.TestGettingAddress\.test_dualnet_multi_prefix_dhcpv6_stateless)
+  #   - (?:tempest\.scenario\.test_network_basic_ops\.TestNetworkBasicOps\.test_update_router_admin_state)
+  #   - (?:tempest\.scenario\.test_network_basic_ops\.TestNetworkBasicOps\.test_router_rescheduling)
+  #   - (?:tempest\.scenario\.test_network_basic_ops\.TestNetworkBasicOps\.test_update_instance_port_admin_state)
+  tempest:
+    auth:
+      use_dynamic_credentials: true
+    identity:
+      auth_version: v3
+      # region value set by configmap-etc
+      region: RegionOne
+      # uri_v3 value set by configmap-etc
+      uri_v3: http://keystone-api.openstack.svc.cluster.local:5000/v3
+      v3_endpoint_type: internal
+    identity-feature-enabled:
+      api_v3: true
+      # this value should be the same as the keystone chart conf.keystone.identity.domain_specific_drivers_enabled
+      domain_specific_drivers: true
+    image:
+      http_image: "http://download.cirros-cloud.net/0.6.2/cirros-0.6.2-x86_64-disk.img"
+      container_formats: bare
+      disk_formats: raw
+      endpoint_type: internal
+    compute:
+      flavor_ref: "14e1a646-1143-4929-80f8-cec2671291a2"
+      flavor_ref_alt: "ac860782-6fc6-48a7-ab08-64bc95e4762e"
+      # Image IDs - get these from: openstack image list
+      image_ref: "abe16a0d-1287-467f-91bb-d2d1cc1b9905"
+      image_ref_alt: "abe16a0d-1287-467f-91bb-d2d1cc1b9905"
+      # SSH keypair for instance access tests
+      ssh_connect_method: floating
+      ssh_user: cirros
+      endpoint_type: internal
+    compute-feature-enabled:
+      api_v2: true
+    network:
+      endpoint_type: internal
+
+    volume:
+      endpoint_type: internal
+
+    object-storage:
+      endpoint_type: internal
+
+    orchestration:
+      endpoint_type: internal
+
+    # Heat plugin (VERY COMMON LEAK TO PUBLIC)
+    heat_plugin:
+      auth_url: http://keystone-api.openstack.svc.cluster.local:5000/v3
+      endpoint_type: internal
+      region: RegionOne
+    service_available:
+      cinder: true
+      glance: true
+      nova: true
+      neutron: true
+      heat: true
+    validation:
+      run_validation: true
+      connect_method: floating
+      network_for_ssh: private
+  cleanup:
+    force: false
+    enabled: true
+  tempest_logging:
+    loggers:
+      keys:
+        - root
+        - tempest
+    handlers:
+      keys:
+        - stdout
+        - "null"
+    formatters:
+      keys:
+        - tests
+        - default
+    logger_root:
+      level: DEBUG
+      handlers:
+        - 'null'
+    logger_tempest:
+      level: WARN
+      propagate: 0
+      handlers:
+        - stdout
+      qualname: tempest
+    handler_stdout:
+      class: StreamHandler
+      level: WARN
+      args: (sys.stdout,)
+      formatter: tests
+    handler_null:
+      class: logging.NullHandler
+      formatter: default
+      args: ()
+    formatter_tests:
+      class: oslo_log.formatters.ContextFormatter
+      datefmt: "%Y-%m-%d %H:%M:%S"
+    formatter_default:
+      format: "%(message)s"
+      datefmt: "%Y-%m-%d %H:%M:%S"
+
+
+pvc:
+  enabled: true
+  name: pvc-tempest
+  requests:
+    storage: 2Gi
+  storage_class: general
+
+secrets:
+  identity:
+    admin: tempest-keystone-admin
+    tempest: tempest-keystone-user
+  oci_image_registry:
+    tempest: tempest-oci-image-registry
+  tls:
+    identity:
+      api:
+        public: keystone-tls-public
+        internal: keystone-tls-api
+
+endpoints:
+  cluster_domain_suffix: cluster.local
+  identity:
+    name: keystone
+    v3_endpoint_type: internal
+    auth:
+      admin:
+        region_name: RegionOne
+        username: admin
+        password: password
+        project_name: admin
+        user_domain_name: default
+        project_domain_name: default
+      tempest:
+        role: admin
+        region_name: RegionOne
+        username: tempest
+        password: password
+        project_name: service
+        user_domain_name: service
+        project_domain_name: service
+    hosts:
+      default: keystone-api
+      internal: keystone-api
+    host_fqdn_override:
+      default: null
+    path:
+      default: /v3
+    scheme:
+      default: http
+    port:
+      api:
+        default: 80
+        internal: 5000
+  dashboard:
+    name: horizon
+    hosts:
+      default: horizon-int
+      public: horizon
+    host_fqdn_override:
+      default: null
+      # NOTE(portdirect): this chart supports TLS for fqdn over-ridden public
+      # endpoints using the following format:
+      # public:
+      #   host: null
+      #   tls:
+      #     crt: null
+      #     key: null
+    path:
+      default: null
+    scheme:
+      default: http
+    port:
+      web:
+        default: 80
+tls:
+  identity: false
+
+manifests:
+  configmap_bin: true
+  configmap_etc: true
+  job_image_repo_sync: true
+  job_ks_user: true
+  job_run_tests: true
+  secret_keystone: true
+  secret_registry: true
