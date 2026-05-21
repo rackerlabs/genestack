@@ -326,6 +326,7 @@ nav:
           - Object Storage:
               - Operating Swift Object Storage: openstack-swift-operators-guide.md
           - Override Public Endpoint fqdn for service catalog: openstack-override-public-endpoint-fqdn.md
+          - Postgres Operator Helm Adoption: postgres-operator-helm-adoption.md
           - Service Overrides: openstack-service-overrides.md
           - Resource and Project Lookups: openstack-resource-lookups.md
           - Instance-HA:
