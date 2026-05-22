@@ -35,6 +35,7 @@
     server: "{{ capi_mgmt_cluster_instances[0].name }}"
     wait: true
   register: _capi_boostrap_fip
+  when: create_tunnelled_network_infra | bool
 
 - name: Attach the etcd backup volume to the capi mgmt cluster bootstrap vm
   openstack.cloud.server_volume:

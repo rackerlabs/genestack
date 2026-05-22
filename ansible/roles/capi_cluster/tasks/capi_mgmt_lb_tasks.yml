@@ -17,7 +17,23 @@
     state: present
     name: "{{ capi_mgmt_cluster_lb_name }}"
     vip_network: "{{ ext_net_id }}"
-  register: _capi_lb
+  register: _capi_lb_no_fip
+  when: not capi_mgmt_cluster_lb_enable_fip | bool
+
+- name: Create the loadbalancer for the capi mgmt cluster (with fip)
+  openstack.cloud.loadbalancer:
+    interface: "{{ os_endpoint_type | default('public') }}"
+    state: present
+    name: "{{ capi_mgmt_cluster_lb_name }}"
+    vip_network: "{{ _capi_geneve_net.id }}"
+    assign_floating_ip: true
+    floating_ip_network: "{{ ext_net_id }}"
+  register: _capi_lb_with_fip
+  when: capi_mgmt_cluster_lb_enable_fip | bool
+
+- name: Set the unified LB fact
+  ansible.builtin.set_fact:
+    _capi_lb: "{{ _capi_lb_with_fip if capi_mgmt_cluster_lb_enable_fip else _capi_lb_no_fip }}"
 
 - name: Create the listener for the capi mgmt cluster lb
   openstack.cloud.lb_listener:
