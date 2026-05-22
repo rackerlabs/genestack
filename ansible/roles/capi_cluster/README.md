@@ -42,6 +42,8 @@ These are the role variables:
   - capi_mgmt_cluster_volume_type: volume type for the capi mgmt cluster (defaults to lvmdriver-1)
   - capi_mgmt_cluster_volumes: can be used to define the size of the volumes for capi mgmt cluster vms
   - capi_mgmt_etcd_backup_volume: can be used to define the size of the etcd backup volume and volume type
+  - capi_mgmt_cluster_lb_enable_fip: can be used to create the capi mgmt cluster lb on the geneve network and assign a floating ip; useful for flex clouds
+  - create_tunnelled_network_infra: when true creates the capi mgmt cluster instances on geneve network or otherwise directly on the external network
 
 Refer to defaults/main.yml with the role directory for more details on the variables
 

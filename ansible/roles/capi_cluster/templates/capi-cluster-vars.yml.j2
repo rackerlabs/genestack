@@ -2,9 +2,17 @@
 kube_version: 1.35.1
 apiserver_loadbalancer_domain_name: {{ capi_mgmt_cluster_lb_vip_fqdn }}
 loadbalancer_apiserver:
+{% if capi_mgmt_cluster_lb_enable_fip %}
+    address: {{ _capi_lb.floating_ip.floating_ip_address }}
+{% else %}
     address: {{ _capi_lb.load_balancer.vip_address }}
+{% endif %}
     port: 6443
 loadbalancer_apiserver_localhost: false
 loadbalancer_apiserver_port: 6443
 supplementary_addresses_in_ssl_keys:
+{% if capi_mgmt_cluster_lb_enable_fip %}
+  - {{ _capi_lb.floating_ip.floating_ip_address }}
+{% else %}
   - {{ _capi_lb.load_balancer.vip_address }}
+{% endif %}

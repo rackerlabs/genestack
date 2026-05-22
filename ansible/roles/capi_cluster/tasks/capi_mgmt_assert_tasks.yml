@@ -62,3 +62,8 @@
       - volume_type_info.volume_type.name == capi_mgmt_cluster_volume_type
     fail_msg: "provided volume type {{ capi_mgmt_cluster_volume_type }} does not exist"
   when: capi_boot_from_volume
+
+- name: Check if network topology is valid
+  ansible.builtin.fail:
+    msg: "Invalid network topology: 'capi_mgmt_cluster_lb_enable_fip=true and create_tunnelled_network_infra=false'"
+  when: capi_mgmt_cluster_lb_enable_fip | bool and not create_tunnelled_network_infra | bool

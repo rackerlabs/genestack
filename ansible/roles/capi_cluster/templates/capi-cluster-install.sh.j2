@@ -4,7 +4,11 @@ set -euo pipefail
 
 # obtain values for octavia lb fqdn and lb vip
 OCTAVIA_LB_FQDN={{ capi_mgmt_cluster_lb_vip_fqdn }}
+{% if capi_mgmt_cluster_lb_enable_fip %}
+OCTAVIA_LB_VIP={{ _capi_lb.floating_ip.floating_ip_address }}
+{% else %}
 OCTAVIA_LB_VIP={{ _capi_lb.load_balancer.vip_address }}
+{% endif %}
 HELM_VERSION={{ capi_mgmt_helm_version | default('3') }}
 DNS_VARS={{ (capi_mgmt_dns_forwarders is defined) | ternary(true, false) }}
 

@@ -20,7 +20,7 @@
     ethertype: "{{ item.ethertype }}"
   loop: "{{ capi_mgmt_secgroup_rules }}"
 
-- name: Create the ports for capi mgmt cluster
+- name: Create the ports for capi mgmt cluster (overlay network)
   openstack.cloud.port:
     interface: "{{ os_interface_name | default('public') }}"
     state: present
@@ -29,9 +29,28 @@
     description: "{{ item.description }}"
     security_groups: "{{ _capi_sec_group.security_group.id }}"
   loop: "{{ capi_mgmt_cluster_ports }}"
-  register: _capi_port_results
+  register: _capi_port_results_overlay_net
+  when: create_tunnelled_network_infra | bool
   notify:
     - Delete capi mgmt cluster lb pool
+
+- name: Create the ports for capi mgmt cluster (external network)
+  openstack.cloud.port:
+    interface: "{{ os_interface_name | default('public') }}"
+    state: present
+    name: "{{ item.name }}"
+    network: "{{ ext_net_id }}"
+    description: "{{ item.description }}"
+    security_groups: "{{ _capi_sec_group.security_group.id }}"
+  loop: "{{ capi_mgmt_cluster_ports }}"
+  register: _capi_port_results_ext_net
+  when: not create_tunnelled_network_infra | bool
+  notify:
+    - Delete capi mgmt cluster lb pool
+
+- name: Set the unified capi mgmt cluster ports fact
+  ansible.builtin.set_fact:
+    _capi_port_results: "{{ _capi_port_results_overlay_net if create_tunnelled_network_infra else _capi_port_results_ext_net }}"
 
 - name: Flush handlers to immediately delete the lb pool in case of port change
   ansible.builtin.meta: flush_handlers

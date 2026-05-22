@@ -1,6 +1,6 @@
 ---
 # defaults file for capi_mgmt_cluster
-#create_tunnelled_network_infra: false
+create_tunnelled_network_infra: true
 os_endpoint_type: "public"
 capi_mgmt_net_name: "capi-mgmt-net"
 capi_mgmt_subnet_name: "capi-mgmt-subnet"
@@ -13,6 +13,7 @@ capi_mgmt_cluster_lb_vip_fqdn: "capi-mgmt-lb.cluster.local"
 capi_mgmt_cluster_lb_name: "capi-mgmt-cluster-lb"
 capi_mgmt_cluster_lb_listener_name: "capi-mgmt-cluster-listener"
 capi_mgmt_cluster_lb_pool_name: "capi-mgmt-cluster-pool"
+capi_mgmt_cluster_lb_enable_fip: false
 
 capi_mgmt_secgroup_name: "capi-mgmt-cluster-secgroup"
 

@@ -1,5 +1,5 @@
 ---
-- name: add the capi mgmt cluster bootstrap vm to the inventory
+- name: add the capi mgmt cluster bootstrap vm to the inventory (fip)
   ansible.builtin.add_host:
     name: "{{ _capi_boostrap_fip.floating_ip.floating_ip_address }}"
     groups: 'capi_mgmt_bootstrp_vm'
@@ -7,6 +7,17 @@
     ansible_ssh_user: 'ubuntu'
     ansible_ssh_private_key_file: "{{ ansible_env.HOME }}/capi_mgmt_private_key"
     ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+  when: create_tunnelled_network_infra | bool
+
+- name: add the capi mgmt cluster bootstrap vm to the inventory
+  ansible.builtin.add_host:
+    name: "{{ _capi_cluster_port_ips[0] }}"
+    groups: 'capi_mgmt_bootstrp_vm'
+    ansible_ssh_host: "{{ _capi_cluster_port_ips[0] }}"
+    ansible_ssh_user: 'ubuntu'
+    ansible_ssh_private_key_file: "{{ ansible_env.HOME }}/capi_mgmt_private_key"
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+  when: not create_tunnelled_network_infra | bool
 
 - name: Obtain the details of the capi mgmt cluster vms
   openstack.cloud.server_info:
