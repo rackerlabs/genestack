@@ -1,0 +1,136 @@
+---
+# Trove pre-configuration (pre-deploy): security group creation.
+# Must run AFTER Keystone and Neutron are deployed.
+# Keypair creation is in trove_preconf_keypair.yml (post-deploy) because
+# the trove Keystone user doesn't exist until the Trove helm chart runs.
+
+# =========================================================================
+# PART 1: ENSURE clouds.yaml EXISTS
+# =========================================================================
+
+- name: Check if clouds.yaml already exists
+  ansible.builtin.stat:
+    path: "{{ ubuntu_home }}/.config/openstack/clouds.yaml"
+  register: _trove_clouds_yaml_stat
+
+- name: Generate clouds.yaml via setup-openstack-rc.sh (safety net)
+  ansible.builtin.shell:
+    cmd: |
+      source {{ genestack_venv }}/bin/activate
+      set -a
+      source {{ genestack_rc }}
+      set +a
+      bash /opt/genestack/bin/setup-openstack-rc.sh
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: not _trove_clouds_yaml_stat.stat.exists
+
+# =========================================================================
+# PART 2: CREATE SECURITY GROUP
+# =========================================================================
+
+- name: Check if trove security group exists
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} security group show {{ trove_secgroup_name }} -f json
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_secgroup_check
+  changed_when: false
+  failed_when: false
+
+- name: Create trove access security group
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} security group create
+      --description "Security group for Trove instances" {{ trove_secgroup_name }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: _trove_secgroup_check.rc != 0
+
+- name: Create ICMP rule for trove security group
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} security group rule create
+      --protocol icmp --remote-ip {{ trove_secgroup_remote_ip }} {{ trove_secgroup_name }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: _trove_secgroup_check.rc != 0
+
+- name: Create SSH rule for trove security group
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} security group rule create
+      --protocol tcp --dst-port 22 --remote-ip {{ trove_secgroup_remote_ip }} {{ trove_secgroup_name }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: _trove_secgroup_check.rc != 0
+
+- name: Create MySQL rule for trove security group
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} security group rule create
+      --protocol tcp --dst-port 3306 --remote-ip {{ trove_secgroup_remote_ip }} {{ trove_secgroup_name }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: _trove_secgroup_check.rc != 0
+
+# =========================================================================
+# PART 3: CREATE SERVICES VIP SECURITY GROUP
+# =========================================================================
+
+- name: Check if trove services security group exists
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} security group show {{ trove_services_secgroup_name }} -f json
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_svc_secgroup_check
+  changed_when: false
+  failed_when: false
+
+- name: Create trove services security group
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} security group create
+      --description "Security group for Trove services VIP (RabbitMQ, Keystone)" {{ trove_services_secgroup_name }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: _trove_svc_secgroup_check.rc != 0
+
+- name: Create RabbitMQ rule for trove services security group
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} security group rule create
+      --protocol tcp --dst-port 5672 --remote-ip {{ trove_mgmt_subnet_cidr }} {{ trove_services_secgroup_name }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: _trove_svc_secgroup_check.rc != 0
+
+- name: Create Keystone rule for trove services security group
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} security group rule create
+      --protocol tcp --dst-port 5000 --remote-ip {{ trove_mgmt_subnet_cidr }} {{ trove_services_secgroup_name }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: _trove_svc_secgroup_check.rc != 0

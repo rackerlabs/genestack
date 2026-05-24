@@ -1,0 +1,22 @@
+---
+# Keystone LoadBalancer service for Trove guest VM connectivity.
+# Shares the MetalLB VIP with the Envoy Gateway (ports 80/443)
+# and RabbitMQ (port 5672). No port conflicts on port 5000.
+apiVersion: v1
+kind: Service
+metadata:
+  name: keystone-api-external
+  namespace: openstack
+  annotations:
+    metallb.universe.tf/address-pool: gateway-api-external
+    metallb.universe.tf/allow-shared-ip: "openstack-shared-vip"
+spec:
+  type: LoadBalancer
+  ports:
+    - name: ks-pub
+      port: 5000
+      targetPort: ks-pub
+      protocol: TCP
+  selector:
+    application: keystone
+    component: api

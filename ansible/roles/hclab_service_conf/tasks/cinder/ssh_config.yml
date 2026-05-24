@@ -1,0 +1,12 @@
+---
+- name: Write SSH config
+  ansible.builtin.template:
+    src: ssh-config.j2
+    dest: "{{ ansible_env.HOME }}/.ssh/config"
+    mode: "0600"
+    force: false
+
+- name: Remove known_hosts to avoid stale host key conflicts
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.ssh/known_hosts"
+    state: absent

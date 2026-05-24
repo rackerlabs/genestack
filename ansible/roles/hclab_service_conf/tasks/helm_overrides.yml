@@ -1,0 +1,152 @@
+---
+- name: Write envoyproxy-gateway helm overrides
+  ansible.builtin.template:
+    src: helm-overrides/envoyproxy-gateway-helm-overrides.yaml.j2
+    dest: "{{ helm_config_base }}/envoyproxy-gateway/envoyproxy-gateway-helm-overrides.yaml"
+    mode: "0644"
+    force: false
+  when: write_envoyproxy_gateway_overrides | bool
+
+- name: Write barbican helm overrides
+  ansible.builtin.template:
+    src: helm-overrides/barbican-helm-overrides.yaml.j2
+    dest: "{{ helm_config_base }}/barbican/barbican-helm-overrides.yaml"
+    mode: "0644"
+    force: false
+  when: write_barbican_overrides | bool
+
+- name: Write blazar helm overrides
+  ansible.builtin.template:
+    src: helm-overrides/blazar-helm-overrides.yaml.j2
+    dest: "{{ helm_config_base }}/blazar/blazar-helm-overrides.yaml"
+    mode: "0644"
+    force: false
+  when: write_blazar_overrides | bool
+
+- name: Write cinder helm overrides
+  ansible.builtin.template:
+    src: helm-overrides/cinder-helm-overrides.yaml.j2
+    dest: "{{ helm_config_base }}/cinder/cinder-helm-overrides.yaml"
+    mode: "0644"
+    force: false
+  when: write_cinder_overrides | bool
+
+- name: Write trove helm overrides
+  ansible.builtin.template:
+    src: helm-overrides/trove-helm-overrides.yaml.j2
+    dest: "{{ helm_config_base }}/trove/trove-helm-overrides.yaml"
+    mode: "0644"
+    force: false
+  when: write_trove_overrides | bool
+
+- name: Write glance helm overrides
+  ansible.builtin.template:
+    src: helm-overrides/glance-helm-overrides.yaml.j2
+    dest: "{{ helm_config_base }}/glance/glance-helm-overrides.yaml"
+    mode: "0644"
+    force: false
+  when: write_glance_overrides | bool
+
+- name: Write gnocchi helm overrides
+  ansible.builtin.template:
+    src: helm-overrides/gnocchi-helm-overrides.yaml.j2
+    dest: "{{ helm_config_base }}/gnocchi/gnocchi-helm-overrides.yaml"
+    mode: "0644"
+    force: false
+  when: write_gnocchi_overrides | bool
+
+- name: Write heat helm overrides
+  ansible.builtin.template:
+    src: helm-overrides/heat-helm-overrides.yaml.j2
+    dest: "{{ helm_config_base }}/heat/heat-helm-overrides.yaml"
+    mode: "0644"
+    force: false
+  when: write_heat_overrides | bool
+
+- name: Write keystone helm overrides
+  ansible.builtin.template:
+    src: helm-overrides/keystone-helm-overrides.yaml.j2
+    dest: "{{ helm_config_base }}/keystone/keystone-helm-overrides.yaml"
+    mode: "0644"
+    force: false
+  when: write_keystone_overrides | bool
+
+- name: Write neutron helm overrides
+  ansible.builtin.template:
+    src: helm-overrides/neutron-helm-overrides.yaml.j2
+    dest: "{{ helm_config_base }}/neutron/neutron-helm-overrides.yaml"
+    mode: "0644"
+    force: false
+  when: write_neutron_overrides | bool
+
+- name: Write magnum helm overrides
+  ansible.builtin.template:
+    src: helm-overrides/magnum-helm-overrides.yaml.j2
+    dest: "{{ helm_config_base }}/magnum/magnum-helm-overrides.yaml"
+    mode: "0644"
+    force: false
+  when: write_magnum_overrides | bool
+
+- name: Write nova helm overrides
+  ansible.builtin.template:
+    src: helm-overrides/nova-helm-overrides.yaml.j2
+    dest: "{{ helm_config_base }}/nova/nova-helm-overrides.yaml"
+    mode: "0644"
+    force: false
+  when: write_nova_overrides | bool
+
+- name: Write octavia helm overrides
+  ansible.builtin.template:
+    src: helm-overrides/octavia-helm-overrides.yaml.j2
+    dest: "{{ helm_config_base }}/octavia/octavia-helm-overrides.yaml"
+    mode: "0644"
+    force: false
+  when: write_octavia_overrides | bool
+
+- name: Write placement helm overrides
+  ansible.builtin.template:
+    src: helm-overrides/placement-helm-overrides.yaml.j2
+    dest: "{{ helm_config_base }}/placement/placement-helm-overrides.yaml"
+    mode: "0644"
+    force: false
+  when: write_placement_overrides | bool
+
+- name: Write masakari helm overrides
+  ansible.builtin.template:
+    src: helm-overrides/masakari-helm-overrides.yaml.j2
+    dest: "{{ helm_config_base }}/masakari/masakari-helm-overrides.yaml"
+    mode: "0644"
+    force: false
+  when: write_masakari_overrides | bool
+
+- name: Write manila helm overrides
+  ansible.builtin.template:
+    src: helm-overrides/manila-helm-overrides.yaml.j2
+    dest: "{{ helm_config_base }}/manila/manila-helm-overrides.yaml"
+    mode: "0644"
+    force: false
+  when: write_manila_overrides | bool
+
+- name: Write cloudkitty helm overrides
+  ansible.builtin.template:
+    src: helm-overrides/cloudkitty-helm-overrides.yaml.j2
+    dest: "{{ helm_config_base }}/cloudkitty/cloudkitty-helm-overrides.yaml"
+    mode: "0644"
+    force: false
+  when: write_cloudkitty_overrides | bool
+
+- name: Write freezer helm overrides
+  ansible.builtin.template:
+    src: helm-overrides/freezer-helm-overrides.yaml.j2
+    dest: "{{ helm_config_base }}/freezer/freezer-helm-overrides.yaml"
+    mode: "0644"
+    force: false
+  when: write_freezer_overrides | bool
+
+- name: Write zaqar helm overrides
+  ansible.builtin.template:
+    src: helm-overrides/zaqar-helm-overrides.yaml.j2
+    dest: "{{ helm_config_base }}/zaqar/zaqar-helm-overrides.yaml"
+    mode: "0644"
+    force: false
+  when: write_zaqar_overrides | bool

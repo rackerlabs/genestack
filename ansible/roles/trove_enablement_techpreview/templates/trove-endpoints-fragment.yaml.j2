@@ -1,0 +1,15 @@
+endpoints:
+  identity:
+    auth:
+      trove:
+        region_name: {{trove_region_name}}
+  database:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: trove.api.{{trove_gateway_region_lower}}.rackspacecloud.com
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https

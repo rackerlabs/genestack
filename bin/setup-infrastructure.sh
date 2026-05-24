@@ -229,6 +229,37 @@ function create_rabbitmq() {
   kubectl apply -k /etc/genestack/kustomize/rabbitmq-topology-operator/base
   echo "Waiting for the rabbitmq-cluster-operator to be available"
   kubectl -n rabbitmq-system wait --timeout=5m deployments.apps rabbitmq-cluster-operator --for=condition=available
+
+  # The messaging-topology-operator (deployed by the rabbitmq-topology-operator
+  # kustomize) serves the validating webhooks for the User/Vhost/Permission/
+  # Policy/Queue CRs that openstack-helm charts create. Without an explicit
+  # wait here, keystone (the first openstack service install) frequently
+  # fires before the operator's pod is Ready and its TLS serving cert is
+  # mounted, and the helm install fails with five copies of
+  #   "failed calling webhook ...: dial tcp 10.X.Y.Z:443: connect: connection refused"
+  # against validate-rabbitmq-com-v1beta1-{permission,policy,queue,user,vhost}.
+  # Mirror the metallb-webhook wait pattern above: deployment Available
+  # AND service has at least one ready endpoint.
+  echo "Waiting for the messaging-topology-operator to be available"
+  kubectl -n rabbitmq-system wait --timeout=5m deployments.apps messaging-topology-operator --for=condition=available
+
+  echo "Waiting for the messaging-topology-operator webhook service endpoints"
+  RMQ_TOPOLOGY_WEBHOOK_MAX_RETRIES=${RMQ_TOPOLOGY_WEBHOOK_MAX_RETRIES:-30}
+  RMQ_TOPOLOGY_WEBHOOK_RETRY_DELAY=${RMQ_TOPOLOGY_WEBHOOK_RETRY_DELAY:-5}
+  for ((i=1; i<=RMQ_TOPOLOGY_WEBHOOK_MAX_RETRIES; i++)); do
+    if kubectl -n rabbitmq-system get endpoints messaging-topology-webhook-service \
+        -o jsonpath='{.subsets[0].addresses[0].ip}' 2>/dev/null | grep -q .; then
+      break
+    fi
+    if [ "${i}" -eq "${RMQ_TOPOLOGY_WEBHOOK_MAX_RETRIES}" ]; then
+      echo "ERROR: messaging-topology-webhook-service has no ready endpoints after waiting."
+      kubectl -n rabbitmq-system get pods -o wide || true
+      kubectl -n rabbitmq-system get endpoints messaging-topology-webhook-service -o yaml || true
+      return 1
+    fi
+    sleep "${RMQ_TOPOLOGY_WEBHOOK_RETRY_DELAY}"
+  done
+
   kubectl apply -k /etc/genestack/kustomize/rabbitmq-cluster/overlay
 }
 

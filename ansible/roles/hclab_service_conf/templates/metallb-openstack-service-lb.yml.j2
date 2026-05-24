@@ -1,0 +1,19 @@
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: gateway-api-external
+  namespace: metallb-system
+spec:
+  addresses:
+    - {{ metal_lb_ip }}/32
+  autoAssign: false
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: openstack-external-advertisement
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - gateway-api-external

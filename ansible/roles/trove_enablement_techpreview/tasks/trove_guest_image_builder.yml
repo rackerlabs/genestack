@@ -1,0 +1,496 @@
+---
+# Build a Trove guest image using diskimage-builder (mirroring the Manila
+# service image builder pattern), upload to Glance, and share with the
+# required projects.
+#
+# The Trove repo ships DIB elements at integration/scripts/files/elements/.
+# We clone the repo, create an isolated build virtualenv with
+# diskimage-builder, and call disk-image-create with the upstream elements.
+#
+# NOTE: trove-guestagent.conf is NOT baked into the image.  The Trove
+# taskmanager injects it at instance creation time via Nova config-drive
+# (see trove/instance/models.py:get_injected_files).  The DIB image only
+# needs the guest-agent binary, Docker, and the directory structure.
+
+# =========================================================================
+# PART 1: BOOTSTRAP
+# =========================================================================
+
+- name: Install python-troveclient into genestack virtualenv
+  ansible.builtin.pip:
+    virtualenv: "{{ genestack_venv }}"
+    name: python-troveclient
+    state: present
+
+- name: Create build directory
+  ansible.builtin.file:
+    path: "{{ trove_build_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Delete old trove repo directory if it exists
+  ansible.builtin.file:
+    path: "{{ trove_build_dir }}/trove"
+    state: absent
+  become: true
+  become_user: root
+
+- name: Clone trove repository (stable/{{ trove_openstack_release }})
+  ansible.builtin.git:
+    repo: https://opendev.org/openstack/trove.git
+    dest: "{{ trove_build_dir }}/trove"
+    version: "stable/{{ trove_openstack_release }}"
+    update: true
+    force: false
+
+# qemu-utils provides qemu-img; debootstrap and kpartx are required by
+# diskimage-builder for base image creation and partition handling.
+- name: Install QEMU and image-build system dependencies
+  ansible.builtin.apt:
+    name:
+      - qemu-system
+      - qemu-system-x86
+      - qemu-utils
+      - debootstrap
+      - kpartx
+    state: present
+    update_cache: true
+  become: true
+  become_user: root
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+
+- name: Create Trove build virtualenv
+  ansible.builtin.pip:
+    virtualenv: "{{ trove_venv_dir }}"
+    virtualenv_command: python3 -m venv
+    name: pip
+    state: present
+
+- name: Install diskimage-builder into build virtualenv
+  ansible.builtin.pip:
+    virtualenv: "{{ trove_venv_dir }}"
+    name:
+      - diskimage-builder
+      - setuptools
+      - wheel
+    state: present
+
+# =========================================================================
+# PART 2: ENSURE clouds.yaml EXISTS
+# =========================================================================
+
+- name: Check if clouds.yaml already exists
+  ansible.builtin.stat:
+    path: "{{ ubuntu_home }}/.config/openstack/clouds.yaml"
+  register: _trove_clouds_yaml_stat
+
+- name: Generate clouds.yaml via setup-openstack-rc.sh (safety net)
+  ansible.builtin.shell:
+    cmd: |
+      source {{ genestack_venv }}/bin/activate
+      set -a
+      source {{ genestack_rc }}
+      set +a
+      bash /opt/genestack/bin/setup-openstack-rc.sh
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: not _trove_clouds_yaml_stat.stat.exists
+
+# =========================================================================
+# PART 3: STATE DETECTION
+# =========================================================================
+
+- name: Check if Trove guest image exists in Glance
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      source {{ genestack_venv }}/bin/activate
+      openstack --os-cloud {{ os_cloud }} image show "{{ trove_guest_image_name }}" \
+        -f value -c id 2>/dev/null
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_image_check
+  changed_when: false
+  failed_when: false
+
+- name: Derive image build action flags
+  ansible.builtin.set_fact:
+    _trove_image_exists: "{{ _trove_image_check.rc == 0 and _trove_image_check.stdout | trim | length > 0 }}"
+    _trove_do_build: >-
+      {{
+        (_trove_image_check.rc != 0 or _trove_image_check.stdout | trim | length == 0)
+        or (force_rebuild_image | bool)
+        or (force_full_recreation | bool)
+      }}
+
+- name: Report image state
+  ansible.builtin.debug:
+    msg: >-
+      Image '{{ trove_guest_image_name }}' exists={{ _trove_image_exists }},
+      do_build={{ _trove_do_build }},
+      force_rebuild={{ force_rebuild_image }},
+      force_full={{ force_full_recreation }}
+
+# =========================================================================
+# PART 4: BUILD GUEST IMAGE WITH DISKIMAGE-BUILDER
+# =========================================================================
+
+- name: Delete local qcow2 to ensure a clean rebuild
+  ansible.builtin.file:
+    path: "{{ trove_build_dir }}/{{ trove_guest_image_name }}.qcow2"
+    state: absent
+  become: true
+  become_user: root
+  when: _trove_do_build | bool
+
+- name: Clean up any stale diskimage-builder build directories
+  ansible.builtin.shell: |
+    for d in /tmp/dib_build.* /tmp/dib_image.*; do
+      [ -d "$d" ] || continue
+      umount -lR "$d" 2>/dev/null || true
+      rm -rf "$d"
+    done
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: root
+  changed_when: false
+  when: _trove_do_build | bool
+
+# Patch trove's ubuntu-guest DIB element for noble compatibility.
+#
+# Trove's stable/2025.1 ubuntu-guest/pre-install.d/11-baseline-tools
+# script tries to `apt-get install ntp`, but `ntp` is not a package on
+# Ubuntu Noble (24.04) — Canonical replaced it with chrony /
+# systemd-timesyncd. apt-get fails with:
+#
+#   E: Error, pkgProblemResolver::Resolve generated breaks, this may be
+#   caused by held packages.
+#
+# and the build aborts. Replace `ntp` with `chrony` in the install
+# list and in the post-install systemctl-enable script so the build
+# proceeds cleanly. (Noble cloud rootfs already has chrony; this just
+# makes sure the trove DIB element doesn't blow up trying to enable a
+# unit that doesn't exist.)
+- name: Patch trove ubuntu-guest DIB element ntp→chrony for noble compat
+  ansible.builtin.replace:
+    path: "{{ trove_build_dir }}/trove/integration/scripts/files/elements/ubuntu-guest/{{ item }}"
+    regexp: '\bntp\b'
+    replace: 'chrony'
+  loop:
+    - pre-install.d/11-baseline-tools
+    - post-install.d/12-ntp
+  when: _trove_do_build | bool
+
+# Bake debug tooling into the qcow2 via the DIB package list, NOT via
+# virt-customize --install. virt-customize spins up its own libguestfs
+# appliance VM to run apt, and in this lab the appliance has no working
+# DNS — so `apt-get update` from inside virt-customize fails with
+# "Temporary failure resolving 'mirror.rackspace.com'". DIB runs apt
+# directly on the build host (where DNS works), which is reliable.
+#
+# `iputils-ping` is already in noble's cloud rootfs; `iputils-tracepath`
+# and `tcpdump` are pulled in by trove's guest-agent package list. We
+# just need to add the missing arping, dnsutils, and traceroute.
+- name: Add debug-tooling packages to trove guest-agent DIB package list
+  ansible.builtin.blockinfile:
+    path: "{{ trove_build_dir }}/trove/integration/scripts/files/elements/guest-agent/package-installs.yaml"
+    marker: "# {mark} GENESTACK debug tools"
+    block: |
+      iputils-arping:
+      dnsutils:
+      traceroute:
+  when: _trove_do_build | bool
+
+- name: Build Trove guest image with disk-image-create
+  ansible.builtin.shell: |
+    source {{ trove_venv_dir }}/bin/activate
+    cd {{ trove_build_dir }}/trove
+    # Use the `ubuntu` element (Canonical's pre-built cloud rootfs from
+    # cloud-images.ubuntu.com) instead of `ubuntu-minimal` (debootstrap
+    # from scratch). The minimal element ships a stripped base that's
+    # missing common debugging tools (no iputils-ping, no traceroute,
+    # no dnsutils — and apt-get sources aren't always wired up to find
+    # them), which makes the guest hard to triage when prepare fails.
+    # The cloud rootfs is the same image millions of public Ubuntu
+    # cloud VMs run on — it's better-tested for cloud-init and network
+    # plumbing, and adds maybe ~150 MB of disk versus the minimal flow.
+    disk-image-create -a amd64 \
+      -o {{ trove_build_dir }}/{{ trove_guest_image_name }} \
+      -t qcow2 \
+      --image-size 5 \
+      -x \
+      base vm ubuntu cloud-init-datasources \
+      pip-cache guest-agent ubuntu-docker
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: root
+  register: _trove_dib_build
+  retries: 3
+  delay: 30
+  until: _trove_dib_build.rc == 0
+  environment:
+    HOME: "{{ ubuntu_home }}"
+    ELEMENTS_PATH: "{{ trove_build_dir }}/trove/integration/scripts/files/elements"
+    DIB_RELEASE: "{{ trove_guest_image_os_release }}"
+    DIB_DISTRIBUTION_MIRROR: "{{ trove_dib_distribution_mirror }}"
+    DIB_CLOUD_INIT_DATASOURCES: "ConfigDrive"
+    DIB_CLOUD_INIT_ETC_HOSTS: "localhost"
+    DISTRO_NAME: ubuntu
+    GUEST_USERNAME: ubuntu
+    DEV_MODE: "false"
+    SYNC_LOG_TO_CONTROLLER: "False"
+  when: _trove_do_build | bool
+
+# =========================================================================
+# PART 4b: Pre-bake the datastore container image into the guest qcow2
+# =========================================================================
+# Trove's prepare workflow runs `docker pull <datastore>:<version>` from
+# inside the guest. In environments without a guest-side internet path
+# (no FIP, no SNAT to a routable external CIDR, etc.) that pull fails
+# and the agent never starts mysqld.
+#
+# Pre-pull the datastore image as a docker-archive tarball on the build
+# host (skopeo, no daemon needed), then inject it into the qcow2 with
+# virt-customize. The guest's cloud-init shellscript runs `docker load`
+# on first boot before guest-agent restart so the image is already
+# present in the local docker daemon when prepare runs.
+# =========================================================================
+
+- name: Install skopeo + libguestfs-tools for image prebake
+  ansible.builtin.apt:
+    name:
+      - skopeo
+      - libguestfs-tools
+    state: present
+    update_cache: true
+  become: true
+  become_user: root
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  when: _trove_do_build | bool
+
+- name: Pull datastore container image as docker-archive tarball
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      rm -f {{ trove_build_dir }}/datastore-image.tar
+      skopeo copy --override-os linux --override-arch amd64 \
+        docker://docker.io/library/{{ trove_datastore_name }}:{{ trove_datastore_version_name }} \
+        docker-archive:{{ trove_build_dir }}/datastore-image.tar:{{ trove_datastore_name }}:{{ trove_datastore_version_name }}
+    executable: /bin/bash
+  become: true
+  become_user: root
+  retries: 3
+  delay: 10
+  register: _trove_skopeo_pull
+  until: _trove_skopeo_pull.rc == 0
+  when: _trove_do_build | bool
+
+- name: Inject datastore image tarball into qcow2 with virt-customize
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      # Don't use virt-customize --install for debug packages — the
+      # libguestfs appliance VM has no working DNS in this lab and
+      # apt-get update fails. Debug tooling is added to the DIB
+      # package list instead, see the blockinfile task above.
+      virt-customize -a {{ trove_build_dir }}/{{ trove_guest_image_name }}.qcow2 \
+        --mkdir /var/lib/trove-images \
+        --upload {{ trove_build_dir }}/datastore-image.tar:/var/lib/trove-images/datastore.tar
+    executable: /bin/bash
+  become: true
+  become_user: root
+  environment:
+    LIBGUESTFS_BACKEND: direct
+  when: _trove_do_build | bool
+
+# =========================================================================
+# PART 5: DELETE OLD GLANCE IMAGE AND UPLOAD NEW ONE
+# =========================================================================
+
+- name: Delete existing Glance image before re-upload
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} image delete "{{ trove_guest_image_name }}"
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when:
+    - _trove_do_build | bool
+    - _trove_image_exists | bool
+  failed_when: false
+
+- name: Ensure glance_admin role exists and is assigned to admin user
+  ansible.builtin.shell:
+    cmd: |
+      source {{ genestack_venv }}/bin/activate
+      openstack --os-cloud {{ os_cloud }} role create glance_admin 2>/dev/null || true
+      openstack --os-cloud {{ os_cloud }} role add \
+        --user admin --project admin glance_admin 2>/dev/null || true
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  changed_when: false
+  when: _trove_do_build | bool
+
+- name: Upload Trove guest image to Glance
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      source {{ genestack_venv }}/bin/activate
+      openstack --os-cloud {{ os_cloud }} image create \
+        --disk-format qcow2 \
+        --container-format bare \
+        --shared \
+        --property os_type=linux \
+        --property os_distro=ubuntu \
+        --property os_version=22.04 \
+        --property trove_datastore={{ trove_datastore_name }} \
+        --property trove_datastore_version={{ trove_datastore_version_name }} \
+        --tag trove \
+        --tag {{ trove_datastore_name }} \
+        --file "{{ trove_build_dir }}/{{ trove_guest_image_name }}.qcow2" \
+        "{{ trove_guest_image_name }}" \
+        -f value -c id
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_image_upload
+  when: _trove_do_build | bool
+
+- name: Set trove_guest_image_id fact
+  ansible.builtin.set_fact:
+    trove_guest_image_id: "{{ _trove_image_upload.stdout | trim }}"
+  when: _trove_do_build | bool
+
+- name: Set trove_guest_image_id from existing image
+  ansible.builtin.set_fact:
+    trove_guest_image_id: "{{ _trove_image_check.stdout | trim }}"
+  when: not (_trove_do_build | bool)
+
+# =========================================================================
+# PART 6: SHARE IMAGE WITH SERVICE AND ADMIN PROJECTS
+# =========================================================================
+
+- name: Get admin project ID
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      source {{ genestack_venv }}/bin/activate
+      openstack --os-cloud {{ os_cloud }} project show admin -f value -c id
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_admin_project_id
+  changed_when: false
+  when: _trove_do_build | bool
+
+- name: Get service project ID
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      source {{ genestack_venv }}/bin/activate
+      openstack --os-cloud {{ os_cloud }} project show service -f value -c id
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_service_project_id
+  changed_when: false
+  when: _trove_do_build | bool
+
+- name: Add service and admin projects as image members
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} image add project
+      "{{ trove_guest_image_name }}" {{ item }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  loop:
+    - "{{ _trove_service_project_id.stdout | trim }}"
+    - "{{ _trove_admin_project_id.stdout | trim }}"
+  when: _trove_do_build | bool
+  failed_when: false
+
+- name: Accept image membership for service project
+  ansible.builtin.shell:
+    cmd: |
+      source {{ genestack_venv }}/bin/activate
+      openstack --os-cloud {{ os_cloud }} image set \
+        --project {{ _trove_service_project_id.stdout | trim }} \
+        --accept {{ trove_guest_image_id }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: _trove_do_build | bool
+  failed_when: false
+
+- name: Accept image membership for admin project
+  ansible.builtin.shell:
+    cmd: |
+      source {{ genestack_venv }}/bin/activate
+      openstack --os-cloud {{ os_cloud }} image set \
+        --project {{ _trove_admin_project_id.stdout | trim }} \
+        --accept {{ trove_guest_image_id }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: _trove_do_build | bool
+  failed_when: false
+
+- name: List image members
+  ansible.builtin.shell:
+    cmd: |
+      source {{ genestack_venv }}/bin/activate
+      openstack --os-cloud {{ os_cloud }} image member list {{ trove_guest_image_id }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_image_members
+  changed_when: false
+  when: _trove_do_build | bool
+
+- name: Display image members
+  ansible.builtin.debug:
+    msg: "{{ _trove_image_members.stdout_lines }}"
+  when: _trove_do_build | bool
+
+- name: Report image upload result
+  ansible.builtin.debug:
+    msg: >-
+      Trove guest image '{{ trove_guest_image_name }}'
+      ID={{ trove_guest_image_id }}
+      ({{ 'newly built' if (_trove_do_build | bool) else 'pre-existing' }})
+
+# =========================================================================
+# PART 7: CLEANUP BUILD ARTIFACTS
+# =========================================================================
+
+- name: Clean up Trove build directory
+  ansible.builtin.file:
+    path: "{{ trove_build_dir }}"
+    state: absent
+  become: true
+  become_user: root
+  when: _trove_do_build | bool
+
+- name: Clean up any remaining diskimage-builder temp directories
+  ansible.builtin.shell: |
+    for d in /tmp/dib_build.* /tmp/dib_image.*; do
+      [ -d "$d" ] || continue
+      umount -lR "$d" 2>/dev/null || true
+      rm -rf "$d"
+    done
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: root
+  changed_when: false
+  when: _trove_do_build | bool

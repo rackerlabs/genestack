@@ -1,0 +1,155 @@
+---
+- name: Ensure OpenStack config directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config/openstack"
+    state: directory
+    mode: "0755"
+
+- name: Verify clouds.yaml exists for current user
+  ansible.builtin.stat:
+    path: "{{ ansible_env.HOME }}/.config/openstack/clouds.yaml"
+  register: clouds_yaml_stat
+
+- name: Fail if clouds.yaml is missing
+  ansible.builtin.fail:
+    msg: >-
+      clouds.yaml not found at {{ ansible_env.HOME }}/.config/openstack/clouds.yaml.
+      Ensure setup-openstack-rc.sh ran as the current user (not sudo).
+  when: not clouds_yaml_stat.stat.exists
+
+- name: Create test flavor
+  ansible.builtin.command:
+    cmd: >
+      openstack --os-cloud default flavor create {{ test_flavor_name }}
+      --public --ram {{ test_flavor_ram }} --disk {{ test_flavor_disk }} --vcpus {{ test_flavor_vcpus }}
+  register: flavor_result
+  changed_when: flavor_result.rc == 0
+  failed_when:
+    - flavor_result.rc != 0
+    - "'already exists' not in flavor_result.stderr"
+
+- name: Create flat provider network
+  ansible.builtin.command:
+    cmd: >
+      openstack --os-cloud default network create
+      --share --availability-zone-hint az1 --external
+      --provider-network-type flat --provider-physical-network physnet1 flat
+  register: network_result
+  changed_when: network_result.rc == 0
+  failed_when:
+    - network_result.rc != 0
+    - "'already exists' not in network_result.stderr"
+
+- name: Create flat subnet
+  ansible.builtin.command:
+    cmd: >
+      openstack --os-cloud default subnet create
+      --subnet-range {{ flat_network_subnet_cidr }}
+      --gateway {{ flat_network_gateway }}
+      --dns-nameserver 1.1.1.1
+      --allocation-pool start={{ flat_network_pool_start }},end={{ flat_network_pool_end }}
+      --dhcp --network flat flat_subnet
+  register: subnet_result
+  changed_when: subnet_result.rc == 0
+  failed_when:
+    - subnet_result.rc != 0
+    - "'already exists' not in subnet_result.stderr"
+
+# =========================================================================
+# Router and tenant network
+# Trove (and general tenant workloads) need a routed network — the flat
+# provider network has no router, so check_subnet_router() fails.
+# Mirrors createRouter() / createNetworks() from hyperconverged-common.sh.
+# =========================================================================
+
+- name: Create router with external gateway to flat network
+  ansible.builtin.command:
+    cmd: >
+      openstack --os-cloud default router create {{ lab_router_name }}
+      --external-gateway flat
+  register: router_result
+  changed_when: router_result.rc == 0
+  failed_when:
+    - router_result.rc != 0
+    - "'already exists' not in router_result.stderr"
+
+- name: Create tenant network
+  ansible.builtin.command:
+    cmd: >
+      openstack --os-cloud default network create {{ lab_tenant_net_name }}
+  register: tenant_net_result
+  changed_when: tenant_net_result.rc == 0
+  failed_when:
+    - tenant_net_result.rc != 0
+    - "'already exists' not in tenant_net_result.stderr"
+
+- name: Create tenant subnet
+  ansible.builtin.command:
+    cmd: >
+      openstack --os-cloud default subnet create {{ lab_tenant_subnet_name }}
+      --network {{ lab_tenant_net_name }}
+      --subnet-range {{ lab_tenant_subnet_cidr }}
+      --dns-nameserver 1.1.1.1
+      --dns-nameserver 1.0.0.1
+  register: tenant_subnet_result
+  changed_when: tenant_subnet_result.rc == 0
+  failed_when:
+    - tenant_subnet_result.rc != 0
+    - "'already exists' not in tenant_subnet_result.stderr"
+
+- name: Attach tenant subnet to router
+  ansible.builtin.command:
+    cmd: >
+      openstack --os-cloud default router add subnet
+      {{ lab_router_name }} {{ lab_tenant_subnet_name }}
+  register: router_attach_result
+  changed_when: router_attach_result.rc == 0
+  failed_when:
+    - router_attach_result.rc != 0
+    - "'already' not in (router_attach_result.stderr | default(''))"
+
+# =========================================================================
+# Trove management overlay network (geneve)
+# Path-B design: trove-mgmt-net is a pure OVN overlay. Guest VMs reach
+# RabbitMQ + Keystone via the trove-mgmt-bridge DaemonSet, which plumbs
+# per-chassis anchor LSPs into pod netns and runs haproxy. No physnet,
+# no MetalLB, no host-side bridge plumbing required.
+# Only runs when Trove is enabled — gated by create_trove_mgmt_network.
+# =========================================================================
+
+- name: Create Trove management overlay network (geneve)
+  ansible.builtin.command:
+    cmd: >
+      openstack --os-cloud default network create
+      --share
+      --provider-network-type geneve
+      {{ trove_mgmt_network_name }}
+  register: trove_mgmt_net_result
+  changed_when: trove_mgmt_net_result.rc == 0
+  failed_when:
+    - trove_mgmt_net_result.rc != 0
+    - "'already exists' not in trove_mgmt_net_result.stderr"
+  when: create_trove_mgmt_network | default(false) | bool
+
+- name: Create Trove management subnet on overlay
+  # --dns-nameserver populates the subnet's metadata even with --no-dhcp;
+  # cloud-init reads it from config-drive at first boot. Internet reach
+  # for the guest comes from its other vNIC (the customer tenant network
+  # the user attaches at instance create), so no gateway is needed here.
+  ansible.builtin.command:
+    cmd: >
+      openstack --os-cloud default subnet create
+      --subnet-range {{ trove_mgmt_subnet_cidr }}
+      --gateway {{ trove_mgmt_subnet_gateway if (trove_mgmt_subnet_gateway | default('') | length > 0) else 'none' }}
+      --no-dhcp
+      --dns-nameserver 1.1.1.1
+      --dns-nameserver 8.8.8.8
+      --allocation-pool start={{ trove_mgmt_pool_start }},end={{ trove_mgmt_pool_end }}
+      --network {{ trove_mgmt_network_name }}
+      {{ trove_mgmt_subnet_name }}
+  register: trove_mgmt_subnet_result
+  changed_when: trove_mgmt_subnet_result.rc == 0
+  failed_when:
+    - trove_mgmt_subnet_result.rc != 0
+    - "'already exists' not in trove_mgmt_subnet_result.stderr"
+  when: create_trove_mgmt_network | default(false) | bool

@@ -1,0 +1,11 @@
+---
+pod:
+  resources:
+    enabled: false
+conf:
+  zaqar_api_uwsgi:
+    uwsgi:
+      processes: 1
+  zaqar:
+    oslo_messaging_notifications:
+      driver: noop
