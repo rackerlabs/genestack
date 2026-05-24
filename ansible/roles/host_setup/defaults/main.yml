@@ -154,3 +154,32 @@ tuned_profile: throughput-performance
 systemd_CPUAffinity: numa
 systemd_NUMAPolicy: local
 systemd_NUMAMask: all
+
+## needrestart configuration
+# Whether to render /etc/needrestart/needrestart.conf from the role template.
+# Set to false to leave the package-shipped conf untouched on a host.
+needrestart_manage_conf: true
+
+# Absolute path of the rendered conf file.
+needrestart_conf_path: /etc/needrestart/needrestart.conf
+
+# Storage data-plane services that should never be auto-restarted by
+# needrestart. Each entry is appended to $nrconf{override_rc} on top of the
+# upstream defaults shipped with the package for the host's Ubuntu release.
+#
+# Restarting these on the initiator side is generally non-disruptive (kernel
+# iSCSI sessions and dm-multipath maps survive a userspace daemon bounce),
+# but tgtd on a cinder-volume node WILL drop sessions on restart. Owning
+# these restarts manually during a maintenance window is safer than letting
+# an apt run touch them.
+needrestart_storage_overrides:
+  - pattern: '^iscsid\.service$'
+    comment: 'iSCSI initiator daemon (open-iscsi)'
+  - pattern: '^multipathd\.service$'
+    comment: 'device-mapper multipath daemon'
+  - pattern: '^tgt\.service$'
+    comment: 'iSCSI target daemon (cinder LVM driver)'
+
+# Extra user-supplied override_rc entries appended after the storage block.
+# Same shape as needrestart_storage_overrides: list of {pattern, comment?}.
+needrestart_extra_overrides: []
