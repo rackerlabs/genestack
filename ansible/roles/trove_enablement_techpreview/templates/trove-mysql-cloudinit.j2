@@ -1,0 +1,16 @@
+Content-Type: multipart/mixed; boundary="==TROVE_BOUNDARY=="
+MIME-Version: 1.0
+
+--==TROVE_BOUNDARY==
+Content-Type: text/x-shellscript; charset="us-ascii"
+MIME-Version: 1.0
+
+#!/bin/bash
+# K8s service reachability via Neutron port on flat network
+echo '{{ trove_services_vip_ip }} rabbitmq.openstack.svc.cluster.local' >> /etc/hosts
+echo '{{ trove_services_vip_ip }} keystone-api.openstack.svc.cluster.local' >> /etc/hosts
+
+--==TROVE_BOUNDARY==
+Content-Type: text/cloud-config; charset="us-ascii"
+MIME-Version: 1.0
+

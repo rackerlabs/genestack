@@ -1,0 +1,55 @@
+---
+# Trove helm config fragment — deep-merged into trove-helm-overrides.yaml
+# by the trove_enablement_techpreview role.
+#
+# This template resolves runtime values: network ID, security group ID,
+# keypair name, and guest image ID.
+
+images:
+  tags:
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    trove_api: "ghcr.io/rackerlabs/genestack-images/trove:2025.1-latest"
+    trove_conductor: "ghcr.io/rackerlabs/genestack-images/trove:2025.1-latest"
+    trove_taskmanager: "ghcr.io/rackerlabs/genestack-images/trove:2025.1-latest"
+    trove_db_sync: "ghcr.io/rackerlabs/genestack-images/trove:2025.1-latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
+    image_repo_sync: null
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    rabbit_init: null
+    test: null
+
+conf:
+  trove:
+    DEFAULT:
+      management_networks: "{{_trove_mgmt_network_id.stdout | trim}}"
+      management_security_groups: "{{_trove_secgroup_id.stdout | trim}}"
+      nova_keypair: "{{trove_keypair_name}}"
+      default_datastore: "{{trove_datastore_name}}"
+      network_driver: trove.network.neutron.NeutronDriver
+      taskmanager_manager: trove.taskmanager.manager.Manager
+      use_nova_server_config_drive: true
+      trove_volume_support: true
+      volume_support: true
+      volume_fstype: ext4
+      cinder_volume_type: Standard
+      enable_volume_az: true
+    mysql:
+      volume_support: true
+
+pod:
+  mounts:
+    trove_taskmanager:
+      init_container: null
+      trove_taskmanager:
+        volumeMounts:
+          - name: trove-guest-cloudinit
+            mountPath: /etc/trove/cloudinit
+            readOnly: true
+        volumes:
+          - name: trove-guest-cloudinit
+            configMap:
+              name: trove-guest-cloudinit
