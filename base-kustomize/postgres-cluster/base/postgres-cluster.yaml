@@ -9,9 +9,20 @@ spec:
   postgresql:
     version: "16"
     parameters:
-      shared_buffers: "2GB"
-      max_connections: "1024"
-      log_statement: "all"
+      log_autovacuum_min_duration: "1000"
+      log_connections: "off"
+      log_destination: csvlog
+      log_directory: ../pg_log
+      log_disconnections: "off"
+      log_filename: postgresql-%u.log
+      log_min_duration_statement: "500"
+      log_rotation_age: "1440"
+      log_rotation_size: "0"
+      log_statement: none
+      log_temp_files: "10240"
+      log_truncate_on_rotation: "on"
+      max_connections: "4096"
+      shared_buffers: "8GB"
   volume:
     size: 40Gi
   nodeAffinity:
