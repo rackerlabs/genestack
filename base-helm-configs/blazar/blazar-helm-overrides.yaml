@@ -53,6 +53,8 @@ dependencies:
       jobs: null
 
 conf:
+  policy:
+    "blazar:oshosts:get": "rule:project_member_or_admin or rule:project_reader_or_admin"
   blazar:
     DEFAULT:
       host_href: "http://blazar-api.openstack.svc.cluster.local:1234"
