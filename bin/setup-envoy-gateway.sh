@@ -1,5 +1,6 @@
 #!/bin/bash
 # shellcheck disable=SC2045,SC2124,SC2145,SC2164,SC2236,SC2294
+set -euo pipefail
 
 # Function to display general usage
 usage() {
@@ -1381,7 +1382,6 @@ for route in $(ls -1 /opt/genestack/etc/gateway-api/routes); do
     sed "s/your.domain.tld/${GATEWAY_DOMAIN}/g" "/opt/genestack/etc/gateway-api/routes/${route}" > "/tmp/${route}"
     sudo mv -v "/tmp/${route}" "/etc/genestack/gateway-api/routes/${route}"
 done
-kubectl apply -f /etc/genestack/gateway-api/routes
 
 # Process listeners
 sudo mkdir -p /etc/genestack/gateway-api/listeners
@@ -1389,8 +1389,66 @@ for listener in $(ls -1 /opt/genestack/etc/gateway-api/listeners); do
     sed "s/your.domain.tld/${GATEWAY_DOMAIN}/g" "/opt/genestack/etc/gateway-api/listeners/${listener}" > "/tmp/${listener}"
     sudo mv -v "/tmp/${listener}" "/etc/genestack/gateway-api/listeners/${listener}"
 done
-kubectl patch -n envoy-gateway gateway flex-gateway \
-              --type='json' \
-              --patch="$(jq -s 'flatten | .' /etc/genestack/gateway-api/listeners/*)"
+
+function ensure_gateway_listener() {
+    local listener_file="$1"
+    local listener_name desired_listener existing_listener gateway_json existing_index patch_file
+
+    listener_name=$(jq -r '.[0].value.name' "${listener_file}")
+    desired_listener=$(jq -c '.[0].value | {name, port, protocol, hostname, tls, allowedRoutes}' "${listener_file}")
+    gateway_json=$(kubectl -n envoy-gateway get gateway flex-gateway -o json)
+    existing_listener=$(jq -c --arg name "${listener_name}" \
+        '.spec.listeners[]? | select(.name == $name) | {name, port, protocol, hostname, tls, allowedRoutes}' \
+        <<< "${gateway_json}")
+
+    if [ -n "${existing_listener}" ]; then
+        if [ "${existing_listener}" != "${desired_listener}" ]; then
+            echo "ERROR: flex-gateway listener ${listener_name} exists but does not match ${listener_file}"
+            echo "Existing: ${existing_listener}"
+            echo "Desired:  ${desired_listener}"
+            exit 1
+        fi
+        echo "Listener ${listener_name} already present on flex-gateway"
+        return
+    fi
+
+    if [ "${listener_name}" = "http-wildcard-listener" ]; then
+        existing_index=$(jq -r '
+            .spec.listeners
+            | to_entries[]
+            | select(.value.name == "cluster-http")
+            | .key
+        ' <<< "${gateway_json}")
+        if [ -n "${existing_index}" ]; then
+            patch_file=$(mktemp)
+            jq -n --argjson index "${existing_index}" --argjson listener "${desired_listener}" \
+                '[{"op":"replace","path":("/spec/listeners/" + ($index|tostring)),"value":$listener}]' \
+                > "${patch_file}"
+            echo "Replacing cluster-http with ${listener_name} on flex-gateway"
+            kubectl patch -n envoy-gateway gateway flex-gateway \
+                --type='json' \
+                --patch-file "${patch_file}"
+            rm -f "${patch_file}"
+            return
+        fi
+    fi
+
+    echo "Patching flex-gateway with listener ${listener_name}"
+    kubectl patch -n envoy-gateway gateway flex-gateway \
+        --type='json' \
+        --patch-file "${listener_file}"
+}
+
+if [ "${HYPERCONVERGED:-false}" = "true" ]; then
+    for listener_file in /etc/genestack/gateway-api/listeners/*; do
+        ensure_gateway_listener "${listener_file}"
+    done
+    kubectl apply -f /etc/genestack/gateway-api/routes
+else
+    kubectl apply -f /etc/genestack/gateway-api/routes
+    kubectl patch -n envoy-gateway gateway flex-gateway \
+                  --type='json' \
+                  --patch="$(jq -s 'flatten | .' /etc/genestack/gateway-api/listeners/*)"
+fi
 
 echo "Setup Complete"
