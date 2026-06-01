@@ -1,0 +1,8 @@
+galaxy_info:
+  author: Dan With
+  description: End-to-end enablement of OpenStack Trove (Database as a Service) — tech preview
+  company: Rackspace Technology
+  license: Apache-2.0
+  min_ansible_version: 2.15.8
+  galaxy_tags: []
+dependencies: []

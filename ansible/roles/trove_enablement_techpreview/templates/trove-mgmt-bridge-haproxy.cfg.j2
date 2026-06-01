@@ -1,0 +1,36 @@
+global
+  log stdout format raw local0
+  maxconn 4096
+
+defaults
+  mode tcp
+  log global
+  option tcplog
+  timeout connect 5s
+  timeout client 1h
+  timeout server 1h
+
+# RabbitMQ — trove-guestagent oslo.messaging backplane.
+frontend rabbitmq_in
+  bind *:5672
+  default_backend rabbitmq_be
+backend rabbitmq_be
+  server rabbitmq rabbitmq.openstack.svc.cluster.local:5672 check resolvers k8s init-addr none
+
+# Keystone — trove-guestagent token-based auth.
+frontend keystone_in
+  bind *:5000
+  default_backend keystone_be
+backend keystone_be
+  server keystone keystone-api.openstack.svc.cluster.local:5000 check resolvers k8s init-addr none
+
+# Re-resolve cluster DNS periodically so backends survive Service rotations.
+# parse-resolv-conf reads the pod's /etc/resolv.conf, which works across
+# clusters using cluster-DNS, nodelocaldns, kube-ovn, etc., without
+# hardcoding an IP.
+resolvers k8s
+  parse-resolv-conf
+  resolve_retries 3
+  timeout resolve 1s
+  timeout retry 1s
+  hold valid 10s

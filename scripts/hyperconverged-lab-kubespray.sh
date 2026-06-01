@@ -375,6 +375,101 @@ if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
 fi
 
 #############################################################################
+# BEGIN WORKAROUND: rax.mirror.rackspace.com GPG signature failures
+#
+# The outer-cloud vendordata writes rax.mirror.rackspace.com into apt sources
+# on every fresh instance via cloud-init. The mirror has been intermittently
+# returning InRelease files with invalid signatures (observed 2026-04-29 to
+# 2026-04-30), which kills any apt operation downstream — bootstrap.sh,
+# host-setup.yml, and the cinder_volumes role's "Install cinder distro
+# packages" task all fail.
+#
+# Swap the mirror to archive.ubuntu.com on the jump host and all three
+# workers before any apt operation runs. The jump host SSH config and
+# /etc/hosts entries above let us reach workers from the jump host.
+#
+# Remove this block once the upstream mirror / vendordata issue is fixed.
+#############################################################################
+echo "Applying rax.mirror -> archive.ubuntu.com workaround on jump host and workers..."
+
+# workaround needs to be applied to all nodes, so grab their IPs and add entries to /etc/hosts for
+#  ssh operations
+WORKER_0_IP=$(openstack server show ${LAB_NAME_PREFIX}-0 -f json | jq -r '.addresses' | jq --arg n "${LAB_NAME_PREFIX}-net" -r '.[$n][0]')
+WORKER_1_IP=$(openstack server show ${LAB_NAME_PREFIX}-1 -f json | jq -r '.addresses' | jq --arg n "${LAB_NAME_PREFIX}-net" -r '.[$n][0]')
+WORKER_2_IP=$(openstack server show ${LAB_NAME_PREFIX}-2 -f json | jq -r '.addresses' | jq --arg n "${LAB_NAME_PREFIX}-net" -r '.[$n][0]')
+
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP}  <<ETCHOSTS
+if ! grep -q "${LAB_NAME_PREFIX}-0.cluster.local" /etc/hosts; then
+    sudo tee -a /etc/hosts >/dev/null <<EOF
+# BEGIN hyperconverged lab nodes
+${WORKER_0_IP} ${LAB_NAME_PREFIX}-0.cluster.local ${LAB_NAME_PREFIX}-0
+${WORKER_1_IP} ${LAB_NAME_PREFIX}-1.cluster.local ${LAB_NAME_PREFIX}-1
+${WORKER_2_IP} ${LAB_NAME_PREFIX}-2.cluster.local ${LAB_NAME_PREFIX}-2
+# END hyperconverged lab nodes
+EOF
+fi
+ETCHOSTS
+
+# The fix runs identical commands on each node — define once, run via SSH.
+# 1) sed rewrites *any* rax.mirror.rackspace.com reference (any path) to
+#    archive.ubuntu.com inside every apt source file (.list and .sources).
+# 2) Any source file whose *name* contains rax.mirror.rackspace.com is
+#    moved aside in case it has references our sed didn't catch (e.g.,
+#    Signed-By: keyring paths in DEB822 format).
+# 3) apt-get clean flushes /var/lib/apt/lists so apt-update re-fetches
+#    InRelease fresh rather than serving a cached bad signature.
+# Apt lock wait + sed/rm + apt-get update. The lock wait keeps us from
+# colliding with cloud-init / unattended-upgrades, which on a freshly
+# booted node hold the apt locks for several minutes after first boot.
+APT_FIX_CMD='for _i in $(seq 1 60); do sudo fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock /var/cache/apt/archives/lock >/dev/null 2>&1 || break; echo "  waiting for apt locks (${_i}/60)..."; sleep 5; done; sudo sed -i "s|rax\.mirror\.rackspace\.com|archive.ubuntu.com|g" /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true; for f in /etc/apt/sources.list.d/*rax.mirror.rackspace.com*; do [ -e "$f" ] && sudo rm -f "$f"; done 2>/dev/null || true; sudo apt-get clean >/dev/null; sudo apt-get update >/dev/null'
+
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} "${APT_FIX_CMD}"
+
+# Don't `set -e` here — we want to iterate over every worker and report
+# any individual failures at the end, rather than aborting on the first
+# bad node and leaving the others unfixed.
+ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<APTFIX_WORKERS
+APT_FAILED_NODES=()
+# -0 is the jump host (already patched above); only the other two workers
+# need to be reached via SSH from the jump host.
+for node in ${LAB_NAME_PREFIX}-1 ${LAB_NAME_PREFIX}-2; do
+    echo "  Waiting for SSH on \$node..."
+    for i in \$(seq 1 30); do
+        ssh -o ConnectTimeout=3 -o StrictHostKeyChecking=no \$node true 2>/dev/null && break
+        sleep 5
+    done
+    echo "  Patching apt sources on \$node..."
+    if ! ssh \$node '${APT_FIX_CMD}'; then
+        echo "  ERROR: apt fix failed on \$node — will verify and report" >&2
+        APT_FAILED_NODES+=(\$node)
+    fi
+done
+
+# A failed apt-get update doesn't necessarily mean the sources are still
+# pointing at rax.mirror — the sed step is independent and runs first.
+# Verify each previously-failed node by checking if any rax.mirror reference
+# remains in the apt config; if not, it's a transient lock issue we can
+# ignore. If references remain, fail the workaround so the operator catches
+# it before host-setup tries to apt-get on that node.
+HARD_FAILED=()
+for node in "\${APT_FAILED_NODES[@]}"; do
+    if ssh \$node "grep -rq 'rax\\.mirror\\.rackspace\\.com' /etc/apt/ 2>/dev/null"; then
+        HARD_FAILED+=(\$node)
+    else
+        echo "  \$node: sources clean despite apt-get update failure (transient lock)"
+    fi
+done
+if [ \${#HARD_FAILED[@]} -gt 0 ]; then
+    echo "ERROR: rax.mirror references still present on: \${HARD_FAILED[*]}" >&2
+    echo "       host-setup will fail on these nodes. Re-run apt fix manually." >&2
+    exit 1
+fi
+APTFIX_WORKERS
+#############################################################################
+# END WORKAROUND
+#############################################################################
+
+#############################################################################
 # Kubespray-Specific: Bootstrap and deploy codebase on Jump Host
 #############################################################################
 
@@ -689,7 +784,7 @@ if [ "${TEST_LEVEL}" = "off" ]; then
 
     # Trove Setup & Installation
     # Must be run after the flat network has been created
-    setupTrove "${SSH_USERNAME}" "${JUMP_HOST_VIP}" "${LAB_NAME_PREFIX}"
+    deployTrove "${SSH_USERNAME}" "${JUMP_HOST_VIP}" "${LAB_NAME_PREFIX}" "${COMPUTE_SUBNET_CIDR}" "${MGMT_SUBNET_CIDR}"
 
 else
     # Wait for Nova and Neutron APIs to be ready before proceeding

@@ -38,7 +38,7 @@ function parseCommonArgs() {
     if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
         # barbican is needed for iSCSI encrypted volumes and cinder install has to be
         #  done much later during the cinder volume setup; trove is also included since
-        #  cinder volume support was added to support trove develpment
+        #  cinder volume support was added to support trove development
         INCLUDE_LIST=("keystone" "barbican" "glance" "nova" "neutron" "placement" "trove")
         EXCLUDE_LIST=("cinder")
     else
@@ -336,7 +336,7 @@ function prepareJumpHostSource() {
         echo "Copying the development source code to the jump host"
         rsync -avz \
             -e "ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" \
-            --rsync-path="sudo rsync" --chown=":ubuntu" \
+            --rsync-path="sudo rsync" \
             ${DEV_PATH} ${SSH_USERNAME}@${JUMP_HOST_VIP}:/opt/
     else
         cloneGenestackOnJumpHost
@@ -546,28 +546,6 @@ conf:
       threads: 1
 EOF
         fi
-    fi
-
-    if [ ! -f "${config_base}/trove/trove-helm-overrides.yaml" ]; then
-        cat > "${config_base}/trove/trove-helm-overrides.yaml" <<EOF
----
-pod:
-  resources:
-    enabled: false
-conf:
-  trove:
-    DEFAULT:
-      trove_api_workers: 1
-      management_networks: <management_networks>
-      management_security_groups: <management_security_groups>
-      nova_keypair: <keypair_name>
-    oslo_messaging_notifications:
-      driver: noop
-  trove_api_uwsgi:
-    uwsgi:
-      processes: 1
-      threads: 1
-EOF
     fi
 
     if [ ! -f "${config_base}/glance/glance-helm-overrides.yaml" ]; then
@@ -1600,13 +1578,19 @@ source /opt/genestack/scripts/genestack.rc
 echo "[JUMP_HOST] Running cinder install script"
 sudo /opt/genestack/bin/install-cinder.sh
 
-echo "[JUMP_HOST] Running cinder volumes playbook (2 times in case of failed steps in first run)"
+#for node in ${LAB_NAME_PREFIX}-0 ${LAB_NAME_PREFIX}-1 ${LAB_NAME_PREFIX}-2; do
+#    echo "Waiting for apt locks on \${node}..."
+#    ssh -o StrictHostKeyChecking=no \${node} \
+#        'while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do echo "  apt lock held, waiting..."; sleep 5; done'
+#done
+
+echo "[JUMP_HOST] Running cinder volumes playbook (running twice to get past apt lock issue that previous loop should fix but doesn't)"
 ansible-playbook -i /etc/genestack/inventory/inventory.yaml \
-    -e "storage_network_interface=ansible_enp3s0 storage_network_interface_secondary=ansible_enp3s0" \
-    /opt/genestack/ansible/playbooks/deploy-cinder-volume.yaml -f15
+    -e "storage_network_interface=ansible_enp3s0 storage_network_interface_secondary=ansible_enp3s0 cinder_backend_name=lvmdriver-1 cinder_worker_name=lvm cinder_release_branch='stable/2025.1'" \
+    /opt/genestack/ansible/playbooks/deploy-cinder-volume.yaml -f3
 ansible-playbook -i /etc/genestack/inventory/inventory.yaml \
-    -e "storage_network_interface=ansible_enp3s0 storage_network_interface_secondary=ansible_enp3s0" \
-    /opt/genestack/ansible/playbooks/deploy-cinder-volume.yaml -f15
+    -e "storage_network_interface=ansible_enp3s0 storage_network_interface_secondary=ansible_enp3s0 cinder_backend_name=lvmdriver-1 cinder_worker_name=lvm cinder_release_branch='stable/2025.1'" \
+    /opt/genestack/ansible/playbooks/deploy-cinder-volume.yaml -f3
 
 echo "[JUMP_HOST] Creating volume type and qos"
 openstack volume type create \
@@ -1666,138 +1650,95 @@ function setupKubeConfig() {
     fi
 }
 
-function setupTrove() {
-    # Trove requires some setup that cannot be done w/ a pre-install job because the job
-    #  runs in a container that does not have access to the
-    #  /etc/genestack/helm-config/trove/trove-helm-overrides.yaml file that must be modified
-    #  so that the management_networks and management_security_groups can be assigned.
-    #  This also can't be done until openstack commands are available which doesn't happen until the
-    #  openstack setup is complete, which includes the installation of trove. Unfortunately, once the
-    #  changes are made, trove needs to have the helm upgrade run again which is done by the trove
-    #  install script.
-
-    echo "Running trove setup ..."
+function deployTrove() {
+    echo "Running trove deployment ..."
 
     local ssh_user="$1"
     local jump_host="$2"
-    local lab_prefix="$3"
+    local lab_name_prefix="$3"
+    local compute_subnet_cidr="$4"
+    local mgmt_subnet_cidr="$5"
+
+    # Trove guest VM connectivity — scoped to internal networks only (not public).
+    # RabbitMQ (5672) and Keystone (5000) are on the MetalLB shared VIP.
+    # Two rules per port: flat network (source) and mgmt network (SNAT).
+    if ! openstack security group show ${lab_name_prefix}-http-secgroup -f json 2>/dev/null | jq -r '.rules[].port_range_max' | grep -q 5672; then
+        openstack security group rule create ${lab_name_prefix}-http-secgroup \
+            --protocol tcp --ingress --dst-port 5672 \
+            --remote-ip ${compute_subnet_cidr:-192.168.102.0/24} \
+            --description "RabbitMQ for Trove guest VMs (flat network)"
+        openstack security group rule create ${lab_name_prefix}-http-secgroup \
+            --protocol tcp --ingress --dst-port 5672 \
+            --remote-ip ${mgmt_subnet_cidr:-192.168.100.0/24} \
+            --description "RabbitMQ for Trove guest VMs (mgmt network / SNAT)"
+    fi
+    if ! openstack security group show ${lab_name_prefix}-http-secgroup -f json 2>/dev/null | jq -r '.rules[].port_range_max' | grep -q 5000; then
+        openstack security group rule create ${lab_name_prefix}-http-secgroup \
+            --protocol tcp --ingress --dst-port 5000 \
+            --remote-ip ${compute_subnet_cidr:-192.168.102.0/24} \
+            --description "Keystone for Trove guest VMs (flat network)"
+        openstack security group rule create ${lab_name_prefix}-http-secgroup \
+            --protocol tcp --ingress --dst-port 5000 \
+            --remote-ip ${mgmt_subnet_cidr:-192.168.100.0/24} \
+            --description "Keystone for Trove guest VMs (mgmt network / SNAT)"
+    fi
 
     {
         declare -f setupKubeConfig
 
         cat << JUMP_HOST_EOF
-# check if trove is installed and running, otherwise exit cleanly
+# check if trove is to be installed, otherwise exit cleanly
 if ! grep "trove: true" /etc/genestack/openstack-components.yaml &>/dev/null; then
-    echo "Trove not installed, exiting Trove setup function for ${lab_prefix}-0"
+    echo "Trove not installed, exiting Trove setup function for ${lab_name_prefix}-0"
     exit 0
 fi
-
-echo "Running trove setup on ${lab_prefix}-0..."
-
-setupKubeConfig
-
-TROVE_SSH_KEY=\$(/usr/local/bin/kubectl get secret trove-ssh -n openstack -o jsonpath='{.data.private-key}' | base64 --decode)
-TROVE_SSH_PUBLIC_KEY=\$(/usr/local/bin/kubectl get secret trove-ssh -n openstack -o jsonpath='{.data.public-key}' | base64 --decode)
-TROVE_SSH_KEY_FILENAME="/home/${ssh_user}/.ssh/trove_ssh_key"
-TROVE_ADMIN_PASSWORD=\$(/usr/local/bin/kubectl --namespace openstack get secret trove-admin -o jsonpath='{.data.password}' | base64 -d)
 
 set -e
 # activate environment for openstack commands
 source /opt/genestack/scripts/genestack.rc
 
-echo "[JUMP_HOST] Creating Trove SSH key on ${lab_prefix}-0"
-echo "\${TROVE_SSH_KEY}" > \${TROVE_SSH_KEY_FILENAME} && chown ${ssh_user}:${ssh_user} \${TROVE_SSH_KEY_FILENAME} && chmod 600 \${TROVE_SSH_KEY_FILENAME}
+setupKubeConfig
 
-# create environment for trove credentials
-echo "[JUMP_HOST] Creating trove-openrc"
-cat > ~/openrc-trove << TROVE_EOF
-export OS_AUTH_URL=http://keystone-api.openstack.svc.cluster.local:5000/v3
-export OS_PROJECT_NAME=service
-export OS_TENANT_NAME=default
-export OS_PROJECT_DOMAIN_NAME=service
-export OS_USERNAME=trove
-export OS_PASSWORD=\${TROVE_ADMIN_PASSWORD}
-export OS_USER_DOMAIN_NAME=service
-export OS_REGION_NAME=RegionOne
-export OS_INTERFACE=internal
-export OS_IDENTITY_API_VERSION="3"
-TROVE_EOF
+echo "Running playbook for trove_secrets"
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_secrets
+echo "Running playbook for trove_mgmt_network"
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_mgmt_network
+#echo "Running playbook for trove_guest_vm_security_group_rules ${LAB_NAME_PREFIX}"
+#ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+#    --tags trove_guest_vm_security_group_rules \
+#    -e lab_name_prefix=${LAB_NAME_PREFIX} \
+#    -e compute_subnet_cidr=${COMPUTE_SUBNET_CIDR:-192.168.102.0/24} \
+#    -e mgmt_subnet_cidr=${MGMT_SUBNET_CIDR:-192.168.100.0/24}
+echo "Running playbook for trove_security_groups"
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_security_groups
+echo "Running playbook for trove_helm_config"
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_helm_config
+echo "Running playbook for trove_gateway"
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_gateway
 
-# activate environment with trove credentials
-source ~/openrc-trove
-
-KEYPAIR_NAME="trove-access-keypair"
-SEC_GROUP_NAME="trove-access-secgroup"
-REMOTE_IP="0.0.0.0/0" # Adjust the CIDR to restrict access if needed
-
-if openstack keypair show \$KEYPAIR_NAME; then
-  echo "[JUMP_HOST] Keypair for access to Trove instances exists"
-else
-  echo "[JUMP_HOST] Creating Keypair for access to Trove instances"
-  echo "\${TROVE_SSH_PUBLIC_KEY}" > /tmp/trove-access-key.pub
-  openstack keypair create --public-key /tmp/trove-access-key.pub \$KEYPAIR_NAME
-fi
-
-# Check if security group exists
-if openstack security group show \$SEC_GROUP_NAME; then
-  echo "[JUMP_HOST] Security Group for access to Trove instances exists"
-else
-  echo "[JUMP_HOST] Creating Security Group for access to Trove instances"
-  openstack security group create --description "Security group for Trove instances" \$SEC_GROUP_NAME
-  openstack security group rule create --protocol icmp --remote-ip \$REMOTE_IP \$SEC_GROUP_NAME
-  openstack security group rule create --protocol tcp --dst-port 22 --remote-ip \$REMOTE_IP \$SEC_GROUP_NAME
-  openstack security group rule create --protocol tcp --dst-port 3306 --remote-ip \$REMOTE_IP \$SEC_GROUP_NAME
-fi
-
-# update helm overrides so configuration is setup to use a management network and security group
-echo "[JUMP_HOST] Updating Trove Helm overrides"
-FLAT_NETWORK_ID=\$(openstack network list -f value -c ID -c Name | grep flat | awk {'print \$1'})
-sed -i "s/<management_networks>/\$FLAT_NETWORK_ID/g" /etc/genestack/helm-configs/trove/trove-helm-overrides.yaml
-ACCESS_SECGROUP_ID=\$(openstack security group list -f value -c ID -c Name | grep trove-access-secgroup | awk {'print \$1'})
-sed -i "s/<management_security_groups>/\$ACCESS_SECGROUP_ID/g" /etc/genestack/helm-configs/trove/trove-helm-overrides.yaml
-sed -i "s/<keypair_name>/\$KEYPAIR_NAME/g" /etc/genestack/helm-configs/trove/trove-helm-overrides.yaml
-
+echo "Installing Trove via Helm chart"
 sudo /opt/genestack/bin/install-trove.sh
+
+echo "Running playbook for trove_image_build"
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_image_build
+echo "Running playbook for trove_datastore"
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_datastore
+echo "Running playbook for trove_client"
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_client
+echo "Running playbook for trove_keypair"
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_keypair
+echo "Running playbook for trove_ssh_key_distribute"
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_ssh_key_distribute
 JUMP_HOST_EOF
-    } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${ssh_user}@${jump_host} bash
-
-    {
-        declare -f setupKubeConfig
-
-        cat << NODE_1_EOF
-if ! grep "trove: true" /etc/genestack/openstack-components.yaml &>/dev/null; then
-    echo "Trove not installed, exiting Trove setup function for ${lab_prefix}-1"
-    exit 0
-fi
-
-echo "Running trove setup on ${lab_prefix}-1..."
-
-setupKubeConfig
-
-echo "[${lab_prefix}-1] Creating Trove SSH key"
-TROVE_SSH_KEY=\$(/usr/local/bin/kubectl get secret trove-ssh -n openstack -o jsonpath='{.data.private-key}' | base64 --decode)
-TROVE_SSH_KEY_FILENAME="/home/${ssh_user}/.ssh/trove_ssh_key"
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${ssh_user}@${lab_prefix}-1 "echo \"\${TROVE_SSH_KEY}\" > \${TROVE_SSH_KEY_FILENAME} && chown ${ssh_user}:${ssh_user} \${TROVE_SSH_KEY_FILENAME} && chmod 600 \${TROVE_SSH_KEY_FILENAME}"
-NODE_1_EOF
-    } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${ssh_user}@${jump_host} bash
-
-    {
-        declare -f setupKubeConfig
-
-        cat << NODE_2_EOF
-if ! grep "trove: true" /etc/genestack/openstack-components.yaml &>/dev/null; then
-    echo "Trove not installed, exiting Trove setup function for ${lab_prefix}-2"
-    exit 0
-fi
-
-echo "Running trove setup on ${lab_prefix}-2..."
-
-setupKubeConfig
-
-echo "[${lab_prefix}-2] Creating Trove SSH key"
-TROVE_SSH_KEY=\$(/usr/local/bin/kubectl get secret trove-ssh -n openstack -o jsonpath='{.data.private-key}' | base64 --decode)
-TROVE_SSH_KEY_FILENAME="/home/${ssh_user}/.ssh/trove_ssh_key"
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${ssh_user}@${lab_prefix}-2 "echo \"\${TROVE_SSH_KEY}\" > \${TROVE_SSH_KEY_FILENAME} && chown ${ssh_user}:${ssh_user} \${TROVE_SSH_KEY_FILENAME} && chmod 600 \${TROVE_SSH_KEY_FILENAME}"
-NODE_2_EOF
     } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${ssh_user}@${jump_host} bash
 }

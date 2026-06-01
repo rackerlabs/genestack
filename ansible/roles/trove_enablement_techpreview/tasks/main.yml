@@ -1,0 +1,87 @@
+# =========================================================================
+# Trove — full lifecycle (lab-specific)
+#
+# Tag strategy:
+#   trove_secrets         → K8s secrets (rabbitmq, db, admin, SSH keypair)
+#   trove_preconf         → keypair, security group, resolve helm overrides
+#   trove_client          → install python-troveclient
+#   trove_image_build     → guest image build/upload (requires troveclient, K8s secrets)
+#   trove_gateway         → gateway listener, route, kustomize overlay, endpoint merge
+#   trove_helm_config     → Helm values deep merge (network, secgroup, keypair IDs)
+#   trove_post_deploy     → SSH key distribution to nodes
+#   trove_datastore       → datastore type + version (requires Trove API, image in Glance)
+# =========================================================================
+
+- name: Create Trove K8s secrets (before Helm install)
+  import_tasks: trove_k8s_secrets.yml
+  become: true
+  become_user: ubuntu
+  tags:
+    - trove_secrets
+    - trove_pre_install
+
+- name: Create Trove management network, subnet, and router
+  import_tasks: trove_mgmt_network.yml
+  tags:
+    - trove_mgmt_network
+    - trove_pre_install
+
+- name: Create Trove guest VM security group rules
+  import_tasks: trove_guest_vm_security_group_rules.yml
+  tags:
+    - trove_guest_vm_security_group_rules
+    - trove_pre_install
+
+- name: Create Trove security groups
+  import_tasks: trove_security_groups.yml
+  become: true
+  become_user: ubuntu
+  tags:
+    - trove_security_groups
+    - trove_pre_install
+
+- name: Configure Trove Helm values (deep merge)
+  import_tasks: trove_helm_config.yml
+  tags:
+    - trove_helm_config
+    - trove_pre_install
+
+- name: Configure Trove gateway, kustomize, and endpoints
+  import_tasks: trove_gateway_and_kustomize.yml
+  tags:
+    - trove_gateway
+    - trove_pre_install
+
+- name: Build and upload Trove guest image
+  import_tasks: trove_guest_image_builder.yml
+  become: true
+  become_user: ubuntu
+  tags:
+    - trove_image_build
+    - trove_post_install
+
+- name: Create Trove datastore type and version (post-deploy)
+  import_tasks: trove_datastore_setup.yml
+  tags:
+    - trove_datastore
+    - trove_post_install
+
+- name: Install python-troveclient
+  import_tasks: trove_client_install.yml
+  tags:
+    - trove_client
+    - trove_post_install
+
+- name: Create Trove keypair (post-install, requires trove Keystone user)
+  import_tasks: trove_keypair.yml
+  become: true
+  become_user: ubuntu
+  tags:
+    - trove_keypair
+    - trove_post_install
+
+- name: Distribute Trove SSH key to nodes (post-deploy)
+  import_tasks: trove_ssh_key_distribute.yml
+  tags:
+    - trove_ssh_key_distribute
+    - trove_post_install
