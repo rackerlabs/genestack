@@ -205,3 +205,49 @@ function ensureHelm() {
         installHelm
     fi
 }
+
+function installCmctl() {
+    echo "Installing cmctl..."
+
+    local github_mirror_url="${GITHUB_MIRROR_URL:-https://github.com}"
+    local version="${CMCTL_VERSION:-v2.5.0}"
+    local download_base_url="${CMCTL_DOWNLOAD_BASE_URL:-${github_mirror_url}/cert-manager/cmctl/releases/download}"
+    local tmpdir
+    local binary
+    local download_url
+
+    detectPlatform || return 1
+
+    binary="cmctl_${os}_${arch}"
+    download_url="${CMCTL_DOWNLOAD_URL:-${download_base_url}/${version}/${binary}}"
+
+    tmpdir="$(mktemp -d)"
+    trap 'rm -rf "${tmpdir}"' RETURN
+
+    echo "Detected platform: ${os}/${arch}"
+    echo "Downloading cmctl from: ${download_url}"
+
+    export SUDO_CMD=""
+    if command -v sudo >/dev/null 2>&1 && sudo -l 2>/dev/null | grep -q NOPASSWD; then
+        SUDO_CMD="/usr/bin/sudo -n "
+    fi
+
+    if command -v curl >/dev/null 2>&1; then
+        curl -fsSL "${download_url}" -o "${tmpdir}/cmctl"
+    elif command -v wget >/dev/null 2>&1; then
+        wget "${download_url}" -q -O "${tmpdir}/cmctl"
+    else
+        echo "Error: curl or wget is required to install cmctl" >&2
+        return 1
+    fi
+
+    chmod +x "${tmpdir}/cmctl"
+    ${SUDO_CMD} install -o root -g root -m 0755 "${tmpdir}/cmctl" /usr/local/bin/cmctl
+}
+
+function ensureCmctl() {
+    if ! command -v cmctl >/dev/null 2>&1; then
+        echo "cmctl is not installed. Attempting to install cmctl"
+        installCmctl
+    fi
+}
