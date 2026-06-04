@@ -28,16 +28,15 @@ kubectl -n longhorn-system get replicas.longhorn.io -o custom-columns=REPLICA:.m
 # Confirm volumes are healthy before maintenance:
 kubectl -n longhorn-system get volumes.longhorn.io -o custom-columns=VOLUME:.metadata.name,STATE:.status.state,ROBUSTNESS:.status.robustness,OWNER:.status.ownerID
 
-# If any important volume is faulted, stop and resolve that first.
+# If any volume is faulted, stop and resolve that first.
 
 ## Select Storage Nodes
 
-# Apply the Longhorn storage label only to nodes that are allowed to host Longhorn pods and volume replicas:
-# kubectl label node <node-a> longhorn.io/storage-node=enabled --overwrite
-# kubectl label node <node-b> longhorn.io/storage-node=enabled --overwrite
+# Apply the Longhorn storage label only to nodes that are allowed to host Longhorn pods and volume replicas.  For FLEX this is all nodes NOT compute/block
+kubectl label node -l '!openstack-storage-node,!openstack-compute-node' longhorn.io/storage-node=enabled --overwrite
 
 # Verify:
-kubectl get nodes -L longhorn.io/storage-node
+kubectl get nodes -l longhorn.io/storage-node
 
 ## Prevent Longhorn from Using Unlabeled Nodes
 
@@ -75,14 +74,18 @@ done
 
 ## Update Longhorn Overrides
 
-# Create or update /etc/genestack/helm-configs/longhorn/longhorn.yaml with:
-    ---
-    global:
-      nodeSelector:
-        longhorn.io/storage-node: "enabled"
+# NOTE: this is now the default in genestack as of release-2026.1.1 so this override should only contain
+# "---" on the first line
+# Create or update /etc/genestack/helm-configs/longhorn/longhorn-helm-overrides.yaml with all 
+# text between the BEGIN and END (excluding the BEING and END lines)
+#BEGIN
+---
+global:
+  nodeSelector:
+    longhorn.io/storage-node: "enabled"
 
-    defaultSettings:
-      systemManagedComponentsNodeSelector: "longhorn.io/storage-node:enabled"
+  defaultSettings:
+    systemManagedComponentsNodeSelector: "longhorn.io/storage-node:enabled"
 
 # The two values above cover all user-deployed components in the Longhorn Helm chart.
 # The setting above under defaultSettings covers the system-managed components.
@@ -110,12 +113,12 @@ done
 #longhornRecoveryBackend:
 #   nodeSelector:
 #     longhorn.io/storage-node: "enabled"
+#END
 
 ## Bump the Chart Version
 
-# Edit /etc/genestack/helm-chart-versions.yaml:
-    charts:
-      longhorn: 1.9.1
+# Edit /etc/genestack/helm-chart-versions.yaml and set the longhorn version to 1.9.1
+longhorn: 1.9.1
 
 ### Execute
 
@@ -138,6 +141,10 @@ kubectl -n longhorn-system get nodes.longhorn.io -o yaml | egrep 'name:|allowSch
 
 # Confirm volumes remain healthy:
 kubectl -n longhorn-system get volumes.longhorn.io -o custom-columns=VOLUME:.metadata.name,STATE:.status.state,ROBUSTNESS:.status.robustness
+
+## OPTIONAL: The following steps are optional. Each Longhorn volume's engine runs inside its parent instance-manager pod. After a Longhorn upgrade, the new Helm release spins up instance-manager pods with the updated engine version, but attached volumes continue running their original (older) engines until they are detached and reattached. Old instance-manager pods persist on nodes for as long as workloads remain attached to them — so you may see multiple instance-manager pods running on a node post-upgrade. This is expected Longhorn behavior and will resolve naturally through normal workload attrition; recreated pods use the upgraded instance-managers.
+
+NOTE: Do not delete old instance-manager pods directly while workloads are still attached, as this interrupts active volumes. Use the workload restart patterns below instead.
 
 # Check for attached volumes still running through an old instance-manager image:
 VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh
