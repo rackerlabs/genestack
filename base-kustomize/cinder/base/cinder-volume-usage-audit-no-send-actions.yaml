@@ -1,0 +1,8 @@
+- op: replace
+  path: /data/volume-usage-audit.sh
+  value: |
+    #!/bin/bash
+
+    set -ex
+
+    exec cinder-volume-usage-audit

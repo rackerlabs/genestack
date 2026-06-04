@@ -8,3 +8,9 @@ resources:
   - hpa-cinder-scheduler.yaml
   - hpa-cinder-api.yaml
   - policies.yaml
+patches:
+  - path: cinder-volume-usage-audit-no-send-actions.yaml
+    target:
+      version: v1
+      kind: ConfigMap
+      name: cinder-bin
