@@ -1,0 +1,39 @@
+---
+# Install python-troveclient in the genestack virtualenv so that the
+# 'openstack database' CLI commands are available for datastore management.
+
+# =========================================================================
+# PART 1: CHECK IF TROVECLIENT IS ALREADY INSTALLED
+# =========================================================================
+
+- name: Check if python-troveclient is installed in genestack venv
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      {{ genestack_venv }}/bin/pip show python-troveclient 2>/dev/null | grep -q "^Name:"
+    executable: /bin/bash
+  register: _troveclient_check
+  changed_when: false
+  failed_when: false
+
+# =========================================================================
+# PART 2: INSTALL TROVECLIENT
+# =========================================================================
+
+- name: Install python-troveclient in genestack venv
+  ansible.builtin.command:
+    cmd: "{{ genestack_venv }}/bin/pip install python-troveclient"
+  when: _troveclient_check.rc != 0
+  register: _troveclient_install
+  changed_when: "'Successfully installed' in _troveclient_install.stdout"
+
+- name: Verify troveclient is functional
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      python3 -c "import troveclient; print(troveclient.__version__)"
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  changed_when: false
+  when: _troveclient_check.rc != 0
