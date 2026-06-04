@@ -5,7 +5,7 @@ charts:
   blazar: 2025.1.3+4d4d4e25c
   blazar-reservation-splitter: 0.1.0
   ceilometer: 2025.1.10+4d4d4e25c
-  cert-manager: v1.19.2
+  cert-manager: v1.19.5
   cinder: 2025.1.13+4d4d4e25c
   cloudkitty: 2025.1.2+ebb1488dc
   designate: 2025.2.6+f3906fe15
