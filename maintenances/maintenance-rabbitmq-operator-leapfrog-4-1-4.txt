@@ -1,0 +1,276 @@
+### RabbitMQ Operator Leapfrog Maintenance: purge to rabbitmq 4.1.4
+
+### Validation
+
+# This maintenance "burns down" the existing RabbitmqCluster in the openstack namespace and reinstalls it fresh on top of a clean operator installation at RabbitMQ 4.1.4 management.
+# It is a destructive procedure: all vhosts, users, queues, permissions, and policies are destroyed along with the cluster, all are recreated from the Genestack queue manifests, and service restart cycles are required after rebuild.
+# This path skips any incremental upgrade logic entirely. Use when an incremental upgrade is not feasible or riskier than a full rebuild.
+
+# Major operational risks:
+# - All OpenStack services that consume from RabbitMQ queues will lose connectivity during the burn-down. Services must be restarted after the cluster is rebuilt.
+# - Queues are quorum-based; recreating them may cause temporary load spikes as consumers reconnect.
+# - The topology-operator (which handles advanced bindings/headers/federation resources) must also be reinstalled so those CRDs are current.
+
+### Goal
+
+# Delete the existing RabbitmqCluster in openstack along with its PVCs, uninstall both the RabbitMQ cluster-operator and topology-operator, reinstall fresh operator charts for RabbitMQ 2.x/4.1.4 compatibility, re-create the cluster via kustomize overlay, then iterate over each OpenStack service deployment deploying its User/Vhost/Queue/Permission CRs (`*-*rabbitmq-queue.yaml`) so that all vhosts, users, permissions, and policies are restored.
+
+### Prep
+
+## Deployment Node
+
+# Run from the Genestack deployment host with access to:
+# - /etc/genestack/helm-chart-versions.yaml (if helm-managed)
+# - /opt/genestack/bin/ (for install scripts if applicable)
+# - kubectl configured against the target cluster
+
+# Verify current cluster state:
+
+kubectl --namespace openstack get rabbitmqclusters.rabbitmq.com
+kubectl --namespace openstack get pods | grep rabbitmq
+kubectl --namespace openstack get pvc | grep rabbitmq
+
+kubectl get pods -n rabbitmq-system -o wide || true
+
+# Expected:
+# - One RabbitmqCluster named rabbitmq.
+# - Three pods named rabbitmq-server-{0,1,2} in Running/Ready.
+# - PVCs: data-rabbitmq-server-N.
+# - rabbitmq-system namespace contains cluster-operator pod(s).
+
+## Step 1: Scale Down RabbitMQ Consumers
+
+# Scale down all OpenStack API deployments so they stop enqueue/dequeue from RabbitMQ during the outage window.
+
+for svc in keystone-api glance-api nova-api placement-api neutron-server cinder-api heat-api barbican-api octavia-amphoras ceilometer-collector cloudkitty-collector trove-taskmanager masakari-engine skylineweb horizon; do
+  kubectl scale deployment "$svc" -n openstack --replicas=0 --timeout=120s 2>/dev/null || true
+done
+
+# If running separate consumer pods (e.g. ceilometer agents), scale those too:
+
+kubectl scale deployment -l app.kubernetes.io/component=collector -n openstack --replicas=0 --timeout=120s 2>/dev/null || true
+kubectl statefulset rollback rabbitmq-server --to-revision=$(kubectl rollout history statefulset rabbitmq-server -n openstack --revision | awk 'NR==1{print $NF-1}') 2>/dev/null || true
+
+# Note: no graceful drain is possible here — RabbitMQ connections will drop. Acknowledge this downtime impact.
+
+### Execute
+
+## Step 2: Delete the RabbitmqCluster and Its PVCs
+
+# Delete the RabbitmqCluster resource so its StatefulSet and PVCs cascade-delete:
+
+kubectl delete rabbitmqcluster rabbitmq -n openstack --cascade=foreground --timeout=300s
+
+# Wait until pods are gone and PVCs are cleaned up:
+
+kubectl wait --for=delete pod -l app.kubernetes.io/name=rabbitmq -n openstack --timeout=300s || true
+kubectl wait --for=delete pvc -l app.kubernetes.io/name=rabbitmq -n openstack --timeout=300s || true
+
+# Verify they are gone:
+
+kubectl get pods -n openstack | grep rabbitmq || echo "No rabbitmq pods remain."
+kubectl get pvc -n openstack | grep rabbitmq || echo "No rabbitmq PVCs remain."
+
+## Step 3: Uninstall the Existing RabbitMQ Operators
+
+# Remove webhooks and finalizers first:
+
+kubectl delete validatingwebhookconfiguration rabbitmq-cluster-webhook 2>/dev/null || true
+kubectl delete mutatingwebhookconfiguration rabbitmq-cluster-webhook 2>/dev/null || true
+
+# Delete cluster-resource-limit-approver webhooks:
+
+kubectl delete validatingwebhookconfiguration rabbitmq-cluster-validator 2>/dev/null || true
+kubectl delete mutatingwebhookconfiguration rabbitmq-cluster-validator 2>/dev/null || true
+
+# Uninstall the primary cluster-operator:
+
+kubectl delete -k /etc/genestack/kustomize/rabbitmq-operator/base --force --grace-period=0 2>/dev/null || true
+
+# Also uninstall the topology operator:
+
+kubectl delete -k /etc/genestack/kustomize/rabbitmq-topology-operator/base --force --grace-period=0 2>/dev/null || true
+
+# Verify operators are gone:
+
+kubectl get pods -n rabbitmq-system -o wide || echo
+kubectl get crd | grep rabbitmq || echo "No rabbitmq CRDs found."
+
+## Step 4: Install the New RabbitMQ Cluster Operator (2.x compatible with RabbitMQ 4.1.4)
+
+# Apply the base cluster-operator:
+
+kubectl apply -k /etc/genestack/kustomize/rabbitmq-operator/base
+
+# Wait for the cluster-operator to become ready:
+
+kubectl wait --for=condition=Available deployment/rabbitmq-cluster-admission-controller -n rabbitmq-system --timeout=300s
+kubectl wait --for=condition=Available deployment/rabbitmq-cluster-operator -n rabbitmq-system --timeout=300s
+
+# Expected: Both admission-controller and operator show AVAILABLE.
+
+## Step 5: Install the New Topology Operator
+
+# Apply the topology operator for advanced RabbitMQ resource management (bindings, headers exchanges, federation):
+
+kubectl apply -k /etc/genestack/kustomize/rabbitmq-topology-operator/base
+
+# Wait for the topology operator:
+
+kubectl wait --for=condition=Available deployment/messaging-topology-operator -n rabbitmq-system --timeout=300s || \
+kubectl wait --for=condition=Available deployment/rabbitmq-topology-operator -n rabbitmq-system --timeout=300s || true
+
+# Expected: topology operator pod Running/Ready.
+
+# Verify all CRDs installed:
+
+kubectl get crd | grep rabbitmq
+
+# Expected output includes:
+# addressclaims.rabbitmq.com
+# fingerprints.rabbitmq.com
+# peercoordinations.rabbitmq.com
+# pluginssets.rabbitmq.com
+# rabbitmqclusters.rabbitmq.com
+# topicpermissions.rabbitmq.com
+# users.rabbitmq.com
+# vhosts.rabbitmq.com
+# Plus topology operator CRDs such as bindings, exchanges, queues, policies.
+
+## Step 6: Deploy the Fresh RabbitmqCluster
+
+# Apply the cluster manifest (this pins spec.image to rabbitmq:4.1.4-management per Epoxy):
+
+kubectl apply -k /etc/genestack/kustomize/rabbitmq-cluster/overlay
+
+# Alternatively, apply from source:
+# kubectl apply -f /opt/genestack/base-kustomize/rabbitmq-cluster/base/rabbitmq-cluster.yaml
+
+# Monitor the StatefulSet rollout:
+
+kubectl --namespace openstack get rabbitmqclusters.rabbitmq.com -w
+
+# Cancel after Ready status shows True and wait for all 3 pods:
+
+kubectl --namespace openstack get sts rabbitmq-server -w && kubectl --namespace openstack get pods -l app.kubernetes.io/name=rabbitmq -w
+
+# Expected:
+# - RabbitmqCluster STATUS: True, RECONCILESUCCESS: True
+# - THREE pods rabbitmq-server-{0,1,2} in Running/Ready
+
+# Verify node membership via the operator logs:
+
+kubectl logs deploy/rabbitmq-cluster-operator -n rabbitmq-system --tail=100
+
+# Confirm cluster formation by checking inter-node connectivity (may briefly show bootstrapping):
+
+kubectl exec -it rabbitmq-server-0 -n openstack -- rabbitmq-diagnostics check_port_connectivity
+
+### Post-Maint
+
+## Step 7: Rebuild Queue Topologies
+
+# Iterate over each OpenStack service, applying its User/Vhost/Queue/Permission CR set:
+# Only ~12 out of the expanded list actually exist, but the loop runs safely since missing files just fail:
+
+for x in barbican blazar ceilometer cinder glance heat keystone magnum neutron nova octavia placement; do
+  echo "$x"
+  kubectl apply -f /etc/genestack/kustomize/$x/base/*-rabbitmq-queue.yaml 2>/dev/null || \
+    kubectl apply -f /opt/genestack/base-kustomize/$x/base/*-rabbitmq-queue.yaml 2>/dev/null || true
+done
+
+# The above creates Users, Vhosts, Queues, and Permissions for each service.
+# Placement has no dedicated rabbitmq-queue file so it silently skips, no error is raised (|| true handles it).
+
+# Additional services that have rabbitmq-queue.yaml but were not listed in your command loop for safety:
+
+for x in ironic manila masakari trove zaqar designate cloudkitty; do
+  echo "$x"
+  kubectl apply -f /etc/genestack/kustomize/$x/base/*-rabbitmq-queue.yaml 2>/dev/null || \
+    kubectl apply -f /opt/genestack/base-kustomize/$x/base/*-rabbitmq-queue.yaml 2>/dev/null || true
+done
+
+# Verify a few key resources after creation:
+
+kubectl get user -n openstack | head -15
+kubectl get vhost -n openstack | head -15
+kubectl get queue -n openstack | head -15
+kubectl get permission -n openstack | head -10
+
+# Example output/expect:
+# NAME        CLUSTER   READY   SYNCED   AGE
+# barbbican             True    True     Xm
+# ceibmeter         True    True     Xh
+# ...
+# NAME          CLUSTER   REPLICA READY   RECONCILESUCCESS   AGE
+# rabbitmq                 3       3     True               Xh
+
+## Step 8: Bring OpenStack Services Back Online
+
+# Restore API/server pods to their original replica counts (use desired_count values appropriate for your environment):
+
+for svc in keystone-api glance-api nova-api placement-api neutron-server cinder-api heat-api barbican-api octavia-amphoras ceilometer-collector cloudkitty-collector trove-taskmanager masakari-engine skyline horizon; do
+  kubectl scale deployment "$svc" -n openstack --replicas=<desired_count> --timeout=120s 2>/dev/null || true
+done
+
+# Wait for API readiness and confirm endpoints:
+
+openstack endpoint-list
+openstack compute service-list
+openstack network agent-list
+
+# Check Nova and Neutron logs for connection retries:
+
+kubectl logs $(kubectl get pods -n openstack | grep nova-conductor | head -1 | awk '{print $1}') -n openstack --tail=20
+kubectl logs $(kubectl get pods -n openstack | grep neutron-server | head -1 | awk '{print $1}') -n openstack --tail=20
+
+## Step 9: Validate Final RabbitMQ Health
+
+# Ensure all services are connected and consuming from their queues:
+
+kubectl get rabbitmqclusters.rabbitmq.com -n openstack
+kubectl get pods -l app.kubernetes.io/name=rabbitmq -n openstack
+kubectl logs deploy/rabbitmq-cluster-operator -n rabbitmq-system --tail=50
+
+# Check queue depth and basic flow status across nodes:
+
+for i in 0 1 2; do
+  echo "--- node: rabbitmq-server-$i ---"
+  kubectl exec -it rabbitmq-server-$i -n openstack -- rabbitmqctl list_queues name messages consumers 2>/dev/null | head -20
+done
+
+# Expected:
+# - Queues show messages or active consumer numbers, not stuck at zero after a reasonable cooldown period.
+# - Consumer logs indicate successful reconnection.
+# - No persistent ERROR entries in operator logs.
+# - You will want to recreate the monitoring rabbitmq user/grants.  These are rabbitmq specific manifests that
+#   live in (opt)/genestack/base-kustomize as rabbitmq-monitoring-user-create.yaml and rabbitmq-monitoring-user-grant.yaml
+
+### Troubleshooting
+
+## Common Failure Signal: Service Fail To Reconnect After Pod Restart
+
+# Some services keep stale credentials cached. If an API pod continues failing immediately after restart, delete it so new instance starts with fresh config:
+
+kubectl delete pod $(kubectl get pods -n openstack -l app.kubernetes.io/name=$service | head -1 | awk '{print $1}') -n openstack
+
+## Common Failure Signal: Topology Operator Not Found
+
+# If the topology operator failed to start or its CRDs did not install, verify the kustomization URL is still valid:
+
+kubectl describe deployment -n rabbitmq-system | grep -A5 "messaging_topology_operator\|rabbitmq.topology"
+
+# Re-apply:
+
+kubectl apply -k /etc/genestack/kustomize/rabbitmq-topology-operator/base
+
+## Rollback
+
+# Full rollback mid-run is not possible once the RabbitmqCluster is recreated — queue topology was replaced, secrets regenerated, and new passwords may differ.
+# Steps mirror execution: delete the cluster, ensure old operator is uninstalled, reinstall a known good cluster and topolgy operator versions and rerun the topology application.
+
+### Sources
+
+https://docs.rackspacecloud.com/infrastructure-rabbitmq/
+https://github.com/rabbitmq/cluster-operator/releases/tag/v2.19.1
+https://github.com/rabbitmq/messaging-topology-operator/releases/tag/v1.19.1
