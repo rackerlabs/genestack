@@ -28,6 +28,10 @@ export DISABLE_OPENSTACK=${DISABLE_OPENSTACK:-false}
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/functions.sh"
 
+function _ssh() {
+    ssh ${SSH_OPTS_STR} -t "${SSH_TARGET}" "$@"
+}
+
 function parseCommonArgs() {
     # Parse common command line arguments
     # Usage: parseCommonArgs "$@"
@@ -324,20 +328,13 @@ function prepareJumpHostSource() {
             exit 1
         fi
 
-        # NOTE: we are assuming an Ubuntu (apt) based instance here
-        # We also fetch and replace the rax-noble pub key because it is
-        # broken in the noble image at this time.
-        ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} \
-            'while sudo fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do echo "Waiting for apt locks to be released..."; sleep 5; done
-             tmp="$(mktemp)" && curl -fsSL "https://rax.mirror.rackspace.com/ubuntu/rackspace-ubuntu-noble-keyring.gpg" -o "$tmp"
-             sudo install -d -m 0755 /etc/apt/keyrings && gpg --no-default-keyring --keyring "$tmp" --export --armor | sudo tee /etc/apt/keyrings/rax-noble.asc >/dev/null && rm -f "$tmp"
-             sudo apt-get update && sudo apt install -y rsync git'
+        _ssh "while sudo fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do echo 'Waiting for apt locks to be released...'; sleep 5; done && sudo apt-get update && sudo apt install -y rsync git && sudo mkdir -p /opt/genestack && sudo chown ${SSH_USERNAME}:${SSH_USERNAME} /opt/genestack"
 
         echo "Copying the development source code to the jump host"
         rsync -avz \
-            -e "ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" \
-            --rsync-path="sudo rsync" \
-            ${DEV_PATH} ${SSH_USERNAME}@${JUMP_HOST_VIP}:/opt/
+            --exclude='.git' \
+            -e "ssh ${SSH_OPTS_STR}" \
+            ${DEV_PATH} "${SSH_TARGET}:/opt/"
     else
         cloneGenestackOnJumpHost
     fi
@@ -1273,7 +1270,7 @@ writeEndpointsConfig '${gateway_domain}' '/etc/genestack/helm-configs/global_ove
 writeOpenstackComponentsConfig '/etc/genestack/openstack-components.yaml' "${os_config}"
 echo 'Genestack service configuration complete'
 EOF
-    } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t "${ssh_user}@${jump_host}" bash
+    } | _ssh bash
 }
 
 function runGenestackSetupRemote() {
@@ -1300,7 +1297,7 @@ detectPlatform
 ensureYq
 runGenestackSetup "${gateway_domain}" "${acme_email}" ${disable_openstack}
 EOF
-    } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${ssh_user}@${jump_host} bash
+    } | _ssh bash
 }
 
 function waitForOpenStackAPIsReady() {
@@ -1415,7 +1412,7 @@ function waitForOpenStackAPIsReadyRemote() {
 set -e
 waitForOpenStackAPIsReady "${timeout}"
 EOF
-    } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${ssh_user}@${jump_host} bash
+    } | _ssh bash
 }
 
 function createPostSetupResourcesRemote() {
@@ -1441,7 +1438,7 @@ ensureYq
 createPostSetupResources "${lab_prefix}"
 EOF
 
-    } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${ssh_user}@${jump_host} bash
+    } | _ssh bash
 }
 
 function installK9sRemote() {
@@ -1460,13 +1457,13 @@ function installK9sRemote() {
 set -e
 installK9s
 EOF
-    } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${ssh_user}@${jump_host} bash
+    } | _ssh bash
 }
 
 function cloneGenestackOnJumpHost() {
     # Clone the Genestack repository on the jump host
     # Usage: cloneGenestackOnJumpHost
-    ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+    _ssh <<'EOC'
     set -e
     if [ ! -d "/opt/genestack" ]; then
         sudo git clone --recurse-submodules -j4 https://github.com/rackerlabs/genestack /opt/genestack
@@ -1554,7 +1551,7 @@ echo "[JUMP_HOST] Creating PV/VG"
 sudo pvcreate /dev/vdd
 sudo vgcreate cinder-volumes-1 /dev/vdd
 JUMP_HOST_EOF
-    } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t "ubuntu@${JUMP_HOST_IP}" bash
+    } | _ssh bash
 
     # Secondary Kube node setup
     {
@@ -1562,13 +1559,13 @@ JUMP_HOST_EOF
 echo "[Node 1] Creating PV/VG"
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ubuntu@${LAB_NAME_PREFIX}-1 "sudo pvcreate /dev/vdd && sudo vgcreate cinder-volumes-1 /dev/vdd"
 NODE_1_EOF
-    } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t "ubuntu@${JUMP_HOST_IP}" bash
+    } | _ssh bash
     {
         cat << NODE_2_EOF
 echo "[Node 2] Creating PV/VG"
 ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ubuntu@${LAB_NAME_PREFIX}-2 "sudo pvcreate /dev/vdd && sudo vgcreate cinder-volumes-1 /dev/vdd"
 NODE_2_EOF
-    } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t "ubuntu@${JUMP_HOST_IP}" bash
+    } | _ssh bash
 
     # Ansible playbook time
     {
@@ -1610,12 +1607,12 @@ openstack volume qos create \
 openstack volume qos associate Standard-Block Standard
 openstack volume type set --private __DEFAULT__
 ANSIBLE_EOF
-    } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t "ubuntu@${JUMP_HOST_IP}" bash
+    } | _ssh bash
 }
 
 function install_preconf_octavia() {
     echo "Installing Octavia preconf"
-    ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} << 'EOC'
+    _ssh << 'EOC'
 set -e
 
 if [ ! -f ~/.config/openstack ]; then
@@ -1740,5 +1737,5 @@ echo "Running playbook for trove_ssh_key_distribute"
 ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
     --tags trove_ssh_key_distribute
 JUMP_HOST_EOF
-    } | ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${ssh_user}@${jump_host} bash
+    } | _ssh bash
 }

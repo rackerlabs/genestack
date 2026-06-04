@@ -210,45 +210,142 @@ if ! openstack server show ${LAB_NAME_PREFIX}-2 2>/dev/null; then
 fi
 
 #############################################################################
-# Wait for Jump Host SSH Access
+# Configure SSH transport
+#
+# Building labs and accessing jump host behind a bastion requires 'special'
+#  ssh command execution in order to 'tunnel' through the bastion. The 'special' nature
+#  of the ssh commands is encapsulated in helper functions. However, the following
+#  environment variables must also be setup in order for the 'tunneling' to work:
+# export SSH_GATEWAY=support.dfw1.gateway.rackspace.com
+# export SSH_USER=<SSO username>
+# export SSH_DEST_USER=ubuntu
+# export SSH_LOCAL_PORT=12222
+#
+# We route every ssh/scp/rsync through the bastion
+# directly using the gu= form, with ControlMaster + ControlPersist so
+# we only pay the gateway-auth latency on the first call. Subsequent
+# ssh invocations reuse the master socket and are local-fast.
+#
+# When SSH_GATEWAY is set:
+#   1. Wait for openstack server status=ACTIVE on the jump host.
+#   2. Build SSH_TARGET = "gu=USER@DEST@VIP@GATEWAY" and
+#      SSH_OPTS_STR with legacy crypto + ControlMaster opts.
+#   3. Open the master connection (retry until the back-end sshd
+#      answers a no-op `exit` command — proves end-to-end auth).
+#   4. Trap EXIT to close the master socket cleanly.
+#
+# When SSH_GATEWAY is unset, SSH_TARGET stays at the direct
+# ${SSH_USERNAME}@${JUMP_HOST_VIP} form — no behavior change for users
+# whose clouds don't sit behind a bastion.
 #############################################################################
 
-echo "Waiting for the jump host to be ready"
-
-# Wait until the jump host is fully ACTIVE before probing SSH readiness.
-ACTIVE_COUNT=0
-JUMP_HOST_ACTIVE_MAX_RETRIES=${JUMP_HOST_ACTIVE_MAX_RETRIES:-120}
-while [ "$(openstack server show ${LAB_NAME_PREFIX}-0 -f value -c status 2>/dev/null)" != "ACTIVE" ]; do
-    sleep 2
-    ACTIVE_COUNT=$((ACTIVE_COUNT + 1))
-    echo "Jump host VM is not ACTIVE yet, trying again..."
-    if [ ${ACTIVE_COUNT} -gt ${JUMP_HOST_ACTIVE_MAX_RETRIES} ]; then
-        echo "Failed waiting for jump host VM to reach ACTIVE state"
-        openstack server show ${LAB_NAME_PREFIX}-0 -f yaml || true
+# ----- Wait for the jump host to reach ACTIVE -----
+# Whether a bastion is involved or not, every downstream step depends on
+# the VM being scheduled. Surface ERROR state immediately if Nova fails.
+echo "Waiting for ${LAB_NAME_PREFIX}-0 to reach ACTIVE"
+_active_attempts=0
+_active_max=120  # ~10 min at 5s sleep
+while true; do
+    _status=$(openstack server show ${LAB_NAME_PREFIX}-0 -f value -c status 2>/dev/null || echo "UNKNOWN")
+    if [ "${_status}" = "ACTIVE" ]; then
+        break
+    fi
+    if [ "${_status}" = "ERROR" ]; then
+        echo "ERROR: ${LAB_NAME_PREFIX}-0 reached ERROR state — aborting" >&2
+        openstack server show ${LAB_NAME_PREFIX}-0 >&2 || true
         exit 1
     fi
+    _active_attempts=$((_active_attempts + 1))
+    if [ ${_active_attempts} -ge ${_active_max} ]; then
+        echo "ERROR: ${LAB_NAME_PREFIX}-0 never reached ACTIVE (last status: ${_status})" >&2
+        exit 1
+    fi
+    if [ $((_active_attempts % 6)) -eq 0 ]; then
+        echo "  ...status=${_status} (attempt ${_active_attempts}/${_active_max})"
+    fi
+    sleep 5
 done
+echo "  ${LAB_NAME_PREFIX}-0 is ACTIVE"
 
+# SSH_TARGET and SSH_OPTS_STR are populated below.
+# Until then they default to the "no bastion" form (direct ssh to the
+# jump host), which lets the helpers be safely defined ahead of the
+# JUMP_HOST_VIP allocation. None of the helpers are *called* before
+# SSH_TARGET and SSH_OPTS_STR are populated.
+#
+# SSH_OPTS_STR is intentionally unquoted at use sites — bash
+# word-splits it into separate argv. None of our option values contain
+# spaces (KexAlgorithms=+x, Ciphers=a,b,c, etc.), so this is safe.
+SSH_TARGET="${SSH_USERNAME:-ubuntu}@${JUMP_HOST_VIP:-}"
+SSH_OPTS_STR="-o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+
+if [ -n "${SSH_GATEWAY:-}" ]; then
+    echo "SSH_GATEWAY is set so setting up for access through the bastion"
+    SSH_USER="${SSH_USER:-${USER}}"
+    SSH_DEST_USER="${SSH_DEST_USER:-${SSH_USERNAME}}"
+    SSH_CONTROL_PATH="/tmp/hyperconverged-lab-ssh-$$.sock"
+
+    # Build the ssh transport: target is the inband gu= form; opts cover
+    # legacy crypto, GSSAPI off (avoids a multi-second auth probe delay),
+    # and a master socket so subsequent calls don't re-auth through the
+    # gateway.
+    # None of these option values contain spaces, so word-splitting at
+    # use sites (`ssh ${SSH_OPTS_STR} ...`) is safe.
+    SSH_TARGET="gu=${SSH_USER}@${SSH_DEST_USER}@${JUMP_HOST_VIP}@${SSH_GATEWAY}"
+    SSH_OPTS_STR="-o ForwardAgent=yes \
+-o UserKnownHostsFile=/dev/null \
+-o StrictHostKeyChecking=accept-new \
+-o GSSAPIAuthentication=no \
+-o KexAlgorithms=+diffie-hellman-group1-sha1 \
+-o Ciphers=aes128-ctr,aes192-ctr,aes256-ctr,aes128-cbc,3des-cbc \
+-o MACs=hmac-sha2-512,hmac-sha2-256,hmac-md5,hmac-sha1,umac-64@openssh.com \
+-o ControlMaster=auto \
+-o ControlPath=${SSH_CONTROL_PATH} \
+-o ControlPersist=2h \
+-o ServerAliveInterval=60 \
+-o ServerAliveCountMax=120"
+
+    # Stash the real public IP for the final summary
+    export JUMP_HOST_VIP_REAL="${JUMP_HOST_VIP}"
+
+    # Clean up any stale master socket from a previous aborted run
+    if [ -S "${SSH_CONTROL_PATH}" ]; then
+        echo "Cleaning up stale ssh control socket at ${SSH_CONTROL_PATH}"
+        rm -f "${SSH_CONTROL_PATH}"
+    fi
+
+    # Tear the master socket down on script exit (success, failure, Ctrl-C)
+    trap 'ssh '"${SSH_OPTS_STR}"' -O exit "'"${SSH_TARGET}"'" 2>/dev/null || true; rm -f "'"${SSH_CONTROL_PATH}"'" 2>/dev/null || true' EXIT
+
+    echo "Opening bastion connection via ${SSH_GATEWAY}"
+    echo "  (every subsequent ssh/scp/rsync rides this socket — first connect can take ~10s)"
+fi
+
+#############################################################################
+# Wait for Jump Host SSH Access
+#############################################################################
+# Bumped to ~16 min (240 × 4s) — Rackspace flex VMs can take 5+ minutes
+# of cloud-init before sshd answers public-key auth. ConnectTimeout=4
+# keeps each attempt bounded so total wall time is predictable.
+#
+# This loop also serves as the ControlMaster opener when SSH_GATEWAY
+# is set — the first successful ssh call establishes the master socket,
+# and every subsequent _ssh / scp / rsync rides it.
+
+echo "Waiting for the jump host (VIP: ${JUMP_HOST_VIP}) to accept SSH auth"
 COUNT=0
-JUMP_HOST_SSH_MAX_RETRIES=${JUMP_HOST_SSH_MAX_RETRIES:-180}
-while ! ssh -i ${KEY_PEM} \
-    -o BatchMode=yes \
-    -o IdentitiesOnly=yes \
-    -o PreferredAuthentications=publickey \
-    -o ConnectTimeout=3 \
-    -o ConnectionAttempts=2 \
-    -o UserKnownHostsFile=/dev/null \
-    -o StrictHostKeyChecking=no \
-    -q ${SSH_USERNAME}@${JUMP_HOST_VIP} exit; do
-    sleep 2
-    echo "SSH is not ready, Trying again..."
+while ! ssh ${SSH_OPTS_STR} -o ConnectTimeout=8 -q "${SSH_TARGET}" exit 2>/dev/null; do
+    sleep 4
     COUNT=$((COUNT + 1))
-    if [ ${COUNT} -gt ${JUMP_HOST_SSH_MAX_RETRIES} ]; then
-        echo "Failed to ssh into the jump host after ${JUMP_HOST_SSH_MAX_RETRIES} retries"
-        openstack server show ${LAB_NAME_PREFIX}-0 -f yaml || true
+    if [ $((COUNT % 15)) -eq 0 ]; then
+        echo "  ...SSH still not ready (attempt ${COUNT}/240)"
+    fi
+    if [ $COUNT -gt 240 ]; then
+        echo "Failed to ssh into the jump host after ~16 min"
         exit 1
     fi
 done
+echo "  Jump host is ready"
 
 #############################################################################
 # Create and Attach Lab Volumes
@@ -375,6 +472,80 @@ if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
 fi
 
 #############################################################################
+# Resolve worker IPs (needed for inventory before Kubespray)
+#############################################################################
+
+_net_name="${LAB_NAME_PREFIX}-net"
+WORKER_0_IP=$(openstack server show ${LAB_NAME_PREFIX}-0 -f json | jq -r '.addresses' | jq --arg n "${_net_name}" -r '.[$n][0]')
+WORKER_1_IP=$(openstack server show ${LAB_NAME_PREFIX}-1 -f json | jq -r '.addresses' | jq --arg n "${_net_name}" -r '.[$n][0]')
+WORKER_2_IP=$(openstack server show ${LAB_NAME_PREFIX}-2 -f json | jq -r '.addresses' | jq --arg n "${_net_name}" -r '.[$n][0]')
+
+echo "Worker IPs: ${WORKER_0_IP}, ${WORKER_1_IP}, ${WORKER_2_IP}"
+
+#############################################################################
+# Copy SSH keys to jump host
+#############################################################################
+
+echo "Copying SSH keys to jump host..."
+scp ${SSH_OPTS_STR} \
+    ~/.ssh/${LAB_NAME_PREFIX}-key.pem \
+    ~/.ssh/${LAB_NAME_PREFIX}-key.pub \
+    "${SSH_TARGET}:/home/${SSH_USERNAME}/.ssh/"
+_ssh "chmod 600 ~/.ssh/${LAB_NAME_PREFIX}-key.pem && chmod 644 ~/.ssh/${LAB_NAME_PREFIX}-key.pub"
+
+#############################################################################
+# Write ~/.ssh/config on jump host
+#############################################################################
+
+echo "Writing SSH config on jump host..."
+_ssh <<SSHCFG
+cat > ~/.ssh/config <<EOF
+Host *
+    User ubuntu
+    ForwardAgent yes
+    ForwardX11Trusted yes
+    AddKeysToAgent yes
+    IdentitiesOnly yes
+    IdentityFile /home/${SSH_USERNAME}/.ssh/${LAB_NAME_PREFIX}-key.pem
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    ProxyCommand none
+    TCPKeepAlive yes
+    ServerAliveInterval 300
+    Ciphers aes128-ctr,aes192-ctr,aes256-ctr,aes128-cbc,3des-cbc
+    MACs hmac-sha2-512,hmac-sha2-256,hmac-md5,hmac-sha1,umac-64@openssh.com
+    KexAlgorithms +diffie-hellman-group1-sha1
+EOF
+chmod 600 ~/.ssh/config
+SSHCFG
+
+#############################################################################
+# Populate /etc/hosts on jump host
+#############################################################################
+
+echo "Updating /etc/hosts on jump host..."
+_ssh <<ETCHOSTS
+if ! grep -q "${LAB_NAME_PREFIX}-0.cluster.local" /etc/hosts; then
+    sudo tee -a /etc/hosts >/dev/null <<EOF
+# BEGIN hyperconverged lab nodes
+${WORKER_0_IP} ${LAB_NAME_PREFIX}-0.cluster.local ${LAB_NAME_PREFIX}-0
+${WORKER_1_IP} ${LAB_NAME_PREFIX}-1.cluster.local ${LAB_NAME_PREFIX}-1
+${WORKER_2_IP} ${LAB_NAME_PREFIX}-2.cluster.local ${LAB_NAME_PREFIX}-2
+# END hyperconverged lab nodes
+EOF
+fi
+ETCHOSTS
+
+echo "Updating ${HOME}/.bashrc on jump host..."
+_ssh <<BASHRC
+# Make genestack.rc auto-source on login so interactive shells inherit
+# OS_CLOUD, kubeconfig, the genestack venv, etc. without manual sourcing.
+if ! grep -qF "source /opt/genestack/scripts/genestack.rc" \${HOME}/.bashrc 2>/dev/null; then
+    echo "source /opt/genestack/scripts/genestack.rc" >> \${HOME}/.bashrc
+fi
+BASHRC
+
+#############################################################################
 # BEGIN WORKAROUND: rax.mirror.rackspace.com GPG signature failures
 #
 # The outer-cloud vendordata writes rax.mirror.rackspace.com into apt sources
@@ -392,24 +563,6 @@ fi
 #############################################################################
 echo "Applying rax.mirror -> archive.ubuntu.com workaround on jump host and workers..."
 
-# workaround needs to be applied to all nodes, so grab their IPs and add entries to /etc/hosts for
-#  ssh operations
-WORKER_0_IP=$(openstack server show ${LAB_NAME_PREFIX}-0 -f json | jq -r '.addresses' | jq --arg n "${LAB_NAME_PREFIX}-net" -r '.[$n][0]')
-WORKER_1_IP=$(openstack server show ${LAB_NAME_PREFIX}-1 -f json | jq -r '.addresses' | jq --arg n "${LAB_NAME_PREFIX}-net" -r '.[$n][0]')
-WORKER_2_IP=$(openstack server show ${LAB_NAME_PREFIX}-2 -f json | jq -r '.addresses' | jq --arg n "${LAB_NAME_PREFIX}-net" -r '.[$n][0]')
-
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP}  <<ETCHOSTS
-if ! grep -q "${LAB_NAME_PREFIX}-0.cluster.local" /etc/hosts; then
-    sudo tee -a /etc/hosts >/dev/null <<EOF
-# BEGIN hyperconverged lab nodes
-${WORKER_0_IP} ${LAB_NAME_PREFIX}-0.cluster.local ${LAB_NAME_PREFIX}-0
-${WORKER_1_IP} ${LAB_NAME_PREFIX}-1.cluster.local ${LAB_NAME_PREFIX}-1
-${WORKER_2_IP} ${LAB_NAME_PREFIX}-2.cluster.local ${LAB_NAME_PREFIX}-2
-# END hyperconverged lab nodes
-EOF
-fi
-ETCHOSTS
-
 # The fix runs identical commands on each node — define once, run via SSH.
 # 1) sed rewrites *any* rax.mirror.rackspace.com reference (any path) to
 #    archive.ubuntu.com inside every apt source file (.list and .sources).
@@ -423,12 +576,12 @@ ETCHOSTS
 # booted node hold the apt locks for several minutes after first boot.
 APT_FIX_CMD='for _i in $(seq 1 60); do sudo fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock /var/cache/apt/archives/lock >/dev/null 2>&1 || break; echo "  waiting for apt locks (${_i}/60)..."; sleep 5; done; sudo sed -i "s|rax\.mirror\.rackspace\.com|archive.ubuntu.com|g" /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true; for f in /etc/apt/sources.list.d/*rax.mirror.rackspace.com*; do [ -e "$f" ] && sudo rm -f "$f"; done 2>/dev/null || true; sudo apt-get clean >/dev/null; sudo apt-get update >/dev/null'
 
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} "${APT_FIX_CMD}"
+_ssh "${APT_FIX_CMD}"
 
 # Don't `set -e` here — we want to iterate over every worker and report
 # any individual failures at the end, rather than aborting on the first
 # bad node and leaving the others unfixed.
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<APTFIX_WORKERS
+_ssh <<APTFIX_WORKERS
 APT_FAILED_NODES=()
 # -0 is the jump host (already patched above); only the other two workers
 # need to be reached via SSH from the jump host.
@@ -479,7 +632,7 @@ prepareJumpHostSource
 # Kubespray-Specific: Remote Configuration via SSH
 #############################################################################
 
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+_ssh <<EOC
 if [ ! -d "/etc/genestack" ]; then
     sudo /opt/genestack/bootstrap.sh
     sudo chown \${USER}:\${USER} -R /etc/genestack
@@ -688,7 +841,7 @@ configureGenestackRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}" "${METAL_LB_IP}" "
 # Kubespray-Specific: Run Host Setup and Kubespray
 #############################################################################
 
-ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} <<EOC
+_ssh <<EOC
 set -e
 if [ ! -f "/usr/local/bin/queue_max.sh" ]; then
     python3 -m venv ~/.venvs/genestack
@@ -793,17 +946,33 @@ else
 
         echo "Running tests at level: ${TEST_LEVEL}"
 
-        ssh -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -t ${SSH_USERNAME}@${JUMP_HOST_VIP} \
-            "sudo TEST_RESULTS_DIR=/tmp/test-results /opt/genestack/scripts/tests/run-all-tests.sh ${TEST_LEVEL}"
-
+        _ssh "sudo TEST_RESULTS_DIR=/tmp/test-results /opt/genestack/scripts/tests/run-all-tests.sh ${TEST_LEVEL}"
         mkdir -p test-results
-        scp -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${SSH_USERNAME}@${JUMP_HOST_VIP}:/tmp/test-results/*.xml ./test-results/ 2>/dev/null || echo "No test result XML files found"
-        scp -o ForwardAgent=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${SSH_USERNAME}@${JUMP_HOST_VIP}:/tmp/test-results/*.txt ./test-results/ 2>/dev/null || echo "No test result text files found"
+        scp ${SSH_OPTS_STR} \
+            "${SSH_TARGET}:/tmp/test-results/*.xml" ./test-results/ 2>/dev/null || echo "No test result XML files found"
+        scp ${SSH_OPTS_STR} \
+            "${SSH_TARGET}:/tmp/test-results/*.txt" ./test-results/ 2>/dev/null || echo "No test result text files found"
     fi
 fi
 #############################################################################
 # Output Summary
 #############################################################################
+
+# When going through a bastion, the public IP isn't directly reachable —
+# show the inband gu= command the user can paste to get a shell. The
+# script's own ControlMaster socket is gone after EXIT, so we print a
+# self-contained command rather than referencing it.
+_DISPLAY_JUMP_VIP="${JUMP_HOST_VIP_REAL:-${JUMP_HOST_VIP}}"
+if [ -n "${SSH_GATEWAY:-}" ]; then
+    _SSH_HINT="ssh -A \\
+    -o KexAlgorithms=+diffie-hellman-group1-sha1 \\
+    -o Ciphers=aes128-ctr,aes192-ctr,aes256-ctr,aes128-cbc,3des-cbc \\
+    -o MACs=hmac-sha2-512,hmac-sha2-256,hmac-md5,hmac-sha1,umac-64@openssh.com \\
+    -o GSSAPIAuthentication=no \\
+    \"gu=${SSH_USER}@${SSH_DEST_USER}@${_DISPLAY_JUMP_VIP}@${SSH_GATEWAY}\""
+else
+    _SSH_HINT="ssh ${SSH_USERNAME}@${_DISPLAY_JUMP_VIP}"
+fi
 
 { cat | tee /tmp/output.txt; } <<EOF
 ================================================================================
@@ -813,21 +982,18 @@ Kubespray Hyperconverged Lab Deployment Complete!
 Deployment took ${SECONDS} seconds to complete.
 
 Cluster Information:
-  - Jump Host Address: ${JUMP_HOST_VIP}
+  - Jump Host Address: ${_DISPLAY_JUMP_VIP}
   - MetalLB Internal IP: ${METAL_LB_IP}
   - MetalLB Public VIP: ${METAL_LB_VIP}
 
 SSH Access:
-  ssh ${SSH_USERNAME}@${JUMP_HOST_VIP}
+  ${_SSH_HINT}
 
 Kubernetes Access (from jump host):
   kubectl get nodes
 
 Important Notes:
-  - This is a Kubespray deployment
   - SSH key stored at ~/.ssh/${LAB_NAME_PREFIX}-key.pem
   - All cluster operations should be performed from the jump host
-
-Write these addresses down for future reference!
 ================================================================================
 EOF
