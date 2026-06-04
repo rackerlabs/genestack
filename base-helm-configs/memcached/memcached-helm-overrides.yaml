@@ -1,14 +1,7 @@
 ---
 conf:
   memcached:
-    # Default value in openstack-helm memcached chart is 8192 for max_connections
-    # Setting 4096 to make identical with previously used bitnami memcached chart
-    max_connections: 4096
-    # NOTE(pordirect): this should match the value in
-    # `pod.resources.memcached.memory`
-    # Memory was set to 9216 Mi in previously used bitnami memcached chart https://github.com/rackerlabs/genestack/blob/065150e2efad717681f43afee527ada523af3356/base-helm-configs/memcached/memcached-helm-overrides.yaml#L131-L132
-    # Setting to 3072 Mi as the limit in resources is set to 3072 Mi
-    memory: 3072
+    memory: 4096  # NOTE(LukeRepko): Cache size MUST be lower than pod max memory
     # If we set stats_cachedump to false then we will have to add one additional argument "-X"
     # in https://github.com/rackerlabs/genestack/tree/main/base-kustomize/memcached/base/memcached-bin-configmap-patch.yaml
     # This is because openstack-helm memcached chart doesn't have some variables as compared to previously used bitnami memcached chart
@@ -126,7 +119,7 @@ pod:
     server:
       limits:
         cpu: "2"
-        memory: "3072Mi"
+        memory: "6144Mi"  # NOTE(LukeRepko): Should be 1.25 to 1.5 times the item cache memory
       requests:
         cpu: 200m
         memory: 2048Mi
