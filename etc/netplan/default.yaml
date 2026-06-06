@@ -25,7 +25,7 @@ network:
       interfaces:
         - vlan100
 
-    br-overlay:
+    bond0:
       dhcp4: false
       mtu: 9000
       interfaces:

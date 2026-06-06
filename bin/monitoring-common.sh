@@ -156,6 +156,11 @@ monitoring_ensure_rabbitmq_monitoring_secret() {
 }
 
 monitoring_ensure_postgres_monitoring_secret() {
+    if ! kubectl get namespace postgres-system >/dev/null 2>&1; then
+        echo "Skipping postgres-monitoring secret setup: postgres-system namespace not found (PostgreSQL monitoring is optional)"
+        return 0
+    fi
+
     if ! kubectl -n postgres-system get secret postgres-monitoring >/dev/null 2>&1; then
         if ! monitoring_apply_secret_from_kubesecrets "postgres-monitoring" "postgres-system" "postgres-system"; then
             kubectl create secret generic postgres-monitoring \
