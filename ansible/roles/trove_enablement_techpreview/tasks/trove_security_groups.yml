@@ -25,7 +25,7 @@
   when: not _trove_clouds_yaml_stat.stat.exists
 
 # =========================================================================
-# PART 2: CREATE SECURITY GROUP
+# PART 2: CREATE MGMT ACCESS (ssh, ping) SECURITY GROUP
 # =========================================================================
 
 - name: Check if trove security group exists
@@ -73,21 +73,10 @@
     HOME: "{{ ubuntu_home }}"
   when: _trove_secgroup_check.rc != 0
 
-- name: Create MySQL rule for trove security group
-  ansible.builtin.shell:
-    cmd: >
-      source {{ genestack_venv }}/bin/activate &&
-      openstack --os-cloud {{ os_cloud }} security group rule create
-      --protocol tcp --dst-port 3306 --remote-ip {{ trove_secgroup_remote_ip }} {{ trove_secgroup_name }}
-    executable: /bin/bash
-  environment:
-    HOME: "{{ ubuntu_home }}"
-  when: _trove_secgroup_check.rc != 0
-
 # =========================================================================
-# PART 3: CREATE SERVICES VIP SECURITY GROUP
-# The Trove services VIP port on the flat network needs a security group
-# that allows RabbitMQ (5672) and Keystone (5000) from guest VMs.
+# PART 3: CREATE MGMT SERVICES VIP SECURITY GROUP
+# The Trove services VIP port on the flat provider network needs a security
+#  group that allows RabbitMQ (5672) and Keystone (5000) from guest VMs.
 # =========================================================================
 
 - name: Check if trove services security group exists
