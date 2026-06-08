@@ -937,7 +937,7 @@ if [ "${TEST_LEVEL}" = "off" ]; then
 
     # Trove Setup & Installation
     # Must be run after the flat network has been created
-    deployTrove "${SSH_USERNAME}" "${JUMP_HOST_VIP}" "${LAB_NAME_PREFIX}" "${COMPUTE_SUBNET_CIDR}" "${MGMT_SUBNET_CIDR}"
+    deployTrove "RegionOne" "flat" "false" "trove.cluster.local" "internal" "hyperconverged-key.pem"
 
 else
     # Wait for Nova and Neutron APIs to be ready before proceeding

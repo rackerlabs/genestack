@@ -39,11 +39,11 @@
     - trove_mgmt_subnet_result.rc != 0
     - "'already exists' not in trove_mgmt_subnet_result.stderr"
 
-- name: Create router for trove mgmt network with external gateway to flat network
+- name: Create router for trove mgmt network with external gateway to public provider network
   ansible.builtin.command:
     cmd: >
       openstack --os-cloud default router create {{ trove_mgmt_router_name }}
-      --external-gateway flat
+      --external-gateway {{ trove_mgmt_public_network_name }}
   register: trove_mgmt_router_result
   changed_when: trove_mgmt_router_result.rc == 0
   failed_when:

@@ -1,5 +1,5 @@
 ---
-_region: &region RegionOne
+_region: &region {{ trove_region_name }}
 
 endpoints:
   identity:
@@ -125,7 +125,7 @@ conf:
     oslo_messaging_rabbit:
       rabbit_quorum_queue: false
       rabbit_transient_quorum_queue: false
-      amqp_durable_queues: false
+      amqp_durable_queues: {{ trove_durable_queues }}
   trove_api_uwsgi:
     uwsgi:
       processes: 1

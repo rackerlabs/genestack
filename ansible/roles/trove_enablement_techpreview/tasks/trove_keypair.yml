@@ -43,19 +43,28 @@
 # =========================================================================
 # PART 2: WRITE TROVE OPENRC
 # =========================================================================
+- name: Get Keystone URL
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      openstack endpoint list --service keystone --interface {{ trove_os_endpoint_type }} -c url -f value
+    executable: /bin/bash
+  register: _keystone_api_url
+  changed_when: false
+  no_log: true
 
 - name: Write trove-openrc file
   ansible.builtin.copy:
     content: |
-      export OS_AUTH_URL=http://keystone-api.openstack.svc.cluster.local:5000/v3
+      export OS_AUTH_URL={{ _keystone_api_url.stdout }}
       export OS_PROJECT_NAME=service
       export OS_TENANT_NAME=default
       export OS_PROJECT_DOMAIN_NAME=service
       export OS_USERNAME=trove
       export OS_PASSWORD={{ _trove_admin_password.stdout }}
       export OS_USER_DOMAIN_NAME=service
-      export OS_REGION_NAME=RegionOne
-      export OS_INTERFACE=internal
+      export OS_REGION_NAME={{ trove_region_name }}
+      export OS_INTERFACE={{ trove_os_endpoint_type }}
       export OS_IDENTITY_API_VERSION="3"
     dest: "{{ ubuntu_home }}/openrc-trove"
     owner: ubuntu
