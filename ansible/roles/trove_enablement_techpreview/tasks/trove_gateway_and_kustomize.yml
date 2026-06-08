@@ -6,32 +6,6 @@
 # with a summary telling the operator what changed and that a commit is needed.
 
 # -------------------------------------------------------------------------
-# Discover the region from the existing endpoints.yaml anchor (_region)
-# or fall back to trove_region_name from defaults.
-# -------------------------------------------------------------------------
-- name: Detect region from existing endpoints.yaml
-  ansible.builtin.shell: |
-    if [ -f /etc/genestack/helm-configs/global_overrides/endpoints.yaml ]; then
-      grep -oP '^\s*_region:\s*&\w+\s+\K\S+' \
-        /etc/genestack/helm-configs/global_overrides/endpoints.yaml 2>/dev/null || true
-    fi
-  args:
-    executable: /bin/bash
-  register: _detected_region
-  changed_when: false
-
-- name: Set trove_gateway_region_lower fact
-  ansible.builtin.set_fact:
-    trove_gateway_region_lower: >-
-      {{ (_detected_region.stdout | trim | lower)
-         if (_detected_region.stdout | trim | length > 0)
-         else (trove_region_name | lower) }}
-
-- name: Display resolved gateway region
-  ansible.builtin.debug:
-    msg: "Gateway hostname region component: {{ trove_gateway_region_lower }}"
-
-# -------------------------------------------------------------------------
 # Track files changed for the summary message
 # -------------------------------------------------------------------------
 - name: Initialise list of changed files
@@ -70,14 +44,14 @@
 
 - name: Template Trove gateway route
   ansible.builtin.template:
-    src: custom-trove-gateway-route.yaml.j2
-    dest: /etc/genestack/gateway-api/routes/custom-trove-gateway-route.yaml
+    src: trove-gateway-route.yaml.j2
+    dest: /etc/genestack/gateway-api/routes/trove-gateway-route.yaml
     mode: "0644"
   register: _route_result
 
 - name: Record route change  # noqa: no-handler
   ansible.builtin.set_fact:
-    _trove_preconf_changed_files: "{{ _trove_preconf_changed_files + ['/etc/genestack/gateway-api/routes/custom-trove-gateway-route.yaml'] }}"
+    _trove_preconf_changed_files: "{{ _trove_preconf_changed_files + ['/etc/genestack/gateway-api/routes/trove-gateway-route.yaml'] }}"
   when: _route_result.changed
 
 # -------------------------------------------------------------------------
@@ -188,7 +162,7 @@
     set -a
     source {{ genestack_rc }}
     set +a
-    kubectl apply -f /etc/genestack/gateway-api/routes/custom-trove-gateway-route.yaml
+    kubectl apply -f /etc/genestack/gateway-api/routes/trove-gateway-route.yaml
   args:
     executable: /bin/bash
   environment:

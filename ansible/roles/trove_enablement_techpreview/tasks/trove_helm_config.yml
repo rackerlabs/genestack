@@ -287,7 +287,7 @@
       # quorum queues by flipping these on both sides simultaneously.
       rabbit_quorum_queue = false
       rabbit_transient_quorum_queue = false
-      amqp_durable_queues = false
+      amqp_durable_queues = {{ trove_durable_queues }}
       EOF
     executable: /bin/bash
   register: _trove_transport_b64

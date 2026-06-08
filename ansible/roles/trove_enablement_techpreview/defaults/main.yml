@@ -38,12 +38,17 @@ trove_datastore_name: mysql
 trove_datastore_version_name: "8.4"
 
 # =========================================================================
+# Trove RabbitMQ
+# =========================================================================
+trove_durable_queues: false
+
+# =========================================================================
 # Trove networking and access
 # =========================================================================
 trove_keypair_name: trove-access-keypair
 trove_secgroup_name: trove-access-secgroup
 trove_secgroup_remote_ip: "0.0.0.0/0"
-trove_flat_network_name: flat
+trove_mgmt_public_network_name: flat
 trove_mgmt_network_name: trove-mgmt-net
 trove_mgmt_subnet_name: trove-mgmt-subnet
 trove_services_secgroup_name: trove-services-secgroup
@@ -100,11 +105,8 @@ helm_config_base: /etc/genestack/helm-configs
 # =========================================================================
 # Gateway and kustomize
 # =========================================================================
-# The region component used in gateway hostnames
-# (e.g. trove.api.<region_lower>.rackspacecloud.com).
-# Auto-detected from /etc/genestack/helm-configs/global_overrides/endpoints.yaml
-# at runtime; this default is the fallback.
-trove_gateway_region_lower: ""
+# The hostname used in gateway setup (default to lab value)
+trove_gateway_hostname: "trove.cluster.local"
 
 # =========================================================================
 # Force / mode flags for image builder
