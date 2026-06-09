@@ -5,7 +5,7 @@ metadata:
   name: manila-api
   namespace: openstack
 spec:
-  maxReplicas: 9
+  maxReplicas: 6
   minReplicas: 2
   metrics:
     - resource:

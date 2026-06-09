@@ -26,16 +26,6 @@ patches:
         value: 1
   - target:
       kind: HorizontalPodAutoscaler
-      name: nova-conductor
-    patch: |-
-      - op: replace
-        path: /spec/minReplicas
-        value: 1
-      - op: replace
-        path: /spec/maxReplicas
-        value: 1
-  - target:
-      kind: HorizontalPodAutoscaler
       name: nova-novncproxy
     patch: |-
       - op: replace
