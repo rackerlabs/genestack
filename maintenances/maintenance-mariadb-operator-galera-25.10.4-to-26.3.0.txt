@@ -3,41 +3,56 @@
 ### Validation
 
 # This maintenance upgrades the MariaDB Operator for a Galera-backed MariaDB cluster from 25.10.4 to 26.3.0.
-# Never delete MariaDB CRDs during this maintenance.
+# Do not step through every 26.0.x patch between 25.10.4 and 26.3.0. Upgrade directly to 26.3.0.
+# Never delete MariaDB CRDs during this maintenance. Deleting CRDs will delete the MariaDB pods.
 
 # Major operational risks:
 # - Deleting MariaDB CRDs will remove the MariaDB pods.
 # - Updating the primary before replicas risks losing Galera quorum.
-# - The 26.3.0 Helm overrides require the 26.3.0 image schema for maxscaleImage, exporterImage, and exporterMaxscaleImage.
+# - The 26.3.0 Helm overrides must use the new image schema (mariadbImage, maxscaleImage, exporterImage, exporterMaxscaleImage). Values using the legacy mariadbImageName string field will be rejected or produce incorrect images.
+# - In 26.3.0, Point-in-Time Recovery introduces a new CRD (pointintimerecoveries.k8s.mariadb.com). Missing it indicates the operator did not install cleanly.
+# - Known issue: restore behaviour using bootstrapFrom.targetRecoveryTime changed — the operator selects the closest backup not after the requested timestamp rather than at or before. Validate recovery procedures if PITR is used.
 
 ### Goal
 
-# Upgrade the MariaDB Operator from 25.10.4 to 26.3.0 for a Galera cluster and keep the cluster healthy throughout the hop.
+# Upgrade the MariaDB Operator from 25.10.4 to 26.3.0 for a Galera cluster and keep the cluster healthy throughout the hop with the updated image schema.
 
 ### Prep
 
 ## Deployment Node
 
-# Verify current versions and target availability:
+# Verify current versions, target availability, and override format:
 
 helm list -A | grep mariadb
 helm status mariadb-operator -n mariadb-system
 helm repo update mariadb-operator
 helm search repo mariadb-operator/mariadb-operator --versions | head -20
-grep -n "mariadbImageName\\|mariadbImage:\\|maxscaleImage\\|exporterImage\\|exporterMaxscaleImage" \
-/etc/genestack/helm-configs/mariadb-operator/mariadb-operator-helm-overrides.yaml
 
 # Expected:
 # - The current version is 25.10.4.
-# - The target version is 26.3.0.
-# - The override file has been reviewed against the 26.3.0 image schema where required.
+# - The target version 26.3.0 is available.
+
+# Confirm the Helm override file uses the 26.3.0 image schema (repository/tag pairs, not the legacy string form):
+
+grep -n "mariadbImage\\|maxscaleImage\\|exporterImage\\|exporterMaxscaleImage" \
+/etc/genestack/helm-configs/mariadb-operator/mariadb-operator-helm-overrides.yaml
+
+# Expected:
+# - Fields use the new structured format. Example:
+#     mariadbImage:
+#       repository: docker-registry1.mariadb.com/library/mariadb
+#       tag: 11.8.5
+#   Not the legacy format:
+#     mariadbImageName: docker-registry1.mariadb.com/library/mariadb:11.8.5
 
 # Retrieve the MariaDB root password and current primary, verify Galera health, and create a backup:
 
 export MARIADB_ROOT_PASSWORD=$(kubectl get secret mariadb -n openstack \
 -o jsonpath='{.data.root-password}' | base64 -d)
-export PRIMARY_POD=$(kubectl get mariadb mariadb-cluster -n openstack -o jsonpath="{.status.currentPrimary}")
-kubectl exec -it "$PRIMARY_POD" -n openstack -- mariadb -u root -p"$MARIADB_ROOT_PASSWORD" -e "
+export PRIMARY_POD=$(kubectl get mariadb mariadb-cluster -n openstack \
+-o jsonpath="{.status.currentPrimary}")
+kubectl exec -it "$PRIMARY_POD" -n openstack -- mariadb -u root \
+-p"$MARIADB_ROOT_PASSWORD" -e "
 SHOW STATUS LIKE 'wsrep_cluster_size';
 SHOW STATUS LIKE 'wsrep_cluster_status';
 SHOW STATUS LIKE 'wsrep_ready';"
@@ -45,6 +60,10 @@ kubectl exec -i "$PRIMARY_POD" -n openstack -- mariadb-dump \
 -u root -p"$MARIADB_ROOT_PASSWORD" --all-databases --single-transaction \
 --routines --triggers > mariadb-cluster-full-backup-$(date +%Y%m%d-%H%M).sql
 ls -lh mariadb-cluster-full-backup-*.sql | tail -1
+
+# Expected:
+# - wsrep_cluster_status is Primary.
+# - wsrep_ready is ON.
 
 ### Execute
 
@@ -54,20 +73,32 @@ ls -lh mariadb-cluster-full-backup-*.sql | tail -1
 
 mariadb-operator: 26.3.0
 
+# Verify:
+
+grep mariadb-operator /etc/genestack/helm-chart-versions.yaml
+
 ## Apply Required Overrides or Patches
 
-# Update the MariaDB image for 26.3.0 compatibility, verify the 26.3.0 image schema in /etc/genestack/helm-configs/mariadb-operator/mariadb-operator-helm-overrides.yaml, enable autoUpdateDataPlane: true, and apply:
+# Ensure /etc/genestack/helm-configs/mariadb-operator/mariadb-operator-helm-overrides.yaml uses the 26.3.0 image schema for all image fields (mariadbImage, maxscaleImage, exporterImage, exporterMaxscaleImage), then enable autoUpdateDataPlane: true in the overlay and apply:
 
 kubectl --namespace openstack apply -k /etc/genestack/kustomize/mariadb-cluster/overlay
 
 ## Run the Maintenance
 
+# Scale down the operator and remove webhooks:
+
 kubectl scale deployment mariadb-operator -n mariadb-system --replicas=0
 kubectl scale deployment mariadb-operator-webhook -n mariadb-system --replicas=0
 kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
 kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook 2>/dev/null || true
+
+# Reinstall the operator:
+
 helm uninstall mariadb-operator -n mariadb-system
 /opt/genestack/bin/install-mariadb-operator.sh
+
+# Reapply the cluster manifest:
+
 kubectl --namespace openstack apply -k /etc/genestack/kustomize/mariadb-cluster/overlay
 
 ### Post-Maint
@@ -78,7 +109,9 @@ helm list -A | grep mariadb
 kubectl get crd pointintimerecoveries.k8s.mariadb.com
 kubectl get pods -n mariadb-system -o wide
 kubectl get pods -n openstack | grep mariadb
-kubectl exec -it "$PRIMARY_POD" -n openstack -- mariadb -u root -p"$MARIADB_ROOT_PASSWORD" -e "
+kubectl get mariadb -n openstack
+kubectl exec -it "$PRIMARY_POD" -n openstack -- mariadb -u root \
+-p"$MARIADB_ROOT_PASSWORD" -e "
 SHOW STATUS LIKE 'wsrep_cluster_size';
 SHOW STATUS LIKE 'wsrep_cluster_status';
 SHOW STATUS LIKE 'wsrep_ready';"
@@ -87,15 +120,31 @@ SHOW STATUS LIKE 'wsrep_ready';"
 # - The operator version is 26.3.0.
 # - pointintimerecoveries.k8s.mariadb.com exists.
 # - wsrep_cluster_status is Primary.
+# - wsrep_ready is ON.
 
 ### Troubleshooting
 
+## Common Failure Signal
+
+# If the operator logs show image pull errors or webhook rejection after the hop, stop and confirm that helm overrides use the new structured image schema (not the legacy mariadbImageName string field).
+
+## Common Failure Signal: Webhook Certificate Loop
+
+# If the operator pods remain stuck in a certificate validation loop:
+
+kubectl get certificate -n mariadb-system
+kubectl delete secret mariadb-operator-webhook-cert -n mariadb-system
+kubectl delete deployment mariadb-operator-webhook -n mariadb-system
+/opt/genestack/bin/install-mariadb-operator.sh
+
 ## Rollback
 
-# Restore the previous chart version in /etc/genestack/helm-chart-versions.yaml and rerun:
+# Restore the previous chart version in /etc/genestack/helm-chart-versions.yaml, keep the CRDs in place, and rerun:
 
 /opt/genestack/bin/install-mariadb-operator.sh
 
 ### Sources
 
 # https://github.com/mariadb-operator/mariadb-operator/releases/tag/26.3.0
+# https://docs.rackspacecloud.com/release-notes/#mariadb-operator
+# https://docs.rackspacecloud.com/infrastructure-mariadb/

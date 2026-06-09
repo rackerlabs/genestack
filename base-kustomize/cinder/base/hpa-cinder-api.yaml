@@ -5,7 +5,7 @@ metadata:
   name: cinder-api
   namespace: openstack
 spec:
-  maxReplicas: 2
+  maxReplicas: 6
   minReplicas: 2
   metrics:
     - resource:
