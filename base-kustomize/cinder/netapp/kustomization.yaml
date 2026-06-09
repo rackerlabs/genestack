@@ -17,4 +17,3 @@ sortOptions:
 resources:
   - configmap-etc.yaml
   - deploy-volume-netapp.yaml
-  - hpa-cinder-volume-netapp.yaml
