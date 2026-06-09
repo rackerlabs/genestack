@@ -13,7 +13,6 @@ jobs:
       matrix:
         overlays:
           - base
-          - aio
     name: Helm
     runs-on: ubuntu-latest
     steps:

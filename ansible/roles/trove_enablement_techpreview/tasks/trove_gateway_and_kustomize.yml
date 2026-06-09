@@ -89,19 +89,6 @@
     state: directory
     mode: "0755"
 
-- name: Create symlink to base-kustomize/trove/aio
-  ansible.builtin.file:
-    src: /opt/genestack/base-kustomize/trove/aio
-    dest: /etc/genestack/kustomize/trove/aio
-    state: link
-    force: true
-  register: _aio_link_result
-
-- name: Record aio symlink change  # noqa: no-handler
-  ansible.builtin.set_fact:
-    _trove_preconf_changed_files: "{{ _trove_preconf_changed_files + ['/etc/genestack/kustomize/trove/aio'] }}"
-  when: _aio_link_result.changed
-
 - name: Create symlink to base-kustomize/trove/base
   ansible.builtin.file:
     src: /opt/genestack/base-kustomize/trove/base
