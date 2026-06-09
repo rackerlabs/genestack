@@ -32,7 +32,6 @@ OpenStack Horizon is the web-based dashboard for the OpenStack ecosystem, provid
 
 !!! tip
 
-    You may need to provide custom values to configure your openstack services, for a simple single region or lab deployment you can supply an additional overrides flag using the example found at `base-helm-configs/aio-example-openstack-overrides.yaml`.
     In other cases such as a multi-region deployment you may want to view the [Multi-Region Support](multi-region-support.md) guide to for a workflow solution.
 
 ## Demo
