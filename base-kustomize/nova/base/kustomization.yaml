@@ -7,9 +7,7 @@ resources:
   - all.yaml
   - hpa-nova-api-metadata.yaml
   - hpa-nova-api-osapi.yaml
-  - hpa-nova-conductor.yaml
   - hpa-nova-novncproxy.yaml
   - hpa-nova-scheduler.yaml
-  - hpa-nova-compute-ironic.yaml
   - policies.yaml
   - static-vendordata-configmap.yaml

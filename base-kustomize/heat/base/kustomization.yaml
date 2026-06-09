@@ -7,7 +7,6 @@ resources:
   - all.yaml
   - hpa-heat-api.yaml
   - hpa-heat-cfn.yaml
-  - hpa-heat-engine.yaml
   - policies.yaml
 
 patches:

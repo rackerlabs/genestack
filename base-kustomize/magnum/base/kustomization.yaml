@@ -6,5 +6,4 @@ resources:
   - magnum-rabbitmq-queue.yaml
   - all.yaml
   - hpa-magnum-api.yaml
-  - hpa-magnum-conductor.yaml
   - policies.yaml

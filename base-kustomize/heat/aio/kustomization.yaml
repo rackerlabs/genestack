@@ -11,16 +11,12 @@ patches:
       - op: replace
         path: /spec/minReplicas
         value: 1
-  - target:
-      kind: HorizontalPodAutoscaler
-      name: heat-cfn
-    patch: |-
       - op: replace
-        path: /spec/minReplicas
+        path: /spec/maxReplicas
         value: 1
   - target:
       kind: HorizontalPodAutoscaler
-      name: heat-engine
+      name: heat-cfn
     patch: |-
       - op: replace
         path: /spec/minReplicas
