@@ -1377,6 +1377,8 @@ conf:
           storage.objects.containers:
           storage.containers.objects:
           storage.containers.objects.size:
+          storage.containers.objects.outgoing.bytes:
+            archive_policy_name: low
 
       - resource_type: volume
         metrics:
@@ -1923,6 +1925,46 @@ conf:
           - "name"
           - "unit"
           - "volume"
+
+      # NOTE(LukeRepko): Container-scoped Swift outgoing bytes.
+      #
+      # The catch-all Swift meter above attaches storage.objects.outgoing.bytes
+      # to the account-level swift_account resource (resource_id =
+      # payload.target.id, which is the bare project_id). To get per-container
+      # visibility we emit a distinct metric, storage.containers.objects.outgoing.bytes,
+      # against the per-container swift_account resource (resource_id =
+      # <project_id>_<container>) created by the storage.containers.objects
+      # pollster. Distinct metric name avoids any double-count or aggregation
+      # ambiguity with the account-level total, and mirrors the upstream
+      # storage.objects.X (account) vs storage.containers.objects.X (container)
+      # convention.
+      #
+      # Gating off payload.target.metadata.container is unsafe: it is null on
+      # account-only requests and jsonpath-rw-ext's `sub` calls re.sub on the
+      # value with no try/except, raising TypeError and taking the whole
+      # notification batch with it (catch-all account-level sample included).
+      #
+      # Drive both name and resource_id off payload.target.metadata.path,
+      # which the middleware always sets. The path is
+      # 'v1/AUTH_<project>/<container>...' for container/object requests and
+      # 'v1/AUTH_<project>' for account-only requests. `sub` returns no match
+      # when its regex doesn't match, so on account-only paths the path-sub
+      # collapses to [] and the `+` concat in name collapses with it. The
+      # measurements filter in name handles the symmetric case (no outgoing
+      # bytes on this request, e.g. PUT). With name in `lookup`, the meter
+      # silently early-returns via nb_samples<=0 in both cases.
+      - name: $.payload.measurements[?(@.metric.name='storage.objects.outgoing.bytes')].metric.name.`sub(/^.*$/, storage.containers.objects.outgoing.bytes)` + $.payload.target.metadata.path.`sub(/^v1\/AUTH_[^\/]+\/[^\/]+.*$/, )`
+        event_type: "objectstore.http.request"
+        type: "delta"
+        unit: "B"
+        volume: $.payload.measurements[?(@.metric.name='storage.objects.outgoing.bytes')].result
+        resource_id: $.payload.target.metadata.path.`sub(/^v1\/AUTH_([^\/]+)\/([^\/]+).*$/, \\1_\\2)`
+        user_id: $.payload.initiator.id
+        project_id: $.payload.initiator.project_id
+        lookup:
+          - "name"
+          - "volume"
+          - "resource_id"
 
       - name: "memory"
         event_type: &instance_events compute.instance.(?!create.start|update).*
