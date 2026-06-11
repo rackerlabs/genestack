@@ -12,7 +12,7 @@ View the upstream chart Documentation [cert-manager helm](https://github.com/cer
 
    ```yaml
    ---
-   dns01RecursiveNameservers: "8.8.8.8:53, 1.1.1.1:53"
+   dns01RecursiveNameservers: "8.8.8.8:53,1.1.1.1:53"
    dns01RecursiveNameserversOnly: true
    ```
 

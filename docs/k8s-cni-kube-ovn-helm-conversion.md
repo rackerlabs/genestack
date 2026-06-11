@@ -74,9 +74,9 @@ ipv4:
   JOIN_CIDR: "100.64.0.0/16"  # join
 
 networking:
-  IFACE: "br-overlay"  # Interface used for the cluster
+  IFACE: "bond0"  # Interface used for the cluster
   vlan:
-    VLAN_INTERFACE_NAME: "br-overlay"  # VLAN Interface used for the cluster
+    VLAN_INTERFACE_NAME: "bond0"  # VLAN Interface used for the cluster
 ```
 
 ## Running the Upgrade

@@ -13,16 +13,16 @@ likely need to be defined is the network interface that will Kube-OVN will bind 
 !!! example "Example Kube-OVN Helm Overrides"
 
     In the example below, the `IFACE` and `VLAN_INTERFACE_NAME` are the only values that need to be defined and
-    are set to `br-overlay`. If you intend to enable hardware offloading, you will need to set the `IFACE` to the
+    are set to `bond0`. If you intend to enable hardware offloading, you will need to set the `IFACE` to the
     a physical interface that supports hardware offloading.
 
     === "Default"
 
         ``` yaml
         networking:
-          IFACE: "br-overlay"
+          IFACE: "bond0"
           vlan:
-            VLAN_INTERFACE_NAME: "br-overlay"
+            VLAN_INTERFACE_NAME: "bond0"
         ```
 
     === "Talos"
