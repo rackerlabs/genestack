@@ -1,0 +1,15 @@
+---
+service:
+  name: kube-ovn
+  version: ~
+
+chart:
+  service_name: kube-ovn
+  repo_name: kubeovn
+  repo_url: https://kubeovn.github.io/kube-ovn
+
+pre_install: |
+  MASTER_NODES=$(kubectl get nodes -l kube-ovn/role=master -o json | jq -r '[.items[].status.addresses[] | select(.type == "InternalIP") | .address] | join(",")' | sed 's/,/\\,/g')
+  MASTER_NODE_COUNT=$(kubectl get nodes -l kube-ovn/role=master -o json | jq -r '.items[].status.addresses[] | select(.type=="InternalIP") | .address' | wc -l)
+
+secrets: []

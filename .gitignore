@@ -131,6 +131,8 @@ ansible_collections
 base-kustomize/**/all.yaml
 base-kustomize/**/charts
 
+.venv/
+
 # mkdocs
 site/
 

@@ -1,0 +1,10 @@
+---
+service:
+  name: loki
+  version: ~
+
+chart:
+  repo_name: grafana
+  repo_url: https://grafana.github.io/helm-charts
+
+secrets: []

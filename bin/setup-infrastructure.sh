@@ -141,26 +141,26 @@ networking:
     VLAN_INTERFACE_NAME: "${CONTAINER_VLAN_INTERFACE}"
 EOF
 fi
-/opt/genestack/bin/install-kube-ovn.sh
+/opt/genestack/bin/install.sh --service kube-ovn
 echo "Waiting for the kube-ovn-controller to be available"
 kubectl -n kube-system wait --timeout=5m deployments.app/kube-ovn-controller --for=condition=available
 
 # Setup shared pod storage
 kubectl apply -f /etc/genestack/manifests/longhorn/longhorn-namespace.yaml
-/opt/genestack/bin/install-longhorn.sh
+/opt/genestack/bin/install.sh --service longhorn
 sed -i 's/numberOfReplicas.*/numberOfReplicas: "'"${LONGHORN_STORAGE_REPLICAS:-2}"'"/g' \
        /etc/genestack/manifests/longhorn/longhorn-general-storageclass.yaml
 kubectl apply -f /etc/genestack/manifests/longhorn/longhorn-general-storageclass.yaml
 
 # Deploy prometheus
-/opt/genestack/bin/install-kube-prometheus-stack.sh
+/opt/genestack/bin/install.sh --service kube-prometheus-stack
 
 # Deploy cert-manager
-/opt/genestack/bin/install-cert-manager.sh
+/opt/genestack/bin/install.sh --service cert-manager
 
 # Deploy metallb
 kubectl apply -f /etc/genestack/manifests/metallb/metallb-namespace.yaml
-/opt/genestack/bin/install-metallb.sh
+/opt/genestack/bin/install.sh --service metallb
 echo "Waiting for the metallb-controller to be available"
 kubectl -n metallb-system wait --timeout=5m deployments.apps/metallb-controller --for=condition=available
 
@@ -195,7 +195,7 @@ fi
 kubectl apply -k /etc/genestack/kustomize/openstack/base
 
 # Deploy envoy
-/opt/genestack/bin/install-envoy-gateway.sh
+/opt/genestack/bin/install.sh --service envoy-gateway
 echo "Waiting for the envoyproxy-gateway to be available"
 kubectl -n envoyproxy-gateway-system wait --timeout=5m deployments.apps/envoy-gateway --for=condition=available
 /opt/genestack/bin/setup-envoy-gateway.sh -e ${ACME_EMAIL} -d ${GATEWAY_DOMAIN}
@@ -205,15 +205,10 @@ echo "Waiting for the cert-manager to be available"
 kubectl -n cert-manager wait --timeout=5m deployments.apps/cert-manager --for=condition=available
 
 # Deploy the Genestack secrets
-if [ -f /etc/genestack/kubesecrets.yaml ]; then
-  echo "Reusing existing /etc/genestack/kubesecrets.yaml"
-else
-  /opt/genestack/bin/create-secrets.sh
-fi
-kubectl apply -f /etc/genestack/kubesecrets.yaml
+echo "Secrets are now managed automatically by the install scripts. Manual secret generation is no longer required."
 
 # Deploy mariadb
-/opt/genestack/bin/install-mariadb-operator.sh
+/opt/genestack/bin/install.sh --service mariadb-operator
 echo "Waiting for the mariadb-operator-webhook to be available"
 if ! kubectl -n mariadb-system wait --timeout=1m deployments.apps mariadb-operator-webhook --for=condition=available; then
   echo "Recycling the mariadb-operator pods because sometimes they're stupid"
@@ -242,13 +237,13 @@ fi
 kubectl apply -k /etc/genestack/kustomize/ovn/base
 
 # Deploy memcached
-/opt/genestack/bin/install-memcached.sh
+/opt/genestack/bin/install.sh --service memcached
 
 # Deploy libvirt
-/opt/genestack/bin/install-libvirt.sh
+/opt/genestack/bin/install.sh --service libvirt
 
 # Deploy Redis operator and replication cluster
-/opt/genestack/bin/install-redis-operator.sh
+/opt/genestack/bin/install.sh --service redis-operator
 
 # Deploy Redis Sentinel
-/opt/genestack/bin/install-redis-sentinel.sh
+/opt/genestack/bin/install.sh --service redis-sentinel

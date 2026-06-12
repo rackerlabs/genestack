@@ -1,0 +1,57 @@
+---
+prelude: >
+  Replace the unified install-*.sh bootstrap scripts with a single
+  install.sh entry point driven by per-service YAML configs in
+  services/. Secrets are managed exclusively in Kubernetes — no
+  kubesecrets.yaml files.
+features:
+  - |
+    A new unified installer replaces 48 individual install scripts.
+    The new entry point is bin/install.sh with shared library code in
+    bin/helpers.sh and per-service configuration in bin/services/*.yaml.
+upgrade:
+  - |
+    All bin/install-*.sh bootstrap scripts have been removed. Use
+    install.sh with --service to install any component:
+
+    install.sh --service nova
+    install.sh --service nova --wait --timeout 30m
+    install.sh --rotate-keys --service nova
+
+    --service is the only required flag; every other --* flag after
+    the service name is passed through directly to helm upgrade
+    --install.
+  - |
+    Service configuration now lives in bin/services/<name>.yaml files
+    instead of shell scripts. Each service YAML declares only its own
+    secrets and chart overrides; common defaults (namespace, helm repo,
+    kustomize overlay) are inherited from openstack-common.yaml or
+    monitoring-common.yaml.
+  - |
+    The helm overrides chain is now explicit:
+
+    1. Upstream chart values (defaults from the chart)
+    2. -f base-helm-configs/<svc>/*.yaml (genestack default values)
+    3. -f etc/genestack/helm-configs/global_overrides/*.yaml
+       (cluster-wide overrides)
+    4. -f etc/genestack/helm-configs/<svc>/*.yaml (per-cluster overrides)
+    5. --set (injected secrets)
+    6. User-passed flags
+
+    Later files override earlier ones for the same key.
+  - |
+    Secrets are now managed entirely in Kubernetes. The old
+    create-secrets.sh script and kubesecrets.yaml have been removed.
+    The installer resolves and creates any missing secrets
+    automatically before helm rendering.
+deprecations:
+  - |
+    bin/create-secrets.sh is removed. Secrets are now generated and
+    applied on-the-fly by the unified installer.
+  - |
+    All binary/install-*.sh bootstrap scripts are removed.
+critical:
+  - |
+    All services must have a corresponding bin/services/<name>.yaml
+    file. New services should be created from
+    services/example-service.yaml.

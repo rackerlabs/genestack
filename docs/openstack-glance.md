@@ -6,7 +6,7 @@ OpenStack Glance is the image service within the OpenStack ecosystem, responsibl
 
 !!! note "Information about the secretes used"
 
-    Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
+    Secrets are generated and applied automatically by the install script.
 
     ??? example "Example secret generation"
 
@@ -73,10 +73,10 @@ OpenStack Glance is the image service within the OpenStack ecosystem, responsibl
 
 ## Run the package deployment
 
-!!! example "Run the Glance deployment Script `/opt/genestack/bin/install-glance.sh`"
+!!! example "Run the Glance deployment Script"
 
     ``` shell
-    --8<-- "bin/install-glance.sh"
+    /opt/genestack/bin/install.sh --service glance
     ```
 
 !!! tip

@@ -86,13 +86,17 @@ EXAMPLES:
     $(basename "$0") talos -e skyline
 
 UNINSTALL:
-    Use the platform-specific uninstall scripts:
+    Use the uninstall script (prompts for platform automatically):
+
+        ./hyperconverged-lab-uninstall.sh
+
+Or pass the platform directly:
 
     # Uninstall Kubespray deployment
-    ./hyperconverged-lab-kubespray-uninstall.sh
+    ./hyperconverged-lab-uninstall.sh kubespray
 
     # Uninstall Talos deployment
-    ./hyperconverged-lab-talos-uninstall.sh
+    ./hyperconverged-lab-uninstall.sh talos
 
 For more information, see the Genestack documentation.
 EOF
@@ -170,12 +174,12 @@ case "$PLATFORM" in
         echo ""
         echo "Launching Kubespray deployment..."
         echo ""
-        exec "${SCRIPT_DIR}/hyperconverged-lab-kubespray.sh" "$@"
+        exec "${SCRIPT_DIR}/labs/hyperconverged-lab-kubespray.sh" "$@"
         ;;
     talos)
         echo ""
         echo "Launching Talos Linux deployment..."
         echo ""
-        exec "${SCRIPT_DIR}/hyperconverged-lab-talos.sh" "$@"
+        exec "${SCRIPT_DIR}/labs/hyperconverged-lab-talos.sh" "$@"
         ;;
 esac

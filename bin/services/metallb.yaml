@@ -1,0 +1,10 @@
+---
+service:
+  name: metallb
+  version: ~
+
+chart:
+  repo_name: metallb
+  repo_url: https://metallb.github.io/metallb
+
+secrets: []

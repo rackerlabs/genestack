@@ -33,5 +33,5 @@ conf:
 ## Re-Deploy Neutron
 
 ```bash
-/opt/genestack/bin/install-neutron.sh
+/opt/genestack/bin/install.sh --service neutron
 ```

@@ -1,9 +1,9 @@
 # Deploy Nova
 
-!!! example "Run the Nova deployment Script `/opt/genestack/bin/install-nova.sh`"
+!!! example "Run the Nova deployment Script"
 
     ``` shell
-    --8<-- "bin/install-nova.sh"
+    /opt/genestack/bin/install.sh --service nova
     ```
 
 !!! tip

@@ -1,0 +1,14 @@
+---
+service:
+  name: fluent-bit
+  version: ~
+
+chart:
+  repo_name: fluent
+  repo_url: https://fluent.github.io/helm-charts
+  service_name: fluent-bit
+
+kustomize:
+  enabled: false
+
+secrets: []

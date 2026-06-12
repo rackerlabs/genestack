@@ -11,7 +11,7 @@ Genestack uses the `kube-prometheus-stack` chart to deploy Prometheus, Alertmana
 ## Install
 
 ```shell
-/opt/genestack/bin/install-kube-prometheus-stack.sh
+/opt/genestack/bin/install.sh --service kube-prometheus-stack
 ```
 
 ## Verify

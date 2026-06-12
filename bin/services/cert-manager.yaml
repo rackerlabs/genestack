@@ -1,0 +1,17 @@
+---
+service:
+  name: cert-manager
+  version: ~
+  family: ""
+
+chart:
+  repo_name: charts
+  repo_url: oci://quay.io/jetstack
+  service_name: cert-manager
+  global_overrides: false
+
+kustomize:
+  enabled: true
+  overlay_path: cert-manager/overlay
+
+secrets: []
