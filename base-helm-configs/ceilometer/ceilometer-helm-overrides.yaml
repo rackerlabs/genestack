@@ -1379,6 +1379,12 @@ conf:
           storage.containers.objects.size:
           storage.containers.objects.outgoing.bytes:
             archive_policy_name: low
+          storage.objects.http.class.a:
+            archive_policy_name: low
+          storage.objects.http.class.b:
+            archive_policy_name: low
+          storage.objects.http.class.c:
+            archive_policy_name: low
 
       - resource_type: volume
         metrics:
@@ -1965,6 +1971,71 @@ conf:
           - "name"
           - "volume"
           - "resource_id"
+
+      # NOTE(LukeRepko): Account-level Swift HTTP request-class meters.
+      #
+      # Classify each successful objectstore.http.request notification into
+      # one of three tiered counters based on the HTTP method recorded in
+      # payload.target.action (set by ceilometermiddleware to method.lower()):
+      #   class.a: put, post, copy   -- expensive-tier writes / metadata
+      #   class.b: get               -- reads
+      #   class.c: delete, head, options
+      #
+      # Counted against the account-level swift_account resource via
+      # resource_id = payload.target.id (the bare project_id), matching the
+      # existing catch-all Swift meter convention. Container-level resources
+      # are not targeted.
+      #
+      # Gating uses the same idiom as the per-container outgoing-bytes meter:
+      # the `name` field is built by AND-ing two `sub(...)` matches via `+`
+      # (action regex AND outcome=success). Either side returning [] collapses
+      # the concat to []; with `name` in `lookup`, the meter early-returns via
+      # nb_samples<=0 -- no sample, no warning, no traceback.
+      #
+      # `volume` filters $.payload.measurements for storage.api.request, which
+      # ceilometermiddleware >= 3.11.0 always emits with result=1 for every
+      # objectstore.http.request notification. A JSONPath that resolves to
+      # [1] (not the literal int 1) keeps `volume` compatible with `lookup`
+      # mode, which expects list-shaped attributes.
+      #
+      # Counting policy: success only. The catch-all Swift meter above does
+      # not filter outcome because it is a passthrough for byte counters; for
+      # tier classification, success-only matches the design spec.
+      - name: $.payload.target.action.`sub(/^(put|post|copy)$/, storage.objects.http.class.a)` + $.payload.outcome.`sub(/^success$/, )`
+        event_type: "objectstore.http.request"
+        type: "delta"
+        unit: "request"
+        volume: $.payload.measurements[?(@.metric.name='storage.api.request')].result
+        resource_id: $.payload.target.id
+        user_id: $.payload.initiator.id
+        project_id: $.payload.initiator.project_id
+        lookup:
+          - "name"
+          - "volume"
+
+      - name: $.payload.target.action.`sub(/^get$/, storage.objects.http.class.b)` + $.payload.outcome.`sub(/^success$/, )`
+        event_type: "objectstore.http.request"
+        type: "delta"
+        unit: "request"
+        volume: $.payload.measurements[?(@.metric.name='storage.api.request')].result
+        resource_id: $.payload.target.id
+        user_id: $.payload.initiator.id
+        project_id: $.payload.initiator.project_id
+        lookup:
+          - "name"
+          - "volume"
+
+      - name: $.payload.target.action.`sub(/^(delete|head|options)$/, storage.objects.http.class.c)` + $.payload.outcome.`sub(/^success$/, )`
+        event_type: "objectstore.http.request"
+        type: "delta"
+        unit: "request"
+        volume: $.payload.measurements[?(@.metric.name='storage.api.request')].result
+        resource_id: $.payload.target.id
+        user_id: $.payload.initiator.id
+        project_id: $.payload.initiator.project_id
+        lookup:
+          - "name"
+          - "volume"
 
       - name: "memory"
         event_type: &instance_events compute.instance.(?!create.start|update).*
