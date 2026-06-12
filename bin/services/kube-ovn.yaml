@@ -1,0 +1,17 @@
+---
+service:
+  name: kube-ovn
+  version: ~
+
+chart:
+  service_name: kube-ovn
+  repo_name: kubeovn
+  repo_url: https://kubeovn.github.io/kube-ovn
+
+pre_install_actions:
+  - type: kube_ovn_master_discovery
+    node_label: kube-ovn/role=master
+    master_nodes_helm_key: MASTER_NODES
+    replica_count_helm_key: replicaCount
+
+secrets: []

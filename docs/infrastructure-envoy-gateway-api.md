@@ -13,10 +13,10 @@ API gateways using a declarative configuration model.
 
 Run the helm command to install Envoy Gateway.
 
-??? example "Run the Envoy Gateway deployment Script `/opt/genestack/bin/install-envoy-gateway.sh`"
+??? example "Run the Envoy Gateway deployment Script"
 
     ``` shell
-    --8<-- "bin/install-envoy-gateway.sh"
+    /opt/genestack/bin/install.sh --service envoy-gateway
     ```
 
 The install script will deploy Envoy Gateway to the `envoy-gateway-system` namespace via Helm.

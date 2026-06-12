@@ -1,9 +1,9 @@
 # Deploy Neutron
 
-!!! example "Run the Neutron deployment Script `/opt/genestack/bin/install-neutron.sh`"
+!!! example "Run the Neutron deployment Script"
 
     ``` shell
-    --8<-- "bin/install-neutron.sh"
+    /opt/genestack/bin/install.sh --service neutron
     ```
 
 !!! tip

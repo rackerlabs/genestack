@@ -1,0 +1,58 @@
+---
+service:
+  name: cinder
+  version: ~
+
+chart: {}
+
+secrets:
+  - helm_key: "endpoints.identity.auth.admin.password"
+    source_secret: keystone-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.identity.auth.cinder.password"
+    source_secret: cinder-admin
+    source_namespace: openstack
+    data_key: password
+    rotate_with_service: true
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_db.auth.admin.password"
+    source_secret: mariadb
+    source_namespace: openstack
+    data_key: root-password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_db.auth.cinder.password"
+    source_secret: cinder-db-password
+    source_namespace: openstack
+    data_key: password
+    rotate_with_service: true
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_cache.auth.memcache_secret_key"
+    source_secret: os-memcached
+    source_namespace: openstack
+    data_key: memcache_secret_key
+    helm_flag: --set
+
+  - helm_key: "conf.cinder.keystone_authtoken.memcache_secret_key"
+    source_secret: os-memcached
+    source_namespace: openstack
+    data_key: memcache_secret_key
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_messaging.auth.admin.password"
+    source_secret: rabbitmq-default-user
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_messaging.auth.cinder.password"
+    source_secret: cinder-rabbitmq-password
+    source_namespace: openstack
+    data_key: password
+    rotate_with_service: true
+    helm_flag: --set

@@ -8,7 +8,7 @@ In this document, we will discuss the deployment of OpenStack Ironic using Genes
 
 !!! note "Information about the secretes used"
 
-    Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
+    Secrets are generated and applied automatically by the install script.
 
     ??? example "Manual secret generation"
 
@@ -30,10 +30,10 @@ In this document, we will discuss the deployment of OpenStack Ironic using Genes
 
 ## Run the package deployment
 
-!!! example "Run the Heat deployment Script `/opt/genestack/bin/install-ironic.sh`"
+!!! example "Run the Ironic deployment Script"
 
     ``` shell
-    --8<-- "bin/install-ironic.sh"
+    /opt/genestack/bin/install.sh --service ironic
     ```
 
 !!! tip

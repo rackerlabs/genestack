@@ -1,0 +1,15 @@
+---
+service:
+  name: postgres-operator
+  namespace: postgres-system
+  version: ~
+
+chart:
+  repo_name: cloudnative-pg
+  repo_url: https://cloudnative-pg.github.io/charts
+  global_overrides: false
+
+kustomize:
+  enabled: false
+
+secrets: []

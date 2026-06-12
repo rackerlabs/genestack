@@ -8,7 +8,7 @@ OpenStack Trove is the Database as a Service (DBaaS) component of the OpenStack 
 
 !!! note "Information about the secrets used"
 
-    Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
+    Secrets are generated and applied automatically by the install script.
 
     ??? example "Example secret generation"
 
@@ -57,10 +57,10 @@ OpenStack Trove is the Database as a Service (DBaaS) component of the OpenStack 
 
 ## Run the package deployment
 
-!!! example "Run the Trove deployment Script `/opt/genestack/bin/install-trove.sh`"
+!!! example "Run the Trove deployment Script"
 
     ``` shell
-    --8<-- "bin/install-trove.sh"
+    /opt/genestack/bin/install.sh --service trove
     ```
 
 !!! tip

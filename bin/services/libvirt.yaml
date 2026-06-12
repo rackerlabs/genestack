@@ -1,0 +1,8 @@
+---
+service:
+  name: libvirt
+  version: ~
+
+chart: {}
+
+secrets: []

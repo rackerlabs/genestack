@@ -121,7 +121,7 @@ We're going to simply add another `-f` flag below that one to include our overri
 So, our helm command that we'll run against sjc will now look like:
 
 ``` shell
-/opt/genestack/bin/install-nova.sh -f /etc/genestack/helm-configs/nova/region1-nova-helm-overrides.yaml
+/opt/genestack/bin/install.sh --service nova -f /etc/genestack/helm-configs/nova/region1-nova-helm-overrides.yaml
 ```
 
 Like mentioned above the only difference here is the additional flag to include our custom override and that's it, we can now version custom changes while maintaining upstream parity across many regions and/or staging envorinments!

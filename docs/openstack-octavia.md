@@ -13,7 +13,7 @@ the performance and resilience of cloud applications.
 
 !!! note "Information about the secretes used"
 
-    Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
+    Secrets are generated and applied automatically by the install script.
 
     ??? example "Example secret generation"
 
@@ -145,10 +145,10 @@ mv /tmp/octavia_amphora_provider.yaml /etc/genestack/helm-configs/octavia/
 
 ## Run the Helm deployment
 
-??? example "Run the Octavia deployment Script `/opt/genestack/bin/install-octavia.sh`"
+??? example "Run the Octavia deployment Script"
 
     ``` shell
-    --8<-- "bin/install-octavia.sh"
+    /opt/genestack/bin/install.sh --service octavia
     ```
 
 !!! tip

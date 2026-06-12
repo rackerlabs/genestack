@@ -1,0 +1,87 @@
+---
+service:
+  name: octavia
+  version: ~
+
+chart: {}
+
+pre_install_check_actions:
+  - type: detect_kube_ovn_tls
+    namespace: kube-system
+  - type: ensure_ovn_client_tls_secret
+    source_namespace: kube-system
+    target_namespace: openstack
+    source_secret: kube-ovn-tls
+    target_secret: ovn-client-tls
+  - type: ovn_connection_set_args
+    entries:
+      - helm_key: conf.octavia.ovn.ovn_nb_connection
+        env: OVN_NB_CONNECTION
+      - helm_key: conf.octavia.ovn.ovn_sb_connection
+        env: OVN_SB_CONNECTION
+
+secrets:
+  - helm_key: "endpoints.identity.auth.admin.password"
+    source_secret: keystone-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.identity.auth.octavia.password"
+    source_secret: octavia-admin
+    source_namespace: openstack
+    data_key: password
+    rotate_with_service: true
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_db.auth.admin.password"
+    source_secret: mariadb
+    source_namespace: openstack
+    data_key: root-password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_db.auth.octavia.password"
+    source_secret: octavia-db-password
+    source_namespace: openstack
+    data_key: password
+    rotate_with_service: true
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_db_persistence.auth.octavia.password"
+    source_secret: octavia-db-password
+    source_namespace: openstack
+    data_key: password
+    rotate_with_service: true
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_messaging.auth.admin.password"
+    source_secret: rabbitmq-default-user
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_messaging.auth.octavia.password"
+    source_secret: octavia-rabbitmq-password
+    source_namespace: openstack
+    data_key: password
+    rotate_with_service: true
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_cache.auth.memcache_secret_key"
+    source_secret: os-memcached
+    source_namespace: openstack
+    data_key: memcache_secret_key
+    helm_flag: --set
+
+  - helm_key: "conf.octavia.keystone_authtoken.memcache_secret_key"
+    source_secret: os-memcached
+    source_namespace: openstack
+    data_key: memcache_secret_key
+    helm_flag: --set
+
+  - helm_key: "conf.octavia.certificates.ca_private_key_passphrase"
+    source_secret: octavia-certificates
+    source_namespace: openstack
+    data_key: password
+    rotate_with_service: true
+    helm_flag: --set
