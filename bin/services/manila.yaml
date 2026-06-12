@@ -1,0 +1,67 @@
+---
+service:
+  name: manila
+  version: ~
+
+chart: {}
+
+secrets:
+  - helm_key: "endpoints.identity.auth.admin.password"
+    source_secret: keystone-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.identity.auth.manila.password"
+    source_secret: manila-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_db.auth.admin.password"
+    source_secret: mariadb
+    source_namespace: openstack
+    data_key: root-password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_db.auth.manila.password"
+    source_secret: manila-db-password
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_cache.auth.memcache_secret_key"
+    source_secret: os-memcached
+    source_namespace: openstack
+    data_key: memcache_secret_key
+    helm_flag: --set
+
+  - helm_key: "conf.manila.keystone_authtoken.memcache_secret_key"
+    source_secret: os-memcached
+    source_namespace: openstack
+    data_key: memcache_secret_key
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_messaging.auth.admin.password"
+    source_secret: rabbitmq-default-user
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_messaging.auth.manila.password"
+    source_secret: manila-rabbitmq-password
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "network.ssh.public_key"
+    source_secret: manila-service-keypair
+    source_namespace: openstack
+    data_key: public_key
+    helm_flag: --set-string
+
+  - helm_key: "network.ssh.private_key"
+    source_secret: manila-service-keypair
+    source_namespace: openstack
+    data_key: private_key
+    helm_flag: --set-string

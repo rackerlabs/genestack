@@ -6,7 +6,7 @@ OpenStack Horizon is the web-based dashboard for the OpenStack ecosystem, provid
 
 !!! note "Information about the secretes used"
 
-    Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
+    Secrets are generated and applied automatically by the install script.
 
     ??? example "Example secret generation"
 
@@ -24,10 +24,10 @@ OpenStack Horizon is the web-based dashboard for the OpenStack ecosystem, provid
 
 ## Run the package deployment
 
-!!! example "Run the Horizon deployment Script `/opt/genestack/bin/install-horizon.sh`"
+!!! example "Run the Horizon deployment Script"
 
     ``` shell
-    --8<-- "bin/install-horizon.sh"
+    /opt/genestack/bin/install.sh --service horizon
     ```
 
 !!! tip

@@ -6,7 +6,7 @@ OpenStack Heat is the orchestration service within the OpenStack ecosystem, desi
 
 !!! note "Information about the secretes used"
 
-    Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
+    Secrets are generated and applied automatically by the install script.
 
     ??? example "Manual secret generation"
 
@@ -36,10 +36,10 @@ OpenStack Heat is the orchestration service within the OpenStack ecosystem, desi
 
 ## Run the package deployment
 
-!!! example "Run the Heat deployment Script `/opt/genestack/bin/install-heat.sh`"
+!!! example "Run the Heat deployment Script"
 
     ``` shell
-    --8<-- "bin/install-heat.sh"
+    /opt/genestack/bin/install.sh --service heat
     ```
 
 !!! tip

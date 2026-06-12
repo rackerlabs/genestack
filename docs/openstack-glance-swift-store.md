@@ -78,7 +78,7 @@ conf:
 Apply the configuration to the Glance Helm chart.
 
 ``` bash
-/opt/genestack/bin/install-glance.sh
+/opt/genestack/bin/install.sh --service glance
 ```
 
 Once the configuration has been applied, Glance will be configured to use Swift as an external storage system. You can now store images in Swift using Glance.

@@ -17,32 +17,18 @@ If Gnocchi is not healthy, Ceilometer pods will remain in their init dependency
 wait state until `gnocchi-api`, `ceilometer-db-sync`, and `ceilometer-ks-user`
 are all resolved.
 
-## Create Secrets
+## Secrets
 
-!!! note "Information about the secretes used"
+!!! note
 
-    Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
-
-    ??? example "Example secret generation"
-
-        ``` shell
-        kubectl --namespace openstack create secret generic ceilometer-keystone-admin-password \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        kubectl --namespace openstack create secret generic ceilometer-keystone-test-password \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        kubectl --namespace openstack create secret generic ceilometer-rabbitmq-password \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        ```
+    Secrets are generated and applied automatically by the install script.
 
 ## Run the package deployment
 
-!!! example "Run the Ceilometer deployment Script `/opt/genestack/bin/install-ceilometer.sh`"
+!!! example "Run the Ceilometer deployment Script"
 
     ``` shell
-    --8<-- "bin/install-ceilometer.sh"
+    /opt/genestack/bin/install.sh --service ceilometer
     ```
 
 !!! tip
@@ -56,7 +42,7 @@ are all resolved.
 Run the install script a second time and confirm it completes without error.
 
 ``` shell
-sudo /opt/genestack/bin/install-ceilometer.sh
+sudo /opt/genestack/bin/install.sh --service ceilometer
 ```
 
 ### Confirm Ceilometer pods are running

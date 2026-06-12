@@ -1,0 +1,31 @@
+---
+service:
+  name: skyline
+  version: ~
+
+chart: {}
+
+secrets:
+  - helm_key: "endpoints.identity.auth.admin.password"
+    source_secret: keystone-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.identity.auth.skyline.password"
+    source_secret: skyline-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_db.auth.admin.password"
+    source_secret: mariadb
+    source_namespace: openstack
+    data_key: root-password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_db.auth.skyline.password"
+    source_secret: skyline-db-password
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set

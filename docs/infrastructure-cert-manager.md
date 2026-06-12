@@ -18,10 +18,10 @@ View the upstream chart Documentation [cert-manager helm](https://github.com/cer
 
 ## Run Cert-Manager deployment
 
-!!! example "Run the cert-manager deployment Script `/opt/genestack/bin/install-cert-manager.sh`"
+!!! example "Run the cert-manager deployment Script"
 
     ``` shell
-    --8<-- "bin/install-cert-manager.sh"
+    /opt/genestack/bin/install.sh --service cert-manager
     ```
 
 ## Verify readiness with the following command

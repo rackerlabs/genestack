@@ -9,7 +9,7 @@ OpenStack Skyline is the next-generation web-based dashboard designed to provide
     Pause for a moment to consider if you will be wanting to access Skyline via the gateway-api controller over a specific FQDN. If so, adjust the gateway api definitions to suit your needs. For more information view [Gateway API](infrastructure-gateway-api.md)...
 
 ``` shell
-/opt/genestack/bin/install-skyline.sh
+/opt/genestack/bin/install.sh --service skyline
 ```
 
 ## Customize configuration

@@ -20,24 +20,53 @@ This document provides procedures to restore MariaDB backups stored in Swift obj
 
 ### :material-key: Credentials
 
-!!! note "Information about the secrets used"
+Before proceeding, the `mariadb-backup-secrets` secret must exist in the `openstack` namespace. Create it manually with your region-specific values:
 
-    The `mariadb-backup-secrets` secret is automatically created with placeholder values when you run the `create-secrets.sh` script located in `/opt/genestack/bin`. However, you still need to populate the empty keys (`access-key-id`, `secret-access-key`, `S3_ENDPOINT`) with your region-specific values. You can use `/etc/genestack/secrets.yaml` to store these per-region values.
+```bash
+kubectl --namespace openstack create secret generic mariadb-backup-secrets \
+    --type Opaque \
+    --from-literal=access-key-id="<YOUR_ACCESS_KEY>" \
+    --from-literal=secret-access-key="<YOUR_SECRET_KEY>" \
+    --from-literal=S3_ENDPOINT="<SWIFT_S3_ENDPOINT_URL>" \
+    --from-literal=S3_REGION="<S3_REGION>" \
+    --from-literal=S3_BUCKET="mariadb-backups"
+```
 
-    ??? example "Example secret generation"
+You can use `/etc/genestack/secrets.yaml` to store these per-region values. For example:
 
-        If you haven't run `create-secrets.sh`, you can create the secret manually:
+```yaml
+---
+region-1:
+  access_key_id: "<YOUR_ACCESS_KEY_ID>"
+  secret_access_key: "<YOUR_ACCESS_KEY>"
+  s3_endpoint: "https://swift.api.region-1.rackspacecloud.com"
+  s3_region: "region-1"
 
-        ``` shell
-        kubectl --namespace openstack \
-            create secret generic mariadb-backup-secrets \
-            --type Opaque \
-            --from-literal=access-key-id="<YOUR_ACCESS_KEY>" \
-            --from-literal=secret-access-key="<YOUR_SECRET_KEY>" \
-            --from-literal=S3_ENDPOINT="<SWIFT_S3_ENDPOINT_URL>" \
-            --from-literal=S3_REGION="<S3_REGION>" \
-            --from-literal=S3_BUCKET="mariadb-backups"
-        ```
+region-2:
+  access_key_id: "<YOUR_ACCESS_KEY_ID>"
+  secret_access_key: "<YOUR_ACCESS_KEY>"
+  s3_endpoint: "https://swift.api.region-2.rackspacecloud.com"
+  s3_region: "region-2"
+```
+
+Then apply with:
+
+```bash
+S3_REGION="region-1" source /etc/genestack/secrets.yaml && kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mariadb-backup-secrets
+  namespace: openstack
+type: Opaque
+data:
+  access-key-id: $(echo -n "$access_key_id" | base64)
+  secret-access-key: $(echo -n "$secret_access_key" | base64)
+  S3_ENDPOINT: $(echo -n "$s3_endpoint" | base64)
+  S3_REGION: $(echo -n "$s3_region" | base64)
+  S3_BUCKET: $(echo -n "mariadb-backups" | base64)
+EOF
+```
 
 - Kubernetes secret (e.g., `region-1-credentials`, `region-2-credentials`, `region-3-credentials`) from cluster with `access-key-id` and `secret-access-key` keys, generated via:
 

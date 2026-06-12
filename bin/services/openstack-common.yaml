@@ -1,0 +1,11 @@
+service:
+  namespace: openstack
+chart:
+  repo_name: openstack-helm
+  repo_url: https://tarballs.opendev.org/openstack/openstack-helm
+  global_overrides: true
+kustomize:
+  enabled: true
+  overlay_path: ${service_name}/overlay
+helm:
+  timeout: 120m
