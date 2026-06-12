@@ -10,6 +10,7 @@ images:
     newTag: "latest"
 
 patches:
+  - path: fix-fernet-credential-permissions.yaml
   - target:
       kind: Service
       name: keystone-api
@@ -29,6 +30,16 @@ patches:
       - op: add
         path: /spec/template/spec/volumes/-
         value:
+          name: fernet-keys-fixed
+          emptyDir: {}
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: credential-keys-fixed
+          emptyDir: {}
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
           name: keystone-shibd-etc
           secret:
             secretName: keystone-shibd-etc
@@ -37,6 +48,43 @@ patches:
         value:
           name: run-shibd
           emptyDir: {}
+      - op: add
+        path: /spec/template/spec/initContainers/-
+        value:
+          name: fix-fernet-credential-permissions
+          command:
+            - /bin/sh
+            - -c
+            - |
+              cp -fL /source-fernet-keys/* /etc/keystone/fernet-keys/
+              cp -fL /source-credential-keys/* /etc/keystone/credential-keys/
+              chown -R 42424:42424 /etc/keystone/fernet-keys /etc/keystone/credential-keys
+              chmod 700 /etc/keystone/fernet-keys /etc/keystone/credential-keys
+              chmod 400 /etc/keystone/fernet-keys/* /etc/keystone/credential-keys/*
+          image: busybox:latest
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: /etc/keystone/fernet-keys
+              name: fernet-keys-fixed
+            - mountPath: /etc/keystone/credential-keys
+              name: credential-keys-fixed
+            - mountPath: /source-fernet-keys
+              name: keystone-fernet-keys
+              readOnly: true
+            - mountPath: /source-credential-keys
+              name: keystone-credential-keys
+              readOnly: true
+          securityContext:
+            runAsUser: 0
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+          resources:
+            limits:
+              cpu: "100m"
+              memory: 64Mi
+            requests:
+              cpu: 50m
+              memory: 16Mi
       - op: add
         path: /spec/template/spec/containers/0/volumeMounts/-
         value:
