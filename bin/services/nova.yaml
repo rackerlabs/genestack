@@ -1,0 +1,108 @@
+---
+service:
+  name: nova
+  version: ~
+
+chart: {}
+
+pre_install_checks: |
+  detect_kube_ovn_tls "kube-system"
+
+secrets:
+  - helm_key: "endpoints.identity.auth.admin.password"
+    source_secret: keystone-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.identity.auth.nova.password"
+    source_secret: nova-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_db.auth.admin.password"
+    source_secret: mariadb
+    source_namespace: openstack
+    data_key: root-password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_db.auth.nova.password"
+    source_secret: nova-db-password
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_cache.auth.memcache_secret_key"
+    source_secret: os-memcached
+    source_namespace: openstack
+    data_key: memcache_secret_key
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_messaging.auth.admin.password"
+    source_secret: rabbitmq-default-user
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_messaging.auth.nova.password"
+    source_secret: nova-rabbitmq-password
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "conf.nova.database.connection"
+    value: "mysql+pymysql://nova:${NOVA_DB_PASS}@mariadb-cluster-primary:3306/nova?charset=utf8"
+    replace:
+      - key: NOVA_DB_PASS
+        secret: nova-db-password
+        namespace: openstack
+        data_key: password
+
+  - helm_key: "conf.nova.keystone_authtoken.memcache_secret_key"
+    source_secret: os-memcached
+    source_namespace: openstack
+    data_key: memcache_secret_key
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_db.auth.nova_api.password"
+    source_secret: nova-db-password
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_db_api.auth.admin.password"
+    source_secret: mariadb
+    source_namespace: openstack
+    data_key: root-password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_db_api.auth.nova.password"
+    source_secret: nova-db-password
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_db_cell0.auth.admin.password"
+    source_secret: mariadb
+    source_namespace: openstack
+    data_key: root-password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_db_cell0.auth.nova.password"
+    source_secret: nova-db-password
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "network.ssh.public_key"
+    source_secret: nova-service-keypair
+    source_namespace: openstack
+    data_key: public-key
+    helm_flag: --set-string
+
+  - helm_key: "network.ssh.private_key"
+    source_secret: nova-service-keypair
+    source_namespace: openstack
+    data_key: private-key
+    helm_flag: --set-file

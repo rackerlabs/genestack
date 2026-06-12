@@ -64,6 +64,7 @@ repos:
       - id: yamllint
         stages:
           - manual
+        exclude: .gitignore$
   - repo: https://github.com/ansible-community/ansible-lint
     rev: v24.9.2
     hooks:

@@ -4,3 +4,5 @@ resources:
   - skyline-mariadb-database.yaml
   - all.yaml
   - hpa-skyline-api-server.yaml
+patches:
+  - path: skyline-deployment-resources.yaml

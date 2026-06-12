@@ -1,0 +1,23 @@
+---
+service:
+  name: openstack-exporter
+  namespace: monitoring
+  version: ~
+
+  family: ""
+
+chart:
+  repo_name: ~
+  repo_url: ~
+  service_name: openstack-api-exporter
+  global_overrides: false
+
+secrets:
+  - helm_key: "endpoints.identity.auth.admin.password"
+    source_secret: keystone-auth-openstack-exporter
+    source_namespace: monitoring
+    data_key: AUTH_URL
+    helm_flag: --set
+
+post_install: |
+  kubectl get pods -n monitoring -l app=openstack-exporter &>/dev/null || echo "openstack-exporter not ready yet"

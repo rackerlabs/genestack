@@ -1,0 +1,8 @@
+---
+service:
+  name: memcached
+  version: ~
+
+chart: {}
+
+secrets: []

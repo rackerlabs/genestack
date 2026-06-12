@@ -1,0 +1,23 @@
+---
+service:
+  name: opentelemetry-kube-stack
+  namespace: monitoring
+  version: ~
+
+  family: ""
+
+chart:
+  repo_name: open-telemetry
+  repo_url: https://open-telemetry.github.io/opentelemetry-helm-charts
+  service_name: opentelemetry-kube-stack
+  global_overrides: false
+
+secrets:
+  - helm_key: "endpoints.identity.auth.admin.password"
+    source_secret: keystone-auth-openstack-exporter
+    source_namespace: monitoring
+    data_key: AUTH_URL
+    helm_flag: --set
+
+post_install: |
+  kubectl rollout status deployment/opentelemetry-kube-stack -n monitoring --timeout=300s

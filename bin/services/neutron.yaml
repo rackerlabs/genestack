@@ -1,0 +1,101 @@
+---
+service:
+  name: neutron
+  version: ~
+
+chart: {}
+
+pre_install_checks: |
+  detect_kube_ovn_tls "kube-system"
+  ensure_ovn_client_tls_secret "kube-system" "openstack" "kube-ovn-tls" "ovn-client-tls"
+  helm_set_args=(
+    "--set" "conf.neutron.ovn.ovn_nb_connection=${OVN_NB_CONNECTION}"
+    "--set" "conf.neutron.ovn.ovn_sb_connection=${OVN_SB_CONNECTION}"
+    "--set" "conf.plugins.ml2_conf.ovn.ovn_nb_connection=${OVN_NB_CONNECTION}"
+    "--set" "conf.plugins.ml2_conf.ovn.ovn_sb_connection=${OVN_SB_CONNECTION}"
+  )
+
+secrets:
+  - helm_key: "conf.metadata_agent.DEFAULT.metadata_proxy_shared_secret"
+    source_secret: metadata-shared-secret
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "conf.ovn_metadata_agent.DEFAULT.metadata_proxy_shared_secret"
+    source_secret: metadata-shared-secret
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.identity.auth.admin.password"
+    source_secret: keystone-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.identity.auth.neutron.password"
+    source_secret: neutron-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.identity.auth.nova.password"
+    source_secret: nova-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.identity.auth.placement.password"
+    source_secret: placement-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.identity.auth.designate.password"
+    source_secret: designate-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.identity.auth.ironic.password"
+    source_secret: ironic-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_db.auth.admin.password"
+    source_secret: mariadb
+    source_namespace: openstack
+    data_key: root-password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_db.auth.neutron.password"
+    source_secret: neutron-db-password
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_cache.auth.memcache_secret_key"
+    source_secret: os-memcached
+    source_namespace: openstack
+    data_key: memcache_secret_key
+    helm_flag: --set
+
+  - helm_key: "conf.neutron.keystone_authtoken.memcache_secret_key"
+    source_secret: os-memcached
+    source_namespace: openstack
+    data_key: memcache_secret_key
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_messaging.auth.admin.password"
+    source_secret: rabbitmq-default-user
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_messaging.auth.neutron.password"
+    source_secret: neutron-rabbitmq-password
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set

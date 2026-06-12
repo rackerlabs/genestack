@@ -1,0 +1,27 @@
+---
+service:
+  name: grafana
+  namespace: monitoring
+  version: ~
+
+  family: ""
+
+chart:
+  repo_name: grafana
+  repo_url: https://grafana.github.io/helm-charts
+  global_overrides: false
+
+pre_install: 'source "${SCRIPT_DIR}/monitoring-common.sh"; monitoring_ensure_grafana_db_secret'
+
+secrets:
+  - helm_key: "grafana.adminExistingSecret"
+    source_secret: grafana-db
+    source_namespace: monitoring
+    data_key: username
+    helm_flag: --set
+
+  - helm_key: "grafana.adminPassword"
+    source_secret: grafana-db
+    source_namespace: monitoring
+    data_key: password
+    helm_flag: --set

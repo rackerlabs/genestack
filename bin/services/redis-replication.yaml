@@ -1,0 +1,17 @@
+---
+service:
+  name: redis-replication
+  namespace: redis-systems
+  version: ~
+  family: ""
+
+chart:
+  repo_name: ot-helm
+  repo_url: https://ot-container-kit.github.io/helm-charts
+  service_name: redis-replication
+  global_overrides: false
+
+kustomize:
+  enabled: false
+
+secrets: []

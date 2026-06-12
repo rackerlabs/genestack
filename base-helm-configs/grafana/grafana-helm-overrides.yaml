@@ -132,6 +132,6 @@ plugins:
 extraSecretMounts:
   - name: grafana-db-secret-mount
     secretName: grafana-db
-    defaultMode: 0440
+    defaultMode: "0440"
     mountPath: /etc/secrets/grafana-db
     readOnly: true

@@ -328,11 +328,36 @@ function prepareJumpHostSource() {
             exit 1
         fi
 
+        # Sync submodules locally so rsync copies an initialized kubespray checkout
+        # rather than relying on remote 'git submodule update' which would clone
+        # from GitHub and defeat the purpose of testing local changes.
+        echo "Syncing local submodules (kubespray, etc.) before rsync..."
+        git config --global --add safe.directory "${DEV_PATH}"
+        if [ -f "${DEV_PATH}/.gitmodules" ]; then
+            git -C "${DEV_PATH}" submodule sync --recursive
+            git -C "${DEV_PATH}" submodule update --init --recursive
+        fi
+
         _ssh "while sudo fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do echo 'Waiting for apt locks to be released...'; sleep 5; done && sudo apt-get update && sudo apt install -y rsync git && sudo mkdir -p /opt/genestack && sudo chown ${SSH_USERNAME}:${SSH_USERNAME} /opt/genestack"
 
         echo "Copying the development source code to the jump host"
         rsync -avz \
             --exclude='.git' \
+            --exclude='.opencode' \
+            --exclude='.venv' \
+            --exclude='.github' \
+            --exclude='.ansible' \
+            --exclude='.cache' \
+            --exclude='.tox' \
+            --exclude='env' \
+            --exclude='.env' \
+            --exclude='.terraform' \
+            --exclude='credentials' \
+            --exclude='vagrant' \
+            --exclude='.vagrant' \
+            --exclude='scripts/tmp' \
+            --exclude='pip-log.txt' \
+            --exclude='*.bak' \
             -e "ssh ${SSH_OPTS_STR}" \
             ${DEV_PATH} "${SSH_TARGET}:/opt/"
     else
@@ -1469,7 +1494,8 @@ function cloneGenestackOnJumpHost() {
         sudo git clone --recurse-submodules -j4 https://github.com/rackerlabs/genestack /opt/genestack
     fi
     echo "Updating Genestack repository on jump host and initializing submodules..."
-    sudo git config --global --add safe.directory /opt/genestack
+        sudo git config --global --add safe.directory /opt/genestack
+        sudo git config --global --add safe.directory /opt/genestack/submodules/*
     pushd /opt/genestack
         sudo git submodule update --init --recursive
     popd
@@ -1573,7 +1599,7 @@ NODE_2_EOF
 source /opt/genestack/scripts/genestack.rc
 
 echo "[JUMP_HOST] Running cinder install script"
-sudo /opt/genestack/bin/install-cinder.sh
+sudo /opt/genestack/bin/install.sh --service cinder
 
 #for node in ${LAB_NAME_PREFIX}-0 ${LAB_NAME_PREFIX}-1 ${LAB_NAME_PREFIX}-2; do
 #    echo "Waiting for apt locks on \${node}..."
@@ -1635,7 +1661,7 @@ ANSIBLE_SSH_PIPELINING=0 ansible-playbook /opt/genestack/ansible/playbooks/octav
     -e endpoint_type=internal
 
 echo "Installing Octavia"
-sudo /opt/genestack/bin/install-octavia.sh -f $OCTAVIA_HELM_FILE
+sudo /opt/genestack/bin/install.sh --service octavia -f $OCTAVIA_HELM_FILE
 EOC
 }
 
@@ -1719,7 +1745,7 @@ ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.y
     --tags trove_gateway
 
 echo "Installing Trove via Helm chart"
-sudo /opt/genestack/bin/install-trove.sh
+sudo /opt/genestack/bin/install.sh --service trove
 
 echo "Running playbook for trove_image_build"
 ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
