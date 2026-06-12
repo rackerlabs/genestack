@@ -5,37 +5,18 @@ helps operators measure, rate, and bill tenants (projects) for the resources
 they consume in an OpenStack cloud. 
 This document outlines the deployment of OpenStack Cloudkitty using Genestack.
 
-## Create secrets
+## Secrets
 
-!!! note "Information about the secrets used"
+!!! note
 
-    Manual secret generation is only required if you haven't run the
-    `create-secrets.sh` script located in `/opt/genestack/bin`.
-
-    ??? example "Example secret generation"
-
-        ``` shell
-        kubectl --namespace openstack \
-                create secret generic cloudkitty-rabbitmq-password \
-                --type Opaque \
-                --from-literal=username="cloudkitty" \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
-        kubectl --namespace openstack \
-                create secret generic cloudkitty-db-password \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        kubectl --namespace openstack \
-                create secret generic cloudkitty-admin \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        ```
+    Secrets are generated and applied automatically by the install script.
 
 ## Run the package deployment
 
-!!! example "Run the Cloudkitty deployment Script `/opt/genestack/bin/install-cloudkitty.sh`"
+!!! example "Run the Cloudkitty deployment Script"
 
     ``` shell
-    --8<-- "bin/install-cloudkitty.sh"
+    /opt/genestack/bin/install.sh --service cloudkitty
     ```
 
 !!! tip

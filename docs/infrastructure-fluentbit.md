@@ -4,10 +4,10 @@ This guide will help you deploy fluentbit to your kubernetes cluster. Fluentbit 
 
 ## Deployment
 
-Run the Fluent-Bit deployment Script `/opt/genestack/bin/install-fluentbit.sh`
+Run the Fluent-Bit deployment Script `/opt/genestack/bin/install.sh --service fluent-bit`
 
-??? example "Run the Fluent-Bit deployment Script `/opt/genestack/bin/install-fluentbit.sh`"
+??? example "Run the Fluent-Bit deployment Script"
 
     ``` shell
-    --8<-- "bin/install-fluentbit.sh"
+    /opt/genestack/bin/install.sh --service fluent-bit
     ```

@@ -1,0 +1,11 @@
+---
+service:
+  name: postgres-operator
+  version: ~
+
+chart: {}
+
+kustomize:
+  enabled: false
+
+secrets: []

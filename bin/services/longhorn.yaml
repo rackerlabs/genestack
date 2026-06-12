@@ -1,0 +1,16 @@
+---
+service:
+  name: longhorn
+  version: ~
+
+chart:
+  service_name: longhorn
+
+secrets: []
+
+post_install: |
+  if kubectl get pods -n longhorn-system &>/dev/null; then
+    echo "Longhorn pods:"
+    kubectl get pods -n longhorn-system
+    kubectl get svc -n longhorn-system
+  fi

@@ -68,10 +68,10 @@ For a full review of all the available options, see the Kube-OVN base helm overr
 
 To run the Kube-OVN deployment, run the following command commands or script.
 
-??? example "Run the Kube-OVN deployment Script `/opt/genestack/bin/install-kube-ovn.sh`"
+??? example "Run the Kube-OVN deployment Script"
 
     ``` shell
-    --8<-- "bin/install-kube-ovn.sh"
+    /opt/genestack/bin/install.sh --service kube-ovn
     ```
 
 ### Deployment Verification

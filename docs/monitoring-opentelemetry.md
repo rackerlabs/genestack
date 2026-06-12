@@ -47,16 +47,12 @@ You can start from `/opt/genestack/base-helm-configs/opentelemetry-kube-stack/op
 You will also need to ensure that you've re-installed the Postgres operator to create the `postgres-monitoring-user` within the postgres cluster.
 See [PostgreSQL installation docs](infrastructure-postgresql.md) for more information. 
 
-The supported way to seed the generated secrets file is:
-
-```shell
-/opt/genestack/bin/create-secrets.sh
-```
+The OpenTelemetry installer generates all required secrets automatically.
 
 ## Install
 
 ```shell
-/opt/genestack/bin/install-opentelemetry-kube-stack.sh
+/opt/genestack/bin/install.sh --service opentelemetry-kube-stack
 ```
 
 ## Verify

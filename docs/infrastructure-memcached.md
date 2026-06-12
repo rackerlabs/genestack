@@ -2,10 +2,10 @@
 
 ## Deploy the Memcached Cluster
 
-!!! example "Run the memcached deployment Script `/opt/genestack/bin/install-memcached.sh` You can include paramaters to deploy aio or base-monitoring. No paramaters deploys base"
+!!! example "Run the memcached deployment Script You can include paramaters to deploy aio or base-monitoring. No paramaters deploys base"
 
     ``` shell
-    --8<-- "bin/install-memcached.sh"
+    /opt/genestack/bin/install.sh --service memcached
     ```
 
 !!! note

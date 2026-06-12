@@ -194,7 +194,7 @@ environment requires a backend-specific upstream image for troubleshooting.
 Apply the configuration to the Cinder Helm chart.
 
 ``` bash
-/opt/genestack/bin/install-cinder.sh
+/opt/genestack/bin/install.sh --service cinder
 ```
 
 ### Step 6: Create the Default Volume Type

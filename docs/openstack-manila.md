@@ -23,13 +23,11 @@ their shared file systems exported from the share server.
 
 Reference the full online [OpenStack Manila documentation](https://docs.openstack.org/manila/latest/) 
 
-## Create secrets
+## Secrets
 
-!!! note "Information about the secrets used"
 !!! note "manila-service-keypair is only required for Generic share driver"
 
-    Manual secret generation is only required if you haven't run the
-    `create-secrets.sh` script located in `/opt/genestack/bin`.
+    Secrets are generated and applied automatically by the install script.
 
     ??? example "Example secret generation"
 
@@ -107,10 +105,10 @@ manifests:
 
 ## Run the package deployment
 
-!!! example "Run the Manila deployment Script `/opt/genestack/bin/install-manila.sh`"
+!!! example "Run the Manila deployment Script"
 
     ``` shell
-    --8<-- "bin/install-manila.sh"
+    /opt/genestack/bin/install.sh --service manila
     ```
 
 !!! tip

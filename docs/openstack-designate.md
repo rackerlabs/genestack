@@ -4,30 +4,11 @@ OpenStack Designate is a multi-tenant DNSaaS for OpenStack. auto-generate record
 Nova and Neutron actions. Designate supports a variety of DNS servers including Bind9 and PowerDNS 4.
 This will allow for record management for all multi-project VMs to their respective network dns domains.
 
-## Create secrets
+## Secrets
 
-!!! note "Information about the secrets used"
+!!! note
 
-    Manual secret generation is only required if you haven't run the
-    `create-secrets.sh` script located in `/opt/genestack/bin`.
-
-    ??? example "Example secret generation"
-
-        ``` shell
-        kubectl --namespace openstack \
-                create secret generic designate-rabbitmq-password \
-                --type Opaque \
-                --from-literal=username="designate" \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
-        kubectl --namespace openstack \
-                create secret generic designate-db-password \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        kubectl --namespace openstack \
-                create secret generic designate-admin \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        ```
+    Secrets are generated and applied automatically by the install script.
 
 ## Add a RNDC (Remote Name Daemon Control)  key as a secret
 
@@ -39,10 +20,10 @@ kubectl create secret generic --namespace  openstack rndc-key-secret --from-file
 
 ## Run the package deployment
 
-!!! example "Run the Designate deployment Script `/opt/genestack/bin/install-designate.sh`"
+!!! example "Run the Designate deployment Script"
 
     ``` shell
-    --8<-- "bin/install-designate.sh"
+    /opt/genestack/bin/install.sh --service designate
     ```
 
 !!! tip

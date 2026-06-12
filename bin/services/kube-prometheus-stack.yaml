@@ -1,0 +1,9 @@
+---
+service:
+  name: kube-prometheus-stack
+  version: ~
+
+chart:
+  repo_name: kube-prometheus-stack
+
+secrets: []

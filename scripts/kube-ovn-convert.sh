@@ -85,4 +85,4 @@ if [ ! -f "/etc/genestack/helm-configs/kube-ovn/kube-ovn-helm-overrides.yaml" ];
     echo "---" | tee /etc/genestack/helm-configs/kube-ovn/kube-ovn-helm-overrides.yaml
 fi
 
-/opt/genestack/bin/install-kube-ovn.sh
+/opt/genestack/bin/install.sh --service kube-ovn

@@ -2,29 +2,18 @@
 
 The Blazar Reservation Splitter is a companion service for OpenStack Blazar that automatically processes reservation events. It listens to RabbitMQ messages for lease events (specifically `lease.event.start_lease`) and splits out individual reservations from the payload, and publishes separate notification events for each reservation to Ceilometer. This enables Ceilometer to create individual Gnocchi metrics for each reservation in a lease.
 
-## Create secrets
+## Secrets
 
-!!! note "Information about the secrets used"
+!!! note
 
-    Manual secret generation is only required if you haven't run the
-    `create-secrets.sh` script located in `/opt/genestack/bin`.
-
-    ??? example "Example secret generation"
-
-        ``` shell
-        kubectl --namespace openstack \
-                create secret generic blazar-reservation-splitter-rabbitmq-password \
-                --type Opaque \
-                --from-literal=username="blazar-reservation-splitter" \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
-        ```
+    Secrets are generated and applied automatically by the install script.
 
 ## Run the package deployment
 
-!!! example "Run the Blazar Reservation Splitter deployment Script `/opt/genestack/bin/install-blazar-reservation-splitter.sh`"
+!!! example "Run the Blazar Reservation Splitter deployment Script"
 
     ``` shell
-    --8<-- "bin/install-blazar-reservation-splitter.sh"
+    /opt/genestack/bin/install.sh --service blazar-reservation-splitter
     ```
 
 !!! tip
