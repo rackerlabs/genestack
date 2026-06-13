@@ -1,0 +1,29 @@
+---
+service:
+  name: redis-operator
+  release_name: redis-replication
+  version: ~
+  family: ""
+
+chart:
+  repo_name: ot-helm
+  repo_url: https://ot-container-kit.github.io/helm-charts
+  service_name: redis-replication
+  global_overrides: false
+
+kustomize:
+  enabled: false
+
+multi_charts:
+  - release_name: redis-operator
+    chart: redis-operator
+    repo_name: ot-helm
+    repo_url: https://ot-container-kit.github.io/helm-charts
+    namespace: redis-systems
+  - release_name: redis-replication
+    chart: redis-replication
+    repo_name: ot-helm
+    repo_url: https://ot-container-kit.github.io/helm-charts
+    namespace: redis-systems
+
+secrets: []

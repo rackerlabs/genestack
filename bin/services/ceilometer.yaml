@@ -1,0 +1,55 @@
+---
+service:
+  name: ceilometer
+  version: ~
+
+chart: {}
+
+secrets:
+  - helm_key: "endpoints.identity.auth.admin.password"
+    source_secret: keystone-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.identity.auth.ceilometer.password"
+    source_secret: ceilometer-keystone-admin-password
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.identity.auth.test.password"
+    source_secret: ceilometer-keystone-test-password
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_messaging.auth.admin.username"
+    source_secret: rabbitmq-default-user
+    source_namespace: openstack
+    data_key: username
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_messaging.auth.admin.password"
+    source_secret: rabbitmq-default-user
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_messaging.auth.ceilometer.password"
+    source_secret: ceilometer-rabbitmq-password
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_cache.auth.memcache_secret_key"
+    source_secret: os-memcached
+    source_namespace: openstack
+    data_key: memcache_secret_key
+    helm_flag: --set
+
+  - helm_key: "conf.ceilometer.keystone_authtoken.memcache_secret_key"
+    source_secret: os-memcached
+    source_namespace: openstack
+    data_key: memcache_secret_key
+    helm_flag: --set

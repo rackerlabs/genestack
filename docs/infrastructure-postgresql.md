@@ -9,10 +9,10 @@ We are using the [Zalando postgres-operator](https://github.
 com/zalando/postgres-operator/) which offers easy to run and
 highly-available PostgreSQL clusters on Kubernetes.
 
-!!! example "Run the postgres-operator deployment Script `/opt/genestack/bin/install-postgres-operator.sh`"
+!!! example "Run the postgres-operator deployment Script"
 
     ``` shell
-    --8<-- "bin/install-postgres-operator.sh"
+    /opt/genestack/bin/install.sh --service postgres-operator
     ```
 
 ## Create the PostgreSQL Cluster

@@ -12,7 +12,7 @@ gnocchi-metricd).
 
 !!! note "Information about the secretes used"
 
-    Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
+    Secrets are generated and applied automatically by the install script.
 
     ??? example "Example secret generation"
 
@@ -144,10 +144,10 @@ gnocchi-metricd).
 
 ## Run the package deployment
 
-!!! example "Run the Gnocchi deployment Script `/opt/genestack/bin/install-gnocchi.sh`"
+!!! example "Run the Gnocchi deployment Script"
 
     ``` shell
-    --8<-- "bin/install-gnocchi.sh"
+    /opt/genestack/bin/install.sh --service gnocchi
     ```
 
 !!! tip

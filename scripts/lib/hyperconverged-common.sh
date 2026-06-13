@@ -1573,7 +1573,7 @@ NODE_2_EOF
 source /opt/genestack/scripts/genestack.rc
 
 echo "[JUMP_HOST] Running cinder install script"
-sudo /opt/genestack/bin/install-cinder.sh
+sudo /opt/genestack/bin/install.sh --service cinder
 
 #for node in ${LAB_NAME_PREFIX}-0 ${LAB_NAME_PREFIX}-1 ${LAB_NAME_PREFIX}-2; do
 #    echo "Waiting for apt locks on \${node}..."
@@ -1635,7 +1635,7 @@ ANSIBLE_SSH_PIPELINING=0 ansible-playbook /opt/genestack/ansible/playbooks/octav
     -e endpoint_type=internal
 
 echo "Installing Octavia"
-sudo /opt/genestack/bin/install-octavia.sh -f $OCTAVIA_HELM_FILE
+sudo /opt/genestack/bin/install.sh --service octavia -f $OCTAVIA_HELM_FILE
 EOC
 }
 
@@ -1719,7 +1719,7 @@ ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.y
     --tags trove_gateway
 
 echo "Installing Trove via Helm chart"
-sudo /opt/genestack/bin/install-trove.sh
+sudo /opt/genestack/bin/install.sh --service trove
 
 echo "Running playbook for trove_image_build"
 ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \

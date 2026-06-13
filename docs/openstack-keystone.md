@@ -6,7 +6,7 @@ OpenStack Keystone is the identity service within the OpenStack ecosystem, servi
 
 !!! note "Information about the secretes used"
 
-    Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
+    Secrets are generated and applied automatically by the install script.
 
     ??? example "Example secret generation"
 
@@ -32,10 +32,10 @@ OpenStack Keystone is the identity service within the OpenStack ecosystem, servi
 
 ## Run the package deployment
 
-!!! example "Run the Keystone deployment Script `/opt/genestack/bin/install-keystone.sh`"
+!!! example "Run the Keystone deployment Script"
 
     ``` shell
-    --8<-- "bin/install-keystone.sh"
+    /opt/genestack/bin/install.sh --service keystone
     ```
 
 !!! tip

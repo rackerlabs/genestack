@@ -1,0 +1,14 @@
+---
+service:
+  name: redis-sentinel
+  version: ~
+
+chart:
+  repo_name: ot-helm
+  repo_url: https://ot-container-kit.github.io/helm-charts
+  service_name: redis-sentinel
+
+kustomize:
+  enabled: false
+
+secrets: []

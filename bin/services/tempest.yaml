@@ -1,0 +1,19 @@
+---
+service:
+  name: tempest
+  version: ~
+
+chart: {}
+
+secrets:
+  - helm_key: "endpoints.identity.auth.admin.password"
+    source_secret: keystone-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.identity.auth.tempest.password"
+    source_secret: tempest-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set

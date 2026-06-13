@@ -17,10 +17,10 @@ echo $CLUSTER_NAME
 
 If `cluster_name` was anything other than `cluster.local` you should pass that as a parameter to the installer
 
-!!! example "Run the redis-operator deployment Script `/opt/genestack/bin/install-redis-operator.sh` You can include cluster_name paramater from the output of $CLUSTER_NAME. If no paramaters are provided, the system will deploy with `cluster.local` as the cluster name."
+!!! example "Run the redis-operator deployment Script You can include cluster_name paramater from the output of $CLUSTER_NAME. If no paramaters are provided, the system will deploy with `cluster.local` as the cluster name."
 
     ``` shell
-    --8<-- "bin/install-redis-operator.sh"
+    /opt/genestack/bin/install.sh --service redis-operator
     ```
 
 
@@ -32,10 +32,10 @@ kubectl --namespace redis-systems get pods -w
 
 ## Deploy the Redis Sentinel
 
-!!! example "Run the redis-sentinel deployment Script `/opt/genestack/bin/install-redis-sentinel.sh`"
+!!! example "Run the redis-sentinel deployment Script"
 
     ``` shell
-    --8<-- "bin/install-redis-sentinel.sh"
+    /opt/genestack/bin/install.sh --service redis-sentinel
     ```
 
 ## Verify Sentinel readiness with the following command

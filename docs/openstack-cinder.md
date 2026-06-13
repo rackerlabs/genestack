@@ -8,7 +8,7 @@ OpenStack Cinder is a core component of the OpenStack cloud computing platform, 
 
 !!! note "Information about the secretes used"
 
-    Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
+    Secrets are generated and applied automatically by the install script.
 
     ??? example "Example secret generation"
 
@@ -30,10 +30,10 @@ OpenStack Cinder is a core component of the OpenStack cloud computing platform, 
 
 ## Run the package deployment
 
-!!! example "Run the Cinder deployment Script `/opt/genestack/bin/install-cinder.sh`"
+!!! example "Run the Cinder deployment Script"
 
     ``` shell
-    --8<-- "bin/install-cinder.sh"
+    /opt/genestack/bin/install.sh --service cinder
     ```
 
 !!! tip

@@ -5,30 +5,11 @@ tenants and operators to reserve resources (such as compute hosts) for a
 timeframe, supporting capacity planning and guaranteed availability use cases.
 This document outlines the deployment of OpenStack Blazar using Genestack.
 
-## Create secrets
+## Secrets
 
-!!! note "Information about the secrets used"
+!!! note
 
-    Manual secret generation is only required if you haven't run the
-    `create-secrets.sh` script located in `/opt/genestack/bin`.
-
-    ??? example "Example secret generation"
-
-        ``` shell
-        kubectl --namespace openstack \
-                create secret generic blazar-rabbitmq-password \
-                --type Opaque \
-                --from-literal=username="blazar" \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
-        kubectl --namespace openstack \
-                create secret generic blazar-db-password \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        kubectl --namespace openstack \
-                create secret generic blazar-admin \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        ```
+    Secrets are generated and applied automatically by the install script.
 
 ## Define policy configuration
 
@@ -69,10 +50,10 @@ This document outlines the deployment of OpenStack Blazar using Genestack.
       
 ## Run the package deployment
 
-!!! example "Run the Blazar deployment Script `/opt/genestack/bin/install-blazar.sh`"
+!!! example "Run the Blazar deployment Script"
 
     ``` shell
-    --8<-- "bin/install-blazar.sh"
+    /opt/genestack/bin/install.sh --service blazar
     ```
 
 !!! tip

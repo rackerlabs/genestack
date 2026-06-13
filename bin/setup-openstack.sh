@@ -110,30 +110,30 @@ EOF
 fi
 
 # Block on Keystone
-/opt/genestack/bin/install-keystone.sh
+/opt/genestack/bin/install.sh --service keystone
 
 # Run selected services in parallel
-is_component_enabled "glance" && runTrackErator /opt/genestack/bin/install-glance.sh
-is_component_enabled "heat" && runTrackErator /opt/genestack/bin/install-heat.sh
-is_component_enabled "barbican" && runTrackErator /opt/genestack/bin/install-barbican.sh
-is_component_enabled "blazar" && runTrackErator /opt/genestack/bin/install-blazar.sh
-is_component_enabled "cinder" && runTrackErator /opt/genestack/bin/install-cinder.sh
-is_component_enabled "designate" && runTrackErator /opt/genestack/bin/install-designate.sh
+is_component_enabled "glance" && runTrackErator /opt/genestack/bin/install.sh --service glance
+is_component_enabled "heat" && runTrackErator /opt/genestack/bin/install.sh --service heat
+is_component_enabled "barbican" && runTrackErator /opt/genestack/bin/install.sh --service barbican
+is_component_enabled "blazar" && runTrackErator /opt/genestack/bin/install.sh --service blazar
+is_component_enabled "cinder" && runTrackErator /opt/genestack/bin/install.sh --service cinder
+is_component_enabled "designate" && runTrackErator /opt/genestack/bin/install.sh --service designate
 # skip installation of Trove here; installation is deferred until end of lab build
-is_component_enabled "placement" && runTrackErator /opt/genestack/bin/install-placement.sh
-is_component_enabled "nova" && runTrackErator /opt/genestack/bin/install-nova.sh
-is_component_enabled "neutron" && runTrackErator /opt/genestack/bin/install-neutron.sh
-is_component_enabled "magnum" && runTrackErator /opt/genestack/bin/install-magnum.sh
-is_component_enabled "octavia" && runTrackErator /opt/genestack/bin/install-octavia.sh
-is_component_enabled "masakari" && runTrackErator /opt/genestack/bin/install-masakari.sh
-is_component_enabled "manila" && runTrackErator /opt/genestack/bin/install-manila.sh
-is_component_enabled "ceilometer" && runTrackErator /opt/genestack/bin/install-ceilometer.sh
-is_component_enabled "gnocchi" && runTrackErator /opt/genestack/bin/install-gnocchi.sh
-is_component_enabled "cloudkitty" && runTrackErator /opt/genestack/bin/install-cloudkitty.sh
-is_component_enabled "freezer" && runTrackErator /opt/genestack/bin/install-freezer.sh
-is_component_enabled "zaqar" && runTrackErator /opt/genestack/bin/install-zaqar.sh
+is_component_enabled "placement" && runTrackErator /opt/genestack/bin/install.sh --service placement
+is_component_enabled "nova" && runTrackErator /opt/genestack/bin/install.sh --service nova
+is_component_enabled "neutron" && runTrackErator /opt/genestack/bin/install.sh --service neutron
+is_component_enabled "magnum" && runTrackErator /opt/genestack/bin/install.sh --service magnum
+is_component_enabled "octavia" && runTrackErator /opt/genestack/bin/install.sh --service octavia
+is_component_enabled "masakari" && runTrackErator /opt/genestack/bin/install.sh --service masakari
+is_component_enabled "manila" && runTrackErator /opt/genestack/bin/install.sh --service manila
+is_component_enabled "ceilometer" && runTrackErator /opt/genestack/bin/install.sh --service ceilometer
+is_component_enabled "gnocchi" && runTrackErator /opt/genestack/bin/install.sh --service gnocchi
+is_component_enabled "cloudkitty" && runTrackErator /opt/genestack/bin/install.sh --service cloudkitty
+is_component_enabled "freezer" && runTrackErator /opt/genestack/bin/install.sh --service freezer
+is_component_enabled "zaqar" && runTrackErator /opt/genestack/bin/install.sh --service zaqar
 
 waitErator
 
 # Install skyline after all services are up
-is_component_enabled "skyline" && /opt/genestack/bin/install-skyline.sh
+is_component_enabled "skyline" && /opt/genestack/bin/install.sh --service skyline

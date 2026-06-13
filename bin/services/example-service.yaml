@@ -1,0 +1,307 @@
+---
+# ============================================================================
+# example-service.yaml — Template for creating new service configurations
+# ============================================================================
+#
+# To add a new service to Genestack, create a YAML file in this directory
+# following the structure below. The filename (e.g. "nova.yaml") becomes
+# the <<service-name>> used by:
+#
+#   install.sh --service=<service_name>
+#
+# All values in this file can be either defaults (inherited from the
+# common configs below) or overrides. Only the fields that differ from
+# the common config NEED to be present.
+#
+# Inheritance order:
+#   openstack-common.yaml  (or monitoring-common.yaml)
+#     → THIS YAML file (overrides common defaults on top)
+#
+# Common files:
+#   - services/openstack-common.yaml  → default namespace, helm repo, kustomize
+#   - services/monitoring-common.yaml → same for monitoring stack services
+# ============================================================================
+
+
+# ── service ──────────────────────────────────────────────────────────────────
+# Core identity of the service. Every install MUST have a "name" key.
+service:
+  name: example-service          # The service name (used for helm release name)
+
+  # -- release_name (optional)
+  # Override the Kubernetes release name. Defaults to service.name if omitted.
+  # For multi-chart services that install two charts under different names,
+  # set this explicitly (e.g. redis-replication installs both
+  # redis-operator and redis-replication).
+  release_name: ~                # ~ means use service.name
+
+  # -- version (optional)
+  # CHART VERSION RESOLUTION — this is where you pin which Helm chart version
+  # gets installed. Two options:
+  #
+  # Option A: Omit or set to ~ → read from helm-chart-versions.yaml at the
+  #         repo root. This is the common case for most services.
+  #         Example: nova.yaml does NOT set version, so install.sh reads
+  #         "nova: 2025.1.19+ed2d3e25c" from helm-chart-versions.yaml.
+  #
+  # Option B: Set explicitly to a version string → use this exact version,
+  #         bypassing helm-chart-versions.yaml entirely. Useful for testing
+  #         a specific chart version or when the chart is not in the central
+  #         version manifest.
+  #
+  # helm-chart-versions.yaml format:
+  #   charts:
+  #     nova: 2025.1.19+ed2d3e25c   # OpenStack services use release+git-sha
+  #     cert-manager: v1.19.5        # Third-party services use SemVer
+  version: ~
+
+  # -- family (optional, advanced)
+  # Internal flag — set to empty string "" to prevent auto-detection of
+  # openstack-common.yaml or monitoring-common.yaml inheritance. Use this
+  # when the service has NO common defaults and uses entirely custom
+  # repo/namespace settings.
+  family: ~
+
+
+# ── chart ────────────────────────────────────────────────────────────────────
+# Helm chart source configuration. Most services inherit repo from the
+# common config and only need this section to override the defaults.
+chart:
+  # -- repo_name (optional)
+  # Helm repository alias for `helm repo add`. Defaults from openstack-common.yaml.
+  repo_name: openstack-helm
+
+  # -- repo_url (optional)
+  # Helm repository URL or OCI registry path.
+  # Two formats supported:
+  #
+  #   Helm repo: https://tarballs.opendev.org/openstack/openstack-helm
+  #   OCI registry: oci://quay.io/jetstack
+  #
+  # When using OCI, the --version flag is used differently during install.
+  repo_url: https://tarballs.opendev.org/openstack/openstack-helm
+
+  # -- service_name (optional)
+  # The actual Helm chart name to install. Defaults to service.name.
+  # Override this when the repo name differs from the release/service name.
+  # Example: kube-ovn installs chart "kube-ovn", fluent-bit uses repo "fluent"
+  #           with chart "fluent-bit".
+  service_name: ~
+
+  # -- global_overrides (optional, default: true)
+  # Whether to include the global overrides directory
+  # ($GENESTACK_OVERRIDES_DIR/helm-configs/global_overrides/*.yaml).
+  # Set to false for services that don't need shared global configuration.
+  global_overrides: true
+
+  # -- local_chart overrides (advanced)
+  # If the chart is NOT in a remote repo but lives on disk:
+  #
+  #   repo_url: ~        # omit or null
+  #   repo_name: ~       # omit or null
+  #
+  # Then install.sh will look for the chart at:
+  #   $GENESTACK_BASE_DIR/base-helm-configs/<service-name>/
+  # Example: openstack-exporter uses this with the
+  #          base-helm-configs/openstack-api-exporter-chart/ directory.
+
+
+# ── kustomize ────────────────────────────────────────────────────────────────
+# Post-renderer configuration for kustomize overlays.
+kustomize:
+  # -- enabled (optional, default: true)
+  # Set to false to skip the kustomize post-renderer step entirely.
+  # Use this for services that don't use kustomize overlays, or for
+  # non-standard services.
+  enabled: true
+
+  # -- overlay_path (optional)
+  # Path relative to $GENESTACK_OVERRIDES_DIR/kustomize/ for the
+  # kustomize overlay. Defaults to "<service-name>/overlay".
+  # Example: services/nova.yaml → /etc/genestack/kustomize/nova/overlay/
+  #
+  # The overlay typically contains patches for Ingress, Service, NetworkPolicy,
+  # etc. that are applied after Helm templates are rendered.
+  overlay_path: example-service/overlay
+
+
+# ── helm ─────────────────────────────────────────────────────────────────────
+# Helm execution settings.
+helm:
+  # -- timeout (optional, default: "120m")
+  # Maximum time Helm should wait for the install/upgrade to complete.
+  # Increase for very heavy deployments (e.g. nova with many resources).
+  timeout: 120m
+
+
+# ── pre_install ──────────────────────────────────────────────────────────────
+# Optional shell logic that runs BEFORE the Helm chart is deployed.
+# Use this when you need to compute dynamic values or perform pre-checks.
+#
+# Available:
+#   - Any shell commands (kubectl, jq, yq, etc.)
+#   - Variables set here are available in the final helm command
+#
+# Common use cases:
+#   - Querying node labels (kube-ovn queries masters for replicaCount)
+#   - Setting variables that get injected as --set values
+#   - Checking prerequisites and exiting early
+#
+# WARNING: This runs eval. Ensure any injected content is safe.
+pre_install: ~
+#
+# Example:
+# pre_install: |
+#   MASTER_NODES=$(kubectl get nodes -l kube-ovn/role=master -o json | jq -r '...')
+#   MASTER_NODE_COUNT=$(kubectl get nodes -l kube-ovn/role=master | wc -l)
+#   helm_set_args=("--set" "MASTER_NODES=${MASTER_NODES}" "--set" "replicaCount=${MASTER_NODE_COUNT}")
+
+
+# ── pre_install_checks ───────────────────────────────────────────────────────
+# Alternative to pre_install — runs AFTER standard pre_install but before
+# Helm execution. Primarily used for OVN TLS detection.
+#
+# The detect_kube_ovn_tls helper function is available here and sets
+# $CONNECTION_STRING, $OVN_NB_CONNECTION, $OVN_SB_CONNECTION globals.
+#
+# Example (used by neutron.yaml and octavia.yaml):
+# pre_install_checks: |
+#   detect_kube_ovn_tls "kube-system"
+
+pre_install_checks: ~
+
+
+# ── secrets ─────────────────────────────────────────────────────────────────
+# Secret requirements for this service. Each entry maps a Kubernetes Secret
+# into a --set argument for the Helm chart.
+#
+# SECRET RESOLUTION CHAIN (when install.sh runs):
+#   1. Check if secret already exists in k8s (kubectl get secret ...)
+#   2. If it doesn't exist → generate random value → kubectl create secret
+#   3. Read the resolved value and inject it into the helm --set args
+#
+# SECRET ROTATION (--rotate-keys <service>):
+#   - Only rotates secrets whose NAME (source_secret) CONTAINS the service
+#     name as a substring (case sensitive).
+#   - "nova-admin" → rotated for "nova" (yes, contains "nova")
+#   - "keystone-admin" → NOT rotated for "nova" (no "nova" in name)
+
+secrets:
+  # ── Standard secret entry ───────────────────────────────────────────────
+  # Maps a k8s secret data_key into a helm --set value.
+  - helm_key: "endpoints.identity.auth.admin.password"
+    # helm_key: The Helm --set path where the value goes.
+    #              This must match what the upstream chart values.yaml expects.
+    #              To find the correct key, check the chart's values.yaml
+    #              or the install script's original set_args.
+    #
+    # source_secret: Name of the Kubernetes Secret to read from (or create).
+    #                The install script creates it automatically with generated
+    #                passwords if it doesn't already exist.
+    #                The secret must exist in <source_namespace>.
+    source_secret: keystone-admin
+
+    # source_namespace: The k8s namespace the secret lives in.
+    source_namespace: openstack
+
+    # data_key: The key within the secret's .data field to extract.
+    #           This is the field name used when creating the secret.
+    data_key: password
+
+    # helm_flag: How the value is injected into helm. Choose one:
+    #   --set     (default)     : Standard key=value injection.
+    #                              Helm treats the value as a string.
+    #                              Example: --set endpoints.identity.auth.admin.password=abc123
+    #   --set-string: Injects as a literal string (no Helm template parsing).
+    #                Use for values that contain characters Helm would parse
+    #                as YAML (colons, brackets, special symbols).
+    #                Note: This is passed AS "--set-string", not as a Helm
+    #                values key. The helm_key becomes an actual Helm values
+    #                path.
+    #   --set-file: Writes the secret value to a temporary file and passes the
+    #               file path as a Helm --set-file argument.
+    #               Use for large values (RSA keys, multi-line PEM certificates)
+    #               that would be unwieldy as CLI arguments.
+    helm_flag: --set
+
+
+  # ── Custom command secret ───────────────────────────────────────────────
+  # For secrets that CANNOT be retrieved via kubectl get secret, such as
+  # secrets in a different namespace managed by another system, or secrets
+  # that require special extraction logic.
+  #
+  # When custom_command is present, the framework executes the shell command
+  # and uses its output as the --set value. source_secret, data_key, and
+  # helm_flag are NOT used in this mode.
+  #
+  # Example (gnocchi.yaml) — the Ceph keyring secret lives in rook-ceph:
+  # - helm_key: "conf.ceph.admin_keyring"
+  #   source_namespace: openstack
+  #   custom_command: |
+  #     kubectl get secret --namespace rook-ceph rook-ceph-admin-keyring \
+  #       -o jsonpath='{.data.keyring}' | base64 -d
+
+  - helm_key: "conf.gnocchi.keystone_authtoken.memcache_secret_key"
+    source_secret: os-memcached
+    source_namespace: openstack
+    data_key: memcache_secret_key
+    helm_flag: --set
+
+
+# ── post_install ─────────────────────────────────────────────────────────────
+# Optional shell logic that runs AFTER the Helm chart is deployed.
+# Use this for post-deploy verification or one-off tasks.
+#
+# Common use cases:
+#   - Verify deployment: kubectl rollout status deployment/...
+#   - Run migrations: kubectl -n <ns> exec <pod> -- python manage.py migrate
+#   - Log diagnostics: kubectl get pods, svc, ingress
+#
+# WARNING: This runs eval. Ensure the shell content is safe.
+post_install: ~
+#
+# Example:
+# post_install: |
+#   kubectl rollout status deployment/example-service -n openstack --timeout=300s
+#   echo "=== Deployment status ==="
+#   kubectl get pods -n openstack -l app=example-service
+
+
+# ── crd_chart ───────────────────────────────────────────────────────────────
+# For services that install CRD manifests as a separate chart before the
+# main service chart (e.g. mariadb-operator).
+#
+# When set, install.sh will:
+#   1. Install the CRD chart first (via helm_install_crds)
+#   2. Install the main chart in the standard flow
+#
+# Example:
+#   crd_chart: mariadb-operator-crds
+
+
+# ── multi_charts ────────────────────────────────────────────────────────────
+# For services that require multiple Helm charts installed in sequence.
+# Each entry installs one chart with its own release_name, repo, and namespace.
+#
+# install.sh processes them in order (index 0 first, then 1, etc.).
+#
+# Fields per entry:
+#   release_name:  k8s release name (helm upgrade --install <release_name>)
+#   chart:         chart name within the repo
+#   repo_name:     helm repo alias (helm repo add)
+#   repo_url:      helm repo URL or oci:// path
+#   namespace:     Kubernetes namespace for this chart
+#
+# Example (redis-operator.yaml):
+# multi_charts:
+#   - release_name: redis-operator
+#     chart: redis-operator
+#     repo_name: ot-helm
+#     repo_url: https://ot-container-kit.github.io/helm-charts
+#     namespace: redis-systems
+#   - release_name: redis-replication
+#     chart: redis-replication
+#     repo_name: ot-helm
+#     repo_url: https://ot-container-kit.github.io/helm-charts
+#     namespace: redis-systems
+multi_charts: ~

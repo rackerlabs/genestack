@@ -10,15 +10,14 @@ Grafana is deployed into the `monitoring` namespace with the upstream Grafana He
 
 ## Secrets
 
-The supported way to prepare Grafana secrets is:
+The Grafana installer generates the `grafana-db` secret automatically if it is not already present.
 
-```shell
-/opt/genestack/bin/create-secrets.sh
-```
+The `grafana-db` secret contains the keys `username` and `password`, which map to the following Helm values:
 
-That workflow generates the `grafana-db` secret in `/etc/genestack/kubesecrets.yaml`. The Grafana installer applies it to the `monitoring` namespace automatically if it is not already present.
+- `grafana.adminExistingSecret` → `grafana-db.username`
+- `grafana.adminPassword` → `grafana-db.password`
 
-Manual secret creation is only needed if you are not using `create-secrets.sh`:
+Manual secret creation is only needed when deploying outside the standard install flow:
 
 ```shell
 kubectl -n monitoring create secret generic grafana-db \
@@ -53,7 +52,7 @@ Then add your Azure overrides in:
 ## Install
 
 ```shell
-/opt/genestack/bin/install-grafana.sh
+/opt/genestack/bin/install.sh --service grafana
 ```
 
 ## Verify
