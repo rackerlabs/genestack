@@ -77,6 +77,18 @@ dependencies:
         - nova-db-sync
 
 conf:
+  archive_deleted_rows:
+    all_cells: true
+    purge_deleted_rows: true
+    until_completion: false
+    max_rows:
+      # Sets a maximum number of rows for a job/run.
+      # Chart defaults to 1000 rows, but defaults `enabled: false`
+      enabled: true
+    before:
+      enabled: true
+      date: "$(date -u -d '30 days ago' '+%Y-%m-%d %H:%M:%S')"
+
   logging:
     logger_root:
       handlers:
@@ -397,6 +409,7 @@ pod:
               name: static-vendor-data
 
 manifests:
+  cron_job_archive_deleted_rows: true
   deployment_spiceproxy: false
   ingress_metadata: false
   ingress_novncproxy: false
