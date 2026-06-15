@@ -77,7 +77,6 @@ dependencies:
         - nova-db-sync
 
 conf:
-
   archive_deleted_rows:
     all_cells: true
     purge_deleted_rows: true
@@ -410,7 +409,6 @@ pod:
               name: static-vendor-data
 
 manifests:
-
   cron_job_archive_deleted_rows: true
   deployment_spiceproxy: false
   ingress_metadata: false
