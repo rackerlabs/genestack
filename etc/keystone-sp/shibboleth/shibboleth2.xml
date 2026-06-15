@@ -11,7 +11,7 @@
         id="mc"
         prefix="shib:">
         <Hosts>
-            memcached.openstack.svc.cluster.local:11211
+            memcached-memcached-0.memcached.openstack.svc.cluster.local:11211,memcached-memcached-1.memcached.openstack.svc.cluster.local:11211,memcached-memcached-2.memcached.openstack.svc.cluster.local:11211
         </Hosts>
     </StorageService>
     <StorageService type="MEMCACHE"
@@ -19,7 +19,7 @@
         prefix="shib:"
         buildMap="1">
         <Hosts>
-            memcached.openstack.svc.cluster.local:11211
+            memcached-memcached-0.memcached.openstack.svc.cluster.local:11211,memcached-memcached-1.memcached.openstack.svc.cluster.local:11211,memcached-memcached-2.memcached.openstack.svc.cluster.local:11211
         </Hosts>
     </StorageService>
     <SessionCache type="StorageService"
