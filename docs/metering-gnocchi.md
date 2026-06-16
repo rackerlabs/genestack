@@ -50,16 +50,18 @@ Gnocchi supports various storage backends for incoming measures and aggregated
 metrics, including:
 
  - File
- - Ceph (_flex default for `incoming` & `storage`_)
+ - Ceph (_flex default for `storage`_)
  - OpenStack Swift
  - Amazon S3
- - Redis
+ - Redis (_flex default for `incoming`_)
 
 For smaller architectures, using the file driver to store data on disk may be
 sufficient. However, S3, Ceph, and Swift offer more scalable storage options,
-with Ceph being the recommended choice due to its better consistency. In
-larger or busier deployments, a common recommendation is to use Redis for
-incoming measure storage and Ceph for aggregate storage.
+with Ceph being the recommended choice due to its better consistency for
+aggregated time-series storage. Genestack pairs Ceph storage with Redis
+(via the in-cluster `redis-sentinel` cluster) for incoming measures so that
+`gnocchi-metricd` does not backlog on small-object I/O against Ceph under
+event-driven workloads such as Swift notification meters.
 
 ### Indexing
 
