@@ -6,6 +6,7 @@ on:
     paths:
       - base-helm-configs/cloudkitty/**
       - base-kustomize/cloudkitty/**
+      - helm-chart-versions.yaml
       - .github/workflows/helm-cloudkitty.yaml
 jobs:
   helm:
@@ -30,6 +31,11 @@ jobs:
             curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
             chmod +x ./kubectl
           fi
+      - name: Get chart version
+        uses: ./.github/actions/get-chart-version
+        id: chart-version
+        with:
+          chart-name: cloudkitty
       - name: Pull OSH repositories
         run: |
           helm repo add openstack-helm https://tarballs.opendev.org/openstack/openstack-helm
@@ -37,6 +43,7 @@ jobs:
       - name: Run Helm Template
         run: |
           ${{ steps.helm.outputs.helm-path }} template cloudkitty openstack-helm/cloudkitty \
+            --version ${{ steps.chart-version.outputs.version }} \
             --namespace=openstack \
             --wait \
             --timeout 120m \

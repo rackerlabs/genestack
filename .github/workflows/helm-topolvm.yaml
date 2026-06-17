@@ -6,6 +6,7 @@ on:
     paths:
       - base-kustomize/topolvm/**
       - base-helm-configs/topolvm/**
+      - helm-chart-versions.yaml
       - .github/workflows/helm-topolvm.yaml
 jobs:
   helm:
@@ -30,11 +31,17 @@ jobs:
             curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
             chmod +x ./kubectl
           fi
+      - name: Get chart version
+        uses: ./.github/actions/get-chart-version
+        id: chart-version
+        with:
+          chart-name: topolvm
       - name: Run Helm Template
         run: |
           ${{ steps.helm.outputs.helm-path }} repo add topolvm https://topolvm.github.io/topolvm
           ${{ steps.helm.outputs.helm-path }} repo update
           ${{ steps.helm.outputs.helm-path }} template topolvm topolvm/topolvm \
+                                                       --version ${{ steps.chart-version.outputs.version }} \
                                                        --create-namespace --namespace=topolvm-system --wait --timeout 120m \
                                                        -f ${{ github.workspace }}/base-helm-configs/topolvm/helm-topolvm-overrides.yaml \
                                                         --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \

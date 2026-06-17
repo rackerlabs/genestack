@@ -6,6 +6,7 @@ on:
     paths:
       - base-helm-configs/opentelemetry-kube-stack/**
       - base-kustomize/opentelemetry-kube-stack/**
+      - helm-chart-versions.yaml
       - .github/workflows/helm-opentelemetry-kube-stack.yaml
 jobs:
   helm:
@@ -23,6 +24,11 @@ jobs:
           version: v3.14.3
           token: ${{ secrets.GITHUB_TOKEN }}
         id: helm
+      - name: Get chart version
+        uses: ./.github/actions/get-chart-version
+        id: chart-version
+        with:
+          chart-name: opentelemetry-kube-stack
       - name: Add open-telemetry repo to helm
         run: |
           ${{ steps.helm.outputs.helm-path }} repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
@@ -30,6 +36,7 @@ jobs:
       - name: Run Helm Template
         run: |
           ${{ steps.helm.outputs.helm-path }} template opentelemetry open-telemetry/opentelemetry-kube-stack \
+            --version ${{ steps.chart-version.outputs.version }} \
             --create-namespace \
             --namespace=monitoring \
             -f ${{ github.workspace }}/base-helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-overrides.yaml \
