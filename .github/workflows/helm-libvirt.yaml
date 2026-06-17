@@ -37,11 +37,11 @@ jobs:
           chart-name: libvirt
       - name: Pull OSH repositories
         run: |
-          helm repo add openstack-helm-infra https://tarballs.opendev.org/openstack/openstack-helm-infra
+          helm repo add openstack-helm https://tarballs.opendev.org/openstack/openstack-helm
           helm repo update
       - name: Run Helm Template
         run: |
-          ${{ steps.helm.outputs.helm-path }} template libvirt openstack-helm-infra/libvirt \
+          ${{ steps.helm.outputs.helm-path }} template libvirt openstack-helm/libvirt \
             --version ${{ steps.chart-version.outputs.version }} \
             --namespace=openstack \
             --wait \
