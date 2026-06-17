@@ -1,0 +1,29 @@
+name: 'Get Helm Chart Version'
+description: 'Installs yq and extracts a pinned chart version from helm-chart-versions.yaml'
+inputs:
+  chart-name:
+    description: 'The chart key in helm-chart-versions.yaml (e.g., cinder, nova, cert-manager)'
+    required: true
+outputs:
+  version:
+    description: 'The resolved chart version'
+    value: ${{ steps.get-version.outputs.version }}
+runs:
+  using: 'composite'
+  steps:
+    - name: Install yq
+      shell: bash
+      run: |
+        sudo wget -qO /usr/local/bin/yq \
+          https://github.com/mikefarah/yq/releases/download/v4.47.2/yq_linux_amd64
+        sudo chmod +x /usr/local/bin/yq
+    - name: Get chart version
+      id: get-version
+      shell: bash
+      run: |
+        VERSION=$(yq '.charts.${{ inputs.chart-name }}' helm-chart-versions.yaml)
+        if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+          echo "::error::Chart version for '${{ inputs.chart-name }}' not found in helm-chart-versions.yaml"
+          exit 1
+        fi
+        echo "version=${VERSION}" >> $GITHUB_OUTPUT

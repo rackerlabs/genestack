@@ -6,6 +6,7 @@ on:
     paths:
       - base-helm-configs/redis-sentinel/**
       - base-kustomize/redis-sentinel/**
+      - helm-chart-versions.yaml
       - .github/workflows/helm-redis-sentinel.yaml
 jobs:
   helm:
@@ -23,6 +24,11 @@ jobs:
           version: v3.14.3
           token: ${{ secrets.GITHUB_TOKEN }}
         id: helm
+      - name: Get chart version
+        uses: ./.github/actions/get-chart-version
+        id: chart-version
+        with:
+          chart-name: redis-sentinel
       - name: Add ot-helm (redis) to helm
         run: |
           ${{ steps.helm.outputs.helm-path }} repo add ot-helm https://ot-container-kit.github.io/helm-charts/
@@ -30,6 +36,7 @@ jobs:
       - name: Run Helm Template
         run: |
           ${{ steps.helm.outputs.helm-path }} template redis-sentinel ot-helm/redis-sentinel \
+            --version ${{ steps.chart-version.outputs.version }} \
             --create-namespace \
             --namespace=redis-system \
             -f ${{ github.workspace }}//base-helm-configs/redis-sentinel/redis-sentinel-helm-overrides.yaml \

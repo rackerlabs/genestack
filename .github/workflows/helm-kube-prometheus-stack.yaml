@@ -6,6 +6,7 @@ on:
     paths:
       - base-helm-configs/kube-prometheus-stack/**
       - base-kustomize/kube-prometheus-stack/**
+      - helm-chart-versions.yaml
       - .github/workflows/helm-kube-prometheus-stack.yaml
 jobs:
   helm:
@@ -23,6 +24,11 @@ jobs:
           version: v3.14.3
           token: ${{ secrets.GITHUB_TOKEN }}
         id: helm
+      - name: Get chart version
+        uses: ./.github/actions/get-chart-version
+        id: chart-version
+        with:
+          chart-name: kube-prometheus-stack
       - name: Add prometheus-community repo to helm
         run: |
           ${{ steps.helm.outputs.helm-path }} repo add prometheus-community https://prometheus-community.github.io/helm-charts
@@ -30,6 +36,7 @@ jobs:
       - name: Run Helm Template
         run: |
           ${{ steps.helm.outputs.helm-path }} template prometheus prometheus-community/kube-prometheus-stack \
+            --version ${{ steps.chart-version.outputs.version }} \
             --create-namespace \
             --namespace=monitoring \
             -f ${{ github.workspace }}/base-helm-configs/kube-prometheus-stack/kube-prometheus-stack-helm-overrides.yaml \

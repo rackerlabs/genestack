@@ -5,6 +5,7 @@ on:
     paths:
       - base-helm-configs/barbican-exporter/**
       - base-kustomize/barbican-exporter/**
+      - helm-chart-versions.yaml
       - .github/workflows/helm-barbican-exporter.yaml
 jobs:
   helm:
@@ -22,6 +23,11 @@ jobs:
           version: v3.14.3
           token: "${{ secrets.GITHUB_TOKEN }}"
         id: helm
+      - name: Get chart version
+        uses: ./.github/actions/get-chart-version
+        id: chart-version
+        with:
+          chart-name: barbican-exporter
       - name: Add barbican-exporter repo to helm
         run: |
             ${{ steps.helm.outputs.helm-path }} repo add genestack-barbician-exporter-helm-chart https://rackerlabs.github.io/genestack-barbician-exporter-helm-chart
@@ -36,6 +42,7 @@ jobs:
       - name: Run Helm Template
         run: |
           ${{ steps.helm.outputs.helm-path }} template barbican-exporter genestack-barbician-exporter-helm-chart/barbican-exporter \
+            --version ${{ steps.chart-version.outputs.version }} \
             --create-namespace \
             --namespace=openstack \
             --wait \
