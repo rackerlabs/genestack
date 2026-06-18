@@ -202,9 +202,6 @@ conf:
       api_paste_config: /etc/manila/api-paste.ini
       enabled_share_backends: generic
       enabled_share_protocols: NFS
-    cache:
-      enabled: true
-      backend: oslo_cache.memcache_pool
     keystone_authtoken:
       auth_type: password
       auth_version: v3

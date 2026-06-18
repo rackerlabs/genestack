@@ -51,9 +51,6 @@ conf:
       service_token_roles: service
       service_token_roles_required: true
       service_type: placement
-    cache:
-      enabled: true
-      backend: oslo_cache.memcache_pool
     oslo_concurrency:
       lock_path: /tmp/placement
     placement:

@@ -125,9 +125,6 @@ conf:
     nova:
       enable_anti_affinity: "True"
       endpoint_type: internalURL
-    cache:
-      enabled: true
-      backend: oslo_cache.memcache_pool
     oslo_concurrency:
       lock_path: /tmp/octavia
     oslo_messaging_rabbit:

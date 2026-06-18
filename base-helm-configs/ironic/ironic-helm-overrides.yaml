@@ -80,9 +80,6 @@ conf:
     redfish:
       use_swift: false
       kernel_append_params: "nofb nomodeset vga=normal ipa-debug=1"
-    cache:
-      enabled: true
-      backend: oslo_cache.memcache_pool
     database:
       connection_debug: 0
       connection_recycle_time: 600
