@@ -125,9 +125,6 @@ conf:
       nova_catalog_admin_info: compute:nova:adminURL
       service_down_time: 30
       wait_period_after_service_update: 30
-    cache:
-      enabled: true
-      backend: oslo_cache.memcache_pool
     host_failure:
       evacuate_all_instances: false
       ignore_instances_in_error_state: true
