@@ -2,9 +2,9 @@
   "apiVersion": "dashboard.grafana.app/v2beta1",
   "kind": "Dashboard",
   "metadata": {
-    "name": "memcached-details-otel-target-aware",
+    "name": "mariadb-galera-operator-overview",
     "generation": 1,
-    "creationTimestamp": "2026-06-02T20:31:03Z",
+    "creationTimestamp": "2026-06-01T15:17:18Z",
     "labels": {},
     "annotations": {}
   },
@@ -21,19 +21,14 @@
           "query": {
             "group": "grafana",
             "kind": "DataQuery",
-            "spec": {
-              "limit": 100,
-              "matchAny": false,
-              "tags": [],
-              "type": "dashboard"
-            },
+            "spec": {},
             "version": "v0"
           }
         }
       }
     ],
     "cursorSync": "Crosshair",
-    "description": "Memcached dashboard for OpenTelemetry metrics with target-aware resource_creator labels.",
+    "description": "MariaDB Galera Cluster Overview - Using mariadb-operator metrics",
     "editable": true,
     "elements": {
       "panel-1": {
@@ -54,10 +49,11 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "clamp_max(count(count by (memcached_server, pod) (memcached_connections_current{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\"})), 1)",
-                        "legendFormat": "Memcached Targets Active",
-                        "range": true
+                        "expr": "mysql_uptime_seconds_total{job=~\"$job\"}",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "intervalFactor": 1,
+                        "legendFormat": "{{mysql_instance_endpoint}}"
                       },
                       "version": "v0"
                     },
@@ -69,59 +65,43 @@
               "transformations": []
             }
           },
-          "description": "Synthetic status based on whether selected Memcached target series exist.",
+          "description": "Total uptime of each MariaDB instance in seconds.",
           "id": 1,
           "links": [],
-          "title": "Memcached Targets Active",
+          "title": "Uptime",
           "vizConfig": {
             "group": "stat",
             "kind": "VizConfig",
             "spec": {
               "fieldConfig": {
                 "defaults": {
-                  "color": {
-                    "mode": "thresholds"
-                  },
-                  "decimals": 0,
-                  "mappings": [
-                    {
-                      "options": {
-                        "0": {
-                          "color": "red",
-                          "index": 0,
-                          "text": "NO DATA"
-                        },
-                        "1": {
-                          "color": "green",
-                          "index": 1,
-                          "text": "ACTIVE"
-                        }
-                      },
-                      "type": "value"
-                    }
-                  ],
+                  "decimals": 1,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "red",
+                        "color": "rgba(245, 54, 54, 0.9)",
                         "value": 0
                       },
                       {
-                        "color": "green",
-                        "value": 1
+                        "color": "rgba(237, 129, 40, 0.89)",
+                        "value": 300
+                      },
+                      {
+                        "color": "rgba(50, 172, 45, 0.97)",
+                        "value": 3600
                       }
                     ]
                   },
-                  "unit": "none"
+                  "unit": "s"
                 },
                 "overrides": []
               },
               "options": {
-                "colorMode": "background",
+                "colorMode": "value",
                 "graphMode": "none",
-                "justifyMode": "center",
-                "orientation": "auto",
+                "justifyMode": "auto",
+                "orientation": "horizontal",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
                   "calcs": [
@@ -157,10 +137,10 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "100 *\nsum by (memcached_server, pod) (\n  rate(memcached_operations_total{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\", operation=\"get\", type=\"hit\"}[$__rate_interval])\n)\n/\nclamp_min(\n  sum by (memcached_server, pod) (\n    rate(memcached_operations_total{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\", operation=\"get\", type=\"hit\"}[$__rate_interval])\n  )\n  +\n  sum by (memcached_server, pod) (\n    rate(memcached_operations_total{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\", operation=\"get\", type=\"miss\"}[$__rate_interval])\n  ),\n  0.001\n)",
-                        "legendFormat": "{{memcached_server}} / {{pod}}",
-                        "range": true
+                        "expr": "mysql_buffer_pool_usage_bytes{job=~\"$job\"}",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "legendFormat": "{{status}}"
                       },
                       "version": "v0"
                     },
@@ -172,10 +152,10 @@
               "transformations": []
             }
           },
-          "description": "Computed get hit ratio from memcached_operations_total hit/miss counters.",
+          "description": "Buffer pool usage in bytes (data vs free).",
           "id": 10,
           "links": [],
-          "title": "Computed Get Hit Ratio by Pod",
+          "title": "Buffer Pool Usage (bytes)",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -194,8 +174,8 @@
                     "barAlignment": 0,
                     "barWidthFactor": 0.6,
                     "drawStyle": "line",
-                    "fillOpacity": 15,
-                    "gradientMode": "opacity",
+                    "fillOpacity": 20,
+                    "gradientMode": "none",
                     "hideFrom": {
                       "legend": false,
                       "tooltip": false,
@@ -219,32 +199,28 @@
                       "mode": "off"
                     }
                   },
-                  "decimals": 2,
+                  "min": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "red",
+                        "color": "green",
                         "value": 0
                       },
                       {
-                        "color": "orange",
+                        "color": "red",
                         "value": 80
-                      },
-                      {
-                        "color": "green",
-                        "value": 95
                       }
                     ]
                   },
-                  "unit": "percent"
+                  "unit": "bytes"
                 },
                 "overrides": []
               },
               "options": {
                 "legend": {
                   "calcs": [
-                    "lastNotNull",
+                    "mean",
                     "max"
                   ],
                   "displayMode": "table",
@@ -254,7 +230,7 @@
                 "tooltip": {
                   "hideZeros": false,
                   "mode": "multi",
-                  "sort": "desc"
+                  "sort": "none"
                 }
               }
             },
@@ -280,10 +256,10 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "sum by (memcached_server, pod) (memcached_current_items{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\"})",
-                        "legendFormat": "{{memcached_server}} / {{pod}}",
-                        "range": true
+                        "expr": "mysql_buffer_pool_pages{job=~\"$job\"}",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "legendFormat": "{{kind}}"
                       },
                       "version": "v0"
                     },
@@ -295,10 +271,10 @@
               "transformations": []
             }
           },
-          "description": "Current number of key/value objects stored in each Memcached pod.",
+          "description": "Buffer pool pages by state (data, free, misc, old).",
           "id": 11,
           "links": [],
-          "title": "Current Items by Pod",
+          "title": "Buffer Pool Pages",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -309,20 +285,50 @@
                     "mode": "palette-classic"
                   },
                   "custom": {
-                    "fillOpacity": 15,
-                    "gradientMode": "opacity",
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "Pages",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 20,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
                     "lineInterpolation": "linear",
                     "lineWidth": 2,
                     "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
                     "showPoints": "never",
-                    "spanNulls": false
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
                   },
-                  "decimals": 0,
+                  "min": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": 0
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
                       }
                     ]
                   },
@@ -333,7 +339,7 @@
               "options": {
                 "legend": {
                   "calcs": [
-                    "lastNotNull",
+                    "mean",
                     "max"
                   ],
                   "displayMode": "table",
@@ -341,12 +347,13 @@
                   "showLegend": true
                 },
                 "tooltip": {
+                  "hideZeros": false,
                   "mode": "multi",
-                  "sort": "desc"
+                  "sort": "none"
                 }
               }
             },
-            "version": "11.0.0"
+            "version": "12.2.0"
           }
         }
       },
@@ -368,10 +375,10 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "sum by (memcached_server, pod) (memcached_bytes{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\"})",
-                        "legendFormat": "{{memcached_server}} / {{pod}}",
-                        "range": true
+                        "expr": "mysql_buffer_pool_data_pages{job=~\"$job\"}",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "legendFormat": "{{status}}"
                       },
                       "version": "v0"
                     },
@@ -383,10 +390,10 @@
               "transformations": []
             }
           },
-          "description": "Current Memcached memory usage in bytes by pod.",
+          "description": "Buffer pool data pages by state (dirty, clean).",
           "id": 12,
           "links": [],
-          "title": "Memory Bytes by Pod",
+          "title": "Buffer Pool Data Pages (dirty/clean)",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -397,31 +404,61 @@
                     "mode": "palette-classic"
                   },
                   "custom": {
-                    "fillOpacity": 15,
-                    "gradientMode": "opacity",
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "Pages",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 20,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
                     "lineInterpolation": "linear",
                     "lineWidth": 2,
                     "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
                     "showPoints": "never",
-                    "spanNulls": false
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
                   },
-                  "decimals": 2,
+                  "min": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": 0
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
                       }
                     ]
                   },
-                  "unit": "bytes"
+                  "unit": "short"
                 },
                 "overrides": []
               },
               "options": {
                 "legend": {
                   "calcs": [
-                    "lastNotNull",
+                    "mean",
                     "max"
                   ],
                   "displayMode": "table",
@@ -429,12 +466,13 @@
                   "showLegend": true
                 },
                 "tooltip": {
+                  "hideZeros": false,
                   "mode": "multi",
-                  "sort": "desc"
+                  "sort": "none"
                 }
               }
             },
-            "version": "11.0.0"
+            "version": "12.2.0"
           }
         }
       },
@@ -456,10 +494,10 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "sum by (memcached_server, pod, direction) (rate(memcached_network_by_total{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\"}[$__rate_interval]))",
-                        "legendFormat": "{{memcached_server}} / {{pod}} / {{direction}}",
-                        "range": true
+                        "expr": "rate(mysql_buffer_pool_operations_total{job=~\"$job\"}[$__rate_interval])",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "legendFormat": "{{operation}}"
                       },
                       "version": "v0"
                     },
@@ -471,10 +509,10 @@
               "transformations": []
             }
           },
-          "description": "Memcached network throughput by pod and direction.",
+          "description": "Rate of buffer pool operations (read_requests, reads, write_requests, wait_free).",
           "id": 13,
           "links": [],
-          "title": "Network I/O by Pod",
+          "title": "Buffer Pool Operations (rate)",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -485,31 +523,61 @@
                     "mode": "palette-classic"
                   },
                   "custom": {
-                    "fillOpacity": 15,
-                    "gradientMode": "opacity",
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
                     "lineInterpolation": "linear",
-                    "lineWidth": 2,
+                    "lineWidth": 1,
                     "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
                     "showPoints": "never",
-                    "spanNulls": false
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
                   },
-                  "decimals": 2,
+                  "min": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": 0
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
                       }
                     ]
                   },
-                  "unit": "Bps"
+                  "unit": "ops"
                 },
                 "overrides": []
               },
               "options": {
                 "legend": {
                   "calcs": [
-                    "lastNotNull",
+                    "mean",
                     "max"
                   ],
                   "displayMode": "table",
@@ -517,12 +585,13 @@
                   "showLegend": true
                 },
                 "tooltip": {
+                  "hideZeros": false,
                   "mode": "multi",
-                  "sort": "desc"
+                  "sort": "none"
                 }
               }
             },
-            "version": "11.0.0"
+            "version": "12.2.0"
           }
         }
       },
@@ -544,10 +613,10 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "sum by (memcached_server, pod, state) (rate(memcached_cpu_usage_seconds_total{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\"}[$__rate_interval]))",
-                        "legendFormat": "{{memcached_server}} / {{pod}} / {{state}}",
-                        "range": true
+                        "expr": "rate(mysql_page_operations_total{job=~\"$job\"}[$__rate_interval])",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "legendFormat": "{{operation}}"
                       },
                       "version": "v0"
                     },
@@ -559,10 +628,10 @@
               "transformations": []
             }
           },
-          "description": "CPU seconds consumed per second by pod and CPU state.",
+          "description": "Rate of InnoDB page operations (read, written, created).",
           "id": 14,
           "links": [],
-          "title": "CPU Usage Rate by Pod",
+          "title": "InnoDB Page Operations (rate)",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -573,31 +642,61 @@
                     "mode": "palette-classic"
                   },
                   "custom": {
-                    "fillOpacity": 15,
-                    "gradientMode": "opacity",
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
                     "lineInterpolation": "linear",
-                    "lineWidth": 2,
+                    "lineWidth": 1,
                     "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
                     "showPoints": "never",
-                    "spanNulls": false
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
                   },
-                  "decimals": 3,
+                  "min": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": 0
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
                       }
                     ]
                   },
-                  "unit": "s"
+                  "unit": "ops"
                 },
                 "overrides": []
               },
               "options": {
                 "legend": {
                   "calcs": [
-                    "lastNotNull",
+                    "mean",
                     "max"
                   ],
                   "displayMode": "table",
@@ -605,12 +704,13 @@
                   "showLegend": true
                 },
                 "tooltip": {
+                  "hideZeros": false,
                   "mode": "multi",
-                  "sort": "desc"
+                  "sort": "none"
                 }
               }
             },
-            "version": "11.0.0"
+            "version": "12.2.0"
           }
         }
       },
@@ -632,14 +732,35 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "sum by (memcached_server, pod) (rate(memcached_evictions_total{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\"}[$__rate_interval]))",
-                        "legendFormat": "{{memcached_server}} / {{pod}}",
-                        "range": true
+                        "expr": "rate(mysql_row_locks_total{job=~\"$job\"}[$__rate_interval])",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "legendFormat": "row_lock_{{kind}}"
                       },
                       "version": "v0"
                     },
                     "refId": "A"
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${datasource}"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "rate(mysql_locks_total{job=~\"$job\"}[$__rate_interval])",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "legendFormat": "table_lock_{{kind}}"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "B"
                   }
                 }
               ],
@@ -647,10 +768,10 @@
               "transformations": []
             }
           },
-          "description": "Evictions per second by pod.",
+          "description": "Rate of row lock waits and time.",
           "id": 15,
           "links": [],
-          "title": "Evictions by Pod",
+          "title": "MySQL Row & Table Locks (rate)",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -661,39 +782,61 @@
                     "mode": "palette-classic"
                   },
                   "custom": {
-                    "fillOpacity": 15,
-                    "gradientMode": "opacity",
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
                     "lineInterpolation": "linear",
-                    "lineWidth": 2,
+                    "lineWidth": 1,
                     "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
                     "showPoints": "never",
-                    "spanNulls": false
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
                   },
-                  "decimals": 2,
+                  "min": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
-                      },
-                      {
-                        "color": "orange",
-                        "value": 1
+                        "color": "green",
+                        "value": 0
                       },
                       {
                         "color": "red",
-                        "value": 10
+                        "value": 1
                       }
                     ]
                   },
-                  "unit": "ops"
+                  "unit": "short"
                 },
                 "overrides": []
               },
               "options": {
                 "legend": {
                   "calcs": [
-                    "lastNotNull",
+                    "mean",
                     "max"
                   ],
                   "displayMode": "table",
@@ -701,12 +844,13 @@
                   "showLegend": true
                 },
                 "tooltip": {
+                  "hideZeros": false,
                   "mode": "multi",
-                  "sort": "desc"
+                  "sort": "none"
                 }
               }
             },
-            "version": "11.0.0"
+            "version": "12.2.0"
           }
         }
       },
@@ -728,10 +872,10 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "sum by (memcached_server, pod) (memcached_threads{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\"})",
-                        "legendFormat": "{{memcached_server}} / {{pod}}",
-                        "range": true
+                        "expr": "rate(mysql_log_operations_total{job=~\"$job\"}[$__rate_interval])",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "legendFormat": "{{operation}}"
                       },
                       "version": "v0"
                     },
@@ -743,10 +887,10 @@
               "transformations": []
             }
           },
-          "description": "Current Memcached thread count by pod.",
+          "description": "Rate of InnoDB log operations (waits, write_requests, writes).",
           "id": 16,
           "links": [],
-          "title": "Threads by Pod",
+          "title": "InnoDB Log Operations (rate)",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -757,31 +901,61 @@
                     "mode": "palette-classic"
                   },
                   "custom": {
-                    "fillOpacity": 15,
-                    "gradientMode": "opacity",
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
                     "lineInterpolation": "linear",
-                    "lineWidth": 2,
+                    "lineWidth": 1,
                     "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
                     "showPoints": "never",
-                    "spanNulls": false
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
                   },
-                  "decimals": 0,
+                  "min": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": 0
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
                       }
                     ]
                   },
-                  "unit": "short"
+                  "unit": "ops"
                 },
                 "overrides": []
               },
               "options": {
                 "legend": {
                   "calcs": [
-                    "lastNotNull",
+                    "mean",
                     "max"
                   ],
                   "displayMode": "table",
@@ -789,12 +963,13 @@
                   "showLegend": true
                 },
                 "tooltip": {
+                  "hideZeros": false,
                   "mode": "multi",
-                  "sort": "desc"
+                  "sort": "none"
                 }
               }
             },
-            "version": "11.0.0"
+            "version": "12.2.0"
           }
         }
       },
@@ -816,89 +991,125 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "label_replace(sum by (namespace, pod, memcached_server, memcached_endpoint) (memcached_connections_current{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\"}), \"metric\", \"Connections\", \"__name__\", \".*\")\nor\nlabel_replace(sum by (namespace, pod, memcached_server, memcached_endpoint) (memcached_current_items{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\"}), \"metric\", \"Items\", \"__name__\", \".*\")\nor\nlabel_replace(sum by (namespace, pod, memcached_server, memcached_endpoint) (memcached_bytes{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\"}), \"metric\", \"Memory Bytes\", \"__name__\", \".*\")\nor\nlabel_replace(sum by (namespace, pod, memcached_server, memcached_endpoint) (rate(memcached_evictions_total{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\"}[$__rate_interval])), \"metric\", \"Eviction Rate\", \"__name__\", \".*\")\nor\nlabel_replace(avg by (namespace, pod, memcached_server, memcached_endpoint) (memcached_operation_hit_ratio_percent{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\", operation=\"get\"}), \"metric\", \"Get Hit Ratio\", \"__name__\", \".*\")",
-                        "format": "table",
-                        "instant": true,
-                        "legendFormat": "{{metric}}",
-                        "range": false
+                        "expr": "rate(mysql_double_writes_total{job=~\"$job\"}[$__rate_interval])",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "legendFormat": "{{kind}}"
                       },
                       "version": "v0"
                     },
                     "refId": "A"
                   }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${datasource}"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "rate(mysql_buffer_pool_page_flushes_total{job=~\"$job\"}[$__rate_interval])",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "legendFormat": "page_flushes"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "B"
+                  }
                 }
               ],
               "queryOptions": {},
-              "transformations": [
-                {
-                  "kind": "organize",
-                  "spec": {
-                    "id": "organize",
-                    "options": {
-                      "excludeByName": {
-                        "Time": true,
-                        "__name__": true,
-                        "container_id": true,
-                        "memcached_cluster": true
-                      },
-                      "indexByName": {},
-                      "renameByName": {
-                        "Value": "Value",
-                        "memcached_endpoint": "Endpoint",
-                        "memcached_server": "Memcached Server",
-                        "metric": "Metric",
-                        "namespace": "Namespace",
-                        "pod": "Pod"
-                      }
-                    }
-                  }
-                }
-              ]
+              "transformations": []
             }
           },
-          "description": "Summary table grouped by real Memcached target labels. Uses one PromQL expression to avoid duplicate cluster/os columns from Grafana joins.",
+          "description": "Rate of InnoDB double write operations and page flush.",
           "id": 17,
           "links": [],
-          "title": "Memcached Summary by Pod / Server",
+          "title": "InnoDB Double Writes & Page Flushes (rate)",
           "vizConfig": {
-            "group": "table",
+            "group": "timeseries",
             "kind": "VizConfig",
             "spec": {
               "fieldConfig": {
                 "defaults": {
-                  "custom": {
-                    "align": "auto",
-                    "cellOptions": {
-                      "type": "auto"
-                    },
-                    "inspect": false
+                  "color": {
+                    "mode": "palette-classic"
                   },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "min": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": 0
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
                       }
                     ]
-                  }
+                  },
+                  "unit": "ops"
                 },
                 "overrides": []
               },
               "options": {
-                "cellHeight": "sm",
-                "footer": {
-                  "countRows": false,
-                  "fields": "",
-                  "reducer": [
-                    "sum"
+                "legend": {
+                  "calcs": [
+                    "mean",
+                    "max"
                   ],
-                  "show": false
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
                 },
-                "showHeader": true
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
               }
             },
-            "version": "11.0.0"
+            "version": "12.2.0"
           }
         }
       },
@@ -920,12 +1131,10 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "sum by (namespace, pod, memcached_server, operation, type) (rate(memcached_operations_total{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\"}[$__rate_interval]))",
-                        "format": "table",
-                        "instant": true,
-                        "legendFormat": "",
-                        "range": false
+                        "expr": "rate(mysql_tmp_resources_total{job=~\"$job\"}[$__rate_interval])",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "legendFormat": "{{resource}}"
                       },
                       "version": "v0"
                     },
@@ -934,55 +1143,67 @@
                 }
               ],
               "queryOptions": {},
-              "transformations": [
-                {
-                  "kind": "organize",
-                  "spec": {
-                    "id": "organize",
-                    "options": {
-                      "excludeByName": {
-                        "Time": true,
-                        "__name__": true,
-                        "memcached_cluster": true
-                      },
-                      "indexByName": {},
-                      "renameByName": {
-                        "Value": "Ops/sec",
-                        "memcached_server": "Memcached Server",
-                        "namespace": "Namespace",
-                        "operation": "Operation",
-                        "pod": "Pod",
-                        "type": "Type"
-                      }
-                    }
-                  }
-                }
-              ]
+              "transformations": []
             }
           },
-          "description": "Operation throughput by pod, operation, and hit/miss type.",
+          "description": "Rate of temporary resource creation (tmp_tables, tmp_disk_tables, tmp_files).",
           "id": 18,
           "links": [],
-          "title": "Memcached Operations Breakdown",
+          "title": "MySQL Temporary Resources (rate)",
           "vizConfig": {
-            "group": "table",
+            "group": "timeseries",
             "kind": "VizConfig",
             "spec": {
               "fieldConfig": {
                 "defaults": {
-                  "custom": {
-                    "align": "auto",
-                    "cellOptions": {
-                      "type": "auto"
-                    },
-                    "inspect": false
+                  "color": {
+                    "mode": "palette-classic"
                   },
-                  "decimals": 2,
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "min": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": 0
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
                       }
                     ]
                   },
@@ -991,19 +1212,142 @@
                 "overrides": []
               },
               "options": {
-                "cellHeight": "sm",
-                "footer": {
-                  "countRows": false,
-                  "fields": "",
-                  "reducer": [
-                    "sum"
+                "legend": {
+                  "calcs": [
+                    "mean",
+                    "max"
                   ],
-                  "show": false
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
                 },
-                "showHeader": true
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
               }
             },
-            "version": "11.0.0"
+            "version": "12.2.0"
+          }
+        }
+      },
+      "panel-19": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${datasource}"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "rate(mysql_prepared_statements_total{job=~\"$job\"}[$__rate_interval])",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "legendFormat": "{{command}}"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Rate of prepared statement operations.",
+          "id": 19,
+          "links": [],
+          "title": "MySQL Prepared Statements (rate)",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "ops"
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "mean",
+                    "max"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              }
+            },
+            "version": "12.2.0"
           }
         }
       },
@@ -1025,10 +1369,10 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "sum(memcached_connections_current{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\"})",
-                        "legendFormat": "Total Current Connections",
-                        "range": true
+                        "expr": "sum(rate(mysql_commands_total{job=~\"$job\"}[$__rate_interval]))",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "legendFormat": "Commands/s"
                       },
                       "version": "v0"
                     },
@@ -1040,38 +1384,43 @@
               "transformations": []
             }
           },
-          "description": "Current open Memcached connections across selected pods.",
+          "description": "Rate of total commands executed per second.",
           "id": 2,
           "links": [],
-          "title": "Total Current Connections",
+          "title": "Current Commands/s (QPS)",
           "vizConfig": {
             "group": "stat",
             "kind": "VizConfig",
             "spec": {
               "fieldConfig": {
                 "defaults": {
-                  "color": {
-                    "mode": "thresholds"
-                  },
-                  "decimals": 0,
+                  "decimals": 2,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green",
+                        "color": "rgba(245, 54, 54, 0.9)",
                         "value": 0
+                      },
+                      {
+                        "color": "rgba(237, 129, 40, 0.89)",
+                        "value": 35
+                      },
+                      {
+                        "color": "rgba(50, 172, 45, 0.97)",
+                        "value": 75
                       }
                     ]
                   },
-                  "unit": "short"
+                  "unit": "ops"
                 },
                 "overrides": []
               },
               "options": {
                 "colorMode": "value",
                 "graphMode": "area",
-                "justifyMode": "center",
-                "orientation": "auto",
+                "justifyMode": "auto",
+                "orientation": "horizontal",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
                   "calcs": [
@@ -1083,6 +1432,244 @@
                 "showPercentChange": false,
                 "textMode": "auto",
                 "wideLayout": true
+              }
+            },
+            "version": "12.2.0"
+          }
+        }
+      },
+      "panel-20": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${datasource}"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "rate(mysql_opened_resources_total{job=~\"$job\"}[$__rate_interval])",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "legendFormat": "{{kind}}"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Rate of opened resources (tables, files, table_definitions).",
+          "id": 20,
+          "links": [],
+          "title": "MySQL Opened Resources (rate)",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "ops"
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "mean",
+                    "max"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              }
+            },
+            "version": "12.2.0"
+          }
+        }
+      },
+      "panel-21": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "${datasource}"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "rate(mysql_operations_total{job=~\"$job\"}[$__rate_interval])",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "legendFormat": "{{operation}}"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Rate of misc InnoDB operations (data_reads, data_writes, data_fsyncs).",
+          "id": 21,
+          "links": [],
+          "title": "MySQL InnoDB Operations (rate)",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "ops"
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "mean",
+                    "max"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
               }
             },
             "version": "12.2.0"
@@ -1107,10 +1694,10 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "avg(memcached_operation_hit_ratio_percent{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\", operation=\"get\"})",
-                        "legendFormat": "Average Get Hit Ratio",
-                        "range": true
+                        "expr": "mysql_buffer_pool_limit_bytes{job=~\"$job\"}",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "legendFormat": "{{mysql_instance_endpoint}}"
                       },
                       "version": "v0"
                     },
@@ -1122,46 +1709,35 @@
               "transformations": []
             }
           },
-          "description": "Average OTel precomputed get hit ratio across selected Memcached pods.",
+          "description": "InnoDB Buffer Pool size limit in bytes.",
           "id": 3,
           "links": [],
-          "title": "Average Get Hit Ratio",
+          "title": "InnoDB Buffer Pool Size",
           "vizConfig": {
             "group": "stat",
             "kind": "VizConfig",
             "spec": {
               "fieldConfig": {
                 "defaults": {
-                  "color": {
-                    "mode": "thresholds"
-                  },
-                  "decimals": 2,
+                  "decimals": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "red",
+                        "color": "rgba(50, 172, 45, 0.97)",
                         "value": 0
-                      },
-                      {
-                        "color": "orange",
-                        "value": 80
-                      },
-                      {
-                        "color": "green",
-                        "value": 95
                       }
                     ]
                   },
-                  "unit": "percent"
+                  "unit": "bytes"
                 },
                 "overrides": []
               },
               "options": {
-                "colorMode": "background",
-                "graphMode": "area",
-                "justifyMode": "center",
-                "orientation": "auto",
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "horizontal",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
                   "calcs": [
@@ -1197,10 +1773,10 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "sum(rate(memcached_evictions_total{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\"}[$__rate_interval]))",
-                        "legendFormat": "Total Eviction Rate",
-                        "range": true
+                        "expr": "mysql_connection_count_total{job=~\"$job\"}",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "legendFormat": "{{mysql_instance_endpoint}}"
                       },
                       "version": "v0"
                     },
@@ -1212,20 +1788,54 @@
               "transformations": []
             }
           },
-          "description": "Evictions per second. Sustained non-zero values usually indicate memory pressure.",
+          "description": "Total connection count over time.",
           "id": 4,
           "links": [],
-          "title": "Total Eviction Rate",
+          "title": "MySQL Connection Count",
           "vizConfig": {
-            "group": "stat",
+            "group": "timeseries",
             "kind": "VizConfig",
             "spec": {
               "fieldConfig": {
                 "defaults": {
                   "color": {
-                    "mode": "thresholds"
+                    "mode": "palette-classic"
                   },
-                  "decimals": 2,
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 20,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 2,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "min": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -1234,35 +1844,31 @@
                         "value": 0
                       },
                       {
-                        "color": "orange",
-                        "value": 1
-                      },
-                      {
                         "color": "red",
-                        "value": 10
+                        "value": 80
                       }
                     ]
                   },
-                  "unit": "ops"
+                  "unit": "short"
                 },
                 "overrides": []
               },
               "options": {
-                "colorMode": "background",
-                "graphMode": "area",
-                "justifyMode": "center",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
+                "legend": {
                   "calcs": [
-                    "lastNotNull"
+                    "mean",
+                    "max",
+                    "min"
                   ],
-                  "fields": "",
-                  "values": false
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
                 },
-                "showPercentChange": false,
-                "textMode": "auto",
-                "wideLayout": true
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
               }
             },
             "version": "12.2.0"
@@ -1287,10 +1893,10 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "sum by (memcached_server, pod) (memcached_connections_current{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\"})",
-                        "legendFormat": "{{memcached_server}} / {{pod}}",
-                        "range": true
+                        "expr": "mysql_threads{job=~\"$job\"}",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "legendFormat": "{{kind}}"
                       },
                       "version": "v0"
                     },
@@ -1302,10 +1908,10 @@
               "transformations": []
             }
           },
-          "description": "Current open Memcached connections grouped by real Memcached target.",
+          "description": "Thread states: connected, running, cached, created.",
           "id": 5,
           "links": [],
-          "title": "Current Connections by Pod",
+          "title": "MySQL Threads",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -1319,13 +1925,13 @@
                     "axisBorderShow": false,
                     "axisCenteredZero": false,
                     "axisColorMode": "text",
-                    "axisLabel": "",
+                    "axisLabel": "Threads",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
                     "barWidthFactor": 0.6,
                     "drawStyle": "line",
-                    "fillOpacity": 15,
-                    "gradientMode": "opacity",
+                    "fillOpacity": 20,
+                    "gradientMode": "none",
                     "hideFrom": {
                       "legend": false,
                       "tooltip": false,
@@ -1349,13 +1955,17 @@
                       "mode": "off"
                     }
                   },
-                  "decimals": 0,
+                  "min": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
                         "color": "green",
                         "value": 0
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
                       }
                     ]
                   },
@@ -1366,8 +1976,9 @@
               "options": {
                 "legend": {
                   "calcs": [
-                    "lastNotNull",
-                    "max"
+                    "mean",
+                    "max",
+                    "min"
                   ],
                   "displayMode": "table",
                   "placement": "bottom",
@@ -1376,7 +1987,7 @@
                 "tooltip": {
                   "hideZeros": false,
                   "mode": "multi",
-                  "sort": "desc"
+                  "sort": "none"
                 }
               }
             },
@@ -1402,10 +2013,10 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "sum by (memcached_server, pod) (rate(memcached_connections_total{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\"}[$__rate_interval]))",
-                        "legendFormat": "{{memcached_server}} / {{pod}}",
-                        "range": true
+                        "expr": "rate(mysql_connection_errors_total{job=~\"$job\"}[$__rate_interval])",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "legendFormat": "{{error}}"
                       },
                       "version": "v0"
                     },
@@ -1417,10 +2028,10 @@
               "transformations": []
             }
           },
-          "description": "New Memcached connections per second by pod.",
+          "description": "Rate of connection errors by error type.",
           "id": 6,
           "links": [],
-          "title": "Connection Rate by Pod",
+          "title": "MySQL Connection Errors",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -1439,8 +2050,8 @@
                     "barAlignment": 0,
                     "barWidthFactor": 0.6,
                     "drawStyle": "line",
-                    "fillOpacity": 15,
-                    "gradientMode": "opacity",
+                    "fillOpacity": 20,
+                    "gradientMode": "none",
                     "hideFrom": {
                       "legend": false,
                       "tooltip": false,
@@ -1464,24 +2075,28 @@
                       "mode": "off"
                     }
                   },
-                  "decimals": 2,
+                  "min": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
                         "color": "green",
                         "value": 0
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
                       }
                     ]
                   },
-                  "unit": "ops"
+                  "unit": "short"
                 },
                 "overrides": []
               },
               "options": {
                 "legend": {
                   "calcs": [
-                    "lastNotNull",
+                    "mean",
                     "max"
                   ],
                   "displayMode": "table",
@@ -1491,7 +2106,7 @@
                 "tooltip": {
                   "hideZeros": false,
                   "mode": "multi",
-                  "sort": "desc"
+                  "sort": "none"
                 }
               }
             },
@@ -1517,10 +2132,10 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "sum by (operation) (rate(memcached_commands_total{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\"}[$__rate_interval]))",
-                        "legendFormat": "{{operation}}",
-                        "range": true
+                        "expr": "topk(10, rate(mysql_commands_total{job=~\"$job\"}[$__rate_interval]))",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "legendFormat": "{{command}}"
                       },
                       "version": "v0"
                     },
@@ -1532,10 +2147,10 @@
               "transformations": []
             }
           },
-          "description": "Memcached command throughput by operation.",
+          "description": "Rate of MySQL commands by command type (select, insert, update, delete, etc).",
           "id": 7,
           "links": [],
-          "title": "Command Rate by Operation",
+          "title": "Top Command Counters (rate)",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -1554,8 +2169,8 @@
                     "barAlignment": 0,
                     "barWidthFactor": 0.6,
                     "drawStyle": "line",
-                    "fillOpacity": 15,
-                    "gradientMode": "opacity",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
                     "hideFrom": {
                       "legend": false,
                       "tooltip": false,
@@ -1563,7 +2178,7 @@
                     },
                     "insertNulls": false,
                     "lineInterpolation": "linear",
-                    "lineWidth": 2,
+                    "lineWidth": 1,
                     "pointSize": 5,
                     "scaleDistribution": {
                       "type": "linear"
@@ -1579,13 +2194,17 @@
                       "mode": "off"
                     }
                   },
-                  "decimals": 2,
+                  "min": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
                         "color": "green",
                         "value": 0
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
                       }
                     ]
                   },
@@ -1596,12 +2215,13 @@
               "options": {
                 "legend": {
                   "calcs": [
-                    "lastNotNull",
+                    "mean",
                     "max"
                   ],
                   "displayMode": "table",
-                  "placement": "bottom",
-                  "showLegend": true
+                  "placement": "right",
+                  "showLegend": true,
+                  "width": 250
                 },
                 "tooltip": {
                   "hideZeros": false,
@@ -1632,10 +2252,10 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "sum by (memcached_server, pod, operation, type) (rate(memcached_operations_total{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\"}[$__rate_interval]))",
-                        "legendFormat": "{{memcached_server}} / {{pod}} / {{operation}} {{type}}",
-                        "range": true
+                        "expr": "topk(10, rate(mysql_handlers_total{job=~\"$job\"}[$__rate_interval]))",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "legendFormat": "{{kind}}"
                       },
                       "version": "v0"
                     },
@@ -1647,10 +2267,10 @@
               "transformations": []
             }
           },
-          "description": "Hit/miss operation throughput by pod, operation, and result type.",
+          "description": "Rate of handler operations (read_first, read_key, read_next, write, etc).",
           "id": 8,
           "links": [],
-          "title": "Operation Rate by Result",
+          "title": "MySQL Handlers (rate)",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -1669,8 +2289,8 @@
                     "barAlignment": 0,
                     "barWidthFactor": 0.6,
                     "drawStyle": "line",
-                    "fillOpacity": 15,
-                    "gradientMode": "opacity",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
                     "hideFrom": {
                       "legend": false,
                       "tooltip": false,
@@ -1678,7 +2298,7 @@
                     },
                     "insertNulls": false,
                     "lineInterpolation": "linear",
-                    "lineWidth": 2,
+                    "lineWidth": 1,
                     "pointSize": 5,
                     "scaleDistribution": {
                       "type": "linear"
@@ -1694,13 +2314,17 @@
                       "mode": "off"
                     }
                   },
-                  "decimals": 2,
+                  "min": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
                         "color": "green",
                         "value": 0
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
                       }
                     ]
                   },
@@ -1711,7 +2335,7 @@
               "options": {
                 "legend": {
                   "calcs": [
-                    "lastNotNull",
+                    "mean",
                     "max"
                   ],
                   "displayMode": "table",
@@ -1747,10 +2371,10 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "avg by (memcached_server, pod, operation) (memcached_operation_hit_ratio_percent{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\", container_id=~\"$container_id\"})",
-                        "legendFormat": "{{memcached_server}} / {{pod}} / {{operation}}",
-                        "range": true
+                        "expr": "rate(mysql_sorts_total{job=~\"$job\"}[$__rate_interval])",
+                        "format": "time_series",
+                        "interval": "1m",
+                        "legendFormat": "{{kind}}"
                       },
                       "version": "v0"
                     },
@@ -1762,10 +2386,10 @@
               "transformations": []
             }
           },
-          "description": "OTel precomputed operation hit ratio grouped by Memcached target and operation.",
+          "description": "Rate of sort operations (merge_passes, range, rows, scan).",
           "id": 9,
           "links": [],
-          "title": "Hit Ratio by Operation and Pod",
+          "title": "MySQL Sorts (rate)",
           "vizConfig": {
             "group": "timeseries",
             "kind": "VizConfig",
@@ -1784,8 +2408,8 @@
                     "barAlignment": 0,
                     "barWidthFactor": 0.6,
                     "drawStyle": "line",
-                    "fillOpacity": 15,
-                    "gradientMode": "opacity",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
                     "hideFrom": {
                       "legend": false,
                       "tooltip": false,
@@ -1793,7 +2417,7 @@
                     },
                     "insertNulls": false,
                     "lineInterpolation": "linear",
-                    "lineWidth": 2,
+                    "lineWidth": 1,
                     "pointSize": 5,
                     "scaleDistribution": {
                       "type": "linear"
@@ -1809,32 +2433,28 @@
                       "mode": "off"
                     }
                   },
-                  "decimals": 2,
+                  "min": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "red",
+                        "color": "green",
                         "value": 0
                       },
                       {
-                        "color": "orange",
+                        "color": "red",
                         "value": 80
-                      },
-                      {
-                        "color": "green",
-                        "value": 95
                       }
                     ]
                   },
-                  "unit": "percent"
+                  "unit": "ops"
                 },
                 "overrides": []
               },
               "options": {
                 "legend": {
                   "calcs": [
-                    "lastNotNull",
+                    "mean",
                     "max"
                   ],
                   "displayMode": "table",
@@ -1844,7 +2464,7 @@
                 "tooltip": {
                   "hideZeros": false,
                   "mode": "multi",
-                  "sort": "desc"
+                  "sort": "none"
                 }
               }
             },
@@ -1856,254 +2476,17 @@
     "layout": {
       "kind": "GridLayout",
       "spec": {
-        "items": [
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-1"
-              },
-              "height": 4,
-              "width": 6,
-              "x": 0,
-              "y": 0
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-2"
-              },
-              "height": 4,
-              "width": 6,
-              "x": 6,
-              "y": 0
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-3"
-              },
-              "height": 4,
-              "width": 6,
-              "x": 12,
-              "y": 0
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-4"
-              },
-              "height": 4,
-              "width": 6,
-              "x": 18,
-              "y": 0
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-5"
-              },
-              "height": 8,
-              "width": 12,
-              "x": 0,
-              "y": 4
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-6"
-              },
-              "height": 8,
-              "width": 12,
-              "x": 12,
-              "y": 4
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-7"
-              },
-              "height": 8,
-              "width": 12,
-              "x": 0,
-              "y": 12
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-8"
-              },
-              "height": 8,
-              "width": 12,
-              "x": 12,
-              "y": 12
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-9"
-              },
-              "height": 8,
-              "width": 12,
-              "x": 0,
-              "y": 20
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-10"
-              },
-              "height": 8,
-              "width": 12,
-              "x": 12,
-              "y": 20
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-11"
-              },
-              "height": 8,
-              "width": 12,
-              "x": 0,
-              "y": 28
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-12"
-              },
-              "height": 8,
-              "width": 12,
-              "x": 12,
-              "y": 28
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-13"
-              },
-              "height": 8,
-              "width": 12,
-              "x": 0,
-              "y": 36
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-14"
-              },
-              "height": 8,
-              "width": 12,
-              "x": 12,
-              "y": 36
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-15"
-              },
-              "height": 8,
-              "width": 12,
-              "x": 0,
-              "y": 44
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-16"
-              },
-              "height": 8,
-              "width": 12,
-              "x": 12,
-              "y": 44
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-17"
-              },
-              "height": 10,
-              "width": 24,
-              "x": 0,
-              "y": 52
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-18"
-              },
-              "height": 10,
-              "width": 24,
-              "x": 0,
-              "y": 62
-            }
-          }
-        ]
+        "items": []
       }
     },
     "links": [],
     "liveNow": false,
     "preload": false,
     "tags": [
-      "memcached",
-      "opentelemetry",
-      "prometheus",
-      "kubernetes",
-      "openstack",
-      "genestack"
+      "mysql",
+      "galera",
+      "mariadb",
+      "mariadb-operator"
     ],
     "timeSettings": {
       "autoRefresh": "30s",
@@ -2120,12 +2503,12 @@
         "1d"
       ],
       "fiscalYearStartMonth": 0,
-      "from": "now-6h",
+      "from": "now-1h",
       "hideTimepicker": false,
-      "timezone": "browser",
+      "timezone": "",
       "to": "now"
     },
-    "title": "Memcached Details - OpenTelemetry Target Aware",
+    "title": "MariaDB / Galera - Cluster Overview",
     "variables": [
       {
         "kind": "DatasourceVariable",
@@ -2137,7 +2520,7 @@
           },
           "hide": "dontHide",
           "includeAll": false,
-          "label": "Prometheus",
+          "label": "Datasource",
           "multi": false,
           "name": "datasource",
           "options": [],
@@ -2150,18 +2533,17 @@
       {
         "kind": "QueryVariable",
         "spec": {
-          "allValue": ".*",
           "allowCustomValue": true,
           "current": {
             "text": "",
             "value": ""
           },
-          "definition": "label_values(memcached_connections_current, namespace)",
+          "definition": "label_values(mysql_uptime_seconds_total, job)",
           "hide": "dontHide",
           "includeAll": true,
-          "label": "Namespace",
+          "label": "Job",
           "multi": true,
-          "name": "namespace",
+          "name": "job",
           "options": [],
           "query": {
             "datasource": {
@@ -2171,152 +2553,11 @@
             "kind": "DataQuery",
             "spec": {
               "qryType": 1,
-              "query": "label_values(memcached_connections_current, namespace)",
-              "refId": "PrometheusVariableQueryEditor-VariableQuery"
+              "query": "label_values(mysql_uptime_seconds_total, job)"
             },
             "version": "v0"
           },
-          "refresh": "onDashboardLoad",
-          "regex": "",
-          "skipUrlSync": false,
-          "sort": "alphabeticalAsc"
-        }
-      },
-      {
-        "kind": "QueryVariable",
-        "spec": {
-          "allValue": ".*",
-          "allowCustomValue": true,
-          "current": {
-            "text": "",
-            "value": ""
-          },
-          "definition": "label_values(memcached_connections_current{namespace=~\"$namespace\"}, pod)",
-          "hide": "dontHide",
-          "includeAll": true,
-          "label": "Pod",
-          "multi": true,
-          "name": "pod",
-          "options": [],
-          "query": {
-            "datasource": {
-              "name": "${datasource}"
-            },
-            "group": "prometheus",
-            "kind": "DataQuery",
-            "spec": {
-              "qryType": 1,
-              "query": "label_values(memcached_connections_current{namespace=~\"$namespace\"}, pod)",
-              "refId": "PrometheusVariableQueryEditor-VariableQuery"
-            },
-            "version": "v0"
-          },
-          "refresh": "onDashboardLoad",
-          "regex": "",
-          "skipUrlSync": false,
-          "sort": "alphabeticalAsc"
-        }
-      },
-      {
-        "kind": "QueryVariable",
-        "spec": {
-          "allValue": ".*",
-          "allowCustomValue": true,
-          "current": {
-            "text": "",
-            "value": ""
-          },
-          "definition": "label_values(memcached_connections_current{namespace=~\"$namespace\", pod=~\"$pod\"}, memcached_server)",
-          "hide": "dontHide",
-          "includeAll": true,
-          "label": "Memcached Server",
-          "multi": true,
-          "name": "memcached_server",
-          "options": [],
-          "query": {
-            "datasource": {
-              "name": "${datasource}"
-            },
-            "group": "prometheus",
-            "kind": "DataQuery",
-            "spec": {
-              "qryType": 1,
-              "query": "label_values(memcached_connections_current{namespace=~\"$namespace\", pod=~\"$pod\"}, memcached_server)",
-              "refId": "PrometheusVariableQueryEditor-VariableQuery"
-            },
-            "version": "v0"
-          },
-          "refresh": "onDashboardLoad",
-          "regex": "",
-          "skipUrlSync": false,
-          "sort": "alphabeticalAsc"
-        }
-      },
-      {
-        "kind": "QueryVariable",
-        "spec": {
-          "allValue": ".*",
-          "allowCustomValue": true,
-          "current": {
-            "text": "",
-            "value": ""
-          },
-          "definition": "label_values(memcached_connections_current{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\"}, memcached_endpoint)",
-          "hide": "dontHide",
-          "includeAll": true,
-          "label": "Memcached Endpoint",
-          "multi": true,
-          "name": "memcached_endpoint",
-          "options": [],
-          "query": {
-            "datasource": {
-              "name": "${datasource}"
-            },
-            "group": "prometheus",
-            "kind": "DataQuery",
-            "spec": {
-              "qryType": 1,
-              "query": "label_values(memcached_connections_current{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\"}, memcached_endpoint)",
-              "refId": "PrometheusVariableQueryEditor-VariableQuery"
-            },
-            "version": "v0"
-          },
-          "refresh": "onDashboardLoad",
-          "regex": "",
-          "skipUrlSync": false,
-          "sort": "alphabeticalAsc"
-        }
-      },
-      {
-        "kind": "QueryVariable",
-        "spec": {
-          "allValue": ".*",
-          "allowCustomValue": true,
-          "current": {
-            "text": "",
-            "value": ""
-          },
-          "definition": "label_values(memcached_connections_current{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\"}, container_id)",
-          "hide": "dontHide",
-          "includeAll": true,
-          "label": "Container ID",
-          "multi": true,
-          "name": "container_id",
-          "options": [],
-          "query": {
-            "datasource": {
-              "name": "${datasource}"
-            },
-            "group": "prometheus",
-            "kind": "DataQuery",
-            "spec": {
-              "qryType": 1,
-              "query": "label_values(memcached_connections_current{namespace=~\"$namespace\", pod=~\"$pod\", memcached_server=~\"$memcached_server\", memcached_endpoint=~\"$memcached_endpoint\"}, container_id)",
-              "refId": "PrometheusVariableQueryEditor-VariableQuery"
-            },
-            "version": "v0"
-          },
-          "refresh": "onDashboardLoad",
+          "refresh": "onTimeRangeChanged",
           "regex": "",
           "skipUrlSync": false,
           "sort": "alphabeticalAsc"
