@@ -1,0 +1,162 @@
+name: Sync Rackspace OpenStack Flex Status
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  fetch-status:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch OpenStack Flex status
+        run: |
+          python3 << 'PYEOF'
+          import urllib.request, json, re, time
+          from datetime import datetime, timezone
+
+          SERVICE_SYS_ID  = "85be01de87aaee104b7afc45dabb35b8"
+          PORTAL_ID       = "4e1bfc68db0172006bb3fb0bbf9619ae"
+          SNOW_BASE       = "https://rackspace.service-now.com"
+          STATUS_PAGE_URL = f"{SNOW_BASE}/system_status?id=service_status&service={SERVICE_SYS_ID}"
+          OUTPUT          = "docs/flex-status.json"
+
+          HEADERS = {
+              "User-Agent":      "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0",
+              "Accept":          "application/json",
+              "Accept-Language": "en-US,en;q=0.9",
+              "Cache-Control":   "no-cache",
+              "Referer":         STATUS_PAGE_URL,
+          }
+
+          COLOR_MAP = {
+              "green": "operational", "yellow": "degraded", "orange": "degraded",
+              "red": "outage", "blue": "maintenance", "grey": "unknown", "gray": "unknown",
+              "#5cb85c": "operational", "#f0ad4e": "degraded", "#d9534f": "outage",
+              "#337ab7": "maintenance", "#5bc0de": "maintenance",
+              "#777": "unknown", "#777777": "unknown",
+          }
+
+          def fetch_page():
+              ts  = int(time.time() * 1000)
+              url = (
+                  f"{SNOW_BASE}/api/now/sp/page"
+                  f"?id=service_status&service={SERVICE_SYS_ID}&time={ts}"
+                  f"&portal_id={PORTAL_ID}"
+                  f"&request_uri=%2Fsystem_status%3Fid%3Dservice_status%26service%3D{SERVICE_SYS_ID}"
+              )
+              print(f"[fetch] {url}")
+              req = urllib.request.Request(url, headers=HEADERS)
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  raw = r.read()
+                  print(f"[fetch] HTTP {r.status} — {len(raw):,} bytes")
+                  return json.loads(raw.decode(r.headers.get_content_charset("utf-8"), errors="replace"))
+
+          def dig(obj, *path, default=None):
+              cur = obj
+              for step in path:
+                  try: cur = cur[step]
+                  except (KeyError, IndexError, TypeError): return default
+              return cur
+
+          def parse_dt(value):
+              if value is None or value == "": return None
+              if isinstance(value, (int, float)):
+                  ts = float(value)
+                  return datetime.fromtimestamp(ts / 1000 if ts > 1e10 else ts, tz=timezone.utc)
+              s = str(value).strip()
+              if re.match(r'^\d+$', s):
+                  ts = float(s)
+                  return datetime.fromtimestamp(ts / 1000 if ts > 1e10 else ts, tz=timezone.utc)
+              for fmt in (None, "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"):
+                  try:
+                      dt = datetime.fromisoformat(s.replace("Z", "+00:00")) if fmt is None else datetime.strptime(s, fmt)
+                      return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+                  except (ValueError, AttributeError): continue
+              return None
+
+          def is_active(begin, end, now):
+              s, e = parse_dt(begin), parse_dt(end)
+              if s and s > now: return False
+              if e and e < now: return False
+              return True
+
+          def resolve_color(raw):
+              key = str(raw or "").strip().lower()
+              if key in COLOR_MAP: return COLOR_MAP[key]
+              if key.startswith("#") and len(key) in (4, 7):
+                  try:
+                      h = key.lstrip("#")
+                      if len(h) == 3: h = "".join(c*2 for c in h)
+                      r, g, b = int(h[0:2],16), int(h[2:4],16), int(h[4:6],16)
+                      if g > r and g > b: return "operational"
+                      if r > g and r > b: return "outage"
+                      if b > r and b > g: return "maintenance"
+                      return "degraded"
+                  except (ValueError, IndexError): pass
+              return key or "unknown"
+
+          now = datetime.now(timezone.utc)
+          result = {"fetched_at": now.isoformat(), "current_status": None, "active_event": None}
+
+          try:
+              page      = fetch_page().get("result", {})
+              stat_data = dig(page, "containers", 1, "rows", 0, "columns", 0, "widgets", 0, "widget", "data")
+              hist_data = dig(page, "containers", 1, "rows", 1, "columns", 0, "widgets", 1, "widget", "data")
+
+              # Current status — days[] is oldest-first, last entry is today
+              if stat_data:
+                  days = stat_data.get("days", [])
+                  if days:
+                      today = days[-1]
+                      result["current_status"] = {
+                          "status":    resolve_color(today.get("color", "")),
+                          "color_raw": today.get("color", ""),
+                          "message":   today.get("msg", ""),
+                          "date":      today.get("date", ""),
+                      }
+
+              # Active event — first outage whose begin/end window contains now
+              if hist_data:
+                  for outage in hist_data.get("outages", []):
+                      if not isinstance(outage, dict): continue
+                      info = outage.get("info", {})
+                      if not isinstance(info, dict): continue
+                      if is_active(info.get("beginValue"), info.get("endValue"), now):
+                          result["active_event"] = {
+                              "title":         info.get("title", "OpenStack Flex Event"),
+                              "details":       info.get("details", ""),
+                              "begin_display": info.get("beginDisplay", ""),
+                              "end_display":   info.get("endDisplay", ""),
+                              "begin_value":   info.get("beginValue"),
+                              "end_value":     info.get("endValue"),
+                              "duration":      info.get("duration", ""),
+                              "date":          info.get("date", outage.get("outageDate", "")),
+                              "link":          STATUS_PAGE_URL,
+                          }
+                          break
+
+          except Exception as e:
+              print(f"[error] {e}")
+              result["error"] = str(e)
+
+          print(json.dumps(result, indent=2, default=str))
+          with open(OUTPUT, "w") as f:
+              json.dump(result, f, indent=2, default=str)
+          print(f"Wrote -> {OUTPUT}")
+          PYEOF
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/flex-status.json
+          git diff --cached --quiet && echo "No changes." || (
+            git commit -m "chore: sync rackspace openstack flex status [skip ci]"
+            git push
+          )
