@@ -22,6 +22,13 @@ loki:
         index:
           prefix: index_
           period: 24h
+  compactor:
+    working_directory: /var/loki/compactor
+    compaction_interval: 10m
+    retention_enabled: true
+    retention_delete_delay: 2h
+    retention_delete_worker_count: 150
+    delete_request_store: filesystem
   distributor:
     otlp_config:
       default_resource_attributes_as_index_labels:
@@ -43,6 +50,8 @@ loki:
         - k8s.job.name
         - k8s.cronjob.name
   limits_config:
+    retention_period: 48h
+    max_query_lookback: 48h
     ingestion_rate_mb: 10
     ingestion_burst_size_mb: 40
     per_stream_rate_limit: 10MB
