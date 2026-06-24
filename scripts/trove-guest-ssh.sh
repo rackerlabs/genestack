@@ -216,7 +216,7 @@ exec sudo nsenter -t "\$PID" -n -- sudo -u ubuntu ssh $INNER_TT \\
     -o UserKnownHostsFile=/dev/null \\
     -o LogLevel=ERROR \\
     -o ConnectTimeout=10 \\
-    -i "\$TROVE_KEY" ubuntu@"\$GUEST_IP" \$USER_CMD
+    -i "\$TROVE_KEY" debian@"\$GUEST_IP" \$USER_CMD
 EOF
 )
 

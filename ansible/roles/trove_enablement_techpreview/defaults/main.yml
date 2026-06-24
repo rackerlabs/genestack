@@ -2,20 +2,20 @@
 # defaults file for trove_enablement_techpreview
 
 # =========================================================================
-# Trove guest image (built with diskimage-builder, mirroring Manila pattern)
+# Trove guest image (built with diskimage-builder + custom elements)
 # =========================================================================
-# Guest image (built with diskimage-builder, mirroring Manila pattern).
+# Guest image using the debian-guest and debian-docker elements from
+# files/elements/. Uses Debian's debootstrap flow via DIB's built-in
+# `debian-minimal` element.
+#
 # trove_guest_image_name embeds the OS release so changing
 # trove_guest_image_os_release triggers an automatic rebuild — the
 # state-detection step looks up the image by name, sees it doesn't
 # exist, and runs disk-image-create.
-trove_guest_image_os_release: noble
+trove_guest_image_os_release: bookworm
 trove_mysql_version: "8.4"
-# Embed mysql_version + os_release in the image name so different
-# datastore versions or Ubuntu bases don't collide on a single Glance
-# image.
 trove_guest_image_name: "trove-mysql-{{ trove_mysql_version }}-{{ trove_guest_image_os_release }}"
-trove_dib_distribution_mirror: "http://mirror.rackspace.com/ubuntu"
+trove_dib_distribution_mirror: "http://deb.debian.org/debian"
 # OpenStack release branch to clone for DIB elements + guest-agent.
 # Must match the trove server-side image (api/taskmanager/conductor)
 # in trove-helm-overrides.yaml: a 2026.1 guest agent talking to a
@@ -29,14 +29,13 @@ trove_dib_distribution_mirror: "http://mirror.rackspace.com/ubuntu"
 # panic that motivated the original bump is rendered server-side, so
 # the configmap-overlay (trove-mysql-config-template-override) fixes
 # it without the guest needing 2026.1.
-trove_openstack_release: "2025.1"
+trove_openstack_release: "2025.2"
 
 # =========================================================================
 # Trove datastore
 # =========================================================================
 trove_datastore_name: mysql
 trove_datastore_version_name: "8.4"
-trove_datastore_packages: "mysql-server"
 
 # =========================================================================
 # Trove networking and access
