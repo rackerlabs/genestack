@@ -256,7 +256,7 @@ defaultCRConfig:
         tls:
           insecure: true
 
-        timeout: 30s
+        timeout: 60s
 
         resource_to_telemetry_conversion:
           enabled: true
@@ -508,46 +508,46 @@ collectors:
             - /var/log/*/*.gz
           start_at: end
           include_file_path: true
-          # Multiline pattern must match AFTER CRI unwrapping
-          # CRI format: 2026-02-19T22:35:59.398699658Z stdout F <actual log line>
-          # We need to look for the OpenStack timestamp AFTER "F "
-          multiline:
-            # Match OpenStack timestamp OR Apache/Horizon logs OR CRI wrapper with OpenStack inside
-            line_start_pattern: '^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z stdout [FP] )?\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}|^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z stdout [FP] )?[\d\.]+ -'
           operators:
-            # ── Recombine multiline logs BEFORE CRI unwrapping ──────────────────
-            - type: recombine
-              id: recombine-multiline
-              combine_field: body
-              is_first_entry: 'body matches "^(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z stdout [FP] )?\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}|^(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z stdout [FP] )?[\\d\\.]+ -"'
-              combine_with: "\n"
-              source_identifier: attributes["log.file.path"]
-              max_log_size: 1048576
-
-            # ── Extract service name from file path ─────────────────────────────
             - type: regex_parser
               id: extract-service-from-path
               regex: '\/(?P<service>nova|neutron|cinder|keystone|glance|horizon|heat|swift|octavia|placement|manila|ironic|barbican|ceilometer|gnocchi|skyline|trove)'
               parse_from: attributes["log.file.path"]
               if: 'attributes["log.file.path"] != nil'
+              on_error: send_quiet
 
-            # ── Parse CRI wrapper (for pod logs) ────────────────────────────────
-            - type: regex_parser
-              id: parser-cri-wrapper
-              regex: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) (?P<log>.*)$'
+            # Pod logs: unwrap CRI/containerd/CRI-O/Docker log envelope.
+            # Non-pod direct logs skip this and continue unchanged.
+            - type: container
+              id: parser-container-wrapper
               parse_from: body
-              on_error: send
+              if: 'attributes["log.file.path"] matches "^/var/log/pods/"'
+              add_metadata_from_filepath: true
+              max_log_size: 1048576
+              on_error: send_quiet
 
-            # Replace body with unwrapped log content
-            - type: move
-              from: attributes.log
-              to: body
-              if: 'attributes.log != nil'
+            # Optional compatibility if dashboards expect "stream".
+            - type: copy
+              id: copy-container-stream
+              from: attributes["log.iostream"]
+              to: attributes.stream
+              if: 'attributes["log.iostream"] != nil'
 
-            # ── Parse Horizon Apache logs (special case) ─────────────────────────
+            # Optional: recombine only known OpenStack/Horizon-style multiline records.
+            # This keeps unknown/non-OpenStack-looking lines as their own log records.
+            - type: recombine
+              id: recombine-openstack-like-multiline
+              combine_field: body
+              is_first_entry: 'body matches "^(\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}|[\\d\\.]+ -)"'
+              combine_with: "\n"
+              source_identifier: attributes["log.file.path"]
+              max_log_size: 1048576
+              if: 'attributes.service != nil and (body matches "^\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}|^[\\d\\.]+ -|^\\s+|^Traceback \\(most recent call last\\):|^[A-Za-z_.]+(Error|Exception):")'
+
             - type: regex_parser
               id: parser-horizon-apache
               regex: '^(?P<remote_addr>[\w\.]+) - (?P<remote_user>[\w\-]+) \[(?P<timestamp>[^\]]+)\] "(?P<method>\w+) (?P<path>[^\s]+) (?P<protocol>[^"]+)" (?P<status>\d+) (?P<bytes>\d+)'
+              parse_from: body
               timestamp:
                 parse_from: attributes.timestamp
                 layout: '%d/%b/%Y:%H:%M:%S %z'
@@ -558,10 +558,8 @@ collectors:
                   warn: 4xx
                   info: 2xx|3xx
               if: 'body matches "^[\\d\\.]+ - " and attributes.service == "horizon"'
-              on_error: send
+              on_error: send_quiet
 
-            # ── Parse standard OpenStack log format (all other services) ────────
-            # Format: 2024-02-19 12:34:56.789 12345 INFO nova.compute.manager [req-abc123...] message
             - type: regex_parser
               id: parser-openstack-standard
               regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) (?P<pid>\d+) (?P<severity>\w+) (?P<component>[\w\.\-]+) \[(?P<request_context>[^\]]+)\] (?P<message>.*)$'
@@ -571,9 +569,9 @@ collectors:
                 layout: '%Y-%m-%d %H:%M:%S.%L'
               severity:
                 parse_from: attributes.severity
-              on_error: send
+              if: 'body matches "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\d+ \\w+ [\\w\\.\\-]+ \\["'
+              on_error: send_quiet
 
-            # ── Fallback: OpenStack log without request context ─────────────────
             - type: regex_parser
               id: parser-openstack-no-context
               regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) (?P<pid>\d+) (?P<severity>\w+) (?P<component>[\w\.\-]+) (?P<message>.*)$'
@@ -583,40 +581,38 @@ collectors:
                 layout: '%Y-%m-%d %H:%M:%S.%L'
               severity:
                 parse_from: attributes.severity
-              if: 'attributes.message == nil'
-              on_error: send
+              if: 'attributes.message == nil and body matches "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\d+ \\w+ [\\w\\.\\-]+ "'
+              on_error: send_quiet
 
-            # ── Fallback: Horizon Django logs ───────────────────────────────────
             - type: regex_parser
               id: parser-horizon-django
               regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2}[T ]?\d{2}:\d{2}:\d{2}[.,]?\d*)\s*(?P<severity>DEBUG|INFO|WARNING|ERROR|CRITICAL)?\s*(?P<component>[\w\.\-]+)?\s*(?P<message>.*)$'
+              parse_from: body
               severity:
                 parse_from: attributes.severity
               if: 'body matches "^\\d{4}-\\d{2}-\\d{2}" and attributes.message == nil and attributes.service == "horizon"'
-              on_error: send
+              on_error: send_quiet
 
-            # ── Final catch-all ──────────────────────────────────────────────────
+            # Final preservation path: everything gets a message.
             - type: regex_parser
               id: parser-catchall
-              regex: '^(?P<message>.+)$'
+              regex: '^(?P<message>[\s\S]*)$'
               parse_from: body
               if: 'attributes.message == nil'
+              on_error: send_quiet
 
-            # ── Extract OpenStack request_id from request context ───────────────
             - type: regex_parser
               id: extract-request-id
               regex: '(?P<request_id>req-[a-f0-9\-]+)'
               parse_from: attributes.request_context
-              if: 'attributes.request_context != nil'
-              on_error: send
+              if: 'attributes.request_context != nil and attributes.request_context matches "req-[a-f0-9-]+"'
+              on_error: send_quiet
 
-            # ── Set service.name resource attribute ─────────────────────────────
             - type: add
               field: resource["service.name"]
               value: EXPR(attributes.service)
               if: 'attributes.service != nil'
 
-            # ── Promote OpenStack-specific attributes ───────────────────────────
             - type: add
               field: attributes["openstack.component"]
               value: EXPR(attributes.component)
