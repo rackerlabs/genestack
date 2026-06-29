@@ -52,6 +52,12 @@ OPTIONS:
     -i <list>    Comma-separated list of OpenStack services to include
     -e <list>    Comma-separated list of OpenStack services to exclude
     -x           Run extra operations (k9s install, Octavia preconf, etc.)
+    --envoy-gateway-config
+                 Deploy Envoy using the internal/external gateway config file
+                 instead of the legacy flex-gateway.
+    --internal-metallb-ip <ip>
+                 Use a fixed IP for the internal Envoy MetalLB pool. If unset
+                 with --envoy-gateway-config, the lab creates a second VIP port.
 
 ENVIRONMENT VARIABLES:
     ACME_EMAIL          Email for ACME/Let's Encrypt certificates
@@ -87,6 +93,9 @@ EXAMPLES:
 
     # Deploy Kubespray with extra services and extras enabled
     $(basename "$0") kubespray -i heat,octavia -x
+
+    # Deploy Kubespray with internal/external Envoy gateways
+    $(basename "$0") kubespray --envoy-gateway-config
 
     # Deploy Talos with specific services excluded
     $(basename "$0") talos -e skyline

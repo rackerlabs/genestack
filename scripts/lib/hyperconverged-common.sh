@@ -18,6 +18,7 @@ export TEST_LEVEL="${TEST_LEVEL:-off}"
 export LAB_NETWORK_MTU="${LAB_NETWORK_MTU:-1500}"
 # enable or disable the deployment of openstack services within the lab environment.
 export DISABLE_OPENSTACK=${DISABLE_OPENSTACK:-false}
+export HYPERCONVERGED_ENVOY_GATEWAY_CONFIG="${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}"
 
 #############################################################################
 # Common Utility Functions
@@ -50,42 +51,75 @@ function parseCommonArgs() {
         EXCLUDE_LIST=()
     fi
 
-    while getopts "i:e:x" opt; do
-        case $opt in
-            x)
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -x)
                 RUN_EXTRAS=1
+                shift
                 ;;
-            i)
+            -i)
+                if [ -z "${2:-}" ]; then
+                    echo "Option -i requires a comma-separated service list" >&2
+                    exit 1
+                fi
                 old_IFS="$IFS"
                 IFS=','
-                read -r -a INCLUDE_LIST <<< "$OPTARG"
+                read -r -a INCLUDE_LIST <<< "$2"
                 IFS="$old_IFS"
+                shift 2
                 ;;
-            e)
+            -e)
+                if [ -z "${2:-}" ]; then
+                    echo "Option -e requires a comma-separated service list" >&2
+                    exit 1
+                fi
                 old_IFS="$IFS"
                 IFS=','
-                read -r -a EXCLUDE_LIST <<< "$OPTARG"
+                read -r -a EXCLUDE_LIST <<< "$2"
                 IFS="$old_IFS"
+                shift 2
                 ;;
-            *)
+            --envoy-gateway-config)
+                HYPERCONVERGED_ENVOY_GATEWAY_CONFIG=true
+                shift
+                ;;
+            --no-envoy-gateway-config)
+                HYPERCONVERGED_ENVOY_GATEWAY_CONFIG=false
+                shift
+                ;;
+            --internal-metallb-ip)
+                if [ -z "${2:-}" ]; then
+                    echo "Option --internal-metallb-ip requires an IP address" >&2
+                    exit 1
+                fi
+                HYPERCONVERGED_INTERNAL_METALLB_IP="$2"
+                shift 2
+                ;;
+            --)
+                shift
+                break
+                ;;
+            -*)
                 echo "Usage: $0 [-i <list,of,services,to,include>]"
                 echo "       [-e <list,of,services,to,exclude>]"
-                echo "       -x <flag to run extra operations>"
+                echo "       [-x]"
+                echo "       [--envoy-gateway-config]"
+                echo "       [--internal-metallb-ip <ip-address>]"
                 echo ""
                 echo "View the openstack-components.yaml for the services available to configure."
                 exit 1
                 ;;
-            \?)
-                echo "Invalid option: -$OPTARG" >&2
-                exit 1
+            *)
+                shift
                 ;;
         esac
     done
-    shift $((OPTIND-1))
 
     export RUN_EXTRAS
     export INCLUDE_LIST
     export EXCLUDE_LIST
+    export HYPERCONVERGED_ENVOY_GATEWAY_CONFIG
+    export HYPERCONVERGED_INTERNAL_METALLB_IP
 }
 
 function writeOpenstackComponentsConfig() {
@@ -262,6 +296,7 @@ function createMetalLBPort() {
     export METAL_LB_VIP
 
     if [ "${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}" = "true" ]; then
+        echo "Envoy gateway config mode enabled; preparing an internal MetalLB VIP"
         if [ -n "${HYPERCONVERGED_INTERNAL_METALLB_IP:-}" ]; then
             METAL_LB_INTERNAL_IP="${HYPERCONVERGED_INTERNAL_METALLB_IP}"
             if ! openstack port show ${LAB_NAME_PREFIX}-metallb-internal-vip-0-port >/dev/null 2>&1; then
@@ -1395,13 +1430,15 @@ function configureGenestackRemote() {
 
         cat <<EOF
 export HYPERCONVERGED_CINDER_VOLUME=$HYPERCONVERGED_CINDER_VOLUME
+export HYPERCONVERGED_ENVOY_GATEWAY_CONFIG=${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}
+export METAL_LB_INTERNAL_IP='${internal_metal_lb_ip}'
 export INCLUDE_LIST=("${INCLUDE_LIST[@]}")
 export EXCLUDE_LIST=("${EXCLUDE_LIST[@]}")
 set -e
 detectPlatform
 ensureYq
 writeMetalLBConfig '${metal_lb_ip}' '/etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml' '${internal_metal_lb_ip}'
-if [ "${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}" = "true" ]; then
+if [ "\${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}" = "true" ]; then
     writeEnvoyGatewayConfig '${gateway_domain}' '/etc/genestack/envoy-gateways.yaml'
 fi
 writeServiceHelmOverrides '/etc/genestack/helm-configs'
@@ -1431,10 +1468,11 @@ function runGenestackSetupRemote() {
         declare -f installYq
 
         cat <<EOF
+export HYPERCONVERGED_ENVOY_GATEWAY_CONFIG=${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}
 set -e
 detectPlatform
 ensureYq
-if [ "${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}" = "true" ]; then
+if [ "\${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}" = "true" ]; then
     export ENVOY_GATEWAY_CONFIG_FILE=/etc/genestack/envoy-gateways.yaml
 fi
 runGenestackSetup "${gateway_domain}" "${acme_email}" ${disable_openstack}
