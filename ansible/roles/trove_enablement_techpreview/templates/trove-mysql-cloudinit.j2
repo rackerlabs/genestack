@@ -21,12 +21,12 @@ echo '{{ trove_services_vip_ip }} keystone-api.openstack.svc.cluster.local' >> /
 # dropped.
 mkdir -p /etc/trove/conf.d
 echo '{{ trove_guest_transport_conf_b64 }}' | base64 -d > /etc/trove/conf.d/transport.conf
-chown ubuntu:root /etc/trove/conf.d/transport.conf
+chown debian:root /etc/trove/conf.d/transport.conf
 
 # make sure the log directory exists that is specified in the trove-guestagent.conf template
 mkdir -p /var/log/trove
 touch /var/log/trove/guest-agent.log
-chown -R ubuntu:root /var/log/trove
+chown -R debian:root /var/log/trove
 
 # Pre-baked datastore image — load it before guest-agent tries to
 # docker pull at prepare time. The image was injected into /var/lib/

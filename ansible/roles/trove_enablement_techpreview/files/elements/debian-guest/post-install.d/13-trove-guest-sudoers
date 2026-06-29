@@ -1,0 +1,11 @@
+#!/bin/bash
+set -e
+set -o xtrace
+
+GUEST_USERNAME=${GUEST_USERNAME:-"debian"}
+
+TEMPFILE=$(mktemp)
+echo "${GUEST_USERNAME} ALL=(ALL) NOPASSWD:ALL" > $TEMPFILE
+chmod 0440 $TEMPFILE
+chown root:root $TEMPFILE
+mv $TEMPFILE /etc/sudoers.d/60_trove_guest

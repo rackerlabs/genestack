@@ -74,6 +74,10 @@ conf:
       volume_fstype: ext4
       cinder_volume_type: Standard
       enable_volume_az: true
+      # Owner of files injected into the guest via cloud-init write_files.
+      # Must match a user that exists in the guest image.
+      injected_config_owner: debian
+      injected_config_group: root
       # Disable per-instance RPC encryption.
       #
       # With encryption enabled (default), the conductor's
