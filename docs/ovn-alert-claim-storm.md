@@ -183,7 +183,7 @@ Some tips and recommendations:
   gateway node(s):
 
   ```
-  kubectl drain <gateway-node> --ignore-daemonsets --delete-local-data --force
+  kubectl drain <gateway-node> --ignore-daemonsets --delete-emptydir-data --force
   # reboot the node
   kubectl uncordon <gateway-node> # after return from reboot
   ```
