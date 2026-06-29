@@ -111,14 +111,14 @@ machine:
 
 ### Run the Deployment
 
-With your values file in place, you can now deploy Longhorn using the `/opt/genestack/bin/install-longhorn.sh`
+With your values file in place, you can now deploy Longhorn using the `/opt/genestack/bin/install.sh --service longhorn`
 command. This command will install Longhorn if it is not installed yet, or upgrade it if an older version is
 already present.
 
-??? example "Run the Longhorn deployment Script `/opt/genestack/bin/install-longhorn.sh`"
+??? example "Run the Longhorn deployment Script"
 
     ``` shell
-    --8<-- "bin/install-longhorn.sh"
+    /opt/genestack/bin/install.sh --service longhorn
     ```
 
 After the Helm deployment finishes, you’ll want to verify that everything is running correctly.

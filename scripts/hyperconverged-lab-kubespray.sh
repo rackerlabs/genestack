@@ -856,6 +856,7 @@ if [ ! -d "/var/lib/kubelet" ]; then
         echo "Kubespray checkout missing, initializing submodule..."
         pushd /opt/genestack >/dev/null
             sudo git config --global --add safe.directory /opt/genestack
+            sudo git config --global --add safe.directory /opt/genestack/submodules/*
             sudo git submodule sync --recursive
             sudo git submodule update --init --recursive submodules/kubespray
         popd >/dev/null

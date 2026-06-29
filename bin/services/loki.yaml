@@ -1,0 +1,14 @@
+---
+service:
+  name: loki
+  namespace: monitoring
+  version: ~
+
+  family: ""
+
+chart:
+  repo_name: grafana
+  repo_url: https://grafana.github.io/helm-charts
+  global_overrides: false
+
+secrets: []

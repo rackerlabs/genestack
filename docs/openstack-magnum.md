@@ -1101,7 +1101,7 @@ From genestack control-plane node : Verify Magnum API is properly exposed.
 
 !!! note "Information about the secrets used"
 
-    Manual secret generation is only required if you haven't run the `create-secrets.sh`.
+    Secrets are generated and applied automatically by the install script.
     Script located in `/opt/genestack/bin`.
 
     ??? example "Example secret generation"
@@ -1249,7 +1249,7 @@ Confirm the file is in place and referenced by the install script:
 ls -la /etc/genestack/helm-configs/magnum/magnum-helm-overrides-capi.yaml
 
 # Verify install-magnum.sh references it
-grep "capi" /opt/genestack/bin/install-magnum.sh
+grep "capi" /opt/genestack/bin/install.sh
 ```
 
 The install script should include a `-f` flag pointing to this file:
@@ -1270,12 +1270,12 @@ This part should be followed on fresh/new installs only.
 
     You have already followed [Getting the Genestack Repository](genestack-getting-started.md) to fetch the code in `/opt/genestack`
 
-!!! example "Run the Magnum deployment Script `/opt/genestack/bin/install-magnum.sh`"
+!!! example "Run the Magnum deployment Script"
 
 From genestack control-plane node :
 
     ``` shell
-    --8<-- "bin/install-magnum.sh"
+    /opt/genestack/bin/install.sh --service magnum
     ```
 
 ## (Optional) Upgrading Magnum with CAPI Support
@@ -1285,7 +1285,7 @@ From genestack control-plane node :
 
 !!! warning "Disclaimer"
     - Upgrade part is only applicable if you are running on an older version of magnum helm chart (2024.X.X) deployed in your openstack cluster.
-    - By default newer version of magnum will be installed on running the `install-magnum.sh` script.
+    - By default newer version of magnum will be installed on running the `install.sh --service magnum` script.
 
 ### :material-file-edit: Modify Installation Script
 
@@ -1327,7 +1327,7 @@ From genestack control-plane node: Modify the Magnum Helm chart version to enabl
 
 ### :material-rocket: Execute Magnum Upgrade
 
-Run the updated installation script `/opt/genestack/bin/install-magnum.sh` to upgrade Magnum.
+Run the updated installation script `/opt/genestack/bin/install.sh --service magnum` to upgrade Magnum.
 
 === "Command"
 

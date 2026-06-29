@@ -519,7 +519,7 @@ resources:
 Now run the helm deployment to update keystone to use the new federation setup.
 
 ``` shell
-/opt/genestack/bin/install-keystone.sh
+/opt/genestack/bin/install.sh --service keystone
 ```
 
 ### Redeploy the Skyline UI with SSO Enabled
@@ -542,7 +542,7 @@ the Keystone API.
 Rerun the helm deployment to update the Skyline UI with SSO support.
 
 ``` shell
-/opt/genestack/bin/install-skyline.sh
+/opt/genestack/bin/install.sh --service skyline
 ```
 
 !!! genestack "Using the API with WebSSO and Federation"

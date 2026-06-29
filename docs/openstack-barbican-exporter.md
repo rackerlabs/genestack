@@ -5,7 +5,7 @@ The Barbican exporter allows monitoring of OpenStack's Key Management Service (B
 #### Install the Barbican Exporter Helm Chart
 
 ```shell
-bin/install-barbican-exporter.sh
+/opt/genestack/bin/install.sh --service barbican-exporter
 ```
 
 !!! success

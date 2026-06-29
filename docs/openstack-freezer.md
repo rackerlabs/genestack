@@ -25,43 +25,18 @@ Freezer-Scheduler using Genestack.
 !!! tip
     Login to your flex openstack cluster
 
-### :material-key-variant: Create secrets
+### :material-key-variant: Secrets
 
-!!! note "Information about the secrets used"
+!!! note
 
-    Manual secret generation is only required if you haven't run the
-    `create-secrets.sh` script located in `/opt/genestack/bin`.
-
-    ??? example "Example secret generation"
-
-        ```bash
-        kubectl --namespace openstack \
-                create secret generic freezer-db-password \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-
-        kubectl --namespace openstack \
-                create secret generic freezer-admin \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-
-        kubectl --namespace openstack \
-                create secret generic freezer-keystone-test-password \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-
-        kubectl --namespace openstack \
-                create secret generic freezer-keystone-service-password \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        ```
+    Secrets are generated and applied automatically by the install script.
 
 ### :material-play-circle: Run the package deployment
 
-!!! example "Run the Freezer deployment Script `/opt/genestack/bin/install-freezer.sh`"
+!!! example "Run the Freezer deployment Script"
 
     ```bash
-    --8<-- "bin/install-freezer.sh"
+    /opt/genestack/bin/install.sh --service freezer
     ```
 
 ### :material-check-circle: Validate Install Success

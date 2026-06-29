@@ -9,7 +9,8 @@ charts:
   cinder: 2025.1.13+4d4d4e25c
   cloudkitty: 2025.1.2+ebb1488dc
   designate: 2025.2.6+f3906fe15
-  envoyproxy-gateway: v1.7.0
+  envoy-gateway: v1.7.0
+  fluent-bit: 0.57.7
   freezer: 2025.2.0+18607738c
   glance: 2025.1.4+ed289c1cd
   gnocchi: 2025.1.1+0161bea65
@@ -34,8 +35,10 @@ charts:
   opentelemetry-kube-stack: 0.13.1
   placement: 2025.1.2+0cd784591
   octavia: 2025.1.18+12458c92d
+  openstack-api-exporter: 0.1.0
   postgres-operator: 1.15.1
   prometheus-pushgateway: 3.4.2
+  tempest: 2026.1.2+a2a343968
   redis-operator: 0.24.0
   redis-replication: 0.17.0
   redis-sentinel: 0.16.12

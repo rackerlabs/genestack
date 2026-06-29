@@ -1,0 +1,16 @@
+---
+service:
+  name: barbican-exporter
+  version: ~
+  family: ""
+
+chart:
+  repo_name: genestack-barbician-exporter-helm-chart
+  repo_url: https://rackerlabs.github.io/genestack-barbician-exporter-helm-chart
+  service_name: barbican-exporter
+  global_overrides: false
+
+kustomize:
+  enabled: false
+
+secrets: []

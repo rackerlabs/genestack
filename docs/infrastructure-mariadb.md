@@ -4,7 +4,7 @@
 
 !!! note "Information about the secretes used"
 
-    Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
+    Manual secret generation is only required if you haven't deployed the service automatically via `install.sh`.
 
     ??? example "Example secret generation"
 
@@ -25,10 +25,10 @@ echo $CLUSTER_NAME
 
 If `cluster_name` was anything other than `cluster.local` you should pass that as a parameter to the installer
 
-!!! example "Run the mariadb-operator deployment Script `/opt/genestack/bin/install-mariadb-operator.sh` You can include cluster_name paramater from the output of $CLUSTER_NAME. If no paramaters are provided, the system will deploy with `cluster.local` as the cluster name."
+!!! example "Run the mariadb-operator deployment Script You can include cluster_name paramater from the output of $CLUSTER_NAME. If no paramaters are provided, the system will deploy with `cluster.local` as the cluster name."
 
     ``` shell
-    --8<-- "bin/install-mariadb-operator.sh"
+    /opt/genestack/bin/install.sh --service mariadb-operator
     ```
 
 !!! info
