@@ -95,6 +95,22 @@ if [ -n "${METAL_LB_INTERNAL_IP:-}" ]; then
     METALLB_ALLOWED_ADDRESS_ARGS+=(--allowed-address "ip-address=${METAL_LB_INTERNAL_IP}")
 fi
 
+function ensurePortAllowedAddressPair() {
+    local port_id="$1"
+    local ip_address="$2"
+
+    if [ -z "${ip_address}" ]; then
+        return 0
+    fi
+
+    if openstack port show "${port_id}" -f json | jq -e --arg ip "${ip_address}" '.allowed_address_pairs // [] | any(.ip_address == $ip)' >/dev/null; then
+        return 0
+    fi
+
+    echo "Adding allowed address ${ip_address} to port ${port_id}"
+    openstack port set --allowed-address "ip-address=${ip_address}" "${port_id}"
+}
+
 # Create management ports with jump host security group on first node
 if ! WORKER_0_PORT=$(openstack port show ${LAB_NAME_PREFIX}-0-mgmt-port -f value -c id 2>/dev/null); then
     export WORKER_0_PORT=$(
@@ -109,6 +125,8 @@ if ! WORKER_0_PORT=$(openstack port show ${LAB_NAME_PREFIX}-0-mgmt-port -f value
     )
 fi
 export WORKER_0_PORT
+ensurePortAllowedAddressPair "${WORKER_0_PORT}" "${METAL_LB_IP}"
+ensurePortAllowedAddressPair "${WORKER_0_PORT}" "${METAL_LB_INTERNAL_IP:-}"
 
 if ! WORKER_1_PORT=$(openstack port show ${LAB_NAME_PREFIX}-1-mgmt-port -f value -c id 2>/dev/null); then
     export WORKER_1_PORT=$(
@@ -122,6 +140,8 @@ if ! WORKER_1_PORT=$(openstack port show ${LAB_NAME_PREFIX}-1-mgmt-port -f value
     )
 fi
 export WORKER_1_PORT
+ensurePortAllowedAddressPair "${WORKER_1_PORT}" "${METAL_LB_IP}"
+ensurePortAllowedAddressPair "${WORKER_1_PORT}" "${METAL_LB_INTERNAL_IP:-}"
 
 if ! WORKER_2_PORT=$(openstack port show ${LAB_NAME_PREFIX}-2-mgmt-port -f value -c id 2>/dev/null); then
     export WORKER_2_PORT=$(
@@ -135,6 +155,8 @@ if ! WORKER_2_PORT=$(openstack port show ${LAB_NAME_PREFIX}-2-mgmt-port -f value
     )
 fi
 export WORKER_2_PORT
+ensurePortAllowedAddressPair "${WORKER_2_PORT}" "${METAL_LB_IP}"
+ensurePortAllowedAddressPair "${WORKER_2_PORT}" "${METAL_LB_INTERNAL_IP:-}"
 
 # Create floating IP for jump host (first node)
 if ! JUMP_HOST_VIP=$(openstack floating ip list --port ${WORKER_0_PORT} -f json 2>/dev/null | jq -r '.[]."Floating IP Address"'); then
@@ -1011,6 +1033,7 @@ Deployment took ${SECONDS} seconds to complete.
 
 Cluster Information:
   - Jump Host Address: ${_DISPLAY_JUMP_VIP}
+  - Envoy Gateway Config Mode: ${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}
   - MetalLB External IP: ${METAL_LB_IP}
   - MetalLB Envoy Internal IP: ${METAL_LB_INTERNAL_IP:-not configured}
   - MetalLB Public VIP: ${METAL_LB_VIP}
