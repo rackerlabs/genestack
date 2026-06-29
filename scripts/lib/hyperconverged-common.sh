@@ -334,7 +334,7 @@ function prepareJumpHostSource() {
         rsync -avz \
             --exclude='.git' \
             -e "ssh ${SSH_OPTS_STR}" \
-            ${DEV_PATH} "${SSH_TARGET}:/opt/"
+            "${DEV_PATH}/" "${SSH_TARGET}:/opt/genestack/"
     else
         cloneGenestackOnJumpHost
     fi
