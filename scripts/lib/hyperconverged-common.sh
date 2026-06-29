@@ -331,8 +331,8 @@ function prepareJumpHostSource() {
         _ssh "while sudo fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do echo 'Waiting for apt locks to be released...'; sleep 5; done && sudo apt-get update && sudo apt install -y rsync git && sudo mkdir -p /opt/genestack && sudo chown ${SSH_USERNAME}:${SSH_USERNAME} /opt/genestack"
 
         echo "Copying the development source code to the jump host"
+        # Keep .git so the jump host can initialize pinned submodules such as Kubespray.
         rsync -avz \
-            --exclude='.git' \
             -e "ssh ${SSH_OPTS_STR}" \
             "${DEV_PATH}/" "${SSH_TARGET}:/opt/genestack/"
     else
