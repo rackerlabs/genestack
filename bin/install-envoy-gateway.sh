@@ -15,6 +15,7 @@ HELM_REPO_NAME_DEFAULT="gateway-helm"
 HELM_REPO_URL_DEFAULT="oci://docker.io/envoyproxy"
 GATEWAY_CONFIG_FILE=""
 HELM_EXTRA_ARGS=()
+POST_RENDERER_KUSTOMIZE="${SERVICE_NAME_DEFAULT}/overlay"
 
 # Base directories provided by the environment
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
@@ -41,6 +42,10 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+if [ -n "${GATEWAY_CONFIG_FILE}" ]; then
+    POST_RENDERER_KUSTOMIZE="${SERVICE_NAME_DEFAULT}/config-mode"
+fi
 
 # Define service-specific override directories based on the framework
 SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME_DEFAULT}"
@@ -147,7 +152,7 @@ helm_command=(
 
     # Post-renderer configuration
     --post-renderer "$GENESTACK_OVERRIDES_DIR/kustomize/kustomize.sh"
-    --post-renderer-args "$SERVICE_NAME_DEFAULT/overlay"
+    --post-renderer-args "$POST_RENDERER_KUSTOMIZE"
 
     "${HELM_EXTRA_ARGS[@]}"
 )
@@ -178,6 +183,9 @@ if [ ! -f "/usr/local/bin/egctl" ]; then
 fi
 
 if [ -n "${GATEWAY_CONFIG_FILE}" ]; then
+    echo "Waiting for the envoyproxy-gateway to be available"
+    kubectl -n envoyproxy-gateway-system wait --timeout=5m deployments.apps/envoy-gateway --for=condition=available
+
     echo "Applying Envoy Gateway configuration from ${GATEWAY_CONFIG_FILE}"
     "${SCRIPT_DIR}/setup-envoy-gateway.sh" --config "${GATEWAY_CONFIG_FILE}"
 fi

@@ -930,8 +930,7 @@ apply_config_prerequisites() {
         envoy-gateway-namespace.yaml \
         envoy-internal-gateway-issuer.yaml \
         envoy-custom-proxy-config.yaml \
-        envoy-gatewayclass.yaml \
-        envoy-endpoint-policies.yaml; do
+        envoy-gatewayclass.yaml; do
         if resource_path=$(resource_file "envoyproxy-gateway/base/${resource}"); then
             kubectl apply -f "${resource_path}"
         elif resource_path=$(resource_file "envoyproxy-gateway/overlay/${resource}"); then
@@ -940,6 +939,11 @@ apply_config_prerequisites() {
             echo "Warning: prerequisite resource not found: ${resource}" >&2
         fi
     done
+}
+
+delete_legacy_config_gateway_resources() {
+    kubectl -n envoy-gateway delete gateway flex-gateway --ignore-not-found
+    kubectl -n envoy-gateway delete clienttrafficpolicy.gateway.envoyproxy.io flex-gateway-client-policy --ignore-not-found
 }
 
 create_config_namespace() {
@@ -1430,6 +1434,7 @@ setup_from_config() {
 
     echo "Using Envoy Gateway configuration file: ${CONFIG_FILE}"
     apply_config_prerequisites
+    delete_legacy_config_gateway_resources
 
     while IFS= read -r gateway_name; do
         [ -n "${gateway_name}" ] || continue
