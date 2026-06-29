@@ -66,6 +66,12 @@ ENVIRONMENT VARIABLES:
                         for easier testing and debugging.
     HYPERCONVERGED_CINDER_VOLUME
                         If set to "true", enables iSCSI cinder volume support.
+    HYPERCONVERGED_ENVOY_GATEWAY_CONFIG
+                        If set to "true", deploys Envoy using the internal/external
+                        gateway config file path instead of the legacy flex-gateway.
+    HYPERCONVERGED_INTERNAL_METALLB_IP
+                        Optional fixed IP for the internal Envoy MetalLB pool. If
+                        unset, the lab creates a second internal VIP port.
     DISABLE_OPENSTACK
                         if set to "true", no openstack services will be deployed.
 

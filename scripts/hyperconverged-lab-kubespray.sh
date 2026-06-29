@@ -90,10 +90,15 @@ fi
 
 createMetalLBPort
 
+METALLB_ALLOWED_ADDRESS_ARGS=(--allowed-address "ip-address=${METAL_LB_IP}")
+if [ -n "${METAL_LB_INTERNAL_IP:-}" ]; then
+    METALLB_ALLOWED_ADDRESS_ARGS+=(--allowed-address "ip-address=${METAL_LB_INTERNAL_IP}")
+fi
+
 # Create management ports with jump host security group on first node
 if ! WORKER_0_PORT=$(openstack port show ${LAB_NAME_PREFIX}-0-mgmt-port -f value -c id 2>/dev/null); then
     export WORKER_0_PORT=$(
-        openstack port create --allowed-address ip-address=${METAL_LB_IP} \
+        openstack port create "${METALLB_ALLOWED_ADDRESS_ARGS[@]}" \
             --security-group ${LAB_NAME_PREFIX}-secgroup \
             --security-group ${LAB_NAME_PREFIX}-jump-secgroup \
             --security-group ${LAB_NAME_PREFIX}-http-secgroup \
@@ -107,7 +112,7 @@ export WORKER_0_PORT
 
 if ! WORKER_1_PORT=$(openstack port show ${LAB_NAME_PREFIX}-1-mgmt-port -f value -c id 2>/dev/null); then
     export WORKER_1_PORT=$(
-        openstack port create --allowed-address ip-address=${METAL_LB_IP} \
+        openstack port create "${METALLB_ALLOWED_ADDRESS_ARGS[@]}" \
             --security-group ${LAB_NAME_PREFIX}-secgroup \
             --security-group ${LAB_NAME_PREFIX}-http-secgroup \
             --network ${LAB_NAME_PREFIX}-net \
@@ -120,7 +125,7 @@ export WORKER_1_PORT
 
 if ! WORKER_2_PORT=$(openstack port show ${LAB_NAME_PREFIX}-2-mgmt-port -f value -c id 2>/dev/null); then
     export WORKER_2_PORT=$(
-        openstack port create --allowed-address ip-address=${METAL_LB_IP} \
+        openstack port create "${METALLB_ALLOWED_ADDRESS_ARGS[@]}" \
             --security-group ${LAB_NAME_PREFIX}-secgroup \
             --security-group ${LAB_NAME_PREFIX}-http-secgroup \
             --network ${LAB_NAME_PREFIX}-net \
@@ -660,6 +665,29 @@ spec:
   ipAddressPools:
     - gateway-api-external
 EOF
+if [ -n "${METAL_LB_INTERNAL_IP:-}" ]; then
+cat >> /etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml <<EOF
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: gateway-api-internal
+  namespace: metallb-system
+spec:
+  addresses:
+    - ${METAL_LB_INTERNAL_IP}/32
+  autoAssign: false
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: openstack-internal-advertisement
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - gateway-api-internal
+EOF
+fi
 
 # Create Kubespray inventory
 if [ ! -f "/etc/genestack/inventory/inventory.yaml" ]; then
@@ -983,7 +1011,8 @@ Deployment took ${SECONDS} seconds to complete.
 
 Cluster Information:
   - Jump Host Address: ${_DISPLAY_JUMP_VIP}
-  - MetalLB Internal IP: ${METAL_LB_IP}
+  - MetalLB External IP: ${METAL_LB_IP}
+  - MetalLB Envoy Internal IP: ${METAL_LB_INTERNAL_IP:-not configured}
   - MetalLB Public VIP: ${METAL_LB_VIP}
 
 SSH Access:
