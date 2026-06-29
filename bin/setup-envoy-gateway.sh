@@ -12,6 +12,7 @@ OPTIONS:
     -d, --domain DOMAIN         Gateway domain name (default: cluster.local)
     -c, --challenge METHOD      ACME challenge method: http01 or dns01 (default: http01)
     -p, --dns-plugin PLUGIN     DNS01 plugin (only used with dns01)
+    --config FILE               Gateway configuration file for multi-gateway setup
     -h, --help [PLUGIN]         Display this help message, or detailed help for a specific plugin
 
     # Generic credentials (usage depends on --dns-plugin):
@@ -49,6 +50,9 @@ Example: $0 --help cloudflare
 EXAMPLES:
     # Basic setup with HTTP01 challenge
     $0 --email user@example.com --domain example.com
+
+    # Multi-gateway setup from a config file
+    $0 --config /etc/genestack/envoy-gateways.yaml
 
     # Setup without ACME (no SSL certificates)
     $0 --domain example.com
@@ -467,9 +471,12 @@ EOF
 
 # Initialize variables
 ACME_EMAIL=""
+CONFIG_FILE=""
 GATEWAY_DOMAIN=""
 CHALLENGE_METHOD="http01"
 DNS_PLUGIN="godaddy"
+GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
+GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 
 # Generic credential variables
 API_KEY=""
@@ -513,6 +520,16 @@ while [[ $# -gt 0 ]]; do
             DNS_PLUGIN="$2"
             INTERACTIVE_MODE=false
             shift 2
+            ;;
+        --config|--gateway-config)
+            CONFIG_FILE="$2"
+            INTERACTIVE_MODE=false
+            shift 2
+            ;;
+        --config=*|--gateway-config=*)
+            CONFIG_FILE="${1#*=}"
+            INTERACTIVE_MODE=false
+            shift
             ;;
         --api-key)
             API_KEY="$2"
@@ -595,7 +612,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         -h|--help)
-            if [[ -n "$2" && "$2" != -* ]]; then
+            if [[ -n "${2:-}" && "${2:-}" != -* ]]; then
                 # Detailed help for specific plugin
                 usage_plugin "$2"
                 exit 0
@@ -825,6 +842,605 @@ validate_credentials() {
             ;;
     esac
 }
+
+require_config_tools() {
+    local missing_tools=()
+
+    for tool in yq jq kubectl; do
+        if ! command -v "${tool}" >/dev/null 2>&1; then
+            missing_tools+=("${tool}")
+        fi
+    done
+
+    if [ "${#missing_tools[@]}" -gt 0 ]; then
+        echo "Error: config mode requires the following tools: ${missing_tools[*]}" >&2
+        return 1
+    fi
+
+    return 0
+}
+
+config_json() {
+    yq eval -o=json "$1" "${CONFIG_FILE}"
+}
+
+list_config_gateway_names() {
+    config_json '.gateways // {}' | jq -r '
+        if type == "array" then
+            .[] | .name // empty
+        elif type == "object" then
+            keys[]
+        else
+            empty
+        end
+    '
+}
+
+get_config_gateway_json() {
+    local gateway_name="$1"
+
+    config_json '.gateways // {}' | jq -c --arg gateway_name "${gateway_name}" '
+        if type == "array" then
+            .[] | select(.name == $gateway_name)
+        elif type == "object" then
+            .[$gateway_name] // empty
+        else
+            empty
+        end
+    '
+}
+
+json_value() {
+    local json="$1"
+    local filter="$2"
+    local default="${3:-}"
+
+    jq -r --arg default "${default}" "if type == \"object\" then (${filter}) // \$default else \$default end" <<< "${json}"
+}
+
+json_bool() {
+    local json="$1"
+    local filter="$2"
+    local default="${3:-false}"
+
+    jq -r --argjson default "${default}" "if type == \"object\" then (${filter}) // \$default else \$default end" <<< "${json}"
+}
+
+resource_file() {
+    local relative_path="$1"
+    local candidate
+
+    for candidate in \
+        "${GENESTACK_OVERRIDES_DIR}/kustomize/${relative_path}" \
+        "${GENESTACK_BASE_DIR}/base-kustomize/${relative_path}"; do
+        if [ -f "${candidate}" ]; then
+            echo "${candidate}"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+apply_config_prerequisites() {
+    local resource
+    local resource_path
+
+    for resource in \
+        envoy-gateway-namespace.yaml \
+        envoy-internal-gateway-issuer.yaml \
+        envoy-custom-proxy-config.yaml \
+        envoy-gatewayclass.yaml \
+        envoy-endpoint-policies.yaml; do
+        if resource_path=$(resource_file "envoyproxy-gateway/base/${resource}"); then
+            kubectl apply -f "${resource_path}"
+        elif resource_path=$(resource_file "envoyproxy-gateway/overlay/${resource}"); then
+            kubectl apply -f "${resource_path}"
+        else
+            echo "Warning: prerequisite resource not found: ${resource}" >&2
+        fi
+    done
+}
+
+create_config_namespace() {
+    local namespace="$1"
+
+    if kubectl get namespace "${namespace}" >/dev/null 2>&1; then
+        echo "Namespace ${namespace} already exists"
+        return 0
+    fi
+
+    kubectl create namespace "${namespace}"
+}
+
+gateway_pool_for_type() {
+    local gateway_json="$1"
+    local gateway_type="$2"
+
+    jq -r --arg gateway_type "${gateway_type}" '
+        .metallb_pool
+        // .address_pool
+        // .addressPool
+        // .metallb_pools[$gateway_type]
+        // .metallbPools[$gateway_type]
+        // ""
+    ' <<< "${gateway_json}"
+}
+
+render_config_gateway() {
+    local gateway_name="$1"
+    local gateway_json="$2"
+    local gateway_namespace="$3"
+    local gateway_type="$4"
+    local gateway_domain="$5"
+    local gateway_class_name="$6"
+    local gateway_pool="$7"
+    local issuer_name="$8"
+    local certificate_secret="$9"
+
+    cat <<EOF
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: ${gateway_name}
+  namespace: ${gateway_namespace}
+  annotations:
+    cert-manager.io/cluster-issuer: ${issuer_name}
+    acme.cert-manager.io/http01-edit-in-place: "true"
+  labels:
+    gateway.genestack.io/type: ${gateway_type}
+spec:
+  gatewayClassName: ${gateway_class_name}
+EOF
+
+    if [ -n "${gateway_pool}" ]; then
+        cat <<EOF
+  infrastructure:
+    annotations:
+      metallb.io/address-pool: ${gateway_pool}
+EOF
+    fi
+
+    cat <<EOF
+  listeners:
+    - name: cluster-http
+      port: 80
+      protocol: HTTP
+      hostname: "*.${gateway_domain}"
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: cluster-tls
+      port: 443
+      protocol: HTTPS
+      hostname: "*.${gateway_domain}"
+      allowedRoutes:
+        namespaces:
+          from: All
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: ${certificate_secret}
+EOF
+
+}
+
+apply_config_gateway() {
+    local gateway_name="$1"
+    local gateway_json="$2"
+    local gateway_namespace gateway_type gateway_domain gateway_class_name gateway_pool issuer_name certificate_secret
+    local manifest
+
+    gateway_namespace=$(json_value "${gateway_json}" '.namespace' 'envoy-gateway')
+    gateway_type=$(json_value "${gateway_json}" '.type' "${gateway_name}")
+    gateway_domain=$(json_value "${gateway_json}" '.domain' "${GATEWAY_DOMAIN:-cluster.local}")
+    gateway_class_name=$(json_value "${gateway_json}" '.gateway_class // .gatewayClassName' 'eg')
+    gateway_pool=$(gateway_pool_for_type "${gateway_json}" "${gateway_type}")
+    issuer_name=$(json_value "${gateway_json}" '.issuer // .certificate.issuer // .certificate.issuer_name // .certificate.issuerName' 'flex-gateway-issuer')
+    certificate_secret=$(json_value "${gateway_json}" '.certificate_secret // .certificateSecret' "wildcard-${gateway_name}-tls-secret")
+
+    echo "Applying configured gateway ${gateway_name}"
+    echo "  Namespace: ${gateway_namespace}"
+    echo "  Type: ${gateway_type}"
+    echo "  Domain: ${gateway_domain}"
+    echo "  MetalLB pool: ${gateway_pool:-"(not configured)"}"
+
+    create_config_namespace "${gateway_namespace}"
+
+    manifest=$(mktemp)
+    render_config_gateway \
+        "${gateway_name}" \
+        "${gateway_json}" \
+        "${gateway_namespace}" \
+        "${gateway_type}" \
+        "${gateway_domain}" \
+        "${gateway_class_name}" \
+        "${gateway_pool}" \
+        "${issuer_name}" \
+        "${certificate_secret}" > "${manifest}"
+
+    kubectl apply -f "${manifest}"
+    rm -f "${manifest}"
+
+    kubectl -n "${gateway_namespace}" wait --timeout=5m "gateways.gateway.networking.k8s.io/${gateway_name}" --for=condition=Accepted
+}
+
+find_route_template() {
+    local route_name="$1"
+    local configured_file="$2"
+    local candidate
+
+    if [ -n "${configured_file}" ]; then
+        for candidate in "${configured_file}" "${GENESTACK_BASE_DIR}/${configured_file}"; do
+            if [ -f "${candidate}" ]; then
+                echo "${candidate}"
+                return 0
+            fi
+        done
+    fi
+
+    for candidate in \
+        "${GENESTACK_BASE_DIR}/etc/gateway-api/routes/custom-${route_name}-gateway-route.yaml" \
+        "${GENESTACK_BASE_DIR}/etc/gateway-api/routes/custom-${route_name}-gateway-routes.yaml" \
+        "${GENESTACK_BASE_DIR}/etc/gateway-api/routes/custom-${route_name}-routes.yaml" \
+        "${GENESTACK_BASE_DIR}/etc/gateway-api/routes/custom-${route_name}-internal-routes.yaml"; do
+        if [ -f "${candidate}" ]; then
+            echo "${candidate}"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+find_listener_template() {
+    local listener_name="$1"
+    local candidate
+
+    for candidate in \
+        "${GENESTACK_BASE_DIR}/etc/gateway-api/listeners/${listener_name}.json" \
+        "${GENESTACK_BASE_DIR}/etc/gateway-api/listeners/${listener_name}-https.json" \
+        "${GENESTACK_BASE_DIR}/etc/gateway-api/listeners/${listener_name}-listener.json"; do
+        if [ -f "${candidate}" ]; then
+            echo "${candidate}"
+            return 0
+        fi
+    done
+
+    if [[ "${listener_name}" == "http" || "${listener_name}" == "cluster-http" ]] && \
+        [ -f "${GENESTACK_BASE_DIR}/etc/gateway-api/listeners/http-wildcard-listener.json" ]; then
+        echo "${GENESTACK_BASE_DIR}/etc/gateway-api/listeners/http-wildcard-listener.json"
+        return 0
+    fi
+
+    return 1
+}
+
+route_name_from_json() {
+    local route_json="$1"
+
+    jq -r '
+        if type == "string" then
+            .
+        else
+            .name // .template // .route // .service // empty
+        end
+    ' <<< "${route_json}"
+}
+
+route_matches_gateway() {
+    local route_json="$1"
+    local gateway_name="$2"
+    local gateway_type="$3"
+
+    jq -e --arg gateway_name "${gateway_name}" --arg gateway_type "${gateway_type}" '
+        if type == "string" then
+            true
+        elif has("gateways") then
+            if (.gateways | type) == "array" then
+                ([.gateways[]] | any(. == $gateway_name or . == $gateway_type))
+            else
+                (.gateways == $gateway_name or .gateways == $gateway_type)
+            end
+        else
+            ((.exposure // .type // "both") | ascii_downcase) as $exposure |
+            ($exposure == "both" or $exposure == "all" or $exposure == $gateway_type or $exposure == $gateway_name)
+        end
+    ' <<< "${route_json}" >/dev/null
+}
+
+write_template_route() {
+    local route_json="$1"
+    local gateway_name="$2"
+    local gateway_namespace="$3"
+    local gateway_domain="$4"
+    local route_template="$5"
+    local output_file="$6"
+    local route_hostname route_namespace rendered_name section_name
+
+    route_hostname=$(json_value "${route_json}" '.hostname // .host' '')
+    route_namespace=$(json_value "${route_json}" '.namespace' '')
+    rendered_name=$(json_value "${route_json}" '.rendered_name // .renderedName' '')
+    section_name=$(json_value "${route_json}" '.section_name // .sectionName' '')
+
+    sed "s/your.domain.tld/${gateway_domain}/g" "${route_template}" > "${output_file}"
+
+    GATEWAY_NAME="${gateway_name}" \
+    GATEWAY_NAMESPACE="${gateway_namespace}" \
+    ROUTE_NAMESPACE="${route_namespace}" \
+    RENDERED_NAME="${rendered_name}" \
+    ROUTE_HOSTNAME="${route_hostname}" \
+    SECTION_NAME="${section_name}" \
+    yq eval -i '
+        .metadata.name = (
+          if strenv(RENDERED_NAME) != "" then
+            strenv(RENDERED_NAME)
+          else
+            .metadata.name + "-" + strenv(GATEWAY_NAME)
+          end
+        ) |
+        .spec.parentRefs[] |= (.name = strenv(GATEWAY_NAME) | .namespace = strenv(GATEWAY_NAMESPACE)) |
+        if strenv(ROUTE_NAMESPACE) != "" then .metadata.namespace = strenv(ROUTE_NAMESPACE) else . end |
+        if strenv(ROUTE_HOSTNAME) != "" then .spec.hostnames = [strenv(ROUTE_HOSTNAME)] else . end |
+        if strenv(SECTION_NAME) != "" then .spec.parentRefs[].sectionName = strenv(SECTION_NAME) else . end
+    ' "${output_file}"
+}
+
+write_generated_route() {
+    local route_json="$1"
+    local gateway_name="$2"
+    local gateway_namespace="$3"
+    local gateway_domain="$4"
+    local output_file="$5"
+    local route_name route_namespace service_name service_namespace service_port route_hostname section_name
+
+    route_name=$(route_name_from_json "${route_json}")
+    route_namespace=$(json_value "${route_json}" '.namespace' 'openstack')
+    service_name=$(json_value "${route_json}" '.service' "${route_name}")
+    service_namespace=$(json_value "${route_json}" '.service_namespace // .serviceNamespace' "${route_namespace}")
+    service_port=$(json_value "${route_json}" '.port // .service_port // .servicePort' '80')
+    route_hostname=$(json_value "${route_json}" '.hostname // .host' "${route_name}.${gateway_domain}")
+    section_name=$(json_value "${route_json}" '.section_name // .sectionName' 'cluster-tls')
+
+    cat > "${output_file}" <<EOF
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ${route_name}-${gateway_name}
+  namespace: ${route_namespace}
+spec:
+  parentRefs:
+    - name: ${gateway_name}
+      namespace: ${gateway_namespace}
+      sectionName: ${section_name}
+  hostnames:
+    - "${route_hostname}"
+  rules:
+    - backendRefs:
+        - name: ${service_name}
+          namespace: ${service_namespace}
+          port: ${service_port}
+EOF
+}
+
+collect_route_listener_names() {
+    local route_file="$1"
+
+    yq eval -r '.spec.parentRefs[].sectionName // ""' "${route_file}" | sed '/^$/d'
+}
+
+copy_listener_template() {
+    local listener_template="$1"
+    local listener_dir="$2"
+    local gateway_domain="$3"
+    local listener_name
+    local output_file
+    local temp_file
+
+    listener_name=$(basename "${listener_template}")
+    output_file="${listener_dir}/${listener_name}"
+
+    if [ -f "${output_file}" ]; then
+        return 0
+    fi
+
+    temp_file=$(mktemp)
+    sed "s/your.domain.tld/${gateway_domain}/g" "${listener_template}" > "${temp_file}"
+    sudo mv -v "${temp_file}" "${output_file}"
+}
+
+apply_config_listeners() {
+    local gateway_name="$1"
+    local gateway_namespace="$2"
+    local listener_dir="$3"
+    local listener_file
+
+    if ! compgen -G "${listener_dir}/*.json" >/dev/null; then
+        echo "No listener patches found for ${gateway_name}"
+        return 0
+    fi
+
+    for listener_file in "${listener_dir}"/*.json; do
+        ensure_gateway_listener_for_gateway "${gateway_namespace}" "${gateway_name}" "${listener_file}"
+    done
+}
+
+ensure_gateway_listener_for_gateway() {
+    local gateway_namespace="$1"
+    local gateway_name="$2"
+    local listener_file="$3"
+    local listener_name desired_listener existing_listener gateway_json existing_index patch_file
+
+    listener_name=$(jq -r '.[0].value.name' "${listener_file}")
+    desired_listener=$(jq -c '.[0].value | {name, port, protocol, hostname, tls, allowedRoutes}' "${listener_file}")
+    gateway_json=$(kubectl -n "${gateway_namespace}" get gateway "${gateway_name}" -o json)
+    existing_listener=$(jq -c --arg name "${listener_name}" \
+        '.spec.listeners[]? | select(.name == $name) | {name, port, protocol, hostname, tls, allowedRoutes}' \
+        <<< "${gateway_json}")
+
+    if [ -n "${existing_listener}" ]; then
+        if [ "${existing_listener}" != "${desired_listener}" ]; then
+            echo "ERROR: ${gateway_name} listener ${listener_name} exists but does not match ${listener_file}"
+            echo "Existing: ${existing_listener}"
+            echo "Desired:  ${desired_listener}"
+            exit 1
+        fi
+        echo "Listener ${listener_name} already present on ${gateway_name}"
+        return
+    fi
+
+    if [ "${listener_name}" = "http-wildcard-listener" ]; then
+        existing_index=$(jq -r '
+            .spec.listeners
+            | to_entries[]
+            | select(.value.name == "cluster-http")
+            | .key
+        ' <<< "${gateway_json}")
+        if [ -n "${existing_index}" ]; then
+            patch_file=$(mktemp)
+            jq -n --argjson index "${existing_index}" --argjson listener "${desired_listener}" \
+                '[{"op":"replace","path":("/spec/listeners/" + ($index|tostring)),"value":$listener}]' \
+                > "${patch_file}"
+            echo "Replacing cluster-http with ${listener_name} on ${gateway_name}"
+            kubectl patch -n "${gateway_namespace}" gateway "${gateway_name}" \
+                --type='json' \
+                --patch-file "${patch_file}"
+            rm -f "${patch_file}"
+            return
+        fi
+    fi
+
+    echo "Patching ${gateway_name} with listener ${listener_name}"
+    kubectl patch -n "${gateway_namespace}" gateway "${gateway_name}" \
+        --type='json' \
+        --patch-file "${listener_file}"
+}
+
+list_gateway_route_json() {
+    local gateway_name="$1"
+    local gateway_type="$2"
+    local gateway_json="$3"
+    local route_json
+
+    jq -c '.routes[]?' <<< "${gateway_json}"
+
+    config_json '.routes // []' | jq -c '.[]?' |
+    while IFS= read -r route_json; do
+        if route_matches_gateway "${route_json}" "${gateway_name}" "${gateway_type}"; then
+            echo "${route_json}"
+        fi
+    done
+}
+
+apply_config_routes() {
+    local gateway_name="$1"
+    local gateway_json="$2"
+    local gateway_namespace="$3"
+    local gateway_type="$4"
+    local gateway_domain="$5"
+    local route_dir="${GENESTACK_OVERRIDES_DIR}/gateway-api/routes/${gateway_name}"
+    local listener_dir="${GENESTACK_OVERRIDES_DIR}/gateway-api/listeners/${gateway_name}"
+    local route_json route_name configured_file route_template output_file listener_name listener_template
+    local temp_output_file
+
+    sudo mkdir -p "${route_dir}" "${listener_dir}"
+
+    while IFS= read -r route_json; do
+        [ -n "${route_json}" ] || continue
+
+        route_name=$(route_name_from_json "${route_json}")
+        if [ -z "${route_name}" ]; then
+            echo "Warning: skipping route without a name for gateway ${gateway_name}" >&2
+            continue
+        fi
+
+        configured_file=$(json_value "${route_json}" '.file // .template_file // .templateFile' '')
+        output_file="${route_dir}/${route_name}-${gateway_name}.yaml"
+        temp_output_file=$(mktemp)
+
+        if route_template=$(find_route_template "${route_name}" "${configured_file}"); then
+            write_template_route "${route_json}" "${gateway_name}" "${gateway_namespace}" "${gateway_domain}" "${route_template}" "${temp_output_file}"
+        else
+            echo "No route template found for ${route_name}; generating route from config"
+            write_generated_route "${route_json}" "${gateway_name}" "${gateway_namespace}" "${gateway_domain}" "${temp_output_file}"
+        fi
+
+        while IFS= read -r listener_name; do
+            [ -n "${listener_name}" ] || continue
+            if listener_template=$(find_listener_template "${listener_name}"); then
+                copy_listener_template "${listener_template}" "${listener_dir}" "${gateway_domain}"
+            else
+                echo "Warning: listener template not found for ${listener_name}" >&2
+            fi
+        done < <(collect_route_listener_names "${temp_output_file}")
+
+        sudo mv -v "${temp_output_file}" "${output_file}"
+    done < <(list_gateway_route_json "${gateway_name}" "${gateway_type}" "${gateway_json}")
+
+    apply_config_listeners "${gateway_name}" "${gateway_namespace}" "${listener_dir}"
+
+    if compgen -G "${route_dir}/*.yaml" >/dev/null; then
+        kubectl apply -f "${route_dir}"
+    else
+        echo "No routes configured for ${gateway_name}"
+    fi
+}
+
+setup_config_gateway() {
+    local gateway_name="$1"
+    local gateway_json="$2"
+    local enabled gateway_namespace gateway_type gateway_domain
+
+    enabled=$(json_bool "${gateway_json}" '.enabled' true)
+    if [ "${enabled}" != "true" ]; then
+        echo "Gateway ${gateway_name} is disabled, skipping"
+        return 0
+    fi
+
+    gateway_namespace=$(json_value "${gateway_json}" '.namespace' 'envoy-gateway')
+    gateway_type=$(json_value "${gateway_json}" '.type' "${gateway_name}")
+    gateway_domain=$(json_value "${gateway_json}" '.domain' "${GATEWAY_DOMAIN:-cluster.local}")
+
+    apply_config_gateway "${gateway_name}" "${gateway_json}"
+    apply_config_routes "${gateway_name}" "${gateway_json}" "${gateway_namespace}" "${gateway_type}" "${gateway_domain}"
+}
+
+setup_from_config() {
+    local gateway_name gateway_json
+
+    if [ ! -f "${CONFIG_FILE}" ]; then
+        echo "Error: configuration file not found: ${CONFIG_FILE}" >&2
+        exit 1
+    fi
+
+    require_config_tools
+    config_json '.' >/dev/null
+
+    GATEWAY_DOMAIN=$(config_json '.domain // .global.domain // "cluster.local"' | jq -r '.')
+
+    echo "Using Envoy Gateway configuration file: ${CONFIG_FILE}"
+    apply_config_prerequisites
+
+    while IFS= read -r gateway_name; do
+        [ -n "${gateway_name}" ] || continue
+        gateway_json=$(get_config_gateway_json "${gateway_name}")
+        if [ -z "${gateway_json}" ]; then
+            echo "Warning: unable to read gateway ${gateway_name}, skipping" >&2
+            continue
+        fi
+        setup_config_gateway "${gateway_name}" "${gateway_json}"
+    done < <(list_config_gateway_names)
+
+    echo "Multi-gateway setup complete"
+}
+
+if [ -n "${CONFIG_FILE}" ]; then
+    setup_from_config
+    exit 0
+fi
 
 # Validate credentials if using DNS01
 if [[ "$CHALLENGE_METHOD" == "dns01" ]]; then

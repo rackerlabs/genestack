@@ -13,10 +13,34 @@ SERVICE_NAMESPACE="envoyproxy-gateway-system"
 # NOTE: Using OCI registry format for the chart location.
 HELM_REPO_NAME_DEFAULT="gateway-helm"
 HELM_REPO_URL_DEFAULT="oci://docker.io/envoyproxy"
+GATEWAY_CONFIG_FILE=""
+HELM_EXTRA_ARGS=()
 
 # Base directories provided by the environment
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
 GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --config|--gateway-config)
+            if [[ $# -lt 2 ]]; then
+                echo "Error: $1 requires a configuration file" >&2
+                exit 1
+            fi
+            GATEWAY_CONFIG_FILE="$2"
+            shift 2
+            ;;
+        --config=*|--gateway-config=*)
+            GATEWAY_CONFIG_FILE="${1#*=}"
+            shift
+            ;;
+        *)
+            HELM_EXTRA_ARGS+=("$1")
+            shift
+            ;;
+    esac
+done
 
 # Define service-specific override directories based on the framework
 SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME_DEFAULT}"
@@ -125,7 +149,7 @@ helm_command=(
     --post-renderer "$GENESTACK_OVERRIDES_DIR/kustomize/kustomize.sh"
     --post-renderer-args "$SERVICE_NAME_DEFAULT/overlay"
 
-    "$@"
+    "${HELM_EXTRA_ARGS[@]}"
 )
 
 echo "Executing Helm command (arguments are quoted safely):"
@@ -151,4 +175,9 @@ if [ ! -f "/usr/local/bin/egctl" ]; then
         /usr/local/bin/egctl completion bash > /tmp/egctl.bash
         sudo mv /tmp/egctl.bash /etc/bash_completion.d/egctl
     popd || exit 1
+fi
+
+if [ -n "${GATEWAY_CONFIG_FILE}" ]; then
+    echo "Applying Envoy Gateway configuration from ${GATEWAY_CONFIG_FILE}"
+    "${SCRIPT_DIR}/setup-envoy-gateway.sh" --config "${GATEWAY_CONFIG_FILE}"
 fi
