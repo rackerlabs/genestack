@@ -1158,7 +1158,7 @@ write_template_route() {
     local gateway_domain="$4"
     local route_template="$5"
     local output_file="$6"
-    local route_hostname route_namespace rendered_name section_name
+    local current_name route_hostname route_namespace rendered_name section_name
 
     route_hostname=$(json_value "${route_json}" '.hostname // .host' '')
     route_namespace=$(json_value "${route_json}" '.namespace' '')
@@ -1167,25 +1167,32 @@ write_template_route() {
 
     sed "s/your.domain.tld/${gateway_domain}/g" "${route_template}" > "${output_file}"
 
+    if [ -z "${rendered_name}" ]; then
+        current_name=$(yq eval -r '.metadata.name' "${output_file}")
+        rendered_name="${current_name}-${gateway_name}"
+    fi
+
+    RENDERED_NAME="${rendered_name}" \
+        yq eval -i '.metadata.name = strenv(RENDERED_NAME)' "${output_file}"
+
     GATEWAY_NAME="${gateway_name}" \
     GATEWAY_NAMESPACE="${gateway_namespace}" \
-    ROUTE_NAMESPACE="${route_namespace}" \
-    RENDERED_NAME="${rendered_name}" \
-    ROUTE_HOSTNAME="${route_hostname}" \
-    SECTION_NAME="${section_name}" \
-    yq eval -i '
-        .metadata.name = (
-          if strenv(RENDERED_NAME) != "" then
-            strenv(RENDERED_NAME)
-          else
-            .metadata.name + "-" + strenv(GATEWAY_NAME)
-          end
-        ) |
-        .spec.parentRefs[] |= (.name = strenv(GATEWAY_NAME) | .namespace = strenv(GATEWAY_NAMESPACE)) |
-        if strenv(ROUTE_NAMESPACE) != "" then .metadata.namespace = strenv(ROUTE_NAMESPACE) else . end |
-        if strenv(ROUTE_HOSTNAME) != "" then .spec.hostnames = [strenv(ROUTE_HOSTNAME)] else . end |
-        if strenv(SECTION_NAME) != "" then .spec.parentRefs[].sectionName = strenv(SECTION_NAME) else . end
-    ' "${output_file}"
+        yq eval -i '.spec.parentRefs[].name = strenv(GATEWAY_NAME) | .spec.parentRefs[].namespace = strenv(GATEWAY_NAMESPACE)' "${output_file}"
+
+    if [ -n "${route_namespace}" ]; then
+        ROUTE_NAMESPACE="${route_namespace}" \
+            yq eval -i '.metadata.namespace = strenv(ROUTE_NAMESPACE)' "${output_file}"
+    fi
+
+    if [ -n "${route_hostname}" ]; then
+        ROUTE_HOSTNAME="${route_hostname}" \
+            yq eval -i '.spec.hostnames = [strenv(ROUTE_HOSTNAME)]' "${output_file}"
+    fi
+
+    if [ -n "${section_name}" ]; then
+        SECTION_NAME="${section_name}" \
+            yq eval -i '.spec.parentRefs[].sectionName = strenv(SECTION_NAME)' "${output_file}"
+    fi
 }
 
 write_generated_route() {
