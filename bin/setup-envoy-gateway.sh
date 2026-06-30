@@ -1122,6 +1122,19 @@ find_listener_template() {
     return 1
 }
 
+normalize_config_section_name() {
+    local section_name="$1"
+
+    case "${section_name}" in
+        http|cluster-http)
+            echo "http-wildcard-listener"
+            ;;
+        *)
+            echo "${section_name}"
+            ;;
+    esac
+}
+
 route_name_from_json() {
     local route_json="$1"
 
@@ -1167,7 +1180,7 @@ write_template_route() {
     route_hostname=$(json_value "${route_json}" '.hostname // .host' '')
     route_namespace=$(json_value "${route_json}" '.namespace' '')
     rendered_name=$(json_value "${route_json}" '.rendered_name // .renderedName' '')
-    section_name=$(json_value "${route_json}" '.section_name // .sectionName' '')
+    section_name=$(normalize_config_section_name "$(json_value "${route_json}" '.section_name // .sectionName' '')")
 
     sed "s/your.domain.tld/${gateway_domain}/g" "${route_template}" > "${output_file}"
 
@@ -1193,6 +1206,10 @@ write_template_route() {
             yq eval -i '.spec.hostnames = [strenv(ROUTE_HOSTNAME)]' "${output_file}"
     fi
 
+    if [ -z "${section_name}" ]; then
+        section_name=$(normalize_config_section_name "$(yq eval -r '.spec.parentRefs[0].sectionName // ""' "${output_file}")")
+    fi
+
     if [ -n "${section_name}" ]; then
         SECTION_NAME="${section_name}" \
             yq eval -i '.spec.parentRefs[].sectionName = strenv(SECTION_NAME)' "${output_file}"
@@ -1213,7 +1230,7 @@ write_generated_route() {
     service_namespace=$(json_value "${route_json}" '.service_namespace // .serviceNamespace' "${route_namespace}")
     service_port=$(json_value "${route_json}" '.port // .service_port // .servicePort' '80')
     route_hostname=$(json_value "${route_json}" '.hostname // .host' "${route_name}.${gateway_domain}")
-    section_name=$(json_value "${route_json}" '.section_name // .sectionName' 'cluster-tls')
+    section_name=$(normalize_config_section_name "$(json_value "${route_json}" '.section_name // .sectionName' 'cluster-tls')")
 
     cat > "${output_file}" <<EOF
 ---
