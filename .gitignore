@@ -136,3 +136,7 @@ site/
 
 # skyline secrets
 /etc/genestack/skylinesecrets.yaml
+
+# Agents and beads
+.gitattributes
+AGENTS.md
