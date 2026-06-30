@@ -528,12 +528,14 @@ routes:
     exposure: external
   - name: alertmanager
     exposure: internal
+    section_name: cluster-tls
   - name: grafana
     exposure: internal
   - name: loki
     exposure: internal
   - name: prometheus
     exposure: internal
+    section_name: cluster-tls
 EOF
 }
 
