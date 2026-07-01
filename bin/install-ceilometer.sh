@@ -146,6 +146,7 @@ rabbit://heat:$(kubectl --namespace openstack get secret heat-rabbitmq-password 
 rabbit://octavia:$(kubectl --namespace openstack get secret octavia-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)@rabbitmq.openstack.svc.cluster.local:5672/octavia,\
 rabbit://blazar:$(kubectl --namespace openstack get secret blazar-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)@rabbitmq.openstack.svc.cluster.local:5672/blazar,\
 rabbit://magnum:$(kubectl --namespace openstack get secret magnum-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)@rabbitmq.openstack.svc.cluster.local:5672/magnum,\
+rabbit://trove:$(kubectl --namespace openstack get secret trove-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)@rabbitmq.openstack.svc.cluster.local:5672/trove,\
 rabbit://swift:$(kubectl --namespace openstack get secret swift-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)@rabbitmq.openstack.svc.cluster.local:5672/swift}"
 )
 
