@@ -462,7 +462,7 @@ gateways:
     namespace: envoy-gateway
     type: external
     domain: ${gateway_domain}
-    gateway_class: eg
+    gateway_class: external-eg
     issuer: flex-gateway-issuer
     metallb_pool: gateway-api-external
     certificate_secret: wildcard-external-tls-secret
@@ -472,7 +472,7 @@ gateways:
     namespace: envoy-gateway
     type: internal
     domain: internal.${gateway_domain}
-    gateway_class: eg
+    gateway_class: internal-eg
     issuer: flex-gateway-issuer
     metallb_pool: gateway-api-internal
     certificate_secret: wildcard-internal-tls-secret

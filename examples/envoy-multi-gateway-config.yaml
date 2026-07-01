@@ -6,14 +6,22 @@
 
 domain: example.com
 
+# Optional. When enabled, setup-envoy-gateway.sh creates the named
+# ClusterIssuer using HTTP01 through the configured gateway.
+acme:
+  enabled: true
+  email: cloud@example.com
+  issuer: letsencrypt-prod
+  gateway: external
+
 gateways:
   external:
     enabled: true
     namespace: envoy-gateway
     type: external
     domain: example.com
-    gateway_class: eg
-    issuer: flex-gateway-issuer
+    gateway_class: external-eg
+    issuer: letsencrypt-prod
     metallb_pool: gateway-api-external
     certificate_secret: wildcard-external-tls-secret
 
@@ -22,7 +30,7 @@ gateways:
     namespace: envoy-gateway
     type: internal
     domain: internal.example.com
-    gateway_class: eg
+    gateway_class: internal-eg
     issuer: flex-gateway-issuer
     metallb_pool: gateway-api-internal
     certificate_secret: wildcard-internal-tls-secret

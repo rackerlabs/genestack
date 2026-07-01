@@ -639,7 +639,7 @@ fi
 # Validate DNS plugin
 VALID_PLUGINS="godaddy rackspace cloudflare route53 azuredns google digitalocean acmedns rfc2136"
 if [[ "$CHALLENGE_METHOD" == "dns01" ]]; then
-    if [[ ! " $VALID_PLUGINS " =~ " $DNS_PLUGIN " ]]; then
+    if [[ " ${VALID_PLUGINS} " != *" ${DNS_PLUGIN} "* ]]; then
         echo "Error: Invalid DNS plugin. Must be one of: $VALID_PLUGINS"
         echo "Use --help PLUGIN for detailed information about a specific plugin"
         exit 1
@@ -929,8 +929,7 @@ apply_config_prerequisites() {
     for resource in \
         envoy-gateway-namespace.yaml \
         envoy-internal-gateway-issuer.yaml \
-        envoy-custom-proxy-config.yaml \
-        envoy-gatewayclass.yaml; do
+        envoy-custom-proxy-config.yaml; do
         if resource_path=$(resource_file "envoyproxy-gateway/base/${resource}"); then
             kubectl apply -f "${resource_path}"
         elif resource_path=$(resource_file "envoyproxy-gateway/overlay/${resource}"); then
@@ -939,6 +938,119 @@ apply_config_prerequisites() {
             echo "Warning: prerequisite resource not found: ${resource}" >&2
         fi
     done
+}
+
+render_config_gateway_class() {
+    local gateway_class_name="$1"
+    local envoy_proxy_name="${2:-custom-proxy-config}"
+    local envoy_proxy_namespace="${3:-envoy-gateway}"
+
+    cat <<EOF
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: ${gateway_class_name}
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+  parametersRef:
+    group: gateway.envoyproxy.io
+    kind: EnvoyProxy
+    name: ${envoy_proxy_name}
+    namespace: ${envoy_proxy_namespace}
+EOF
+}
+
+apply_config_gateway_class() {
+    local gateway_class_name="$1"
+    local gateway_json="$2"
+    local gateway_namespace="$3"
+    local envoy_proxy_name envoy_proxy_namespace manifest
+
+    envoy_proxy_name=$(json_value "${gateway_json}" '.envoy_proxy // .envoyProxy // .parameters_ref.name // .parametersRef.name' 'custom-proxy-config')
+    envoy_proxy_namespace=$(json_value "${gateway_json}" '.envoy_proxy_namespace // .envoyProxyNamespace // .parameters_ref.namespace // .parametersRef.namespace' "${gateway_namespace}")
+
+    manifest=$(mktemp)
+    render_config_gateway_class "${gateway_class_name}" "${envoy_proxy_name}" "${envoy_proxy_namespace}" > "${manifest}"
+    kubectl apply -f "${manifest}"
+    rm -f "${manifest}"
+}
+
+config_acme_gateway_name() {
+    local gateway_name
+
+    gateway_name=$(config_json '.acme.gateway // .acme.gateway_name // .acme.gatewayName // .acme.parent_gateway // .acme.parentGateway // ""' | jq -r '.')
+    if [ -n "${gateway_name}" ] && [ "${gateway_name}" != "null" ]; then
+        echo "${gateway_name}"
+        return 0
+    fi
+
+    config_json '.gateways // {}' | jq -r '
+        if type == "array" then
+            (.[] | select((.type // .name // "") == "external") | .name) // empty
+        elif type == "object" then
+            (to_entries[] | select(((.value.type // .key) | ascii_downcase) == "external") | .key) // empty
+        else
+            empty
+        end
+    ' | head -n 1
+}
+
+apply_config_acme_issuer() {
+    local acme_enabled acme_email issuer_name issuer_server private_key_secret gateway_name gateway_json gateway_namespace manifest
+
+    acme_enabled=$(config_json '.acme.enabled // .letsencrypt.enabled // false' | jq -r '.')
+    if [ "${acme_enabled}" != "true" ]; then
+        return 0
+    fi
+
+    acme_email=$(config_json '.acme.email // .letsencrypt.email // ""' | jq -r '.')
+    acme_email="${acme_email:-${ACME_EMAIL:-}}"
+    if [ -z "${acme_email}" ] || [ "${acme_email}" = "null" ]; then
+        echo "Error: acme.enabled is true but no acme.email is configured" >&2
+        exit 1
+    fi
+
+    issuer_name=$(config_json '.acme.issuer // .acme.name // .letsencrypt.issuer // "letsencrypt-prod"' | jq -r '.')
+    issuer_server=$(config_json '.acme.server // .letsencrypt.server // "https://acme-v02.api.letsencrypt.org/directory"' | jq -r '.')
+    private_key_secret=$(config_json '.acme.private_key_secret // .acme.privateKeySecret // .letsencrypt.private_key_secret // .letsencrypt.privateKeySecret // ""' | jq -r '.')
+    if [ -z "${private_key_secret}" ] || [ "${private_key_secret}" = "null" ]; then
+        private_key_secret="${issuer_name}"
+    fi
+
+    gateway_name=$(config_acme_gateway_name)
+    gateway_name="${gateway_name:-external}"
+    gateway_json=$(get_config_gateway_json "${gateway_name}")
+    if [ -z "${gateway_json}" ]; then
+        echo "Error: acme gateway '${gateway_name}' is not defined in ${CONFIG_FILE}" >&2
+        exit 1
+    fi
+    gateway_namespace=$(json_value "${gateway_json}" '.namespace' 'envoy-gateway')
+
+    manifest=$(mktemp)
+    cat > "${manifest}" <<EOF
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: ${issuer_name}
+spec:
+  acme:
+    server: ${issuer_server}
+    email: ${acme_email}
+    privateKeySecretRef:
+      name: ${private_key_secret}
+    solvers:
+      - http01:
+          gatewayHTTPRoute:
+            parentRefs:
+              - group: gateway.networking.k8s.io
+                kind: Gateway
+                name: ${gateway_name}
+                namespace: ${gateway_namespace}
+EOF
+    kubectl apply -f "${manifest}"
+    rm -f "${manifest}"
 }
 
 delete_legacy_config_gateway_resources() {
@@ -1052,6 +1164,7 @@ apply_config_gateway() {
     echo "  MetalLB pool: ${gateway_pool:-"(not configured)"}"
 
     create_config_namespace "${gateway_namespace}"
+    apply_config_gateway_class "${gateway_class_name}" "${gateway_json}" "${gateway_namespace}"
 
     manifest=$(mktemp)
     render_config_gateway \
@@ -1451,6 +1564,7 @@ setup_from_config() {
 
     echo "Using Envoy Gateway configuration file: ${CONFIG_FILE}"
     apply_config_prerequisites
+    apply_config_acme_issuer
     delete_legacy_config_gateway_resources
 
     while IFS= read -r gateway_name; do
@@ -1502,7 +1616,7 @@ if [ ! -z "${ACME_EMAIL}" ]; then
                 echo "Installing GoDaddy webhook..."
                 helm repo add godaddy-webhook https://snowdrop.github.io/godaddy-webhook
                 helm repo update
-                helm install godaddy-webhook godaddy-webhook/godaddy-webhook -n cert-manager --set groupName=acme.${GATEWAY_DOMAIN}
+                helm install godaddy-webhook godaddy-webhook/godaddy-webhook -n cert-manager --set groupName="acme.${GATEWAY_DOMAIN}"
 
                 # Create secret for GoDaddy API credentials
                 echo "Creating GoDaddy API credentials secret..."
@@ -1559,7 +1673,7 @@ EOF
                 helm install cert-manager-webhook-rackspace \
                     /opt/cert-manager-webhook-rackspace/charts/cert-manager-webhook-rackspace \
                     -n cert-manager \
-                    --set groupName=acme.${GATEWAY_DOMAIN}
+                    --set groupName="acme.${GATEWAY_DOMAIN}"
 
                 # Create secret for Rackspace API credentials
                 echo "Creating Rackspace API credentials secret..."
