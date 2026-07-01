@@ -1,7 +1,7 @@
 ---
 conf:
   memcached:
-    memory: 4096  # NOTE(LukeRepko): Cache size MUST be lower than pod max memory
+    memory: 6144  # NOTE(LukeRepko): Cache size MUST be lower than pod max memory
     # If we set stats_cachedump to false then we will have to add one additional argument "-X"
     # in https://github.com/rackerlabs/genestack/tree/main/base-kustomize/memcached/base/memcached-bin-configmap-patch.yaml
     # This is because openstack-helm memcached chart doesn't have some variables as compared to previously used bitnami memcached chart
@@ -119,7 +119,7 @@ pod:
     server:
       limits:
         cpu: "2"
-        memory: "6144Mi"  # NOTE(LukeRepko): Should be 1.25 to 1.5 times the item cache memory
+        memory: "8192Mi"  # NOTE(LukeRepko): Should be 1.25 to 1.5 times the item cache memory
       requests:
         cpu: 200m
         memory: 2048Mi
