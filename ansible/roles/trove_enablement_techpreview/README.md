@@ -57,7 +57,7 @@ ansible-playbook ansible/playbooks/trove-enablement-techpreview.yaml \
 | `trove_datastore_version_name` | `8.4` | Trove datastore version |
 | `trove_keypair_name` | `trove-access-keypair` | Nova keypair for instance access |
 | `trove_secgroup_name` | `trove-access-secgroup` | Security group for Trove instances |
-| `trove_flat_network_name` | `flat` | Management network name |
+| `trove_mgmt_public_network_name` | `flat` | Management network name for public provider network |
 | `force_rebuild_image` | `false` | Force rebuild and re-upload guest image |
 | `force_full_recreation` | `false` | Nuclear option — rebuild everything |
 

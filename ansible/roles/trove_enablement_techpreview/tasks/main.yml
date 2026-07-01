@@ -1,15 +1,5 @@
 # =========================================================================
-# Trove — full lifecycle (lab-specific)
-#
-# Tag strategy:
-#   trove_secrets         → K8s secrets (rabbitmq, db, admin, SSH keypair)
-#   trove_preconf         → keypair, security group, resolve helm overrides
-#   trove_client          → install python-troveclient
-#   trove_image_build     → guest image build/upload (requires troveclient, K8s secrets)
-#   trove_gateway         → gateway listener, route, kustomize overlay, endpoint merge
-#   trove_helm_config     → Helm values deep merge (network, secgroup, keypair IDs)
-#   trove_post_deploy     → SSH key distribution to nodes
-#   trove_datastore       → datastore type + version (requires Trove API, image in Glance)
+# Trove — full lifecycle
 # =========================================================================
 
 - name: Create Trove K8s secrets (before Helm install)
@@ -24,12 +14,6 @@
   import_tasks: trove_mgmt_network.yml
   tags:
     - trove_mgmt_network
-    - trove_pre_install
-
-- name: Create Trove guest VM security group rules
-  import_tasks: trove_guest_vm_security_group_rules.yml
-  tags:
-    - trove_guest_vm_security_group_rules
     - trove_pre_install
 
 - name: Create Trove security groups
