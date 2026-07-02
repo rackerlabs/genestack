@@ -19,6 +19,7 @@ export LAB_NETWORK_MTU="${LAB_NETWORK_MTU:-1500}"
 # enable or disable the deployment of openstack services within the lab environment.
 export DISABLE_OPENSTACK=${DISABLE_OPENSTACK:-false}
 export HYPERCONVERGED_ENVOY_GATEWAY_CONFIG="${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}"
+export HYPERCONVERGED_ENVOY_GATEWAY_ACME="${HYPERCONVERGED_ENVOY_GATEWAY_ACME:-false}"
 
 #############################################################################
 # Common Utility Functions
@@ -87,6 +88,15 @@ function parseCommonArgs() {
                 HYPERCONVERGED_ENVOY_GATEWAY_CONFIG=false
                 shift
                 ;;
+            --envoy-gateway-acme)
+                HYPERCONVERGED_ENVOY_GATEWAY_CONFIG=true
+                HYPERCONVERGED_ENVOY_GATEWAY_ACME=true
+                shift
+                ;;
+            --no-envoy-gateway-acme)
+                HYPERCONVERGED_ENVOY_GATEWAY_ACME=false
+                shift
+                ;;
             --internal-metallb-ip)
                 if [ -z "${2:-}" ]; then
                     echo "Option --internal-metallb-ip requires an IP address" >&2
@@ -104,6 +114,8 @@ function parseCommonArgs() {
                 echo "       [-e <list,of,services,to,exclude>]"
                 echo "       [-x]"
                 echo "       [--envoy-gateway-config]"
+                echo "       [--envoy-gateway-acme]"
+                echo "       [--no-envoy-gateway-acme]"
                 echo "       [--internal-metallb-ip <ip-address>]"
                 echo ""
                 echo "View the openstack-components.yaml for the services available to configure."
@@ -119,6 +131,7 @@ function parseCommonArgs() {
     export INCLUDE_LIST
     export EXCLUDE_LIST
     export HYPERCONVERGED_ENVOY_GATEWAY_CONFIG
+    export HYPERCONVERGED_ENVOY_GATEWAY_ACME
     export HYPERCONVERGED_INTERNAL_METALLB_IP
 }
 
@@ -452,10 +465,41 @@ function writeEnvoyGatewayConfig() {
     # Usage: writeEnvoyGatewayConfig <gateway_domain> [config_path]
     local gateway_domain="$1"
     local config_path="${2:-/etc/genestack/envoy-gateways.yaml}"
+    local acme_enabled="${HYPERCONVERGED_ENVOY_GATEWAY_ACME:-false}"
+    local external_issuer="flex-gateway-issuer"
+    local external_routes=(
+        barbican blazar cinder cloudformation cloudkitty designate freezer glance
+        gnocchi heat ironic keystone magnum manila masakari metadata neutron nova
+        novnc octavia placement skyline trove zaqar
+    )
+    local route
 
-    cat > "${config_path}" <<EOF
+    if [ "${acme_enabled}" = "true" ]; then
+        if [ -z "${ACME_EMAIL:-}" ]; then
+            echo "HYPERCONVERGED_ENVOY_GATEWAY_ACME=true requires ACME_EMAIL" >&2
+            exit 1
+        fi
+        external_issuer="letsencrypt-prod"
+    fi
+
+    {
+        cat <<EOF
 domain: ${gateway_domain}
 
+EOF
+
+        if [ "${acme_enabled}" = "true" ]; then
+            cat <<EOF
+acme:
+  enabled: true
+  email: ${ACME_EMAIL}
+  issuer: letsencrypt-prod
+  gateway: external
+
+EOF
+        fi
+
+        cat <<EOF
 gateways:
   external:
     enabled: true
@@ -463,7 +507,7 @@ gateways:
     type: external
     domain: ${gateway_domain}
     gateway_class: external-eg
-    issuer: flex-gateway-issuer
+    issuer: ${external_issuer}
     metallb_pool: gateway-api-external
     certificate_secret: wildcard-external-tls-secret
 
@@ -478,54 +522,21 @@ gateways:
     certificate_secret: wildcard-internal-tls-secret
 
 routes:
-  - name: barbican
+EOF
+
+        for route in "${external_routes[@]}"; do
+            cat <<EOF
+  - name: ${route}
     exposure: external
-  - name: blazar
-    exposure: external
-  - name: cinder
-    exposure: external
-  - name: cloudformation
-    exposure: external
-  - name: cloudkitty
-    exposure: external
-  - name: designate
-    exposure: external
-  - name: freezer
-    exposure: external
-  - name: glance
-    exposure: external
-  - name: gnocchi
-    exposure: external
-  - name: heat
-    exposure: external
-  - name: ironic
-    exposure: external
-  - name: keystone
-    exposure: external
-  - name: magnum
-    exposure: external
-  - name: manila
-    exposure: external
-  - name: masakari
-    exposure: external
-  - name: metadata
-    exposure: external
-  - name: neutron
-    exposure: external
-  - name: nova
-    exposure: external
-  - name: novnc
-    exposure: external
-  - name: octavia
-    exposure: external
-  - name: placement
-    exposure: external
-  - name: skyline
-    exposure: external
-  - name: trove
-    exposure: external
-  - name: zaqar
-    exposure: external
+EOF
+            if [ "${acme_enabled}" = "true" ]; then
+                cat <<EOF
+    section_name: ${route}-https
+EOF
+            fi
+        done
+
+        cat <<EOF
   - name: alertmanager
     exposure: internal
     section_name: cluster-tls
@@ -537,6 +548,7 @@ routes:
     exposure: internal
     section_name: cluster-tls
 EOF
+    } > "${config_path}"
 }
 
 function writeServiceHelmOverrides() {
@@ -1433,7 +1445,9 @@ function configureGenestackRemote() {
         cat <<EOF
 export HYPERCONVERGED_CINDER_VOLUME=$HYPERCONVERGED_CINDER_VOLUME
 export HYPERCONVERGED_ENVOY_GATEWAY_CONFIG=${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}
+export HYPERCONVERGED_ENVOY_GATEWAY_ACME=${HYPERCONVERGED_ENVOY_GATEWAY_ACME:-false}
 export METAL_LB_INTERNAL_IP='${internal_metal_lb_ip}'
+export ACME_EMAIL='${ACME_EMAIL:-}'
 export INCLUDE_LIST=("${INCLUDE_LIST[@]}")
 export EXCLUDE_LIST=("${EXCLUDE_LIST[@]}")
 set -e
@@ -1471,6 +1485,7 @@ function runGenestackSetupRemote() {
 
         cat <<EOF
 export HYPERCONVERGED_ENVOY_GATEWAY_CONFIG=${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}
+export HYPERCONVERGED_ENVOY_GATEWAY_ACME=${HYPERCONVERGED_ENVOY_GATEWAY_ACME:-false}
 set -e
 detectPlatform
 ensureYq

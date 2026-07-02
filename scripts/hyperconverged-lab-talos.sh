@@ -787,6 +787,8 @@ Deployment took ${SECONDS} seconds to complete.
 
 Cluster Information:
   - Jump Host Address: ${JUMP_HOST_VIP}
+  - Envoy Gateway Config Mode: ${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}
+  - Envoy Gateway ACME Mode: ${HYPERCONVERGED_ENVOY_GATEWAY_ACME:-false}
   - MetalLB Internal IP: ${METAL_LB_IP}
   - MetalLB Public VIP: ${METAL_LB_VIP}
 

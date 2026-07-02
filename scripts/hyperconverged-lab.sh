@@ -55,6 +55,11 @@ OPTIONS:
     --envoy-gateway-config
                  Deploy Envoy using the internal/external gateway config file
                  instead of the legacy flex-gateway.
+    --envoy-gateway-acme
+                 Deploy Envoy config mode with Let's Encrypt HTTP01 issuer
+                 config and per-service external HTTPS listeners.
+    --no-envoy-gateway-acme
+                 Disable Let's Encrypt config generation for Envoy config mode.
     --internal-metallb-ip <ip>
                  Use a fixed IP for the internal Envoy MetalLB pool. If unset
                  with --envoy-gateway-config, the lab creates a second VIP port.
@@ -75,6 +80,9 @@ ENVIRONMENT VARIABLES:
     HYPERCONVERGED_ENVOY_GATEWAY_CONFIG
                         If set to "true", deploys Envoy using the internal/external
                         gateway config file path instead of the legacy flex-gateway.
+    HYPERCONVERGED_ENVOY_GATEWAY_ACME
+                        If set to "true", enables Let's Encrypt issuer config for
+                        the external Envoy gateway config-mode lab path.
     HYPERCONVERGED_INTERNAL_METALLB_IP
                         Optional fixed IP for the internal Envoy MetalLB pool. If
                         unset, the lab creates a second internal VIP port.
