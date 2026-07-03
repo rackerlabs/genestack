@@ -1,0 +1,86 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: freezer-vendordata-inject
+  namespace: openstack
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: freezer-vendordata-inject
+  namespace: openstack
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["freezer-keystone-user"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["static-vendor-data"]
+    verbs: ["get", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: freezer-vendordata-inject
+  namespace: openstack
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: freezer-vendordata-inject
+subjects:
+  - kind: ServiceAccount
+    name: freezer-vendordata-inject
+    namespace: openstack
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: freezer-vendordata-inject
+  namespace: openstack
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "100"
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        application: freezer
+        component: vendordata-inject
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: freezer-vendordata-inject
+      containers:
+        - name: inject
+          image: ghcr.io/rackerlabs/genestack-images/openstack-client:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+
+              echo "Reading freezer service password from K8s Secret..."
+              FREEZER_PASS=$(kubectl get secret freezer-keystone-user \
+                -n openstack -o jsonpath='{.data.OS_PASSWORD}' | base64 -d)
+
+              if [ -z "${FREEZER_PASS}" ]; then
+                echo "ERROR: Could not read freezer service password from secret"
+                exit 1
+              fi
+
+              echo "Patching static-vendor-data ConfigMap with freezer credentials..."
+              CURRENT_DATA=$(kubectl get configmap static-vendor-data \
+                -n openstack -o jsonpath='{.data.vendor_data\.json}')
+
+              PATCHED_DATA=$(echo "${CURRENT_DATA}" | sed "s/__FREEZER_SERVICE_PASSWORD__/${FREEZER_PASS}/g")
+
+              kubectl patch configmap static-vendor-data -n openstack \
+                --type merge \
+                -p "{\"data\":{\"vendor_data.json\":$(echo "${PATCHED_DATA}" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')}}"
+
+              echo "Successfully injected freezer service password into vendor_data ConfigMap"
