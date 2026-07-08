@@ -6,7 +6,7 @@
 # shellcheck disable=SC2124,SC2145,SC2294
 
 # Service
-SERVICE_NAME_DEFAULT="redis-operator"
+SERVICE_NAME_DEFAULT="redis-replication"
 SERVICE_NAMESPACE="redis-systems"
 
 # Helm
