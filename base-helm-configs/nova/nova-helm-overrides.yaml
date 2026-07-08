@@ -77,6 +77,8 @@ dependencies:
         - nova-db-sync
 
 conf:
+  policy:
+    "os_compute_api:os-admin-actions:reset_state": "rule:project_member_or_admin"
   logging:
     logger_root:
       handlers:
