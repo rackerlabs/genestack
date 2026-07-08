@@ -444,6 +444,79 @@ collectors:
                     action: replace
                     target_label: job
 
+        prometheus/node_exporter:
+          config:
+            scrape_configs:
+              - job_name: node-exporter
+                scrape_interval: 40s
+                scrape_timeout: 30s
+                static_configs:
+                  - targets:
+                      - ${env:OTEL_K8S_NODE_IP}:9100
+                relabel_configs:
+                  - target_label: job
+                    replacement: node-exporter
+                  - target_label: instance
+                    replacement: ${env:OTEL_K8S_NODE_NAME}:9100
+                  - target_label: node
+                    replacement: ${env:OTEL_K8S_NODE_NAME}
+
+        prometheus/cadvisor:
+          config:
+            scrape_configs:
+              - job_name: kubelet
+                scrape_interval: 20s
+                scrape_timeout: 15s
+                scheme: https
+                metrics_path: /metrics/cadvisor
+
+                authorization:
+                  type: Bearer
+                  credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+                tls_config:
+                  ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                  insecure_skip_verify: true
+
+                kubernetes_sd_configs:
+                  - role: node
+                    selectors:
+                      - role: node
+                        field: "metadata.name=${env:OTEL_K8S_NODE_NAME}"
+
+                relabel_configs:
+                  - source_labels: [__meta_kubernetes_node_name]
+                    target_label: node
+
+                  - target_label: job
+                    replacement: kubelet
+
+                  - target_label: endpoint
+                    replacement: https-metrics
+
+                  - source_labels: [__metrics_path__]
+                    target_label: metrics_path
+
+                metric_relabel_configs:
+                  - source_labels: [__name__]
+                    regex: container_cpu_(load_average_10s|system_seconds_total|user_seconds_total)
+                    action: drop
+                  - source_labels: [__name__]
+                    regex: container_fs_(io_current|reads_merged_total|sector_reads_total|sector_writes_total|writes_merged_total)
+                    action: drop
+                  - source_labels: [__name__]
+                    regex: container_memory_(mapped_file|swap)
+                    action: drop
+                  - source_labels: [__name__]
+                    regex: container_(file_descriptors|tasks_state|threads_max)
+                    action: drop
+                  - source_labels: [__name__]
+                    regex: container_spec.*
+                    action: drop
+                  - source_labels: [id, pod]
+                    regex: ".+;"
+                    action: drop
+
         prometheus/libvirt:
           config:
             scrape_configs:
@@ -841,6 +914,8 @@ collectors:
               - prometheus/libvirt
               - prometheus/etcd
               - prometheus/pod_annotations
+              - prometheus/cadvisor
+              - prometheus/node_exporter
             processors:
               - attributes/add-node-labels
               - resourcedetection/env
@@ -1703,7 +1778,7 @@ prometheus-node-exporter:
     - name: text-file-collector
       hostPath: /opt/node_exporter/textfile_collector
       mountPath: /var/lib/node_exporter/textfile_collector
-      readOnly: true
+      readOnly: false
       mountPropagation: HostToContainer
   extraArgs:
     - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
