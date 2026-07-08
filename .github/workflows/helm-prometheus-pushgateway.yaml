@@ -6,6 +6,7 @@ on:
     paths:
       - base-helm-configs/prometheus-pushgateway/**
       - base-kustomize/prometheus-pushgateway/**
+      - helm-chart-versions.yaml
       - .github/workflows/helm-prometheus-pushgateway.yaml
 jobs:
   helm:
@@ -23,6 +24,11 @@ jobs:
           version: v3.14.3
           token: ${{ secrets.GITHUB_TOKEN }}
         id: helm
+      - name: Get chart version
+        uses: ./.github/actions/get-chart-version
+        id: chart-version
+        with:
+          chart-name: prometheus-pushgateway
       - name: Add prometheus-community repo to helm
         run: |
           ${{ steps.helm.outputs.helm-path }} repo add prometheus-community https://prometheus-community.github.io/helm-charts
@@ -30,6 +36,7 @@ jobs:
       - name: Run Helm Template
         run: |
           ${{ steps.helm.outputs.helm-path }} template prometheus-pushgateway prometheus-community/prometheus-pushgateway \
+            --version ${{ steps.chart-version.outputs.version }} \
             --create-namespace \
             --namespace=monitoring \
             -f ${{ github.workspace }}/base-helm-configs/prometheus-pushgateway/prometheus-pushgateway-helm-overrides.yaml \

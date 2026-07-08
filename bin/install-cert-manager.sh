@@ -10,8 +10,8 @@ SERVICE_NAME_DEFAULT="cert-manager"
 SERVICE_NAMESPACE="cert-manager"
 
 # Helm
-HELM_REPO_NAME_DEFAULT="cert-manager"
-HELM_REPO_URL_DEFAULT="https://charts.jetstack.io"
+HELM_REPO_NAME_DEFAULT="charts"
+HELM_REPO_URL_DEFAULT="oci://quay.io/jetstack"
 
 
 # Base directories provided by the environment

@@ -1,0 +1,91 @@
+[DEFAULT]
+backup_segment_max_size = 2147483648
+datastore_registry_ext = mysql:trove.guestagent.datastore.mysql.manager.Manager
+debug = true
+default_datastore = mysql
+enable_volume_az = true
+#log_config_append = /etc/trove/logging.conf
+log_dir = /var/log/trove
+log_file = /var/log/trove/guest-agent.log
+log_rotation_type = interval
+log_rotate_interval = 7
+log_rotate_interval_type = days
+network_driver = trove.network.neutron.NeutronDriver
+network_isolation = false
+notification_service_id = mysql:2f3ff068-2bfb-4f70-9a9d-a6bb65bc084b
+os_region_name = RegionOne
+swift_endpoint_type = internalURL
+swift_service_type = object-store
+taskmanager_manager = trove.taskmanager.manager.Manager
+#transport_url = rabbit://trove:{{ trove_rabbitmq_password }}@rabbitmq.openstack.svc.cluster.local:5672/trove
+trove_auth_url = http://keystone-api.openstack.svc.cluster.local:5000/v3
+trove_security_groups_support = false
+trove_volume_support = true
+use_nova_server_config_drive = true
+volume_fstype = ext4
+volume_support = true
+
+[cache]
+backend = dogpile.cache.memcached
+enabled = true
+
+[keystone_authtoken]
+auth_type = password
+auth_uri = http://keystone-api.openstack.svc.cluster.local:5000/v3
+auth_url = http://keystone-api.openstack.svc.cluster.local:5000/v3
+auth_version = v3
+endpoint_type = internalURL
+memcache_secret_key = {{ memcache_secret_key }}
+memcache_security_strategy = ENCRYPT
+memcached_servers = memcached.openstack.svc.cluster.local:11211
+password = {{ trove_admin_password }}
+project_domain_name = service
+project_name = service
+region_name = RegionOne
+service_token_roles = service
+service_token_roles_required = true
+service_type = database
+user_domain_name = service
+username = trove
+
+[mysql]
+docker = false
+backup_strategy = InnoBackupEx
+backup_incremental_strategy = InnoBackupExIncremental
+replication_strategy = MysqlGTIDReplication
+replication_namespace = trove.guestagent.strategies.replication.mysql_gtid
+mount_point = /var/lib/mysql
+root_on_create = true
+usage_timeout = 400
+volume_support = true
+ignore_users = os_admin
+ignore_dbs = mysql, information_schema, performance_schema, sys
+
+[oslo_concurrency]
+lock_path = /var/lib/trove/tmp
+
+[oslo_messaging_notifications]
+driver = noop
+
+#[oslo_messaging_rabbit]
+#amqp_durable_queues = false
+#heartbeat_in_pthread = true
+#heartbeat_rate = 3
+#heartbeat_timeout_threshold = 60
+#kombu_reconnect_delay = 0.5
+#rabbit_ha_queues = false
+#rabbit_interval_max = 10
+#rabbit_quorum_queue = true
+#rabbit_transient_quorum_queue = false
+#use_queue_manager = false
+
+[service_credentials]
+auth_type = password
+auth_url = http://keystone-api.openstack.svc.cluster.local:5000/v3
+interface = internal
+password = {{ trove_admin_password }}
+project_domain_name = service
+project_name = service
+region_name = {{ trove_region_name }}
+user_domain_name = service
+username = trove

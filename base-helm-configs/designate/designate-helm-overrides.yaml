@@ -395,9 +395,6 @@ conf:
       enable_api_admin: true
       enabled_extensions_v2: quotas,reports
       workers: 2
-    cache:
-      enabled: true
-      backend: oslo_cache.memcache_pool
     service:worker:
       enabled: true
       notify: false

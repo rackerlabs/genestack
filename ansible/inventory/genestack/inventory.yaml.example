@@ -52,8 +52,8 @@ all:
     k8s_cluster:
       vars:
         cluster_name: cluster.local  # If cluster_name is modified then cluster_domain_suffix will need to be modified for all the helm charts and for infrastructure operator configs too
-        kube_ovn_iface: br-overlay  # see the netplan snippet in etc/netplan/default-DHCP.yaml for more info.
-        kube_ovn_default_interface_name: br-overlay # see the netplan snippet in etc/netplan/default.yaml for more info.
+        kube_ovn_iface: bond0  # see the netplan snippet in etc/netplan/default-DHCP.yaml for more info.
+        kube_ovn_default_interface_name: bond0 # see the netplan snippet in etc/netplan/default.yaml for more info.
         kube_ovn_central_hosts: "{{ groups['ovn_network_nodes'] }}"
       children:
         kube_control_plane:  # all k8s control plane nodes need to be in this group

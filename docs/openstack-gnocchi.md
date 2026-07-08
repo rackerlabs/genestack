@@ -8,6 +8,17 @@ gnocchi-metricd).
 
 [![Gnocchi Architecture](assets/images/gnocchi-architecture.svg)](openstack-gnocchi.md)
 
+## Prerequisites
+
+Gnocchi depends on three pre-existing platform services. Confirm each is
+deployed and reachable from the `openstack` namespace before continuing.
+
+| Component  | Used for                                          | Deployment guide |
+|------------|---------------------------------------------------|------------------|
+| PostgreSQL | Indexer (resources, metrics, archive policies)    | [Deploy PostgreSQL](infrastructure-postgresql.md) |
+| Ceph       | Aggregated time-series storage                    | [Rook-Ceph Internal](storage-ceph-rook-internal.md) / [Rook-Ceph External](storage-ceph-rook-external.md) |
+| Redis      | Incoming-measure queue (via `redis-sentinel`)     | [Deploy Redis](infrastructure-redis.md) |
+
 ## Create Secrets
 
 !!! note "Information about the secretes used"
@@ -29,6 +40,15 @@ gnocchi-metricd).
         ```
 
 ## Object Storage Options
+
+!!! note "Incoming-measure storage"
+
+    Gnocchi's incoming-measure queue is configured to use the in-cluster
+    `redis-sentinel` cluster (deployed by the `redis-operator`). The
+    aggregated time-series backend selected below is used for storage
+    only. This split keeps `gnocchi-metricd` responsive under
+    event-driven workloads where small-bundle ingestion against Ceph
+    would otherwise bottleneck.
 
 === "Ceph Internal _(default)_"
 
@@ -152,7 +172,6 @@ gnocchi-metricd).
 
 !!! tip
 
-    You may need to provide custom values to configure your openstack services, for a simple single region or lab deployment you can supply an additional overrides flag using the example found at `base-helm-configs/aio-example-openstack-overrides.yaml`.
     In other cases such as a multi-region deployment you may want to view the [Multi-Region Support](multi-region-support.md) guide to for a workflow solution.
 
 ## Validate the metric endpoint

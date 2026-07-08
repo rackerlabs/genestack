@@ -9,7 +9,8 @@
 
 ### Goal
 
-# Upgrade Longhorn from 1.9.1 to 1.10.2 only after confirming CRDs no longer store v1beta1 data.
+# Upgrade Longhorn from 1.9.1 to 1.10.2 only after confirming CRDs no longer store v1beta1 data and 
+# while preserving the storage-node placement restrictions already introduced in earlier maintenance.
 
 ### Prep
 
@@ -21,8 +22,7 @@ kubectl -n longhorn-system get pods -o wide
 kubectl -n longhorn-system get volumes.longhorn.io -o custom-columns=VOLUME:.metadata.name,STATE:.status.state,ROBUSTNESS:.status.robustness
 
 # Confirm node-selector settings still restrict Longhorn to storage nodes:
-kubectl get nodes -L longhorn.io/storage-node
-kubectl -n longhorn-system get settings.longhorn.io system-managed-components-node-selector -o yaml
+kubectl get nodes -l longhorn.io/storage-node
 
 ## Prevent Longhorn from Using Unlabeled Nodes
 
@@ -80,18 +80,21 @@ kubectl get crd -l app.kubernetes.io/name=longhorn -o=jsonpath='{range .items[*]
 
 ## Bump the Chart Version
 
-# Edit /etc/genestack/helm-chart-versions.yaml:
-    charts:
-      longhorn: 1.10.2
+# Edit /etc/genestack/helm-chart-versions.yaml and set the longhorn version to 1.10.2
+longhorn: 1.10.2
 
-# Keep the same node-selector override file in /etc/genestack/helm-configs/longhorn/longhorn.yaml:
-    ---
-    global:
-      nodeSelector:
-        longhorn.io/storage-node: "enabled"
+# NOTE: this is now the default in genestack as of release-2026.1.1 so this override should only contain
+# "---" on the first line
+# Create or update /etc/genestack/helm-configs/longhorn/longhorn-helm-overrides.yaml with all
+# text between the BEGIN and END (excluding the BEING and END lines)
+#BEGIN
+---
+global:
+  nodeSelector:
+    longhorn.io/storage-node: "enabled"
 
-    defaultSettings:
-      systemManagedComponentsNodeSelector: "longhorn.io/storage-node:enabled"
+  defaultSettings:
+    systemManagedComponentsNodeSelector: "longhorn.io/storage-node:enabled"
 
 # The two values above cover all user-deployed components in the Longhorn Helm chart.
 # The setting above under defaultSettings covers the system-managed components.
@@ -119,6 +122,7 @@ kubectl get crd -l app.kubernetes.io/name=longhorn -o=jsonpath='{range .items[*]
 #longhornRecoveryBackend:
 #   nodeSelector:
 #     longhorn.io/storage-node: "enabled"
+#END
 
 ## Execute the Upgrade
 
@@ -127,8 +131,8 @@ kubectl get crd -l app.kubernetes.io/name=longhorn -o=jsonpath='{range .items[*]
 
 ### Post-Maint
 
-# Confirm the pre-upgrade check did not fail:
-kubectl -n longhorn-system get events --sort-by=.lastTimestamp | tail -n 40
+# Confirm all Longhorn pods are healthy and scheduled only on labeled nodes:
+kubectl -n longhorn-system get pods -o wide --sort-by=.spec.nodeName
 
 # Confirm all Longhorn pods are running:
 kubectl -n longhorn-system get pods -o wide --sort-by=.spec.nodeName
@@ -141,6 +145,10 @@ kubectl get crd -l app.kubernetes.io/name=longhorn -o=jsonpath='{range .items[*]
 
 # Confirm volumes are healthy:
 kubectl -n longhorn-system get volumes.longhorn.io -o custom-columns=VOLUME:.metadata.name,STATE:.status.state,ROBUSTNESS:.status.robustness
+
+## OPTIONAL: The following steps are optional. Each Longhorn volume's engine runs inside its parent instance-manager pod. After a Longhorn upgrade, the new Helm release spins up instance-manager pods with the updated engine version, but attached volumes continue running their original (older) engines until they are detached and reattached. Old instance-manager pods persist on nodes for as long as workloads remain attached to them — so you may see multiple instance-manager pods running on a node post-upgrade. This is expected Longhorn behavior and will resolve naturally through normal workload attrition; recreated pods use the upgraded instance-managers.
+
+NOTE: Do not delete old instance-manager pods directly while workloads are still attached, as this interrupts active volumes. Use the workload restart patterns below instead.
 
 # Check for attached volumes still running through an out-of-date instance-manager image:
 VERSION_FILE=/etc/genestack/helm-chart-versions.yaml /opt/genestack/scripts/longhorn-old-instance-managers.sh

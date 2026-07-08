@@ -90,19 +90,6 @@
     state: directory
     mode: "0755"
 
-- name: Create symlink to base-kustomize/manila/aio
-  ansible.builtin.file:
-    src: /opt/genestack/base-kustomize/manila/aio
-    dest: /etc/genestack/kustomize/manila/aio
-    state: link
-    force: true
-  register: _aio_link_result
-
-- name: Record aio symlink change  # noqa: no-handler
-  ansible.builtin.set_fact:
-    _manila_preconf_changed_files: "{{ _manila_preconf_changed_files + ['/etc/genestack/kustomize/manila/aio'] }}"
-  when: _aio_link_result.changed
-
 - name: Create symlink to base-kustomize/manila/base
   ansible.builtin.file:
     src: /opt/genestack/base-kustomize/manila/base

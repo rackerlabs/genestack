@@ -121,31 +121,6 @@ already present.
     --8<-- "bin/install-longhorn.sh"
     ```
 
-## Upgrade Workflow
-
-Longhorn upgrades in Genestack should follow the supported staged maintenance hops:
-
-1. `1.8.0 -> 1.9.1`
-2. `1.9.1 -> 1.10.2`
-3. `1.10.2 -> 1.11.1`
-
-Operator runbooks for each hop are available under `maintenances/`:
-
-- `maintenances/maintenance-longhorn-1.8.0-to-1.9.1.md`
-- `maintenances/maintenance-longhorn-1.9.1-to-1.10.2.md`
-- `maintenances/maintenance-longhorn-1.10.2-to-1.11.1.md`
-- `maintenances/maintenance-longhorn-1.8.0-to-1.9.1.txt`
-- `maintenances/maintenance-longhorn-1.9.1-to-1.10.2.txt`
-- `maintenances/maintenance-longhorn-1.10.2-to-1.11.1.txt`
-
-!!! warning
-
-    The `1.9.1 -> 1.10.2` hop requires the Longhorn CRD stored-version migration
-    and verification steps documented in the corresponding maintenance runbook.
-    Do not skip that check.
-
-## Validate the Deployment
-
 After the Helm deployment finishes, you’ll want to verify that everything is running correctly.
 
 1. **Check the Longhorn pods**

@@ -6,6 +6,7 @@ on:
     paths:
       - base-helm-configs/tempo/**
       - base-kustomize/tempo/**
+      - helm-chart-versions.yaml
       - .github/workflows/helm-grafana-tempo.yaml
 jobs:
   helm:
@@ -23,6 +24,11 @@ jobs:
           version: v3.14.3
           token: ${{ secrets.GITHUB_TOKEN }}
         id: helm
+      - name: Get chart version
+        uses: ./.github/actions/get-chart-version
+        id: chart-version
+        with:
+          chart-name: tempo
       - name: Add grafana repo to helm
         run: |
           ${{ steps.helm.outputs.helm-path }} repo add grafana https://grafana.github.io/helm-charts
@@ -30,6 +36,7 @@ jobs:
       - name: Run Helm Template
         run: |
           ${{ steps.helm.outputs.helm-path }} template tempo grafana/tempo \
+            --version ${{ steps.chart-version.outputs.version }} \
             --create-namespace \
             --namespace=monitoring \
             -f ${{ github.workspace }}/base-helm-configs/tempo/tempo-helm-overrides.yaml \

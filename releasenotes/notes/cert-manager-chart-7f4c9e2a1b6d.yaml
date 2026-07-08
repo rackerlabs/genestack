@@ -1,0 +1,73 @@
+---
+features:
+  - |
+    The cert-manager installation path is now chart-based and uses the upstream
+    OCI-distributed cert-manager Helm chart source instead of the legacy
+    repository-based chart reference. This aligns Genestack with the current
+    cert-manager chart distribution model and keeps chart, CRD, and image
+    updates on the Helm-managed installation path.
+
+  - |
+    Bootstrap now installs ``cmctl`` through the shared Genestack support
+    functions so cert-manager API readiness checks can be run consistently from
+    Genestack utility hosts. Cert-manager backup, reporting, solver inspection,
+    and post-upgrade gate helper scripts have also been added under
+    ``scripts/cert-manager-support/``.
+
+upgrade:
+  - |
+    The validated Genestack cert-manager upgrade path is a successive
+    minor-version upgrade from ``v1.15.3`` to ``v1.19.5`` using staged
+    maintenance hops, for example ``v1.15.3`` -> ``v1.16.x`` -> ``v1.17.x`` ->
+    ``v1.18.x`` -> ``v1.19.5``. Operators should follow one-minor-version hops
+    and review the upstream upgrade notes for each target minor version before
+    proceeding. This is especially important for the ``v1.15`` to ``v1.16`` hop,
+    where Helm schema validation can reject existing values with typos or
+    unrecognized fields, and the ``v1.17`` to ``v1.18`` hop, where cert-manager
+    changes the default ``Certificate.spec.privateKey.rotationPolicy`` from
+    ``Never`` to ``Always``.
+
+  - |
+    Existing deployments should install ``cmctl`` before running the
+    cert-manager maintenance and validation workflow. New bootstrap installs
+    install ``cmctl`` automatically. Existing hosts can install it from the
+    Genestack support functions:
+
+    .. code-block:: shell
+
+       cd /opt/genestack
+       source scripts/lib/functions.sh
+       ensureCmctl
+
+  - |
+    Operators should back up cert-manager custom resources and TLS secrets
+    before upgrading and run the included post-upgrade gate after each staged
+    hop or after the final upgrade. The gate checks ``cmctl`` API readiness,
+    Helm release state and version, and cert-manager workload rollout status.
+    Environments with custom ACME issuers or non-default solver configuration
+    should also validate certificate issuance through their configured challenge
+    mechanism during the maintenance window.
+
+  - |
+    Review any local ``Certificate`` resources that rely on inherited
+    private-key rotation behavior. In cert-manager ``v1.18`` and later,
+    certificates without an explicit ``spec.privateKey.rotationPolicy`` inherit
+    ``Always``. CA certificates and other trust anchors should have an
+    intentional policy set before upgrade so that key rotation is controlled
+    rather than accidental.
+
+security:
+  - |
+    cert-manager has been updated to ``v1.19.5``. This keeps Genestack on the
+    intended ``v1.19`` minor branch while picking up the supported patch level,
+    including the ``v1.19.3`` fix for ``GHSA-gx3x-vq4p-mhhv`` /
+    ``CVE-2026-25518`` and later vulnerability-related patch updates. Base
+    Genestack does not use DNS01 by default, but environments with custom DNS01
+    ACME solvers should treat this patch level as security-relevant.
+
+fixes:
+  - |
+    Set ``rotationPolicy: Never`` on the Genestack ``public-endpoint-ca-cert``
+    certificate so the CA private key is not automatically rotated during
+    future certificate reissuance under the cert-manager ``v1.18`` and later
+    default behavior.

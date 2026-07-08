@@ -119,7 +119,7 @@ is_component_enabled "barbican" && runTrackErator /opt/genestack/bin/install-bar
 is_component_enabled "blazar" && runTrackErator /opt/genestack/bin/install-blazar.sh
 is_component_enabled "cinder" && runTrackErator /opt/genestack/bin/install-cinder.sh
 is_component_enabled "designate" && runTrackErator /opt/genestack/bin/install-designate.sh
-is_component_enabled "trove" && runTrackErator /opt/genestack/bin/install-trove.sh
+# skip installation of Trove here; installation is deferred until end of lab build
 is_component_enabled "placement" && runTrackErator /opt/genestack/bin/install-placement.sh
 is_component_enabled "nova" && runTrackErator /opt/genestack/bin/install-nova.sh
 is_component_enabled "neutron" && runTrackErator /opt/genestack/bin/install-neutron.sh

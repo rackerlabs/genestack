@@ -1,0 +1,18 @@
+#!/bin/bash
+# Configure chrony (Debian's preferred NTP daemon).
+set -e
+set -o xtrace
+
+cat > /etc/chrony/chrony.conf << CHRONYCONF
+# Trove guest agent NTP configuration
+server 0.debian.pool.ntp.org iburst
+server 1.debian.pool.ntp.org iburst
+server 2.debian.pool.ntp.org iburst
+server 3.debian.pool.ntp.org iburst
+
+driftfile /var/lib/chrony/chrony.drift
+makestep 1.0 3
+rtcsync
+CHRONYCONF
+
+systemctl enable chrony

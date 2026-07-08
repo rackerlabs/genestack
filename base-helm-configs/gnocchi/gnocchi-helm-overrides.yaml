@@ -51,9 +51,24 @@ conf:
     </VirtualHost>
   gnocchi:
     DEFAULT:
-      coordination_url: memcached://memcached-memcached-0.memcached.openstack.svc.cluster.local:11211?hosts=memcached-memcached-1.memcached.openstack.svc.cluster.local:11211&hosts=memcached-memcached-2.memcached.openstack.svc.cluster.local:11211
+      coordination_url: "redis://redis-sentinel-sentinel-0.redis-sentinel-sentinel-headless.redis-systems.svc.cluster.local:26379?sentinel=myMaster\
+        &sentinel_fallback=redis-sentinel-sentinel-1.redis-sentinel-sentinel-headless.redis-systems.svc.cluster.local:26379\
+        &sentinel_fallback=redis-sentinel-sentinel-2.redis-sentinel-sentinel-headless.redis-systems.svc.cluster.local:26379\
+        &db=1"
+    api:
+      max_limit: 10000
+      operation_timeout: 20
     metricd:
-      workers: 2
+      workers: 4
+      metric_processing_delay: 5
+      metric_reporting_delay: 60
+      processing_replicas: 4
+    incoming:
+      driver: redis
+      redis_url: "redis://redis-sentinel-sentinel-0.redis-sentinel-sentinel-headless.redis-systems.svc.cluster.local:26379?sentinel=myMaster\
+        &sentinel_fallback=redis-sentinel-sentinel-1.redis-sentinel-sentinel-headless.redis-systems.svc.cluster.local:26379\
+        &sentinel_fallback=redis-sentinel-sentinel-2.redis-sentinel-sentinel-headless.redis-systems.svc.cluster.local:26379\
+        &db=0"
   gnocchi_api_wsgi:
     wsgi:
       processes: 2

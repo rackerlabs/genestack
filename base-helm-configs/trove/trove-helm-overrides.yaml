@@ -80,7 +80,9 @@ conf:
     DEFAULT:
       debug: false
       default_datastore: mysql
-      management_networks: ""
+      management_networks: <management_networks>
+      management_security_groups: <management_security_groups>
+      nova_keypair: <keypair_name>
       network_driver: trove.network.neutron.NeutronDriver
       taskmanager_manager: trove.taskmanager.manager.Manager
       use_nova_server_config_drive: true
@@ -146,6 +148,8 @@ conf:
       heartbeat_timeout_threshold: 60
       heartbeat_in_pthread: true
       kombu_reconnect_delay: 0.5
+    oslo_messaging_notifications:
+      driver: noop
   trove_api_uwsgi:
     uwsgi:
       processes: 2

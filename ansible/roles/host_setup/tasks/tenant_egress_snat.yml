@@ -1,0 +1,274 @@
+---
+# Inner-cloud tenant egress to the public internet.
+#
+# Each tenant's neutron router has an external_gateway_info IP from the
+# lab's "flat" external network (default 192.168.102.0/24). OVN SNATs
+# tenant traffic to that IP and forwards it onto the flat network.
+# Kube-ovn maps the flat physnet to the `br-ex` OVS bridge (see
+# `ovs-vsctl get Open_vSwitch . external_ids:ovn-bridge-mappings` →
+# `physnet1:br-ex`), but on the hosts:
+#   - the `br-ex` Linux netdev is admin DOWN with no IP, and
+#   - the physical uplink (`enp4s0`) that kube-ovn plumbs into br-ex
+#     is also admin DOWN.
+# So each chassis's br-ex is an isolated sink, the OVN router has
+# nobody to ARP for its subnet gateway (192.168.102.1), and packets
+# die at hop 2 from a tenant guest.
+#
+# Fix: two pieces of L2/L3 plumbing that kube-ovn doesn't do for us.
+#
+# 1. Bring the physical uplink NIC UP on every chassis. kube-ovn plumbs
+#    it into `br-ex` via the physnet1 bridge mapping but leaves the
+#    Linux netdev admin-DOWN. Without this each chassis's `br-ex` is
+#    isolated and a gateway IP on one host can't serve OVN routers
+#    scheduled to other chassis.
+#
+# 2. On one designated host, bring up the `br-ex` Linux netdev (OVS
+#    auto-creates an internal port matching the bridge name) and pin
+#    the flat subnet's gateway_ip on it. The OVN logical router ARPs
+#    for its next-hop (192.168.102.1) — without this nobody answers
+#    and tenant traffic stalls at the router's external interface.
+#
+# That's the entire load-bearing surface in the hcl-builder outer-cloud
+# topology: the outer cloud happens to permit packets sourced from
+# 192.168.102.0/24 onto its upstream, so once the two pieces above are
+# in place tenant outbound works end-to-end with no host-side MASQUERADE.
+# (Prior versions of this role also installed an `inet genestack-snat`
+# nft table to SNAT the flat CIDR to the host's routable address. The
+# rule never fired in this outer-cloud topology — counter stayed at 0
+# — so it was removed. Tasks at the bottom of this file clean it up on
+# hosts that ran the older role. If you port this to an outer cloud
+# that filters on source IP, add the MASQUERADE back.)
+#
+# The L3 gateway IP can live on only one host at a time (no IP
+# conflicts), so we pin it to `lab_flat_external_gateway_host` (default
+# the overseer). Every host still brings the uplink NIC UP so the
+# per-chassis br-ex bridges share one L2 segment. (For HA, layer
+# keepalived on top of the gateway IP; out of scope for the lab.)
+#
+# Implementation notes:
+# - Each task has explicit `tags:` because Ansible's `include_tasks`
+#   tag inheritance is dynamic and only applies tags to the include
+#   directive itself, not the inner tasks.
+# - All plumbing lives in a single oneshot systemd unit so a single
+#   `systemctl restart genestack-tenant-snat` re-applies everything.
+#   Unit name kept (despite no longer doing SNAT) for in-place
+#   compatibility with prior lab builds — `state: restarted` re-runs
+#   ExecStop+ExecStart of the new (trimmed) unit, and the legacy-state
+#   cleanup tasks below handle removing the now-unused nft/sysctl
+#   drop-ins.
+# - Ordering with kube-ovn: `host_setup` runs before kube-ovn deploys
+#   in the lab playbook, so on a truly fresh build the `br-ex` OVS
+#   internal port doesn't exist yet on the gateway host. The br-ex
+#   ExecStart lines are `-` prefixed (systemd tolerates failure) so
+#   the unit comes up cleanly; the verify task and a follow-up debug
+#   message handle the same case in ansible. After kube-ovn deploys
+#   later in the playbook, restarting this unit on the gateway host
+#   (`systemctl restart genestack-tenant-snat`) picks up br-ex and
+#   pins the gateway IP. The physical-uplink ExecStart line is NOT
+#   `-` prefixed: that NIC has to exist on every chassis or it's a
+#   real config error worth failing loudly.
+#
+# Disable in production where the flat external network is routable
+# upstream and no host-side plumbing is needed; toggle via
+# `lab_tenant_egress_snat_enabled`.
+
+- name: Set inner-cloud tenant egress facts
+  ansible.builtin.set_fact:
+    _tenant_egress_prefix_len: "{{ lab_flat_external_cidr.split('/')[1] }}"
+    _tenant_egress_is_gateway_host: "{{ inventory_hostname == lab_flat_external_gateway_host }}"
+  when: lab_tenant_egress_snat_enabled | bool
+  tags:
+    - hosts-config
+    - tenant-egress-snat
+
+- name: Install genestack-tenant-snat systemd unit
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/genestack-tenant-snat.service
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Genestack lab: flat-external uplink + L3 gateway ({{ lab_flat_external_cidr }})
+      After=network-online.target ovs-vswitchd.service
+      Wants=network-online.target
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      # Bring the flat-external uplink NIC UP at L2 on every chassis.
+      # kube-ovn plumbs it into br-ex via the physnet1 mapping, but
+      # leaves the underlying Linux netdev admin-DOWN. Without this
+      # the per-host br-ex bridges stay isolated and a single gateway
+      # IP can't serve OVN routers scheduled to other chassis.
+      ExecStart=/usr/sbin/ip link set {{ lab_flat_external_uplink_iface }} up
+      {% if _tenant_egress_is_gateway_host | default(false) | bool %}
+      # Designated L3 gateway for flat external. OVS auto-creates a
+      # Linux netdev matching the bridge name once kube-ovn deploys;
+      # on first host_setup run kube-ovn hasn't deployed yet, so the
+      # next three lines are `-` prefixed and systemd tolerates them
+      # failing. After kube-ovn comes up, a re-run of this role (or
+      # `systemctl restart genestack-tenant-snat` by hand on this
+      # host) brings br-ex up and pins the flat subnet's gateway_ip
+      # so OVN routers can ARP-resolve their next-hop.
+      ExecStart=-/usr/sbin/ip link set {{ lab_flat_external_bridge }} up
+      ExecStart=-/usr/sbin/ip addr add {{ lab_flat_external_gateway_ip }}/{{ _tenant_egress_prefix_len }} dev {{ lab_flat_external_bridge }}
+      ExecStop=-/usr/sbin/ip addr del {{ lab_flat_external_gateway_ip }}/{{ _tenant_egress_prefix_len }} dev {{ lab_flat_external_bridge }}
+      {% endif %}
+
+      [Install]
+      WantedBy=multi-user.target
+  when: lab_tenant_egress_snat_enabled | bool
+  tags:
+    - hosts-config
+    - tenant-egress-snat
+
+# Unconditionally reload+restart on every run instead of going through
+# `notify` handlers. Rationale: the previous handler-based design got
+# stuck across runs — if a verify task failed mid-play, the queued
+# `Reload genestack-tenant-snat` handler was suppressed on that host,
+# the unit file on disk was updated but never (re)loaded into systemd,
+# and subsequent runs found no diff so no notify fired and the host
+# stayed on stale ExecStart content forever. Hard to recover from
+# without manually `systemctl restart`-ing.
+#
+# Since this is a `Type=oneshot RemainAfterExit=yes` service, restart
+# means: run ExecStop (ip addr del), then run ExecStart (ip link up +
+# ip addr add). It's milliseconds and produces the same end state as
+# the previous run — restarting on every play is cheap, deterministic,
+# and self-healing.
+- name: Reload systemd and (re)start genestack-tenant-snat
+  ansible.builtin.systemd:
+    name: genestack-tenant-snat.service
+    enabled: true
+    state: restarted
+    daemon_reload: true
+  when: lab_tenant_egress_snat_enabled | bool
+  tags:
+    - hosts-config
+    - tenant-egress-snat
+
+- name: Verify flat-external uplink NIC is UP
+  ansible.builtin.command:
+    cmd: ip -br link show dev {{ lab_flat_external_uplink_iface }}
+  register: _flat_uplink_state
+  changed_when: false
+  failed_when: "'UP' not in _flat_uplink_state.stdout"
+  when: lab_tenant_egress_snat_enabled | bool
+  tags:
+    - hosts-config
+    - tenant-egress-snat
+
+- name: Verify flat-external gateway IP is on br-ex (gateway host only)
+  ansible.builtin.command:
+    cmd: ip -4 -o addr show dev {{ lab_flat_external_bridge }}
+  register: _flat_bridge_addr
+  changed_when: false
+  # Three-way outcome:
+  #   - rc != 0 → br-ex doesn't exist yet (kube-ovn not deployed). Don't
+  #     fail here — the next task surfaces this as a heads-up. Re-run
+  #     host_setup (or restart the unit) after kube-ovn comes up.
+  #   - rc == 0 + IP present → success, nothing fires.
+  #   - rc == 0 + IP missing → real config error, fail loudly.
+  failed_when:
+    - _flat_bridge_addr.rc == 0
+    - (lab_flat_external_gateway_ip ~ "/" ~ _tenant_egress_prefix_len) not in _flat_bridge_addr.stdout
+  when:
+    - lab_tenant_egress_snat_enabled | bool
+    - _tenant_egress_is_gateway_host | default(false) | bool
+  tags:
+    - hosts-config
+    - tenant-egress-snat
+
+- name: Note when br-ex not yet present (kube-ovn deploys later)
+  ansible.builtin.debug:
+    msg: |
+      {{ lab_flat_external_bridge }} is not yet present on this host
+      ({{ inventory_hostname }}) — kube-ovn hasn't created its OVS
+      internal port yet. genestack-tenant-snat.service is installed
+      and started, but the flat-external L3 gateway IP is not yet
+      pinned. After kube-ovn deploys later in the playbook, either
+      re-run host_setup or, on this host:
+        systemctl restart genestack-tenant-snat
+  when:
+    - lab_tenant_egress_snat_enabled | bool
+    - _tenant_egress_is_gateway_host | default(false) | bool
+    - _flat_bridge_addr.rc != 0
+  tags:
+    - hosts-config
+    - tenant-egress-snat
+
+# --- Legacy-state cleanup ----------------------------------------------
+# Earlier versions of this role installed an `inet genestack-snat` nft
+# table (MASQUERADE for the flat CIDR), an `/etc/nftables.d/...` drop-in,
+# and an `/etc/sysctl.d/99-genestack-tenant-snat.conf` for ip_forward.
+# The nft path never carried traffic in the outer-cloud topology we
+# ship to (counter stayed at 0), and ip_forward=1 is already set by
+# the role's kernel_options. Remove the stale state on every enabled
+# run so hosts that ran the older role converge to the new minimal
+# shape. These tasks are idempotent on fresh hosts.
+
+- name: Remove legacy nft drop-in from prior role versions
+  ansible.builtin.file:
+    path: /etc/nftables.d/genestack-tenant-snat.nft
+    state: absent
+  when: lab_tenant_egress_snat_enabled | bool
+  tags:
+    - hosts-config
+    - tenant-egress-snat
+
+- name: Remove legacy sysctl drop-in from prior role versions
+  ansible.builtin.file:
+    path: /etc/sysctl.d/99-genestack-tenant-snat.conf
+    state: absent
+  when: lab_tenant_egress_snat_enabled | bool
+  tags:
+    - hosts-config
+    - tenant-egress-snat
+
+- name: Remove legacy nft table loaded by prior role versions
+  ansible.builtin.command:
+    cmd: nft delete table inet genestack-snat
+  register: _legacy_nft_delete
+  changed_when: _legacy_nft_delete.rc == 0
+  failed_when: false
+  when: lab_tenant_egress_snat_enabled | bool
+  tags:
+    - hosts-config
+    - tenant-egress-snat
+
+# Cleanup path: if the lab variable is flipped off (or this role is
+# imported into a production playbook), tear the plumbing down so the
+# host doesn't silently keep holding the gateway IP / uplink UP and
+# also remove any legacy nft / sysctl state from prior role versions.
+- name: Cleanup genestack-tenant-snat when feature is disabled
+  when: not (lab_tenant_egress_snat_enabled | bool)
+  tags:
+    - hosts-config
+    - tenant-egress-snat
+  block:
+    - name: Stop and disable genestack-tenant-snat
+      ansible.builtin.systemd:
+        name: genestack-tenant-snat.service
+        enabled: false
+        state: stopped
+      failed_when: false
+    - name: Remove genestack-tenant-snat unit file
+      ansible.builtin.file:
+        path: /etc/systemd/system/genestack-tenant-snat.service
+        state: absent
+      notify: Systemd daemon reload
+    - name: Remove legacy nft drop-in
+      ansible.builtin.file:
+        path: /etc/nftables.d/genestack-tenant-snat.nft
+        state: absent
+    - name: Remove legacy sysctl drop-in
+      ansible.builtin.file:
+        path: /etc/sysctl.d/99-genestack-tenant-snat.conf
+        state: absent
+    - name: Remove legacy nft table loaded by prior role versions
+      ansible.builtin.command:
+        cmd: nft delete table inet genestack-snat
+      register: _legacy_nft_delete_disabled
+      changed_when: _legacy_nft_delete_disabled.rc == 0
+      failed_when: false

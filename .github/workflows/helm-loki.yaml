@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - base-helm-configs/loki/**
+      - helm-chart-versions.yaml
       - .github/workflows/helm-loki.yaml
 jobs:
   helm:
@@ -22,6 +23,11 @@ jobs:
           version: v3.14.3
           token: ${{ secrets.GITHUB_TOKEN }}
         id: helm
+      - name: Get chart version
+        uses: ./.github/actions/get-chart-version
+        id: chart-version
+        with:
+          chart-name: loki
       - name: Add grafana repo to helm
         run: |
           ${{ steps.helm.outputs.helm-path }} repo add grafana https://grafana.github.io/helm-charts
@@ -30,6 +36,7 @@ jobs:
       - name: Run Helm Template
         run: |
           ${{ steps.helm.outputs.helm-path }} template grafana grafana/loki \
+            --version ${{ steps.chart-version.outputs.version }} \
             --create-namespace \
             --namespace=monitoring \
             --timeout 120m \

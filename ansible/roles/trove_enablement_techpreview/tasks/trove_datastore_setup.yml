@@ -1,0 +1,116 @@
+---
+# Post-deploy: create the Trove datastore type and version, linking to the
+# guest image in Glance.
+#
+# Run with: ansible-playbook ... --tags trove_datastore
+# This requires the Trove API to be running.
+
+# =========================================================================
+# PART 1: CHECK TROVE API AVAILABILITY
+# =========================================================================
+
+- name: Check if Trove API is reachable
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} datastore list
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_api_check
+  changed_when: false
+  failed_when: false
+
+- name: Skip datastore setup if Trove API is not reachable
+  ansible.builtin.debug:
+    msg: >-
+      Trove API is not reachable (rc={{ _trove_api_check.rc }}).
+      Skipping datastore setup. Run again with --tags trove_datastore
+      after Trove has been deployed and is running.
+  when: _trove_api_check.rc != 0
+
+# =========================================================================
+# PART 2: CREATE DATASTORE VERSION
+# The Trove API auto-creates the datastore type when the first version is
+# created — there is no separate 'datastore create' CLI command.
+# =========================================================================
+
+- name: Check if datastore version '{{ trove_datastore_version_name }}' exists
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      source {{ genestack_venv }}/bin/activate
+      openstack --os-cloud {{ os_cloud }} datastore version list "{{ trove_datastore_name }}" \
+        -f value -c Name 2>/dev/null | grep -q "^{{ trove_datastore_version_name }}$"
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_dsv_check
+  changed_when: false
+  failed_when: false
+  when: _trove_api_check.rc == 0
+
+- name: Create datastore version '{{ trove_datastore_version_name }}'
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} datastore version create
+      "{{ trove_datastore_version_name }}"
+      "{{ trove_datastore_name }}"
+      "{{ trove_datastore_name }}"
+      ""
+      --image-tags trove,{{ trove_datastore_name }}
+      --active
+      --default
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when:
+    - _trove_api_check.rc == 0
+    - _trove_dsv_check.rc != 0
+
+# =========================================================================
+# PART 3: VERIFY AND REPORT
+# =========================================================================
+
+- name: List datastores for verification
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} datastore list
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_ds_list
+  changed_when: false
+  when: _trove_api_check.rc == 0
+
+- name: List datastore versions for verification
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} datastore version list "{{ trove_datastore_name }}"
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_dsv_list
+  changed_when: false
+  when: _trove_api_check.rc == 0
+
+- name: Display datastore setup results
+  ansible.builtin.debug:
+    msg: |
+      ================================================================
+        TROVE DATASTORE SETUP — COMPLETE
+      ================================================================
+
+      Datastores:
+      {{ _trove_ds_list.stdout | default('(not available)') }}
+
+      Datastore versions ({{ trove_datastore_name }}):
+      {{ _trove_dsv_list.stdout | default('(not available)') }}
+
+      Guest image: {{ trove_guest_image_name }}
+
+      ================================================================
+  when: _trove_api_check.rc == 0

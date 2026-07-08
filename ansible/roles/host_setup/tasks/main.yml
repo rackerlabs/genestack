@@ -173,3 +173,12 @@
 
 - name: Disable ICMP Redirects
   ansible.builtin.include_tasks: disable_icmp_redirect.yml
+
+# Lab-only: MASQUERADE inner-cloud tenant egress through the host so
+# tenant VMs get working outbound internet. Idempotent; toggled via
+# `lab_tenant_egress_snat_enabled` (default true; disable for prod).
+- name: Configure inner-cloud tenant egress SNAT
+  ansible.builtin.include_tasks: tenant_egress_snat.yml
+  tags:
+    - hosts-config
+    - tenant-egress-snat

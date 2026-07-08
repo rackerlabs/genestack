@@ -1,0 +1,29 @@
+---
+upgrade:
+  - |
+    Gnocchi's incoming-measure store now defaults to Redis via the
+    in-cluster ``redis-sentinel`` service instead of Ceph; aggregated
+    time-series storage continues to use Ceph. The redis-sentinel
+    cluster deployed by the redis-operator is therefore a prerequisite
+    for the next ``install-gnocchi.sh`` run. Pending incoming bundles
+    still queued in the Ceph incoming pool at the moment of the
+    switchover are orphaned -- ``gnocchi-metricd`` only reads from
+    Redis after the upgrade -- so roll the chart during a quiet window
+    or after metricd has caught up. No aggregated time-series data is
+    affected.
+
+  - |
+    The Gnocchi ``low`` archive policy's ``back_window`` was raised
+    from 0 to 1 (one 5-minute granularity, ~5 minutes of permissible
+    lateness) to absorb intra-batch timestamp reordering. Measures
+    arriving microseconds behind a peer in the same metricd batch are
+    no longer silently dropped at ingestion. ``back_window`` is
+    monotonic and cannot be decreased on an existing policy.
+
+other:
+  - |
+    Together these changes let event-driven Swift telemetry --
+    notification-emitted ``storage.objects.outgoing.bytes`` and the new
+    ``storage.objects.http.class.{a,b,c}`` request-class counters --
+    keep up with production-shape workloads without metricd backlog
+    growth on the ``gnocchi.metrics`` Ceph pool.

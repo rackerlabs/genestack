@@ -1,0 +1,132 @@
+---
+_region: &region RegionOne
+
+endpoints:
+  identity:
+    auth:
+      admin:
+        region_name: *region
+      trove:
+        region_name: *region
+pod:
+  resources:
+    enabled: false
+  mounts:
+    trove_taskmanager:
+      init_container: null
+      trove_taskmanager:
+        volumeMounts:
+          - name: trove-guest-files
+            mountPath: /etc/trove/cloudinit/mysql.cloudinit
+            subPath: mysql.cloudinit
+            readOnly: true
+          - name: trove-guest-files
+            mountPath: /etc/trove/trove-guestagent.conf
+            subPath: trove-guestagent.conf
+            readOnly: true
+          # Workaround until ghcr.io/rackerlabs/genestack-images/trove
+          # carries a 2026.1+ template. The 2025.1-latest image's
+          # mysql/config.template emits an unconditional
+          # `default_authentication_plugin = mysql_native_password`,
+          # which mysqld 8.4 rejects. Overlay the patched template so
+          # the server-side render produces a valid my.cnf.
+          - name: trove-mysql-config-template
+            mountPath: /var/lib/openstack/lib/python3.12/site-packages/trove/templates/mysql/config.template
+            subPath: config.template
+            readOnly: true
+        volumes:
+          - name: trove-guest-files
+            configMap:
+              name: trove-guest-files
+          - name: trove-mysql-config-template
+            configMap:
+              name: trove-mysql-config-template-override
+    trove_conductor:
+      trove_conductor:
+        volumeMounts:
+          - name: trove-mysql-config-template
+            mountPath: /var/lib/openstack/lib/python3.12/site-packages/trove/templates/mysql/config.template
+            subPath: config.template
+            readOnly: true
+        volumes:
+          - name: trove-mysql-config-template
+            configMap:
+              name: trove-mysql-config-template-override
+# Trove helm config fragment — deep-merged into trove-helm-overrides.yaml
+# by the trove_enablement role.
+#
+# This template resolves runtime values: network ID, security group ID,
+# keypair name, and guest image ID.
+conf:
+  trove:
+    DEFAULT:
+      control_exchange: trove
+      trove_api_workers: 1
+      management_networks: "{{ _trove_mgmt_network_id.stdout | trim  | default('') }}"
+      management_security_groups: "{{ _trove_mgmt_secgroup_id.stdout | trim | default('') }}"
+      nova_keypair: "{{ trove_keypair_name }}"
+      default_datastore: "{{ trove_datastore_name }}"
+      network_driver: trove.network.neutron.NeutronDriver
+      taskmanager_manager: trove.taskmanager.manager.Manager
+      use_nova_server_config_drive: true
+      trove_volume_support: true
+      volume_support: true
+      volume_fstype: ext4
+      cinder_volume_type: Standard
+      enable_volume_az: true
+      # Owner of files injected into the guest via cloud-init write_files.
+      # Must match a user that exists in the guest image.
+      injected_config_owner: debian
+      injected_config_group: root
+      # Disable per-instance RPC encryption.
+      #
+      # With encryption enabled (default), the conductor's
+      # ConductorHostSerializer._deserialize_entity needs to look up
+      # the per-instance key from the DB:
+      #   instance_key = get_instance_encryption_key(instance_id)
+      # which calls trove.instance.models.DBInstance.find_by(id=...).
+      # In trove 23.0.1.dev29 (= 2025.1) running against
+      # SQLAlchemy 2.0.38 (the version pip-resolves into the
+      # genestack-images trove:2025.1-latest container), find_by
+      # raises:
+      #   ArgumentError: Column expression, FROM clause, or other
+      #   columns clause element expected, got
+      #   <class 'trove.instance.models.DBInstance'>
+      # The exception is not caught by ConductorHostSerializer's
+      # `except (ValueError, TypeError)`, oslo.messaging's
+      # dispatcher silently drops the heartbeat (no log because
+      # logging.conf has root=INFO and oslo_messaging at WARNING),
+      # the DB row stays at status_id=23 ("new"), the taskmanager
+      # polls _service_is_active for 30 minutes, and the instance
+      # ERRORs with `Build error: guestagent timeout` even though
+      # mysqld came up healthy.
+      #
+      # With encryption off, the agent's ConductorGuestSerializer
+      # passes the heartbeat as a plain dict (key=None branch);
+      # the conductor's deserializer hits the `except (ValueError,
+      # TypeError)` early-return without ever needing the per-
+      # instance key, and the heartbeat handler runs.
+      #
+      # Re-enable when upstream trove ships SQLAlchemy 2.x compat
+      # for DBInstance.find_by (or we ship a patched trove image).
+      enable_secure_rpc_messaging: false
+    network:
+      enable_access_check: false
+      network_isolation: true
+    oslo_messaging_notifications:
+      driver: noop
+    # Disable quorum queues so the conductor and the trove-guestagent
+    # (which has no built-in option to enable them — even oslo
+    # rabbit_quorum_queue=true via /etc/trove/conf.d isn't applied to its
+    # consumer queue declaration) agree on plain classic non-durable
+    # queues. Without this, the conductor declares "guestagent.<id>" as
+    # quorum/durable=true, the agent's declare with durable=false fails
+    # PRECONDITION_FAILED, and the agent crashloops.
+    oslo_messaging_rabbit:
+      rabbit_quorum_queue: false
+      rabbit_transient_quorum_queue: false
+      amqp_durable_queues: false
+  trove_api_uwsgi:
+    uwsgi:
+      processes: 1
+      threads: 1

@@ -60,6 +60,13 @@ defaultCRConfig:
         enabled: false
 
   config:
+    extensions:
+      k8s_observer:
+        auth_type: serviceAccount
+        observe_pods: true
+        namespaces:
+          - openstack
+
     processors:
       memory_limiter:
         check_interval: 1s
@@ -249,7 +256,7 @@ defaultCRConfig:
         tls:
           insecure: true
 
-        timeout: 30s
+        timeout: 60s
 
         resource_to_telemetry_conversion:
           enabled: true
@@ -282,7 +289,19 @@ collectors:
     mode: daemonset
     enabled: true
 
-    scrape_configs_file: "daemon_scrape_configs.yaml"
+    scrape_configs_file: ""
+
+    prometheus:
+      nodeExporter:
+        enabled: true
+        scrapeInterval: 40s
+        scrapeTimeout: 30s
+      cadvisor:
+        enabled: true
+        scrapeInterval: 20s
+        scrapeTimeout: 15s
+      podAnnotations:
+        enabled: false
 
     # It's ignoring presets in the default.. override them in the collector
     presets:
@@ -353,14 +372,112 @@ collectors:
             network: {}
             paging: {}
 
+        prometheus/pod_annotations:
+          config:
+            scrape_configs:
+              - job_name: kubernetes-pods
+                scrape_interval: 30s
+                scrape_timeout: 10s
+                kubernetes_sd_configs:
+                  - role: pod
+                    selectors:
+                      - role: pod
+                        field: "spec.nodeName=${env:OTEL_K8S_NODE_NAME}"
+
+                relabel_configs:
+                  - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+                    action: keep
+                    regex: true
+
+                  - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape_slow]
+                    action: drop
+                    regex: true
+
+                  - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scheme]
+                    action: replace
+                    regex: (https?)
+                    target_label: __scheme__
+
+                  - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+                    action: replace
+                    target_label: __metrics_path__
+                    regex: (.+)
+
+                  - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+                    action: replace
+                    regex: ([^:]+)(?::\d+)?;(\d+)
+                    replacement: $${1}:$${2}
+                    target_label: __address__
+
+                  - action: labelmap
+                    regex: __meta_kubernetes_pod_annotation_prometheus_io_param_(.+)
+                    replacement: __param_$${1}
+
+                  - action: labelmap
+                    regex: __meta_kubernetes_pod_label_(.+)
+
+                  - source_labels: [__meta_kubernetes_namespace]
+                    action: replace
+                    target_label: namespace
+
+                  - source_labels: [__meta_kubernetes_pod_name]
+                    action: replace
+                    target_label: pod
+
+                  - source_labels: [__meta_kubernetes_pod_node_name]
+                    action: replace
+                    target_label: node
+
+                  - source_labels: [__meta_kubernetes_pod_phase]
+                    regex: Pending|Succeeded|Failed|Completed
+                    action: drop
+
+                  # Fallback for node-local-dns and other older Kubernetes-style labels.
+                  - source_labels: [__meta_kubernetes_pod_label_k8s_app]
+                    regex: (.+)
+                    action: replace
+                    target_label: job
+
+                  # Prefer modern app.kubernetes.io/name when it exists.
+                  - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+                    regex: (.+)
+                    action: replace
+                    target_label: job
+
         prometheus/libvirt:
           config:
             scrape_configs:
               - job_name: libvirt
                 scrape_interval: 30s
                 metrics_path: /metrics
-                static_configs:
-                  - targets: ["localhost:9474"]
+
+                kubernetes_sd_configs:
+                  - role: pod
+
+                relabel_configs:
+                  - source_labels: [__meta_kubernetes_pod_phase]
+                    regex: Running
+                    action: keep
+                  - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+                    regex: libvirt
+                    action: keep
+                  - source_labels: [__meta_kubernetes_pod_node_name]
+                    regex: ${env:K8S_NODE_NAME}
+                    action: keep
+                  - source_labels: [__meta_kubernetes_pod_ip]
+                    regex: (.+)
+                    replacement: $${1}:9474
+                    target_label: __address__
+                    action: replace
+                  - source_labels: [__meta_kubernetes_namespace]
+                    target_label: namespace
+                    action: replace
+                  - source_labels: [__meta_kubernetes_pod_name]
+                    target_label: pod
+                    action: replace
+                  - source_labels: [__meta_kubernetes_pod_node_name]
+                    target_label: k8s_node_name
+                    action: replace
 
         prometheus/etcd:
           config:
@@ -475,46 +592,46 @@ collectors:
             - /var/log/*/*.gz
           start_at: end
           include_file_path: true
-          # Multiline pattern must match AFTER CRI unwrapping
-          # CRI format: 2026-02-19T22:35:59.398699658Z stdout F <actual log line>
-          # We need to look for the OpenStack timestamp AFTER "F "
-          multiline:
-            # Match OpenStack timestamp OR Apache/Horizon logs OR CRI wrapper with OpenStack inside
-            line_start_pattern: '^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z stdout [FP] )?\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}|^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z stdout [FP] )?[\d\.]+ -'
           operators:
-            # ── Recombine multiline logs BEFORE CRI unwrapping ──────────────────
-            - type: recombine
-              id: recombine-multiline
-              combine_field: body
-              is_first_entry: 'body matches "^(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z stdout [FP] )?\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}|^(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z stdout [FP] )?[\\d\\.]+ -"'
-              combine_with: "\n"
-              source_identifier: attributes["log.file.path"]
-              max_log_size: 1048576
-
-            # ── Extract service name from file path ─────────────────────────────
             - type: regex_parser
               id: extract-service-from-path
               regex: '\/(?P<service>nova|neutron|cinder|keystone|glance|horizon|heat|swift|octavia|placement|manila|ironic|barbican|ceilometer|gnocchi|skyline|trove)'
               parse_from: attributes["log.file.path"]
               if: 'attributes["log.file.path"] != nil'
+              on_error: send_quiet
 
-            # ── Parse CRI wrapper (for pod logs) ────────────────────────────────
-            - type: regex_parser
-              id: parser-cri-wrapper
-              regex: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) (?P<log>.*)$'
+            # Pod logs: unwrap CRI/containerd/CRI-O/Docker log envelope.
+            # Non-pod direct logs skip this and continue unchanged.
+            - type: container
+              id: parser-container-wrapper
               parse_from: body
-              on_error: send
+              if: 'attributes["log.file.path"] matches "^/var/log/pods/"'
+              add_metadata_from_filepath: true
+              max_log_size: 1048576
+              on_error: send_quiet
 
-            # Replace body with unwrapped log content
-            - type: move
-              from: attributes.log
-              to: body
-              if: 'attributes.log != nil'
+            # Optional compatibility if dashboards expect "stream".
+            - type: copy
+              id: copy-container-stream
+              from: attributes["log.iostream"]
+              to: attributes.stream
+              if: 'attributes["log.iostream"] != nil'
 
-            # ── Parse Horizon Apache logs (special case) ─────────────────────────
+            # Optional: recombine only known OpenStack/Horizon-style multiline records.
+            # This keeps unknown/non-OpenStack-looking lines as their own log records.
+            - type: recombine
+              id: recombine-openstack-like-multiline
+              combine_field: body
+              is_first_entry: 'body matches "^(\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}|[\\d\\.]+ -)"'
+              combine_with: "\n"
+              source_identifier: attributes["log.file.path"]
+              max_log_size: 1048576
+              if: 'attributes.service != nil and (body matches "^\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}|^[\\d\\.]+ -|^\\s+|^Traceback \\(most recent call last\\):|^[A-Za-z_.]+(Error|Exception):")'
+
             - type: regex_parser
               id: parser-horizon-apache
               regex: '^(?P<remote_addr>[\w\.]+) - (?P<remote_user>[\w\-]+) \[(?P<timestamp>[^\]]+)\] "(?P<method>\w+) (?P<path>[^\s]+) (?P<protocol>[^"]+)" (?P<status>\d+) (?P<bytes>\d+)'
+              parse_from: body
               timestamp:
                 parse_from: attributes.timestamp
                 layout: '%d/%b/%Y:%H:%M:%S %z'
@@ -525,10 +642,8 @@ collectors:
                   warn: 4xx
                   info: 2xx|3xx
               if: 'body matches "^[\\d\\.]+ - " and attributes.service == "horizon"'
-              on_error: send
+              on_error: send_quiet
 
-            # ── Parse standard OpenStack log format (all other services) ────────
-            # Format: 2024-02-19 12:34:56.789 12345 INFO nova.compute.manager [req-abc123...] message
             - type: regex_parser
               id: parser-openstack-standard
               regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) (?P<pid>\d+) (?P<severity>\w+) (?P<component>[\w\.\-]+) \[(?P<request_context>[^\]]+)\] (?P<message>.*)$'
@@ -538,9 +653,9 @@ collectors:
                 layout: '%Y-%m-%d %H:%M:%S.%L'
               severity:
                 parse_from: attributes.severity
-              on_error: send
+              if: 'body matches "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\d+ \\w+ [\\w\\.\\-]+ \\["'
+              on_error: send_quiet
 
-            # ── Fallback: OpenStack log without request context ─────────────────
             - type: regex_parser
               id: parser-openstack-no-context
               regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) (?P<pid>\d+) (?P<severity>\w+) (?P<component>[\w\.\-]+) (?P<message>.*)$'
@@ -550,40 +665,38 @@ collectors:
                 layout: '%Y-%m-%d %H:%M:%S.%L'
               severity:
                 parse_from: attributes.severity
-              if: 'attributes.message == nil'
-              on_error: send
+              if: 'attributes.message == nil and body matches "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\d+ \\w+ [\\w\\.\\-]+ "'
+              on_error: send_quiet
 
-            # ── Fallback: Horizon Django logs ───────────────────────────────────
             - type: regex_parser
               id: parser-horizon-django
               regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2}[T ]?\d{2}:\d{2}:\d{2}[.,]?\d*)\s*(?P<severity>DEBUG|INFO|WARNING|ERROR|CRITICAL)?\s*(?P<component>[\w\.\-]+)?\s*(?P<message>.*)$'
+              parse_from: body
               severity:
                 parse_from: attributes.severity
               if: 'body matches "^\\d{4}-\\d{2}-\\d{2}" and attributes.message == nil and attributes.service == "horizon"'
-              on_error: send
+              on_error: send_quiet
 
-            # ── Final catch-all ──────────────────────────────────────────────────
+            # Final preservation path: everything gets a message.
             - type: regex_parser
               id: parser-catchall
-              regex: '^(?P<message>.+)$'
+              regex: '^(?P<message>[\s\S]*)$'
               parse_from: body
               if: 'attributes.message == nil'
+              on_error: send_quiet
 
-            # ── Extract OpenStack request_id from request context ───────────────
             - type: regex_parser
               id: extract-request-id
               regex: '(?P<request_id>req-[a-f0-9\-]+)'
               parse_from: attributes.request_context
-              if: 'attributes.request_context != nil'
-              on_error: send
+              if: 'attributes.request_context != nil and attributes.request_context matches "req-[a-f0-9-]+"'
+              on_error: send_quiet
 
-            # ── Set service.name resource attribute ─────────────────────────────
             - type: add
               field: resource["service.name"]
               value: EXPR(attributes.service)
               if: 'attributes.service != nil'
 
-            # ── Promote OpenStack-specific attributes ───────────────────────────
             - type: add
               field: attributes["openstack.component"]
               value: EXPR(attributes.component)
@@ -727,6 +840,7 @@ collectors:
               - hostmetrics
               - prometheus/libvirt
               - prometheus/etcd
+              - prometheus/pod_annotations
             processors:
               - attributes/add-node-labels
               - resourcedetection/env
@@ -830,8 +944,8 @@ collectors:
 
     resources:
       limits:
-        cpu: 1000m
-        memory: 1024Mi
+        cpu: 2000m
+        memory: 2048Mi
       requests:
         cpu: 500m
         memory: 512Mi
@@ -857,6 +971,40 @@ collectors:
 
     config:
       receivers:
+        receiver_creator/memcached:
+          watch_observers:
+            - k8s_observer
+
+          receivers:
+            memcached:
+              rule: >
+                type == "port" &&
+                pod.namespace == "openstack" &&
+                port == 11211 &&
+                pod.name matches "memcached-memcached-[0-9]+"
+
+              config:
+                endpoint: "`endpoint`"
+                collection_interval: 30s
+                transport: tcp
+                metrics:
+                  memcached.operation_hit_ratio:
+                    enabled: true
+                  memcached.current_items:
+                    enabled: true
+                  memcached.evictions:
+                    enabled: true
+                  memcached.bytes:
+                    enabled: true
+
+              resource_attributes:
+                memcached_cluster: prod-iad
+                memcached_server: "`pod.name`"
+                memcached_endpoint: "`endpoint`"
+                k8s.namespace.name: "`pod.namespace`"
+                k8s.pod.name: "`pod.name`"
+                k8s.pod.uid: "`pod.uid`"
+
         mysql:
           endpoint: mariadb-cluster-internal.openstack.svc.cluster.local:3306
           username: monitoring
@@ -880,7 +1028,8 @@ collectors:
           endpoint: http://rabbitmq.openstack.svc.cluster.local:15672
           username: ${env:RABBITMQ_USERNAME}
           password: ${env:RABBITMQ_PASSWORD}
-          collection_interval: 30s
+          timeout: 30s
+          collection_interval: 60s
           metrics:
             rabbitmq.node.disk_free:
               enabled: true
@@ -917,48 +1066,6 @@ collectors:
             rabbitmq.node.sockets_used_details.rate:
               enabled: true
 
-        memcached/memcached-0:
-          endpoint: memcached-memcached-0.memcached.openstack.svc.cluster.local:11211
-          collection_interval: 30s
-          transport: tcp
-          metrics:
-            memcached.operation_hit_ratio:
-              enabled: true
-            memcached.current_items:
-              enabled: true
-            memcached.evictions:
-              enabled: true
-            memcached.bytes:
-              enabled: true
-
-        memcached/memcached-1:
-          endpoint: memcached-memcached-1.memcached.openstack.svc.cluster.local:11211
-          collection_interval: 30s
-          transport: tcp
-          metrics:
-            memcached.operation_hit_ratio:
-              enabled: true
-            memcached.current_items:
-              enabled: true
-            memcached.evictions:
-              enabled: true
-            memcached.bytes:
-              enabled: true
-
-        memcached/memcached-2:
-          endpoint: memcached-memcached-2.memcached.openstack.svc.cluster.local:11211
-          collection_interval: 30s
-          transport: tcp
-          metrics:
-            memcached.operation_hit_ratio:
-              enabled: true
-            memcached.current_items:
-              enabled: true
-            memcached.evictions:
-              enabled: true
-            memcached.bytes:
-              enabled: true
-
         httpcheck:
           targets:
             - endpoint: https://nova.api.example.com
@@ -992,6 +1099,182 @@ collectors:
         prometheus/infra:
           config:
             scrape_configs:
+              - job_name: apiserver
+                kubernetes_sd_configs:
+                  - role: endpoints
+                    namespaces:
+                      names:
+                        - default
+                scheme: https
+                bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+                tls_config:
+                  ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                  server_name: kubernetes
+                  insecure_skip_verify: false
+                relabel_configs:
+                  - source_labels:
+                      - __meta_kubernetes_namespace
+                      - __meta_kubernetes_service_name
+                    regex: default;kubernetes
+                    action: keep
+                  - source_labels:
+                      - __meta_kubernetes_service_label_component
+                      - __meta_kubernetes_service_label_provider
+                    regex: apiserver;kubernetes
+                    action: keep
+                  - source_labels:
+                      - __meta_kubernetes_endpoint_port_name
+                    regex: https
+                    action: keep
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    target_label: service
+                  - source_labels:
+                      - __meta_kubernetes_namespace
+                    target_label: namespace
+                  - target_label: job
+                    replacement: apiserver
+                metric_relabel_configs:
+                  - source_labels:
+                      - __name__
+                      - le
+                    regex: apiserver_request_duration_seconds_bucket;(0.15|0.2|0.3|0.35|0.4|0.45|0.6|0.7|0.8|0.9|1.25|1.5|1.75|2|3|3.5|4|4.5|6|7|8|9|15|25|40|50)
+                    action: drop
+
+              - job_name: kube-controller-manager
+                kubernetes_sd_configs:
+                  - role: endpoints
+                    namespaces:
+                      names:
+                        - kube-system
+                scheme: https
+                bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+                tls_config:
+                  ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                  insecure_skip_verify: true
+                relabel_configs:
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    regex: opentelemetry-kube-stack-kube-controller-manager
+                    action: keep
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    target_label: service
+                  - source_labels:
+                      - __meta_kubernetes_namespace
+                    target_label: namespace
+                  - source_labels:
+                      - __meta_kubernetes_pod_name
+                    target_label: pod
+                  - target_label: job
+                    replacement: kube-controller-manager
+
+              - job_name: kube-scheduler
+                kubernetes_sd_configs:
+                  - role: endpoints
+                    namespaces:
+                      names:
+                        - kube-system
+                scheme: https
+                bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+                tls_config:
+                  ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                  insecure_skip_verify: true
+                relabel_configs:
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    regex: opentelemetry-kube-stack-kube-scheduler
+                    action: keep
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    target_label: service
+                  - source_labels:
+                      - __meta_kubernetes_namespace
+                    target_label: namespace
+                  - source_labels:
+                      - __meta_kubernetes_pod_name
+                    target_label: pod
+                  - target_label: job
+                    replacement: kube-scheduler
+
+              - job_name: kube-proxy
+                kubernetes_sd_configs:
+                  - role: endpoints
+                    namespaces:
+                      names:
+                        - kube-system
+                relabel_configs:
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    regex: opentelemetry-kube-stack-kube-proxy
+                    action: keep
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    target_label: service
+                  - source_labels:
+                      - __meta_kubernetes_namespace
+                    target_label: namespace
+                  - source_labels:
+                      - __meta_kubernetes_pod_name
+                    target_label: pod
+                  - target_label: job
+                    replacement: kube-proxy
+
+              - job_name: coredns
+                scrape_interval: 30s
+                metrics_path: /metrics
+
+                kubernetes_sd_configs:
+                  - role: endpoints
+                    namespaces:
+                      names:
+                        - kube-system
+
+                relabel_configs:
+                  - source_labels: [__meta_kubernetes_pod_label_k8s_app]
+                    regex: kube-dns
+                    action: keep
+                  - source_labels: [__meta_kubernetes_endpoint_port_name]
+                    regex: metrics
+                    action: keep
+                  - source_labels: [__meta_kubernetes_service_name]
+                    target_label: service
+                  - source_labels: [__meta_kubernetes_namespace]
+                    target_label: namespace
+                  - source_labels: [__meta_kubernetes_pod_name]
+                    target_label: pod
+                  - source_labels: [__meta_kubernetes_pod_node_name]
+                    target_label: k8s_node_name
+                  - target_label: job
+                    replacement: coredns
+
+              - job_name: kube-state-metrics
+                kubernetes_sd_configs:
+                  - role: endpoints
+                    namespaces:
+                      names:
+                        - monitoring
+                relabel_configs:
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    regex: opentelemetry-kube-stack-kube-state-metrics
+                    action: keep
+                  - source_labels:
+                      - __meta_kubernetes_endpoint_port_name
+                    regex: http
+                    action: keep
+                  - source_labels:
+                      - __meta_kubernetes_service_name
+                    target_label: service
+                  - source_labels:
+                      - __meta_kubernetes_namespace
+                    target_label: namespace
+                  - source_labels:
+                      - __meta_kubernetes_pod_name
+                    target_label: pod
+                  - target_label: job
+                    replacement: kube-state-metrics
+
               - job_name: cert-manager
                 kubernetes_sd_configs:
                   - role: pod
@@ -1161,7 +1444,21 @@ collectors:
                       - __meta_kubernetes_pod_name
                     target_label: pod
 
+      processors:
+        transform/memcached_labels:
+          error_mode: ignore
+          metric_statements:
+            - context: datapoint
+              statements:
+                - set(attributes["memcached_cluster"], resource.attributes["memcached_cluster"])
+                - set(attributes["memcached_server"], resource.attributes["memcached_server"])
+                - set(attributes["memcached_endpoint"], resource.attributes["memcached_endpoint"])
+                - set(attributes["namespace"], resource.attributes["k8s.namespace.name"])
+                - set(attributes["pod"], resource.attributes["k8s.pod.name"])
+
       service:
+        extensions:
+          - k8s_observer
         telemetry:
           logs:
             level: info
@@ -1188,13 +1485,12 @@ collectors:
               - otlp
               - mysql
               - rabbitmq
-              - memcached/memcached-0
-              - memcached/memcached-1
-              - memcached/memcached-2
+              - receiver_creator/memcached
               - prometheus/infra
 #              - httpcheck # uncomment to add endpoint checking metrics with above endpoint config...
             processors:
               - resourcedetection/env
+              - transform/memcached_labels
               - memory_limiter
               - batch
             exporters:
@@ -1203,6 +1499,16 @@ collectors:
 
 clusterRole:
   enabled: true
+  rules:
+    - apiGroups: [""]
+      resources:
+        - pods
+        - services
+        - endpoints
+      verbs:
+        - get
+        - list
+        - watch
 
 kubernetesServiceMonitors:
   enabled: true
@@ -1214,6 +1520,7 @@ kubeApiServer:
     serverName: kubernetes
     insecureSkipVerify: false
   serviceMonitor:
+    enabled: false
     jobLabel: component
     selector:
       matchLabels:
@@ -1243,7 +1550,7 @@ kubeControllerManager:
     port: null
     targetPort: null
   serviceMonitor:
-    enabled: true
+    enabled: false
     port: http-metrics
     jobLabel: jobLabel
 
@@ -1254,7 +1561,7 @@ coreDns:
     port: 9153
     targetPort: 9153
   serviceMonitor:
-    enabled: true
+    enabled: false
     port: http-metrics
     jobLabel: jobLabel
 
@@ -1268,7 +1575,7 @@ kubeEtcd:
     port: 2381
     targetPort: 2381
   serviceMonitor:
-    enabled: true
+    enabled: false
     scheme: http
     insecureSkipVerify: false
     port: http-metrics
@@ -1280,7 +1587,7 @@ kubeScheduler:
   service:
     enabled: true
   serviceMonitor:
-    enabled: true
+    enabled: false
     https: null
     port: http-metrics
     jobLabel: jobLabel
@@ -1292,7 +1599,7 @@ kubeProxy:
     port: 10249
     targetPort: 10249
   serviceMonitor:
-    enabled: true
+    enabled: false
     port: http-metrics
     jobLabel: jobLabel
     selector: {}
@@ -1310,7 +1617,7 @@ kube-state-metrics:
     openstack-control-plane: enabled
   prometheus:
     monitor:
-      enabled: true
+      enabled: false
       honorLabels: true
   selfMonitor:
     enabled: false
@@ -1339,7 +1646,7 @@ prometheus-node-exporter:
     portName: http-metrics
   prometheus:
     monitor:
-      enabled: true
+      enabled: false
       jobLabel: jobLabel
   rbac:
     pspEnabled: false

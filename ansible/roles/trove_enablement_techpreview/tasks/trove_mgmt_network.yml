@@ -1,0 +1,81 @@
+# =========================================================================
+# Trove management overlay network (geneve)
+# trove-mgmt-net is a pure OVN overlay. Guest VMs reach
+# RabbitMQ + Keystone via the trove-mgmt-bridge DaemonSet, which plumbs
+# per-chassis anchor LSPs into pod netns and runs haproxy. No physnet,
+# no MetalLB, no host-side bridge plumbing required.
+# =========================================================================
+
+- name: Create Trove management overlay network (geneve)
+  ansible.builtin.command:
+    cmd: >
+      openstack --os-cloud default network create
+      --provider-network-type geneve
+      {{ trove_mgmt_network_name }}
+  register: trove_mgmt_net_result
+  changed_when: trove_mgmt_net_result.rc == 0
+  failed_when:
+    - trove_mgmt_net_result.rc != 0
+    - "'x' not in trove_mgmt_net_result.stderr"
+
+- name: Create Trove management subnet on overlay
+  # --dns-nameserver populates the subnet's metadata even with --no-dhcp;
+  # cloud-init reads it from config-drive at first boot. Internet reach
+  # for the guest comes from its other vNIC (the customer tenant network
+  # the user attaches at instance create), so no gateway is needed here.
+  ansible.builtin.command:
+    cmd: >
+      openstack --os-cloud default subnet create
+      --network {{ trove_mgmt_network_name }}
+      --subnet-range {{ trove_mgmt_subnet_cidr }}
+      --allocation-pool start={{ trove_mgmt_pool_start }},end={{ trove_mgmt_pool_end }}
+      --gateway {{ trove_mgmt_subnet_gateway }}
+      --dns-nameserver 1.1.1.1
+      --dns-nameserver 8.8.8.8
+      {{ trove_mgmt_subnet_name }}
+  register: trove_mgmt_subnet_result
+  changed_when: trove_mgmt_subnet_result.rc == 0
+  failed_when:
+    - trove_mgmt_subnet_result.rc != 0
+    - "'already exists' not in trove_mgmt_subnet_result.stderr"
+
+- name: Create router for trove mgmt network with external gateway to flat network
+  ansible.builtin.command:
+    cmd: >
+      openstack --os-cloud default router create {{ trove_mgmt_router_name }}
+      --external-gateway flat
+  register: trove_mgmt_router_result
+  changed_when: trove_mgmt_router_result.rc == 0
+  failed_when:
+    - trove_mgmt_router_result.rc != 0
+    - "'already exists' not in trove_mgmt_router_result.stderr"
+
+- name: Attach trove mgmt subnet to trove mgmt router
+  ansible.builtin.command:
+    cmd: >
+      openstack --os-cloud default router add subnet
+      {{ trove_mgmt_router_name }} {{ trove_mgmt_subnet_name }}
+  register: trove_mgmt_router_attach_result
+  changed_when: trove_mgmt_router_attach_result.rc == 0
+  failed_when:
+    - trove_mgmt_router_attach_result.rc != 0
+    - "'already' not in (trove_mgmt_router_attach_result.stderr | default(''))"
+
+- name: Change trove mgmt router port name
+  ansible.builtin.shell: |
+    set -o pipefail
+    source {{ genestack_venv }}/bin/activate
+    set -a
+    source {{ genestack_rc }}
+    set +a
+
+    PORT_ID=$(openstack router show {{ trove_mgmt_router_name }} -f json | jq -r '.interfaces_info[0].port_id')
+    openstack port set --name {{ trove_mgmt_router_port_name }} $PORT_ID
+  args:
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: trove_mgmt_router_port_name_change
+  changed_when: trove_mgmt_router_port_name_change.rc == 0
+  failed_when:
+    - trove_mgmt_router_port_name_change.rc != 0
