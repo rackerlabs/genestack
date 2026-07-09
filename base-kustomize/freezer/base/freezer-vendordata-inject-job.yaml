@@ -1,0 +1,204 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: freezer-vendordata-inject
+  namespace: openstack
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: freezer-vendordata-inject
+  namespace: openstack
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["freezer-keystone-service-password"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["static-vendor-data"]
+    verbs: ["get", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: freezer-vendordata-inject
+  namespace: openstack
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: freezer-vendordata-inject
+subjects:
+  - kind: ServiceAccount
+    name: freezer-vendordata-inject
+    namespace: openstack
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: freezer-vendordata-inject
+  namespace: openstack
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "100"
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        application: freezer
+        component: vendordata-inject
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: freezer-vendordata-inject
+      containers:
+        - name: inject
+          image: ghcr.io/rackerlabs/genestack-images/openstack-client:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+
+              # Install kubectl
+              curl -sLo /tmp/kubectl "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+              chmod +x /tmp/kubectl
+
+              MARKER="# Freezer agent and scheduler auto-install"
+
+              # The freezer cloud-init script to append
+              FREEZER_SCRIPT=$(cat <<'FREEZER_EOF'
+              # Freezer agent and scheduler auto-install
+              if [ ! -f /opt/freezer-venv/bin/freezer-scheduler ]; then
+                apt-get update -qq
+                apt-get install -y -qq python3-dev python3-venv python3-pip libssl-dev git
+                python3 -m venv /opt/freezer-venv
+                /opt/freezer-venv/bin/pip install --quiet --upgrade pip
+                /opt/freezer-venv/bin/pip install --quiet pymysql git+https://opendev.org/openstack/freezer.git@master
+                mkdir -p /etc/freezer /var/log/freezer /var/lib/freezer
+                CLIENTID=$(hostname)
+                cat > /etc/freezer/freezer-scheduler.conf <<FCONF
+              [DEFAULT]
+              log_file = /var/log/freezer/scheduler.log
+              client_id = ${CLIENTID}
+              jobs_dir = /var/lib/freezer
+              interval = 60
+              [keystone_authtoken]
+              auth_url = http://keystone-api.openstack.svc.cluster.local:5000/v3
+              auth_type = password
+              project_domain_name = service
+              user_domain_name = service
+              project_name = service
+              username = freezer
+              password = FREEZER_PASS_PLACEHOLDER
+              FCONF
+                chmod 640 /etc/freezer/freezer-scheduler.conf
+                cat > /etc/freezer/openrc <<FRC
+              OS_AUTH_URL=http://keystone-api.openstack.svc.cluster.local:5000/v3
+              OS_USERNAME=freezer
+              OS_PASSWORD=FREEZER_PASS_PLACEHOLDER
+              OS_PROJECT_NAME=service
+              OS_PROJECT_DOMAIN_NAME=service
+              OS_USER_DOMAIN_NAME=service
+              OS_IDENTITY_API_VERSION=3
+              OS_ENDPOINT_TYPE=internal
+              FRC
+                chmod 600 /etc/freezer/openrc
+                cat > /etc/systemd/system/freezer-scheduler.service <<FSVC
+              [Unit]
+              Description=Freezer Scheduler
+              After=network-online.target
+              Wants=network-online.target
+              [Service]
+              Type=simple
+              EnvironmentFile=/etc/freezer/openrc
+              ExecStart=/opt/freezer-venv/bin/freezer-scheduler --os-endpoint-type internal --os-backup-url http://freezer-api.openstack.svc.cluster.local:9090 --client-id ${CLIENTID} --interval 60 --conf /var/lib/freezer --no-daemon start
+              Restart=on-failure
+              RestartSec=30
+              [Install]
+              WantedBy=multi-user.target
+              FSVC
+                systemctl daemon-reload
+                systemctl enable freezer-scheduler
+                systemctl start freezer-scheduler
+                echo "Freezer scheduler installed on ${CLIENTID}"
+              fi
+              FREEZER_EOF
+              )
+
+              echo "Reading freezer service password from K8s Secret..."
+              FREEZER_PASS=$(/tmp/kubectl get secret freezer-keystone-service-password \
+                -n openstack -o jsonpath='{.data.password}' | base64 -d)
+
+              if [ -z "${FREEZER_PASS}" ]; then
+                echo "ERROR: Could not read freezer service password"
+                exit 1
+              fi
+
+              # Replace password placeholder in freezer script
+              FREEZER_SCRIPT=$(echo "${FREEZER_SCRIPT}" | sed "s/FREEZER_PASS_PLACEHOLDER/${FREEZER_PASS}/g")
+
+              echo "Reading current vendor_data.json from ConfigMap..."
+              /tmp/kubectl get configmap static-vendor-data \
+                -n openstack -o jsonpath='{.data.vendor_data\.json}' > /tmp/current_vendor_data.json
+
+              echo "Merging freezer content into existing vendor_data..."
+
+              # Write freezer script to temp file
+              printf '%s' "${FREEZER_SCRIPT}" > /tmp/freezer_script.sh
+
+              # Use python3 to merge and write result to temp file
+              python3 << 'PYEOF'
+              import json, sys
+
+              marker = "# Freezer agent and scheduler auto-install"
+
+              with open('/tmp/current_vendor_data.json', 'r') as f:
+                  current = f.read().strip()
+
+              with open('/tmp/freezer_script.sh', 'r') as f:
+                  freezer_script = f.read()
+
+              try:
+                  data = json.loads(current) if current else {}
+              except Exception:
+                  data = {}
+
+              existing_ci = data.get('cloud-init', '')
+
+              if marker in existing_ci:
+                  print("SKIP")
+                  sys.exit(0)
+
+              if not existing_ci.strip():
+                  existing_ci = '#!/bin/bash\nset -e\n'
+              elif not existing_ci.startswith('#!/'):
+                  existing_ci = '#!/bin/bash\nset -e\n' + existing_ci
+
+              data['cloud-init'] = existing_ci.rstrip() + '\n\n' + freezer_script
+
+              # vendor_data.json must be a string value in ConfigMap.data
+              merged_str = json.dumps(data)
+              patch = {"data": {"vendor_data.json": merged_str}}
+
+              with open('/tmp/configmap_patch.json', 'w') as f:
+                  json.dump(patch, f)
+
+              print("MERGED")
+              PYEOF
+
+              MERGE_RESULT=$?
+
+              if [ -f /tmp/configmap_patch.json ]; then
+                /tmp/kubectl patch configmap static-vendor-data -n openstack \
+                  --type merge \
+                  --patch-file /tmp/configmap_patch.json
+
+                echo "Successfully appended freezer cloud-init to vendor_data ConfigMap"
+              else
+                echo "Freezer content already present in vendor_data, no changes needed"
+              fi
