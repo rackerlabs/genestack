@@ -10,20 +10,4 @@ data:
   # part such as a shell script or boothook rather than top-level cloud-config
   # keys like packages, bootcmd, or runcmd, which are commonly replaced by
   # user-supplied cloud-config.
-  #
-  # Freezer agent and scheduler are auto-installed on every new VM via this
-  # vendor_data. The cloud-init script installs freezer-scheduler as a systemd
-  # service, configures it with the freezer-api endpoint and OpenStack service
-  # account credentials, and starts it at first boot. The scheduler registers
-  # the VM as a client in freezer-api, enabling all backup types (VM snapshot,
-  # Cinder volume, local filesystem, MySQL, MongoDB) via Skyline UI.
-  #
-  # The freezer service password placeholder (__FREEZER_SERVICE_PASSWORD__) is
-  # automatically injected by the freezer-vendordata-inject K8s Job after
-  # freezer deployment. The job reads the password from the
-  # freezer-keystone-service-password K8s Secret in the openstack namespace
-  # and patches this ConfigMap. No manual steps required.
-  vendor_data.json: |
-    {
-      "cloud-init": "#!/bin/bash\nset -euo pipefail\n\n# Freezer agent and scheduler auto-install\n# Injected at VM first boot via Nova vendor_data / cloud-init\n\nVENV_DIR=\"/opt/freezer-venv\"\nCONF_DIR=\"/etc/freezer\"\nLOG_DIR=\"/var/log/freezer\"\nJOBS_DIR=\"/var/lib/freezer\"\nCLIENT_ID=\"$(hostname)\"\n\n# Skip if already installed\nif [ -f \"${VENV_DIR}/bin/freezer-scheduler\" ]; then\n  echo \"Freezer already installed on $(hostname), skipping\"\n  exit 0\nfi\n\n# Install system packages\napt-get update -qq\napt-get install -y -qq python3-dev python3-venv python3-pip libssl-dev git\n\n# Create Python venv and install freezer from master\npython3 -m venv \"${VENV_DIR}\"\n\"${VENV_DIR}/bin/pip\" install --quiet --upgrade pip\n\"${VENV_DIR}/bin/pip\" install --quiet pymysql git+https://opendev.org/openstack/freezer.git@master\n\n# Create required directories\nmkdir -p \"${CONF_DIR}\" \"${LOG_DIR}\" \"${JOBS_DIR}\"\n\n# Write freezer-scheduler config\ncat > \"${CONF_DIR}/freezer-scheduler.conf\" << CONF\n[DEFAULT]\nlog_file = ${LOG_DIR}/scheduler.log\nclient_id = ${CLIENT_ID}\njobs_dir = ${JOBS_DIR}\ninterval = 60\n\n[keystone_authtoken]\nauth_url = http://keystone-api.openstack.svc.cluster.local:5000/v3\nauth_type = password\nproject_domain_name = service\nuser_domain_name = service\nproject_name = service\nusername = freezer\npassword = __FREEZER_SERVICE_PASSWORD__\nCONF\n\nchmod 640 \"${CONF_DIR}/freezer-scheduler.conf\"\n\n# Write openrc for systemd EnvironmentFile (no 'export' keyword)\ncat > \"${CONF_DIR}/openrc\" << OPENRC\nOS_AUTH_URL=http://keystone-api.openstack.svc.cluster.local:5000/v3\nOS_USERNAME=freezer\nOS_PASSWORD=__FREEZER_SERVICE_PASSWORD__\nOS_PROJECT_NAME=service\nOS_PROJECT_DOMAIN_NAME=service\nOS_USER_DOMAIN_NAME=service\nOS_IDENTITY_API_VERSION=3\nOS_ENDPOINT_TYPE=internal\nOPENRC\n\nchmod 600 \"${CONF_DIR}/openrc\"\n\n# Create systemd service for freezer-scheduler\ncat > /etc/systemd/system/freezer-scheduler.service << SVC\n[Unit]\nDescription=Freezer Scheduler\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nEnvironmentFile=${CONF_DIR}/openrc\nExecStart=${VENV_DIR}/bin/freezer-scheduler --os-endpoint-type internal --os-backup-url http://freezer-api.openstack.svc.cluster.local:9090 --client-id ${CLIENT_ID} --interval 60 --conf ${JOBS_DIR} --no-daemon start\nRestart=on-failure\nRestartSec=30\nStandardOutput=journal\nStandardError=journal\n\n[Install]\nWantedBy=multi-user.target\nSVC\n\n# Enable and start\nsystemctl daemon-reload\nsystemctl enable freezer-scheduler\nsystemctl start freezer-scheduler\n\necho \"Freezer scheduler installed and started on $(hostname)\"\n"
-    }
+  vendor_data.json: '{}'
