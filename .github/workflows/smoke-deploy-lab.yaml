@@ -80,6 +80,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Dynamically set MY_DATE environment variable
         if: ${{ github.event_name == 'pull_request' }}

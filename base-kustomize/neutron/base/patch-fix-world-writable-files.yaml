@@ -1,0 +1,28 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: neutron-ovn-metadata-agent-default
+spec:
+  template:
+    spec:
+      containers:
+        - name: neutron-ovn-metadata-agent
+          command:
+            - bash
+            - -c
+            - umask 0022 && /tmp/neutron-ovn-metadata-agent.sh
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: neutron-ovn-vpn-agent-default
+spec:
+  template:
+    spec:
+      containers:
+        - name: neutron-ovn-vpn-agent
+          command:
+            - bash
+            - -c
+            - umask 0022 && /tmp/neutron-ovn-vpn-agent.sh
