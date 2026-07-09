@@ -23,6 +23,12 @@ If `cluster_name` was anything other than `cluster.local` you should pass that a
     --8<-- "bin/install-redis-operator.sh"
     ```
 
+!!! example "Run the redis-replication deployment Script `/opt/genestack/bin/install-redis-replication.sh`."
+
+    ``` shell
+    --8<-- "bin/install-redis-replication.sh"
+    ```
+
 
 ## Verify Redis Operator and Replication cluster readiness with the following command
 

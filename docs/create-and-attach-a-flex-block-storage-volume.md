@@ -6,23 +6,21 @@ Volume types and their performance characteristics are defined by your cloud ope
 
 | Volume Type    | Max Size | Min Size | QoS Properties                                                           |
 | -------------- | -------- | -------- | ------------------------------------------------------------------------ |
-| Capacity       | 2TB      | 100GB    | READ: 1 IOPS per second per GiB, WRITE: 1 IOPS per second per GiB       |
-| Standard       | 2TB      | 10GB     | READ: 5 IOPS per second per GiB, WRITE: 5 IOPS per second per GiB       |
-| Performance    | 2TB      | 10GB     | READ: 10 IOPS per second per GiB, WRITE: 10 IOPS per second per GiB     |
+| Capacity       | 2TB      | 100GB    | READ: 1 IOPS (per second per GiB), WRITE: 1 IOPS (per second per GiB)       |
+| Standard       | 2TB      | 10GB     | READ: 5 IOPS (per second per GiB), WRITE: 5 IOPS (per second per GiB)       |
+| Performance    | 2TB      | 10GB     | READ: 10 IOPS (per second per GiB), WRITE: 10 IOPS (per second per GiB)     |
 | HA-Standard    | 2TB      | 5GB      | Absolute Minimum IOPS: 128, Absolute Peak IOPS per GiB: 20              |
 | HA-Performance | 2TB      | 5GB      | Absolute Minimum IOPS: 256, Absolute Peak IOPS per GiB: 40              |
 
 Available in regions: IAD, DFW, SJC
 
-!!! note "IAD region difference"
-
-    In the IAD region, the Capacity volume type has `WRITE: 2 IOPS per second per GiB` instead of 1.
 
 !!! note
 
     Volumes can only be attached to servers in the same availability zone. Confirm the name and availability zone of the target server before creating a volume.
 
 ## Prerequisites
+
 - A running server to attach the volume to.
 
 ## Create a volume

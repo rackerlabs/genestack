@@ -46,4 +46,4 @@ The volume will be permanently removed. This action cannot be undone.
 
 ## Detach an operating system disk that uses the boot-from-volume functionality
 
-If your server boots from a Block Storage Volume and you need to detach the boot volume. In this case, you will not be able to detach the boot volume, even if you shutdown your instance, you will not be able to detach it.
+This operation is not possible.
