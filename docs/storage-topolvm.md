@@ -25,8 +25,8 @@ Once the volume group is on your storage nodes, the node is ready for use.
 
 ### Deploy the TopoLVM Provisioner
 
-!!! example "Run the topolvm deployment Script bin/install-topolvm.sh"
+!!! example "Run the topolvm deployment Script"
 
     ``` shell
-    --8<-- "bin/install-topolvm.sh"
+    /opt/genestack/bin/install.sh --service topolvm
     ```

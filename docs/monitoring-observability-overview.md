@@ -495,8 +495,8 @@ URL: http://grafana.monitoring.svc.cluster.local
      or https://grafana.your-domain.com (if Ingress configured)
 
 Default Credentials:
-  Username: admin
-  Password: (from secret: grafana-admin-password)
+  Username: (from secret: grafana-db, key: username)
+  Password: (from secret: grafana-db, key: password)
 ```
 
 **Access via kubectl port-forward**:

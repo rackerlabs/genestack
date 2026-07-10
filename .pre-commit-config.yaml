@@ -6,6 +6,16 @@ default_install_hook_types:
   - commit-msg
 
 repos:
+  - repo: local
+    hooks:
+      - id: unified-installer-regression
+        name: unified-installer-regression
+        entry: bash tests/test_unified_installer.sh
+        language: system
+        pass_filenames: false
+        stages:
+          - manual
+        files: ^(bin/(helpers\.sh|install\.sh|services/.*\.(yaml|yml))|tests/test_unified_installer\.sh|\.pre-commit-config\.yaml)$
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v4.0.0
     hooks:
@@ -64,6 +74,7 @@ repos:
       - id: yamllint
         stages:
           - manual
+        exclude: .gitignore$
   - repo: https://github.com/ansible-community/ansible-lint
     rev: v24.9.2
     hooks:

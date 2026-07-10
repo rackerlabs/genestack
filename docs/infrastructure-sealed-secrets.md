@@ -2,10 +2,10 @@
 
 ## Install sealed secrets
 
-!!! example "Run the deployment Script `/opt/genestack/bin/install-sealed-secrets.sh`"
+!!! example "Run the deployment Script"
 
     ``` shell
-    --8<-- "bin/install-sealed-secrets.sh"
+    /opt/genestack/bin/install.sh --service sealed-secrets
     ```
 
 

@@ -1,0 +1,16 @@
+---
+service:
+  name: redis-sentinel
+  namespace: redis-systems
+  version: ~
+
+chart:
+  repo_name: ot-helm
+  repo_url: https://ot-container-kit.github.io/helm-charts
+  service_name: redis-sentinel
+  global_overrides: false
+
+kustomize:
+  enabled: false
+
+secrets: []

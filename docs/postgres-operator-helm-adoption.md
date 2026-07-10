@@ -257,7 +257,7 @@ kubectl label crd postgresqls.acid.zalan.do \
 Execute the Genestack postgres-operator installation script to perform the actual Helm adoption:
 
 ```bash
-/opt/genestack/bin/install-postgres-operator.sh
+/opt/genestack/bin/install.sh --service postgres-operator
 ```
 
 This command executes a `helm upgrade --install` using the current chart version and overrides, and creates the Helm Release Secret needed for Helm to manage the resource.

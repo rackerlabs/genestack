@@ -11,7 +11,7 @@ Prometheus Pushgateway is useful for short-lived jobs, such as Kubernetes `CronJ
 ## Install
 
 ```shell
-/opt/genestack/bin/install-prometheus-pushgateway.sh
+/opt/genestack/bin/install.sh --service prometheus-pushgateway
 ```
 
 ## Verify
