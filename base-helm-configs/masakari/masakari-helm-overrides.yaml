@@ -13,14 +13,14 @@
 ---
 images:
   tags:
-    db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    db_sync: ghcr.io/rackerlabs/genestack-images/masakari:2024.1-latest
-    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    masakari_api: ghcr.io/rackerlabs/genestack-images/masakari:2024.1-latest
-    masakari_engine: ghcr.io/rackerlabs/genestack-images/masakari:2024.1-latest
+    db_init: ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest
+    db_sync: ghcr.io/rackerlabs/genestack-images/masakari:2025.1-latest
+    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest
+    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest
+    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2025.1-latest
+    masakari_api: ghcr.io/rackerlabs/genestack-images/masakari:2025.1-latest
+    masakari_engine: ghcr.io/rackerlabs/genestack-images/masakari:2025.1-latest
     masakari_host_monitor: ghcr.io/rackerlabs/genestack-images/masakari-monitors:master-latest
     masakari_process_monitor: ghcr.io/rackerlabs/genestack-images/masakari-monitors:master-latest
     masakari_instance_monitor: ghcr.io/rackerlabs/genestack-images/masakari-monitors:master-latest
@@ -135,7 +135,7 @@ conf:
       auth_type: password
       service_type: instance-ha
       auth_version: v3
-      memcache_security_strategy: ENCRYPT
+      memcache_security_strategy: None
       service_token_roles: service
       service_token_roles_required: true
     database:
