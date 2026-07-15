@@ -7,15 +7,15 @@ images:
     bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    ironic_db_sync: "ghcr.io/rackerlabs/genestack-images/ironic-api:2025.1-latest"
+    ironic_db_sync: "ghcr.io/rackerlabs/genestack-images/ironic-api:2026.1-latest"
     ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     rabbit_init: null
-    ironic_api: "ghcr.io/rackerlabs/genestack-images/ironic-api:2025.1-latest"
-    ironic_conductor: "ghcr.io/rackerlabs/genestack-images/ironic-conductor:2025.1-latest"
-    ironic_pxe: "ghcr.io/rackerlabs/genestack-images/ironic-pxe:2025.1-latest"
-    ironic_pxe_init: "ghcr.io/rackerlabs/genestack-images/ironic-pxe:2025.1-latest"
+    ironic_api: "ghcr.io/rackerlabs/genestack-images/ironic-api:2026.1-latest"
+    ironic_conductor: "ghcr.io/rackerlabs/genestack-images/ironic-conductor:2026.1-latest"
+    ironic_pxe: "ghcr.io/rackerlabs/genestack-images/ironic-pxe:2026.1-latest"
+    ironic_pxe_init: "ghcr.io/rackerlabs/genestack-images/ironic-pxe:2026.1-latest"
     ironic_pxe_http: "docker.io/nginx:1.29.8" # Retained from openstack-helm master branch
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
     image_repo_sync: null

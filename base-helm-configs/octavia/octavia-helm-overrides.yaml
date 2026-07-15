@@ -9,13 +9,13 @@ images:
     ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    octavia_api: "ghcr.io/rackerlabs/genestack-images/octavia:2025.1-latest"
-    octavia_db_sync: "ghcr.io/rackerlabs/genestack-images/octavia:2025.1-latest"
-    octavia_health_manager: "ghcr.io/rackerlabs/genestack-images/octavia:2025.1-latest"
+    octavia_api: "ghcr.io/rackerlabs/genestack-images/octavia:2026.1-latest"
+    octavia_db_sync: "ghcr.io/rackerlabs/genestack-images/octavia:2026.1-latest"
+    octavia_health_manager: "ghcr.io/rackerlabs/genestack-images/octavia:2026.1-latest"
     octavia_health_manager_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    octavia_housekeeping: "ghcr.io/rackerlabs/genestack-images/octavia:2025.1-latest"
+    octavia_housekeeping: "ghcr.io/rackerlabs/genestack-images/octavia:2026.1-latest"
     octavia_worker_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    octavia_worker: "ghcr.io/rackerlabs/genestack-images/octavia:2025.1-latest"
+    octavia_worker: "ghcr.io/rackerlabs/genestack-images/octavia:2026.1-latest"
     openvswitch_vswitchd: "ghcr.io/rackerlabs/genestack-images/ovs:v3.5.1-latest"
     rabbit_init: null
     test: null

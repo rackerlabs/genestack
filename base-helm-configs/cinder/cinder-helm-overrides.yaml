@@ -22,15 +22,15 @@ labels:
 images:
   tags:
     bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    cinder_api: "ghcr.io/rackerlabs/genestack-images/cinder:2025.1-latest"
-    cinder_backup: "ghcr.io/rackerlabs/genestack-images/cinder:2025.1-latest"
+    cinder_api: "ghcr.io/rackerlabs/genestack-images/cinder:2026.1-latest"
+    cinder_backup: "ghcr.io/rackerlabs/genestack-images/cinder:2026.1-latest"
     cinder_backup_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
-    cinder_db_sync: "ghcr.io/rackerlabs/genestack-images/cinder:2025.1-latest"
-    cinder_db_purge: "ghcr.io/rackerlabs/genestack-images/cinder:2025.1-latest"
-    cinder_scheduler: "ghcr.io/rackerlabs/genestack-images/cinder:2025.1-latest"
+    cinder_db_sync: "ghcr.io/rackerlabs/genestack-images/cinder:2026.1-latest"
+    cinder_db_purge: "ghcr.io/rackerlabs/genestack-images/cinder:2026.1-latest"
+    cinder_scheduler: "ghcr.io/rackerlabs/genestack-images/cinder:2026.1-latest"
     cinder_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
-    cinder_volume: "ghcr.io/rackerlabs/genestack-images/cinder:2025.1-latest"
-    cinder_volume_usage_audit: "ghcr.io/rackerlabs/genestack-images/cinder:2025.1-latest"
+    cinder_volume: "ghcr.io/rackerlabs/genestack-images/cinder:2026.1-latest"
+    cinder_volume_usage_audit: "ghcr.io/rackerlabs/genestack-images/cinder:2026.1-latest"
     db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
@@ -442,3 +442,4 @@ manifests:
   secret_ingress_tls: false
   secret_rabbitmq: false
   service_ingress_api: false
+  job_backup_storage_init: false

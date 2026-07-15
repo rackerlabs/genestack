@@ -1,5 +1,0 @@
-sortOptions:
-  order: fifo
-resources:
-  - './namespace.yaml'
-namespace: sealed-secrets
