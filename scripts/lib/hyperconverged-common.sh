@@ -542,6 +542,14 @@ EOF
     section_name: cluster-tls
   - name: grafana
     exposure: internal
+  - name: longhorn
+    exposure: internal
+    namespace: longhorn-system
+    service: longhorn-frontend
+    service_namespace: longhorn-system
+    port: 80
+    hostname: longhorn.internal.${gateway_domain}
+    section_name: cluster-tls
   - name: loki
     exposure: internal
   - name: prometheus
