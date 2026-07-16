@@ -11,7 +11,7 @@ log_rotation_type = interval
 log_rotate_interval = 7
 log_rotate_interval_type = days
 network_driver = trove.network.neutron.NeutronDriver
-network_isolation = false
+network_isolation = true
 notification_service_id = mysql:2f3ff068-2bfb-4f70-9a9d-a6bb65bc084b
 os_region_name = {{ trove_region_name }}
 swift_endpoint_type = internalURL
@@ -49,9 +49,10 @@ user_domain_name = service
 username = trove
 
 [mysql]
-docker = false
 backup_strategy = InnoBackupEx
 backup_incremental_strategy = InnoBackupExIncremental
+docker_image = localhost:5000/mysql
+backup_docker_image = localhost:5000/mysql-backup
 replication_strategy = MysqlGTIDReplication
 replication_namespace = trove.guestagent.strategies.replication.mysql_gtid
 mount_point = /var/lib/mysql

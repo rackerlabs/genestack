@@ -132,7 +132,7 @@
       force_full={{ force_full_recreation }}
 
 # =========================================================================
-# PART 3: BUILD GUEST IMAGE WITH DISKIMAGE-BUILDER
+# PART 3a: BUILD GUEST IMAGE WITH DISKIMAGE-BUILDER
 # =========================================================================
 
 - name: Delete local qcow2 to ensure a clean rebuild
@@ -248,8 +248,55 @@
   when: _trove_do_build | bool
 
 # =========================================================================
-# PART 4: Pre-bake datastore container image into the guest qcow2
+# PART 3b: BUILD DATASTORE BACKUP IMAGE
 # =========================================================================
+- name: Install docker for building backup image
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      apt update
+      DEBIAN_FRONTEND=noninteractive apt install -y -o Dpkg::Options::="--force-confold" \
+          ca-certificates \
+          curl
+      install -m 0755 -d /etc/apt/keyrings
+      curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+      chmod a+r /etc/apt/keyrings/docker.asc
+      echo \
+        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+        $(lsb_release -cs) stable" | \
+        sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+      apt update
+      DEBIAN_FRONTEND=noninteractive apt install -y -o Dpkg::Options::="--force-confold" \
+          docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    executable: /bin/bash
+  become: true
+  become_user: root
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  when: _trove_do_build | bool
+
+- name: Build datastore backup container image as docker-archive tarball
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      rm -f {{ trove_build_dir }}/datastore-backup-image.tar
+      cd {{ trove_build_dir }}/trove/backup
+      # docker build --output type=docker,dest={{ trove_build_dir }}/datastore-backup-image.tar .
+      docker build -t datastore-backup-image:latest .
+      docker image save datastore-backup-image:latest -o {{ trove_build_dir }}/datastore-backup-image.tar
+      chmod 644 {{ trove_build_dir }}/datastore-backup-image.tar
+    executable: /bin/bash
+  become: true
+  become_user: root
+  retries: 3
+  delay: 10
+  register: _trove_backup_image_build
+  until: _trove_backup_image_build.rc == 0
+  when: _trove_do_build | bool
+
+# =====================================================================================
+# PART 4: Pre-bake datastore container and datastore backup images into the guest qcow2
+# =====================================================================================
 
 - name: Install skopeo + libguestfs-tools for image prebake
   ansible.builtin.apt:
@@ -288,6 +335,20 @@
       virt-customize -a {{ trove_build_dir }}/{{ trove_guest_image_name }}.qcow2 \
         --mkdir /var/lib/trove-images \
         --upload {{ trove_build_dir }}/datastore-image.tar:/var/lib/trove-images/datastore.tar
+    executable: /bin/bash
+  become: true
+  become_user: root
+  environment:
+    LIBGUESTFS_BACKEND: direct
+  when: _trove_do_build | bool
+
+- name: Inject datastore backup image tarball into qcow2 with virt-customize
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      virt-customize -a {{ trove_build_dir }}/{{ trove_guest_image_name }}.qcow2 \
+        --mkdir /var/lib/trove-images \
+        --upload {{ trove_build_dir }}/datastore-backup-image.tar:/var/lib/trove-images/datastore-backup.tar
     executable: /bin/bash
   become: true
   become_user: root
@@ -341,6 +402,8 @@
         --property trove_datastore_version={{ trove_datastore_version_name }} \
         --tag trove \
         --tag {{ trove_datastore_name }} \
+        --tag {{ trove_mysql_version }} \
+        --tag {{ trove_guest_image_os_release }} \
         --file "{{ trove_build_dir }}/{{ trove_guest_image_name }}.qcow2" \
         "{{ trove_guest_image_name }}" \
         -f value -c id
