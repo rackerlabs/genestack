@@ -5,6 +5,8 @@
 # Disable SC2124 (unused array), SC2145 (array expansion issue), SC2294 (eval)
 # shellcheck disable=SC2124,SC2145,SC2294
 
+set -eo pipefail
+
 # Service
 SERVICE_NAME_DEFAULT="envoyproxy-gateway"
 SERVICE_NAMESPACE="envoyproxy-gateway-system"
@@ -13,10 +15,65 @@ SERVICE_NAMESPACE="envoyproxy-gateway-system"
 # NOTE: Using OCI registry format for the chart location.
 HELM_REPO_NAME_DEFAULT="gateway-helm"
 HELM_REPO_URL_DEFAULT="oci://docker.io/envoyproxy"
+GATEWAY_CONFIG_FILE=""
+HELM_EXTRA_ARGS=()
+POST_RENDERER_KUSTOMIZE="${SERVICE_NAME_DEFAULT}/overlay"
 
 # Base directories provided by the environment
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
 GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --config|--gateway-config)
+            if [[ $# -lt 2 ]]; then
+                echo "Error: $1 requires a configuration file" >&2
+                exit 1
+            fi
+            GATEWAY_CONFIG_FILE="$2"
+            shift 2
+            ;;
+        --config=*|--gateway-config=*)
+            GATEWAY_CONFIG_FILE="${1#*=}"
+            shift
+            ;;
+        *)
+            HELM_EXTRA_ARGS+=("$1")
+            shift
+            ;;
+    esac
+done
+
+if [ -n "${GATEWAY_CONFIG_FILE}" ]; then
+    POST_RENDERER_KUSTOMIZE="${SERVICE_NAME_DEFAULT}/config-mode"
+fi
+
+ensure_post_renderer_kustomize() {
+    local service_kustomize_dir="${GENESTACK_OVERRIDES_DIR}/kustomize/${SERVICE_NAME_DEFAULT}"
+    local base_kustomize_dir="${GENESTACK_BASE_DIR}/base-kustomize/${SERVICE_NAME_DEFAULT}"
+    local renderer_name="${POST_RENDERER_KUSTOMIZE#"${SERVICE_NAME_DEFAULT}"/}"
+
+    if [ ! -x "${GENESTACK_OVERRIDES_DIR}/kustomize/kustomize.sh" ]; then
+        if [ ! -f "${GENESTACK_BASE_DIR}/base-kustomize/kustomize.sh" ]; then
+            echo "Error: kustomize post-renderer script not found" >&2
+            exit 1
+        fi
+        mkdir -p "${GENESTACK_OVERRIDES_DIR}/kustomize"
+        ln -sfn "${GENESTACK_BASE_DIR}/base-kustomize/kustomize.sh" "${GENESTACK_OVERRIDES_DIR}/kustomize/kustomize.sh"
+    fi
+
+    mkdir -p "${service_kustomize_dir}"
+    for renderer_part in base "${renderer_name}"; do
+        if [ ! -e "${service_kustomize_dir}/${renderer_part}" ] && [ ! -L "${service_kustomize_dir}/${renderer_part}" ]; then
+            if [ ! -d "${base_kustomize_dir}/${renderer_part}" ]; then
+                echo "Error: Envoy post-renderer path not found: ${base_kustomize_dir}/${renderer_part}" >&2
+                exit 1
+            fi
+            ln -s "${base_kustomize_dir}/${renderer_part}" "${service_kustomize_dir}/${renderer_part}"
+        fi
+    done
+}
 
 # Define service-specific override directories based on the framework
 SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME_DEFAULT}"
@@ -73,6 +130,8 @@ echo "[DEBUG] HELM_REPO_NAME=$HELM_REPO_NAME"
 echo "[DEBUG] SERVICE_NAME=$SERVICE_NAME"
 echo "[DEBUG] HELM_CHART_PATH=$HELM_CHART_PATH"
 
+ensure_post_renderer_kustomize
+
 # Prepare an array to collect -f arguments
 overrides_args=()
 
@@ -123,9 +182,9 @@ helm_command=(
 
     # Post-renderer configuration
     --post-renderer "$GENESTACK_OVERRIDES_DIR/kustomize/kustomize.sh"
-    --post-renderer-args "$SERVICE_NAME_DEFAULT/overlay"
+    --post-renderer-args "$POST_RENDERER_KUSTOMIZE"
 
-    "$@"
+    "${HELM_EXTRA_ARGS[@]}"
 )
 
 echo "Executing Helm command (arguments are quoted safely):"
@@ -151,4 +210,12 @@ if [ ! -f "/usr/local/bin/egctl" ]; then
         /usr/local/bin/egctl completion bash > /tmp/egctl.bash
         sudo mv /tmp/egctl.bash /etc/bash_completion.d/egctl
     popd || exit 1
+fi
+
+if [ -n "${GATEWAY_CONFIG_FILE}" ]; then
+    echo "Waiting for the envoyproxy-gateway to be available"
+    kubectl -n "${SERVICE_NAMESPACE}" wait --timeout=5m deployments.apps/envoy-gateway --for=condition=available
+
+    echo "Applying Envoy Gateway configuration from ${GATEWAY_CONFIG_FILE}"
+    "${SCRIPT_DIR}/setup-envoy-gateway.sh" --config "${GATEWAY_CONFIG_FILE}"
 fi

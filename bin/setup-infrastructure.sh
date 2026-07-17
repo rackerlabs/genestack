@@ -194,11 +194,16 @@ fi
 # Deploy openstack
 kubectl apply -k /etc/genestack/kustomize/openstack/base
 
-# Deploy envoy
-/opt/genestack/bin/install-envoy-gateway.sh
-echo "Waiting for the envoyproxy-gateway to be available"
-kubectl -n envoyproxy-gateway-system wait --timeout=5m deployments.apps/envoy-gateway --for=condition=available
-/opt/genestack/bin/setup-envoy-gateway.sh -e ${ACME_EMAIL} -d ${GATEWAY_DOMAIN}
+if [ -n "${ENVOY_GATEWAY_CONFIG_FILE:-}" ]; then
+  # Deploy Envoy in config mode so the Helm post-renderer does not install the
+  # legacy flex-gateway before the configured gateways are applied.
+  /opt/genestack/bin/install-envoy-gateway.sh --config "${ENVOY_GATEWAY_CONFIG_FILE}"
+else
+  /opt/genestack/bin/install-envoy-gateway.sh
+  echo "Waiting for the envoyproxy-gateway to be available"
+  kubectl -n envoyproxy-gateway-system wait --timeout=5m deployments.apps/envoy-gateway --for=condition=available
+  /opt/genestack/bin/setup-envoy-gateway.sh -e ${ACME_EMAIL} -d ${GATEWAY_DOMAIN}
+fi
 
 # Run check of cert-manager to be in "Running/Ready" state
 echo "Waiting for the cert-manager to be available"

@@ -52,6 +52,17 @@ OPTIONS:
     -i <list>    Comma-separated list of OpenStack services to include
     -e <list>    Comma-separated list of OpenStack services to exclude
     -x           Run extra operations (k9s install, Octavia preconf, etc.)
+    --envoy-gateway-config
+                 Deploy Envoy using the internal/external gateway config file
+                 instead of the legacy flex-gateway.
+    --envoy-gateway-acme
+                 Deploy Envoy config mode with Let's Encrypt HTTP01 issuer
+                 config and per-service external HTTPS listeners.
+    --no-envoy-gateway-acme
+                 Disable Let's Encrypt config generation for Envoy config mode.
+    --internal-metallb-ip <ip>
+                 Use a fixed IP for the internal Envoy MetalLB pool. If unset
+                 with --envoy-gateway-config, the lab creates a second VIP port.
 
 ENVIRONMENT VARIABLES:
     ACME_EMAIL          Email for ACME/Let's Encrypt certificates
@@ -66,6 +77,15 @@ ENVIRONMENT VARIABLES:
                         for easier testing and debugging.
     HYPERCONVERGED_CINDER_VOLUME
                         If set to "true", enables iSCSI cinder volume support.
+    HYPERCONVERGED_ENVOY_GATEWAY_CONFIG
+                        If set to "true", deploys Envoy using the internal/external
+                        gateway config file path instead of the legacy flex-gateway.
+    HYPERCONVERGED_ENVOY_GATEWAY_ACME
+                        If set to "true", enables Let's Encrypt issuer config for
+                        the external Envoy gateway config-mode lab path.
+    HYPERCONVERGED_INTERNAL_METALLB_IP
+                        Optional fixed IP for the internal Envoy MetalLB pool. If
+                        unset, the lab creates a second internal VIP port.
     DISABLE_OPENSTACK
                         if set to "true", no openstack services will be deployed.
 
@@ -81,6 +101,9 @@ EXAMPLES:
 
     # Deploy Kubespray with extra services and extras enabled
     $(basename "$0") kubespray -i heat,octavia -x
+
+    # Deploy Kubespray with internal/external Envoy gateways
+    $(basename "$0") kubespray --envoy-gateway-config
 
     # Deploy Talos with specific services excluded
     $(basename "$0") talos -e skyline

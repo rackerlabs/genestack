@@ -29,6 +29,9 @@ The build script is interactive and will prompt you for the following informatio
 
 All of the variables can be defined on the command line using environment variables.
 
+For labs that should deploy separate internal and external Envoy gateways, see
+[Envoy Gateway Internal and External Gateway Runbooks](infrastructure-envoy-gateway-multi-gateway.md).
+
 !!! example "Deploying a Hyper-converged Lab Environment with Environment Variables"
 
     ``` shell
