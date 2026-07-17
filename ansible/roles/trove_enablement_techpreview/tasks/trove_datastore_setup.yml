@@ -41,7 +41,7 @@
       set -o pipefail
       source {{ genestack_venv }}/bin/activate
       openstack --os-cloud {{ os_cloud }} datastore version list "{{ trove_datastore_name }}" \
-        -f value -c Name 2>/dev/null | grep -q "^{{ trove_datastore_version_name }}$"
+        -f value -c Name 2>/dev/null | grep "^{{ trove_datastore_version_name }}$"
     executable: /bin/bash
   environment:
     HOME: "{{ ubuntu_home }}"
@@ -49,6 +49,40 @@
   changed_when: false
   failed_when: false
   when: _trove_api_check.rc == 0
+
+- name: Derive action flags
+  ansible.builtin.set_fact:
+    _trove_dsv_exists: "{{ _trove_dsv_check.rc == 0 and _trove_dsv_check.stdout | trim | length != 0 }}"
+    _trove_do_dsv: >-
+      {{
+        (_trove_dsv_check.rc != 0 or _trove_dsv_check.stdout | trim | length == 0)
+        or (force_create_dsv | bool)
+        or (force_full_recreation | bool)
+      }}
+
+- name: Report action flags
+  ansible.builtin.debug:
+    msg: >-
+      DSV exists={{ _trove_dsv_exists }},
+      do_dsv={{ _trove_do_dsv }},
+      force_rebuild={{ force_create_dsv }},
+      force_full={{ force_full_recreation }}
+
+- name: Delete existing datastore version '{{ trove_datastore_version_name }}'
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      source {{ genestack_venv }}/bin/activate
+      DSV_ID=$(openstack --os-cloud {{ os_cloud }} datastore version list "{{ trove_datastore_name }}" \
+        -f value -c Name -c ID | grep ".* {{ trove_datastore_version_name }}$" 2>/dev/null | awk '{print $1}')
+
+      openstack --os-cloud {{ os_cloud }} datastore version delete ${DSV_ID}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when:
+    - _trove_do_dsv | bool
+    - _trove_dsv_exists | bool
 
 - name: Create datastore version '{{ trove_datastore_version_name }}'
   ansible.builtin.shell:
@@ -65,9 +99,21 @@
     executable: /bin/bash
   environment:
     HOME: "{{ ubuntu_home }}"
-  when:
-    - _trove_api_check.rc == 0
-    - _trove_dsv_check.rc != 0
+  when: _trove_do_dsv | bool
+
+- name: Load default configuration parameter validation rules for '{{ trove_datastore_version_name }}'
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      source {{ genestack_venv }}/bin/activate
+      trove_taskmanager_pod_name=$(kubectl get pods -A | grep trove-task -m 1 | awk '{print $2}')
+      CMD_STDOUT=$(kubectl exec -it ${trove_taskmanager_pod_name} -n openstack -- \
+        trove-manage db_load_datastore_config_parameters mysql 8.4 /var/lib/openstack/lib/python3.12/site-packages/trove/templates/mysql/validation-rules.json)
+      # echo "CMD_STDOUT: ${CMD_STDOUT}"
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: _trove_do_dsv | bool
 
 # =========================================================================
 # PART 3: VERIFY AND REPORT

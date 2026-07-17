@@ -109,7 +109,7 @@ helm_config_base: /etc/genestack/helm-configs
 trove_gateway_hostname: "trove.cluster.local"
 
 # =========================================================================
-# Force / mode flags for image builder
+# Force / mode flags for image builder and datastore version
 # =========================================================================
 # Default (no flags):
 #   Idempotent — skip image build if the Glance image already exists.
@@ -117,10 +117,14 @@ trove_gateway_hostname: "trove.cluster.local"
 # force_rebuild_image=true:
 #   Deletes existing Glance image, rebuilds, re-uploads.
 #
+# force_create_dsv=true:
+#   Forces creation of datastore version and load of configuration parameters.
+#
 # force_full_recreation=true (nuclear):
 #   Deletes and re-creates OpenStack keypair, security group,
 #   rebuilds guest image, re-uploads, re-registers datastore.
 force_rebuild_image: false
+force_create_dsv: false
 force_full_recreation: false
 
 # trove_force_recreate_secrets=true:

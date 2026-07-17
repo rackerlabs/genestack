@@ -2,7 +2,7 @@
 # Trove — full lifecycle
 # =========================================================================
 
-- name: Create Trove K8s secrets (before Helm install)
+- name: Create Trove K8s secrets
   import_tasks: trove_k8s_secrets.yml
   become: true
   become_user: ubuntu
@@ -44,7 +44,7 @@
     - trove_image_build
     - trove_post_install
 
-- name: Create Trove datastore type and version (post-deploy)
+- name: Create Trove datastore type and version
   import_tasks: trove_datastore_setup.yml
   tags:
     - trove_datastore
@@ -56,7 +56,7 @@
     - trove_client
     - trove_post_install
 
-- name: Create Trove keypair (post-install, requires trove Keystone user)
+- name: Create Trove keypair (requires trove Keystone user)
   import_tasks: trove_keypair.yml
   become: true
   become_user: ubuntu
@@ -64,7 +64,7 @@
     - trove_keypair
     - trove_post_install
 
-- name: Distribute Trove SSH key to nodes (post-deploy)
+- name: Distribute Trove SSH key to nodes
   import_tasks: trove_ssh_key_distribute.yml
   tags:
     - trove_ssh_key_distribute
