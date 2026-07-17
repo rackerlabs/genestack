@@ -54,6 +54,28 @@ fi
 echo "Found $MASTER_NODE_COUNT master node(s) with IPs: ${MASTER_NODES//\\,/ }."
 # --------------------------------------------------------------------
 
+# Generate OVN TLS cert with proper DNS SANs if it doesn't exist yet
+if ! kubectl -n "$SERVICE_NAMESPACE" get secret kube-ovn-tls &>/dev/null; then
+    echo "Generating kube-ovn-tls secret with DNS SANs..."
+    openssl genrsa -out /tmp/ovn-ca-key.pem 2048 2>/dev/null
+    openssl req -x509 -new -key /tmp/ovn-ca-key.pem -out /tmp/ovn-ca.pem -days 3650 -subj "/CN=ovn-ca"
+    openssl genrsa -out /tmp/ovn-key.pem 2048 2>/dev/null
+    openssl req -new -key /tmp/ovn-key.pem -out /tmp/ovn.csr -subj "/CN=ovn"
+    openssl x509 -req -in /tmp/ovn.csr -CA /tmp/ovn-ca.pem -CAkey /tmp/ovn-ca-key.pem -CAcreateserial \
+      -out /tmp/ovn-cert.pem -days 3650 \
+      -extfile <(printf "subjectAltName=DNS:ovn,DNS:ovn-nb,DNS:ovn-nb.kube-system.svc,DNS:ovn-sb,DNS:ovn-sb.kube-system.svc,DNS:ovn-northd,DNS:ovn-northd.kube-system.svc")
+    kubectl -n "$SERVICE_NAMESPACE" create secret generic kube-ovn-tls \
+      --from-file=cacert=/tmp/ovn-ca.pem \
+      --from-file=cert=/tmp/ovn-cert.pem \
+      --from-file=key=/tmp/ovn-key.pem \
+      --save-config
+    kubectl -n "$SERVICE_NAMESPACE" annotate secret kube-ovn-tls \
+      meta.helm.sh/release-name="$SERVICE_NAME_DEFAULT" \
+      meta.helm.sh/release-namespace="$SERVICE_NAMESPACE"
+    kubectl -n "$SERVICE_NAMESPACE" label secret kube-ovn-tls --overwrite app.kubernetes.io/managed-by=Helm 2>/dev/null || true
+    rm -f /tmp/ovn-*
+fi
+
 # Load chart metadata from custom override YAML if defined
 for yaml_file in "${SERVICE_CUSTOM_OVERRIDES}"/*.yaml; do
     if [ -f "$yaml_file" ]; then
