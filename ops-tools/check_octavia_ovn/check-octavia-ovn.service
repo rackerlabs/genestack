@@ -1,0 +1,36 @@
+# -----------------------------------------------
+#                             _             _
+#                            | |           | |
+#   __ _  ___ _ __   ___  ___| |_ __ _  ___| | __
+#  / _` |/ _ \ '_ \ / _ \/ __| __/ _` |/ __| |/ /
+# | (_| |  __/ | | |  __/\__ \ || (_| | (__|   <
+#  \__, |\___|_| |_|\___||___/\__\__,_|\___|_|\_\
+#   __/ |            ops tools
+#  |___/         check_octavia_ovn
+# -----------------------------------------------
+[Unit]
+Description=Check Octavia Amphora OVN port bindings
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory=/var/lib/check_octavia_ovn
+EnvironmentFile=-/etc/default/check-octavia-ovn
+ExecStart=/usr/local/bin/check_octavia_ovn.sh --apply
+SyslogIdentifier=check-octavia-ovn
+
+# These can be overridden in /etc/default/check-octavia-ovn
+Environment=PARALLEL=10
+Environment=FAILOVER_TIMEOUT=300
+# Preserve failover history across runs so we do not repeatedly fail over the same LB.
+Environment=STATE_FILE=/var/lib/check_octavia_ovn/failovers.state
+
+# Send output to the journal so `journalctl -u check-octavia-ovn.service` is useful.
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
