@@ -186,6 +186,7 @@ nav:
               - Gateway API:
                   - Gateway API Overview: infrastructure-gateway-api.md
                   - Envoy Gateway: infrastructure-envoy-gateway-api.md
+                  - Envoy Internal and External Gateways: infrastructure-envoy-gateway-multi-gateway.md
               - MariaDB: infrastructure-mariadb.md
               - RabbitMQ: infrastructure-rabbitmq.md
               - Memcached: infrastructure-memcached.md

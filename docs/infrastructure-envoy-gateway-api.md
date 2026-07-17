@@ -21,6 +21,9 @@ Run the helm command to install Envoy Gateway.
 
 The install script will deploy Envoy Gateway to the `envoy-gateway-system` namespace via Helm.
 
+For deployments that need separate internal and external gateways, see
+[Envoy Gateway Internal and External Gateway Runbooks](infrastructure-envoy-gateway-multi-gateway.md).
+
 ## Setup
 
 ??? example "Run the Envoy Gateway setup Script `/opt/genestack/bin/setup-envoy-gateway.sh`"
