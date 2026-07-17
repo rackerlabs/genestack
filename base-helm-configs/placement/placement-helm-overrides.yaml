@@ -8,8 +8,8 @@ images:
     ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    placement: "ghcr.io/rackerlabs/genestack-images/placement:2025.1-latest"
-    placement_db_sync: "ghcr.io/rackerlabs/genestack-images/placement:2025.1-latest"
+    placement: "ghcr.io/rackerlabs/genestack-images/placement:2026.1-latest"
+    placement_db_sync: "ghcr.io/rackerlabs/genestack-images/placement:2026.1-latest"
 
 # NOTE: (brew) requests cpu/mem values based on a three node
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
