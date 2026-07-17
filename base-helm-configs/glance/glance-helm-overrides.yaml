@@ -6,15 +6,15 @@ images:
   tags:
     test: null
     glance_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
-    glance_metadefs_load: "ghcr.io/rackerlabs/genestack-images/glance:2025.1-latest"
+    glance_metadefs_load: "ghcr.io/rackerlabs/genestack-images/glance:2026.1-latest"
     db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    glance_db_sync: "ghcr.io/rackerlabs/genestack-images/glance:2025.1-latest"
+    glance_db_sync: "ghcr.io/rackerlabs/genestack-images/glance:2026.1-latest"
     db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     rabbit_init: null
-    glance_api: "ghcr.io/rackerlabs/genestack-images/glance:2025.1-latest"
+    glance_api: "ghcr.io/rackerlabs/genestack-images/glance:2026.1-latest"
     # Bootstrap image requires curl
     bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"

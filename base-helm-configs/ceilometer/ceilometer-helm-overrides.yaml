@@ -22,14 +22,14 @@ labels:
 images:
   tags:
     test: null
-    ceilometer_db_sync: "ghcr.io/rackerlabs/genestack-images/ceilometer:2025.1-latest"
+    ceilometer_db_sync: "ghcr.io/rackerlabs/genestack-images/ceilometer:2026.1-latest"
     rabbit_init: null
     ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    ceilometer_central: "ghcr.io/rackerlabs/genestack-images/ceilometer:2025.1-latest"
-    ceilometer_compute: "ghcr.io/rackerlabs/genestack-images/ceilometer:2025.1-latest"
-    ceilometer_ipmi: "ghcr.io/rackerlabs/genestack-images/ceilometer:2025.1-latest"
-    ceilometer_notification: "ghcr.io/rackerlabs/genestack-images/ceilometer:2025.1-latest"
+    ceilometer_central: "ghcr.io/rackerlabs/genestack-images/ceilometer:2026.1-latest"
+    ceilometer_compute: "ghcr.io/rackerlabs/genestack-images/ceilometer:2026.1-latest"
+    ceilometer_ipmi: "ghcr.io/rackerlabs/genestack-images/ceilometer:2026.1-latest"
+    ceilometer_notification: "ghcr.io/rackerlabs/genestack-images/ceilometer:2026.1-latest"
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
     image_repo_sync: null
   pull_policy: "Always"

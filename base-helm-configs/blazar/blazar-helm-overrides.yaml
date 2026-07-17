@@ -1,9 +1,9 @@
 ---
 images:
   tags:
-    blazar_api: "ghcr.io/rackerlabs/genestack-images/blazar:2025.1-latest"
-    blazar_db_sync: "ghcr.io/rackerlabs/genestack-images/blazar:2025.1-latest"
-    blazar_manager: "ghcr.io/rackerlabs/genestack-images/blazar:2025.1-latest"
+    blazar_api: "ghcr.io/rackerlabs/genestack-images/blazar:2026.1-latest"
+    blazar_db_sync: "ghcr.io/rackerlabs/genestack-images/blazar:2026.1-latest"
+    blazar_manager: "ghcr.io/rackerlabs/genestack-images/blazar:2026.1-latest"
     bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"

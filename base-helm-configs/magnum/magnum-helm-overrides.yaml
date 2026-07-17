@@ -9,9 +9,9 @@ images:
     ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    magnum_api: "ghcr.io/rackerlabs/genestack-images/magnum:2025.1-latest"
-    magnum_conductor: "ghcr.io/rackerlabs/genestack-images/magnum:2025.1-latest"
-    magnum_db_sync: "ghcr.io/rackerlabs/genestack-images/magnum:2025.1-latest"
+    magnum_api: "ghcr.io/rackerlabs/genestack-images/magnum:2026.1-latest"
+    magnum_conductor: "ghcr.io/rackerlabs/genestack-images/magnum:2026.1-latest"
+    magnum_db_sync: "ghcr.io/rackerlabs/genestack-images/magnum:2026.1-latest"
     rabbit_init: null
 
 # NOTE: (brew) requests cpu/mem values based on a three node

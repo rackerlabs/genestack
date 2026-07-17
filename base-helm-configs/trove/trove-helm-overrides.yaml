@@ -10,10 +10,10 @@ labels:
 images:
   tags:
     bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    trove_api: "ghcr.io/rackerlabs/genestack-images/trove:2025.1-latest"
-    trove_conductor: "ghcr.io/rackerlabs/genestack-images/trove:2025.1-latest"
-    trove_taskmanager: "ghcr.io/rackerlabs/genestack-images/trove:2025.1-latest"
-    trove_db_sync: "ghcr.io/rackerlabs/genestack-images/trove:2025.1-latest"
+    trove_api: "ghcr.io/rackerlabs/genestack-images/trove:2026.1-latest"
+    trove_conductor: "ghcr.io/rackerlabs/genestack-images/trove:2026.1-latest"
+    trove_taskmanager: "ghcr.io/rackerlabs/genestack-images/trove:2026.1-latest"
+    trove_db_sync: "ghcr.io/rackerlabs/genestack-images/trove:2026.1-latest"
     db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"

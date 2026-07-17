@@ -13,15 +13,15 @@
 ---
 images:
   tags:
-    db_init: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2024.1-latest
-    cloudkitty_api: ghcr.io/rackerlabs/genestack-images/cloudkitty:2024.1-latest
-    cloudkitty_db_sync: ghcr.io/rackerlabs/genestack-images/cloudkitty:2024.1-latest
-    cloudkitty_processor: ghcr.io/rackerlabs/genestack-images/cloudkitty:2024.1-latest
-    cloudkitty_storage_init: ghcr.io/rackerlabs/genestack-images/cloudkitty:2024.1-latest
+    db_init: ghcr.io/rackerlabs/genestack-images/heat:2026.1-latest
+    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2026.1-latest
+    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2026.1-latest
+    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2026.1-latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2026.1-latest
+    cloudkitty_api: ghcr.io/rackerlabs/genestack-images/cloudkitty:2026.1-latest
+    cloudkitty_db_sync: ghcr.io/rackerlabs/genestack-images/cloudkitty:2026.1-latest
+    cloudkitty_processor: ghcr.io/rackerlabs/genestack-images/cloudkitty:2026.1-latest
+    cloudkitty_storage_init: ghcr.io/rackerlabs/genestack-images/cloudkitty:2026.1-latest
     rabbit_init: docker.io/rabbitmq:3.13-management
     dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
   pull_policy: "IfNotPresent"
