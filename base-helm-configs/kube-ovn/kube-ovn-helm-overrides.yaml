@@ -40,6 +40,7 @@ func:
   ENABLE_EXTERNAL_VPC: true
   OVSDB_CON_TIMEOUT: 5
   OVSDB_INACTIVITY_TIMEOUT: 30
+  HW_OFFLOAD: "false"  # note needs to be quoted as its not a binary T/F
 
 ipv4:
   POD_CIDR: "10.236.0.0/14"
