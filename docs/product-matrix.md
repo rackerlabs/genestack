@@ -5,5 +5,6 @@ To manually generate and update this file, run the following commands from the *
 
 ```shell
 pip install -r doc-requirements.txt -r dev-requirements.txt
-python scripts/generate_product_matrix.py
+python scripts/generate_product_matrix.py --release release-2026.2.0
+python scripts/generate_product_matrix.py --from-tag release-2026.1.0 --to-tag release-2026.2.0
 ```
