@@ -1,0 +1,54 @@
+# Envoy Gateway multi-gateway example.
+#
+# With no --config flag, setup-envoy-gateway.sh keeps the legacy flex-gateway
+# behavior. With --config, each enabled gateway below is created and routes are
+# attached according to route exposure.
+
+domain: example.com
+
+# Optional. When enabled, setup-envoy-gateway.sh creates the named
+# ClusterIssuer using HTTP01 through the configured gateway.
+acme:
+  enabled: true
+  email: cloud@example.com
+  issuer: letsencrypt-prod
+  gateway: external
+
+gateways:
+  external:
+    enabled: true
+    namespace: envoy-gateway
+    type: external
+    domain: example.com
+    gateway_class: external-eg
+    issuer: letsencrypt-prod
+    metallb_pool: gateway-api-external
+    certificate_secret: wildcard-external-tls-secret
+
+  internal:
+    enabled: true
+    namespace: envoy-gateway
+    type: internal
+    domain: internal.example.com
+    gateway_class: internal-eg
+    issuer: flex-gateway-issuer
+    metallb_pool: gateway-api-internal
+    certificate_secret: wildcard-internal-tls-secret
+
+routes:
+  - name: keystone
+    exposure: both
+
+  - name: nova
+    exposure: external
+
+  - name: grafana
+    exposure: internal
+    hostname: grafana.internal.example.com
+
+  - name: custom-api
+    exposure: internal
+    namespace: openstack
+    service: custom-api
+    port: 8080
+    hostname: custom-api.internal.example.com

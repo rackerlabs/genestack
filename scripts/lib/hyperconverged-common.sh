@@ -18,6 +18,8 @@ export TEST_LEVEL="${TEST_LEVEL:-off}"
 export LAB_NETWORK_MTU="${LAB_NETWORK_MTU:-1500}"
 # enable or disable the deployment of openstack services within the lab environment.
 export DISABLE_OPENSTACK=${DISABLE_OPENSTACK:-false}
+export HYPERCONVERGED_ENVOY_GATEWAY_CONFIG="${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}"
+export HYPERCONVERGED_ENVOY_GATEWAY_ACME="${HYPERCONVERGED_ENVOY_GATEWAY_ACME:-false}"
 
 #############################################################################
 # Common Utility Functions
@@ -50,42 +52,87 @@ function parseCommonArgs() {
         EXCLUDE_LIST=()
     fi
 
-    while getopts "i:e:x" opt; do
-        case $opt in
-            x)
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -x)
                 RUN_EXTRAS=1
+                shift
                 ;;
-            i)
+            -i)
+                if [ -z "${2:-}" ]; then
+                    echo "Option -i requires a comma-separated service list" >&2
+                    exit 1
+                fi
                 old_IFS="$IFS"
                 IFS=','
-                read -r -a INCLUDE_LIST <<< "$OPTARG"
+                read -r -a INCLUDE_LIST <<< "$2"
                 IFS="$old_IFS"
+                shift 2
                 ;;
-            e)
+            -e)
+                if [ -z "${2:-}" ]; then
+                    echo "Option -e requires a comma-separated service list" >&2
+                    exit 1
+                fi
                 old_IFS="$IFS"
                 IFS=','
-                read -r -a EXCLUDE_LIST <<< "$OPTARG"
+                read -r -a EXCLUDE_LIST <<< "$2"
                 IFS="$old_IFS"
+                shift 2
                 ;;
-            *)
+            --envoy-gateway-config)
+                HYPERCONVERGED_ENVOY_GATEWAY_CONFIG=true
+                shift
+                ;;
+            --no-envoy-gateway-config)
+                HYPERCONVERGED_ENVOY_GATEWAY_CONFIG=false
+                shift
+                ;;
+            --envoy-gateway-acme)
+                HYPERCONVERGED_ENVOY_GATEWAY_CONFIG=true
+                HYPERCONVERGED_ENVOY_GATEWAY_ACME=true
+                shift
+                ;;
+            --no-envoy-gateway-acme)
+                HYPERCONVERGED_ENVOY_GATEWAY_ACME=false
+                shift
+                ;;
+            --internal-metallb-ip)
+                if [ -z "${2:-}" ]; then
+                    echo "Option --internal-metallb-ip requires an IP address" >&2
+                    exit 1
+                fi
+                HYPERCONVERGED_INTERNAL_METALLB_IP="$2"
+                shift 2
+                ;;
+            --)
+                shift
+                break
+                ;;
+            -*)
                 echo "Usage: $0 [-i <list,of,services,to,include>]"
                 echo "       [-e <list,of,services,to,exclude>]"
-                echo "       -x <flag to run extra operations>"
+                echo "       [-x]"
+                echo "       [--envoy-gateway-config]"
+                echo "       [--envoy-gateway-acme]"
+                echo "       [--no-envoy-gateway-acme]"
+                echo "       [--internal-metallb-ip <ip-address>]"
                 echo ""
                 echo "View the openstack-components.yaml for the services available to configure."
                 exit 1
                 ;;
-            \?)
-                echo "Invalid option: -$OPTARG" >&2
-                exit 1
+            *)
+                shift
                 ;;
         esac
     done
-    shift $((OPTIND-1))
 
     export RUN_EXTRAS
     export INCLUDE_LIST
     export EXCLUDE_LIST
+    export HYPERCONVERGED_ENVOY_GATEWAY_CONFIG
+    export HYPERCONVERGED_ENVOY_GATEWAY_ACME
+    export HYPERCONVERGED_INTERNAL_METALLB_IP
 }
 
 function writeOpenstackComponentsConfig() {
@@ -260,6 +307,25 @@ function createMetalLBPort() {
         METAL_LB_VIP=$(openstack floating ip create PUBLICNET --port ${METAL_LB_PORT_ID} -f json | jq -r '.floating_ip_address')
     fi
     export METAL_LB_VIP
+
+    if [ "${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}" = "true" ]; then
+        echo "Envoy gateway config mode enabled; preparing an internal MetalLB VIP"
+        if [ -n "${HYPERCONVERGED_INTERNAL_METALLB_IP:-}" ]; then
+            METAL_LB_INTERNAL_IP="${HYPERCONVERGED_INTERNAL_METALLB_IP}"
+            if ! openstack port show ${LAB_NAME_PREFIX}-metallb-internal-vip-0-port >/dev/null 2>&1; then
+                echo "Creating the internal MetalLB VIP port with fixed IP ${METAL_LB_INTERNAL_IP}"
+                openstack port create \
+                    --security-group ${LAB_NAME_PREFIX}-http-secgroup \
+                    --network ${LAB_NAME_PREFIX}-net \
+                    --fixed-ip ip-address=${METAL_LB_INTERNAL_IP} \
+                    ${LAB_NAME_PREFIX}-metallb-internal-vip-0-port >/dev/null
+            fi
+        elif ! METAL_LB_INTERNAL_IP=$(openstack port show ${LAB_NAME_PREFIX}-metallb-internal-vip-0-port -f json 2>/dev/null | jq -r '.fixed_ips[0].ip_address'); then
+            echo "Creating the internal MetalLB VIP port"
+            METAL_LB_INTERNAL_IP=$(openstack port create --security-group ${LAB_NAME_PREFIX}-http-secgroup --network ${LAB_NAME_PREFIX}-net ${LAB_NAME_PREFIX}-metallb-internal-vip-0-port -f json | jq -r '.fixed_ips[0].ip_address')
+        fi
+        export METAL_LB_INTERNAL_IP
+    fi
 }
 
 function createComputePorts() {
@@ -331,10 +397,10 @@ function prepareJumpHostSource() {
         _ssh "while sudo fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do echo 'Waiting for apt locks to be released...'; sleep 5; done && sudo apt-get update && sudo apt install -y rsync git && sudo mkdir -p /opt/genestack && sudo chown ${SSH_USERNAME}:${SSH_USERNAME} /opt/genestack"
 
         echo "Copying the development source code to the jump host"
+        # Keep .git so the jump host can initialize pinned submodules such as Kubespray.
         rsync -avz \
-            --exclude='.git' \
             -e "ssh ${SSH_OPTS_STR}" \
-            ${DEV_PATH} "${SSH_TARGET}:/opt/"
+            "${DEV_PATH}/" "${SSH_TARGET}:/opt/genestack/"
     else
         cloneGenestackOnJumpHost
     fi
@@ -342,9 +408,10 @@ function prepareJumpHostSource() {
 
 function writeMetalLBConfig() {
     # Write MetalLB configuration
-    # Usage: writeMetalLBConfig <metal_lb_ip> [config_path]
+    # Usage: writeMetalLBConfig <metal_lb_ip> [config_path] [internal_metal_lb_ip]
     local metal_lb_ip="$1"
     local config_path="${2:-/etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml}"
+    local internal_metal_lb_ip="${3:-}"
 
     cat > "${config_path}" <<EOF
 ---
@@ -367,6 +434,129 @@ spec:
   ipAddressPools:
     - gateway-api-external
 EOF
+
+    if [ -n "${internal_metal_lb_ip}" ]; then
+        cat >> "${config_path}" <<EOF
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: gateway-api-internal
+  namespace: metallb-system
+spec:
+  addresses:
+    - ${internal_metal_lb_ip}/32
+  autoAssign: false
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: openstack-internal-advertisement
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - gateway-api-internal
+EOF
+    fi
+}
+
+function writeEnvoyGatewayConfig() {
+    # Write config-mode Envoy Gateway configuration for hyperconverged labs
+    # Usage: writeEnvoyGatewayConfig <gateway_domain> [config_path]
+    local gateway_domain="$1"
+    local config_path="${2:-/etc/genestack/envoy-gateways.yaml}"
+    local acme_enabled="${HYPERCONVERGED_ENVOY_GATEWAY_ACME:-false}"
+    local external_issuer="flex-gateway-issuer"
+    local external_routes=(
+        barbican blazar cinder cloudformation cloudkitty designate freezer glance
+        gnocchi heat ironic keystone magnum manila masakari metadata neutron nova
+        novnc octavia placement skyline trove zaqar
+    )
+    local route
+
+    if [ "${acme_enabled}" = "true" ]; then
+        if [ -z "${ACME_EMAIL:-}" ]; then
+            echo "HYPERCONVERGED_ENVOY_GATEWAY_ACME=true requires ACME_EMAIL" >&2
+            exit 1
+        fi
+        external_issuer="letsencrypt-prod"
+    fi
+
+    {
+        cat <<EOF
+domain: ${gateway_domain}
+
+EOF
+
+        if [ "${acme_enabled}" = "true" ]; then
+            cat <<EOF
+acme:
+  enabled: true
+  email: ${ACME_EMAIL}
+  issuer: letsencrypt-prod
+  gateway: external
+
+EOF
+        fi
+
+        cat <<EOF
+gateways:
+  external:
+    enabled: true
+    namespace: envoy-gateway
+    type: external
+    domain: ${gateway_domain}
+    gateway_class: external-eg
+    issuer: ${external_issuer}
+    metallb_pool: gateway-api-external
+    certificate_secret: wildcard-external-tls-secret
+
+  internal:
+    enabled: true
+    namespace: envoy-gateway
+    type: internal
+    domain: internal.${gateway_domain}
+    gateway_class: internal-eg
+    issuer: flex-gateway-issuer
+    metallb_pool: gateway-api-internal
+    certificate_secret: wildcard-internal-tls-secret
+
+routes:
+EOF
+
+        for route in "${external_routes[@]}"; do
+            cat <<EOF
+  - name: ${route}
+    exposure: external
+EOF
+            if [ "${acme_enabled}" = "true" ]; then
+                cat <<EOF
+    section_name: ${route}-https
+EOF
+            fi
+        done
+
+        cat <<EOF
+  - name: alertmanager
+    exposure: internal
+    section_name: cluster-tls
+  - name: grafana
+    exposure: internal
+  - name: longhorn
+    exposure: internal
+    namespace: longhorn-system
+    service: longhorn-frontend
+    service_namespace: longhorn-system
+    port: 80
+    hostname: longhorn.internal.${gateway_domain}
+    section_name: cluster-tls
+  - name: loki
+    exposure: internal
+  - name: prometheus
+    exposure: internal
+    section_name: cluster-tls
+EOF
+    } > "${config_path}"
 }
 
 function writeServiceHelmOverrides() {
@@ -1220,6 +1410,7 @@ function runGenestackSetup() {
          GATEWAY_DOMAIN="${gateway_domain}" \
          ACME_EMAIL="${acme_email}" \
          HYPERCONVERGED=true \
+         ENVOY_GATEWAY_CONFIG_FILE="${ENVOY_GATEWAY_CONFIG_FILE:-}" \
          /opt/genestack/bin/setup-infrastructure.sh
 
     if [ ${disable_openstack} = false ]; then
@@ -1244,12 +1435,14 @@ function configureGenestackRemote() {
     local jump_host="$2"
     local metal_lb_ip="$3"
     local gateway_domain="$4"
+    local internal_metal_lb_ip="${METAL_LB_INTERNAL_IP:-}"
     local os_config="$(cat ${SCRIPT_DIR}/../../openstack-components.yaml)"
 
     echo "Configuring Genestack service overrides on jump host..."
 
     {
         declare -f writeMetalLBConfig
+        declare -f writeEnvoyGatewayConfig
         declare -f writeServiceHelmOverrides
         declare -f writeEndpointsConfig
         declare -f writeOpenstackComponentsConfig
@@ -1259,12 +1452,19 @@ function configureGenestackRemote() {
 
         cat <<EOF
 export HYPERCONVERGED_CINDER_VOLUME=$HYPERCONVERGED_CINDER_VOLUME
+export HYPERCONVERGED_ENVOY_GATEWAY_CONFIG=${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}
+export HYPERCONVERGED_ENVOY_GATEWAY_ACME=${HYPERCONVERGED_ENVOY_GATEWAY_ACME:-false}
+export METAL_LB_INTERNAL_IP='${internal_metal_lb_ip}'
+export ACME_EMAIL='${ACME_EMAIL:-}'
 export INCLUDE_LIST=("${INCLUDE_LIST[@]}")
 export EXCLUDE_LIST=("${EXCLUDE_LIST[@]}")
 set -e
 detectPlatform
 ensureYq
-writeMetalLBConfig '${metal_lb_ip}' '/etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml'
+writeMetalLBConfig '${metal_lb_ip}' '/etc/genestack/manifests/metallb/metallb-openstack-service-lb.yml' '${internal_metal_lb_ip}'
+if [ "\${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}" = "true" ]; then
+    writeEnvoyGatewayConfig '${gateway_domain}' '/etc/genestack/envoy-gateways.yaml'
+fi
 writeServiceHelmOverrides '/etc/genestack/helm-configs'
 writeEndpointsConfig '${gateway_domain}' '/etc/genestack/helm-configs/global_overrides/endpoints.yaml'
 writeOpenstackComponentsConfig '/etc/genestack/openstack-components.yaml' "${os_config}"
@@ -1292,9 +1492,14 @@ function runGenestackSetupRemote() {
         declare -f installYq
 
         cat <<EOF
+export HYPERCONVERGED_ENVOY_GATEWAY_CONFIG=${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}
+export HYPERCONVERGED_ENVOY_GATEWAY_ACME=${HYPERCONVERGED_ENVOY_GATEWAY_ACME:-false}
 set -e
 detectPlatform
 ensureYq
+if [ "\${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}" = "true" ]; then
+    export ENVOY_GATEWAY_CONFIG_FILE=/etc/genestack/envoy-gateways.yaml
+fi
 runGenestackSetup "${gateway_domain}" "${acme_email}" ${disable_openstack}
 EOF
     } | _ssh bash
