@@ -12,6 +12,8 @@
 
 - name: Create Trove management network, subnet, and router
   import_tasks: trove_mgmt_network.yml
+  become: true
+  become_user: ubuntu
   tags:
     - trove_mgmt_network
     - trove_pre_install
@@ -26,12 +28,16 @@
 
 - name: Configure Trove Helm values (deep merge)
   import_tasks: trove_helm_config.yml
+  become: true
+  become_user: ubuntu
   tags:
     - trove_helm_config
     - trove_pre_install
 
 - name: Configure Trove gateway, kustomize, and endpoints
   import_tasks: trove_gateway_and_kustomize.yml
+  become: true
+  become_user: ubuntu
   tags:
     - trove_gateway
     - trove_pre_install
@@ -46,12 +52,16 @@
 
 - name: Create Trove datastore type and version
   import_tasks: trove_datastore_setup.yml
+  become: true
+  become_user: ubuntu
   tags:
     - trove_datastore
     - trove_post_install
 
 - name: Install python-troveclient
   import_tasks: trove_client_install.yml
+  become: true
+  become_user: ubuntu
   tags:
     - trove_client
     - trove_post_install
@@ -66,6 +76,8 @@
 
 - name: Distribute Trove SSH key to nodes
   import_tasks: trove_ssh_key_distribute.yml
+  become: true
+  become_user: ubuntu
   tags:
     - trove_ssh_key_distribute
     - trove_post_install

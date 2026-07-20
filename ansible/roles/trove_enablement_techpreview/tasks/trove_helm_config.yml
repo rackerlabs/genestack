@@ -353,13 +353,16 @@
 # the patched template (from trove stable/2026.1) over the in-pod path.
 # Remove this override once a trove image carrying the fixed template
 # is available at ghcr.io/rackerlabs/genestack-images.
+# A similar issue exists for the replication configuration where
+# `relay_log_info_repository = TABLE` is rendered unconditionally
 
-- name: Apply trove-mysql-config-template-override ConfigMap
+- name: Apply trove-mysql-config-templates-override ConfigMap
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      kubectl -n openstack create configmap trove-mysql-config-template-override \
+      kubectl -n openstack create configmap trove-mysql-config-templates-override \
         --from-file=config.template={{ role_path }}/files/trove-mysql-config-template \
+        --from-file=replica.config.template={{ role_path }}/files/trove-mysql-replica-config-template \
         --dry-run=client -o yaml | kubectl apply -f -
     executable: /bin/bash
   changed_when: true

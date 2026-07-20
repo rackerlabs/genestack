@@ -73,6 +73,17 @@
     HOME: "{{ ubuntu_home }}"
   when: _trove_secgroup_check.rc != 0
 
+- name: Create 3306 rule for trove security group
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} security group rule create
+      --protocol tcp --dst-port 3306 --remote-ip {{ trove_mgmt_subnet_cidr }} {{ trove_secgroup_name }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: _trove_secgroup_check.rc != 0
+
 # =========================================================================
 # PART 3: CREATE MGMT SERVICES VIP SECURITY GROUP
 # The Trove services VIP port on the flat provider network needs a security
