@@ -1380,11 +1380,30 @@ conf:
           storage.containers.objects.size:
           storage.containers.objects.outgoing.bytes:
             archive_policy_name: low
-          storage.objects.http.class.a:
+          # NOTE(LukeRepko): Per-request-class counters are suffixed with the
+          # Swift storage policy type and name (ceilometermiddleware
+          # target.metadata.policy_type / policy_name), or .policy:none
+          # when the middleware does not attribute the request to a policy.
+          # The default Swift storage policy is replication:Policy-0.
+          #
+          # This list must stay in sync with the policy_name whitelist in
+          # the three class meters above. See the NOTE(LukeRepko) block
+          # above those meters for why: ceilometer's Gnocchi publisher
+          # drops samples for metric names it hasn't seen registered here,
+          # so any .policy:<type>:<name> the meters emit that isn't listed
+          # below would disappear. When adding a Swift storage policy that
+          # should be billed separately, add its entry to both places.
+          "storage.objects.http.class.a.policy:none":
             archive_policy_name: low
-          storage.objects.http.class.b:
+          "storage.objects.http.class.a.policy:replication:Policy-0":
             archive_policy_name: low
-          storage.objects.http.class.c:
+          "storage.objects.http.class.b.policy:none":
+            archive_policy_name: low
+          "storage.objects.http.class.b.policy:replication:Policy-0":
+            archive_policy_name: low
+          "storage.objects.http.class.c.policy:none":
+            archive_policy_name: low
+          "storage.objects.http.class.c.policy:replication:Policy-0":
             archive_policy_name: low
 
       - resource_type: volume
@@ -1975,34 +1994,71 @@ conf:
 
       # NOTE(LukeRepko): Account-level Swift HTTP request-class meters.
       #
-      # Classify each successful objectstore.http.request notification into
-      # one of three tiered counters based on the HTTP method recorded in
-      # payload.target.action (set by ceilometermiddleware to method.lower()):
-      #   class.a: put, post, copy   -- expensive-tier writes / metadata
-      #   class.b: get               -- reads
-      #   class.c: delete, head, options
+      # Bin each successful objectstore.http.request into one of three tiers
+      # by payload.target.action (put/post/copy=a, get=b, delete/head/options=c)
+      # and suffix the metric name with the Swift storage policy type and
+      # name reported by ceilometermiddleware:
       #
-      # Counted against the account-level swift_account resource via
-      # resource_id = payload.target.id (the bare project_id), matching the
-      # existing catch-all Swift meter convention. Container-level resources
-      # are not targeted.
+      #   storage.objects.http.class.{a,b,c}.policy:<type>:<name>
       #
-      # Gating uses the same idiom as the per-container outgoing-bytes meter:
-      # the `name` field is built by AND-ing two `sub(...)` matches via `+`
-      # (action regex AND outcome=success). Either side returning [] collapses
-      # the concat to []; with `name` in `lookup`, the meter early-returns via
-      # nb_samples<=0 -- no sample, no warning, no traceback.
+      # Requests the middleware cannot attribute to a policy (account-level
+      # requests, container POST/DELETE, pre-controller failures, and any
+      # request that arrives without both policy_type and policy_name) fall
+      # back to storage.objects.http.class.{a,b,c}.policy:none. Only
+      # outcome=success is counted.
       #
-      # `volume` filters $.payload.measurements for storage.api.request, which
-      # ceilometermiddleware >= 3.11.0 always emits with result=1 for every
-      # objectstore.http.request notification. A JSONPath that resolves to
-      # [1] (not the literal int 1) keeps `volume` compatible with `lookup`
-      # mode, which expects list-shaped attributes.
+      # policy_type and policy_name in the primary arm are whitelist-gated
+      # rather than pass-through -- policy_type against the Swift storage-
+      # policy-type enum (replication|erasure_coding), policy_name against
+      # the set of names registered under swift_account below. Enumeration
+      # is required to prevent silent sample loss: ceilometer's Gnocchi
+      # publisher builds a strict metric_map dict from gnocchi_resources
+      # and drops samples whose name isn't a key, with only a warning. Any
+      # (type, name) pair the meter emits without a matching registration
+      # entry disappears. Whitelisting on the meter side guarantees the
+      # primary arm only fires for pairs we've registered; anything else --
+      # a new Swift storage policy that hasn't been added yet, a middleware
+      # bug, an unexpected value -- fails the primary arm and falls back
+      # to .policy:none, keeping the request counted.
       #
-      # Counting policy: success only. The catch-all Swift meter above does
-      # not filter outcome because it is a passthrough for byte counters; for
-      # tier classification, success-only matches the design spec.
-      - name: $.payload.target.action.`sub(/^(put|post|copy)$/, storage.objects.http.class.a)` + $.payload.outcome.`sub(/^success$/, )`
+      # When operators add a Swift storage policy that should be billed
+      # separately, TWO edits are required in this file:
+      #   1. Add a .policy:<type>:<name> entry per class under
+      #      swift_account in gnocchi_resources (so Gnocchi accepts the
+      #      metric).
+      #   2. Extend the policy_name whitelist regex in the three meters
+      #      below with the new name (so the primary arm can emit it).
+      # Between the two edits, requests for the new policy land in
+      # .policy:none; after both are in place, they flow to their
+      # registered name. Never dropped.
+      #
+      # `name` is a jsonpath union of two concat branches. The first branch
+      # is the whitelist-gated attribution path described above; it appends
+      # policy_type + ":" (via a \\1 backreference sub) then uses a
+      # gate+passthrough pair for policy_name: a whitelist sub that
+      # replaces the matched name with the empty string, followed by a
+      # pass-through of the same field. The gate returns [] on a whitelist
+      # miss (jsonpath-rw-ext's Sub drops identity substitutions, so we
+      # need a non-identity replacement for the match case -- empty
+      # string), and the pass-through supplies the actual name for the
+      # metric-name concatenation on hit. On miss the whole branch
+      # collapses. The second branch substitutes the literal .policy:none
+      # suffix and fires whenever the class and outcome sub-gates match.
+      # Non-lookup mode makes Definition.parse() return the first branch's
+      # value, so full attribution wins and anything else falls back
+      # cleanly. Volume comes from the storage.api.request measurement
+      # (one per request); the gnocchi publisher logs one "metric ... is
+      # not handled by Gnocchi" warning per class meter at notification-
+      # agent startup for non-matching events, then goes silent.
+      - name: >-
+          ($.payload.target.action.`sub(/^(put|post|copy)$/, storage.objects.http.class.a.policy:)`
+          + $.payload.outcome.`sub(/^success$/, )`
+          + $.payload.target.metadata.policy_type.`sub(/^(replication|erasure_coding)$/, \\1:)`
+          + $.payload.target.metadata.policy_name.`sub(/^(Policy-0)$/, )`
+          + $.payload.target.metadata.policy_name)
+          |
+          ($.payload.target.action.`sub(/^(put|post|copy)$/, storage.objects.http.class.a.policy:none)`
+          + $.payload.outcome.`sub(/^success$/, )`)
         event_type: "objectstore.http.request"
         type: "delta"
         unit: "request"
@@ -2010,11 +2066,16 @@ conf:
         resource_id: $.payload.target.id
         user_id: $.payload.initiator.id
         project_id: $.payload.initiator.project_id
-        lookup:
-          - "name"
-          - "volume"
 
-      - name: $.payload.target.action.`sub(/^get$/, storage.objects.http.class.b)` + $.payload.outcome.`sub(/^success$/, )`
+      - name: >-
+          ($.payload.target.action.`sub(/^get$/, storage.objects.http.class.b.policy:)`
+          + $.payload.outcome.`sub(/^success$/, )`
+          + $.payload.target.metadata.policy_type.`sub(/^(replication|erasure_coding)$/, \\1:)`
+          + $.payload.target.metadata.policy_name.`sub(/^(Policy-0)$/, )`
+          + $.payload.target.metadata.policy_name)
+          |
+          ($.payload.target.action.`sub(/^get$/, storage.objects.http.class.b.policy:none)`
+          + $.payload.outcome.`sub(/^success$/, )`)
         event_type: "objectstore.http.request"
         type: "delta"
         unit: "request"
@@ -2022,11 +2083,16 @@ conf:
         resource_id: $.payload.target.id
         user_id: $.payload.initiator.id
         project_id: $.payload.initiator.project_id
-        lookup:
-          - "name"
-          - "volume"
 
-      - name: $.payload.target.action.`sub(/^(delete|head|options)$/, storage.objects.http.class.c)` + $.payload.outcome.`sub(/^success$/, )`
+      - name: >-
+          ($.payload.target.action.`sub(/^(delete|head|options)$/, storage.objects.http.class.c.policy:)`
+          + $.payload.outcome.`sub(/^success$/, )`
+          + $.payload.target.metadata.policy_type.`sub(/^(replication|erasure_coding)$/, \\1:)`
+          + $.payload.target.metadata.policy_name.`sub(/^(Policy-0)$/, )`
+          + $.payload.target.metadata.policy_name)
+          |
+          ($.payload.target.action.`sub(/^(delete|head|options)$/, storage.objects.http.class.c.policy:none)`
+          + $.payload.outcome.`sub(/^success$/, )`)
         event_type: "objectstore.http.request"
         type: "delta"
         unit: "request"
@@ -2034,9 +2100,6 @@ conf:
         resource_id: $.payload.target.id
         user_id: $.payload.initiator.id
         project_id: $.payload.initiator.project_id
-        lookup:
-          - "name"
-          - "volume"
 
       - name: "memory"
         event_type: &instance_events compute.instance.(?!create.start|update).*
