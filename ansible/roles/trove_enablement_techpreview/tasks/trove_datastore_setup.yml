@@ -93,7 +93,7 @@
       "{{ trove_datastore_name }}"
       "{{ trove_datastore_name }}"
       ""
-      --image-tags trove,{{ trove_datastore_name }}
+      --image-tags trove,{{ trove_datastore_name }},{{ trove_mysql_version }},{{ trove_guest_image_os_release }}
       --active
       --default
     executable: /bin/bash
