@@ -2398,6 +2398,12 @@ dependencies:
 # values, but should include all endpoints
 # required by this chart
 endpoints:
+  identity:
+    auth:
+      ceilometer:
+        role:
+          - admin
+          - ResellerAdmin
   metering:
     port:
       api:
