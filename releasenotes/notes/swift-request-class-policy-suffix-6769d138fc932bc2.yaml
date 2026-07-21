@@ -1,0 +1,67 @@
+---
+features:
+  - |
+    Account-level Swift HTTP request-class counters are now published
+    with a per-storage-policy suffix. Ceilometer bins each successful
+    ``objectstore.http.request`` into one of three tiers by HTTP
+    method and emits the sample as::
+
+      storage.objects.http.class.{a,b,c}.policy:<type>:<name>
+
+    where ``<type>`` and ``<name>`` come from
+    ``target.metadata.policy_type`` and ``target.metadata.policy_name``
+    on the notification.
+
+  - |
+    Requests the middleware cannot attribute to a storage policy
+    (account-level requests, container ``POST``/``DELETE``,
+    pre-controller failures, and any notification that arrives
+    without both ``policy_type`` and ``policy_name``) are counted
+    against ``storage.objects.http.class.{a,b,c}.policy:none``. This
+    keeps unattributed traffic separable from real per-policy
+    attribution at query time.
+
+  - |
+    Distinct metric names per storage policy are required rather
+    than optional. Ceilometer's Gnocchi publisher builds a strict
+    ``metric_map`` from ``gnocchi_resources`` and drops any sample
+    whose name is not a key in that map, logging only a warning.
+    Gnocchi itself would accept the sample via
+    ``create_metrics=true``, but the ceilometer-side filter is
+    architectural and has no config bypass in current upstream. Every
+    ``.policy:<type>:<name>`` combination that is going to be
+    emitted therefore has to be enumerated in advance under
+    ``swift_account`` in ``ceilometer-helm-overrides.yaml``. Billing
+    needs the split so it can rate request classes differently by
+    storage policy type (replication vs erasure-coding cost tiers)
+    and, where pricing calls for it, by named policy.
+
+  - |
+    ``.policy:none`` and ``.policy:replication:Policy-0`` (Swift's
+    default storage policy) are pre-registered for each of the three
+    request classes. The three class meters carry a matching
+    ``policy_name`` whitelist regex, currently only ``Policy-0``, so
+    that the primary attribution branch only fires for a name we
+    have already registered. Operators whose ``swift.conf`` defines
+    additional storage policies must therefore make TWO edits per
+    added policy:
+
+    1. Add ``.policy:<type>:<name>`` entries under ``swift_account``
+       so Gnocchi accepts the metric.
+    2. Extend the ``policy_name`` whitelist regex in the three class
+       meters so the primary branch will produce the new name.
+
+    Between the two edits, requests for the new policy fall through
+    to ``.policy:none`` and are still counted. After both edits are
+    in place, the samples flow to their registered name. No sample
+    loss at any point in the transition.
+
+  - |
+    Per-policy attribution depends on ``ceilometermiddleware``
+    exposing ``policy_type`` and ``policy_name`` in
+    ``target.metadata`` (currently pending upstream). Deployments
+    running middleware without those fields see every request
+    counted against ``.policy:none`` and require no action. Once the
+    middleware change lands and rolls out, notifications that carry
+    both fields land on their registered ``.policy:<type>:<name>``
+    if the pair is whitelisted, or on ``.policy:none`` if it is not.
