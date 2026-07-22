@@ -5,6 +5,8 @@ resources:
 
 patches:
   # Single comprehensive patch to replace volumes AND add init container
+  # Talos stores iscsi/multipath under /var/etc; keep host paths from base Talos patch.
+  # Gazpacho chart also requires oslo-lock-path and cinder-etc-snippets.
   - target:
       kind: Deployment
       name: cinder-volume
@@ -16,6 +18,8 @@ patches:
             emptyDir: {}
           - name: pod-var-cinder
             emptyDir: {}
+          - name: oslo-lock-path
+            emptyDir: {}
           - name: cinder-bin
             configMap:
               name: cinder-bin
@@ -24,11 +28,15 @@ patches:
             secret:
               secretName: cinder-etc
               defaultMode: 0444
+          - name: cinder-etc-snippets
+            projected:
+              sources:
+                - secret:
+                    name: cinder-ks-etc
           - name: pod-shared
             emptyDir: {}
           - name: cinder-conversion
-            emptyDir:
-              {}
+            emptyDir: {}
           - name: etcceph
             emptyDir: {}
           - name: ceph-etc
