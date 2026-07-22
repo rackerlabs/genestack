@@ -384,31 +384,35 @@ openssl req -x509 -newkey rsa:2048 -keyout sp-key.pem -out sp-cert.pem -days 182
 
 #### Upload the SAML2 files to the kubernetes cluster
 
-Ingest all files into the kubernetes secret as a secrete, which will be mounted to the keystone pod.
+The `keystone-shibd-etc` secret holds every file under `/etc/genestack/keystone-sp/shibboleth/` and is mounted at `/etc/shibboleth/` inside the keystone pod.
 
-``` shell
-kubectl -n openstack create secret generic keystone-shibd-etc \
-        --from-file=/etc/genestack/keystone-sp/shibboleth/attrChecker.html \
-        --from-file=/etc/genestack/keystone-sp/shibboleth/attribute-map.xml \
-        --from-file=/etc/genestack/keystone-sp/shibboleth/attribute-policy.xml \
-        --from-file=/etc/genestack/keystone-sp/shibboleth/bindingTemplate.html \
-        --from-file=/etc/genestack/keystone-sp/shibboleth/discoveryTemplate.html \
-        --from-file=/etc/genestack/keystone-sp/shibboleth/globalLogout.html \
-        --from-file=/etc/genestack/keystone-sp/shibboleth/idp-metadata.xml \
-        --from-file=/etc/genestack/keystone-sp/shibboleth/localLogout.html \
-        --from-file=/etc/genestack/keystone-sp/shibboleth/metadataError.html \
-        --from-file=/etc/genestack/keystone-sp/shibboleth/partialLogout.html \
-        --from-file=/etc/genestack/keystone-sp/shibboleth/postTemplate.html \
-        --from-file=/etc/genestack/keystone-sp/shibboleth/protocols.xml \
-        --from-file=/etc/genestack/keystone-sp/shibboleth/security-policy.xml \
-        --from-file=/etc/genestack/keystone-sp/shibboleth/sessionError.html \
-        --from-file=/etc/genestack/keystone-sp/shibboleth/shibboleth2.xml \
-        --from-file=/etc/genestack/keystone-sp/shibboleth/shibd.logger \
-        --from-file=/etc/genestack/keystone-sp/shibboleth/sp-cert.pem \
-        --from-file=/etc/genestack/keystone-sp/shibboleth/sp-key.pem \
-        --from-file=/etc/genestack/keystone-sp/shibboleth/sslError.html \
-        --from-file=/etc/genestack/keystone-sp/shibboleth/sso_callback_template.html
-```
+`install-keystone.sh` manages this secret automatically. When the script renders the chart it inspects the post-rendered manifests for `keystone-shibd-etc`; if the federation overlay is in use, the script re-creates the secret from the shibboleth directory on every run using `kubectl create ... --dry-run=client -o yaml | kubectl apply -f -`. That means updating any file under `/etc/genestack/keystone-sp/shibboleth/` and re-running the installer is sufficient to roll the change out.
+
+!!! note "Required files"
+
+    The installer preflights the shibboleth directory for the following files and aborts with a clear error if any are missing:
+
+    * `shibboleth2.xml`
+    * `sp-cert.pem`
+    * `sp-key.pem`
+    * `idp-metadata.xml`
+
+    The rest of the templates ship in the repo copy at `etc/keystone-sp/shibboleth/` and are copied to `/etc/genestack/keystone-sp/` earlier in this guide.
+
+!!! tip "Overrides and bypasses"
+
+    * Set `KEYSTONE_SHIBBOLETH_DIR` to point the installer at a different shibboleth source directory.
+    * Set `SKIP_SHIBBOLETH_SECRET=1` (or pass `--dry-run` through to helm) to skip the secret sync entirely.
+
+??? example "Manual fallback"
+
+    If you need to sync the secret without running the installer (air-gapped debugging, out-of-band patching, etc.), the equivalent command is:
+
+    ``` shell
+    kubectl -n openstack create secret generic keystone-shibd-etc \
+        --from-file=/etc/genestack/keystone-sp/shibboleth/ \
+        --dry-run=client -o yaml | kubectl apply -f -
+    ```
 
 ### Create the SAML identity provider
 
