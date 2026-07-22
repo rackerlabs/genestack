@@ -135,6 +135,97 @@ set_args=(
     --set "endpoints.oslo_messaging.auth.keystone.password=$(kubectl --namespace openstack get secret keystone-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)"
 )
 
+# --- Shibboleth federation detection & idempotent secret sync ---
+# If the rendered chart references the `keystone-shibd-etc` secret (i.e. the
+# operator has wired the keystone overlay to include ../federation), sync the
+# secret from the on-host shibboleth config directory so operator edits under
+# `${GENESTACK_OVERRIDES_DIR}/keystone-sp/shibboleth/` are picked up without a
+# manual `kubectl create secret` step.
+KEYSTONE_SHIBBOLETH_DIR="${KEYSTONE_SHIBBOLETH_DIR:-${GENESTACK_OVERRIDES_DIR}/keystone-sp/shibboleth}"
+KEYSTONE_SHIBBOLETH_SECRET="keystone-shibd-etc"
+# Files the operator must supply before federation can function. Everything
+# else in the shibboleth directory ships as sane defaults in the repo copy at
+# etc/keystone-sp/shibboleth/.
+KEYSTONE_SHIBBOLETH_REQUIRED_FILES=(
+    shibboleth2.xml
+    sp-cert.pem
+    sp-key.pem
+    idp-metadata.xml
+)
+
+skip_shibboleth_secret=false
+if [[ "${SKIP_SHIBBOLETH_SECRET:-}" == "1" ]]; then
+    skip_shibboleth_secret=true
+    echo "SKIP_SHIBBOLETH_SECRET=1 set; bypassing federation secret sync."
+fi
+for _arg in "$@"; do
+    if [[ "$_arg" == "--dry-run" || "$_arg" == --dry-run=* ]]; then
+        skip_shibboleth_secret=true
+        echo "'--dry-run' detected in extra args; bypassing federation secret sync."
+        break
+    fi
+done
+unset _arg
+
+federation_enabled=false
+if ! $skip_shibboleth_secret; then
+    template_command=(
+        helm template "$SERVICE_NAME_DEFAULT" "$HELM_CHART_PATH"
+        --version "${SERVICE_VERSION}"
+        --namespace "$SERVICE_NAMESPACE"
+        "${overrides_args[@]}"
+        "${set_args[@]}"
+        --post-renderer "$GENESTACK_OVERRIDES_DIR/kustomize/kustomize.sh"
+        --post-renderer-args "$SERVICE_NAME_DEFAULT/overlay"
+    )
+    echo "Rendering chart to detect Shibboleth federation..."
+    template_stderr="$(mktemp)"
+    if ! rendered_manifests="$("${template_command[@]}" 2>"$template_stderr")"; then
+        echo "Error: 'helm template' failed while detecting federation. stderr:" >&2
+        cat "$template_stderr" >&2
+        rm -f "$template_stderr"
+        exit 1
+    fi
+    rm -f "$template_stderr"
+    if grep -q "${KEYSTONE_SHIBBOLETH_SECRET}" <<<"$rendered_manifests"; then
+        federation_enabled=true
+    fi
+fi
+
+if $federation_enabled; then
+    echo "Shibboleth federation detected; syncing secret '${KEYSTONE_SHIBBOLETH_SECRET}' in namespace '${SERVICE_NAMESPACE}'."
+    if [[ ! -d "$KEYSTONE_SHIBBOLETH_DIR" ]]; then
+        echo "Error: Shibboleth config directory not found: $KEYSTONE_SHIBBOLETH_DIR" >&2
+        echo "See docs/openstack-keystone-federation.md for how to populate this directory." >&2
+        exit 1
+    fi
+    missing_required=()
+    for required in "${KEYSTONE_SHIBBOLETH_REQUIRED_FILES[@]}"; do
+        if [[ ! -f "$KEYSTONE_SHIBBOLETH_DIR/$required" ]]; then
+            missing_required+=("$required")
+        fi
+    done
+    if (( ${#missing_required[@]} > 0 )); then
+        echo "Error: Federation is enabled but the following required file(s) are missing under ${KEYSTONE_SHIBBOLETH_DIR}:" >&2
+        for f in "${missing_required[@]}"; do
+            echo "  - $f" >&2
+        done
+        echo "Refer to docs/openstack-keystone-federation.md to generate/place these files." >&2
+        exit 1
+    fi
+    if ! (
+        set -o pipefail
+        kubectl --namespace "$SERVICE_NAMESPACE" create secret generic "$KEYSTONE_SHIBBOLETH_SECRET" \
+            --from-file="$KEYSTONE_SHIBBOLETH_DIR" \
+            --dry-run=client -o yaml | kubectl apply -f -
+    ); then
+        echo "Error: failed to sync '${KEYSTONE_SHIBBOLETH_SECRET}' from ${KEYSTONE_SHIBBOLETH_DIR}." >&2
+        exit 1
+    fi
+elif ! $skip_shibboleth_secret; then
+    echo "Shibboleth federation not detected; skipping '${KEYSTONE_SHIBBOLETH_SECRET}' secret sync."
+fi
+
 
 helm_command=(
     helm upgrade --install "$SERVICE_NAME_DEFAULT" "$HELM_CHART_PATH"
