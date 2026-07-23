@@ -1855,12 +1855,12 @@ function setupKubeConfig() {
 function deployTrove() {
     echo "Running Trove deployment ..."
 
-    local trove_region_name=$1
-    local public_provider_net_name=$2
-    local trove_durable_queues=$3
-    local trove_gateway_hostname=$4
-    local trove_os_endpoint_type=$5
-    local compute_ssh_key=$6
+    local trove_region_name="${1:-RegionOne}"
+    local public_provider_net_name="${2:-flat}"
+    local trove_durable_queues="${3:-false}"
+    local trove_gateway_hostname="${4:-trove.cluster.local}"
+    local trove_os_endpoint_type="${5:-internal}" # internal
+    local compute_ssh_key="${6:-hyperconverged-key.pem}"
 
     {
         declare -f setupKubeConfig
