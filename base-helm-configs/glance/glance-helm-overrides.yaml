@@ -171,7 +171,7 @@ volume:
     - ReadWriteMany
 volume_staging:
   class_name: general-multi-attach
-  size: 2Gi # This is new in 2026.1 it will be ignored in 2025.1 
+  size: 2Gi # This is new in 2026.1 it will be ignored in 2025.1
   accessModes:
     - ReadWriteMany
 dependencies:
