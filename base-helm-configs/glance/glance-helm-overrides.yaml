@@ -169,7 +169,11 @@ volume:
   size: 10Gi # This should be set to 100Gi in production
   accessModes:
     - ReadWriteMany
-
+volume_staging:
+  class_name: general-multi-attach
+  size: 2Gi # This is new in 2026.1 it will be ignored in 2025.1 
+  accessModes:
+    - ReadWriteMany
 dependencies:
   static:
     api:
