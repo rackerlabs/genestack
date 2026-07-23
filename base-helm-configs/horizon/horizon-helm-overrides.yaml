@@ -6686,8 +6686,6 @@ conf:
             },
         }
 
-
-
         # Indicate to the Sahara data processing service whether or not
         # automatic floating IP allocation is in effect.  If it is not
         # in effect, the user will be prompted to choose a floating IP
