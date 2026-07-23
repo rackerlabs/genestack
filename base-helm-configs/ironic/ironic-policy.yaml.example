@@ -330,5 +330,4 @@ conf:
 
   ironic:
     oslo_policy:
-      enforce_scope: true
       enforce_new_defaults: true

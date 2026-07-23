@@ -77,7 +77,6 @@ conf:
     openstack:
       interface_type: internal
       default_region: RegionOne
-      enforce_new_defaults: true
 
 manifests:
   certificates: false

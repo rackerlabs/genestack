@@ -87,7 +87,6 @@ conf:
       rabbit_interval_max: 10
       heartbeat_rate: 3
       heartbeat_timeout_threshold: 60
-      heartbeat_in_pthread: true
       kombu_reconnect_delay: 0.5
     oslo_messaging_notifications:
       driver: messagingv2
