@@ -21,9 +21,9 @@ replicaCount: 3
 networking:
   # NET_STACK defaults to ipv4
   ENABLE_SSL: true
-  IFACE: "bond0"
+  IFACE: "br-overlay"
   vlan:
-    VLAN_INTERFACE_NAME: "bond0"
+    VLAN_INTERFACE_NAME: "br-overlay"
     # VLAN_NAME: "ovn-vlan"
     # VLAN_ID: "100"
   ENABLE_EIP_SNAT: false
