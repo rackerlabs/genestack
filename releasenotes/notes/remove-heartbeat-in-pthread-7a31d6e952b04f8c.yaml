@@ -1,0 +1,11 @@
+---
+upgrade:
+  - |
+    Removed the deprecated ``heartbeat_in_pthread`` override from the
+    oslo.messaging RabbitMQ configuration for Blazar, Designate, Heat,
+    Magnum, Masakari, Neutron, Nova, Octavia, Trove, and Zaqar.
+
+    On oslo.messaging versions where the option is still available,
+    deployments will use the upstream default value of ``false``. The option
+    has been removed entirely in oslo.messaging 18.0.0. Existing heartbeat
+    interval, timeout, and reconnect settings remain unchanged.
