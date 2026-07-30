@@ -15,24 +15,33 @@ When freezer is deployed via Genestack (`freezer: true` in
 (`freezer-vendordata-inject`) automatically:
 
 1. Reads the freezer service password from the
-   `freezer-keystone-user` K8s Secret
-2. Reads the existing `static-vendor-data` ConfigMap content
-3. Appends the freezer cloud-init script to the existing content
-4. Patches the ConfigMap back with the merged content
+   `freezer-keystone-user` K8s Secret (`OS_PASSWORD` key)
+2. Discovers public Keystone and Freezer API endpoints from HTTPRoute objects
+3. Reads the existing `static-vendor-data` ConfigMap content
+4. Appends the freezer cloud-init script to the existing content
+5. Patches the ConfigMap back with the merged content
 
-This ensures any existing vendor_data content (e.g., VMM or other services)
-is preserved. The freezer content is appended, never overwrites.
+If the existing vendor_data uses MIME multipart format (common when other
+services like VMM have already written to it), the inject job correctly
+inserts freezer as a new MIME part rather than appending as plain text.
 
-No manual steps are required. No operator intervention needed.
+This ensures any existing vendor_data content is preserved. The freezer
+content is appended, never overwrites.
+
+No manual steps are required for password injection or endpoint discovery.
+Nova metadata pods require a one-time restart after first freezer deployment
+to pick up the updated vendor_data ConfigMap.
 
 ## Automatic Behavior
 
 ```
 freezer: true in openstack-components.yaml
     → Genestack deploys freezer-api and inject job
+    → Inject job discovers public Keystone and Freezer endpoints from HTTPRoute
     → Inject job appends freezer cloud-init to vendor_data ConfigMap
     → Nova metadata serves merged content to all new VMs
     → Every new VM gets freezer agent + scheduler at first boot
+    → Scheduler uses discovered public endpoints to authenticate
     → Scheduler registers VM with freezer-api
     → VM ready for backup via Skyline UI
 ```
