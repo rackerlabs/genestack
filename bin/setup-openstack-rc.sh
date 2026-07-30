@@ -14,7 +14,7 @@ CONFIG_FILE="${CONFIG_PATH}/genestack-clouds.yaml"
 
 mkdir -p "${CONFIG_PATH}"
 
-echo "Generating OpenStack RC file at: ${CONFIG_FILE}"
+echo "Generating OpenStack RC file at: ${CONFIG_PATH}/clouds.yaml"
 
 cat > "${CONFIG_FILE}" <<EOF
 cache:
