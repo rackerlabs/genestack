@@ -8,7 +8,7 @@ images:
     newTag: latest
   - name: image-octavia-ovn
     newName: ghcr.io/rackerlabs/genestack-images/octavia
-    newTag: 2024.1-latest
+    newTag: 2025.1-latest
 
 resources:
   - octavia-mariadb-database.yaml
