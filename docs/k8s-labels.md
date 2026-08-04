@@ -43,6 +43,9 @@ To use the K8S environment for OpenStack all of the nodes MUST be labeled. The f
 
     # Label all workers - Recommended and used when deploying Kubernetes specific services
     kubectl label node $(kubectl get nodes | awk '/worker/ {print $1}')  node-role.kubernetes.io/worker=worker
+    
+    # Label all etcd nodes - Required when deploying Opentelemetry metrics collection and related monitoring systems
+    kubectl label node $(kubectl get nodes | awk '/etcd/ {print $1}')  node-role.kubernetes.io/etcd=etcd
     ```
 
 ### Validate node labels
