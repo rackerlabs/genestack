@@ -8,6 +8,14 @@ endpoints:
         region_name: *region
       trove:
         region_name: *region
+      nova:
+        region_name: *region
+      neutron:
+        region_name: *region
+      cinder:
+        region_name: *region
+      glance:
+        region_name: *region
 pod:
   resources:
     enabled: false
@@ -30,28 +38,38 @@ pod:
           # `default_authentication_plugin = mysql_native_password`,
           # which mysqld 8.4 rejects. Overlay the patched template so
           # the server-side render produces a valid my.cnf.
-          - name: trove-mysql-config-template
+          - name: trove-mysql-config-templates
             mountPath: /var/lib/openstack/lib/python3.12/site-packages/trove/templates/mysql/config.template
             subPath: config.template
+            readOnly: true
+          # Workaround until ghcr.io/rackerlabs/genestack-images/trove
+          # carries a 2026.1+ template. The 2025.1-latest image's
+          # mysql/replica.config.template emits an unconditional
+          # `relay_log_info_repository = TABLE`, which mysqld 8.4 rejects.
+          # Overlay the patched template so the server-side render produces a valid
+          # replication configuration in the guest VM.
+          - name: trove-mysql-config-templates
+            mountPath: /var/lib/openstack/lib/python3.12/site-packages/trove/templates/mysql/replica.config.template
+            subPath: replica.config.template
             readOnly: true
         volumes:
           - name: trove-guest-files
             configMap:
               name: trove-guest-files
-          - name: trove-mysql-config-template
+          - name: trove-mysql-config-templates
             configMap:
-              name: trove-mysql-config-template-override
+              name: trove-mysql-config-templates-override
     trove_conductor:
       trove_conductor:
         volumeMounts:
-          - name: trove-mysql-config-template
+          - name: trove-mysql-config-templates
             mountPath: /var/lib/openstack/lib/python3.12/site-packages/trove/templates/mysql/config.template
             subPath: config.template
             readOnly: true
         volumes:
-          - name: trove-mysql-config-template
+          - name: trove-mysql-config-templates
             configMap:
-              name: trove-mysql-config-template-override
+              name: trove-mysql-config-templates-override
 # Trove helm config fragment — deep-merged into trove-helm-overrides.yaml
 # by the trove_enablement role.
 #
@@ -60,6 +78,7 @@ pod:
 conf:
   trove:
     DEFAULT:
+      os_region_name: *region
       control_exchange: trove
       trove_api_workers: 1
       management_networks: "{{ _trove_mgmt_network_id.stdout | trim  | default('') }}"
@@ -126,6 +145,8 @@ conf:
       rabbit_quorum_queue: false
       rabbit_transient_quorum_queue: false
       amqp_durable_queues: {{ trove_durable_queues }}
+    service_credentials:
+      region_name: *region
   trove_api_uwsgi:
     uwsgi:
       processes: 1
