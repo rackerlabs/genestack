@@ -557,9 +557,39 @@ collectors:
             scrape_configs:
               - job_name: etcd
                 scrape_interval: 30s
+                scrape_timeout: 10s
                 metrics_path: /metrics
-                static_configs:
-                  - targets: ["localhost:2381"]
+
+                kubernetes_sd_configs:
+                  - role: node
+                    selectors:
+                      - role: node
+                        field: "metadata.name=${env:OTEL_K8S_NODE_NAME}"
+
+                relabel_configs:
+                  # Expecting etcd members labeled as such; node-role.kubernetes.io/etcd=etcd
+                  - source_labels:
+                      - __meta_kubernetes_node_label_node_role_kubernetes_io_etcd
+                    regex: "etcd"
+                    action: keep
+                  - source_labels:
+                      - __meta_kubernetes_node_address_InternalIP
+                    regex: "(.+)"
+                    replacement: "$${1}:2381"
+                    target_label: __address__
+                    action: replace
+                  - source_labels:
+                      - __meta_kubernetes_node_name
+                    target_label: k8s_node_name
+                    action: replace
+                  - source_labels:
+                      - __meta_kubernetes_node_label_kubernetes_io_hostname
+                    target_label: instance
+                    action: replace
+                  - target_label: component
+                    replacement: etcd
+                  - target_label: service
+                    replacement: etcd
 
         filelog/k8s_containers:
           max_concurrent_files: 1024
