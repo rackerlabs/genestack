@@ -141,5 +141,3 @@ site/
 .beads/
 .gitattributes
 AGENTS.md
-.mcp*
-.claude
