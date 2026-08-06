@@ -1,0 +1,36 @@
+---
+features:
+  - |
+    CDN egress bytes reported by the usage reporter are now metered per
+    CDN provider and per geographic edge location. Ceilometer consumes
+    ``cdn.bandwidth`` notifications from the ``swift`` vhost and emits one
+    ``delta`` sample in bytes per notification against the tenant's
+    account-level ``swift_account`` Gnocchi resource. Seven metric names
+    are added, all on ``swift_account`` with archive policy ``low``::
+
+      storage.cdn.outgoing.bytes.akamai:north_america
+      storage.cdn.outgoing.bytes.akamai:south_america
+      storage.cdn.outgoing.bytes.akamai:emea
+      storage.cdn.outgoing.bytes.akamai:japan
+      storage.cdn.outgoing.bytes.akamai:india
+      storage.cdn.outgoing.bytes.akamai:apac
+      storage.cdn.outgoing.bytes.unknown
+
+    The geography comes from ``payload.edge_location``, not
+    ``payload.region`` (an OpenStack region such as ``DFW-DEV``, recorded
+    only as sample metadata). Matching is exact, so an unregistered
+    provider or edge location -- including a case or whitespace variant of
+    a registered one -- is counted against
+    ``storage.cdn.outgoing.bytes.unknown`` rather than dropped.
+
+  - |
+    Every CDN metric name must be present in TWO places in
+    ``base-helm-configs/ceilometer/ceilometer-helm-overrides.yaml``: in
+    the branches of the ``cdn.bandwidth`` meter definition under
+    ``conf.meters.metric``, and under ``resource_type: swift_account`` in
+    ``conf.gnocchi_resources``. A name the meter emits without a matching
+    registration is discarded by Ceilometer's Gnocchi publisher with only
+    a warning, so those samples are lost. Onboarding a new provider or
+    edge location therefore requires both edits plus a
+    ``ceilometer-notification`` restart; until then the traffic is counted
+    against ``storage.cdn.outgoing.bytes.unknown``.

@@ -1405,6 +1405,25 @@ conf:
             archive_policy_name: low
           "storage.objects.http.class.c.policy:replication:Policy-0":
             archive_policy_name: low
+          # NOTE(LukeRepko): CDN egress bytes, keyed by provider and edge
+          # location. Must stay in sync with the branches of the
+          # cdn.bandwidth meter under conf.meters.metric: a name the meter
+          # emits without a registration here is dropped by the Gnocchi
+          # publisher with only a warning, so those samples are lost.
+          "storage.cdn.outgoing.bytes.akamai:north_america":
+            archive_policy_name: low
+          "storage.cdn.outgoing.bytes.akamai:south_america":
+            archive_policy_name: low
+          "storage.cdn.outgoing.bytes.akamai:emea":
+            archive_policy_name: low
+          "storage.cdn.outgoing.bytes.akamai:japan":
+            archive_policy_name: low
+          "storage.cdn.outgoing.bytes.akamai:india":
+            archive_policy_name: low
+          "storage.cdn.outgoing.bytes.akamai:apac":
+            archive_policy_name: low
+          storage.cdn.outgoing.bytes.unknown:
+            archive_policy_name: low
 
       - resource_type: volume
         metrics:
@@ -2100,6 +2119,71 @@ conf:
         resource_id: $.payload.target.id
         user_id: $.payload.initiator.id
         project_id: $.payload.initiator.project_id
+
+      # NOTE(LukeRepko): CDN egress bytes, per provider and edge location.
+      #
+      # cdn.bandwidth notifications arrive on the swift vhost, one per
+      # tenant per accounting window, and land on the tenant's
+      # account-level swift_account resource as
+      # storage.cdn.outgoing.bytes.<provider>:<edge_location_slug>. The
+      # geographic dimension is payload.edge_location; payload.region is
+      # an OpenStack region (e.g. DFW-DEV), kept only as metadata.
+      #
+      # `name` is a jsonpath union of seven branches, each metric name
+      # carried as the replacement text of an anchored `sub()` gate: a
+      # gate that misses returns [] and collapses its branch, so the six
+      # attributed branches are mutually exclusive and non-lookup mode
+      # takes the first that yields a value. Matching is exact, so an
+      # unrecognized cdn_provider or edge_location falls through to the
+      # last branch, .unknown -- counted, never dropped. The fallback
+      # writes the dot as [.] because jsonpath-rw strips backslashes
+      # inside backticks; event_type is anchored because ceilometer
+      # re.match()es it and would otherwise also claim cdn.bandwidth2.
+      #
+      # Every name emitted here must also be registered under
+      # swift_account in gnocchi_resources -- the Gnocchi publisher drops
+      # unregistered names with only a warning, so those samples are lost
+      # with no error surfaced anywhere. To onboard a provider or edge
+      # location: add a branch here, register the name there with
+      # archive_policy_name: low, then restart ceilometer-notification.
+      # Until then that traffic lands in .unknown.
+      #
+      # Timestamps come from payload.end_time so bytes land in the
+      # accounting window they describe, else metadata.timestamp.
+      - name: >-
+          ($.payload.cdn_provider.`sub(/^akamai$/, )`
+          + $.payload.edge_location.`sub(/^North America$/, storage.cdn.outgoing.bytes.akamai:north_america)`)
+          |
+          ($.payload.cdn_provider.`sub(/^akamai$/, )`
+          + $.payload.edge_location.`sub(/^South America$/, storage.cdn.outgoing.bytes.akamai:south_america)`)
+          |
+          ($.payload.cdn_provider.`sub(/^akamai$/, )`
+          + $.payload.edge_location.`sub(/^EMEA$/, storage.cdn.outgoing.bytes.akamai:emea)`)
+          |
+          ($.payload.cdn_provider.`sub(/^akamai$/, )`
+          + $.payload.edge_location.`sub(/^Japan$/, storage.cdn.outgoing.bytes.akamai:japan)`)
+          |
+          ($.payload.cdn_provider.`sub(/^akamai$/, )`
+          + $.payload.edge_location.`sub(/^India$/, storage.cdn.outgoing.bytes.akamai:india)`)
+          |
+          ($.payload.cdn_provider.`sub(/^akamai$/, )`
+          + $.payload.edge_location.`sub(/^APAC$/, storage.cdn.outgoing.bytes.akamai:apac)`)
+          |
+          ($.payload.event_type.`sub(/^cdn[.]bandwidth$/, storage.cdn.outgoing.bytes.unknown)`)
+        event_type: "^cdn\\.bandwidth$"
+        type: "delta"
+        unit: "B"
+        volume: $.payload.bandwidth_cdn
+        resource_id: $.payload.resource_id
+        project_id: $.payload.tenant_id
+        timestamp: $.payload.end_time
+        metadata:
+          cdn_provider: $.payload.cdn_provider
+          edge_location: $.payload.edge_location
+          region: $.payload.region
+          data_center: $.payload.data_center
+          start_time: $.payload.start_time
+          end_time: $.payload.end_time
 
       - name: "memory"
         event_type: &instance_events compute.instance.(?!create.start|update).*
