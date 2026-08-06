@@ -1,0 +1,11 @@
+---
+# Deploy SAIO (Swift-All-In-One) for object storage
+#
+# Usage:
+#   ansible-playbook /opt/genestack/ansible/playbooks/deploy-swift.yaml
+#   ansible-playbook /opt/genestack/ansible/playbooks/deploy-swift.yaml -e swift_region_name=RegionOne
+
+- name: Deploy Swift All In One (SAIO - Object Store)
+  hosts: localhost
+  roles:
+    - role: swift_all_in_one

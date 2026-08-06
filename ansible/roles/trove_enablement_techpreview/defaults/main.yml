@@ -133,3 +133,10 @@ force_full_recreation: false
 #   running backing services.  Leave false unless you know you need to
 #   rotate — regeneration can break running clusters.
 trove_force_recreate_secrets: false
+
+# =========================================================================
+# Swift (object-store) for backup/restore
+# =========================================================================
+# Set to false to skip Swift deployment when installing Trove.
+# Backups will not work without an object-store backend.
+trove_deploy_swift: true

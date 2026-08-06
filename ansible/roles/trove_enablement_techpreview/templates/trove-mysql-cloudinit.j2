@@ -12,6 +12,7 @@ MIME-Version: 1.0
 echo "Updating /etc/hosts"
 echo '{{ trove_services_vip_ip }} rabbitmq.openstack.svc.cluster.local' >> /etc/hosts
 echo '{{ trove_services_vip_ip }} keystone-api.openstack.svc.cluster.local' >> /etc/hosts
+echo '{{ trove_services_vip_ip }} swift-api.openstack.svc.cluster.local' >> /etc/hosts
 
 # Write the guest-agent transport_url + control_exchange. Without this,
 # trove-guestagent has no transport_url, falls back to localhost:5672,

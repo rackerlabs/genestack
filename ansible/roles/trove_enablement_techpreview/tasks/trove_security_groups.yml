@@ -134,3 +134,14 @@
   environment:
     HOME: "{{ ubuntu_home }}"
   when: _trove_svc_secgroup_check.rc != 0
+
+- name: Create Swift rule for trove services security group
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} security group rule create
+      --protocol tcp --dst-port 8080 --remote-ip {{ trove_mgmt_subnet_cidr }} {{ trove_services_secgroup_name }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: _trove_svc_secgroup_check.rc != 0
