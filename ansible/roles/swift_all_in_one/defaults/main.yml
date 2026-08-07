@@ -1,0 +1,11 @@
+---
+# defaults file for saio
+
+# Region used for Keystone endpoint registration
+swift_region_name: RegionOne
+
+# Keystone auth URL used by Swift's authtoken middleware
+swift_keystone_auth_url: "http://keystone-api.openstack.svc.cluster.local:5000/v3"
+
+# OpenStack cloud name for CLI commands
+os_cloud: default

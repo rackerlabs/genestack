@@ -1,0 +1,339 @@
+# =========================================================================
+# SAIO (Swift All In One) running inside a Kubernetes Pod
+# =========================================================================
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: saio-config
+  namespace: openstack
+  labels:
+    app: saio
+data:
+  swift.conf: |
+    [swift-hash]
+    swift_hash_path_prefix = {{ swift_hash_path_prefix }}
+    swift_hash_path_suffix = {{ swift_hash_path_suffix }}
+
+    [storage-policy:0]
+    name = Policy-0
+    default = yes
+  proxy-server.conf: |
+    [DEFAULT]
+    bind_ip = 0.0.0.0
+    bind_port = 8080
+    workers = 1
+    user = root
+
+    [pipeline:main]
+    pipeline = catch_errors healthcheck proxy-logging cache authtoken keystoneauth copy container-quotas account-quotas slo dlo versioned_writes proxy-logging proxy-server
+
+    [app:proxy-server]
+    use = egg:swift#proxy
+    account_autocreate = true
+    allow_account_management = true
+
+    [filter:catch_errors]
+    use = egg:swift#catch_errors
+
+    [filter:healthcheck]
+    use = egg:swift#healthcheck
+
+    [filter:proxy-logging]
+    use = egg:swift#proxy_logging
+
+    [filter:cache]
+    use = egg:swift#memcache
+    memcache_servers = 127.0.0.1:11211
+
+    [filter:authtoken]
+    paste.filter_factory = keystonemiddleware.auth_token:filter_factory
+    log_name = authtoken
+    www_authenticate_uri = {{ swift_keystone_auth_url }}
+    auth_url = {{ swift_keystone_auth_url }}
+    auth_type = password
+    user_domain_name = default
+    project_domain_name = service
+    project_name = service
+    username = swift
+    password = {{ swift_keystone_password }}
+    delay_auth_decision = True
+    cache = swift.cache
+    include_service_catalog = False
+    memcache_security_strategy = None
+    memcached_servers = 127.0.0.1:11211
+
+    [filter:keystoneauth]
+    use = egg:swift#keystoneauth
+    operator_roles = admin,member,swiftoperator,service,_member_
+    reseller_admin_role = admin
+    reseller_prefix = AUTH_
+    allow_overrides = true
+
+    [filter:copy]
+    use = egg:swift#copy
+
+    [filter:container-quotas]
+    use = egg:swift#container_quotas
+
+    [filter:account-quotas]
+    use = egg:swift#account_quotas
+
+    [filter:slo]
+    use = egg:swift#slo
+
+    [filter:dlo]
+    use = egg:swift#dlo
+
+    [filter:versioned_writes]
+    use = egg:swift#versioned_writes
+    allow_versioned_writes = true
+  account-server.conf: |
+    [DEFAULT]
+    bind_ip = 0.0.0.0
+    bind_port = 6202
+    workers = 1
+    devices = /srv/1/node
+    mount_check = false
+    user = root
+
+    [pipeline:main]
+    pipeline = healthcheck recon account-server
+
+    [app:account-server]
+    use = egg:swift#account
+
+    [filter:healthcheck]
+    use = egg:swift#healthcheck
+
+    [filter:recon]
+    use = egg:swift#recon
+    recon_cache_path = /var/cache/swift
+  container-server.conf: |
+    [DEFAULT]
+    bind_ip = 0.0.0.0
+    bind_port = 6201
+    workers = 1
+    devices = /srv/1/node
+    mount_check = false
+    user = root
+
+    [pipeline:main]
+    pipeline = healthcheck recon container-server
+
+    [app:container-server]
+    use = egg:swift#container
+
+    [filter:healthcheck]
+    use = egg:swift#healthcheck
+
+    [filter:recon]
+    use = egg:swift#recon
+    recon_cache_path = /var/cache/swift
+  object-server.conf: |
+    [DEFAULT]
+    bind_ip = 0.0.0.0
+    bind_port = 6200
+    workers = 1
+    devices = /srv/1/node
+    mount_check = false
+    disable_fallocate = true
+    user = root
+
+    [pipeline:main]
+    pipeline = healthcheck recon object-server
+
+    [app:object-server]
+    use = egg:swift#object
+
+    [filter:healthcheck]
+    use = egg:swift#healthcheck
+
+    [filter:recon]
+    use = egg:swift#recon
+    recon_cache_path = /var/cache/swift
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: saio-scripts
+  namespace: openstack
+  labels:
+    app: saio
+data:
+  entrypoint.sh: |
+    #!/bin/bash
+    set -e
+    export DEBIAN_FRONTEND=noninteractive
+
+    echo "=== Installing Swift dependencies ==="
+    apt-get update -qq
+    apt-get install -y -qq \
+      python3-pip python3-dev python3-setuptools \
+      gcc liberasurecode-dev libssl-dev libffi-dev \
+      memcached rsync xfsprogs sqlite3 curl >/dev/null 2>&1
+
+    echo "=== Installing Swift and keystonemiddleware ==="
+    pip install --quiet --break-system-packages \
+      "swift==2.34.0" "python-swiftclient==4.6.0" "python-memcached==1.62" \
+      "keystonemiddleware==10.8.0" "eventlet==0.36.1"
+    # Pin versions to avoid breakage from new PyPI uploads
+
+    echo "=== Verifying Keystone connectivity ==="
+    # Test that the pod can reach Keystone before starting Swift
+    if curl -sf http://keystone-api.openstack.svc.cluster.local:5000/v3 >/dev/null 2>&1; then
+      echo "  Keystone is reachable"
+    else
+      echo "  WARNING: Cannot reach Keystone at http://keystone-api.openstack.svc.cluster.local:5000/v3"
+    fi
+
+    echo "=== Installed keystonemiddleware version ==="
+    pip show keystonemiddleware 2>/dev/null | grep Version
+
+    echo "=== Configuring loopback storage ==="
+    mkdir -p /srv
+    if [ ! -f /srv/swift-disk ]; then
+      truncate -s 1GB /srv/swift-disk
+      mkfs.xfs -f /srv/swift-disk
+    fi
+    mkdir -p /mnt/sdb1
+    mount -o loop,noatime /srv/swift-disk /mnt/sdb1 || true
+    mkdir -p /mnt/sdb1/1
+    ln -sf /mnt/sdb1/1 /srv/1
+    mkdir -p /srv/1/node/sdb1
+    mkdir -p /var/run/swift /var/cache/swift /var/log/swift
+    chown -R root:root /srv/1 /var/run/swift /var/cache/swift
+
+    echo "=== Building Swift rings ==="
+    cd /etc/swift
+    swift-ring-builder account.builder create 10 1 1
+    swift-ring-builder account.builder add r1z1-127.0.0.1:6202/sdb1 100
+    swift-ring-builder account.builder rebalance
+
+    swift-ring-builder container.builder create 10 1 1
+    swift-ring-builder container.builder add r1z1-127.0.0.1:6201/sdb1 100
+    swift-ring-builder container.builder rebalance
+
+    swift-ring-builder object.builder create 10 1 1
+    swift-ring-builder object.builder add r1z1-127.0.0.1:6200/sdb1 100
+    swift-ring-builder object.builder rebalance
+
+    echo "=== Starting memcached ==="
+    memcached -u root -d
+
+    echo "=== Starting Swift services ==="
+    swift-account-server /etc/swift/account-server.conf &
+    swift-container-server /etc/swift/container-server.conf &
+    swift-object-server /etc/swift/object-server.conf &
+
+    echo "=== Starting Swift proxy (foreground) ==="
+    exec swift-proxy-server /etc/swift/proxy-server.conf
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: saio
+  namespace: openstack
+  labels:
+    app: saio
+    application: swift
+spec:
+  progressDeadlineSeconds: 900
+  replicas: 1
+  selector:
+    matchLabels:
+      app: saio
+  template:
+    metadata:
+      labels:
+        app: saio
+        application: swift
+    spec:
+      containers:
+        - name: saio
+          image: ubuntu:24.04
+          command: ["/bin/bash", "/scripts/entrypoint.sh"]
+          ports:
+            - name: proxy
+              containerPort: 8080
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 8080
+            initialDelaySeconds: 300
+            periodSeconds: 30
+            timeoutSeconds: 5
+          startupProbe:
+            httpGet:
+              path: /healthcheck
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            failureThreshold: 60
+            timeoutSeconds: 5
+          securityContext:
+            privileged: true
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+            - name: swift-config
+              mountPath: /etc/swift/swift.conf
+              subPath: swift.conf
+            - name: swift-config
+              mountPath: /etc/swift/proxy-server.conf
+              subPath: proxy-server.conf
+            - name: swift-config
+              mountPath: /etc/swift/account-server.conf
+              subPath: account-server.conf
+            - name: swift-config
+              mountPath: /etc/swift/container-server.conf
+              subPath: container-server.conf
+            - name: swift-config
+              mountPath: /etc/swift/object-server.conf
+              subPath: object-server.conf
+            - name: swift-data
+              mountPath: /srv
+      volumes:
+        - name: scripts
+          configMap:
+            name: saio-scripts
+            defaultMode: 493
+        - name: swift-config
+          configMap:
+            name: saio-config
+        - name: swift-data
+          emptyDir:
+            sizeLimit: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: swift-api
+  namespace: openstack
+  labels:
+    app: saio
+    application: swift
+spec:
+  type: ClusterIP
+  selector:
+    app: saio
+  ports:
+    - name: proxy
+      port: 8080
+      targetPort: 8080
+      protocol: TCP

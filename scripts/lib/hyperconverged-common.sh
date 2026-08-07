@@ -1314,6 +1314,16 @@ endpoints:
         public: 443
     scheme:
       public: https
+  object_store:
+    host_fqdn_override:
+      public:
+        tls: {}
+        host: swift.${gateway_domain}
+    port:
+      api:
+        public: 443
+    scheme:
+      public: https
   messaging:
     host_fqdn_override:
       public:
@@ -1852,6 +1862,33 @@ function setupKubeConfig() {
     fi
 }
 
+function deploySwift() {
+    echo "Running standalone Swift deployment ..."
+
+    local swift_region_name="${1:-RegionOne}"
+
+    {
+        declare -f setupKubeConfig
+
+        cat << JUMP_HOST_EOF
+# check if swift is to be installed, otherwise exit cleanly
+if ! grep "swift: true" /etc/genestack/openstack-components.yaml &>/dev/null; then
+    echo "Swift not enabled in openstack-components.yaml, skipping"
+    exit 0
+fi
+
+set -e
+source /opt/genestack/scripts/genestack.rc
+
+setupKubeConfig
+
+echo "Deploying Swift SAIO"
+ansible-playbook /opt/genestack/ansible/playbooks/deploy-swift.yaml \
+    -e "swift_region_name=${swift_region_name}"
+JUMP_HOST_EOF
+    } | _ssh bash
+}
+
 function deployTrove() {
     echo "Running Trove deployment ..."
 
@@ -1898,6 +1935,9 @@ echo "Running playbook for trove_gateway"
 ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
     --tags trove_gateway \
     -e "trove_region_name=${trove_region_name} trove_gateway_hostname=${trove_gateway_hostname}"
+
+echo "Deploying Swift for Trove backup support"
+ansible-playbook /opt/genestack/ansible/playbooks/deploy-swift.yaml
 
 echo "Installing Trove via Helm chart"
 sudo /opt/genestack/bin/install-trove.sh

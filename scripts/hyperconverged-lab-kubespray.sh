@@ -985,6 +985,9 @@ if [ "${TEST_LEVEL}" = "off" ]; then
     
     createPostSetupResourcesRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}" "${LAB_NAME_PREFIX}"
 
+    # Swift Setup - standalone object-store (gated by swift: true in components.yaml)
+    deploySwift "RegionOne"
+
     # Trove Setup & Installation
     # Must be run after the flat network has been created
     deployTrove "RegionOne" "flat" "false" "trove.cluster.local" "internal" "hyperconverged-key.pem"
