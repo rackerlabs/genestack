@@ -6,13 +6,15 @@
 # routers with external gateway, floating IPs, and mounts the share.
 #
 #   Usage:
-#     test-tenant-shares.sh create  [--size <GB>] [--flavor <name>] [--image <name>]
+#     test-tenant-shares.sh create  [--size <GB>] [--flavor <name>] [--image <name>] [--external-network <name>]
 #     test-tenant-shares.sh destroy
 #
 #   Options:
-#     --size <GB>        Share size in GB (default: 5)
-#     --flavor <name>    VM flavor (default: m1.medium)
-#     --image <name>     VM image (default: amphora-ubuntu-noble)
+#     --size <GB>                Share size in GB (default: 5)
+#     --flavor <name>            VM flavor (default: m1.medium)
+#     --image <name>             VM image (default: amphora-ubuntu-noble)
+#     --external-network <name>  External network for gateway/floating IPs
+#                                (default: auto-detect flat, then PUBLICNET)
 #
 # Run as: ubuntu@controller
 # Requires: genestack venv, yq, ~/customers/clouds.yaml
@@ -22,29 +24,31 @@ ACTION="${1:-}"
 SHARE_SIZE=5
 VM_FLAVOR="m1.medium"
 VM_IMAGE="Ubuntu 24.04 Test Tenant"
-EXTERNAL_NETWORK="${EXTERNAL_NETWORK:-PUBLICNET}"
+EXTERNAL_NETWORK="${EXTERNAL_NETWORK:-}"   # empty = auto-detect after env setup
 
 # Parse arguments
 shift 2>/dev/null || true
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --size)   SHARE_SIZE="${2:-5}"; shift 2 ;;
-    --flavor) VM_FLAVOR="${2}"; shift 2 ;;
-    --image)  VM_IMAGE="${2}"; shift 2 ;;
-    *)        echo "Unknown option: $1"; exit 1 ;;
+    --size)             SHARE_SIZE="${2:-5}"; shift 2 ;;
+    --flavor)           VM_FLAVOR="${2}"; shift 2 ;;
+    --image)            VM_IMAGE="${2}"; shift 2 ;;
+    --external-network) EXTERNAL_NETWORK="${2}"; shift 2 ;;
+    *)                  echo "Unknown option: $1"; exit 1 ;;
   esac
 done
 
 if [[ "$ACTION" != "create" && "$ACTION" != "destroy" ]]; then
-  echo "Usage: $0 {create|destroy} [--size <GB>] [--flavor <name>] [--image <name>]"
+  echo "Usage: $0 {create|destroy} [--size <GB>] [--flavor <name>] [--image <name>] [--external-network <name>]"
   echo ""
   echo "  create   — Create shares, VMs, routers, floating IPs, and mount shares"
   echo "  destroy  — Tear down everything created by this script"
   echo ""
   echo "Options:"
-  echo "  --size <GB>        Share size in GB (default: 5)"
-  echo "  --flavor <name>    VM flavor (default: m1.medium)"
-  echo "  --image <name>     VM image (default: amphora-ubuntu-noble)"
+  echo "  --size <GB>                Share size in GB (default: 5)"
+  echo "  --flavor <name>            VM flavor (default: m1.medium)"
+  echo "  --image <name>             VM image (default: amphora-ubuntu-noble)"
+  echo "  --external-network <name>  External network (default: auto-detect flat, then PUBLICNET)"
   exit 1
 fi
 
@@ -71,6 +75,30 @@ ADMIN_CLOUDS="${HOME}/.config/openstack/clouds.yaml"
 os_admin() {
   OS_CLIENT_CONFIG_FILE="$ADMIN_CLOUDS" openstack --os-cloud=default "$@"
 }
+
+# --------------------------------------------------------------------------
+# Resolve EXTERNAL_NETWORK.
+#
+# Priority:
+#   1. Explicit value (--external-network flag or EXTERNAL_NETWORK env var)
+#   2. Auto-detect: first candidate that exists as an external network
+#   3. Hard fallback (first candidate)
+# --------------------------------------------------------------------------
+EXTERNAL_CANDIDATES=("flat" "PUBLICNET")   # two defaults, in priority order
+
+if [ -z "$EXTERNAL_NETWORK" ]; then
+  EXISTING_EXTERNAL=$(os_admin network list --external -f value -c Name 2>/dev/null) || true
+  for cand in "${EXTERNAL_CANDIDATES[@]}"; do
+    if grep -qxF "$cand" <<<"$EXISTING_EXTERNAL"; then
+      EXTERNAL_NETWORK="$cand"
+      break
+    fi
+  done
+  EXTERNAL_NETWORK="${EXTERNAL_NETWORK:-${EXTERNAL_CANDIDATES[0]}}"
+  echo ">>> Auto-selected external network: ${EXTERNAL_NETWORK}"
+else
+  echo ">>> Using external network: ${EXTERNAL_NETWORK} (explicit)"
+fi
 
 if [ ! -f "$CLOUDS_YAML" ]; then
   echo "ERROR: ${CLOUDS_YAML} not found."
