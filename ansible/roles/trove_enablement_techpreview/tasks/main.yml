@@ -81,3 +81,12 @@
   tags:
     - trove_ssh_key_distribute
     - trove_post_install
+
+- name: Deploy Swift for Trove backup/restore support
+  ansible.builtin.include_role:
+    name: swift_all_in_one
+  vars:
+    swift_region_name: "{{ trove_region_name }}"
+  when: trove_deploy_swift | default(true)
+  tags:
+    - deploy_swift

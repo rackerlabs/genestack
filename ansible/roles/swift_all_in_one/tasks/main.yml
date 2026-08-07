@@ -1,0 +1,180 @@
+---
+# =========================================================================
+# Deploy SAIO (Swift All In One) in a Pod
+#
+# Runs Swift inside a pod using ubuntu:24.04 as the base. The entrypoint
+# installs Swift from pip, configures loopback storage, builds rings, and
+# starts all services.
+#
+# Ensures the swift Keystone user password is always in sync with the
+# proxy-server.conf inside the pod so token validation works.
+#
+# Usage:
+#   ansible-playbook /opt/genestack/ansible/playbooks/deploy-swift.yaml
+# =========================================================================
+
+- name: Check if Swift is already deployed
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: saio
+    namespace: openstack
+  register: saio_deployment
+
+- name: Set swift_already_deployed fact
+  ansible.builtin.set_fact:
+    swift_already_deployed: "{{ saio_deployment.resources | length > 0 }}"
+
+- name: Display Swift deployment status
+  ansible.builtin.debug:
+    msg: >-
+      SAIO is {{ 'already deployed - skipping pod creation.' if swift_already_deployed
+      else 'not deployed - installing.' }}
+
+- name: Generate SAIO password (used for both Keystone user and proxy config)
+  ansible.builtin.set_fact:
+    swift_keystone_password: "{{ lookup('ansible.builtin.password', '/dev/null', length=32, chars=['ascii_letters', 'digits']) }}"
+    swift_hash_path_suffix: "{{ lookup('ansible.builtin.password', '/dev/null', length=24, chars=['ascii_letters', 'digits']) }}"
+    swift_hash_path_prefix: "{{ lookup('ansible.builtin.password', '/dev/null', length=24, chars=['ascii_letters', 'digits']) }}"
+  when: not swift_already_deployed
+
+- name: Deploy SAIO pod
+  when: not swift_already_deployed
+  block:
+    - name: Template and apply SAIO manifests
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('template', 'swift-all-in-one.yaml.j2') | from_yaml_all | list }}"
+
+    - name: Wait for SAIO pod to be ready
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        name: saio
+        namespace: openstack
+      register: swift_deploy_status
+      until: >-
+        swift_deploy_status.resources | length > 0 and
+        (swift_deploy_status.resources[0].status.readyReplicas | default(0)) >= 1
+      retries: 60
+      delay: 20
+
+# --- Keystone registration (always runs to ensure password is in sync) ---
+
+- name: Get swift_keystone_password from running pod (if pod already existed)
+  ansible.builtin.command:
+    cmd: >-
+      kubectl -n openstack exec deploy/saio --
+      grep "^password" /etc/swift/proxy-server.conf
+  register: swift_pod_password_line
+  changed_when: false
+  failed_when: false
+  when: swift_already_deployed
+
+- name: Extract password from pod config
+  ansible.builtin.set_fact:
+    swift_keystone_password: "{{ swift_pod_password_line.stdout | regex_replace('^password\\s*=\\s*', '') | trim }}"
+  when: swift_already_deployed and swift_pod_password_line.rc == 0
+
+- name: Create or update Swift Keystone user with correct password
+  ansible.builtin.shell: |
+    # Delete and recreate to guarantee password matches proxy-server.conf
+    openstack --os-cloud {{ os_cloud }} user show swift --domain default >/dev/null 2>&1 && \
+      openstack --os-cloud {{ os_cloud }} user set --password "{{ swift_keystone_password }}" swift || \
+      openstack --os-cloud {{ os_cloud }} user create swift \
+        --domain default \
+        --project service \
+        --project-domain service \
+        --password "{{ swift_keystone_password }}"
+  changed_when: true
+
+- name: Grant admin role to Swift user on service project
+  ansible.builtin.command:
+    cmd: >-
+      openstack --os-cloud {{ os_cloud }} role add
+      --project service --project-domain service
+      --user swift --user-domain default admin
+  changed_when: false
+  failed_when: false
+
+- name: Ensure swiftoperator role exists
+  ansible.builtin.shell: |
+    openstack --os-cloud {{ os_cloud }} role show swiftoperator >/dev/null 2>&1 || \
+      openstack --os-cloud {{ os_cloud }} role create swiftoperator
+  changed_when: false
+  failed_when: false
+
+- name: Grant swiftoperator role to admin user on admin project
+  ansible.builtin.command:
+    cmd: >-
+      openstack --os-cloud {{ os_cloud }} role add
+      --project admin --user admin swiftoperator
+  changed_when: false
+  failed_when: false
+
+- name: Grant admin role to admin user on admin project (for reseller access)
+  ansible.builtin.command:
+    cmd: >-
+      openstack --os-cloud {{ os_cloud }} role add
+      --project admin --user admin admin
+  changed_when: false
+  failed_when: false
+
+- name: Create Swift Keystone service entry
+  ansible.builtin.shell: |
+    openstack --os-cloud {{ os_cloud }} service show object-store >/dev/null 2>&1 || \
+      openstack --os-cloud {{ os_cloud }} service create \
+        --name swift \
+        --description "OpenStack Object Store" \
+        object-store
+  changed_when: false
+
+- name: Check for existing Swift internal endpoint
+  ansible.builtin.command:
+    cmd: >-
+      openstack --os-cloud {{ os_cloud }} endpoint list
+      --service object-store --interface internal -f value -c ID
+  register: swift_endpoint_check
+  changed_when: false
+  failed_when: false
+
+- name: Create Swift Keystone endpoints
+  when: swift_endpoint_check.stdout | trim | length == 0
+  block:
+    - name: Create Swift internal endpoint
+      ansible.builtin.command:
+        cmd: >-
+          openstack --os-cloud {{ os_cloud }} endpoint create
+          --region {{ swift_region_name }}
+          object-store internal
+          http://swift-api.openstack.svc.cluster.local:8080/v1/AUTH_%(tenant_id)s
+
+    - name: Create Swift public endpoint
+      ansible.builtin.command:
+        cmd: >-
+          openstack --os-cloud {{ os_cloud }} endpoint create
+          --region {{ swift_region_name }}
+          object-store public
+          http://swift-api.openstack.svc.cluster.local:8080/v1/AUTH_%(tenant_id)s
+
+    - name: Create Swift admin endpoint
+      ansible.builtin.command:
+        cmd: >-
+          openstack --os-cloud {{ os_cloud }} endpoint create
+          --region {{ swift_region_name }}
+          object-store admin
+          http://swift-api.openstack.svc.cluster.local:8080/v1/AUTH_%(tenant_id)s
+
+- name: Verify Swift access works
+  ansible.builtin.command:
+    cmd: openstack --os-cloud {{ os_cloud }} object store account show
+  register: swift_access_test
+  changed_when: false
+  failed_when: false
+
+- name: Display Swift verification result
+  ansible.builtin.debug:
+    msg: >-
+      {{ 'Swift is working: ' + swift_access_test.stdout | trim
+      if swift_access_test.rc == 0
+      else 'WARNING: Swift access test failed - check pod logs with: kubectl -n openstack logs deploy/saio' }}

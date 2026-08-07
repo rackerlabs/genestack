@@ -24,6 +24,13 @@ frontend keystone_in
 backend keystone_be
   server keystone keystone-api.openstack.svc.cluster.local:5000 check resolvers k8s init-addr none
 
+# Swift - trove-guestagent backup/restore via Swift API.
+frontend swift_in
+  bind *:8080
+  default_backend swift_be
+backend swift_be
+  server swift swift-api.openstack.svc.cluster.local:8080 check resolvers k8s init-addr none
+
 # Re-resolve cluster DNS periodically so backends survive Service rotations.
 # parse-resolv-conf reads the pod's /etc/resolv.conf, which works across
 # clusters using cluster-DNS, nodelocaldns, kube-ovn, etc., without

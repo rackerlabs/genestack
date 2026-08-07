@@ -20,5 +20,6 @@ components:
   octavia: false
   placement: true
   skyline: true
+  swift: false
   trove: false
   zaqar: false
