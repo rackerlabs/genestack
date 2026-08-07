@@ -43,7 +43,11 @@ sudo ln -s /etc/mysql/mariadb.cnf /etc/mysql/my.cnf
 sudo chown -h database:database /etc/mysql/my.cnf
 
 echo "Starting local Docker registry"
-docker run -d -p 5000:5000 --restart=always --name registry registry:2
+echo '{"bridge": "none", "ip-forward": false, "iptables": false, "insecure-registries": ["localhost:5000", "127.0.0.1:5000", "0.0.0.0:5000"]}' > /etc/docker/daemon.json
+sudo systemctl restart docker
+docker network create --subnet=172.20.0.0/16 trove_docker_net
+docker run -d --network trove_docker_net --ip 172.20.0.22 -p 5000:5000 --restart=always --name registry registry:2
+#docker run -d -p 5000:5000 --restart=always --name registry registry:2
 #docker run -d --net=host -e REGISTRY_HTTP_ADDR=0.0.0.0:4000 --restart=always -v /opt/trove_registry/:/var/lib/registry --name registry registry:2
 
 # Pre-baked datastore image — load it before guest-agent tries to
@@ -101,7 +105,16 @@ options timeout:2 attempts:2
 RESOLV
 chattr +i /etc/resolv.conf 2>/dev/null || true
 
+# copy the os_admin.cnf that trove guest agent creates to /etc/mysql/conf.d so that it is
+# useable after entering the database docker container
+echo "Creating os_admin.cnf"
+until [ -f "/var/lib/mysql/conf.d/os_admin.cnf" ]
+do
+     sleep 5
+done
+sudo cp /var/lib/mysql/conf.d/os_admin.cnf /etc/mysql/conf.d
+sudo chown database:database /etc/mysql/conf.d/os_admin.cnf
+
 --==TROVE_BOUNDARY==
 Content-Type: text/cloud-config; charset="us-ascii"
 MIME-Version: 1.0
-
