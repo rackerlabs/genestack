@@ -91,6 +91,9 @@ plugins:
   - mkdocs-material-adr/adr
   - glightbox
 
+extra_javascript:
+  - js/flex-status-banner.js
+
 markdown_extensions:
   - admonition
   - attr_list
