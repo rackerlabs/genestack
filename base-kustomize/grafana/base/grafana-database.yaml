@@ -172,6 +172,14 @@ spec:
       memory: 512Mi
   affinity:
     antiAffinityEnabled: true
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: node-role.kubernetes.io/worker
+                operator: In
+                values:
+                  - worker
 ---
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: Database
