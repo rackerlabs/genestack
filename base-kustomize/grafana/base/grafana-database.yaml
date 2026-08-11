@@ -38,10 +38,10 @@ spec:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
           - matchExpressions:
-              - key: node-role.kubernetes.io/worker
+              - key: openstack-control-plane
                 operator: In
                 values:
-                  - worker
+                  - enabled
 
   storage:
     size: 10Gi
@@ -176,10 +176,10 @@ spec:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
           - matchExpressions:
-              - key: node-role.kubernetes.io/worker
+              - key: openstack-control-plane
                 operator: In
                 values:
-                  - worker
+                  - enabled
 ---
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: Database
