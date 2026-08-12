@@ -5,4 +5,3 @@ resources:
   - freezer-mariadb-database.yaml
   - hpa-freezer-api.yaml
   - all.yaml
-  - freezer-vendordata-inject-job.yaml
