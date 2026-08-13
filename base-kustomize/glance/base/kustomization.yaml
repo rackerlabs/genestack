@@ -7,6 +7,8 @@ resources:
   - all.yaml
   - hpa-glance-api.yaml
   - policies.yaml
+  - glance-clienttrafficpolicy.yaml
+  - glance-backendtrafficpolicy.yaml
 
 patches:
   - target:
