@@ -18,5 +18,5 @@
 
 - name: run the shell script to create health_mgr ports if required
   script:
-    cmd: create_health_mgr_ports.sh {{ lb_mgmt_info.networks[0].id }} {{ lb_health_mgr_secgrp_info.security_groups[0].id }} {{ lookup('env', 'OS_CLOUD') | default('openstack_helm') }}
+    cmd: create_health_mgr_ports.sh {{ lb_mgmt_info.networks[0].id }} {{ lb_health_mgr_secgrp_info.security_groups[0].id }} {{ lookup('env', 'OS_CLOUD') | default('default') }}
     creates: /tmp/octavia_hm_controller_ip_port_list
