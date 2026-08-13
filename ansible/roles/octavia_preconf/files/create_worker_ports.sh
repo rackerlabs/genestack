@@ -6,6 +6,9 @@
 
 set -xe
 
+# Activate the genestack venv to ensure openstack CLI is available
+source "${HOME}/.venvs/genestack/bin/activate"
+
 # Obtain the network_id and secgroup_id from and
 # cloud name from ansible task
 NET_ID=$1
