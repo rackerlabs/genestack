@@ -355,7 +355,7 @@ if ! openstack keypair show ${LAB_NAME_PREFIX}-key 2>/dev/null; then
     fi
 fi
 
-ssh-add ~/.ssh/${LAB_NAME_PREFIX}-key.pem
+ensureSshAgentKey ~/.ssh/${LAB_NAME_PREFIX}-key.pem
 
 #############################################################################
 # Jump Host Port and Instance

@@ -135,6 +135,48 @@ function parseCommonArgs() {
     export HYPERCONVERGED_INTERNAL_METALLB_IP
 }
 
+function ensureSshAgentKey() {
+    # Ensure the given private key is available in the user's ssh-agent
+    # without blindly running ssh-add:
+    #   - If no agent is reachable, fail fast with clear guidance.
+    #   - If the key is already loaded (e.g. users of 1Password or other
+    #     custom agents that do not support ssh-add), leave the agent alone.
+    #   - Otherwise attempt ssh-add and fail with guidance if the agent
+    #     refuses it.
+    # Usage: ensureSshAgentKey <path-to-private-key.pem>
+    local key_pem="$1"
+    local agent_status=0
+    local key_fp
+
+    # ssh-add -l exit codes: 0 = keys listed, 1 = agent reachable but empty,
+    # >=2 = cannot connect to the agent socket.
+    ssh-add -l >/dev/null 2>&1 || agent_status=$?
+
+    if [ "${agent_status}" -ge 2 ]; then
+        echo "ERROR: Cannot connect to an ssh-agent (SSH_AUTH_SOCK=${SSH_AUTH_SOCK:-unset})." >&2
+        echo "       The lab relies on agent forwarding to reach cluster nodes, so a" >&2
+        echo "       running agent with ${key_pem} loaded is required." >&2
+        echo "       Start one with:  eval \"\$(ssh-agent)\" && ssh-add ${key_pem}" >&2
+        echo "       1Password/custom agent users: export the agent socket via" >&2
+        echo "       SSH_AUTH_SOCK and make sure the key is available in the agent." >&2
+        exit 1
+    fi
+
+    # Skip ssh-add when the key is already loaded (fingerprint match).
+    key_fp=$(ssh-keygen -lf "${key_pem}" 2>/dev/null | awk '{print $2}')
+    if [ -n "${key_fp}" ] && ssh-add -l 2>/dev/null | grep -qF "${key_fp}"; then
+        echo "SSH key ${key_pem} already present in ssh-agent; skipping ssh-add."
+        return 0
+    fi
+
+    if ! ssh-add "${key_pem}"; then
+        echo "ERROR: ssh-add failed to load ${key_pem} into the running agent." >&2
+        echo "       If your agent does not support ssh-add (e.g. 1Password), add the" >&2
+        echo "       key through the agent's own tooling, then re-run." >&2
+        exit 1
+    fi
+}
+
 function writeOpenstackComponentsConfig() {
     # Write OpenStack components configuration file
     # Usage: writeOpenstackComponentsConfig [output_path]

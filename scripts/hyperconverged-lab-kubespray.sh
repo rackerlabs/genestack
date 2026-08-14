@@ -203,7 +203,7 @@ else
     fi
 fi
 
-ssh-add "${KEY_PEM}"
+ensureSshAgentKey "${KEY_PEM}"
 
 #############################################################################
 # Create Lab Instances
