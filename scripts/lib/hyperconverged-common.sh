@@ -135,6 +135,22 @@ function parseCommonArgs() {
     export HYPERCONVERGED_INTERNAL_METALLB_IP
 }
 
+function isExcluded() {
+    # Check whether a component was excluded via -e. Used to let the exclude
+    # list override component-specific extras (-x) steps, e.g.
+    # `-x -e octavia` runs the extras but skips the Octavia preconf/install.
+    # Usage: isExcluded <component>
+    local component
+    local item
+    component=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')
+    for item in "${EXCLUDE_LIST[@]}"; do
+        if [ "$(printf '%s' "${item}" | tr '[:upper:]' '[:lower:]')" = "${component}" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 function ensureSshAgentKey() {
     # Ensure the given private key is available in the user's ssh-agent
     # without blindly running ssh-add:

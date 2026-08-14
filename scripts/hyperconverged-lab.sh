@@ -50,7 +50,10 @@ PLATFORMS:
 
 OPTIONS:
     -i <list>    Comma-separated list of OpenStack services to include
-    -e <list>    Comma-separated list of OpenStack services to exclude
+    -e <list>    Comma-separated list of OpenStack services to exclude.
+                 Excluded components also skip their component-specific
+                 extras steps run by -x (e.g. -x -e octavia runs the extras
+                 but skips the Octavia preconf/install; -e k9s skips k9s).
     -x           Run extra operations (k9s install, Octavia preconf, etc.)
     --envoy-gateway-config
                  Deploy Envoy using the internal/external gateway config file
