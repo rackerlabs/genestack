@@ -1,0 +1,57 @@
+---
+# BackendTrafficPolicy — upstream (Envoy -> glance-api) settings.
+#
+# Namespace MUST match the HTTPRoute's namespace (openstack).
+#
+# This is the policy that actually fixes the download failure. The 15s Envoy
+# route timeout lives on the upstream side; no amount of client-side idle
+# timeout will help without requestTimeout: 0s here.
+#
+# PRECEDENCE WARNING: if custom-glance-gateway-route ever gains
+# spec.rules[].timeouts, the HTTPRoute wins and this timeout block is ignored
+# entirely. Set timeouts in one place only. Current route has none:
+#   kubectl -n openstack get httproute custom-glance-gateway-route \
+#     -o yaml | grep -A10 timeouts
+#
+# Verify attachment:
+#   kubectl -n openstack get backendtrafficpolicy glance-bulk-transfer \
+#     -o jsonpath='{range .status.ancestors[*]}{range .conditions[*]}{.type}={.status}{" "}{.message}{"\n"}{end}{end}'
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: glance-bulk-transfer
+  namespace: openstack
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: custom-glance-gateway-route
+
+  connection:
+    # per_connection_buffer_limit_bytes is set independently on the listener
+    # (client policy) and the cluster (here). Raising only the downstream side
+    # leaves the default watermark on the upstream read from glance-api.
+    bufferLimit: 16Mi
+
+  timeout:
+    tcp:
+      connectTimeout: 30s
+    http:
+      # 0s disables the route timeout. 7200s without it Envoy cuts
+      # the response at 15s no matter how long the client connection stays up.
+      requestTimeout: 7200s
+      connectionIdleTimeout: 3600s
+
+  # No http2 block here on purpose. glance-api runs eventlet WSGI, HTTP/1.1
+  # only, and Envoy will not use h2 upstream unless the route explicitly
+  # enables it. Confirm:
+  #   EG=$(kubectl -n envoy-gateway get pod \
+  #     -l gateway.envoyproxy.io/owning-gateway-name=flex-gateway -o name | head -1)
+  #   kubectl -n envoy-gateway exec $EG -c envoy -- \
+  #     curl -s localhost:19000/config_dump | \
+  #     jq '.configs[] | select(."@type"|test("Clusters")) | .dynamic_active_clusters[] |
+  #         select(.cluster.name|test("glance")) |
+  #         {n:.cluster.name, opts:.cluster.typed_extension_protocol_options}'
+  # Expect explicit_http_config.http_protocol_options, not http2_protocol_options.
+
+  # No retry block on purpose. Retrying a 2GB GET is worse than failing it.
