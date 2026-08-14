@@ -80,6 +80,11 @@ ENVIRONMENT VARIABLES:
                         for easier testing and debugging.
     HYPERCONVERGED_CINDER_VOLUME
                         If set to "true", enables iSCSI cinder volume support.
+    HYPERCONVERGED_MANILA_SHARE
+                        If set to "true", runs the full Manila enablement
+                        (secrets, service image build, share type) in addition
+                        to the Helm chart install. Default "false" keeps
+                        manila chart-only (control-plane pods).
     HYPERCONVERGED_ENVOY_GATEWAY_CONFIG
                         If set to "true", deploys Envoy using the internal/external
                         gateway config file path instead of the legacy flex-gateway.

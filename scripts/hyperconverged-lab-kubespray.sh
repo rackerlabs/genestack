@@ -1014,6 +1014,19 @@ if [ "${TEST_LEVEL}" = "off" ]; then
     # Swift Setup - standalone object-store (gated by swift: true in components.yaml)
     deploySwift "RegionOne"
 
+    # Manila Setup & Installation
+    # Opt-in via HYPERCONVERGED_MANILA_SHARE (mirrors HYPERCONVERGED_CINDER_VOLUME):
+    # by default 'manila: true' only installs the chart (control-plane pods),
+    # keeping smoke tests fast. Setting HYPERCONVERGED_MANILA_SHARE=true
+    # additionally runs the full enablement (secrets, service image build,
+    # pre/post deploy). Runs after the OpenStack APIs are ready because the
+    # image build uploads to Glance. deployManila also self-gates on
+    # 'manila: true' in openstack-components.yaml, so '-e manila' (which sets
+    # it false) skips it too.
+    if [ "${HYPERCONVERGED_MANILA_SHARE:-false}" = "true" ] && [ ${DISABLE_OPENSTACK} = "false" ]; then
+        deployManila
+    fi
+
     # Trove Setup & Installation
     # Must be run after the flat network has been created
     deployTrove "RegionOne" "flat" "false" "trove.cluster.local" "internal" "hyperconverged-key.pem"

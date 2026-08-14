@@ -1993,6 +1993,46 @@ JUMP_HOST_EOF
     } | _ssh bash
 }
 
+function deployManila() {
+    # Run the Manila enablement flow on the jump host:
+    #   secrets → image_build → pre_deploy → helm install → post_deploy
+    # (tag sequence documented in ansible/roles/manila_enablement_techpreview)
+    # The playbook is self-sufficient: it reads the keystone-admin password
+    # from the K8s secret and authenticates via its own OS_* environment.
+    echo "Running manila deployment ..."
+
+    _ssh << 'EOC'
+# check if manila is to be installed, otherwise exit cleanly
+if ! grep "manila: true" /etc/genestack/openstack-components.yaml &>/dev/null; then
+    echo "Manila not installed, exiting Manila setup function for $(hostname)"
+    exit 0
+fi
+
+set -e
+# activate environment for openstack commands
+source /opt/genestack/scripts/genestack.rc
+
+echo "Running playbook for manila secrets"
+ansible-playbook /opt/genestack/ansible/playbooks/manila-enablement-techpreview.yaml \
+    --tags secrets
+
+echo "Running playbook for manila image_build"
+ansible-playbook /opt/genestack/ansible/playbooks/manila-enablement-techpreview.yaml \
+    --tags image_build
+
+echo "Running playbook for manila pre_deploy"
+ansible-playbook /opt/genestack/ansible/playbooks/manila-enablement-techpreview.yaml \
+    --tags pre_deploy
+
+echo "Installing Manila via Helm chart"
+sudo /opt/genestack/bin/install-manila.sh
+
+echo "Running playbook for manila post_deploy"
+ansible-playbook /opt/genestack/ansible/playbooks/manila-enablement-techpreview.yaml \
+    --tags post_deploy
+EOC
+}
+
 function deployTrove() {
     echo "Running Trove deployment ..."
 
