@@ -1434,7 +1434,7 @@ function createPostSetupResources() {
     # Usage: createPostSetupResources <lab_name_prefix>
     local lab_prefix="$1"
 
-    if openstack --version; then
+    if command -v openstack >/dev/null 2>&1; then
         echo "OpenStack CLI found"
     else
         echo "Sourcing OpenStack RC file..."
@@ -1443,10 +1443,10 @@ function createPostSetupResources() {
 
     echo "Running Generic Genestack post setup..."
 
-    if [ ! -f ~/.config/openstack ]; then
-        sudo mkdir -p ~/.config/openstack
-        sudo cp /root/.config/openstack/clouds.yaml ~/.config/openstack
-        sudo chown $(id -u):$(id -g) ~/.config
+    mkdir -p ~/.config/openstack
+    if [ ! -f ~/.config/openstack/clouds.yaml ] && sudo test -f /root/.config/openstack/clouds.yaml; then
+        sudo cp /root/.config/openstack/clouds.yaml ~/.config/openstack/
+        sudo chown -R $(id -u):$(id -g) ~/.config/openstack
     fi
 
     # Create test flavor
@@ -1619,7 +1619,7 @@ function waitForOpenStackAPIsReady() {
 
     echo "Waiting for OpenStack APIs to be ready (timeout: ${timeout}s)..."
 
-    if openstack --version; then
+    if command -v openstack >/dev/null 2>&1; then
         echo "OpenStack CLI found"
     else
         echo "Sourcing OpenStack RC file..."
@@ -1628,10 +1628,10 @@ function waitForOpenStackAPIsReady() {
 
     echo "Running Generic Genestack post setup..."
 
-    if [ ! -f ~/.config/openstack ]; then
-        sudo mkdir -p ~/.config/openstack
-        sudo cp /root/.config/openstack/clouds.yaml ~/.config/openstack
-        sudo chown $(id -u):$(id -g) ~/.config
+    mkdir -p ~/.config/openstack
+    if [ ! -f ~/.config/openstack/clouds.yaml ] && sudo test -f /root/.config/openstack/clouds.yaml; then
+        sudo cp /root/.config/openstack/clouds.yaml ~/.config/openstack/
+        sudo chown -R $(id -u):$(id -g) ~/.config/openstack
     fi
 
     # Wait for Keystone (authentication) to be ready first
@@ -1820,9 +1820,12 @@ SSH_CONFIG_EOF
 source /opt/genestack/scripts/genestack.rc
 
 echo "[JUMP_HOST] Setup for admin operations"
-sudo mkdir -p ~/.config/openstack
-sudo cp /root/.config/openstack/clouds.yaml ~/.config/openstack/
-sudo chown -R $(id -u):$(id -g) ~/.config
+mkdir -p ~/.config/openstack
+if [ ! -f ~/.config/openstack/clouds.yaml ] && sudo test -f /root/.config/openstack/clouds.yaml; then
+    # Note: escaped \$(id ...) so expansion happens on the jump host.
+    sudo cp /root/.config/openstack/clouds.yaml ~/.config/openstack/
+    sudo chown -R "\$(id -u):\$(id -g)" ~/.config/openstack
+fi
 
 echo "[JUMP_HOST] Updating ~/.ssh/config"
 cat >> ~/.ssh/config << SSH_CONFIG_EOF
@@ -1915,13 +1918,13 @@ function install_preconf_octavia() {
     _ssh << 'EOC'
 set -e
 
-if [ ! -f ~/.config/openstack ]; then
-    sudo mkdir -p ~/.config/openstack
-    sudo cp /root/.config/openstack/clouds.yaml ~/.config/openstack
-    sudo chown $(id -u):$(id -g) ~/.config
-fi
-
 source ~/.venvs/genestack/bin/activate
+
+mkdir -p ~/.config/openstack
+if [ ! -f ~/.config/openstack/clouds.yaml ] && sudo test -f /root/.config/openstack/clouds.yaml; then
+    sudo cp /root/.config/openstack/clouds.yaml ~/.config/openstack/
+    sudo chown -R "$(id -u):$(id -g)" ~/.config/openstack
+fi
 
 OCTAVIA_HELM_FILE=/tmp/octavia_helm_overrides.yaml
 
