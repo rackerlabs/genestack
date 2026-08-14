@@ -355,7 +355,7 @@ if ! openstack keypair show ${LAB_NAME_PREFIX}-key 2>/dev/null; then
     fi
 fi
 
-ssh-add ~/.ssh/${LAB_NAME_PREFIX}-key.pem
+ensureSshAgentKey ~/.ssh/${LAB_NAME_PREFIX}-key.pem
 
 #############################################################################
 # Jump Host Port and Instance
@@ -760,7 +760,11 @@ runGenestackSetupRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}" "${GATEWAY_DOMAIN}"
 #############################################################################
 
 if [[ "$RUN_EXTRAS" -eq 1 ]]; then
-    installK9sRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}"
+    if isExcluded k9s; then
+        echo "Skipping k9s install: 'k9s' is in the exclude list (-e)"
+    else
+        installK9sRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}"
+    fi
 fi
 
 #############################################################################

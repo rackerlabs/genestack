@@ -12,7 +12,12 @@ NET_ID=$1
 SECGRP_ID=$2
 CLOUD_NAME=$3
 
-export OS_CLOUD=$CLOUD_NAME
+# Only select a named cloud when one was provided; otherwise leave OS_CLOUD
+# unset so the openstack CLI authenticates via the OS_* environment variables
+# supplied by the calling play's environment block.
+if [ -n "$CLOUD_NAME" ]; then
+  export OS_CLOUD=$CLOUD_NAME
+fi
 
 # Obtain the list of kubernetes nodes with
 # "openstack-control-plane=enabled" label
