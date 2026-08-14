@@ -1,15 +1,19 @@
-# Background
+# Keystone Admin Password Rotation
+
+## Background
 
 - This contains the steps to rotate the `admin` password for _Keystone_.
 
-# Hyperconverged lab testing
+## Hyperconverged Lab Testing
 
 - If testing in a hyperconverged lab, install _Octavia_ or build the
   hyperconverged lab with `-x`
-- Install Blazar as this component embeds the admin password in its config
-- Install _prometheus-openstack-exporter_ / `os-metrics` as per [Openstack Exporter](https://docs.rackspacecloud.com/prometheus-openstack-metrics-exporter/)
+- Install Blazar as this component embeds the admin password in its
+  config
+- Install _prometheus-openstack-exporter_ / `os-metrics` as per
+  [Openstack Exporter](https://docs.rackspacecloud.com/prometheus-openstack-metrics-exporter/)
 
-# Preliminaries
+## Preliminaries
 
 - You can execute steps in the "preliminaries" section outside of a
   change window or just prior to the start of the change window to
@@ -19,6 +23,9 @@
       such as base64 encodings of passwords and the sha256 checksums
       of them
 - **Set aliases when directed**, as subsequent steps may depend on them
+- The helper scripts default to namespace `openstack`. Set the
+  `NAMESPACE` environment variable when operating in another namespace;
+  the rotation script also accepts `-n` / `--namespace`.
 
 1. Retrieve the `keystone-admin` secret
 
@@ -68,8 +75,11 @@
 
     See example output in footnotes output.
 
-    This list will likely look intimidating, but a script will change
-    the password for the ones that include `keystone-admin` in the name
+    This list will likely look intimidating. The rotation script changes
+    every Secret `.data` field whose complete value exactly matches the
+    old password's base64 encoding. It is not limited to Secrets with
+    `keystone-admin` in the name, so read and assess the complete match
+    list before approving either a dry run or a live run.
 
     If you see paths like `.data["blazar.conf"]` (or
     `".data[\"blazar.conf\"]` from the JSON-escaped output), indicating
@@ -80,20 +90,22 @@
     admin password occurring in the configuration file for those two
     services.
 
-    If secrets `openstack-config` and `clouds-yaml-secret` show up, the
-    steps for `os-metrics` / _prometheus_-openstack-exporter take care
-    of that later.
+    If Secrets `openstack-config` and `clouds-yaml-secret` show up, the
+    later `os-metrics` / _prometheus-openstack-exporter_ steps take care
+    of both. You edit `clouds-yaml-secret`; reinstalling the `os-metrics`
+    Helm release passes that content as `clouds_yaml_config`, which
+    regenerates `openstack-config` with the new password.
 
 1. Generate two passwords and record them for use
     - We will use one as the password for a temporary "breakglass"
       alternative admin account, and the other for the actual
       password we use as the new password for the existing admin user
-    - The original password looks has 32 characters, includes upper
+    - The original password has 32 characters and includes upper
       and lowercase letters, numbers, and underscores
     - The `pwgen` command below will generate passwords like this
         - It runs a bit long and ugly because to get an underscore you
-         have to use the switch to include special characters, then
-         exclude all of them except for the _
+          have to use the switch to include special characters, then
+          exclude all of them except for the _
     - As a precaution, you may wish to avoid passwords with leading
       underscores, although it should not cause a problem
     - If you don't have `pwgen`, just make a 32 character password with
@@ -165,8 +177,8 @@
         - Change the username and the cloud to `breakglass`
 
     ```
-    sudo cp ~/.config/openstack/clouds.yaml ~/breakglass.yaml
-    sudo vi ~/breakglass.yaml
+    install -m 600 ~/.config/openstack/clouds.yaml ~/breakglass.yaml
+    vi ~/breakglass.yaml
     ```
 
     As an example from a hyperconverged lab, having changed `default`
@@ -228,44 +240,54 @@
      'env OS_CLIENT_CONFIG_FILE=~/breakglass.yaml openstack --os-cloud breakglass'
      ```
 
-1. base64 encode the old and new password and record the base64 and
-   sha256 checksums of them both for later use
+1. Dry-run the Secret rotation and record the base64 and SHA-256 values
+   of the old and new passwords for later use
     - Record and keep both of these values
     - Watch carefully when cutting and pasting, as double-clicking
       often excludes trailing `=` characters as word boundaries if
       you select for copy and paste that way
+    - The script lists every complete Secret data field that matches the
+      old password. Assess the entire list; matches are not restricted to
+      Secret names containing `keystone-admin`.
+    - Answer `yes` only after confirming the namespace, hashes, base64
+      values, and complete match list. Server-side dry-run validates the
+      patches against the API server but persists no changes.
 
-    command (run twice, once for each password, and obviously,
-    paste the password):
-
-    ```
-    printf 'Password: ' >&2
-    stty -echo
-    IFS= read -r password
-    stty echo
-    printf '\n' >&2
-
-    printf '%s' "$password" |
-    perl -MDigest::SHA=sha256_hex -MMIME::Base64=encode_base64 -0777 -e '
-        my $password = <STDIN> // "";
-        $password =~ s/\r?\n\z//;
-        print "base64: ", encode_base64($password, ""), "\n";
-        print "sha256: ", sha256_hex($password), "\n";
-    '
-
-    unset password
-    ```
-
-    **example output**:
+    **command**:
 
     ```
-    Password:
-    base64: REDACTED
-    sha256: 3bbf200cb7b29bbfebdd78110a82250b3548ef008ad2fb0b3cff7829427f0b3f
+    /opt/genestack/scripts/rotate-openstack-admin-secret-passwords.sh --dry-run
     ```
 
-1. Base64 decode what you encoded and ensure you get your original
-   password back
+    **example output excerpt**:
+
+    ```
+    Old admin password:
+    New admin password:
+    Confirm new admin password:
+
+    Namespace: openstack
+    Mode:      DRY RUN (server-side)
+
+    Old password:
+      SHA-256: 7cbc866e08f92759dd679c90547279ead61775eb0b39f040e4a99b81b87e734e
+      Base64:  REDACTED=
+
+    New password:
+      SHA-256: 81ef54d33b953695c53b2da53c50e02a0bdf81bc06d6adb479e625f3361246d9
+      Base64:  REDACTED=
+
+    Exact matches: 11 field(s) in 11 Secret(s)
+    ...
+    Proceed with server-side dry-run validation? [yes/no] yes
+    ...
+    Dry run complete: 11 Secret patch(es) validated.
+    No changes were persisted.
+    Exact old-value matches still present: 11
+    ```
+
+1. Base64 decode the values you recorded and ensure you get your original
+   passwords back
     - Obviously, paste the base64 encoding and ensure you get the
       original password back
 
@@ -282,19 +304,19 @@
     ```
 
 1. Verify the base64 encoding of the old password matches
-  `/etc/genestack/kubesecrets.yaml`
+   `/etc/genestack/kubesecrets.yaml`
     - Previous steps directed recording the base64 encoding of the old
       password
     - This should match the base64 encoding you generated if you did
       that in previous steps
-   - Your installation may not have this file; if so, skip this step
+    - Your installation may not have this file; if so, skip this step
 
     ```
     cd /etc/genestack
     yq 'select(.metadata.name == "keystone-admin") | .data.password' kubesecrets.yaml
     ```
 
-# Execute
+## Execute
 
 1. Backup the current `/etc/genestack/kubesecrets.yaml` file
    - Your installation may not have this file. If so, skip this step.
@@ -391,36 +413,63 @@
 
    ```
    export ADMIN_PASSWORD_ROTATION_LOG_DIR=~/admin-password-rotation-log-dir
-   mkdir $ADMIN_PASSWORD_ROTATION_LOG_DIR
+   mkdir -p "$ADMIN_PASSWORD_ROTATION_LOG_DIR"
 
    restart-daemonset() {
-       kubectl rollout restart daemonset $1 -n openstack && \
-       kubectl rollout status daemonset $1 -n openstack
+       kubectl rollout restart daemonset "$1" -n openstack && \
+       kubectl rollout status daemonset "$1" -n openstack
    }
 
 
    # positional args: <step name> <daemonset to restart>
    logs-daemonset() {
-       if [[ -n "$ADMIN_PASSWORD_ROTATION_LOG_DIR" ]]
+       if [[ -n "${ADMIN_PASSWORD_ROTATION_LOG_DIR:-}" ]]
        then
-           kubectl -n openstack logs daemonset/$2 \
+           kubectl -n openstack logs "daemonset/$2" \
            --all-pods=true \
            --tail=20 \
            --prefix | \
-           tee $ADMIN_PASSWORD_ROTATION_LOG_DIR/$1-$2.txt | \
+           tee "$ADMIN_PASSWORD_ROTATION_LOG_DIR/$1-$2.txt" | \
            less
            echo "output saved to $ADMIN_PASSWORD_ROTATION_LOG_DIR/$1-$2.txt"
        else
-           echo "set ADMIN_PASSWORD_ROTATION_LOG_DIR" and try again
+           echo "set ADMIN_PASSWORD_ROTATION_LOG_DIR and try again"
        fi
    }
 
    check-daemonsets() {
-       kubectl -n openstack get ds \
-       neutron-netns-cleanup-cron-default \
-       octavia-health-manager-default \
-       octavia-worker-default | \
-       tee $ADMIN_PASSWORD_ROTATION_LOG_DIR/$1-daemonset-check.txt
+       local step=$1
+       local daemonset
+       local daemonsets=(
+           neutron-netns-cleanup-cron-default
+           octavia-health-manager-default
+           octavia-worker-default
+       )
+       local existing=()
+
+       if [[ -z "${ADMIN_PASSWORD_ROTATION_LOG_DIR:-}" ]]
+       then
+           echo "set ADMIN_PASSWORD_ROTATION_LOG_DIR and try again"
+           return 1
+       fi
+
+       for daemonset in "${daemonsets[@]}"
+       do
+           if kubectl -n openstack get daemonset "$daemonset" \
+               >/dev/null 2>&1
+           then
+               existing+=("$daemonset")
+           fi
+       done
+
+       if ((${#existing[@]} == 0))
+       then
+           echo "No affected DaemonSets are installed."
+           return 0
+       fi
+
+       kubectl -n openstack get daemonset "${existing[@]}" | \
+       tee "$ADMIN_PASSWORD_ROTATION_LOG_DIR/$step-daemonset-check.txt"
    }
    ```
 
@@ -429,7 +478,7 @@
     **command**:
 
     ```
-    check-daemonsets pre neutron-netns-cleanup-cron-default
+    check-daemonsets pre
     ```
 
     **example output**:
@@ -487,6 +536,11 @@
     openstack_admin user set --ignore-lockout-failure-attempts admin
     ```
 
+    **If the procedure fails or is aborted after this point, run the
+    re-enable command from Cleanup before ending the change.** Do not
+    leave lockout protection disabled while investigating or rescheduling
+    the rotation.
+
     (As an aside, in a typical installation, the `admin` account
      almost certainly *WILL* get locked out without this step.)
 
@@ -542,7 +596,7 @@
     ```
     cd ~/.config/openstack
     TS="$(date +%s)"
-    sudo cp clouds.yaml clouds.yaml.${TS}.bak
+    install -m 600 clouds.yaml "clouds.yaml.${TS}.bak"
     ```
 
 1. Change the password in `clouds.yaml`
@@ -550,21 +604,24 @@
       replace all instances of the old password
 
     ```
-    sudo vi ~/.config/openstack/clouds.yaml
+    vi ~/.config/openstack/clouds.yaml
     ```
 
-1. Verify you can issue issue a token after changing the password in
+1. Verify you can issue a token after changing the password in
    `clouds.yaml`
 
     ```
     openstack_admin token issue
     ```
 
-1. Update the password in secrets with `keystone-admin` in the name
+1. Update every exact old-password value in namespace Secrets
     - Pay attention to the base64 encoding and SHA256 sum
     - **Answer NO unless the base64 encoding and SHA256 sum of the two
       passwords looks right**
         - compare with what you've recorded
+    - Review the complete match list again. The script changes every
+      Secret `.data` field whose complete value equals the old password's
+      base64 encoding; it does not filter by Secret name.
 
     **command**:
     ```
@@ -632,6 +689,15 @@
     Exact old-value matches remaining: 0
     ```
 
+    Most `<service>-keystone-admin` Secrets in this list are primarily
+    used by OpenStack-Helm bootstrap / `ks-user` Jobs, so updating them
+    does not mean that every corresponding service workload requires a
+    restart. There are exceptions where workloads consume the admin
+    credential directly or through generated configuration. The restart
+    and chart-reinstallation steps below cover the runtime consumers
+    identified for this procedure, including Neutron netns cleanup and
+    Octavia.
+
 1. Pre-check `neutron-netns-cleanup-cron-default` logs (not canary)
     - This mirrors the canary step above, but the _DaemonSet_ needs a
       restart at this time.
@@ -668,12 +734,12 @@
     [pod/neutron-netns-cleanup-cron-default-cfwbh/neutron-netns-cleanup-cron] + sleep 300
     ```
 
-## chart reinstallation for configuration files
+### Chart Reinstallation for Configuration Files
 
 - This section covers reinstalling services with the admin password
    embedded directly in their configuration files
 
-### Reinstall Octavia
+#### Reinstall Octavia
 
 1. Pre-check _Octavia_ to ensure all pods running, etc.
     - Perform any steps you would like to pre-check octavia
@@ -721,7 +787,7 @@
     You should see all pods in state `Running` or `Completed`, no
     crash loop backoff, etc.
 
-### Reinstall Blazar
+#### Reinstall Blazar
 
 1. Pre-check _Blazar_ to ensure all pods running, etc.
     - Perform any steps you would like to pre-check Blazar
@@ -769,7 +835,7 @@
     You should see all pods in state `Running` or `Completed`, no
     crash loop backoff, etc.
 
-### os-metrics / `prometheus-openstack-exporter` chart reinstallation
+#### os-metrics / `prometheus-openstack-exporter` Chart Reinstallation
 
 1. Check if you need steps in this `Execute -> os-metrics related` subsection
     - You need this if you have installed the Helm chart
@@ -803,7 +869,7 @@
     clouds-yaml-secret                                               Opaque                                1      2y83d
     ```
 
-    **You may proceed to the next subsection of execution, "Finalize
+    **You may proceed to the next section, "Conclude
       Execution" below, if you do not have these**. Otherwise,
       proceed with the rest of the steps in this section.
 
@@ -844,7 +910,19 @@
 
     ```
     kubectl -n openstack get secret clouds-yaml-secret -o json | \
-    jq -r '.data["generated-clouds-yaml"] | @base64d'
+    jq -r '
+      .data as $data
+      | [
+          "generated-clouds-yaml",
+          "generated-clouds-certs-yaml"
+        ]
+      | map(select($data[.] != null)) as $keys
+      | if ($keys | length) != 1 then
+          error("expected exactly one supported clouds.yaml data key")
+        else
+          $data[$keys[0]] | @base64d
+        end
+    '
     ```
 
 1. Change the admin password in namespace `openstack` name `clouds-yaml-secret` if it exists
@@ -855,6 +933,13 @@
       `$EDITOR` on it (or `vi` if `$EDITOR` has no value), and prompts you
       to patch the secret with your change ("yes"), edit again, or
       say "no" to abort
+    - The script detects whether the Secret contains
+      `generated-clouds-yaml` or `generated-clouds-certs-yaml`. It aborts
+      rather than editing if neither or both keys exist, the extracted
+      value is empty, or the edited content is not valid YAML.
+    - The patch also tests that the live value has not changed since it
+      was retrieved. If another process updates it while you are editing,
+      the patch fails instead of overwriting that newer value.
     - Replace the old admin password with the new one
 
     ```
@@ -865,7 +950,19 @@
 
     ```
     kubectl -n openstack get secret clouds-yaml-secret -o json | \
-    jq -r '.data["generated-clouds-yaml"] | @base64d'
+    jq -r '
+      .data as $data
+      | [
+          "generated-clouds-yaml",
+          "generated-clouds-certs-yaml"
+        ]
+      | map(select($data[.] != null)) as $keys
+      | if ($keys | length) != 1 then
+          error("expected exactly one supported clouds.yaml data key")
+        else
+          $data[$keys[0]] | @base64d
+        end
+    '
     ```
 
 1. Reinstall the _openstack-metrics-exporter_
@@ -874,6 +971,10 @@
      page
         - Choose the correct version based on whether your secret
          contains self-signed certificates.
+    - The installation command reads the selected key from
+      `clouds-yaml-secret` into the chart's `clouds_yaml_config` value.
+      The chart then generates or updates Secret `openstack-config`, so
+      do not edit `openstack-config` separately.
 
     commands:
 
@@ -882,7 +983,7 @@
     IGNORE OTHER PARTS
     ```
 
-1. Check for running `openstack-metrics-exporter` running pod
+1. Check for a running `openstack-metrics-exporter` pod
     - **The installation may not restart the pod**
     - **DELETE THE POD IF NECESSARY**
     - **YOU MAY SEE AUTHENTICATION ERRORS IF INSTALLATION DOES NOT
@@ -905,7 +1006,7 @@
     os-metrics-prometheus-openstack-exporter-7584457dd7-lrfs7   1/1     Running     0          39m
     ```
 
-### Conclude execution
+## Conclude Execution
 
 1. Record a timestamp to find new 401s
     - This should take care of everything using the admin password and
@@ -922,8 +1023,8 @@
 
     1. Check the secrets for the password
         - **supply the old password when prompted for the password**
-        - example output shows a hyperconverged lab without the
-          rotation happened at all
+        - The example output shows a hyperconverged lab before the
+          rotation was performed.
 
         **command**:
 
@@ -983,9 +1084,11 @@
     11 magnum-conductor keystoneauth1/5.10.0 python-requests/2.32.4 CPython/3.12.13
     ```
 
-# Cleanup
+## Cleanup
 
-1. Re-enable admin user
+1. Re-enable normal security lockout failure attempts for admin user
+    - Perform this step even if the procedure was aborted after lockout
+      protection was disabled.
 
     ```
     openstack_admin user set --no-ignore-lockout-failure-attempts admin
@@ -1002,15 +1105,15 @@
 1. Remove the `breakglass` clouds.yaml
 
     ```
-    sudo rm ~/breakglass.yaml
+    rm ~/breakglass.yaml
     ```
 
 1. Record the new password in any external credentials stores you use
    if applicable
 
-# Footnotes
+## Footnotes
 
-## Example of finding the paths in current secrets
+### Example of Finding the Paths in Current Secrets
 
 ```JSON
 [

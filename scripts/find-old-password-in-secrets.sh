@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+NAMESPACE="${NAMESPACE:-openstack}"
+
 IFS= read -r -s -p 'Admin password: ' password
 printf '\n' >&2
 
@@ -11,7 +13,7 @@ fi
 
 {
     printf '%s' "$password" | jq -Rs .
-    kubectl -n openstack get secrets -o json
+    kubectl -n "$NAMESPACE" get secrets -o json
 } |
 jq -n '
     # Convert a jq path array into an exact, reusable jq expression.

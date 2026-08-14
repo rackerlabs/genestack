@@ -56,11 +56,6 @@ require_cmd kubectl
 require_cmd jq
 require_cmd base64
 require_cmd awk
-require_cmd cut
-require_cmd sort
-require_cmd tr
-require_cmd mktemp
-require_cmd rm
 
 if command -v sha256sum >/dev/null 2>&1; then
   sha256_hex() {
