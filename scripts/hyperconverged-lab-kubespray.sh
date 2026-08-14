@@ -984,7 +984,11 @@ fi
 # Octavia per-configuration
 #############################################################################
 if [ "${RUN_EXTRAS}" -eq 1 ] && [ ${DISABLE_OPENSTACK} = "false" ]; then
-  install_preconf_octavia
+  if isExcluded octavia; then
+    echo "Skipping Octavia preconf/install: 'octavia' is in the exclude list (-e)"
+  else
+    install_preconf_octavia
+  fi
 fi
 
 #############################################################################
