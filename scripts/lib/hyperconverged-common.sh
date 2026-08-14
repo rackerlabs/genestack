@@ -439,13 +439,82 @@ function prepareJumpHostSource() {
         _ssh "while sudo fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do echo 'Waiting for apt locks to be released...'; sleep 5; done && sudo apt-get update && sudo apt install -y rsync git && sudo mkdir -p /opt/genestack && sudo chown ${SSH_USERNAME}:${SSH_USERNAME} /opt/genestack"
 
         echo "Copying the development source code to the jump host"
-        # Keep .git so the jump host can initialize pinned submodules such as Kubespray.
+        # Exclude .git: when DEV_PATH is a git *worktree*, .git is a pointer file
+        # (gitdir: .../worktrees/<name>) that cannot resolve on the remote and
+        # poisons EVERY git invocation whose cwd is inside /opt/genestack
+        # (e.g. ansible.builtin.git tasks fail with "not a git repository").
+        # Pinned submodules are reconstructed explicitly below instead.
         rsync -avz \
+            --exclude='.git' \
             -e "ssh ${SSH_OPTS_STR}" \
             "${DEV_PATH}/" "${SSH_TARGET}:/opt/genestack/"
+
+        # Remove a stale .git pointer file rsync'd by older versions of this
+        # script (a real .git directory from the clone flow is left alone).
+        _ssh 'if [ -f /opt/genestack/.git ]; then sudo rm -f /opt/genestack/.git; fi'
+
+        reconstructSubmodulesOnJumpHost "${DEV_PATH}" "/opt/genestack"
     else
         cloneGenestackOnJumpHost
     fi
+}
+
+function reconstructSubmodulesOnJumpHost() {
+    # Rebuild each pinned submodule on the jump host directly from .gitmodules
+    # metadata + the parent tree's gitlink SHAs, without relying on `git
+    # submodule` (which needs a working parent .git). This makes dev-mode work
+    # when the local source is a git worktree, and also handles submodules that
+    # are not checked out locally.
+    # Usage: reconstructSubmodulesOnJumpHost <dev_path> [dest_root]
+    local dev_path="$1"
+    local dest_root="${2:-/opt/genestack}"
+    local manifest
+
+    if [ ! -f "${dev_path}/.gitmodules" ]; then
+        return 0
+    fi
+
+    # Build a "path<TAB>url<TAB>sha" manifest, one line per submodule.
+    manifest="$(
+        git -C "${dev_path}" config -f .gitmodules --get-regexp '^submodule\..*\.path$' 2>/dev/null |
+        while read -r key sm_path; do
+            local name url sha
+            name=${key#submodule.}
+            name=${name%.path}
+            url=$(git -C "${dev_path}" config -f .gitmodules "submodule.${name}.url" 2>/dev/null)
+            sha=$(git -C "${dev_path}" ls-tree HEAD "${sm_path}" 2>/dev/null | awk '{print $3}')
+            if [ -n "${url}" ] && [ -n "${sha}" ]; then
+                printf '%s\t%s\t%s\n' "${sm_path}" "${url}" "${sha}"
+            fi
+        done
+    )"
+
+    if [ -z "${manifest}" ]; then
+        echo "No pinned submodules resolved from .gitmodules; skipping remote submodule reconstruction."
+        return 0
+    fi
+
+    echo "Reconstructing pinned submodules on the jump host (worktree-safe):"
+    printf '%s\n' "${manifest}" | sed 's/^/  - /'
+
+    _ssh bash <<EOC
+set -e
+while IFS=\$'\t' read -r sm_path sm_url sm_sha; do
+    [ -z "\${sm_path}" ] && continue
+    dest="${dest_root}/\${sm_path}"
+    if [ -e "\${dest}/.git" ] && sudo git -C "\${dest}" rev-parse --verify --quiet "\${sm_sha}^{commit}" >/dev/null 2>&1; then
+        sudo git -C "\${dest}" checkout --quiet "\${sm_sha}"
+        echo "  \${sm_path}: already present, checked out \${sm_sha}"
+        continue
+    fi
+    echo "  \${sm_path}: cloning \${sm_url} @ \${sm_sha}"
+    sudo rm -rf "\${dest}"
+    sudo git clone --quiet "\${sm_url}" "\${dest}"
+    sudo git -C "\${dest}" checkout --quiet "\${sm_sha}"
+done <<'MANIFEST'
+${manifest}
+MANIFEST
+EOC
 }
 
 function writeMetalLBConfig() {

@@ -903,6 +903,10 @@ if [ ! -d "/var/lib/kubelet" ]; then
     source /opt/genestack/scripts/genestack.rc
     KUBESPRAY_DIR=/opt/genestack/submodules/kubespray
     if [ ! -f "\${KUBESPRAY_DIR}/cluster.yml" ] && [ ! -f "\${KUBESPRAY_DIR}/playbooks/cluster.yml" ]; then
+        # In dev mode the submodules are reconstructed on the jump host by
+        # reconstructSubmodulesOnJumpHost() before this runs, so we normally
+        # never get here. This remains as a fallback for the non-dev clone flow
+        # (a real /opt/genestack clone with a usable .git).
         echo "Kubespray checkout missing, initializing submodule..."
         pushd /opt/genestack >/dev/null
             sudo git config --global --add safe.directory /opt/genestack
