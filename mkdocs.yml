@@ -316,6 +316,7 @@ nav:
               - Keystone Federation to Rackspace: openstack-keystone-federation.md
               - Keystone LDAP/AD Integration: openstack-keystone-ldap.md
               - Keystone Readonly Users: openstack-keystone-readonly.md
+              - Keystone Admin Password Rotation: openstack-keystone-admin-password-rotation.md
           - Networking:
               - Creating Networks: openstack-neutron-networks.md
           - Containers:
