@@ -897,6 +897,14 @@ if [ ! -f "/usr/local/bin/queue_max.sh" ]; then
     python3 -m venv ~/.venvs/genestack
     ~/.venvs/genestack/bin/pip install -r /opt/genestack/requirements.txt
     source /opt/genestack/scripts/genestack.rc
+    # Install the pinned galaxy collections for the ssh user. bootstrap.sh
+    # installs them for root only, but the trove/manila enablement playbooks
+    # run unprivileged and their openstack.cloud modules require the pinned
+    # collection version (the one bundled with the ansible pip package is
+    # incompatible with openstacksdk >= 4.15).
+    ansible-playbook /opt/genestack/scripts/get-ansible-collection-requirements.yml \
+        -e collections_file=\${ANSIBLE_COLLECTION_FILE} \
+        -e user_collections_file=\${USER_COLLECTION_FILE}
     ANSIBLE_SSH_PIPELINING=0 ansible-playbook /opt/genestack/ansible/playbooks/host-setup.yml --become -e host_required_kernel=\$(uname -r)
 fi
 if [ ! -d "/var/lib/kubelet" ]; then
@@ -930,6 +938,16 @@ if [ ! -d "/var/lib/kubelet" ]; then
 
     cd "\${KUBESPRAY_DIR}"
     ANSIBLE_SSH_PIPELINING=0 ansible-playbook "\${KUBESPRAY_PLAYBOOK}" --become
+fi
+# Give the ssh user a kubeconfig. The trove/manila enablement playbooks run
+# unprivileged and use kubernetes.core modules, and operators expect kubectl
+# to work from the jump host without sudo (previously this only happened as a
+# side effect of the optional -x k9s install).
+if [ ! -f \${HOME}/.kube/config ]; then
+    mkdir -p \${HOME}/.kube
+    sudo cp /etc/kubernetes/admin.conf \${HOME}/.kube/config
+    sudo chown \$(id -u):\$(id -g) \${HOME}/.kube/config
+    chmod 600 \${HOME}/.kube/config
 fi
 sudo mkdir -p /opt/kube-plugins
 sudo chown \${USER}:\${USER} /opt/kube-plugins
