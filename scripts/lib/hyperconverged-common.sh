@@ -135,6 +135,64 @@ function parseCommonArgs() {
     export HYPERCONVERGED_INTERNAL_METALLB_IP
 }
 
+function isExcluded() {
+    # Check whether a component was excluded via -e. Used to let the exclude
+    # list override component-specific extras (-x) steps, e.g.
+    # `-x -e octavia` runs the extras but skips the Octavia preconf/install.
+    # Usage: isExcluded <component>
+    local component
+    local item
+    component=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')
+    for item in "${EXCLUDE_LIST[@]}"; do
+        if [ "$(printf '%s' "${item}" | tr '[:upper:]' '[:lower:]')" = "${component}" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+function ensureSshAgentKey() {
+    # Ensure the given private key is available in the user's ssh-agent
+    # without blindly running ssh-add:
+    #   - If no agent is reachable, fail fast with clear guidance.
+    #   - If the key is already loaded (e.g. users of 1Password or other
+    #     custom agents that do not support ssh-add), leave the agent alone.
+    #   - Otherwise attempt ssh-add and fail with guidance if the agent
+    #     refuses it.
+    # Usage: ensureSshAgentKey <path-to-private-key.pem>
+    local key_pem="$1"
+    local agent_status=0
+    local key_fp
+
+    # ssh-add -l exit codes: 0 = keys listed, 1 = agent reachable but empty,
+    # >=2 = cannot connect to the agent socket.
+    ssh-add -l >/dev/null 2>&1 || agent_status=$?
+
+    if [ "${agent_status}" -ge 2 ]; then
+        echo "ERROR: Cannot connect to an ssh-agent (SSH_AUTH_SOCK=${SSH_AUTH_SOCK:-unset})." >&2
+        echo "       The lab relies on agent forwarding to reach cluster nodes, so a" >&2
+        echo "       running agent with ${key_pem} loaded is required." >&2
+        echo "       Start one with:  eval \"\$(ssh-agent)\" && ssh-add ${key_pem}" >&2
+        echo "       1Password/custom agent users: export the agent socket via" >&2
+        echo "       SSH_AUTH_SOCK and make sure the key is available in the agent." >&2
+        exit 1
+    fi
+
+    # Skip ssh-add when the key is already loaded (fingerprint match).
+    key_fp=$(ssh-keygen -lf "${key_pem}" 2>/dev/null | awk '{print $2}')
+    if [ -n "${key_fp}" ] && ssh-add -l 2>/dev/null | grep -qF "${key_fp}"; then
+        echo "SSH key ${key_pem} already present in ssh-agent; skipping ssh-add."
+        return 0
+    fi
+
+    if ! ssh-add "${key_pem}"; then
+        echo "ERROR: ssh-add failed to load ${key_pem} into the running agent." >&2
+        echo "       If your agent does not support ssh-add (e.g. 1Password), add the" >&2
+        echo "       key through the agent's own tooling, then re-run." >&2
+        exit 1
+    fi
+}
+
 function writeOpenstackComponentsConfig() {
     # Write OpenStack components configuration file
     # Usage: writeOpenstackComponentsConfig [output_path]
@@ -397,13 +455,82 @@ function prepareJumpHostSource() {
         _ssh "while sudo fuser /var/{lib/{dpkg,apt/lists},cache/apt/archives}/lock >/dev/null 2>&1; do echo 'Waiting for apt locks to be released...'; sleep 5; done && sudo apt-get update && sudo apt install -y rsync git && sudo mkdir -p /opt/genestack && sudo chown ${SSH_USERNAME}:${SSH_USERNAME} /opt/genestack"
 
         echo "Copying the development source code to the jump host"
-        # Keep .git so the jump host can initialize pinned submodules such as Kubespray.
+        # Exclude .git: when DEV_PATH is a git *worktree*, .git is a pointer file
+        # (gitdir: .../worktrees/<name>) that cannot resolve on the remote and
+        # poisons EVERY git invocation whose cwd is inside /opt/genestack
+        # (e.g. ansible.builtin.git tasks fail with "not a git repository").
+        # Pinned submodules are reconstructed explicitly below instead.
         rsync -avz \
+            --exclude='.git' \
             -e "ssh ${SSH_OPTS_STR}" \
             "${DEV_PATH}/" "${SSH_TARGET}:/opt/genestack/"
+
+        # Remove a stale .git pointer file rsync'd by older versions of this
+        # script (a real .git directory from the clone flow is left alone).
+        _ssh 'if [ -f /opt/genestack/.git ]; then sudo rm -f /opt/genestack/.git; fi'
+
+        reconstructSubmodulesOnJumpHost "${DEV_PATH}" "/opt/genestack"
     else
         cloneGenestackOnJumpHost
     fi
+}
+
+function reconstructSubmodulesOnJumpHost() {
+    # Rebuild each pinned submodule on the jump host directly from .gitmodules
+    # metadata + the parent tree's gitlink SHAs, without relying on `git
+    # submodule` (which needs a working parent .git). This makes dev-mode work
+    # when the local source is a git worktree, and also handles submodules that
+    # are not checked out locally.
+    # Usage: reconstructSubmodulesOnJumpHost <dev_path> [dest_root]
+    local dev_path="$1"
+    local dest_root="${2:-/opt/genestack}"
+    local manifest
+
+    if [ ! -f "${dev_path}/.gitmodules" ]; then
+        return 0
+    fi
+
+    # Build a "path<TAB>url<TAB>sha" manifest, one line per submodule.
+    manifest="$(
+        git -C "${dev_path}" config -f .gitmodules --get-regexp '^submodule\..*\.path$' 2>/dev/null |
+        while read -r key sm_path; do
+            local name url sha
+            name=${key#submodule.}
+            name=${name%.path}
+            url=$(git -C "${dev_path}" config -f .gitmodules "submodule.${name}.url" 2>/dev/null)
+            sha=$(git -C "${dev_path}" ls-tree HEAD "${sm_path}" 2>/dev/null | awk '{print $3}')
+            if [ -n "${url}" ] && [ -n "${sha}" ]; then
+                printf '%s\t%s\t%s\n' "${sm_path}" "${url}" "${sha}"
+            fi
+        done
+    )"
+
+    if [ -z "${manifest}" ]; then
+        echo "No pinned submodules resolved from .gitmodules; skipping remote submodule reconstruction."
+        return 0
+    fi
+
+    echo "Reconstructing pinned submodules on the jump host (worktree-safe):"
+    printf '%s\n' "${manifest}" | sed 's/^/  - /'
+
+    _ssh bash <<EOC
+set -e
+while IFS=\$'\t' read -r sm_path sm_url sm_sha; do
+    [ -z "\${sm_path}" ] && continue
+    dest="${dest_root}/\${sm_path}"
+    if [ -e "\${dest}/.git" ] && sudo git -C "\${dest}" rev-parse --verify --quiet "\${sm_sha}^{commit}" >/dev/null 2>&1; then
+        sudo git -C "\${dest}" checkout --quiet "\${sm_sha}"
+        echo "  \${sm_path}: already present, checked out \${sm_sha}"
+        continue
+    fi
+    echo "  \${sm_path}: cloning \${sm_url} @ \${sm_sha}"
+    sudo rm -rf "\${dest}"
+    sudo git clone --quiet "\${sm_url}" "\${dest}"
+    sudo git -C "\${dest}" checkout --quiet "\${sm_sha}"
+done <<'MANIFEST'
+${manifest}
+MANIFEST
+EOC
 }
 
 function writeMetalLBConfig() {
@@ -1323,7 +1450,7 @@ function createPostSetupResources() {
     # Usage: createPostSetupResources <lab_name_prefix>
     local lab_prefix="$1"
 
-    if openstack --version; then
+    if command -v openstack >/dev/null 2>&1; then
         echo "OpenStack CLI found"
     else
         echo "Sourcing OpenStack RC file..."
@@ -1332,10 +1459,10 @@ function createPostSetupResources() {
 
     echo "Running Generic Genestack post setup..."
 
-    if [ ! -f ~/.config/openstack ]; then
-        sudo mkdir -p ~/.config/openstack
-        sudo cp /root/.config/openstack/clouds.yaml ~/.config/openstack
-        sudo chown $(id -u):$(id -g) ~/.config
+    mkdir -p ~/.config/openstack
+    if [ ! -f ~/.config/openstack/clouds.yaml ] && sudo test -f /root/.config/openstack/clouds.yaml; then
+        sudo cp /root/.config/openstack/clouds.yaml ~/.config/openstack/
+        sudo chown -R $(id -u):$(id -g) ~/.config/openstack
     fi
 
     # Create test flavor
@@ -1508,7 +1635,7 @@ function waitForOpenStackAPIsReady() {
 
     echo "Waiting for OpenStack APIs to be ready (timeout: ${timeout}s)..."
 
-    if openstack --version; then
+    if command -v openstack >/dev/null 2>&1; then
         echo "OpenStack CLI found"
     else
         echo "Sourcing OpenStack RC file..."
@@ -1517,10 +1644,10 @@ function waitForOpenStackAPIsReady() {
 
     echo "Running Generic Genestack post setup..."
 
-    if [ ! -f ~/.config/openstack ]; then
-        sudo mkdir -p ~/.config/openstack
-        sudo cp /root/.config/openstack/clouds.yaml ~/.config/openstack
-        sudo chown $(id -u):$(id -g) ~/.config
+    mkdir -p ~/.config/openstack
+    if [ ! -f ~/.config/openstack/clouds.yaml ] && sudo test -f /root/.config/openstack/clouds.yaml; then
+        sudo cp /root/.config/openstack/clouds.yaml ~/.config/openstack/
+        sudo chown -R $(id -u):$(id -g) ~/.config/openstack
     fi
 
     # Wait for Keystone (authentication) to be ready first
@@ -1709,9 +1836,12 @@ SSH_CONFIG_EOF
 source /opt/genestack/scripts/genestack.rc
 
 echo "[JUMP_HOST] Setup for admin operations"
-sudo mkdir -p ~/.config/openstack
-sudo cp /root/.config/openstack/clouds.yaml ~/.config/openstack/
-sudo chown -R $(id -u):$(id -g) ~/.config
+mkdir -p ~/.config/openstack
+if [ ! -f ~/.config/openstack/clouds.yaml ] && sudo test -f /root/.config/openstack/clouds.yaml; then
+    # Note: escaped \$(id ...) so expansion happens on the jump host.
+    sudo cp /root/.config/openstack/clouds.yaml ~/.config/openstack/
+    sudo chown -R "\$(id -u):\$(id -g)" ~/.config/openstack
+fi
 
 echo "[JUMP_HOST] Updating ~/.ssh/config"
 cat >> ~/.ssh/config << SSH_CONFIG_EOF
@@ -1804,13 +1934,13 @@ function install_preconf_octavia() {
     _ssh << 'EOC'
 set -e
 
-if [ ! -f ~/.config/openstack ]; then
-    sudo mkdir -p ~/.config/openstack
-    sudo cp /root/.config/openstack/clouds.yaml ~/.config/openstack
-    sudo chown $(id -u):$(id -g) ~/.config
-fi
-
 source ~/.venvs/genestack/bin/activate
+
+mkdir -p ~/.config/openstack
+if [ ! -f ~/.config/openstack/clouds.yaml ] && sudo test -f /root/.config/openstack/clouds.yaml; then
+    sudo cp /root/.config/openstack/clouds.yaml ~/.config/openstack/
+    sudo chown -R "$(id -u):$(id -g)" ~/.config/openstack
+fi
 
 OCTAVIA_HELM_FILE=/tmp/octavia_helm_overrides.yaml
 
@@ -1861,6 +1991,46 @@ ansible-playbook /opt/genestack/ansible/playbooks/deploy-swift.yaml \
     -e "swift_region_name=${swift_region_name}"
 JUMP_HOST_EOF
     } | _ssh bash
+}
+
+function deployManila() {
+    # Run the Manila enablement flow on the jump host:
+    #   secrets → image_build → pre_deploy → helm install → post_deploy
+    # (tag sequence documented in ansible/roles/manila_enablement_techpreview)
+    # The playbook is self-sufficient: it reads the keystone-admin password
+    # from the K8s secret and authenticates via its own OS_* environment.
+    echo "Running manila deployment ..."
+
+    _ssh << 'EOC'
+# check if manila is to be installed, otherwise exit cleanly
+if ! grep "manila: true" /etc/genestack/openstack-components.yaml &>/dev/null; then
+    echo "Manila not installed, exiting Manila setup function for $(hostname)"
+    exit 0
+fi
+
+set -e
+# activate environment for openstack commands
+source /opt/genestack/scripts/genestack.rc
+
+echo "Running playbook for manila secrets"
+ansible-playbook /opt/genestack/ansible/playbooks/manila-enablement-techpreview.yaml \
+    --tags secrets
+
+echo "Running playbook for manila image_build"
+ansible-playbook /opt/genestack/ansible/playbooks/manila-enablement-techpreview.yaml \
+    --tags image_build
+
+echo "Running playbook for manila pre_deploy"
+ansible-playbook /opt/genestack/ansible/playbooks/manila-enablement-techpreview.yaml \
+    --tags pre_deploy
+
+echo "Installing Manila via Helm chart"
+sudo /opt/genestack/bin/install-manila.sh
+
+echo "Running playbook for manila post_deploy"
+ansible-playbook /opt/genestack/ansible/playbooks/manila-enablement-techpreview.yaml \
+    --tags post_deploy
+EOC
 }
 
 function deployTrove() {

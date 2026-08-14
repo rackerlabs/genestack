@@ -1,23 +1,5 @@
 ---
 images:
-  tags:
-    db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    db_sync: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    image_repo_sync: "docker.io/docker:17.07.0"
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    manila: "ghcr.io/rackerlabs/genestack-images/manila:2025.1-latest"
-    manila_api: "ghcr.io/rackerlabs/genestack-images/manila-api:2025.1-latest"
-    manila_data: "ghcr.io/rackerlabs/genestack-images/manila-data:2025.1-latest"
-    manila_db_sync: "ghcr.io/rackerlabs/genestack-images/manila:2025.1-latest"
-    manila_scheduler: "ghcr.io/rackerlabs/genestack-images/manila-scheduler:2025.1-latest"
-    manila_share: "ghcr.io/rackerlabs/genestack-images/manila-share:2025.1-latest"
-    manila_processor: "ghcr.io/rackerlabs/genestack-images/manila:2025.1-latest"
-    manila_storage_init: "ghcr.io/rackerlabs/genestack-images/manila:2025.1-latest"
-    rabbit_init: "docker.io/rabbitmq:3.13-management"
   pull_policy: "Always"
 
 # NOTE: (brew) requests cpu/mem values based on a three node
@@ -68,36 +50,6 @@ pod:
 
 bootstrap:
   enabled: false
-
-dependencies:
-  static:
-    api:
-      jobs:
-        - manila-db-sync
-        - manila-ks-user
-        - manila-ks-endpoints
-    data:
-      jobs:
-        - manila-db-sync
-        - manila-ks-user
-        - manila-ks-endpoints
-    share:
-      jobs:
-        - manila-db-sync
-        - manila-ks-user
-        - manila-ks-endpoints
-    scheduler:
-      jobs:
-        - manila-db-sync
-        - manila-ks-user
-        - manila-ks-endpoints
-    manager:
-      jobs:
-        - manila-db-sync
-        - manila-ks-user
-        - manila-ks-endpoints
-    db_sync:
-      jobs: []
 
 conf:
   manila:
@@ -153,16 +105,8 @@ conf:
       backend: barbican
     database:
       max_retries: -1
-    oslo_policy:
-      policy_file: /etc/manila/policy.yaml
-    oslo_concurrency:
-      lock_path: /var/lib/manila/tmp
     oslo_messaging_notifications:
       driver: noop
-    oslo_middleware:
-      enable_proxy_headers_parsing: true
-    oslo_messaging_rabbit:
-      rabbit_ha_queues: true
   manila_api_uwsgi:
     uwsgi:
       add-header: "Connection: close"

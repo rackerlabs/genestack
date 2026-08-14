@@ -50,7 +50,10 @@ PLATFORMS:
 
 OPTIONS:
     -i <list>    Comma-separated list of OpenStack services to include
-    -e <list>    Comma-separated list of OpenStack services to exclude
+    -e <list>    Comma-separated list of OpenStack services to exclude.
+                 Excluded components also skip their component-specific
+                 extras steps run by -x (e.g. -x -e octavia runs the extras
+                 but skips the Octavia preconf/install; -e k9s skips k9s).
     -x           Run extra operations (k9s install, Octavia preconf, etc.)
     --envoy-gateway-config
                  Deploy Envoy using the internal/external gateway config file
@@ -77,6 +80,11 @@ ENVIRONMENT VARIABLES:
                         for easier testing and debugging.
     HYPERCONVERGED_CINDER_VOLUME
                         If set to "true", enables iSCSI cinder volume support.
+    HYPERCONVERGED_MANILA_SHARE
+                        If set to "true", runs the full Manila enablement
+                        (secrets, service image build, share type) in addition
+                        to the Helm chart install. Default "false" keeps
+                        manila chart-only (control-plane pods).
     HYPERCONVERGED_ENVOY_GATEWAY_CONFIG
                         If set to "true", deploys Envoy using the internal/external
                         gateway config file path instead of the legacy flex-gateway.

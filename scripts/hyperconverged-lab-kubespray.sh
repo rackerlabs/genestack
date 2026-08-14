@@ -203,7 +203,7 @@ else
     fi
 fi
 
-ssh-add "${KEY_PEM}"
+ensureSshAgentKey "${KEY_PEM}"
 
 #############################################################################
 # Create Lab Instances
@@ -897,12 +897,24 @@ if [ ! -f "/usr/local/bin/queue_max.sh" ]; then
     python3 -m venv ~/.venvs/genestack
     ~/.venvs/genestack/bin/pip install -r /opt/genestack/requirements.txt
     source /opt/genestack/scripts/genestack.rc
+    # Install the pinned galaxy collections for the ssh user. bootstrap.sh
+    # installs them for root only, but the trove/manila enablement playbooks
+    # run unprivileged and their openstack.cloud modules require the pinned
+    # collection version (the one bundled with the ansible pip package is
+    # incompatible with openstacksdk >= 4.15).
+    ansible-playbook /opt/genestack/scripts/get-ansible-collection-requirements.yml \
+        -e collections_file=\${ANSIBLE_COLLECTION_FILE} \
+        -e user_collections_file=\${USER_COLLECTION_FILE}
     ANSIBLE_SSH_PIPELINING=0 ansible-playbook /opt/genestack/ansible/playbooks/host-setup.yml --become -e host_required_kernel=\$(uname -r)
 fi
 if [ ! -d "/var/lib/kubelet" ]; then
     source /opt/genestack/scripts/genestack.rc
     KUBESPRAY_DIR=/opt/genestack/submodules/kubespray
     if [ ! -f "\${KUBESPRAY_DIR}/cluster.yml" ] && [ ! -f "\${KUBESPRAY_DIR}/playbooks/cluster.yml" ]; then
+        # In dev mode the submodules are reconstructed on the jump host by
+        # reconstructSubmodulesOnJumpHost() before this runs, so we normally
+        # never get here. This remains as a fallback for the non-dev clone flow
+        # (a real /opt/genestack clone with a usable .git).
         echo "Kubespray checkout missing, initializing submodule..."
         pushd /opt/genestack >/dev/null
             sudo git config --global --add safe.directory /opt/genestack
@@ -926,6 +938,16 @@ if [ ! -d "/var/lib/kubelet" ]; then
 
     cd "\${KUBESPRAY_DIR}"
     ANSIBLE_SSH_PIPELINING=0 ansible-playbook "\${KUBESPRAY_PLAYBOOK}" --become
+fi
+# Give the ssh user a kubeconfig. The trove/manila enablement playbooks run
+# unprivileged and use kubernetes.core modules, and operators expect kubectl
+# to work from the jump host without sudo (previously this only happened as a
+# side effect of the optional -x k9s install).
+if [ ! -f \${HOME}/.kube/config ]; then
+    mkdir -p \${HOME}/.kube
+    sudo cp /etc/kubernetes/admin.conf \${HOME}/.kube/config
+    sudo chown \$(id -u):\$(id -g) \${HOME}/.kube/config
+    chmod 600 \${HOME}/.kube/config
 fi
 sudo mkdir -p /opt/kube-plugins
 sudo chown \${USER}:\${USER} /opt/kube-plugins
@@ -962,7 +984,11 @@ fi
 # Octavia per-configuration
 #############################################################################
 if [ "${RUN_EXTRAS}" -eq 1 ] && [ ${DISABLE_OPENSTACK} = "false" ]; then
-  install_preconf_octavia
+  if isExcluded octavia; then
+    echo "Skipping Octavia preconf/install: 'octavia' is in the exclude list (-e)"
+  else
+    install_preconf_octavia
+  fi
 fi
 
 #############################################################################
@@ -971,7 +997,11 @@ fi
 
 if [[ "$RUN_EXTRAS" -eq 1 ]]; then
     echo "Running extra operations..."
-    installK9sRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}"
+    if isExcluded k9s; then
+        echo "Skipping k9s install: 'k9s' is in the exclude list (-e)"
+    else
+        installK9sRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}"
+    fi
 fi
 
 #############################################################################
@@ -987,6 +1017,19 @@ if [ "${TEST_LEVEL}" = "off" ]; then
 
     # Swift Setup - standalone object-store (gated by swift: true in components.yaml)
     deploySwift "RegionOne"
+
+    # Manila Setup & Installation
+    # Opt-in via HYPERCONVERGED_MANILA_SHARE (mirrors HYPERCONVERGED_CINDER_VOLUME):
+    # by default 'manila: true' only installs the chart (control-plane pods),
+    # keeping smoke tests fast. Setting HYPERCONVERGED_MANILA_SHARE=true
+    # additionally runs the full enablement (secrets, service image build,
+    # pre/post deploy). Runs after the OpenStack APIs are ready because the
+    # image build uploads to Glance. deployManila also self-gates on
+    # 'manila: true' in openstack-components.yaml, so '-e manila' (which sets
+    # it false) skips it too.
+    if [ "${HYPERCONVERGED_MANILA_SHARE:-false}" = "true" ] && [ ${DISABLE_OPENSTACK} = "false" ]; then
+        deployManila
+    fi
 
     # Trove Setup & Installation
     # Must be run after the flat network has been created
