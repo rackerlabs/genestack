@@ -34,14 +34,33 @@
   when:
     - cinder_worker_name | lower != "lvm"
 
+- name: Wait for apt/dpkg locks to be released
+  ansible.builtin.shell: |
+    while fuser /var/lib/dpkg/lock /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock /var/cache/apt/archives/lock >/dev/null 2>&1; do
+      echo "apt/dpkg lock held, waiting..."
+      sleep 5
+    done
+  changed_when: false
+  when:
+    - ansible_facts['os_family'] | lower == 'debian'
+
+# run_once: every host in the play delegates this block to the first
+# control-plane node; without it, N parallel apt-get invocations race each
+# other for the dpkg lock on that one node (only one wins). The registered
+# secret result is propagated to all play hosts by run_once.
 - name: K8S Facts block
   delegate_to: "{{ groups['kube_control_plane'][0] }}"
+  run_once: true
   block:
     - name: Ensure python3-kubernetes is available
       ansible.builtin.package:
         name: python3-kubernetes
         state: present
         update_cache: true
+      register: _py3_kubernetes_install
+      until: _py3_kubernetes_install is success
+      retries: 20
+      delay: 5
 
     - name: Read cinder-etc secrets
       kubernetes.core.k8s_info:
@@ -59,8 +78,8 @@
     - cinder_volume_package_list | length > 0
   register: install_packages
   until: install_packages is success
-  retries: 5
-  delay: 2
+  retries: 20
+  delay: 5
 
 - name: Install cinder-backend distro packages
   ansible.builtin.package:
@@ -71,8 +90,8 @@
     - cinder_volume_package_list | length > 0
   register: install_backend_packages
   until: install_backend_packages is success
-  retries: 5
-  delay: 2
+  retries: 20
+  delay: 5
 
 - name: Determine iscsi initiator name
   set_fact:
