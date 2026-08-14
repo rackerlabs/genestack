@@ -1,0 +1,75 @@
+---
+# ClientTrafficPolicy — downstream (client -> Envoy) settings for the
+# glance-https listener only.
+#
+# Namespace MUST match the Gateway's namespace (envoy-gateway), not the
+# namespace of the backend service.
+#
+# IMPORTANT: Envoy Gateway does NOT field-merge a sectionName-scoped policy
+# over a Gateway-scoped one. This policy REPLACES flex-gateway-client-policy
+# wholesale for the glance-https listener. That is why clientIPDetection is
+# re-declared below -- omit it and glance loses XFF parsing while every other
+# listener keeps it.
+#
+# Verify attachment:
+#   kubectl -n envoy-gateway get clienttrafficpolicy flex-gateway-glance-policy \
+#     -o jsonpath='{range .status.ancestors[*]}{.ancestorRef.sectionName}{"\t"}{range .conditions[*]}{.type}={.status}{" "}{.message}{"\n"}{end}{end}'
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: ClientTrafficPolicy
+metadata:
+  name: flex-gateway-glance-policy
+  namespace: envoy-gateway
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: flex-gateway
+      sectionName: glance-https
+
+  # Carried over from flex-gateway-client-policy. Required because a
+  # section-scoped policy replaces rather than merges.
+  clientIPDetection:
+    xForwardedFor:
+      numTrustedHops: 2
+
+  connection:
+    # Envoy default is 1Mi; the base policy sets 16Ki, which is far too small
+    # for multi-GB image streams.
+    #
+    # This is a per-connection high-watermark, not a preallocation, but
+    # concurrent image pulls multiply it. Check Envoy pod memory limits before
+    # raising past 16Mi:
+    #   kubectl -n envoy-gateway get pod \
+    #     -l gateway.envoyproxy.io/owning-gateway-name=flex-gateway \
+    #     -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[?(@.name=="envoy")].resources.limits.memory}{"\n"}{end}'
+    #
+    # Watch actual usage before going higher:
+    #   cluster.*.upstream_cx_rx_bytes_buffered
+    bufferLimit: 16Mi
+
+  timeout:
+    http:
+      # Base policy sets 5s. At ~2.8 MB/s from remote Swift, any inter-segment
+      # gap longer than that tears the stream down and glance logs
+      # BrokenPipeError. 5s is also below the RTT budget of normal API calls.
+      idleTimeout: 3600s
+
+  http2:
+    # Envoy default is 64Ki (confirmed via kubectl explain -- Envoy Gateway
+    # does not override it). Per-stream throughput is capped at window / RTT
+    # regardless of bandwidth or buffer size:
+    #
+    #   64Ki @ 30ms RTT  = ~2.1 MB/s   <- hard ceiling
+    #    4Mi @ 30ms RTT  = ~137 MB/s
+    #
+    # Only takes effect if clients actually negotiate h2. Note that
+    # python-openstackclient (requests/urllib3) is HTTP/1.1 only, so for CLI
+    # image pulls this is inert and bufferLimit is the operative lever.
+    # Confirm what real clients negotiate:
+    #   curl -so /dev/null -w 'proto=%{http_version} ttfb=%{time_starttransfer}\n' \
+    #     https://glance.api.sat0.cloudnull.dev/
+    #
+    # Keep connection window >= 4x stream window so one stream cannot starve
+    # the connection.
+    initialStreamWindowSize: 4Mi
+    initialConnectionWindowSize: 16Mi
