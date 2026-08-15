@@ -49,11 +49,16 @@ PLATFORMS:
     help         Show this help message
 
 OPTIONS:
-    -i <list>    Comma-separated list of OpenStack services to include
+    -i <list>    Comma-separated list of OpenStack services to include.
+                 'cinder-volume' is a pseudo service: 'cinder' installs the
+                 control-plane chart only, while 'cinder-volume' additionally
+                 runs the data-plane enablement (volume/VG prep, cinder
+                 volumes playbook, volume type/QoS).
     -e <list>    Comma-separated list of OpenStack services to exclude.
                  Excluded components also skip their component-specific
                  extras steps run by -x (e.g. -x -e octavia runs the extras
-                 but skips the Octavia preconf/install; -e k9s skips k9s).
+                 but skips the Octavia preconf/install; -e k9s skips k9s,
+                 -e cinder-volume skips the cinder data-plane enablement).
     -x           Run extra operations (k9s install, Octavia preconf, etc.)
     --envoy-gateway-config
                  Deploy Envoy using the internal/external gateway config file
@@ -80,6 +85,8 @@ ENVIRONMENT VARIABLES:
                         for easier testing and debugging.
     HYPERCONVERGED_CINDER_VOLUME
                         If set to "true", enables iSCSI cinder volume support.
+                        Equivalent to including the 'cinder-volume' pseudo
+                        service via -i; '-e cinder-volume' overrides both.
     HYPERCONVERGED_MANILA_SHARE
                         If set to "true", runs the full Manila enablement
                         (secrets, service image build, share type) in addition

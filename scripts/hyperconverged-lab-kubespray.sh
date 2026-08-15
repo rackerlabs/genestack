@@ -378,7 +378,7 @@ echo "  Jump host is ready"
 # Create and Attach Lab Volumes
 #############################################################################
 
-if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+if [ "${CINDER_VOLUME_ENABLED:-false}" = "true" ]; then
     READY_COUNT=0
     while [ $(openstack server show ${LAB_NAME_PREFIX}-0 -f yaml | yq '.status') != 'ACTIVE' ]; do
       echo "Server instance 0 is not ready, waiting..."
@@ -713,7 +713,7 @@ fi
 
 # Create Kubespray inventory
 if [ ! -f "/etc/genestack/inventory/inventory.yaml" ]; then
-    if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+    if [ "${CINDER_VOLUME_ENABLED:-false}" = "true" ]; then
         cat > /etc/genestack/inventory/inventory.yaml <<EOF
 ---
 all:
@@ -976,7 +976,7 @@ runGenestackSetupRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}" "${GATEWAY_DOMAIN}"
 #############################################################################
 # Cinder Volume Setup
 #############################################################################
-if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ] && [ ${DISABLE_OPENSTACK} = "false" ]; then
+if [ "${CINDER_VOLUME_ENABLED:-false}" = "true" ] && [ ${DISABLE_OPENSTACK} = "false" ]; then
   cinderVolumeSetup
 fi
 
