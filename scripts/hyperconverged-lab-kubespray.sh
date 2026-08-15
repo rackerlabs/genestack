@@ -949,6 +949,11 @@ if [ ! -f \${HOME}/.kube/config ]; then
     sudo chown \$(id -u):\$(id -g) \${HOME}/.kube/config
     chmod 600 \${HOME}/.kube/config
 fi
+# Pre-create the XDG base directories as the ssh user so that any later
+# root-context task with a misdirected HOME can only create subpaths under
+# them rather than taking ownership of the roots (which breaks
+# XDG-compliant tools like k9s for the ssh user).
+mkdir -p \${HOME}/.local/state \${HOME}/.local/share \${HOME}/.cache
 sudo mkdir -p /opt/kube-plugins
 sudo chown \${USER}:\${USER} /opt/kube-plugins
 pushd /opt/kube-plugins
