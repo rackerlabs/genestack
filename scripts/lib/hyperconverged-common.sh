@@ -127,12 +127,42 @@ function parseCommonArgs() {
         esac
     done
 
+    # Resolve the 'cinder-volume' pseudo service. 'cinder' refers to the
+    # control-plane chart only (like any other component); 'cinder-volume'
+    # covers the data-plane enablement (lab volume/VG prep, the cinder
+    # volumes playbook on labeled storage nodes, volume type/QoS). It can be
+    # enabled with '-i cinder-volume' or the legacy
+    # HYPERCONVERGED_CINDER_VOLUME=true environment variable, and disabled
+    # with '-e cinder-volume' (which wins over both).
+    CINDER_VOLUME_ENABLED="${HYPERCONVERGED_CINDER_VOLUME:-false}"
+    if isIncluded cinder-volume; then
+        CINDER_VOLUME_ENABLED=true
+    fi
+    if isExcluded cinder-volume; then
+        CINDER_VOLUME_ENABLED=false
+    fi
+    export CINDER_VOLUME_ENABLED
+
     export RUN_EXTRAS
     export INCLUDE_LIST
     export EXCLUDE_LIST
     export HYPERCONVERGED_ENVOY_GATEWAY_CONFIG
     export HYPERCONVERGED_ENVOY_GATEWAY_ACME
     export HYPERCONVERGED_INTERNAL_METALLB_IP
+}
+
+function isIncluded() {
+    # Check whether a component was named in the -i include list.
+    # Usage: isIncluded <component>
+    local component
+    local item
+    component=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')
+    for item in "${INCLUDE_LIST[@]}"; do
+        if [ "$(printf '%s' "${item}" | tr '[:upper:]' '[:lower:]')" = "${component}" ]; then
+            return 0
+        fi
+    done
+    return 1
 }
 
 function isExcluded() {
@@ -720,7 +750,7 @@ EOF
     fi
 
     if [ ! -f "${config_base}/barbican/barbican-helm-overrides.yaml" ]; then
-        if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+        if [ "${CINDER_VOLUME_ENABLED:-false}" = "true" ]; then
             cat > "${config_base}/barbican/barbican-helm-overrides.yaml" <<EOF
 ---
 pod:
@@ -771,7 +801,7 @@ EOF
     fi
 
     if [ ! -f "${config_base}/cinder/cinder-helm-overrides.yaml" ]; then
-        if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+        if [ "${CINDER_VOLUME_ENABLED:-false}" = "true" ]; then
             cat > "${config_base}/cinder/cinder-helm-overrides.yaml" <<EOF
 ---
 pod:
@@ -958,7 +988,7 @@ EOF
     fi
 
     if [ ! -f "${config_base}/nova/nova-helm-overrides.yaml" ]; then
-        if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+        if [ "${CINDER_VOLUME_ENABLED:-false}" = "true" ]; then
             cat > "${config_base}/nova/nova-helm-overrides.yaml" <<EOF
 ---
 pod:
@@ -1558,7 +1588,7 @@ function configureGenestackRemote() {
         declare -f installYq
 
         cat <<EOF
-export HYPERCONVERGED_CINDER_VOLUME=$HYPERCONVERGED_CINDER_VOLUME
+export HYPERCONVERGED_CINDER_VOLUME=$CINDER_VOLUME_ENABLED
 export HYPERCONVERGED_ENVOY_GATEWAY_CONFIG=${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}
 export HYPERCONVERGED_ENVOY_GATEWAY_ACME=${HYPERCONVERGED_ENVOY_GATEWAY_ACME:-false}
 export METAL_LB_INTERNAL_IP='${internal_metal_lb_ip}'
