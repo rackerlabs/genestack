@@ -142,6 +142,9 @@ function parseCommonArgs() {
         CINDER_VOLUME_ENABLED=false
     fi
     export CINDER_VOLUME_ENABLED
+    if [ "${CINDER_VOLUME_ENABLED}" = "true" ]; then
+        echo "cinder-volume enabled: cinder control plane + LVM/iSCSI data plane (volumes playbook, volume type/QoS)"
+    fi
 
     export RUN_EXTRAS
     export INCLUDE_LIST
