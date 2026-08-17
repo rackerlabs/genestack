@@ -1024,15 +1024,17 @@ if [ "${TEST_LEVEL}" = "off" ]; then
     deploySwift "RegionOne"
 
     # Manila Setup & Installation
-    # Opt-in via HYPERCONVERGED_MANILA_SHARE (mirrors HYPERCONVERGED_CINDER_VOLUME):
-    # by default 'manila: true' only installs the chart (control-plane pods),
-    # keeping smoke tests fast. Setting HYPERCONVERGED_MANILA_SHARE=true
-    # additionally runs the full enablement (secrets, service image build,
-    # pre/post deploy). Runs after the OpenStack APIs are ready because the
+    # Opt-in via the 'manila-share' pseudo service (-i manila-share, which
+    # implies the manila control plane) or the legacy
+    # HYPERCONVERGED_MANILA_SHARE=true environment variable; both resolve to
+    # MANILA_SHARE_ENABLED in parseCommonArgs. By default 'manila: true' only
+    # installs the chart (control-plane pods), keeping smoke tests fast; the
+    # enablement additionally runs secrets, the service image build and
+    # pre/post deploy. Runs after the OpenStack APIs are ready because the
     # image build uploads to Glance. deployManila also self-gates on
     # 'manila: true' in openstack-components.yaml, so '-e manila' (which sets
     # it false) skips it too.
-    if [ "${HYPERCONVERGED_MANILA_SHARE:-false}" = "true" ] && [ ${DISABLE_OPENSTACK} = "false" ]; then
+    if [ "${MANILA_SHARE_ENABLED:-false}" = "true" ] && [ ${DISABLE_OPENSTACK} = "false" ]; then
         deployManila
     fi
 
