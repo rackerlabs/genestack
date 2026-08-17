@@ -411,7 +411,7 @@ if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
 
     if ! openstack volume show ${LAB_NAME_PREFIX}-0-cv1 2>/dev/null; then
       openstack volume create \
-        --size 150 \
+        --size 200 \
         --type Performance \
         --description "cinder-volumes-1 on ${LAB_NAME_PREFIX}-0" \
         ${LAB_NAME_PREFIX}-0-cv1
@@ -419,7 +419,7 @@ if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
 
     if ! openstack volume show ${LAB_NAME_PREFIX}-1-cv1 2>/dev/null; then
       openstack volume create \
-        --size 150 \
+        --size 200 \
         --type Performance \
         --description "cinder-volumes-1 on ${LAB_NAME_PREFIX}-1" \
         ${LAB_NAME_PREFIX}-1-cv1
@@ -427,7 +427,7 @@ if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
 
     if ! openstack volume show ${LAB_NAME_PREFIX}-2-cv1 2>/dev/null; then
       openstack volume create \
-        --size 150 \
+        --size 200 \
         --type Performance \
         --description "cinder-volumes-1 on ${LAB_NAME_PREFIX}-2" \
         ${LAB_NAME_PREFIX}-2-cv1

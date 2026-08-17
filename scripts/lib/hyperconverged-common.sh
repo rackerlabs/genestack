@@ -647,23 +647,6 @@ EOF
         if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
             cat > "${config_base}/cinder/cinder-helm-overrides.yaml" <<EOF
 ---
-images:
-  tags:
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
-    cinder_api: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
-    cinder_backup: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
-    cinder_backup_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
-    cinder_db_sync: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
-    cinder_scheduler: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
-    cinder_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
-    cinder_volume: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
-    cinder_volume_usage_audit: "ghcr.io/rackerlabs/genestack-images/cinder:2024.1-1754785862"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
-    db_init: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
-    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2024.1-1754784075"
 pod:
   resources:
     enabled: true
@@ -682,13 +665,10 @@ pod:
         cpu: "2"
         memory: "2Gi"
 conf:
-# NOTE: (brew) uncomment to change default log level from INFO
-#  logging:
-#    logger_cinder:
-#      level: DEBUG
-#      handlers: stdout
   policy:
     "volume_extension:types_extra_specs:read_sensitive": "rule:xena_system_admin_or_project_reader"
+    "volume_extension:qos_specs_manage:get_all": "rule:xena_system_admin_or_project_member"
+    "volume_extension:qos_specs_manage:get": "rule:xena_system_admin_or_project_member"
   cinder:
     DEFAULT:
       osapi_volume_workers: 2
@@ -1780,16 +1760,10 @@ source /opt/genestack/scripts/genestack.rc
 echo "[JUMP_HOST] Running cinder install script"
 sudo /opt/genestack/bin/install-cinder.sh
 
-#for node in ${LAB_NAME_PREFIX}-0 ${LAB_NAME_PREFIX}-1 ${LAB_NAME_PREFIX}-2; do
-#    echo "Waiting for apt locks on \${node}..."
-#    ssh -o StrictHostKeyChecking=no \${node} \
-#        'while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do echo "  apt lock held, waiting..."; sleep 5; done'
-#done
-
-echo "[JUMP_HOST] Running cinder volumes playbook (running twice to get past apt lock issue that previous loop should fix but doesn't)"
-ansible-playbook -i /etc/genestack/inventory/inventory.yaml \
-    -e "storage_network_interface=ansible_enp3s0 storage_network_interface_secondary=ansible_enp3s0 cinder_backend_name=lvmdriver-1 cinder_worker_name=lvm cinder_release_branch='stable/2025.1'" \
-    /opt/genestack/ansible/playbooks/deploy-cinder-volume.yaml -f3
+# Single run: the cinder_volumes role now waits for apt/dpkg locks and uses
+# run_once for the delegated python3-kubernetes install, which eliminated the
+# dpkg lock race that previously required running this playbook twice.
+echo "[JUMP_HOST] Running cinder volumes playbook"
 ansible-playbook -i /etc/genestack/inventory/inventory.yaml \
     -e "storage_network_interface=ansible_enp3s0 storage_network_interface_secondary=ansible_enp3s0 cinder_backend_name=lvmdriver-1 cinder_worker_name=lvm cinder_release_branch='stable/2025.1'" \
     /opt/genestack/ansible/playbooks/deploy-cinder-volume.yaml -f3
@@ -1830,8 +1804,8 @@ source ~/.venvs/genestack/bin/activate
 
 OCTAVIA_HELM_FILE=/tmp/octavia_helm_overrides.yaml
 
-ANSIBLE_SSH_PIPELINING=0 ansible-playbook /opt/genestack/ansible/playbooks/octavia-preconf-main.yaml \
-    -e octavia_os_password=$(/usr/local/bin/kubectl get secrets keystone-admin -n openstack -o jsonpath='{.data.password}' | base64 -d) \
+sudo ANSIBLE_SSH_PIPELINING=0 /root/.venvs/genestack/bin/ansible-playbook /opt/genestack/ansible/playbooks/octavia-preconf-main.yaml \
+    -e octavia_os_password=$(sudo /usr/local/bin/kubectl get secrets keystone-admin -n openstack -o jsonpath='{.data.password}' | base64 -d) \
     -e octavia_os_region_name=$(sudo ~/.venvs/genestack/bin/openstack --os-cloud=default endpoint list --service keystone --interface internal -c Region -f value) \
     -e octavia_os_auth_url=$(sudo ~/.venvs/genestack/bin/openstack --os-cloud=default endpoint list --service keystone --interface internal -c URL -f value) \
     -e octavia_os_endpoint_type=internal \
