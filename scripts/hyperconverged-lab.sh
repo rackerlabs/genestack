@@ -109,12 +109,11 @@ ENVIRONMENT VARIABLES:
                         always matches the control plane.
     HYPERCONVERGED_MANILA_SHARE
                         If set to "true", runs the full Manila enablement
-                        (secrets, service image build, share type) in addition
-                        to the Helm chart install. Default "false" keeps
-                        manila chart-only (control-plane pods). Similar to
-                        including the 'manila-share' pseudo service via -i,
-                        except the environment variable does not imply the
-                        manila chart; '-e manila-share' overrides both.
+                        (secrets, service image build, share type) with a
+                        single manila chart install performed by the
+                        enablement step. Equivalent to including the
+                        'manila-share' pseudo service via -i; '-e manila-share'
+                        overrides both. Default "false" installs no manila.
     HYPERCONVERGED_ENVOY_GATEWAY_CONFIG
                         If set to "true", deploys Envoy using the internal/external
                         gateway config file path instead of the legacy flex-gateway.
