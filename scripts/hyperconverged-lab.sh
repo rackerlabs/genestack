@@ -93,6 +93,20 @@ ENVIRONMENT VARIABLES:
                         If set to "true", enables iSCSI cinder volume support.
                         Equivalent to including the 'cinder-volume' pseudo
                         service via -i; '-e cinder-volume' overrides both.
+    CINDER_STORAGE_INTERFACE
+                        Ansible fact name of the storage network interface
+                        used by the cinder volumes playbook
+                        (default: ansible_enp3s0).
+    CINDER_STORAGE_INTERFACE_SECONDARY
+                        Secondary storage interface fact name (defaults to
+                        CINDER_STORAGE_INTERFACE).
+    CINDER_BACKEND_NAME Cinder backend name for the volumes playbook
+                        (default: lvmdriver-1).
+    CINDER_WORKER_NAME  Cinder worker type for the volumes playbook
+                        (default: lvm). The cinder release branch is no longer
+                        configurable here: it is derived from the cinder chart
+                        version in helm-chart-versions.yaml so the data plane
+                        always matches the control plane.
     HYPERCONVERGED_MANILA_SHARE
                         If set to "true", runs the full Manila enablement
                         (secrets, service image build, share type) in addition

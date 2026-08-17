@@ -1631,6 +1631,12 @@ function configureGenestackRemote() {
 
         cat <<EOF
 export HYPERCONVERGED_CINDER_VOLUME=$CINDER_VOLUME_ENABLED
+# writeServiceHelmOverrides (shipped above via declare -f and executed on the
+# jump host) selects the cinder/nova/barbican override variants by testing
+# CINDER_VOLUME_ENABLED, which only exists on the workstation - export the
+# resolved value into the remote session too.
+export CINDER_VOLUME_ENABLED=$CINDER_VOLUME_ENABLED
+export MANILA_SHARE_ENABLED=$MANILA_SHARE_ENABLED
 export HYPERCONVERGED_ENVOY_GATEWAY_CONFIG=${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}
 export HYPERCONVERGED_ENVOY_GATEWAY_ACME=${HYPERCONVERGED_ENVOY_GATEWAY_ACME:-false}
 export METAL_LB_INTERNAL_IP='${internal_metal_lb_ip}'
@@ -1957,6 +1963,7 @@ NODE_2_EOF
     # Ansible playbook time
     {
         cat << ANSIBLE_EOF
+set -e
 source /opt/genestack/scripts/genestack.rc
 
 echo "[JUMP_HOST] Running cinder install script"
@@ -1966,8 +1973,19 @@ sudo /opt/genestack/bin/install-cinder.sh
 # run_once for the delegated python3-kubernetes install, which eliminated the
 # dpkg lock race that previously required running this playbook twice.
 echo "[JUMP_HOST] Running cinder volumes playbook"
+# Derive the cinder release branch from the chart version actually being
+# installed on the control plane (/etc/genestack/helm-chart-versions.yaml is
+# what install-cinder.sh deploys from), e.g. 2026.1.9+abc -> stable/2026.1.
+CINDER_RELEASE_BRANCH="stable/\$(yq '.charts.cinder' /etc/genestack/helm-chart-versions.yaml | cut -d. -f1,2)"
+if [ "\${CINDER_RELEASE_BRANCH}" = "stable/" ] || [ "\${CINDER_RELEASE_BRANCH}" = "stable/null" ]; then
+    echo "ERROR: could not derive cinder release branch from /etc/genestack/helm-chart-versions.yaml" >&2
+    exit 1
+fi
+echo "[JUMP_HOST] cinder release branch: \${CINDER_RELEASE_BRANCH}"
+# The storage interface and backend knobs expand on the workstation so they
+# can be overridden via the environment without editing this script.
 ansible-playbook -i /etc/genestack/inventory/inventory.yaml \
-    -e "storage_network_interface=ansible_enp3s0 storage_network_interface_secondary=ansible_enp3s0 cinder_backend_name=lvmdriver-1 cinder_worker_name=lvm cinder_release_branch='stable/2025.1'" \
+    -e "storage_network_interface=${CINDER_STORAGE_INTERFACE:-ansible_enp3s0} storage_network_interface_secondary=${CINDER_STORAGE_INTERFACE_SECONDARY:-${CINDER_STORAGE_INTERFACE:-ansible_enp3s0}} cinder_backend_name=${CINDER_BACKEND_NAME:-lvmdriver-1} cinder_worker_name=${CINDER_WORKER_NAME:-lvm} cinder_release_branch='\${CINDER_RELEASE_BRANCH}'" \
     /opt/genestack/ansible/playbooks/deploy-cinder-volume.yaml -f3
 
 echo "[JUMP_HOST] Creating volume type and qos"
