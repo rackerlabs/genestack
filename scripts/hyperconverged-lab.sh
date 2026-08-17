@@ -50,10 +50,13 @@ PLATFORMS:
 
 OPTIONS:
     -i <list>    Comma-separated list of OpenStack services to include.
-                 'cinder-volume' is a pseudo service: 'cinder' installs the
-                 control-plane chart only, while 'cinder-volume' additionally
-                 runs the data-plane enablement (volume/VG prep, cinder
-                 volumes playbook, volume type/QoS).
+                 Component names install their control-plane chart. Data-plane
+                 pseudo services (e.g. 'cinder-volume') install the named
+                 data-plane component AND imply their control plane, so
+                 'cinder-volume' alone yields the full cinder stack (single
+                 late chart install + volume/VG prep, cinder volumes playbook,
+                 volume type/QoS). Add plain 'cinder' only when you want the
+                 chart without the data plane.
     -e <list>    Comma-separated list of OpenStack services to exclude.
                  Excluded components also skip their component-specific
                  extras steps run by -x (e.g. -x -e octavia runs the extras
