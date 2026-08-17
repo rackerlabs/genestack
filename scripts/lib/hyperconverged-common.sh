@@ -151,17 +151,14 @@ function parseCommonArgs() {
     # (secrets, service image build, pre/post deploy incl. share type). It can
     # be enabled with '-i manila-share' or the legacy
     # HYPERCONVERGED_MANILA_SHARE=true environment variable, and disabled with
-    # '-e manila-share' (which wins over both). Per the pseudo service
-    # convention, '-i manila-share' implies the manila control plane; the
-    # legacy environment variable keeps its historical behavior and does NOT
-    # imply the chart (deployManila self-gates on 'manila: true' in
-    # openstack-components.yaml and exits cleanly when it is absent).
+    # '-e manila-share' (which wins over both). Like cinder-volume, the
+    # implied control plane is installed by the enablement step (deployManila
+    # runs install-manila.sh after pre_deploy) - NOT by adding manila to the
+    # batch - so the chart is installed once, after its preconf, instead of a
+    # bare batch install followed by an upgrade.
     MANILA_SHARE_ENABLED="${HYPERCONVERGED_MANILA_SHARE:-false}"
     if isIncluded manila-share; then
         MANILA_SHARE_ENABLED=true
-        if ! isIncluded manila && ! isExcluded manila; then
-            INCLUDE_LIST+=("manila")
-        fi
     fi
     if isExcluded manila-share; then
         MANILA_SHARE_ENABLED=false
@@ -245,8 +242,17 @@ function ensureSshAgentKey() {
 
     if ! ssh-add "${key_pem}"; then
         echo "ERROR: ssh-add failed to load ${key_pem} into the running agent." >&2
-        echo "       If your agent does not support ssh-add (e.g. 1Password), add the" >&2
-        echo "       key through the agent's own tooling, then re-run." >&2
+        if [ "${agent_status}" -eq 1 ]; then
+            echo "       The agent reported no identities at all. If you use 1Password" >&2
+            echo "       (or another locking agent), the vault may be locked - unlock" >&2
+            echo "       it and re-run. If the key is already stored in the agent, no" >&2
+            echo "       other action is needed." >&2
+        else
+            echo "       The agent lists identities but none match this key" >&2
+            echo "       (fingerprint ${key_fp:-unknown}). If your agent does not" >&2
+            echo "       support ssh-add (e.g. 1Password), add the key through the" >&2
+            echo "       agent's own tooling, then re-run." >&2
+        fi
         exit 1
     fi
 }
@@ -2081,13 +2087,11 @@ function deployManila() {
     # from the K8s secret and authenticates via its own OS_* environment.
     echo "Running manila deployment ..."
 
+    # The caller gates this on MANILA_SHARE_ENABLED. deployManila performs the
+    # single manila install itself (install-manila.sh after pre_deploy), so
+    # manila is intentionally NOT in the openstack batch - do not re-add a
+    # components.yaml gate here or it will exit without installing.
     _ssh << 'EOC'
-# check if manila is to be installed, otherwise exit cleanly
-if ! grep "manila: true" /etc/genestack/openstack-components.yaml &>/dev/null; then
-    echo "Manila not installed, exiting Manila setup function for $(hostname)"
-    exit 0
-fi
-
 set -e
 # activate environment for openstack commands
 source /opt/genestack/scripts/genestack.rc
