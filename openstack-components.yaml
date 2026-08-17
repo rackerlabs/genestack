@@ -6,11 +6,6 @@ components:
   blazar: false
   ceilometer: false
   cinder: false
-  # cinder-volume is a pseudo service handled by the hyperconverged lab: it
-  # runs the cinder volumes data-plane enablement (volume/VG prep, the cinder
-  # volumes playbook on labeled storage nodes, volume type/QoS). 'cinder'
-  # above covers only the control-plane chart.
-  cinder-volume: false
   cloudkitty: false
   freezer: false
   glance: true

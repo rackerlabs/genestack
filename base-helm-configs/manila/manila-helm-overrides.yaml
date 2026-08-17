@@ -34,14 +34,8 @@ images:
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
 # limit values based on defaults from the openstack-helm charts unless defined
 pod:
-  # The manila-share pod runs with hostNetwork and its init container derives
-  # service_network_host from 'hostname --fqdn', which fails to resolve in
-  # the pod's DNS context and injects an EMPTY value; manila >= 22.x rejects
-  # it at startup (oslo HostAddress: 'is not a valid host address'). The
-  # generic driver runs with connect_share_server_to_tenant_network=true, so
-  # service_network_host is unused - disable the fqdn injection entirely.
   use_fqdn:
-    share: false
+    share: true
   replicas:
     api: 1
     data: 1

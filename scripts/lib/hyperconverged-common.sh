@@ -146,6 +146,31 @@ function parseCommonArgs() {
         echo "cinder-volume enabled: cinder control plane + LVM/iSCSI data plane (volumes playbook, volume type/QoS)"
     fi
 
+    # Resolve the 'manila-share' pseudo service. 'manila' refers to the
+    # control-plane chart only; 'manila-share' covers the full enablement
+    # (secrets, service image build, pre/post deploy incl. share type). It can
+    # be enabled with '-i manila-share' or the legacy
+    # HYPERCONVERGED_MANILA_SHARE=true environment variable, and disabled with
+    # '-e manila-share' (which wins over both). Per the pseudo service
+    # convention, '-i manila-share' implies the manila control plane; the
+    # legacy environment variable keeps its historical behavior and does NOT
+    # imply the chart (deployManila self-gates on 'manila: true' in
+    # openstack-components.yaml and exits cleanly when it is absent).
+    MANILA_SHARE_ENABLED="${HYPERCONVERGED_MANILA_SHARE:-false}"
+    if isIncluded manila-share; then
+        MANILA_SHARE_ENABLED=true
+        if ! isIncluded manila && ! isExcluded manila; then
+            INCLUDE_LIST+=("manila")
+        fi
+    fi
+    if isExcluded manila-share; then
+        MANILA_SHARE_ENABLED=false
+    fi
+    export MANILA_SHARE_ENABLED
+    if [ "${MANILA_SHARE_ENABLED}" = "true" ]; then
+        echo "manila-share enabled: manila control plane + share enablement (secrets, service image build, share type)"
+    fi
+
     export RUN_EXTRAS
     export INCLUDE_LIST
     export EXCLUDE_LIST
@@ -239,13 +264,27 @@ function writeOpenstackComponentsConfig() {
 
     echo -e "${os_config}" | tee "${output_path}"
 
+    # Only flip keys that exist in the base components file. The include and
+    # exclude lists may also carry lab pseudo services (cinder-volume,
+    # manila-share, k9s) that are resolved by the lab scripts themselves;
+    # writing them here would pollute the components file, which is consumed
+    # by callers beyond the hyperconverged lab and must only contain real
+    # service names.
     for option in "${INCLUDE_LIST[@]}"; do
-        echo "include option: ${option}"
-        yq -i ".components.$option = true" "${output_path}"
+        if [ "$(yq ".components | has(\"${option}\")" "${output_path}")" = "true" ]; then
+            echo "include option: ${option}"
+            yq -i ".components.${option} = true" "${output_path}"
+        else
+            echo "include option: ${option} (lab pseudo service, not written to components file)"
+        fi
     done
     for option in "${EXCLUDE_LIST[@]}"; do
-        echo "exclude option: ${option}"
-        yq -i ".components.$option = false" "${output_path}"
+        if [ "$(yq ".components | has(\"${option}\")" "${output_path}")" = "true" ]; then
+            echo "exclude option: ${option}"
+            yq -i ".components.${option} = false" "${output_path}"
+        else
+            echo "exclude option: ${option} (lab pseudo service, not written to components file)"
+        fi
     done
     cat ${output_path}
 }

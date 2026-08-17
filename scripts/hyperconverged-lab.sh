@@ -51,12 +51,15 @@ PLATFORMS:
 OPTIONS:
     -i <list>    Comma-separated list of OpenStack services to include.
                  Component names install their control-plane chart. Data-plane
-                 pseudo services (e.g. 'cinder-volume') install the named
-                 data-plane component AND imply their control plane, so
-                 'cinder-volume' alone yields the full cinder stack (single
-                 late chart install + volume/VG prep, cinder volumes playbook,
-                 volume type/QoS). Add plain 'cinder' only when you want the
-                 chart without the data plane.
+                 pseudo services install the named data-plane component AND
+                 imply their control plane:
+                   cinder-volume  full cinder stack: single late chart install
+                                  + volume/VG prep, cinder volumes playbook,
+                                  volume type/QoS
+                   manila-share   full manila stack: chart + enablement
+                                  (secrets, service image build, share type)
+                 Add the plain component name only when you want the chart
+                 without the data plane.
     -e <list>    Comma-separated list of OpenStack services to exclude.
                  Excluded components also skip their component-specific
                  extras steps run by -x (e.g. -x -e octavia runs the extras
@@ -94,7 +97,10 @@ ENVIRONMENT VARIABLES:
                         If set to "true", runs the full Manila enablement
                         (secrets, service image build, share type) in addition
                         to the Helm chart install. Default "false" keeps
-                        manila chart-only (control-plane pods).
+                        manila chart-only (control-plane pods). Similar to
+                        including the 'manila-share' pseudo service via -i,
+                        except the environment variable does not imply the
+                        manila chart; '-e manila-share' overrides both.
     HYPERCONVERGED_ENVOY_GATEWAY_CONFIG
                         If set to "true", deploys Envoy using the internal/external
                         gateway config file path instead of the legacy flex-gateway.
