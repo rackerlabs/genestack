@@ -115,6 +115,16 @@
   when:
     - cinder_worker_name | lower != "lvm"
 
+- name: Remove any existing cinder virtualenv for a clean (re)install
+  # Always rebuild the venv so a re-run installs exactly the requested
+  # cinder_release_branch (and current cinder-rxt). With a reused venv, pip
+  # sees 'cinder' already satisfied and skips the VCS reinstall, leaving the
+  # data plane pinned to whatever release was installed first - a silent
+  # version skew on upgrade.
+  ansible.builtin.file:
+    path: "{{ cinder_virtualenv_path }}"
+    state: absent
+
 - name: Upgrade pip and install required packages
   ansible.builtin.pip:
     name:
