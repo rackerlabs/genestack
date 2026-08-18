@@ -115,6 +115,39 @@
   when:
     - cinder_worker_name | lower != "lvm"
 
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
+- name: Stop cinder data-plane services before rebuilding the virtualenv
+  # The venv is wiped and rebuilt below; stop any running cinder services
+  # first so binaries are not deleted out from under a live process. Enumerate
+  # via service_facts and loop the systemd module (which cannot glob a name)
+  # so this covers any worker name (cinder-volume-lvm, cinder-volume-netapp,
+  # ...) and is first-run safe: units that do not exist never appear in the
+  # facts, so the loop is simply empty. The venv removal notifies the restart
+  # handlers, which bring the services back on the fresh venv.
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+  loop: "{{ ansible_facts.services | dict2items
+            | selectattr('key', 'match', '^cinder-.*\\.service$')
+            | selectattr('value.state', 'equalto', 'running')
+            | map(attribute='key') | list }}"
+
+- name: Remove any existing cinder virtualenv for a clean (re)install
+  # Always rebuild the venv so a re-run installs exactly the requested
+  # cinder_release_branch (and current cinder-rxt). With a reused venv, pip
+  # sees 'cinder' already satisfied and skips the VCS reinstall, leaving the
+  # data plane pinned to whatever release was installed first - a silent
+  # version skew on upgrade. Notify the restart handlers so a venv-only
+  # rebuild (unchanged configs) still restarts the services onto the new venv.
+  ansible.builtin.file:
+    path: "{{ cinder_virtualenv_path }}"
+    state: absent
+  notify:
+    - "Restart cinder-volume-backend systemd services"
+    - "Restart cinder-volume and cinder-backup systemd services"
+
 - name: Upgrade pip and install required packages
   ansible.builtin.pip:
     name:
