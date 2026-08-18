@@ -49,11 +49,22 @@ PLATFORMS:
     help         Show this help message
 
 OPTIONS:
-    -i <list>    Comma-separated list of OpenStack services to include
+    -i <list>    Comma-separated list of OpenStack services to include.
+                 Component names install their control-plane chart. Data-plane
+                 pseudo services install the named data-plane component AND
+                 imply their control plane:
+                   cinder-volume  full cinder stack: single late chart install
+                                  + volume/VG prep, cinder volumes playbook,
+                                  volume type/QoS
+                   manila-share   full manila stack: chart + enablement
+                                  (secrets, service image build, share type)
+                 Add the plain component name only when you want the chart
+                 without the data plane.
     -e <list>    Comma-separated list of OpenStack services to exclude.
                  Excluded components also skip their component-specific
                  extras steps run by -x (e.g. -x -e octavia runs the extras
-                 but skips the Octavia preconf/install; -e k9s skips k9s).
+                 but skips the Octavia preconf/install; -e k9s skips k9s,
+                 -e cinder-volume skips the cinder data-plane enablement).
     -x           Run extra operations (k9s install, Octavia preconf, etc.)
     --envoy-gateway-config
                  Deploy Envoy using the internal/external gateway config file
@@ -80,11 +91,29 @@ ENVIRONMENT VARIABLES:
                         for easier testing and debugging.
     HYPERCONVERGED_CINDER_VOLUME
                         If set to "true", enables iSCSI cinder volume support.
+                        Equivalent to including the 'cinder-volume' pseudo
+                        service via -i; '-e cinder-volume' overrides both.
+    CINDER_STORAGE_INTERFACE
+                        Ansible fact name of the storage network interface
+                        used by the cinder volumes playbook
+                        (default: ansible_enp3s0).
+    CINDER_STORAGE_INTERFACE_SECONDARY
+                        Secondary storage interface fact name (defaults to
+                        CINDER_STORAGE_INTERFACE).
+    CINDER_BACKEND_NAME Cinder backend name for the volumes playbook
+                        (default: lvmdriver-1).
+    CINDER_WORKER_NAME  Cinder worker type for the volumes playbook
+                        (default: lvm). The cinder release branch is no longer
+                        configurable here: it is derived from the cinder chart
+                        version in helm-chart-versions.yaml so the data plane
+                        always matches the control plane.
     HYPERCONVERGED_MANILA_SHARE
                         If set to "true", runs the full Manila enablement
-                        (secrets, service image build, share type) in addition
-                        to the Helm chart install. Default "false" keeps
-                        manila chart-only (control-plane pods).
+                        (secrets, service image build, share type) with a
+                        single manila chart install performed by the
+                        enablement step. Equivalent to including the
+                        'manila-share' pseudo service via -i; '-e manila-share'
+                        overrides both. Default "false" installs no manila.
     HYPERCONVERGED_ENVOY_GATEWAY_CONFIG
                         If set to "true", deploys Envoy using the internal/external
                         gateway config file path instead of the legacy flex-gateway.

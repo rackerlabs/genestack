@@ -6,6 +6,11 @@ images:
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
 # limit values based on defaults from the openstack-helm charts unless defined
 pod:
+  # hostNetwork 'hostname --fqdn' lookup fails in the share pod and injects an
+  # empty [generic] service_network_host, which manila >= 22.x rejects at
+  # startup; unused with connect_share_server_to_tenant_network enabled.
+  use_fqdn:
+    share: false
   replicas:
     api: 2
     data: 2

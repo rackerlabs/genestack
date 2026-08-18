@@ -12,21 +12,21 @@
 # limitations under the License.
 images:
   tags:
-    db_init: ghcr.io/rackerlabs/genestack-images/heat:2026.1-latest
-    db_drop: ghcr.io/rackerlabs/genestack-images/heat:2026.1-latest
+    db_init: ghcr.io/rackerlabs/genestack-images/openstack-client:latest
+    db_drop: ghcr.io/rackerlabs/genestack-images/openstack-client:latest
     dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
     image_repo_sync: docker.io/docker:17.07.0
-    ks_endpoints: ghcr.io/rackerlabs/genestack-images/heat:2026.1-latest
-    ks_service: ghcr.io/rackerlabs/genestack-images/heat:2026.1-latest
-    ks_user: ghcr.io/rackerlabs/genestack-images/heat:2026.1-latest
-    manila: ghcr.io/rackerlabs/genestack-images/manila:2026.1-1763166117
-    manila_api: ghcr.io/rackerlabs/genestack-images/manila-api:2026.1-1763166117
-    manila_data: ghcr.io/rackerlabs/genestack-images/manila-data:2026.1-1763166117
-    manila_db_sync: ghcr.io/rackerlabs/genestack-images/manila:2026.1-1763166117
-    manila_scheduler: ghcr.io/rackerlabs/genestack-images/manila-scheduler:2026.1-1763166117
-    manila_share: ghcr.io/rackerlabs/genestack-images/manila-share:2026.1-1763166117
-    manila_processor: ghcr.io/rackerlabs/genestack-images/manila:2026.1-1763166117
-    manila_storage_init: ghcr.io/rackerlabs/genestack-images/manila:2026.1-1763166117
+    ks_endpoints: ghcr.io/rackerlabs/genestack-images/openstack-client:latest
+    ks_service: ghcr.io/rackerlabs/genestack-images/openstack-client:latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/openstack-client:latest
+    manila: ghcr.io/rackerlabs/genestack-images/manila:2026.1-latest
+    manila_api: ghcr.io/rackerlabs/genestack-images/manila:2026.1-latest
+    manila_data: ghcr.io/rackerlabs/genestack-images/manila:2026.1-latest
+    manila_db_sync: ghcr.io/rackerlabs/genestack-images/manila:2026.1-latest
+    manila_scheduler: ghcr.io/rackerlabs/genestack-images/manila:2026.1-latest
+    manila_share: ghcr.io/rackerlabs/genestack-images/manila:2026.1-latest
+    manila_processor: ghcr.io/rackerlabs/genestack-images/manila:2026.1-latest
+    manila_storage_init: ghcr.io/rackerlabs/genestack-images/manila:2026.1-latest
     rabbit_init: docker.io/rabbitmq:3.13-management
   pull_policy: "IfNotPresent"
 
@@ -34,6 +34,8 @@ images:
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
 # limit values based on defaults from the openstack-helm charts unless defined
 pod:
+  use_fqdn:
+    share: true
   replicas:
     api: 1
     data: 1

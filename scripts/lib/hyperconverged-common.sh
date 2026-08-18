@@ -127,12 +127,67 @@ function parseCommonArgs() {
         esac
     done
 
+    # Resolve the 'cinder-volume' pseudo service. 'cinder' refers to the
+    # control-plane chart only (like any other component); 'cinder-volume'
+    # covers the data-plane enablement (lab volume/VG prep, the cinder
+    # volumes playbook on labeled storage nodes, volume type/QoS). It can be
+    # enabled with '-i cinder-volume' or the legacy
+    # HYPERCONVERGED_CINDER_VOLUME=true environment variable, and disabled
+    # with '-e cinder-volume' (which wins over both).
+    CINDER_VOLUME_ENABLED="${HYPERCONVERGED_CINDER_VOLUME:-false}"
+    if isIncluded cinder-volume; then
+        CINDER_VOLUME_ENABLED=true
+    fi
+    if isExcluded cinder-volume; then
+        CINDER_VOLUME_ENABLED=false
+    fi
+    export CINDER_VOLUME_ENABLED
+    if [ "${CINDER_VOLUME_ENABLED}" = "true" ]; then
+        echo "cinder-volume enabled: cinder control plane + LVM/iSCSI data plane (volumes playbook, volume type/QoS)"
+    fi
+
+    # Resolve the 'manila-share' pseudo service. 'manila' refers to the
+    # control-plane chart only; 'manila-share' covers the full enablement
+    # (secrets, service image build, pre/post deploy incl. share type). It can
+    # be enabled with '-i manila-share' or the legacy
+    # HYPERCONVERGED_MANILA_SHARE=true environment variable, and disabled with
+    # '-e manila-share' (which wins over both). Like cinder-volume, the
+    # implied control plane is installed by the enablement step (deployManila
+    # runs install-manila.sh after pre_deploy) - NOT by adding manila to the
+    # batch - so the chart is installed once, after its preconf, instead of a
+    # bare batch install followed by an upgrade.
+    MANILA_SHARE_ENABLED="${HYPERCONVERGED_MANILA_SHARE:-false}"
+    if isIncluded manila-share; then
+        MANILA_SHARE_ENABLED=true
+    fi
+    if isExcluded manila-share; then
+        MANILA_SHARE_ENABLED=false
+    fi
+    export MANILA_SHARE_ENABLED
+    if [ "${MANILA_SHARE_ENABLED}" = "true" ]; then
+        echo "manila-share enabled: manila control plane + share enablement (secrets, service image build, share type)"
+    fi
+
     export RUN_EXTRAS
     export INCLUDE_LIST
     export EXCLUDE_LIST
     export HYPERCONVERGED_ENVOY_GATEWAY_CONFIG
     export HYPERCONVERGED_ENVOY_GATEWAY_ACME
     export HYPERCONVERGED_INTERNAL_METALLB_IP
+}
+
+function isIncluded() {
+    # Check whether a component was named in the -i include list.
+    # Usage: isIncluded <component>
+    local component
+    local item
+    component=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')
+    for item in "${INCLUDE_LIST[@]}"; do
+        if [ "$(printf '%s' "${item}" | tr '[:upper:]' '[:lower:]')" = "${component}" ]; then
+            return 0
+        fi
+    done
+    return 1
 }
 
 function isExcluded() {
@@ -187,8 +242,17 @@ function ensureSshAgentKey() {
 
     if ! ssh-add "${key_pem}"; then
         echo "ERROR: ssh-add failed to load ${key_pem} into the running agent." >&2
-        echo "       If your agent does not support ssh-add (e.g. 1Password), add the" >&2
-        echo "       key through the agent's own tooling, then re-run." >&2
+        if [ "${agent_status}" -eq 1 ]; then
+            echo "       The agent reported no identities at all. If you use 1Password" >&2
+            echo "       (or another locking agent), the vault may be locked - unlock" >&2
+            echo "       it and re-run. If the key is already stored in the agent, no" >&2
+            echo "       other action is needed." >&2
+        else
+            echo "       The agent lists identities but none match this key" >&2
+            echo "       (fingerprint ${key_fp:-unknown}). If your agent does not" >&2
+            echo "       support ssh-add (e.g. 1Password), add the key through the" >&2
+            echo "       agent's own tooling, then re-run." >&2
+        fi
         exit 1
     fi
 }
@@ -206,13 +270,27 @@ function writeOpenstackComponentsConfig() {
 
     echo -e "${os_config}" | tee "${output_path}"
 
+    # Only flip keys that exist in the base components file. The include and
+    # exclude lists may also carry lab pseudo services (cinder-volume,
+    # manila-share, k9s) that are resolved by the lab scripts themselves;
+    # writing them here would pollute the components file, which is consumed
+    # by callers beyond the hyperconverged lab and must only contain real
+    # service names.
     for option in "${INCLUDE_LIST[@]}"; do
-        echo "include option: ${option}"
-        yq -i ".components.$option = true" "${output_path}"
+        if [ "$(yq ".components | has(\"${option}\")" "${output_path}")" = "true" ]; then
+            echo "include option: ${option}"
+            yq -i ".components.${option} = true" "${output_path}"
+        else
+            echo "include option: ${option} (lab pseudo service, not written to components file)"
+        fi
     done
     for option in "${EXCLUDE_LIST[@]}"; do
-        echo "exclude option: ${option}"
-        yq -i ".components.$option = false" "${output_path}"
+        if [ "$(yq ".components | has(\"${option}\")" "${output_path}")" = "true" ]; then
+            echo "exclude option: ${option}"
+            yq -i ".components.${option} = false" "${output_path}"
+        else
+            echo "exclude option: ${option} (lab pseudo service, not written to components file)"
+        fi
     done
     cat ${output_path}
 }
@@ -720,7 +798,7 @@ EOF
     fi
 
     if [ ! -f "${config_base}/barbican/barbican-helm-overrides.yaml" ]; then
-        if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+        if [ "${CINDER_VOLUME_ENABLED:-false}" = "true" ]; then
             cat > "${config_base}/barbican/barbican-helm-overrides.yaml" <<EOF
 ---
 pod:
@@ -771,7 +849,7 @@ EOF
     fi
 
     if [ ! -f "${config_base}/cinder/cinder-helm-overrides.yaml" ]; then
-        if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+        if [ "${CINDER_VOLUME_ENABLED:-false}" = "true" ]; then
             cat > "${config_base}/cinder/cinder-helm-overrides.yaml" <<EOF
 ---
 pod:
@@ -958,7 +1036,7 @@ EOF
     fi
 
     if [ ! -f "${config_base}/nova/nova-helm-overrides.yaml" ]; then
-        if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+        if [ "${CINDER_VOLUME_ENABLED:-false}" = "true" ]; then
             cat > "${config_base}/nova/nova-helm-overrides.yaml" <<EOF
 ---
 pod:
@@ -1568,7 +1646,13 @@ function configureGenestackRemote() {
         declare -f installYq
 
         cat <<EOF
-export HYPERCONVERGED_CINDER_VOLUME=$HYPERCONVERGED_CINDER_VOLUME
+export HYPERCONVERGED_CINDER_VOLUME=$CINDER_VOLUME_ENABLED
+# writeServiceHelmOverrides (shipped above via declare -f and executed on the
+# jump host) selects the cinder/nova/barbican override variants by testing
+# CINDER_VOLUME_ENABLED, which only exists on the workstation - export the
+# resolved value into the remote session too.
+export CINDER_VOLUME_ENABLED=$CINDER_VOLUME_ENABLED
+export MANILA_SHARE_ENABLED=$MANILA_SHARE_ENABLED
 export HYPERCONVERGED_ENVOY_GATEWAY_CONFIG=${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}
 export HYPERCONVERGED_ENVOY_GATEWAY_ACME=${HYPERCONVERGED_ENVOY_GATEWAY_ACME:-false}
 export METAL_LB_INTERNAL_IP='${internal_metal_lb_ip}'
@@ -1895,6 +1979,7 @@ NODE_2_EOF
     # Ansible playbook time
     {
         cat << ANSIBLE_EOF
+set -e
 source /opt/genestack/scripts/genestack.rc
 
 echo "[JUMP_HOST] Running cinder install script"
@@ -1904,8 +1989,19 @@ sudo /opt/genestack/bin/install-cinder.sh
 # run_once for the delegated python3-kubernetes install, which eliminated the
 # dpkg lock race that previously required running this playbook twice.
 echo "[JUMP_HOST] Running cinder volumes playbook"
+# Derive the cinder release branch from the chart version actually being
+# installed on the control plane (/etc/genestack/helm-chart-versions.yaml is
+# what install-cinder.sh deploys from), e.g. 2026.1.9+abc -> stable/2026.1.
+CINDER_RELEASE_BRANCH="stable/\$(yq '.charts.cinder' /etc/genestack/helm-chart-versions.yaml | cut -d. -f1,2)"
+if [ "\${CINDER_RELEASE_BRANCH}" = "stable/" ] || [ "\${CINDER_RELEASE_BRANCH}" = "stable/null" ]; then
+    echo "ERROR: could not derive cinder release branch from /etc/genestack/helm-chart-versions.yaml" >&2
+    exit 1
+fi
+echo "[JUMP_HOST] cinder release branch: \${CINDER_RELEASE_BRANCH}"
+# The storage interface and backend knobs expand on the workstation so they
+# can be overridden via the environment without editing this script.
 ansible-playbook -i /etc/genestack/inventory/inventory.yaml \
-    -e "storage_network_interface=ansible_enp3s0 storage_network_interface_secondary=ansible_enp3s0 cinder_backend_name=lvmdriver-1 cinder_worker_name=lvm cinder_release_branch='stable/2025.1'" \
+    -e "storage_network_interface=${CINDER_STORAGE_INTERFACE:-ansible_enp3s0} storage_network_interface_secondary=${CINDER_STORAGE_INTERFACE_SECONDARY:-${CINDER_STORAGE_INTERFACE:-ansible_enp3s0}} cinder_backend_name=${CINDER_BACKEND_NAME:-lvmdriver-1} cinder_worker_name=${CINDER_WORKER_NAME:-lvm} cinder_release_branch='\${CINDER_RELEASE_BRANCH}'" \
     /opt/genestack/ansible/playbooks/deploy-cinder-volume.yaml -f3
 
 echo "[JUMP_HOST] Creating volume type and qos"
@@ -2001,13 +2097,11 @@ function deployManila() {
     # from the K8s secret and authenticates via its own OS_* environment.
     echo "Running manila deployment ..."
 
+    # The caller gates this on MANILA_SHARE_ENABLED. deployManila performs the
+    # single manila install itself (install-manila.sh after pre_deploy), so
+    # manila is intentionally NOT in the openstack batch - do not re-add a
+    # components.yaml gate here or it will exit without installing.
     _ssh << 'EOC'
-# check if manila is to be installed, otherwise exit cleanly
-if ! grep "manila: true" /etc/genestack/openstack-components.yaml &>/dev/null; then
-    echo "Manila not installed, exiting Manila setup function for $(hostname)"
-    exit 0
-fi
-
 set -e
 # activate environment for openstack commands
 source /opt/genestack/scripts/genestack.rc

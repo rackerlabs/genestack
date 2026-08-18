@@ -378,7 +378,7 @@ echo "  Jump host is ready"
 # Create and Attach Lab Volumes
 #############################################################################
 
-if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+if [ "${CINDER_VOLUME_ENABLED:-false}" = "true" ]; then
     READY_COUNT=0
     while [ $(openstack server show ${LAB_NAME_PREFIX}-0 -f yaml | yq '.status') != 'ACTIVE' ]; do
       echo "Server instance 0 is not ready, waiting..."
@@ -713,7 +713,7 @@ fi
 
 # Create Kubespray inventory
 if [ ! -f "/etc/genestack/inventory/inventory.yaml" ]; then
-    if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ]; then
+    if [ "${CINDER_VOLUME_ENABLED:-false}" = "true" ]; then
         cat > /etc/genestack/inventory/inventory.yaml <<EOF
 ---
 all:
@@ -949,6 +949,11 @@ if [ ! -f \${HOME}/.kube/config ]; then
     sudo chown \$(id -u):\$(id -g) \${HOME}/.kube/config
     chmod 600 \${HOME}/.kube/config
 fi
+# Pre-create the XDG base directories as the ssh user so that any later
+# root-context task with a misdirected HOME can only create subpaths under
+# them rather than taking ownership of the roots (which breaks
+# XDG-compliant tools like k9s for the ssh user).
+mkdir -p \${HOME}/.local/state \${HOME}/.local/share \${HOME}/.cache
 sudo mkdir -p /opt/kube-plugins
 sudo chown \${USER}:\${USER} /opt/kube-plugins
 pushd /opt/kube-plugins
@@ -976,7 +981,7 @@ runGenestackSetupRemote "${SSH_USERNAME}" "${JUMP_HOST_VIP}" "${GATEWAY_DOMAIN}"
 #############################################################################
 # Cinder Volume Setup
 #############################################################################
-if [ "${HYPERCONVERGED_CINDER_VOLUME:-false}" = "true" ] && [ ${DISABLE_OPENSTACK} = "false" ]; then
+if [ "${CINDER_VOLUME_ENABLED:-false}" = "true" ] && [ ${DISABLE_OPENSTACK} = "false" ]; then
   cinderVolumeSetup
 fi
 
@@ -1019,15 +1024,17 @@ if [ "${TEST_LEVEL}" = "off" ]; then
     deploySwift "RegionOne"
 
     # Manila Setup & Installation
-    # Opt-in via HYPERCONVERGED_MANILA_SHARE (mirrors HYPERCONVERGED_CINDER_VOLUME):
-    # by default 'manila: true' only installs the chart (control-plane pods),
-    # keeping smoke tests fast. Setting HYPERCONVERGED_MANILA_SHARE=true
-    # additionally runs the full enablement (secrets, service image build,
-    # pre/post deploy). Runs after the OpenStack APIs are ready because the
+    # Opt-in via the 'manila-share' pseudo service (-i manila-share, which
+    # implies the manila control plane) or the legacy
+    # HYPERCONVERGED_MANILA_SHARE=true environment variable; both resolve to
+    # MANILA_SHARE_ENABLED in parseCommonArgs. By default 'manila: true' only
+    # installs the chart (control-plane pods), keeping smoke tests fast; the
+    # enablement additionally runs secrets, the service image build and
+    # pre/post deploy. Runs after the OpenStack APIs are ready because the
     # image build uploads to Glance. deployManila also self-gates on
     # 'manila: true' in openstack-components.yaml, so '-e manila' (which sets
     # it false) skips it too.
-    if [ "${HYPERCONVERGED_MANILA_SHARE:-false}" = "true" ] && [ ${DISABLE_OPENSTACK} = "false" ]; then
+    if [ "${MANILA_SHARE_ENABLED:-false}" = "true" ] && [ ${DISABLE_OPENSTACK} = "false" ]; then
         deployManila
     fi
 

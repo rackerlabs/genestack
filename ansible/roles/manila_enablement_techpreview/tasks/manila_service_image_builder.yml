@@ -387,8 +387,12 @@
   retries: 3
   delay: 30
   until: tox_build_result.rc == 0
+  # Note: no HOME override here. This task runs as root, and forcing
+  # HOME to the ssh user's home makes diskimage-builder/virtualenv create
+  # root-owned XDG directories (~/.cache/dib, ~/.local/share/virtualenv)
+  # in that user's home, breaking XDG-compliant tools (e.g. k9s). The DIB
+  # caches live in /root/.cache instead, which persists equally.
   environment:
-    HOME: "{{ ubuntu_home }}"
     MANILA_PASSWORD: "{{ manila_admin_password_result.stdout }}"
     MANILA_USER_AUTHORIZED_KEYS: "{{ manila_build_dir }}/manila-image-elements/manila-service-keypair.pub"
     MANILA_IMG_NAME: "{{ manila_service_image_name }}"
