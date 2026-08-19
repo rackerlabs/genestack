@@ -135,6 +135,9 @@ zaqar_rabbitmq_password=$(generate_password 64)
 zaqar_db_password=$(generate_password 32)
 zaqar_admin_password=$(generate_password 32)
 zaqar_keystone_test_password=$(generate_password 32)
+qonos_db_password=$(generate_password 32)
+qonos_rabbitmq_password=$(generate_password 64)
+qonos_admin_password=$(generate_password 32)
 keystone_auth_url="http://keystone-api.openstack.svc.cluster.local:5000/v3"
 keystone_username="admin"
 keystone_user_domain="Default"
@@ -1025,6 +1028,34 @@ metadata:
 type: Opaque
 data:
   password: $(echo -n $zaqar_keystone_test_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: qonos-rabbitmq-password
+  namespace: openstack
+type: Opaque
+data:
+  username: $(echo -n "qonos" | base64)
+  password: $(echo -n $qonos_rabbitmq_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: qonos-db-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $qonos_db_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: qonos-admin
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $qonos_admin_password | base64 -w0)
 EOF
 
 # Check if kube-ovn-tls secret exists, and copy to openstack namespace if it does

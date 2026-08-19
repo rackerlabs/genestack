@@ -1,0 +1,188 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qonos-scheduler
+  namespace: openstack
+  labels:
+    app.kubernetes.io/component: scheduler
+    app.kubernetes.io/instance: qonos
+    app.kubernetes.io/name: qonos
+    application: qonos
+    component: scheduler
+    release_group: qonos
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: scheduler
+      app.kubernetes.io/instance: qonos
+      app.kubernetes.io/name: qonos
+      application: qonos
+      component: scheduler
+      release_group: qonos
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: scheduler
+        app.kubernetes.io/instance: qonos
+        app.kubernetes.io/name: qonos
+        application: qonos
+        component: scheduler
+        release_group: qonos
+    spec:
+      serviceAccountName: qonos
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 10
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchExpressions:
+                    - key: release_group
+                      operator: In
+                      values:
+                        - qonos
+                    - key: application
+                      operator: In
+                      values:
+                        - qonos
+                    - key: component
+                      operator: In
+                      values:
+                        - scheduler
+      initContainers:
+        - name: init
+          image: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:1771720239
+          imagePullPolicy: IfNotPresent
+          command:
+            - kubernetes-entrypoint
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: INTERFACE_NAME
+              value: eth0
+            - name: PATH
+              value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/
+            - name: DEPENDENCY_SERVICE
+              value: openstack:keystone-api,openstack:mariadb-cluster-primary,openstack:rabbitmq-nodes
+            - name: DEPENDENCY_JOBS
+              value: qonos-ks-user,qonos-db-sync
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities:
+              drop:
+                - ALL
+      nodeSelector:
+        openstack-control-plane: enabled
+      containers:
+        - name: qonos-scheduler
+          image: ghcr.io/rackerlabs/qonosv2:1788332954
+          imagePullPolicy: IfNotPresent
+          command:
+            - python
+            - -u
+            - -m
+            - api.scheduler
+          env:
+            - name: QONOS_CONFIG_FILE
+              value: /etc/qonosv2/qonos.conf
+            - name: PYTHONPATH
+              value: /app
+          ports:
+            - name: metrics
+              containerPort: 8082
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: metrics
+              scheme: HTTP
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: metrics
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: pod-tmp
+              mountPath: /tmp
+            - name: qonos-etc
+              mountPath: /etc/qonosv2/qonos.conf
+              subPath: qonos.conf
+              readOnly: true
+      volumes:
+        - name: pod-tmp
+          emptyDir: {}
+        - name: qonos-etc
+          secret:
+            secretName: qonos-etc
+            defaultMode: 292
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qonos-scheduler
+  namespace: openstack
+  labels:
+    app.kubernetes.io/component: scheduler
+    app.kubernetes.io/instance: qonos
+    app.kubernetes.io/name: qonos
+    application: qonos
+    component: scheduler
+    release_group: qonos
+spec:
+  selector:
+    app.kubernetes.io/component: scheduler
+    app.kubernetes.io/instance: qonos
+    app.kubernetes.io/name: qonos
+    application: qonos
+    component: scheduler
+    release_group: qonos
+  ports:
+    - name: metrics
+      port: 8082
+      targetPort: metrics

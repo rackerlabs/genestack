@@ -123,6 +123,8 @@ conf:
       MaxConnectionsPerChild 0
     </IfModule>
   policy:
+    "identity:create_trust": "rule:admin_required or (role:member and user_id:%(target.trust.trustor_user_id)s)"
+    "identity:list_trusts": "rule:admin_required or user_id:%(target.trust.trustor_user_id)s"
     "identity:list_system_grants_for_user": "rule:admin_required or (role:reader and system_scope:all) or rule:owner"
   rabbitmq:
     policies: []

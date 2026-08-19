@@ -1,0 +1,143 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: qonos-bin
+  namespace: openstack
+  labels:
+    app.kubernetes.io/name: qonos
+    app.kubernetes.io/instance: qonos
+    application: qonos
+    release_group: qonos
+data:
+  qonos-db-sync.sh: |
+    #!/bin/bash
+
+    set -ex
+    cd /app
+
+    python - <<'PY'
+    import configparser
+    import os
+    import subprocess
+
+    from sqlalchemy import create_engine, inspect, text
+
+    config = configparser.ConfigParser()
+    config.read(os.environ["QONOS_CONFIG_FILE"])
+    db_url = config.get("database", "url")
+    if db_url.startswith("mysql+aiomysql://"):
+        db_url = "mysql+pymysql://" + db_url[len("mysql+aiomysql://") :]
+    engine = create_engine(db_url)
+    tables = set(inspect(engine).get_table_names())
+
+    stamped = False
+    if "alembic_version" in tables:
+        with engine.connect() as conn:
+            row = conn.execute(text("SELECT version_num FROM alembic_version LIMIT 1")).fetchone()
+            stamped = bool(row and row[0])
+
+    app_tables = tables - {"alembic_version"}
+    if app_tables and not stamped:
+        subprocess.check_call(["alembic", "stamp", "head"])
+    PY
+
+    alembic upgrade head
+  qonos-ks-user.sh: |
+    #!/bin/bash
+
+    set -ex
+
+    shopt -s nocasematch
+
+    if [[ "${SERVICE_OS_PROJECT_DOMAIN_NAME}" == "Default" ]]; then
+      PROJECT_DOMAIN_ID="default"
+    else
+      PROJECT_DOMAIN_ID=$(openstack domain create --or-show --enable -f value -c id \
+        --description="Domain for ${SERVICE_OS_PROJECT_DOMAIN_NAME}" \
+        "${SERVICE_OS_PROJECT_DOMAIN_NAME}")
+    fi
+
+    if [[ "${SERVICE_OS_USER_DOMAIN_NAME}" == "Default" ]]; then
+      USER_DOMAIN_ID="default"
+    else
+      USER_DOMAIN_ID=$(openstack domain create --or-show --enable -f value -c id \
+        --description="Domain for ${SERVICE_OS_USER_DOMAIN_NAME}" \
+        "${SERVICE_OS_USER_DOMAIN_NAME}")
+    fi
+
+    shopt -u nocasematch
+
+    USER_PROJECT_DESC="Service Project for ${SERVICE_OS_PROJECT_DOMAIN_NAME}"
+    USER_PROJECT_ID=$(openstack project create --or-show --enable -f value -c id \
+        --domain="${PROJECT_DOMAIN_ID}" \
+        --description="${USER_PROJECT_DESC}" \
+        "${SERVICE_OS_PROJECT_NAME}")
+
+    USER_DESC="Service User for ${SERVICE_OS_REGION_NAME}/${SERVICE_OS_USER_DOMAIN_NAME}/${SERVICE_OS_SERVICE_NAME}"
+    USER_ID=$(openstack user create --or-show --enable -f value -c id \
+        --domain="${USER_DOMAIN_ID}" \
+        --project-domain="${PROJECT_DOMAIN_ID}" \
+        --project="${USER_PROJECT_ID}" \
+        --description="${USER_DESC}" \
+        "${SERVICE_OS_USERNAME}")
+
+    probe_user_password () {
+      OS_AUTH_TYPE="password" \
+      OS_USERNAME="${SERVICE_OS_USERNAME}" \
+      OS_PASSWORD="${SERVICE_OS_PASSWORD}" \
+      OS_USER_DOMAIN_NAME="" \
+      OS_USER_DOMAIN_ID="${USER_DOMAIN_ID}" \
+      OS_PROJECT_NAME="" \
+      OS_PROJECT_DOMAIN_NAME="" \
+      OS_PROJECT_ID="" \
+      OS_PROTOCOL="" \
+      OS_IDENTITY_PROVIDER="" \
+      OS_ACCESS_TOKEN="" \
+      openstack token issue > /dev/null
+    }
+
+    set +ex
+    probe_stderr=$(probe_user_password 2>&1)
+    probe_exit=$?
+    set -e
+    if [[ $probe_exit -eq 0 ]]; then
+      echo "Password for ${USER_ID} is already correct, skipping update."
+    elif echo "${probe_stderr}" | grep -q "HTTP 401"; then
+      echo "Setting user password via: openstack user set --password=xxxxxxx ${USER_ID}"
+      openstack user set --password="${SERVICE_OS_PASSWORD}" "${USER_ID}"
+    else
+      echo "Password probe failed with unexpected error: ${probe_stderr}" >&2
+      exit 1
+    fi
+    set -x
+
+    function ks_assign_user_role () {
+      if [[ "$SERVICE_OS_ROLE" == "admin" ]]; then
+        USER_ROLE_ID="$SERVICE_OS_ROLE"
+      else
+        USER_ROLE_ID=$(openstack role create --or-show -f value -c id "${SERVICE_OS_ROLE}")
+      fi
+
+      openstack role add \
+          --user="${USER_ID}" \
+          --user-domain="${USER_DOMAIN_ID}" \
+          --project-domain="${PROJECT_DOMAIN_ID}" \
+          --project="${USER_PROJECT_ID}" \
+          "${USER_ROLE_ID}"
+    }
+
+    IFS=','
+    for SERVICE_OS_ROLE in ${SERVICE_OS_ROLES}; do
+      ks_assign_user_role
+    done
+
+    : "${MEMBER_OS_ROLE:=member}"
+    MEMBER_ROLE_ID=$(openstack role create --or-show -f value -c id \
+        "${MEMBER_OS_ROLE}")
+    openstack role add \
+        --user="${USER_ID}" \
+        --user-domain="${USER_DOMAIN_ID}" \
+        --project-domain="${PROJECT_DOMAIN_ID}" \
+        --project="${USER_PROJECT_ID}" \
+        "${MEMBER_ROLE_ID}"

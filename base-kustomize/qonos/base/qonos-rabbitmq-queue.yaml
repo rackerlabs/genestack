@@ -1,0 +1,115 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: User
+metadata:
+  name: qonos
+  namespace: openstack
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  tags:
+    - management
+    - policymaker
+  rabbitmqClusterReference:
+    name: rabbitmq
+    namespace: openstack
+  importCredentialsSecret:
+    name: qonos-rabbitmq-password
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Vhost
+metadata:
+  name: qonos-vhost
+  namespace: openstack
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  name: qonos
+  rabbitmqClusterReference:
+    name: rabbitmq
+    namespace: openstack
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Permission
+metadata:
+  name: qonos-permission
+  namespace: openstack
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  vhost: qonos
+  userReference:
+    name: qonos
+  permissions:
+    configure: ".*"
+    write: ".*"
+    read: ".*"
+  rabbitmqClusterReference:
+    name: rabbitmq
+    namespace: openstack
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Exchange
+metadata:
+  name: qonos-jobs-exchange
+  namespace: openstack
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  name: qonos.jobs
+  vhost: qonos
+  type: topic
+  durable: true
+  autoDelete: false
+  rabbitmqClusterReference:
+    name: rabbitmq
+    namespace: openstack
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Exchange
+metadata:
+  name: qonos-events-exchange
+  namespace: openstack
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  name: qonos.events
+  vhost: qonos
+  type: topic
+  durable: true
+  autoDelete: false
+  rabbitmqClusterReference:
+    name: rabbitmq
+    namespace: openstack
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Queue
+metadata:
+  name: qonos-jobs-queue
+  namespace: openstack
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  name: qonos.jobs.queue
+  vhost: qonos
+  durable: true
+  autoDelete: false
+  rabbitmqClusterReference:
+    name: rabbitmq
+    namespace: openstack
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Binding
+metadata:
+  name: qonos-jobs-binding
+  namespace: openstack
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  vhost: qonos
+  source: qonos.jobs
+  destination: qonos.jobs.queue
+  destinationType: queue
+  routingKey: qonos.jobs.queued
+  rabbitmqClusterReference:
+    name: rabbitmq
+    namespace: openstack
