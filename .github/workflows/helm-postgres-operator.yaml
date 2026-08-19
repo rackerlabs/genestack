@@ -1,0 +1,50 @@
+---
+name: Helm GitHub Actions for postgres-operator
+
+on:
+  pull_request:
+    paths:
+      - base-kustomize/postgres-operator/**
+      - base-helm-configs/postgres-operator/**
+      - helm-chart-versions.yaml
+      - .github/workflows/helm-postgres-operator.yaml
+jobs:
+  helm:
+    strategy:
+      matrix:
+        overlays:
+          - base
+    name: Helm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: azure/setup-helm@v3
+        with:
+          version: v3.14.3
+          token: ${{ secrets.GITHUB_TOKEN }}
+        id: helm
+      - name: Get chart version
+        uses: ./.github/actions/get-chart-version
+        id: chart-version
+        with:
+          chart-name: postgres-operator
+      - name: Add zalando repo to helm
+        run: |
+          ${{ steps.helm.outputs.helm-path }} repo add zalando https://opensource.zalando.com/postgres-operator/charts/postgres-operator
+          ${{ steps.helm.outputs.helm-path }} repo update
+      - name: Run Helm Template
+        run: |
+          ${{ steps.helm.outputs.helm-path }} template postgres-operator zalando/postgres-operator \
+            --version ${{ steps.chart-version.outputs.version }} \
+            --create-namespace \
+            --namespace=postgres-system \
+            --timeout 120m \
+            -f ${{ github.workspace }}/base-helm-configs/postgres-operator/postgres-operator-helm-overrides.yaml \
+            --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
+            --post-renderer-args postgres-operator/${{ matrix.overlays }} > /tmp/rendered.yaml
+      - name: Return helm Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-postgres-operator-artifact-${{ matrix.overlays }}
+          path: /tmp/rendered.yaml

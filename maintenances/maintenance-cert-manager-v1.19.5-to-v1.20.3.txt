@@ -1,0 +1,279 @@
+### Cert-Manager Maintenance: v1.19.5 to v1.20.3
+
+### Notes
+
+# (opt) refers to /opt, the standard install path for Genestack.
+# (etc) refers to /etc, the standard override path for Genestack.
+# Replace all placeholder values in angle brackets before using this runbook.
+# Keep this runbook operational. Prefer exact commands, exact file paths, expected outputs, and explicit validation steps.
+
+### Validation
+
+# Kubernetes 1.35.4 (kubespray v2.31.0) satisfies cert-manager v1.20.3 upstream requirements (K8s 1.27+).
+# Upgrading from cert-manager v1.19.x to v1.20.x is a one-minor-version hop (supported upgrade path).
+# Validated source version: cert-manager v1.19.5.
+# Validated target version: cert-manager v1.20.3.
+
+# Major operational risks:
+# - The public-endpoint-ca-cert certificate already has rotationPolicy: Never set (from release 2026.2.0).
+# - Helm schema validation may reject existing values if there are typos or unrecognized fields.
+# - cert-manager v1.20 may introduce CRD schema changes requiring migration.
+# - The chart is now OCI-distributed (oci://quay.io/jetstack).
+# - cmctl is available via scripts/cert-manager-support/.
+
+# Read upstream upgrade guide:
+#   https://cert-manager.io/docs/release-notes/v1.20/
+#   https://cert-manager.io/docs/concepts/upgrading/
+
+### Goal
+
+# Upgrade cert-manager from v1.19.5 to v1.20.3 without certificate issuance interruption
+# and with all cert-manager workloads returning healthy.
+
+### Prep
+
+## Deployment Node
+
+# Identify the deployment host with kubectl, helm, yq, and cmctl access.
+# cmctl is installed via scripts/lib/functions.sh — ensureCmctl function.
+
+# Verify cmctl is available:
+which cmctl && cmctl version || echo "cmctl not found"
+
+# If cmctl is missing, install it:
+cd /opt/genestack
+source scripts/lib/functions.sh
+ensureCmctl
+
+# Verify current health:
+kubectl -n cert-manager get deployment,pods
+
+# Expected:
+# - cert-manager (controller): Running, Available
+# - cert-manager-webhook: Running, Available
+# - cert-manager-cainjector: Running, Available
+
+# Verify current deployed version:
+helm list -n cert-manager -f cert-manager
+grep '^[[:space:]]*cert-manager:' /etc/genestack/helm-chart-versions.yaml
+
+# Expected:
+# - cert-manager: v1.19.5
+
+# Run the pre-upgrade gate to verify current state:
+cd /opt/genestack
+NS=cert-manager RELEASE=cert-manager EXPECTED_VERSION=v1.19.5 scripts/cert-manager-support/cert-manager-upgrade-gate.sh
+
+# Verify cmctl API check passes:
+cmctl check api --wait=2m
+
+# Backup cert-manager resources:
+kubectl get issuer,clusterissuer,certificate,certificaterequest,order,challenge -A -o yaml > /tmp/cert-manager-crs.yaml
+kubectl get secret -n cert-manager -o yaml > /tmp/cert-manager-namespace-secrets.yaml
+kubectl get secret --all-namespaces --field-selector type=kubernetes.io/tls -o yaml > /tmp/all-tls-secrets.yaml
+helm -n cert-manager get values cert-manager > /tmp/cert-manager-helm-values.yaml
+
+# Verify cluster health:
+kubectl get nodes
+kubectl get pods -A --no-headers | awk '$4 != "Running" && $4 != "Completed" {print}'
+
+## Configuration Review
+
+# Check for deprecated or unrecognized fields in override values:
+cat /opt/genestack/base-helm-configs/cert-manager/cert-manager-helm-overrides.yaml
+
+# The override has:
+# - crds.enabled: true (will install CRDs with the chart)
+# - crds.keep: true (preserves CRDs on uninstall/upgrade)
+# - config.enableGatewayAPI: true
+# - dns01RecursiveNameservers set
+
+# Review for any fields that may fail v1.20 schema validation.
+# Common issues:
+# - installCRDs was renamed to crds.enabled
+# - securityContext changes in newer versions
+
+## Pre-Change Safety Checks
+
+# Check for certificates that rely on inherited rotationPolicy (should already be set to Never for CA cert):
+echo "=== Certificates without explicit rotationPolicy ==="
+kubectl get certificate -A -o json | jq -r '.items[] | select(.spec.privateKey.rotationPolicy == null) | .metadata.namespace + "/" + .metadata.name'
+
+# For any certificates without explicit rotationPolicy:
+# - In cert-manager v1.18+, these inherit rotationPolicy=Always (default changed)
+# - CA certificates and trust anchors should have rotationPolicy: Never
+# - Non-CA certificates can safely inherit Always
+
+# Explicitly check the public-endpoint-ca-cert:
+kubectl get certificate public-endpoint-ca-cert -n cert-manager -o jsonpath='{.spec.privateKey.rotationPolicy}' 2>/dev/null
+
+# Expected: Never
+
+# Check for unhealthy cert-manager pods:
+kubectl -n cert-manager get pods
+
+# Check for failing certificate requests:
+kubectl get certificaterequest -A --no-headers | head -10
+kubectl get certificate -A -o json | jq -r '.items[] | select(.status.conditions[]?.type=="Ready" and .status.conditions[].status!="True") | .metadata.namespace + "/" + .metadata.name'
+
+# Check for failing orders/challenges:
+kubectl get order,challenge -A --no-headers | head -10
+
+# Disable HPA during upgrade:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh lock 2>/dev/null || true
+
+### Execute
+
+## Update the Target Version
+
+# Edit /etc/genestack/helm-chart-versions.yaml:
+# cert-manager: v1.20.3
+
+## Run a Dry-Run
+
+# Test that the chart renders correctly using OCI distribution:
+helm template cert-manager oci://quay.io/jetstack/cert-manager \
+  --version v1.20.3 \
+  --namespace=cert-manager \
+  -f /opt/genestack/base-helm-configs/cert-manager/cert-manager-helm-overrides.yaml > /tmp/cert-manager-render.yaml 2>&1
+
+# Check for errors:
+grep -i "error\|fail\|warning" /tmp/cert-manager-render.yaml | head -20 || echo "No errors found"
+
+# Verify the rendered output has expected resources:
+grep -c "kind: Deployment" /tmp/cert-manager-render.yaml    # Expected: 3 (controller, webhook, cainjector)
+grep -c "kind: Service" /tmp/cert-manager-render.yaml      # Expected: 3+ (webhook, API service, etc.)
+
+## Install CRDs Separately (if needed)
+
+# cert-manager v1.20 may require CRD installation before the chart upgrade:
+helm template cert-manager oci://quay.io/jetstack/cert-manager \
+  --version v1.20.3 \
+  --include-crds > /tmp/cert-manager-crds.yaml 2>&1
+kubectl apply -f /tmp/cert-manager-crds.yaml
+
+# Wait for CRDs to be established:
+kubectl wait --for=condition=Established crd/certificates.cert-manager.io --timeout=300s
+kubectl wait --for=condition=Established crd/challenges.acme.cert-manager.io --timeout=300s
+kubectl wait --for=condition=Established crd/clusterissuers.cert-manager.io --timeout=300s
+kubectl wait --for=condition=Established crd/issuers.cert-manager.io --timeout=300s
+kubectl wait --for=condition=Established crd/orders.acme.cert-manager.io --timeout=300s
+
+## Run the Helm Upgrade
+
+cd /opt/genestack
+./bin/install-cert-manager.sh
+
+# Wait for all deployments to be ready:
+kubectl -n cert-manager rollout status deployment/cert-manager --timeout=600s
+kubectl -n cert-manager rollout status deployment/cert-manager-webhook --timeout=300s
+kubectl -n cert-manager rollout status deployment/cert-manager-cainjector --timeout=300s
+
+## Run the Post-Upgrade Gate
+
+# Use the existing cert-manager upgrade gate script:
+NS=cert-manager RELEASE=cert-manager EXPECTED_VERSION=v1.20.3 scripts/cert-manager-support/cert-manager-upgrade-gate.sh
+
+# Verify cmctl API check passes:
+cmctl check api --wait=2m
+
+# Verify certificate issuance still works:
+# If you have a test certificate:
+kubectl get certificate -A | head -10
+
+# Check for any CertificateRequests being created:
+kubectl get certificaterequest -A --no-headers | head -10
+
+# Check for any Orders/Challenges:
+kubectl get order,challenge -A --no-headers | head -10
+
+### Post-Maint
+
+# Verify deployed version:
+grep '^[[:space:]]*cert-manager:' /etc/genestack/helm-chart-versions.yaml
+helm -n cert-manager list -f cert-manager
+kubectl -n cert-manager get deployment cert-manager -o jsonpath='{range .spec.template.spec.containers[*]}{.image}{"\n"}{end}'
+
+# Expected: quay.io/jetstack/cert-manager/controller:v1.20.3
+
+# Verify all cert-manager workloads are Running:
+kubectl -n cert-manager get pods
+
+# Verify certificates are still Ready:
+kubectl get certificate -A -o custom-columns=NAME:.metadata.name,NAMESPACE:.metadata.namespace,READY:.status.conditions[-1].status,ISSUER:.spec.issuerRef.name
+
+# Verify issuers are available:
+kubectl get clusterissuer,issuer -A
+
+# Verify ACME orders/challenges are working (if using Let's Encrypt):
+kubectl get order,challenge -A | head -10
+
+# Verify the public-endpoint-ca-cert rotationPolicy is still Never:
+kubectl get certificate public-endpoint-ca-cert -n cert-manager -o jsonpath='{.spec.privateKey.rotationPolicy}'
+
+# Expected: Never
+
+# Show certificates and issuers summary:
+cd /opt/genestack
+scripts/cert-manager-support/show-certificates-and-issuers.sh
+
+# Re-enable HPA:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+# Clean up:
+rm -f /tmp/cert-manager-render.yaml /tmp/cert-manager-crds.yaml
+
+### Troubleshooting
+
+## Common Failure Signals
+
+# If CRDs fail to install during Helm upgrade:
+# Install them manually from the chart:
+helm template cert-manager oci://quay.io/jetstack/cert-manager \
+  --version v1.20.3 --include-crds | kubectl apply -f -
+
+# If cert-manager pods fail to start:
+kubectl -n cert-manager logs deployment/cert-manager --tail=100
+kubectl -n cert-manager describe deployment cert-manager
+
+# If certificate issuance fails:
+cmctl describe certificate <name> -n <namespace>
+kubectl describe certificate <name> -n <namespace>
+
+# If the upgrade gate fails:
+echo "Check the gate output for specific failures. Common issues:"
+echo "  - cmctl check api: cert-manager API not responding"
+echo "  - Helm release: wrong version or status"
+echo "  - Workload rollout: pods not Running or not Ready"
+
+# If certificates are stuck in Pending state:
+kubectl describe certificate <name> -n <namespace>
+kubectl describe certificaterequest -n <namespace> --selector cert-manager.io/certificate=<name>
+
+## Rollback
+
+# If the upgrade fails, the gate will report specific failures.
+# For a full rollback:
+helm -n cert-manager rollback cert-manager <revision>
+
+# If CRDs were upgraded and the old version is incompatible:
+# You may need to reinstall the old CRDs:
+helm template cert-manager oci://quay.io/jetstack/cert-manager \
+  --version v1.19.5 --include-crds | kubectl apply -f -
+
+# Verify rollback success:
+NS=cert-manager RELEASE=cert-manager EXPECTED_VERSION=v1.19.5 scripts/cert-manager-support/cert-manager-upgrade-gate.sh
+
+# Re-enable HPA:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+### Sources
+
+# https://cert-manager.io/docs/release-notes/v1.20/
+# https://cert-manager.io/docs/concepts/upgrading/
+# https://docs.rackspacecloud.com/infrastructure-cert-manager/
+# scripts/cert-manager-support/cert-manager-upgrade-gate.sh
+# scripts/cert-manager-support/cert-manager-config-backup.sh

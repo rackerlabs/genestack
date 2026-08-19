@@ -1,0 +1,204 @@
+### Loki Maintenance: 6.52.0 to 7.3.0
+
+### Notes
+
+# (opt) refers to /opt, the standard install path for Genestack.
+# (etc) refers to /etc, the standard override path for Genestack.
+# Replace all placeholder values in angle brackets before using this runbook.
+# Keep this runbook operational. Prefer exact commands, exact file paths, expected outputs, and explicit validation steps.
+
+### Validation
+
+# Kubernetes 1.35.4 satisfies Loki chart 7.x requirements.
+# Upgrading from chart 6.52.0 to 7.3.0 is a major chart version bump (6→7).
+# App version moves from Loki v3.6.7 to v3.6.12 (same minor — data compatible).
+# Validated source version: 6.52.0.
+# Validated target version: 7.3.0.
+
+# Major operational risks:
+# - Major chart version may have CRD or values schema changes.
+# - PVC data should be compatible (same Loki 3.6.x app version).
+# - The chart 7.x may require Helm 3.9+ (available in CI v3.14.3).
+
+# Read upstream upgrade guide:
+#   https://github.com/grafana/helm-charts
+
+### Goal
+
+# Upgrade Loki from chart 6.52.0 to chart 7.3.0 without log data loss
+# and with all Loki pods returning healthy.
+
+### Prep
+
+## Deployment Node
+
+# Identify the deployment host with kubectl, helm access.
+
+# Verify current health:
+kubectl -n grafana get pods | grep loki
+
+# Expected:
+# - All Loki pods (distributor, ingester, querier, querier-frontend, gateway, etc.) are Running
+
+# Verify current chart version:
+helm list -n grafana -f loki
+grep '^[[:space:]]*loki:' /etc/genestack/helm-chart-versions.yaml
+
+# Expected:
+# - loki: 6.52.0
+
+# Backup Loki state:
+helm -n grafana get values loki > /tmp/loki-helm-values.yaml
+kubectl -n grafana get configmap -l app.kubernetes.io/name=loki -o yaml > /tmp/loki-configmaps.yaml 2>/dev/null || true
+kubectl -n grafana get secret -l app.kubernetes.io/name=loki -o yaml > /tmp/loki-secrets.yaml 2>/dev/null || true
+kubectl -n grafana get pvc -l app.kubernetes.io/name=loki -o yaml > /tmp/loki-pvcs.yaml 2>/dev/null || true
+
+# Verify Loki PVCs are bound:
+kubectl -n grafana get pvc | grep loki
+
+# Verify Loki is ingesting logs:
+kubectl -n grafana port-forward svc/grafana-loki 3100 &>/dev/null &
+sleep 5
+curl -s "http://localhost:3100/loki/api/v1/query?query={app=\"grafana\"} | length" 
+kill %1 2>/dev/null || true
+
+# Verify cluster health:
+kubectl get nodes
+kubectl get pods -A --no-headers | awk '$4 != "Running" && $4 != "Completed" {print}'
+
+## Configuration Review
+
+# The existing override uses loki-helm-minio-overrides.yaml.example:
+ls base-helm-configs/loki/
+
+# Check if the Loki config has any chart-6-specific settings that may break on chart 7:
+grep -n "ruler\|compactor\|store\|chunk_streamer\|boltdb" /opt/genestack/base-helm-configs/loki/loki-helm-overrides.yaml 2>/dev/null | head -10
+
+# Verify the override file renders with the new chart version:
+helm template loki grafana/loki \
+  --version 7.3.0 \
+  -f /opt/genestack/base-helm-configs/loki/loki-helm-minio-overrides.yaml.example \
+  --namespace grafana > /tmp/loki-render.yaml 2>&1
+
+grep -i "error\|fail\|warning" /tmp/loki-render.yaml | head -10 || echo "No errors found"
+
+## Pre-Change Safety Checks
+
+# Check for unhealthy Loki pods:
+kubectl -n grafana get pods | grep loki
+
+# Verify no data gaps in the last hour:
+kubectl -n grafana port-forward svc/grafana-loki 3100 &>/dev/null &
+sleep 5
+curl -s "http://localhost:3100/loki/api/v1/query?query=sum(count_over_time({app=~\".+\"}[1h])) > 0" | jq '.data.result | length'
+kill %1 2>/dev/null || true
+
+# Disable HPA during upgrade:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh lock 2>/dev/null || true
+
+### Execute
+
+## Update the Target Version
+
+# Edit /etc/genestack/helm-chart-versions.yaml:
+# loki: 7.3.0
+
+## Run a Dry-Run
+
+# Test that the chart renders correctly:
+helm template loki grafana/loki \
+  --version 7.3.0 \
+  -f /opt/genestack/base-helm-configs/loki/loki-helm-overrides.yaml \
+  --namespace grafana > /tmp/loki-render.yaml 2>&1
+
+# Check for errors:
+grep -i "error\|fail\|warning" /tmp/loki-render.yaml | head -20 || echo "No errors found"
+
+## Run the Helm Upgrade
+
+cd /opt/genestack
+./bin/install-loki.sh
+
+# Wait for the rollout to complete:
+kubectl -n grafana rollout status deployment/grafana-loki-gateway --timeout=300s 2>/dev/null || true
+kubectl -n grafana rollout status statefulset/grafana-loki-canary --timeout=300s 2>/dev/null || true
+
+# Wait for all Loki pods:
+while kubectl -n grafana get pods | grep -v "loki-" | grep -v NAME | grep -qv Running; do
+  echo "Waiting for Loki pods..."
+  sleep 10
+done
+
+### Post-Maint
+
+# Verify deployed version:
+grep '^[[:space:]]*loki:' /etc/genestack/helm-chart-versions.yaml
+helm -n grafana list -f loki
+kubectl -n grafana get pods -l app.kubernetes.io/name=loki -o jsonpath='{range .items[*]}{.spec.containers[*].image}{"\n"}{end}'
+
+# Expected: images reference grafana/loki:7.3.0 or similar
+
+# Verify workload health:
+kubectl -n grafana get pods | grep loki
+
+# Verify PVCs are intact:
+kubectl -n grafana get pvc | grep loki
+
+# Verify Loki is ingesting logs:
+kubectl -n grafana port-forward svc/grafana-loki 3100 &>/dev/null &
+sleep 10
+curl -s "http://localhost:3100/ready"
+curl -s "http://localhost:3100/loki/api/v1/query?query={app=\"grafana\"} | length"
+kill %1 2>/dev/null || true
+
+# Verify query performance:
+kubectl -n grafana port-forward svc/grafana-loki 3100 &>/dev/null &
+sleep 5
+curl -s "http://localhost:3100/loki/api/v1/query?query=sum(rate({app=~\".+\"}[5m])) > 0" | jq '.data.result | length'
+kill %1 2>/dev/null || true
+
+# Re-enable HPA:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+# Clean up:
+rm -f /tmp/loki-render.yaml
+
+### Troubleshooting
+
+## Common Failure Signals
+
+# If Loki pods fail to start with config validation errors:
+# Review the chart 7.x values schema changes.
+# Check: helm get values loki -n grafana
+# Compare against chart values.yaml at:
+#   https://github.com/grafana/helm-charts/blob/main/charts/loki/values.yaml
+
+# If PVC data is corrupted:
+# Check Loki version compatibility: the app version is 3.6.x for both charts, so data should be compatible.
+# If not, restore from PVC backup.
+
+# If metrics are missing:
+kubectl -n grafana port-forward svc/grafana-loki 3100 &>/dev/null &
+sleep 5
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090 &>/dev/null &
+sleep 5
+curl -s "http://localhost:9090/api/v1/query?query=loki_build_info" | jq '.data.result'
+kill %1 %2 2>/dev/null || true
+
+## Rollback
+
+# If the upgrade fails:
+helm -n grafana rollback loki <revision>
+
+# Re-enable HPA after rollback:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+### Sources
+
+# https://github.com/grafana/helm-charts/releases
+# https://grafana.com/docs/loki/latest/agents/helm/
+# https://docs.rackspacecloud.com/monitoring-grafana/
+

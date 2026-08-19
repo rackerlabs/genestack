@@ -1,0 +1,248 @@
+### Grafana Maintenance: 10.1.0 to 10.5.15
+
+### Notes
+
+# (opt) refers to /opt, the standard install path for Genestack.
+# (etc) refers to /etc, the standard override path for Genestack.
+# Replace all placeholder values in angle brackets before using this runbook.
+# Keep this runbook operational. Prefer exact commands, exact file paths, expected outputs, and explicit validation steps.
+
+### Validation
+
+# Kubernetes 1.35.4 satisfies Grafana chart 10.5.15 requirements (K8s 1.23+).
+# Upgrading from chart 10.1.0 to 10.5.15 is a 4-minor-version jump within chart 10.x.
+# App version jumps from Grafana 11.x to Grafana 12.3.1.
+# Validated source version: 10.1.0.
+# Validated target version: 10.5.15.
+
+# Major operational risks:
+# - App version jump from 11.x to 12.x may break custom dashboards.
+# - The image tag is pinned in overrides at base-helm-configs/grafana/grafana-helm-overrides.yaml:22.
+# - Plugin compatibility with Grafana 12.x may require updates.
+# - Data is stored in PVC (dashboards in external DB via MariaDB) — no data loss risk.
+
+# Read upstream upgrade guide:
+#   https://grafana.com/docs/grafana/12.3.x/
+#   https://grafana.com/docs/grafana/latest/setup-grafana/upgrade/
+
+### Goal
+
+# Upgrade Grafana from chart 10.1.0 to chart 10.5.15, updating the app image tag,
+# with all dashboards, datasources, and users healthy and accessible.
+
+### Prep
+
+## Deployment Node
+
+# Identify the deployment host with kubectl, helm access.
+
+# Verify current health:
+kubectl -n grafana get pods
+
+# Expected:
+# - grafana deployment: Running, Ready
+
+# Verify current chart version:
+helm list -n grafana -f grafana
+grep '^[[:space:]]*grafana:' /etc/genestack/helm-chart-versions.yaml
+
+# Expected:
+# - grafana: 10.1.0
+
+# Verify current image tag:
+grep 'tag:' /opt/genestack/base-helm-configs/grafana/grafana-helm-overrides.yaml | head -3
+
+# Expected:
+# - tag: "12.2.0"
+
+# Backup Grafana dashboards and datasources:
+# Export all dashboards via API (if not already version-controlled):
+kubectl -n grafana port-forward svc/grafana 3000 &>/dev/null &
+sleep 5
+curl -s -u admin:$(kubectl -n grafana get secret grafana -o jsonpath='{.data.admin-password}' | base64 -d) \
+  http://localhost:3000/api/search | jq -r '.[].uid' > /tmp/grafana-dashboards.txt
+kill %1 2>/dev/null || true
+
+# Backup Grafana database (in MariaDB):
+# The Grafana database is stored in MariaDB. The mariadb-operator backup covers this.
+# Verify MariaDB backup is current:
+kubectl -n mariadb-system get pods | grep mariadb
+
+# Backup Helm values:
+helm -n grafana get values grafana > /tmp/grafana-helm-values.yaml
+
+# Verify cluster health:
+kubectl get nodes
+kubectl get pods -A --no-headers | awk '$4 != "Running" && $4 != "Completed" {print}'
+
+## Configuration Review
+
+# The Grafana override file at base-helm-configs/grafana/grafana-helm-overrides.yaml
+# has the image tag pinned at line 22:
+#   image:
+#     tag: "12.2.0"
+# This needs to be updated to "12.3.1".
+
+# Check for plugin version references:
+grep -n "plugin" /opt/genestack/base-helm-configs/grafana/grafana-helm-overrides.yaml | head -10
+
+# Check dashboard JSON files for compatibility:
+find /opt/genestack/base-helm-configs/grafana/ -name "*.json" 2>/dev/null | head -10
+
+# Verify the override file renders with the new chart version:
+helm template grafana grafana/grafana \
+  --version 10.5.15 \
+  -f /opt/genestack/base-helm-configs/grafana/grafana-helm-overrides.yaml \
+  --namespace grafana > /tmp/grafana-render.yaml 2>&1
+
+grep -i "error\|fail\|warning" /tmp/grafana-render.yaml | head -10 || echo "No errors found"
+
+## Pre-Change Safety Checks
+
+# Check for unhealthy Grafana pods:
+kubectl -n grafana get pods
+
+# Verify Grafana is accessible:
+kubectl -n grafana port-forward svc/grafana 3000 &>/dev/null &
+sleep 5
+curl -s http://localhost:3000/api/health | jq '.'
+kill %1 2>/dev/null || true
+
+# Verify dashboard count is stable:
+kubectl -n grafana port-forward svc/grafana 3000 &>/dev/null &
+sleep 5
+curl -s -u admin:$(kubectl -n grafana get secret grafana -o jsonpath='{.data.admin-password}' | base64 -d) \
+  http://localhost:3000/api/search | jq '. | length'
+kill %1 2>/dev/null || true
+
+# Check for plugin errors in logs:
+kubectl -n grafana logs deployment/grafana --tail=50 | grep -i "plugin\|error\|fail" | head -10
+
+# Disable HPA during upgrade:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh lock 2>/dev/null || true
+
+### Execute
+
+## Update the Target Version
+
+# Edit /etc/genestack/helm-chart-versions.yaml:
+# grafana: 10.5.15
+
+## Update Image Tag in Overrides
+
+# Edit /opt/genestack/base-helm-configs/grafana/grafana-helm-overrides.yaml:
+# Change line 22 from:
+#   tag: "12.2.0"
+# To:
+#   tag: "12.3.1"
+
+## Run a Dry-Run
+
+# Test that the chart renders correctly:
+helm template grafana grafana/grafana \
+  --version 10.5.15 \
+  --namespace grafana \
+  -f /opt/genestack/base-helm-configs/grafana/grafana-helm-overrides.yaml > /tmp/grafana-render.yaml 2>&1
+
+# Check for errors:
+grep -i "error\|fail\|warning" /tmp/grafana-render.yaml | head -20 || echo "No errors found"
+
+## Run the Helm Upgrade
+
+cd /opt/genestack
+./bin/install-grafana.sh
+
+# Wait for the rollout:
+kubectl -n grafana rollout status deployment/grafana --timeout=600s
+
+### Post-Maint
+
+# Verify deployed version:
+grep '^[[:space:]]*grafana:' /etc/genestack/helm-chart-versions.yaml
+helm -n grafana list -f grafana
+grep 'tag:' /opt/genestack/base-helm-configs/grafana/grafana-helm-overrides.yaml
+
+# Expected: tag: "12.3.1"
+
+# Verify workload health:
+kubectl -n grafana get pods
+
+# Verify Grafana is accessible:
+kubectl -n grafana port-forward svc/grafana 3000 &>/dev/null &
+sleep 10
+curl -s http://localhost:3000/api/health | jq '.'
+kill %1 2>/dev/null || true
+
+# Verify dashboards are accessible:
+kubectl -n grafana port-forward svc/grafana 3000 &>/dev/null &
+sleep 5
+curl -s -u admin:$(kubectl -n grafana get secret grafana -o jsonpath='{.data.admin-password}' | base64 -d) \
+  http://localhost:3000/api/search | jq '. | length'
+kill %1 2>/dev/null || true
+
+# Verify key dashboards load:
+kubectl -n grafana port-forward svc/grafana 3000 &>/dev/null &
+sleep 5
+curl -s -u admin:$(kubectl -n grafana get secret grafana -o jsonpath='{.data.admin-password}' | base64 -d) \
+  http://localhost:3000/api/dashboards/uid/openstack-overview | jq '.dashboard.title' 2>/dev/null || echo "Dashboard may need update"
+kill %1 2>/dev/null || true
+
+# Verify datasources are healthy:
+kubectl -n grafana port-forward svc/grafana 3000 &>/dev/null &
+sleep 5
+curl -s -u admin:$(kubectl -n grafana get secret grafana -o jsonpath='{.data.admin-password}' | base64 -d) \
+  http://localhost:3000/api/datasources | jq -r '.[] | "\(.name): \(.type) - \(.url)"'
+kill %1 2>/dev/null || true
+
+# Re-enable HPA:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+# Clean up:
+rm -f /tmp/grafana-render.yaml
+
+### Troubleshooting
+
+## Common Failure Signals
+
+# If dashboards fail to load with Grafana 12.x:
+# Check for deprecated panel types or query syntax changes.
+# Grafana 12.x may require dashboard JSON schema updates.
+# Use the dashboard import API to re-import any broken dashboards.
+
+# If plugins fail to load:
+# Check plugin compatibility with Grafana 12.x.
+# Update plugin versions in the override file or remove incompatible plugins.
+
+# If Prometheus datasource connection fails:
+kubectl -n grafana port-forward svc/grafana 3000 &>/dev/null &
+sleep 5
+curl -s -u admin:$(kubectl -n grafana get secret grafana -o jsonpath='{.data.admin-password}' | base64 -d) \
+  http://localhost:3000/api/datasources | jq '.[] | select(.type=="prometheus")'
+kill %1 2>/dev/null || true
+
+# If database migration errors:
+kubectl -n grafana logs deployment/grafana --tail=100 | grep -i "migration\|error\|fail"
+# The Grafana DB schema is in MariaDB. If migration fails, check MariaDB connectivity.
+
+## Rollback
+
+# If the upgrade fails:
+helm -n grafana rollback grafana <revision>
+
+# Revert the image tag:
+# In base-helm-configs/grafana/grafana-helm-overrides.yaml:
+#   tag: "12.2.0"
+
+# Re-enable HPA:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+### Sources
+
+# https://grafana.com/docs/grafana/12.3.x/
+# https://grafana.com/docs/grafana/latest/setup-grafana/upgrade/
+# https://github.com/grafana/helm-charts/releases
+# https://docs.rackspacecloud.com/monitoring-grafana/
+

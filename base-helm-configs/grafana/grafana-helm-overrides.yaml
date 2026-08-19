@@ -19,7 +19,7 @@ ingress:
   enabled: false
 
 image:
-  tag: "12.2.0"
+  tag: "12.3.1"
 
 grafana.ini:
   paths:

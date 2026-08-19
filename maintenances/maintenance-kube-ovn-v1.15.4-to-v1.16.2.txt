@@ -1,0 +1,247 @@
+### Kube-OVN Maintenance: v1.15.4 to v1.16.2
+
+### Notes
+
+# (opt) refers to /opt, the standard install path for Genestack.
+# (etc) refers to /etc, the standard override path for Genestack.
+# Replace all placeholder values in angle brackets before using this runbook.
+# Keep this runbook operational. Prefer exact commands, exact file paths, expected outputs, and explicit validation steps.
+
+### Validation
+
+# Kubernetes 1.35.4 (kubespray v2.31.0) satisfies kube-ovn v1.16.2 upstream requirements.
+# Upgrading from kube-ovn v1.15.4 to v1.16.2 is a major version bump (1.15 → 1.16).
+# Validated source version: kube-ovn v1.15.4.
+# Validated target version: kube-ovn v1.16.2.
+
+# Major operational risks:
+# - CNI is the networking foundation; any upgrade causes network interruption for all pods.
+# - The image tag is pinned in base-helm-configs/kube-ovn/kube-ovn-helm-overrides.yaml:12.
+# - kube-ovn v1.16 introduces NetworkPolicy provider-scoped policies, BGP/EVPN for VPC Egress Gateway,
+#   and hairpin improvements that may affect existing network policies.
+# - OVN database schema may change between versions.
+
+# Read upstream upgrade guide:
+#   https://github.com/kubeovn/kube-ovn/releases/tag/v1.16.0
+
+### Goal
+
+# Upgrade kube-ovn from v1.15.4 to v1.16.2, updating the image tag in overrides,
+# with all cluster networking healthy and no connectivity regressions.
+
+### Prep
+
+## Deployment Node
+
+# Identify the deployment host with kubectl, helm access.
+
+# Verify current health:
+kubectl -n kube-system get pods -l app=kube-ovn
+
+# Expected:
+# - kube-ovn-controller: Running
+# - kube-ovn-cni (DaemonSet): Running on all nodes
+# - kube-ovn-master: Running
+# - ovs-ovn (DaemonSet): Running on all nodes
+
+# Verify current kube-ovn version:
+helm list -n kube-system -f kube-ovn
+grep '^[[:space:]]*kube-ovn:' /etc/genestack/helm-chart-versions.yaml
+
+# Expected:
+# - kube-ovn: v1.15.4
+
+# Verify current image tag:
+grep 'tag:' /opt/genestack/base-helm-configs/kube-ovn/kube-ovn-helm-overrides.yaml
+
+# Expected:
+# - tag: v1.15.4
+
+# Backup kube-ovn config:
+kubectl get configmap -n kube-system -l app=kube-ovn -o yaml > /tmp/kube-ovn-configmaps.yaml
+kubectl get secret -n kube-system -l app=kube-ovn -o yaml > /tmp/kube-ovn-secrets.yaml
+kubectl get crd -l app.kubeovn.io/v1beta1 -o yaml > /tmp/kube-ovn-crds.yaml 2>/dev/null || true
+
+# Verify cluster networking before upgrade:
+kubectl run test-connectivity --rm -i --restart=Never --image=busybox -- \
+  nslookup kubernetes.default 2>&1
+kubectl get nodes
+
+# Verify no network errors:
+kubectl get pods -A --no-headers | awk '$4 != "Running" && $4 != "Completed" {print}'
+
+# Create a working directory:
+export MAINT_DIR=/home/ubuntu/kube-ovn-v1.15.4-to-v1.16.2-maint
+mkdir -p "$MAINT_DIR"
+
+# Capture current PodCIDR and SVC CIDR:
+kubectl get -n kube-system configmap/kube-ovn-base -o yaml > "$MAINT_DIR/kube-ovn-base-before.yaml" 2>/dev/null || true
+
+# Verify OVN northbound database health:
+kubectl -n kube-system exec deploy/kube-ovn-controller -- \
+  ovn-nbctl show | head -20 2>/dev/null || true
+
+### Execute
+
+## Update the Target Version
+
+# Edit /etc/genestack/helm-chart-versions.yaml:
+# kube-ovn: v1.16.2
+
+# Edit /opt/genestack/base-helm-configs/kube-ovn/kube-ovn-helm-overrides.yaml:
+# Change line 12 from:
+#   tag: v1.15.4
+# To:
+#   tag: v1.16.2
+
+## Run a Dry-Run
+
+# Test that the chart renders correctly:
+helm template kube-ovn kube-ovn/kube-ovn \
+  --version v1.16.2 \
+  --namespace kube-system \
+  -f /opt/genestack/base-helm-configs/kube-ovn/kube-ovn-helm-overrides.yaml \
+  > /tmp/kube-ovn-render.yaml 2>&1
+
+# Check for errors:
+grep -i "error\|fail\|warning" /tmp/kube-ovn-render.yaml | head -20 || echo "No errors found"
+
+## Run the Upgrade
+
+# The kube-ovn chart is installed via kubespray. The install script may or may not exist:
+# Try the install script first:
+cd /opt/genestack
+./bin/install-kube-ovn.sh 2>/dev/null || echo "No install script; using helm directly"
+
+# If installing via helm directly:
+helm upgrade --install kube-ovn kube-ovn/kube-ovn \
+  --version v1.16.2 \
+  --namespace kube-system \
+  --create-namespace \
+  --timeout 300m \
+  --wait \
+  -f /opt/genestack/base-helm-configs/kube-ovn/kube-ovn-helm-overrides.yaml 2>/dev/null || \
+helm upgrade --install kube-ovn kube-ovn/kube-ovn \
+  --version v1.16.2 \
+  --namespace kube-system \
+  --timeout 300m \
+  -f /opt/genestack/base-helm-configs/kube-ovn/kube-ovn-helm-overrides.yaml
+
+# If using kubespray, reconfigure and redeploy:
+# ansible-playbook /opt/genestack/submodules/kubespray/cluster.yml \
+#   -e kube_version=1.35.4 \
+#   --limit "all" \
+#   --become
+
+## Wait for Reconciliation
+
+# Wait for the controller to be ready:
+kubectl -n kube-system rollout status deployment/kube-ovn-controller --timeout=600s
+
+# Wait for CNI daemonset:
+kubectl -n kube-system rollout status daemonset/kube-ovn-cni --timeout=600s
+
+# Wait for OVS/OVN daemonset:
+kubectl -n kube-system rollout status daemonset/ovs-ovn --timeout=600s 2>/dev/null || true
+
+# Wait for master components:
+kubectl -n kube-system rollout status deployment/kube-ovn-master --timeout=600s 2>/dev/null || true
+
+# Wait for monitor:
+kubectl -n kube-system rollout status daemonset/kube-ovn-monitor --timeout=300s 2>/dev/null || true
+
+### Post-Maint
+
+# Verify deployed version:
+grep '^[[:space:]]*kube-ovn:' /etc/genestack/helm-chart-versions.yaml
+grep 'tag:' /opt/genestack/base-helm-configs/kube-ovn/kube-ovn-helm-overrides.yaml
+
+# Expected: v1.16.2
+
+# Verify all kube-ovn pods:
+kubectl -n kube-system get pods -l app=kube-ovn -o wide
+
+# Verify Helm release:
+helm -n kube-system list -f kube-ovn
+
+# Verify CNI pods on all nodes:
+kubectl -n kube-system get ds kube-ovn-cni -o wide
+
+# Verify OVS pods on all nodes:
+kubectl -n kube-system get ds ovs-ovn -o wide
+
+# Verify OVN northbound database:
+kubectl -n kube-system exec deploy/kube-ovn-controller -- \
+  ovn-nbctl show 2>/dev/null | head -20
+
+# Verify PodCIDR and SVC CIDR unchanged:
+kubectl get -n kube-system configmap/kube-ovn-base -o yaml | grep -E "pod_cidr|svc_cidr|POD_CIDR|SVC_CIDR"
+
+# Verify workload connectivity:
+kubectl run test-connectivity-post-upgrade --rm -i --restart=Never --image=busybox -- \
+  nslookup kubernetes.default 2>&1
+
+# Verify OpenStack and monitoring pods have network:
+kubectl -n openstack get pods -l application=keystone --no-headers | wc -l
+kubectl -n monitoring get pods -l app.kubernetes.io/name=grafana --no-headers | wc -l
+
+# Verify PodCIDR assignment for new pods:
+kubectl get pods -n kube-system -l app=kube-ovn-cni -o jsonpath='{.items[*].status.podIP}' | head -1
+
+# Verify all nodes are Ready:
+kubectl get nodes
+
+# Verify no network disruption:
+kubectl get pods -A --no-headers | awk '$4 != "Running" && $4 != "Completed" {print}'
+
+# Clean up maintenance directory:
+rm -rf /home/ubuntu/kube-ovn-v1.15.4-to-v1.16.2-maint
+
+### Troubleshooting
+
+## Common Failure Signals
+
+# If CNI pods fail to start after upgrade:
+# 1. Check the kube-ovn-controller logs:
+kubectl -n kube-system logs deployment/kube-ovn-controller --tail=100
+
+# 2. The CNI pods must be restarted to pick up new image:
+kubectl -n kube-system delete pod -l app=kube-ovn-cni
+
+# 3. Check for network connectivity issues:
+kubectl -n kube-system get pods -l app=kube-ovn-cni
+kubectl get nodes
+
+# If OVN northbound database has schema errors:
+# 1. Check the northd logs:
+kubectl -n kube-system logs deployment/kube-ovn-master --tail=50
+
+# 2. The OVN databases may need a restart:
+kubectl -n kube-system delete pod -l app=kube-ovn-master
+
+# If pods lose network connectivity:
+# 1. Ensure all CNI pods and OVS pods are Running on every node:
+kubectl -n kube-system get ds kube-ovn-cni -o wide
+kubectl -n kube-system get ds ovs-ovn -o wide
+
+# 2. Restart the affected workloads:
+# kubectl -n <namespace> rollout restart deployment/<name>
+
+## Rollback
+
+# Revert the version and image tag:
+# In helm-chart-versions.yaml: kube-ovn: v1.15.4
+# In kube-ovn-helm-overrides.yaml: tag: v1.15.4
+
+# Run:
+helm -n kube-system rollback kube-ovn <revision>
+
+# Restart CNI on all nodes:
+kubectl -n kube-system delete pod -l app=kube-ovn-cni
+
+### Sources
+
+# https://github.com/kubeovn/kube-ovn/releases/tag/v1.16.0
+# https://kubeovn.github.io/docs/v1.16.x/en/
+# https://docs.rackspacecloud.com/k8s-cni-kube-ovn-helm-conversion/
+

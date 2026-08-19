@@ -1,0 +1,46 @@
+---
+name: Helm GitHub Actions for envoy-gateway
+
+on:
+  pull_request:
+    paths:
+      - base-kustomize/envoyproxy-gateway/**
+      - base-helm-configs/envoyproxy-gateway/**
+      - helm-chart-versions.yaml
+      - .github/workflows/helm-envoy-gateway.yaml
+jobs:
+  helm:
+    strategy:
+      matrix:
+        overlays:
+          - base
+    name: Helm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: azure/setup-helm@v3
+        with:
+          version: v3.14.3
+          token: ${{ secrets.GITHUB_TOKEN }}
+        id: helm
+      - name: Get chart version
+        uses: ./.github/actions/get-chart-version
+        id: chart-version
+        with:
+          chart-name: envoyproxy-gateway
+      - name: Run Helm Template
+        run: |
+          ${{ steps.helm.outputs.helm-path }} template envoyproxy-gateway oci://docker.io/envoyproxy/gateway-helm \
+            --version ${{ steps.chart-version.outputs.version }} \
+            --create-namespace \
+            --namespace=envoyproxy-gateway-system \
+            --timeout 120m \
+            -f ${{ github.workspace }}/base-helm-configs/envoyproxy-gateway/envoyproxy-gateway-helm-overrides.yaml \
+            --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
+            --post-renderer-args envoyproxy-gateway/${{ matrix.overlays }} > /tmp/rendered.yaml
+      - name: Return helm Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-envoy-gateway-artifact-${{ matrix.overlays }}
+          path: /tmp/rendered.yaml

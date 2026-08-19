@@ -1,0 +1,387 @@
+### Postgres Operator Maintenance: 1.15.1 to 2.0.1
+
+### Notes
+
+# (opt) refers to /opt, the standard install path for Genestack.
+# (etc) refers to /etc, the standard override path for Genestack.
+# Replace all placeholder values in angle brackets before using this runbook.
+# Keep this runbook operational. Prefer exact commands, exact file paths, expected outputs, and explicit validation steps.
+
+### Validation
+
+# Kubernetes 1.35.4 (kubespray v2.31.0) satisfies the Postgres Operator v2.0.1 minimum (K8s 1.27+).
+# Upgrading from Postgres Operator v1.15.1 to v2.0.1 is a major version bump with breaking changes.
+# Read the upstream migration guide before proceeding:
+#   https://github.com/zalando/postgres-operator/blob/master/docs/migrate.md
+# Key breaking changes:
+#   1. CRD field renames: init_containers→initContainers, pod_priority_class_name→podPriorityClassName,
+#      replicaLoadBalancer→enableReplicaLoadBalancer, useLoadBalancer→enableMasterLoadBalancer
+#   2. Password encryption defaults from md5 to scram-sha-256
+#   3. K8s Endpoints deprecated; must switch to ConfigMap-based HA (kubernetes_use_configmaps=true)
+#   4. Default Spilo image changes to spilo-18:4.1-p2 (from spilo-17)
+# Do NOT delete CRDs during the operator uninstall — the PostgreSQL cluster CRs contain user data.
+
+### Goal
+
+# Upgrade the Postgres Operator from v1.15.1 to v2.0.1 without PostgreSQL data loss or service regression,
+# with all PostgreSQL clusters returning healthy after the upgrade.
+
+### Prep
+
+## Deployment Node
+
+# Identify the deployment host or bastion with kubectl, helm, and jq access.
+
+# Verify current Postgres Operator health:
+kubectl -n postgres-system get deployment,pods
+
+# Expected:
+# - postgres-operator deployment is Running and Available
+# - All pods in postgres-system are Running
+
+# Verify current deployed version:
+helm list -n postgres-system -f postgres-operator
+grep '^[[:space:]]*postgres-operator:' /etc/genestack/helm-chart-versions.yaml
+
+# Expected:
+# - postgres-operator: 1.15.1
+
+# Verify PostgreSQL cluster health:
+for cluster in $(kubectl get postgresql -A -o jsonpath='{.items[*].metadata.name}'); do
+  namespace=$(kubectl get postgresql -A -o jsonpath="{.items[?(@.metadata.name==\"$cluster\")].metadata.namespace}")
+  echo "=== $namespace/$cluster ==="
+  kubectl -n "$namespace" get postgresql "$cluster" -o jsonpath='{.status.PostgresClusterStatus}' 2>/dev/null || echo "N/A"
+  kubectl -n "$namespace" get pods -l application=spilo -o wide
+done
+
+# Expected:
+# - All clusters report "Running" status
+# - All spilo pods are Running and Ready
+
+# Verify no PostgreSQL clusters are mid-reconciliation:
+kubectl get postgresql -A -o json | jq -r '.items[] | .metadata.namespace + "/" + .metadata.name + " - " + (.status.PostgresClusterStatus // "unknown")'
+
+# Check for deprecated manifest fields that need fixing:
+find /etc/genestack/kustomize/ -name "*.yaml" -exec grep -l "init_containers\|pod_priority_class_name\|replicaLoadBalancer\|useLoadBalancer" {} \; 2>/dev/null
+
+# If any manifests use these fields, fix them BEFORE upgrading the operator (see Configuration Review section below).
+
+# Backup all PostgreSQL cluster manifests:
+kubectl get postgresql -A -o yaml > /tmp/postgres-clusters-backup.yaml
+kubectl get secret -n postgres-system -o yaml > /tmp/postgres-secrets-backup.yaml
+kubectl get configmap -n postgres-system -o yaml > /tmp/postgres-configmaps-backup.yaml
+
+# Backup the OperatorConfiguration:
+kubectl get operatorconfiguration -o yaml > /tmp/operator-configuration-backup.yaml 2>/dev/null || true
+
+# Backup Helm release values:
+helm get values postgres-operator -n postgres-system > /tmp/postgres-operator-values.yaml
+
+# Verify cluster health:
+kubectl get nodes
+kubectl get pods -A --no-headers | awk '$4 != "Running" && $4 != "Completed" {print}'
+
+# Create a working directory for this maintenance:
+export MAINT_DIR=/home/ubuntu/postgres-operator-1.15.1-to-2.0.1-maint
+mkdir -p "$MAINT_DIR"
+
+# Dump all CRDs for reference:
+kubectl get crd -o yaml > "$MAINT_DIR/crds-all.yaml"
+kubectl get all -n postgres-system -o yaml > "$MAINT_DIR/postgres-operator-runtime.yaml"
+
+## Configuration Review
+
+# Fix deprecated manifest fields in all PostgreSQL manifests:
+# Replace these fields in /etc/genestack/kustomize/ manifests:
+#   init_containers → initContainers
+#   pod_priority_class_name → podPriorityClassName
+#   replicaLoadBalancer → enableReplicaLoadBalancer
+#   useLoadBalancer → enableMasterLoadBalancer
+
+find /etc/genestack/kustomize/ -name "*.yaml" -exec sed -i \
+  -e 's/init_containers/initContainers/g' \
+  -e 's/pod_priority_class_name/podPriorityClassName/g' \
+  -e 's/replicaLoadBalancer/enableReplicaLoadBalancer/g' \
+  -e 's/useLoadBalancer/enableMasterLoadBalancer/g' \
+  {} \;
+
+# Verify no deprecated fields remain:
+find /etc/genestack/kustomize/ -name "*.yaml" -exec grep -l "init_containers\|pod_priority_class_name\|replicaLoadBalancer\|useLoadBalancer" {} \; 2>/dev/null
+# Expected: no output
+
+# Review password encryption settings:
+# Check if any PostgreSQL manifests set password_encryption: md5
+grep -rn "password_encryption" /etc/genestack/kustomize/ 2>/dev/null
+
+# If any manifests use md5 encryption, add explicit setting:
+# spec.postgresql.parameters.password_encryption: scram-sha-256
+
+## Pre-Change Safety Checks
+
+# Check for K8s endpoints usage (deprecated in v2):
+kubectl get endpoints -A | grep -i postgres 2>/dev/null || true
+# If any postgres-related endpoints exist, the clusters use the deprecated endpoint-based HA.
+
+# If using deprecated endpoints for HA, migrate to configmaps first:
+# See the "Migrate to ConfigMap-based HA" section below.
+
+## Migrate to ConfigMap-based HA (if needed)
+
+# The Postgres Operator v2.0.0 defaults to ConfigMap-based HA.
+# If clusters currently use K8s endpoints, migrate BEFORE upgrading to avoid split-brain scenarios.
+
+# Step 1: Scale down all clusters to single primary:
+echo "Scaling down PostgreSQL clusters to single primary..."
+for pgsql in $(kubectl get postgresql -A -o name 2>/dev/null); do
+  kubectl patch "$pgsql" --type merge -p '{"spec":{"minInstances":1,"maxInstances":1}}'
+done
+
+# Wait for all clusters to have single primary:
+for pgsql in $(kubectl get postgresql -A -o name 2>/dev/null); do
+  echo "Waiting for $pgsql to stabilize..."
+  while true; do
+    status=$(kubectl get "$pgsql" -o jsonpath='{.status.PostgresClusterStatus}' 2>/dev/null)
+    if [ "$status" = "Running" ]; then
+      break
+    fi
+    sleep 5
+  done
+done
+
+# Step 2: Enable configmap-based HA:
+echo "Enabling configmap-based HA..."
+for pgsql in $(kubectl get postgresql -A -o name 2>/dev/null); do
+  kubectl patch "$pgsql" --type merge -p '{"spec":{"kubernetes_use_configmaps":true}}'
+done
+
+# Wait for clusters to stabilize with configmaps:
+for pgsql in $(kubectl get postgresql -A -o name 2>/dev/null); do
+  echo "Waiting for $pgsql to stabilize with configmaps..."
+  while true; do
+    status=$(kubectl get "$pgsql" -o jsonpath='{.status.PostgresClusterStatus}' 2>/dev/null)
+    if [ "$status" = "Running" ]; then
+      break
+    fi
+    sleep 5
+  done
+done
+
+# Verify configmaps were created:
+for cluster in $(kubectl get postgresql -A -o jsonpath='{.items[*].metadata.name}'); do
+  namespace=$(kubectl get postgresql -A -o jsonpath="{.items[?(@.metadata.name==\"$cluster\")].metadata.namespace}")
+  echo "=== $namespace/$cluster ==="
+  kubectl -n "$namespace" get configmap "${cluster}-config" ${cluster}-leader ${cluster}-failover 2>/dev/null
+done
+
+# Step 3: Delete orphaned endpoints:
+echo "Cleaning up orphaned endpoints..."
+for cluster in $(kubectl get postgresql -A -o jsonpath='{.items[*].metadata.name}'); do
+  namespace=$(kubectl get postgresql -A -o jsonpath="{.items[?(@.metadata.name==\"$cluster\")].metadata.namespace}")
+  kubectl -n "$namespace" delete endpoints "${cluster}-leader" --ignore-not-found
+  kubectl -n "$namespace" delete endpoints "${cluster}-cluster" --ignore-not-found
+done
+
+# Step 4: Revert instance count to original values:
+# Re-apply the fixed PostgreSQL manifests (with corrected field names):
+# kubectl --namespace=openstack apply -k /etc/genestack/kustomize/postgres/overlay
+
+# Wait for all clusters to be Running:
+for pgsql in $(kubectl get postgresql -A -o name 2>/dev/null); do
+  while true; do
+    status=$(kubectl get "$pgsql" -o jsonpath='{.status.PostgresClusterStatus}' 2>/dev/null)
+    if [ "$status" = "Running" ]; then
+      break
+    fi
+    sleep 5
+  done
+done
+
+# Verify cluster health:
+kubectl get nodes
+kubectl get pods -A --no-headers | awk '$4 != "Running" && $4 != "Completed" {print}'
+
+### Execute
+
+## Update the Target Version
+
+# Edit /etc/genestack/helm-chart-versions.yaml:
+# postgres-operator: 2.0.1
+
+## Scale Down the Old Operator
+
+# Scale down the old operator to prevent reconciliation conflicts:
+kubectl scale deployment postgres-operator -n postgres-system --replicas=0
+
+# Wait for operator pods to terminate:
+sleep 10
+kubectl get pods -n postgres-system
+
+## Uninstall the Old Operator
+
+# Remove the old operator Helm release:
+helm uninstall postgres-operator -n postgres-system
+
+# Remove webhook configurations (they may have v1beta1 references incompatible with v2):
+kubectl delete validatingwebhookconfiguration postgres-operator-webhook --ignore-not-found
+kubectl delete mutatingwebhookconfiguration postgres-operator-webhook --ignore-not-found
+
+# Verify no old operator pods remain:
+kubectl get pods -n postgres-system
+
+## Install the New Operator
+
+# Install the v2.0.1 operator:
+cd /opt/genestack
+./bin/install-postgres-operator.sh
+
+# Wait for CRDs to be established:
+kubectl get crd postgresqls.acid.zalando.org -o jsonpath='{.status.conditions[?(@.type=="Established")].status}'
+kubectl get crd postgresqls.acid.zalando.org -o jsonpath='{.status.storedVersions}'
+
+# Wait for the operator to be ready:
+kubectl -n postgres-system rollout status deployment postgres-operator --timeout=300s
+
+# Verify the operator version:
+helm list -n postgres-system -f postgres-operator
+kubectl -n postgres-system get deployment postgres-operator -o jsonpath='{range .spec.template.spec.containers[*]}{.image}{"\n"}{end}'
+
+# Expected: ghcr.io/zalando/postgres-operator:v2.0.1
+
+# Verify OperatorConfiguration exists:
+kubectl get operatorconfiguration -n postgres-system
+
+# Verify pointintimerecoveries CRD exists:
+kubectl get crd pointintimerecoveries.k8s.mariadb.com 2>/dev/null || echo "Not expected for postgres-operator (this is mariadb)"
+
+## Reapply PostgreSQL Manifests
+
+# Reapply the fixed PostgreSQL cluster manifests:
+kubectl --namespace=postgres-system apply -k /etc/genestack/kustomize/postgres/overlay
+
+# Wait for all clusters to be Running:
+for pgsql in $(kubectl get postgresql -A -o name 2>/dev/null); do
+  echo "Waiting for $pgsql..."
+  while true; do
+    status=$(kubectl get "$pgsql" -o jsonpath='{.status.PostgresClusterStatus}' 2>/dev/null)
+    if [ "$status" = "Running" ]; then
+      echo "$pgsql is Running"
+      break
+    fi
+    # Check if it's still reconciling
+    phase=$(kubectl get "$pgsql" -o jsonpath='{.metadata.deletionTimestamp}' 2>/dev/null)
+    if [ -n "$phase" ]; then
+      echo "$pgsql is being deleted"
+      break
+    fi
+    sleep 10
+  done
+done
+
+### Post-Maint
+
+# Verify deployed version:
+grep '^[[:space:]]*postgres-operator:' /etc/genestack/helm-chart-versions.yaml
+helm list -n postgres-system -f postgres-operator
+
+# Expected:
+# - postgres-operator: 2.0.1
+
+# Verify operator deployment:
+kubectl -n postgres-system get deployment postgres-operator -o jsonpath='{range .spec.template.spec.containers[*]}{.image}{"\n"}{end}'
+
+# Expected: ghcr.io/zalando/postgres-operator:v2.0.1
+
+# Verify all PostgreSQL clusters are Running:
+kubectl get postgresql -A -o custom-columns=NAME:.metadata.name,NAMESPACE:.metadata.namespace,STATUS:.status.PostgresClusterStatus
+
+# All should show "Running"
+
+# Verify cluster connectivity:
+for cluster in $(kubectl get postgresql -A -o jsonpath='{.items[*].metadata.name}'); do
+  namespace=$(kubectl get postgresql -A -o jsonpath="{.items[?(@.metadata.name==\"$cluster\")].metadata.namespace}")
+  primary=$(kubectl -n "$namespace" get postgresql "$cluster" -o jsonpath='{.status.currentPrimary}' 2>/dev/null)
+  if [ -n "$primary" ]; then
+    echo "=== $namespace/$cluster (primary: $primary) ==="
+    kubectl -n "$namespace" exec "$primary" -c spilo -- psql -U postgres -c "SELECT version();" 2>/dev/null | head -3
+  fi
+done
+
+# Verify PostgreSQL version:
+# Expected: PostgreSQL 14, 15, 16, 17, or 18 depending on image configured
+
+# Verify no orphaned endpoints:
+kubectl get endpoints -A | grep -i postgres 2>/dev/null || true
+# Expected: no output (all clusters should use configmaps now)
+
+# Verify configmap-based HA:
+for cluster in $(kubectl get postgresql -A -o jsonpath='{.items[*].metadata.name}'); do
+  namespace=$(kubectl get postgresql -A -o jsonpath="{.items[?(@.metadata.name==\"$cluster\")].metadata.namespace}")
+  echo "=== $namespace/$cluster ==="
+  kubectl -n "$namespace" get configmap "${cluster}-config" ${cluster}-leader ${cluster}-failover 2>/dev/null
+done
+
+# Verify all spilo pods are Running:
+kubectl get pods -l application=spilo -A
+
+# Verify no deprecated field names remain in CRDs:
+kubectl get postgresql -A -o yaml | grep -E "init_containers|pod_priority_class_name|replicaLoadBalancer|useLoadBalancer" || echo "No deprecated fields found"
+
+# Clean up maintenance directory:
+rm -rf /home/ubuntu/postgres-operator-1.15.1-to-2.0.1-maint
+
+### Troubleshooting
+
+## Common Failure Signals
+
+# If clusters fail to start with the new Spilo image (spilo-18):
+# Check the cluster manifest for explicit image tags and ensure they reference spilo-18 images.
+# The operator may auto-select spilo-17 for PG 14-17, or spilo-18 for PG 18.
+
+# If password authentication fails (scram-sha-256):
+# Verify the PostgreSQL parameter password_encryption is set:
+kubectl get postgresql -A -o yaml | grep -A5 "parameters:" | grep password_encryption
+# If set to md5, add explicit scram-sha-256 setting:
+# spec.postgresql.parameters.password_encryption: scram-sha-256
+
+# If CRD installation fails:
+kubectl describe crd postgresqls.acid.zalando.org
+kubectl get events -n postgres-system
+
+# If operator panics on startup:
+kubectl -n postgres-system logs deployment/postgres-operator --tail=100
+
+## Rollback
+
+# If the v2 operator fails completely:
+# 1. Do NOT revert CRDs (would delete cluster data)
+# 2. Revert only the operator:
+helm -n postgres-system uninstall postgres-operator
+helm install postgres-operator zalando/postgres-operator \
+  --version 1.15.1 \
+  --create-namespace \
+  --namespace=postgres-system \
+  -f /etc/genestack/helm-configs/postgres-operator/postgres-operator-helm-overrides.yaml
+
+# 3. Revert deprecated field names in manifests:
+find /etc/genestack/kustomize/ -name "*.yaml" -exec sed -i \
+  -e 's/initContainers/init_containers/g' \
+  -e 's/podPriorityClassName/pod_priority_class_name/g' \
+  -e 's/enableReplicaLoadBalancer/replicaLoadBalancer/g' \
+  -e 's/enableMasterLoadBalancer/useLoadBalancer/g' \
+  {} \;
+
+# 4. Revert version in helm-chart-versions.yaml:
+# postgres-operator: 1.15.1
+
+# If split-brain occurs due to endpoint/configmap issues:
+# 1. Scale down all clusters to 0 instances
+# 2. Manually clean up leader configmaps and endpoints
+# 3. Restart with correct configuration
+
+### Sources
+
+# https://github.com/zalando/postgres-operator/blob/master/docs/migrate.md
+# https://github.com/zalando/postgres-operator/releases/tag/v2.0.0
+# https://github.com/zalando/postgres-operator/releases/tag/v2.0.1
+# https://docs.rackspacecloud.com/docs/openstack-postgres-operator/
+
