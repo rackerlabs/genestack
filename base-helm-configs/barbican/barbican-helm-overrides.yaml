@@ -86,6 +86,30 @@ conf:
       kombu_reconnect_delay: 0.5
     oslo_middleware:
       enable_proxy_headers_parsing: true
+
+    # PKCS#11 Crypto Plugin
+    # INERT until "p11_crypto" is added to crypto.enabled_crypto_plugins.
+    # login (HSM PIN) injected at deploy time by install-barbican.sh.
+    p11_crypto_plugin:
+      library_path: ""
+      token_serial_number: ""
+      token_labels: []
+      login: ""
+      mkek_label: "barbican_mkek"
+      mkek_length: 32
+      hmac_label: "barbican_hmac"
+      hmac_mechanism: CKM_SHA256_HMAC
+      encryption_mechanism: CKM_AES_CBC
+      hmac_key_type: CKK_AES
+      hmac_keygen_mechanism: CKM_AES_KEY_GEN
+      key_wrap_mechanism: CKM_AES_CBC_PAD
+      slot_id: 1
+      plugin_name: "PKCS11 HSM"
+
+    crypto:
+      enabled_crypto_plugins:
+        - simple_crypto
+
   barbican_api_uwsgi:
     uwsgi:
       processes: 2
