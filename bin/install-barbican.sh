@@ -138,6 +138,18 @@ set_args=(
     --set "conf.barbican.keystone_authtoken.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
 )
 
+# PKCS#11 HSM PIN Injection
+# Reads PIN from barbican-hsm-credentials K8s Secret (created by create-secrets.sh).
+# No-op when secret doesn't exist or PIN is empty.
+hsm_pin="$(kubectl --namespace openstack get secret barbican-hsm-credentials \
+    -o jsonpath='{.data.pin}' 2>/dev/null | base64 -d)" || true
+if [[ -n "${hsm_pin}" ]]; then
+    echo "HSM credentials found - injecting p11_crypto_plugin.login"
+    set_args+=(
+        --set "conf.barbican.p11_crypto_plugin.login=${hsm_pin}"
+    )
+fi
+unset hsm_pin
 
 helm_command=(
     helm upgrade --install "$SERVICE_NAME_DEFAULT" "$HELM_CHART_PATH"
