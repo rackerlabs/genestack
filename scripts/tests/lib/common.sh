@@ -46,12 +46,12 @@ run_test() {
     local output=""
     local exit_code=0
 
-    ((TOTAL_TESTS++))
+    ((TOTAL_TESTS += 1))
 
     echo -n "Running test: ${test_name}... "
 
     # Execute test and capture output
-    if output=$($test_func 2>&1); then
+    if output=$($test_func); then
         exit_code=0
     else
         exit_code=$?
@@ -63,11 +63,11 @@ run_test() {
     # Record result
     if [ ${exit_code} -eq 0 ]; then
         echo "PASSED"
-        ((TESTS_PASSED++))
+        ((TESTS_PASSED += 1))
         record_test_result "${test_name}" "passed" "" "${output}" "${duration}"
     else
         echo "FAILED"
-        ((TESTS_FAILED++))
+        ((TESTS_FAILED += 1))
         record_test_result "${test_name}" "failed" "${output}" "" "${duration}"
     fi
 }
@@ -80,8 +80,8 @@ skip_test() {
     local test_name="$1"
     local skip_reason="$2"
 
-    ((TOTAL_TESTS++))
-    ((TESTS_SKIPPED++))
+    ((TOTAL_TESTS += 1))
+    ((TESTS_SKIPPED += 1))
 
     echo "Skipping test: ${test_name} - ${skip_reason}"
     record_test_result "${test_name}" "skipped" "${skip_reason}" "" "0"
@@ -107,7 +107,7 @@ record_test_result() {
     output=$(echo "$output" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
 
     JUNIT_XML+="  <testcase name='${name}' classname='${TEST_SUITE_NAME}' time='${duration}'>\n"
-
+    JUNIT_XML+="    <output><![CDATA[\n${output}\n]]></output>\n"
     if [ "${status}" = "failed" ]; then
         JUNIT_XML+="    <failure message='Test failed'><![CDATA[\n${failure_msg}\n]]></failure>\n"
     elif [ "${status}" = "skipped" ]; then
@@ -199,7 +199,7 @@ retry_command() {
             delay=$((delay * 2))
         fi
 
-        ((attempt++))
+        ((attempt += 1))
     done
 
     return 1
