@@ -93,6 +93,10 @@ octavia_certificates_password=$(generate_password 32)
 barbican_rabbitmq_password=$(generate_password 64)
 barbican_db_password=$(generate_password 32)
 barbican_admin_password=$(generate_password 32)
+# PKCS#11 HSM PIN
+# Hyperconverged lab: auto-generated when BARBICAN_HSM_PIN is not set.
+# Production/Staging: export BARBICAN_HSM_PIN="<pin-from-hsm-admin>" before running.
+barbican_hsm_pin="${BARBICAN_HSM_PIN:-$(generate_password 32)}"
 magnum_rabbitmq_password=$(generate_password 64)
 magnum_db_password=$(generate_password 32)
 magnum_admin_password=$(generate_password 32)
@@ -619,6 +623,15 @@ metadata:
 type: Opaque
 data:
   password: $(echo -n $barbican_admin_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: barbican-hsm-credentials
+  namespace: openstack
+type: Opaque
+data:
+  pin: $(echo -n $barbican_hsm_pin | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret
