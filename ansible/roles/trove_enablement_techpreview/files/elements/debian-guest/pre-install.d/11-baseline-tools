@@ -12,6 +12,10 @@ apt-get install -y -qq \
     curl \
     default-mysql-client \
     gnupg \
+    iputils-ping \
     lsb-release \
+    net-tools \
     sudo \
+    telnet \
+    traceroute \
     chrony >/dev/null

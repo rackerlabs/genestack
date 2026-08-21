@@ -30,6 +30,8 @@
       --subnet-range {{ trove_mgmt_subnet_cidr }}
       --allocation-pool start={{ trove_mgmt_pool_start }},end={{ trove_mgmt_pool_end }}
       --gateway {{ trove_mgmt_subnet_gateway }}
+      --host-route destination=0.0.0.0/1,gateway={{ trove_mgmt_subnet_gateway }}
+      --host-route destination=128.0.0.0/1,gateway={{ trove_mgmt_subnet_gateway }}
       --dns-nameserver 1.1.1.1
       --dns-nameserver 8.8.8.8
       {{ trove_mgmt_subnet_name }}

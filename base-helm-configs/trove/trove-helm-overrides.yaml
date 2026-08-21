@@ -87,7 +87,7 @@ conf:
       taskmanager_manager: trove.taskmanager.manager.Manager
       use_nova_server_config_drive: true
       trove_api_workers: 2
-      trove_security_groups_support: false
+      trove_security_groups_support: true
       trove_volume_support: true
       volume_support: true
       volume_fstype: ext4

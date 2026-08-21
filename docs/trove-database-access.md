@@ -122,17 +122,6 @@ openstack security group rule create --protocol icmp --remote-ip 0.0.0.0/0 acme-
 openstack security group rule create --protocol tcp --dst-port 22 --remote-ip 0.0.0.0/0 acme-corp-app-secgroup
 ```
 
-Create a security group for the database instance (allows MySQL on port 3306):
-
-``` shell
-openstack security group create \
-  --description "Security group for ACME Corp database instances" \
-  acme-corp-db-secgroup
-
-openstack security group rule create --protocol icmp --remote-ip 0.0.0.0/0 acme-corp-db-secgroup
-openstack security group rule create --protocol tcp --dst-port 3306 --remote-ip 0.0.0.0/0 acme-corp-db-secgroup
-```
-
 ### Launch the application server
 
 ``` shell
@@ -156,15 +145,8 @@ openstack database instance create \
   --datastore mysql \
   --datastore-version-number 8.4 \
   --nic net-id=$(openstack network list -f value | grep acme-corp-network | awk '{print $1}') \
+  --allowed-cidr $(openstack subnet show acme-corp-subnet -f value -c cidr) \
   acme-corp-db-server
-```
-
-Attach the database security group to the Trove instance:
-
-``` shell
-openstack server add security group \
-  $(openstack database instance show acme-corp-db-server -f json | jq -r '.server_id') \
-  acme-corp-db-secgroup
 ```
 
 ### Connect from the application server
@@ -192,8 +174,28 @@ openstack database instance create \
   --datastore mysql \
   --datastore-version-number 8.4 \
   --nic net-id=$(openstack network list -f value | grep acme-corp-network | awk '{print $1}') \
+  --allowed-cidr $(openstack subnet show acme-corp-subnet -f value -c cidr) \
   --is-public \
   acme-corp-db-pub-server
+```
+
+Create a security group for the database instance (allows MySQL on port 3306):
+
+``` shell
+openstack security group create \
+  --description "Security group for public ACME Corp database instances" \
+  acme-corp-pub-db-secgroup
+
+openstack security group rule create --protocol icmp --remote-ip 0.0.0.0/0 acme-corp-pub-db-secgroup
+openstack security group rule create --protocol tcp --dst-port 3306 --remote-ip 0.0.0.0/0 acme-corp-pub-db-secgroup
+```
+
+Attach the database security group to the Trove instance:
+
+``` shell
+openstack server add security group \
+  $(openstack database instance show acme-corp-pub-db-server -f json | jq -r '.server_id') \
+  acme-corp-pub-db-secgroup
 ```
 
 Once the instance is active, connect from any external location:
@@ -220,7 +222,7 @@ This approach keeps the database on a private subnet while providing controlled 
 openstack loadbalancer create \
   --name acme-corp-db-lb \
   --vip-subnet-id acme-corp-subnet \
-  --vip-sg-id acme-corp-db-secgroup
+  --vip-sg-id acme-corp-pub-db-secgroup
 ```
 
 Wait for the load balancer to become `ACTIVE`:

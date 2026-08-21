@@ -62,7 +62,7 @@ destroy_tenant() {
     | python3 -c 'import json,sys; [print(s["ID"]) for s in json.load(sys.stdin)]' 2>/dev/null) || true
   for id in $TENANT_DBS; do
     echo "    Deleting database instance $id..."
-    $OS database instance delete "$id" --wait 2>/dev/null || true
+    $OS database instance delete "$id" --force 2>/dev/null || true
   done
 
   # Servers
@@ -70,7 +70,7 @@ destroy_tenant() {
     | python3 -c 'import json,sys; [print(s["ID"]) for s in json.load(sys.stdin)]' 2>/dev/null) || true
   for id in $TENANT_SERVERS; do
     echo "    Deleting server $id..."
-    $OS server delete "$id" --wait 2>/dev/null || true
+    $OS server delete "$id" --force --wait 2>/dev/null || true
   done
 
   # Floating IPs
