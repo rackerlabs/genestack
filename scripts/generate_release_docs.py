@@ -9,7 +9,6 @@ import yaml
 from reno import config as reno_config
 from reno import loader as reno_loader
 
-
 RELEASE_TAG_PATTERN = re.compile(r"release-(?P<version>\d+(?:\.\d+)*)$")
 INLINE_LITERAL_PATTERN = re.compile(r"``([^`]+)``")
 SENSITIVE_URL_PATTERN = re.compile(
@@ -316,9 +315,7 @@ def release_series_ref(release_tag):
 
 
 def git(args, repo_dir):
-    return subprocess.check_output(
-        ["git", *args], cwd=repo_dir, text=True
-    ).strip()
+    return subprocess.check_output(["git", *args], cwd=repo_dir, text=True).strip()
 
 
 def git_lines(args, repo_dir):
@@ -338,7 +335,11 @@ def load_chart_versions(repo_dir, release_tag=None):
 
     charts = data.get("charts")
     if charts is None:
-        source = f"helm-chart-versions.yaml at {release_tag}" if release_tag else "helm-chart-versions.yaml"
+        source = (
+            f"helm-chart-versions.yaml at {release_tag}"
+            if release_tag
+            else "helm-chart-versions.yaml"
+        )
         raise KeyError(f"'charts' key not found in {source}")
     return charts
 
@@ -381,7 +382,9 @@ def normalize_note(path, note):
     note = note or {}
     component = note.get("component")
     if isinstance(component, list):
-        note["component"] = [str(value).strip() for value in component if str(value).strip()]
+        note["component"] = [
+            str(value).strip() for value in component if str(value).strip()
+        ]
     elif component is not None:
         note["component"] = str(component).strip()
 
@@ -400,7 +403,9 @@ def iter_disk_release_notes(repo_dir, release_tag):
     note_dir = repo_dir / "releasenotes" / "notes"
 
     for path in sorted(note_dir.glob("*.yaml")):
-        yield normalize_note(path.relative_to(repo_dir), parse_note_file_from_disk(path))
+        yield normalize_note(
+            path.relative_to(repo_dir), parse_note_file_from_disk(path)
+        )
 
 
 def iter_range_release_notes(repo_dir, from_tag, to_tag):
@@ -479,7 +484,10 @@ def collect_note_data(repo_dir, release_tag):
 
         if reno_version:
             note_items = [
-                (filename, normalize_note(filename, loader.parse_note_file(filename, sha))[1])
+                (
+                    filename,
+                    normalize_note(filename, loader.parse_note_file(filename, sha))[1],
+                )
                 for filename, sha in loader[reno_version]
             ]
         else:
@@ -588,7 +596,10 @@ def component_has_commits(commit_data, component_key):
 
 
 def group_has_commits(commit_data, components):
-    return any(component_has_commits(commit_data, component_key) for component_key in components)
+    return any(
+        component_has_commits(commit_data, component_key)
+        for component_key in components
+    )
 
 
 def render_component_notes(config, component_notes):
@@ -632,7 +643,9 @@ def render_commit_supplement_index(commit_data):
     ]
     for group_title, components in COMPONENT_GROUPS.items():
         if group_has_commits(commit_data, components):
-            output.append(f"- [{group_title} Git History](#{slugify(f'{group_title} Git History')})")
+            output.append(
+                f"- [{group_title} Git History](#{slugify(f'{group_title} Git History')})"
+            )
     if component_has_commits(commit_data, "miscellaneous"):
         output.append("- [Other Git History](#other-git-history)")
     output.append("")
@@ -817,7 +830,9 @@ def build_chart_change_rows(previous_charts, current_charts):
         elif current_version is None:
             change_rows.append((chart_name, previous_version, "-", "Removed"))
         else:
-            change_rows.append((chart_name, previous_version, current_version, "Updated"))
+            change_rows.append(
+                (chart_name, previous_version, current_version, "Updated")
+            )
     return change_rows
 
 
@@ -876,7 +891,9 @@ def generate_release_notes(repo_dir, release_tag, version):
 
 def generate_range_release_notes(repo_dir, from_tag, to_tag, version):
     release_doc = repo_dir / "docs" / f"release-{version}.md"
-    config, note_items, component_data = collect_range_note_data(repo_dir, from_tag, to_tag)
+    config, note_items, component_data = collect_range_note_data(
+        repo_dir, from_tag, to_tag
+    )
     commit_data = collect_commit_supplement(repo_dir, from_tag, to_tag)
     release_doc.write_text(
         build_range_release_notes_output(

@@ -6,6 +6,7 @@ Preserves the _region YAML anchor line that safe_load would otherwise drop.
 Usage:
     python3 merge_endpoints.py ENDPOINTS_FILE FRAGMENT_FILE
 """
+
 import copy
 import os
 import sys
