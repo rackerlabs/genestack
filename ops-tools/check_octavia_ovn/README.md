@@ -110,6 +110,28 @@ KUBECTL_CMD=kubectl
 
 Use this if the environment requires a different `kubectl` wrapper or path.
 
+### Configure read-command retries
+
+Read-only commands (`openstack loadbalancer list`, `openstack loadbalancer show`, and `kubectl ko sbctl`) are retried automatically to ride out transient API/network failures. Each failed attempt is logged to the journal with the command's stderr output, and a load balancer is only marked failed once all attempts are exhausted.
+
+Set:
+
+```bash
+RETRIES=3
+```
+
+The number of attempts per command (default: 3).
+
+Set:
+
+```bash
+RETRY_DELAY=5
+```
+
+The number of seconds to wait between attempts (default: 5).
+
+Failover commands (`openstack loadbalancer failover`) are intentionally not retried; if a failover fails, the state file is not updated and the next run will retry it.
+
 ### Configure the timer interval
 
 The run interval is configured with a systemd timer drop-in instead of the environment file.

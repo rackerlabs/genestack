@@ -36,6 +36,11 @@
 #   PARALLEL=20, STATE_FILE=/tmp/x.state, FAILOVER_TIMEOUT=300 (seconds),
 #   DRY_RUN=1 (default), LOG_FILE=/var/log/octavia_ovn_check.log
 #
+# Read-only commands (openstack show/list, kubectl ko sbctl) are retried to
+# ride out transient API/network failures. Each failed attempt is logged with
+# the command's stderr so root causes are visible in the journal.
+#   RETRIES=3 (attempts per command), RETRY_DELAY=5 (seconds between attempts)
+#
 # Cron example (every 5 minutes):
 #   */5 * * * * /usr/local/bin/check_octavia_ovn.sh --log-file /var/log/octavia_ovn_check.log
 #
@@ -53,6 +58,8 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 KUBECTL_CMD="${KUBECTL_CMD:-kubectl}"
 PARALLEL="${PARALLEL:-10}"
+RETRIES="${RETRIES:-3}"
+RETRY_DELAY="${RETRY_DELAY:-5}"
 STATE_FILE="${STATE_FILE:-/var/lib/check_octavia_ovn/failovers.state}"
 FAILOVER_TIMEOUT="${FAILOVER_TIMEOUT:-300}"   # seconds before re-issuing a failover (default: 5 min)
 DRY_RUN="${DRY_RUN:-1}"
@@ -68,6 +75,7 @@ fail()    { status "FAIL" "$1" >&2; }
 fover()   { status "FAILOVER" "$1"; }
 skip()    { status "SKIP" "$1"; }
 info()    { status "INFO" "$1"; }
+warn()    { status "WARN" "$1" >&2; }
 die()     { status "ERROR" "$1" >&2; exit 1; }
 section() { log "---- $* ----"; }
 
@@ -82,7 +90,8 @@ Options:
   -h, --help      Show this help
 
 Env overrides:
-  PARALLEL, STATE_FILE, FAILOVER_TIMEOUT, DRY_RUN, KUBECTL_CMD, DEBUG, LOG_FILE
+  PARALLEL, STATE_FILE, FAILOVER_TIMEOUT, DRY_RUN, KUBECTL_CMD, DEBUG, LOG_FILE,
+  RETRIES, RETRY_DELAY
 USAGE
 }
 
@@ -148,6 +157,72 @@ check_deps() {
 }
 
 # ---------------------------------------------------------------------------
+# Retry helper for read-only commands
+#
+# Usage:
+#   err_file=$(mktemp)
+#   if ! OUTPUT=$(retry_cmd "description" "$err_file" \
+#           openstack loadbalancer show "${LB_ID}" --format json); then
+#       last_err=$(read_cmd_error "$err_file")
+#       ...
+#   fi
+#   rm -f "$err_file"
+#
+# Runs the command up to RETRIES times, sleeping RETRY_DELAY seconds between
+# attempts. Each failed attempt is logged with the command's stderr so
+# transient issues (network blips, API timeouts) are visible in the journal.
+# On success, stdout is emitted for the caller to capture and the function
+# returns 0. When all attempts fail, the final stderr output is written to
+# err_file and the function returns the command's last exit code.
+# ---------------------------------------------------------------------------
+retry_cmd() {
+    local desc="$1" err_out="$2"
+    shift 2
+
+    local attempt=1 rc last_err="" local_out=""
+    local err_file
+    err_file=$(mktemp)
+
+    while true; do
+        if local_out=$("$@" 2>"$err_file"); then
+            rc=0
+        else
+            rc=$?
+            last_err=$(tr -d '\r' < "$err_file" | sed -e 's/[[:space:]]*$//' | tail -n 5)
+            [[ -n "$last_err" ]] || last_err="(no stderr output)"
+        fi
+
+        if [[ $rc -eq 0 ]]; then
+            rm -f "$err_file"
+            printf '%s\n' "$local_out"
+            return 0
+        fi
+
+        if (( attempt >= RETRIES )); then
+            rm -f "$err_file"
+            printf '%s\n' "$last_err" > "$err_out"
+            return $rc
+        fi
+
+        warn "${desc} attempt ${attempt}/${RETRIES} failed (rc=${rc}): ${last_err}"
+        warn "${desc} retrying in ${RETRY_DELAY}s..."
+        sleep "$RETRY_DELAY"
+        (( attempt++ )) || true
+    done
+}
+
+# Read the error file written by retry_cmd and collapse it to a single line
+# so it is safe to embed in result files and summary output.
+read_cmd_error() {
+    local err_file="$1" last_err
+    last_err=$(tr -d '\r' < "$err_file" 2>/dev/null | sed -e 's/[[:space:]]*$//' | tail -n 5)
+    if [[ -z "$last_err" ]]; then
+        last_err="(no stderr output)"
+    fi
+    printf '%s' "$last_err" | tr '\n' ';' | sed -e 's/;;*/; /g' -e 's/^; //' -e 's/ $//'
+}
+
+# ---------------------------------------------------------------------------
 # State file helpers
 #
 # Format: one line per failed-over LB
@@ -201,18 +276,18 @@ state_update() {
 state_age_seconds() {
     # Return how many seconds have elapsed since the state entry was recorded
     local lb_id="$1"
-    local ts then now
+    local ts ts_epoch now
     ts=$(state_timestamp "$lb_id")
     if [[ -z "$ts" ]]; then
         echo 0
         return
     fi
     # Try GNU date first (Linux), fall back to BSD date (macOS)
-    if ! then=$(date -d "$ts" '+%s' 2>/dev/null); then
-        then=$(date -j -f '%Y-%m-%dT%H:%M:%S' "$ts" '+%s' 2>/dev/null) || { echo 0; return; }
+    if ! ts_epoch=$(date -d "$ts" '+%s' 2>/dev/null); then
+        ts_epoch=$(date -j -f '%Y-%m-%dT%H:%M:%S' "$ts" '+%s' 2>/dev/null) || { echo 0; return; }
     fi
     now=$(date '+%s')
-    echo $(( now - then ))
+    echo $(( now - ts_epoch ))
 }
 
 state_timestamp() {
@@ -245,11 +320,18 @@ check_lb() {
     info "Checking ${LB_NAME} (${LB_ID}) vip=${VIP_ADDR}"
 
     # 1. Fetch full LB details so we can evaluate configuration completeness.
-    if ! LB_DETAILS=$(openstack loadbalancer show "${LB_ID}" --format json 2>/dev/null); then
-        fail "${LB_NAME} (${LB_ID}) | openstack loadbalancer show failed"
-        write_result "FAIL" "openstack loadbalancer show failed"
+    local show_err_file
+    show_err_file=$(mktemp)
+    if ! LB_DETAILS=$(retry_cmd "openstack loadbalancer show ${LB_ID}" "$show_err_file" \
+            openstack loadbalancer show "${LB_ID}" --format json); then
+        local show_err
+        show_err=$(read_cmd_error "$show_err_file")
+        rm -f "$show_err_file"
+        fail "${LB_NAME} (${LB_ID}) | openstack loadbalancer show failed after ${RETRIES} attempts: ${show_err}"
+        write_result "FAIL" "openstack loadbalancer show failed after ${RETRIES} attempts: ${show_err}"
         return
     fi
+    rm -f "$show_err_file"
 
     LISTENER_COUNT=$(echo "$LB_DETAILS" | jq '(.listeners // []) | length')
     POOL_COUNT=$(echo "$LB_DETAILS" | jq '(.pools // []) | length')
@@ -274,14 +356,21 @@ check_lb() {
     # 3. Query OVN port binding
     # Response: {"data": [["<logical_port>", ["uuid","<chassis-uuid>"], ...]], "headings": [...]}
     # Unbound:  {"data": [], ...}  or chassis field is []
-    if ! OVN_JSON=$(${KUBECTL_CMD} ko sbctl \
+    local sbctl_err_file
+    sbctl_err_file=$(mktemp)
+    if ! OVN_JSON=$(retry_cmd "kubectl ko sbctl port_binding for port ${PORT_ID}" "$sbctl_err_file" \
+            "${KUBECTL_CMD}" ko sbctl \
             --format=json \
             --columns=logical_port,chassis,up,mac,options,type \
-            find port_binding logical_port="${PORT_ID}" 2>/dev/null); then
-        fail "${LB_NAME} (${LB_ID}) | kubectl ko sbctl failed for port ${PORT_ID}"
-        write_result "FAIL" "kubectl ko sbctl failed for port ${PORT_ID}"
+            find port_binding logical_port="${PORT_ID}"); then
+        local sbctl_err
+        sbctl_err=$(read_cmd_error "$sbctl_err_file")
+        rm -f "$sbctl_err_file"
+        fail "${LB_NAME} (${LB_ID}) | kubectl ko sbctl failed after ${RETRIES} attempts for port ${PORT_ID}: ${sbctl_err}"
+        write_result "FAIL" "kubectl ko sbctl failed after ${RETRIES} attempts for port ${PORT_ID}: ${sbctl_err}"
         return
     fi
+    rm -f "$sbctl_err_file"
 
     if [[ "${DEBUG:-0}" == "1" ]]; then
         info "${LB_NAME} (${LB_ID}) | OVN output"
@@ -330,8 +419,14 @@ fi
 # Fetch Amphora load balancers upfront
 section "Discovery"
 log "Fetching load balancers for provider amphora..."
-LB_JSON=$(openstack loadbalancer list --provider amphora --format json 2>/dev/null) \
-    || die "Failed to list amphora load balancers. Is the OpenStack CLI authenticated?"
+list_err_file=$(mktemp)
+if ! LB_JSON=$(retry_cmd "openstack loadbalancer list --provider amphora" "$list_err_file" \
+        openstack loadbalancer list --provider amphora --format json); then
+    list_err=$(read_cmd_error "$list_err_file")
+    rm -f "$list_err_file"
+    die "Failed to list amphora load balancers after ${RETRIES} attempts. Is the OpenStack CLI authenticated? ${list_err}"
+fi
+rm -f "$list_err_file"
 
 LB_COUNT=$(echo "$LB_JSON" | jq 'length')
 log "Discovered ${LB_COUNT} amphora load balancer(s)."
