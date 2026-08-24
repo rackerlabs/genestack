@@ -1,0 +1,285 @@
+---
+# clear-stale-tc-flower.yaml
+#
+# Removes stranded TC flower datapath filters left on OVS hosts after
+# kube-ovn HW_OFFLOAD is flipped from true to false. With offload on, OVS runs
+# its datapath as TC flower filters in software on the host NICs; after the
+# flip OVS stops managing those filters but does not remove them, and they
+# keep intercepting traffic ahead of OVS with frozen actions (silent,
+# selective black-holing of tenant traffic). This playbook is the Ansible
+# form of MOP section 18A.4.
+#
+# Safety properties:
+#   - DRY RUN BY DEFAULT: reports what it would delete; nothing is changed
+#     until run with -e tc_cleanup_dry_run=false
+#   - Per-host gate: a host is skipped (SKIPPED-NOT-FLIPPED) unless OVS on
+#     that node reports ZERO live TC datapath flows, i.e. the HW_OFFLOAD
+#     flip has completed there. Before the flip the TC filters ARE the live
+#     datapath and must not be touched.
+#   - Only chain-0 "flower" filters are deleted (the live interception
+#     points). kube-ovn QoS filters (matchall/police) are never matched.
+#     Entries for tap*/veth (*_h) devices in the output are expected.
+#   - Hosts without an ovs-ovn pod are skipped (NO-OVS-POD).
+#   - A final coverage check lists any node running an ovs-ovn pod that this
+#     run did not process (wrong --limit, unreachable, or failed) so nothing
+#     is silently missed.
+#
+# Requirements:
+#   - kubernetes.core collection and the python kubernetes client on the
+#     controller. Both are provided by the standard Genestack bootstrap
+#     (ansible-collection-requirements.yml / requirements.txt); run from the
+#     deployment/overseer node with the genestack venv active.
+#   - Inventory hostnames must equal Kubernetes node names; if a host
+#     differs, set k8s_node_name for it in inventory.
+#   - Hosts unreachable by Ansible are NOT cleaned by this playbook; handle
+#     them with the MOP's kubectl-exec fallback (Appendix A) and re-run the
+#     coverage check.
+#   - The per-host cleanup task uses ansible.builtin.shell deliberately:
+#     there is no Ansible module that manages TC flower filters or shared
+#     ingress blocks, and the discovery/delete/verify must be atomic per
+#     host.
+#
+# Usage:
+#   Report only (default, non-destructive):
+#     ansible-playbook -i /etc/genestack/inventory/inventory.yaml \
+#       /opt/genestack/ansible/playbooks/clear-stale-tc-flower.yaml
+#
+#   Execute the cleanup:
+#     ansible-playbook -i /etc/genestack/inventory/inventory.yaml \
+#       /opt/genestack/ansible/playbooks/clear-stale-tc-flower.yaml \
+#       -e tc_cleanup_dry_run=false
+#
+#   Optional targeting / pacing:
+#     --limit <group>            restrict the pass (run a final unlimited
+#                                pass so the coverage check sees every node)
+#     -e tc_serial=20            hosts per batch (default 10)
+#     -e tc_strict=true          fail the run if any node is skipped,
+#                                failed or uncovered
+#
+# Variables:
+#   target_hosts        host pattern for the cleanup play (default: all)
+#   tc_cleanup_dry_run  default true
+#   tc_serial           default 10
+#   tc_strict           default false
+#   kubeconfig          path to kubeconfig (default: environment/standard)
+#   k8s_node_name       per-host override when inventory name != node name
+#   tc_cleanup_log      default /home/ubuntu/maintenances/flex-2026.2/tc-flush-ansible.log
+
+- name: Gather ovs-ovn pod map from the Kubernetes API
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Find ovs-ovn pods by label
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: kube-system
+        label_selectors:
+          - app=ovs-ovn
+        kubeconfig: "{{ kubeconfig | default(omit) }}"
+      register: tc_pods_by_label
+
+    - name: Fall back to name-prefix match when the label finds nothing
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: kube-system
+        kubeconfig: "{{ kubeconfig | default(omit) }}"
+      register: tc_pods_all
+      when: tc_pods_by_label.resources | length == 0
+
+    - name: Select the ovs-ovn pod list
+      ansible.builtin.set_fact:
+        tc_ovs_pods: >-
+          {{ tc_pods_by_label.resources
+             if tc_pods_by_label.resources | length > 0
+             else tc_pods_all.resources
+                  | selectattr('metadata.name', 'match', '^ovs-ovn-')
+                  | list }}
+
+    - name: Build the map of node name to ovs-ovn pod name
+      ansible.builtin.set_fact:
+        ovs_pod_by_node: >-
+          {{ dict(tc_ovs_pods | map(attribute='spec.nodeName')
+                  | zip(tc_ovs_pods | map(attribute='metadata.name'))) }}
+
+    - name: Report OVS node count
+      ansible.builtin.debug:
+        msg: >-
+          ovs-ovn pods found on {{ ovs_pod_by_node | length }} nodes;
+          dry_run={{ tc_cleanup_dry_run | default(true) }}
+
+
+- name: Clear stranded chain-0 TC flower filters per node
+  hosts: "{{ target_hosts | default('all') }}"
+  gather_facts: false
+  become: true
+  serial: "{{ tc_serial | default(10) }}"
+  vars:
+    node_name: "{{ k8s_node_name | default(inventory_hostname) }}"
+    ovs_pod: "{{ hostvars['localhost'].ovs_pod_by_node[node_name] | default('') }}"
+    dry_run: "{{ tc_cleanup_dry_run | default(true) | bool }}"
+  tasks:
+    - name: Skip hosts that do not run an ovs-ovn pod
+      when: ovs_pod | length == 0
+      block:
+        - name: Mark NO-OVS-POD
+          ansible.builtin.set_fact:
+            tc_status: NO-OVS-POD
+            tc_result: ""
+        - name: End host (no ovs-ovn pod)
+          ansible.builtin.meta: end_host
+
+    - name: Gate - list live OVS TC datapath flows (via the node's ovs-ovn pod)
+      kubernetes.core.k8s_exec:
+        namespace: kube-system
+        pod: "{{ ovs_pod }}"
+        container: openvswitch
+        command: ovs-appctl dpctl/dump-flows type=tc
+        kubeconfig: "{{ kubeconfig | default(omit) }}"
+      delegate_to: localhost
+      become: false
+      register: tc_flows
+      changed_when: false
+      failed_when: false
+
+    - name: Compute live TC flow count
+      ansible.builtin.set_fact:
+        tc_live_flows: >-
+          {{ (tc_flows.stdout | default('') | trim).split('\n')
+             | reject('equalto', '') | list | length }}
+
+    - name: Skip hosts where the gate itself failed
+      when: (tc_flows.rc | default(tc_flows.return_code | default(1))) | int != 0
+      block:
+        - name: Mark GATE-ERROR
+          ansible.builtin.set_fact:
+            tc_status: GATE-ERROR
+            tc_result: "k8s_exec failed: {{ tc_flows.stderr | default('') | trim }}"
+        - name: Report gate error
+          ansible.builtin.debug:
+            msg: "{{ node_name }} [GATE-ERROR]: {{ tc_result }}"
+        - name: End host (gate error)
+          ansible.builtin.meta: end_host
+
+    - name: Skip hosts that have NOT flipped (OVS still using the TC datapath)
+      when: tc_live_flows | int != 0
+      block:
+        - name: Mark SKIPPED-NOT-FLIPPED
+          ansible.builtin.set_fact:
+            tc_status: SKIPPED-NOT-FLIPPED
+            tc_result: "OVS reports {{ tc_live_flows }} live tc flows; do not clean before the HW_OFFLOAD flip"
+        - name: Report skip
+          ansible.builtin.debug:
+            msg: "{{ node_name }} [SKIPPED-NOT-FLIPPED]: {{ tc_result }}"
+        - name: End host (not flipped)
+          ansible.builtin.meta: end_host
+
+    # ansible.builtin.shell is intentional here: no module manages TC flower
+    # filters / shared ingress blocks, and discovery + chain-0 deletion +
+    # re-count must happen atomically on the host.
+    - name: "{{ dry_run | ternary('Report (dry run)', 'Clear') }} chain-0 flower filters on shared blocks and per-device qdiscs"
+      ansible.builtin.shell: |
+        set -o pipefail
+        out=""
+        for b in $(tc qdisc show | grep -oP "ingress_block \K\d+" | sort -un); do
+          pre=$(tc filter show block $b chain 0 | grep -c "^filter.*flower")
+          if [ "$DRY" != "1" ] && [ "$pre" -gt 0 ]; then tc filter del block $b 2>/dev/null; fi
+          post=$(tc filter show block $b chain 0 | grep -c "^filter.*flower")
+          out="$out block$b:$pre->$post"
+        done
+        for d in $(tc qdisc show | grep -E "^qdisc (ingress|clsact)" | grep -v ingress_block | awk "{print \$5}"); do
+          pre=$(tc filter show dev $d ingress chain 0 2>/dev/null | grep -c "^filter.*flower")
+          if [ "$pre" -gt 0 ]; then
+            if [ "$DRY" != "1" ]; then tc filter del dev $d ingress 2>/dev/null; fi
+            post=$(tc filter show dev $d ingress chain 0 | grep -c "^filter.*flower")
+            out="$out $d:$pre->$post"
+          fi
+        done
+        echo "${out:- nothing-to-do}"
+      args:
+        executable: /bin/bash
+      environment:
+        DRY: "{{ dry_run | ternary('1', '0') }}"
+      register: tc_clean
+      changed_when: (not dry_run) and (tc_clean.stdout is search(':[1-9][0-9]*->'))
+      failed_when: (not dry_run) and (tc_clean.stdout is search('->[1-9]'))
+
+    - name: Record result
+      ansible.builtin.set_fact:
+        tc_status: "{{ dry_run | ternary('DRY-RUN', 'CLEANED') }}"
+        tc_result: "{{ tc_clean.stdout | trim }}"
+
+    - name: Per-host result
+      ansible.builtin.debug:
+        msg: "{{ node_name }} [{{ tc_status }}]: {{ tc_result }}"
+
+
+- name: Summary and coverage check
+  hosts: localhost
+  gather_facts: false
+  vars:
+    log_path: "{{ tc_cleanup_log | default('/home/ubuntu/maintenances/flex-2026.2/tc-flush-ansible.log') }}"
+  tasks:
+    - name: Collect per-host results
+      ansible.builtin.set_fact:
+        tc_lines: >-
+          {{ tc_lines | default([])
+             + [(hostvars[item].k8s_node_name | default(item))
+                ~ ' [' ~ hostvars[item].tc_status ~ ']: '
+                ~ (hostvars[item].tc_result | default(''))] }}
+        tc_covered: >-
+          {{ tc_covered | default([])
+             + [hostvars[item].k8s_node_name | default(item)] }}
+      loop: "{{ groups['all'] }}"
+      when: hostvars[item].tc_status is defined
+      loop_control:
+        label: "{{ item }}"
+
+    - name: Compute uncovered OVS nodes (in cluster, not processed by this run)
+      ansible.builtin.set_fact:
+        tc_uncovered: >-
+          {{ ovs_pod_by_node | default({}) | list
+             | difference(tc_covered | default([])) }}
+        tc_skipped: >-
+          {{ tc_lines | default([])
+             | select('search', 'SKIPPED-NOT-FLIPPED|GATE-ERROR') | list }}
+
+    - name: Ensure log directory exists
+      ansible.builtin.file:
+        path: "{{ log_path | dirname }}"
+        state: directory
+        mode: "0755"
+
+    - name: Write summary log
+      ansible.builtin.copy:
+        dest: "{{ log_path }}"
+        mode: "0644"
+        content: |
+          # clear-stale-tc-flower run {{ now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ') }}
+          # dry_run={{ tc_cleanup_dry_run | default(true) }}
+          {% for line in tc_lines | default([]) %}
+          {{ line }}
+          {% endfor %}
+          # skipped / gate errors: {{ tc_skipped | length }}
+          # uncovered OVS nodes ({{ tc_uncovered | length }}):
+          {% for n in tc_uncovered %}
+          #   {{ n }}
+          {% endfor %}
+
+    - name: Summary
+      ansible.builtin.debug:
+        msg:
+          - "processed: {{ tc_lines | default([]) | length }}"
+          - "skipped / gate errors: {{ tc_skipped | length }}"
+          - "uncovered OVS nodes: {{ tc_uncovered }}"
+          - "log: {{ log_path }}"
+
+    - name: Strict gate (only with -e tc_strict=true)
+      ansible.builtin.assert:
+        that:
+          - tc_uncovered | length == 0
+          - tc_skipped | length == 0
+        fail_msg: >-
+          Fleet is NOT fully cleaned: {{ tc_uncovered | length }} uncovered
+          node(s), {{ tc_skipped | length }} skipped or gate-error node(s).
+          Resolve and re-run (the playbook is idempotent).
+      when: tc_strict | default(false) | bool
