@@ -25,6 +25,8 @@ SyslogIdentifier=check-octavia-ovn
 # These can be overridden in /etc/default/check-octavia-ovn
 Environment=PARALLEL=10
 Environment=FAILOVER_TIMEOUT=300
+Environment=RETRIES=3
+Environment=RETRY_DELAY=5
 # Preserve failover history across runs so we do not repeatedly fail over the same LB.
 Environment=STATE_FILE=/var/lib/check_octavia_ovn/failovers.state
 
