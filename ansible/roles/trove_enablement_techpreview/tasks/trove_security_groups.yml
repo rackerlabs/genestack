@@ -2,10 +2,6 @@
 # Trove pre-configuration (pre-deploy): security group creation.
 # Must run AFTER Keystone and Neutron are deployed.
 
-# =========================================================================
-# PART 1: ENSURE clouds.yaml EXISTS
-# =========================================================================
-
 - name: Check if clouds.yaml already exists
   ansible.builtin.stat:
     path: "{{ ubuntu_home }}/.config/openstack/clouds.yaml"
@@ -24,9 +20,23 @@
     HOME: "{{ ubuntu_home }}"
   when: not _trove_clouds_yaml_stat.stat.exists
 
-# =========================================================================
-# PART 2: CREATE MGMT ACCESS (ssh, ping) SECURITY GROUP
-# =========================================================================
+- name: Derive effective security groups recreation flag
+  ansible.builtin.set_fact:
+    _recreate_security_groups: "{{ (trove_force_recreate_security_groups | default(false) | bool) or (force_full_recreation | default(false) | bool) }}"
+
+- name: Delete existing Trove security groups
+  ansible.builtin.shell: |
+    source {{ genestack_venv }}/bin/activate
+    set -a
+    source {{ genestack_rc }}
+    set +a
+    openstack security group delete {{ trove_secgroup_name }} 2>/dev/null || true
+    openstack security group delete {{ trove_services_secgroup_name }} 2>/dev/null || true
+  args:
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: _recreate_security_groups | bool
 
 - name: Check if trove security group exists
   ansible.builtin.shell:
@@ -40,6 +50,10 @@
   changed_when: false
   failed_when: false
 
+- name: Determine if security groups need to be created
+  ansible.builtin.set_fact:
+    _do_create_security_groups: "{{ (_trove_secgroup_check.rc != 0) or (_recreate_security_groups | bool) }}"
+
 - name: Create trove access security group
   ansible.builtin.shell:
     cmd: >
@@ -49,7 +63,7 @@
     executable: /bin/bash
   environment:
     HOME: "{{ ubuntu_home }}"
-  when: _trove_secgroup_check.rc != 0
+  when: _do_create_security_groups | bool
 
 - name: Create ICMP rule for trove security group
   ansible.builtin.shell:
@@ -60,7 +74,7 @@
     executable: /bin/bash
   environment:
     HOME: "{{ ubuntu_home }}"
-  when: _trove_secgroup_check.rc != 0
+  when: _do_create_security_groups | bool
 
 - name: Create SSH rule for trove security group
   ansible.builtin.shell:
@@ -71,7 +85,7 @@
     executable: /bin/bash
   environment:
     HOME: "{{ ubuntu_home }}"
-  when: _trove_secgroup_check.rc != 0
+  when: _do_create_security_groups | bool
 
 - name: Create 3306 rule for trove security group
   ansible.builtin.shell:
@@ -82,25 +96,7 @@
     executable: /bin/bash
   environment:
     HOME: "{{ ubuntu_home }}"
-  when: _trove_secgroup_check.rc != 0
-
-# =========================================================================
-# PART 3: CREATE MGMT SERVICES VIP SECURITY GROUP
-# The Trove services VIP port on the flat provider network needs a security
-#  group that allows RabbitMQ (5672) and Keystone (5000) from guest VMs.
-# =========================================================================
-
-- name: Check if trove services security group exists
-  ansible.builtin.shell:
-    cmd: >
-      source {{ genestack_venv }}/bin/activate &&
-      openstack --os-cloud {{ os_cloud }} security group show {{ trove_services_secgroup_name }} -f json
-    executable: /bin/bash
-  environment:
-    HOME: "{{ ubuntu_home }}"
-  register: _trove_svc_secgroup_check
-  changed_when: false
-  failed_when: false
+  when: _do_create_security_groups | bool
 
 - name: Create trove services security group
   ansible.builtin.shell:
@@ -111,7 +107,7 @@
     executable: /bin/bash
   environment:
     HOME: "{{ ubuntu_home }}"
-  when: _trove_svc_secgroup_check.rc != 0
+  when: _do_create_security_groups | bool
 
 - name: Create RabbitMQ rule for trove services security group
   ansible.builtin.shell:
@@ -122,7 +118,7 @@
     executable: /bin/bash
   environment:
     HOME: "{{ ubuntu_home }}"
-  when: _trove_svc_secgroup_check.rc != 0
+  when: _do_create_security_groups | bool
 
 - name: Create Keystone rule for trove services security group
   ansible.builtin.shell:
@@ -133,7 +129,7 @@
     executable: /bin/bash
   environment:
     HOME: "{{ ubuntu_home }}"
-  when: _trove_svc_secgroup_check.rc != 0
+  when: _do_create_security_groups | bool
 
 - name: Create Swift rule for trove services security group
   ansible.builtin.shell:
@@ -144,4 +140,4 @@
     executable: /bin/bash
   environment:
     HOME: "{{ ubuntu_home }}"
-  when: _trove_svc_secgroup_check.rc != 0
+  when: _do_create_security_groups | bool

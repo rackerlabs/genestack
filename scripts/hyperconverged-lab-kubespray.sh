@@ -1040,7 +1040,7 @@ if [ "${TEST_LEVEL}" = "off" ]; then
 
     # Trove Setup & Installation
     # Must be run after the flat network has been created
-    deployTrove "RegionOne" "flat" "false" "trove.cluster.local" "internal" "hyperconverged-key.pem"
+    deployTrove "RegionOne" "flat" "false" "trove.cluster.local" "internal"
 
 else
     # Wait for Nova and Neutron APIs to be ready before proceeding

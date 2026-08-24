@@ -2135,7 +2135,6 @@ function deployTrove() {
     local trove_durable_queues="${3:-false}"
     local trove_gateway_hostname="${4:-trove.cluster.local}"
     local trove_os_endpoint_type="${5:-internal}" # internal
-    local compute_ssh_key="${6:-hyperconverged-key.pem}"
 
     {
         declare -f setupKubeConfig
@@ -2199,8 +2198,7 @@ ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.y
 echo "Running playbook for trove_ssh_key_distribute"
 ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
     --tags trove_ssh_key_distribute \
-    -e "trove_region_name=${trove_region_name}" \
-    --ssh-extra-args="-o IdentitiesOnly=yes -o IdentityFile=~/.ssh/${compute_ssh_key}"
+    -e "trove_region_name=${trove_region_name}"
 JUMP_HOST_EOF
     } | _ssh bash
 }

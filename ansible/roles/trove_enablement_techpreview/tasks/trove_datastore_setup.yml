@@ -75,7 +75,6 @@
       source {{ genestack_venv }}/bin/activate
       DSV_ID=$(openstack --os-cloud {{ os_cloud }} datastore version list "{{ trove_datastore_name }}" \
         -f value -c Name -c ID | grep ".* {{ trove_datastore_version_name }}$" 2>/dev/null | awk '{print $1}')
-
       openstack --os-cloud {{ os_cloud }} datastore version delete ${DSV_ID}
     executable: /bin/bash
   environment:
