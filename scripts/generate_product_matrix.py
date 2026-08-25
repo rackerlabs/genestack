@@ -201,7 +201,9 @@ def main():
         to_tag = args.to_tag
         parse_release_tag(from_tag)
         version = parse_release_tag(to_tag)
-        output_file, change_count = generate_range_matrix(root, from_tag, to_tag, version)
+        output_file, change_count = generate_range_matrix(
+            root, from_tag, to_tag, version
+        )
 
     index_file = generate_product_matrix_index(root)
 

@@ -8,6 +8,7 @@ already present in the file.
 Usage:
     _MANILA_SVC_PW=<password> python3 merge_manila_secret.py SECRETS_FILE
 """
+
 import os
 import sys
 import yaml
