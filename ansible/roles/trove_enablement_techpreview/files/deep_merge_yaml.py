@@ -6,6 +6,7 @@ Usage:
 
 If BASE_FILE does not exist it is created. The fragment values win on conflict.
 """
+
 import copy
 import os
 import sys
