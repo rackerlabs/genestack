@@ -1545,6 +1545,7 @@ metadata:
   labels:
     operator: rook
     storage-backend: ceph
+automountServiceAccountToken: false
 # imagePullSecrets:
 #   - name: my-registry-secret
 ---
@@ -1571,6 +1572,7 @@ metadata:
     operator: rook
     storage-backend: ceph
     app.kubernetes.io/part-of: rook-ceph-operator
+automountServiceAccountToken: false
 # imagePullSecrets:
 #   - name: my-registry-secret
 ---
@@ -1593,6 +1595,7 @@ metadata:
     operator: rook
     storage-backend: ceph
     app.kubernetes.io/part-of: rook-ceph-operator
+automountServiceAccountToken: false
 # imagePullSecrets:
 #   - name: my-registry-secret
 ---

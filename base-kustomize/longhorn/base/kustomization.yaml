@@ -2,3 +2,10 @@ sortOptions:
   order: fifo
 resources:
   - all.yaml
+patches:
+  - path: longhorn-ui-service-account-no-automount.yaml
+    target:
+      version: v1
+      kind: ServiceAccount
+      name: longhorn-ui-service-account
+      namespace: longhorn-system

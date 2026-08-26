@@ -3,3 +3,4 @@ sortOptions:
 resources:
   - ns-openstack.yaml
   - issuer-kube-system-selfsigned.yaml
+  - default-serviceaccount.yaml

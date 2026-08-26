@@ -1,0 +1,49 @@
+---
+security:
+  - |
+    Reduced the attack surface by disabling service account token
+    automounting for workloads that do not call the Kubernetes API.
+    Each change was verified live (forced restarts, audit logs, and a
+    proof-of-function job) before being made durable:
+
+    - Rook-Ceph OSD, RGW, and default service accounts (mons, crash
+      collectors, exporters) - `automountServiceAccountToken: false`
+      set on the ServiceAccounts in
+      `base-kustomize/rook-operator/base/common.yaml`.
+    - RabbitMQ server pods - `automountServiceAccountToken: false`
+      set via the RabbitmqCluster pod template override in
+      `base-kustomize/rabbitmq-cluster/base/rabbitmq-cluster.yaml`.
+    - The standalone Grafana pod - `automountServiceAccountToken: false`
+      set in `base-helm-configs/grafana/grafana-helm-overrides.yaml`.
+    - The longhorn-ui pods - a kustomize patch in
+      `base-kustomize/longhorn/base` sets
+      `automountServiceAccountToken: false` on the
+      `longhorn-ui-service-account` ServiceAccount (the longhorn chart
+      does not template the field).
+    - The openstack namespace `default` ServiceAccount - set to
+      `automountServiceAccountToken: false` in
+      `base-kustomize/openstack/base/default-serviceaccount.yaml`. The
+      only consumers (barbican-exporter, openstack-metrics-exporter)
+      never call the API.
+    - The mariadb `backup` ServiceAccount - set to
+      `automountServiceAccountToken: false` in
+      `base-kustomize/mariadb-cluster/base/backup-serviceaccount.yaml`.
+      The backup job containers dump the database over TCP and do not
+      call the API; a backup job was run to completion with no token
+      mounted to confirm.
+
+    Important caveat: most OSM pods run a `kubernetes-entrypoint` init
+    container that reads the service account token file at startup and
+    hard-fails if the file is absent, even when the ServiceAccount has
+    no RBAC bindings. Disabling token automounting for those
+    ServiceAccounts (for example `memcached-memcached`, `libvirt`, and
+    `neutron-netns-cleanup-cron`) was attempted and reverted because it
+    crash-looped the pods. Those ServiceAccounts intentionally keep the
+    token mounted.
+upgrade:
+  - |
+    Existing clusters do not pick up these changes automatically.
+    Re-apply the rook-operator kustomize base, the rabbitmq-cluster
+    overlay, and the openstack and mariadb-cluster kustomize bases, and
+    re-run the grafana and longhorn install scripts, to roll the
+    affected pods without mounted service account tokens.
