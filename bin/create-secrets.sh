@@ -90,6 +90,7 @@ octavia_rabbitmq_password=$(generate_password 64)
 octavia_db_password=$(generate_password 32)
 octavia_admin_password=$(generate_password 32)
 octavia_certificates_password=$(generate_password 32)
+octavia_heartbeat_key=$(generate_password 64)
 barbican_rabbitmq_password=$(generate_password 64)
 barbican_db_password=$(generate_password 32)
 barbican_admin_password=$(generate_password 32)
@@ -595,6 +596,15 @@ metadata:
 type: Opaque
 data:
   password: $(echo -n $octavia_certificates_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: octavia-heartbeat-key
+  namespace: openstack
+type: Opaque
+data:
+  heartbeat_key: $(echo -n $octavia_heartbeat_key | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret

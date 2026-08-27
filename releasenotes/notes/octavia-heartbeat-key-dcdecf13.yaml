@@ -1,0 +1,33 @@
+---
+features:
+  - |
+    `bin/create-secrets.sh` now generates a per-cluster unique Octavia health
+    manager heartbeat key and stores it in the `octavia-heartbeat-key`
+    secret (namespace `openstack`, key `heartbeat_key`).
+    `bin/install-octavia.sh` renders it into the chart via
+    `conf.octavia.health_manager.heartbeat_key`, replacing the openstack-helm
+    chart default (the static, well-known value `insecure`).
+upgrade:
+  - |
+    On a fresh install the key is generated automatically. On an existing
+    cluster `create-secrets.sh` does not regenerate an already-present
+    `/etc/genestack/kubesecrets.yaml`, so backfill manually:
+
+    .. code-block:: shell
+
+      KEY=$(openssl rand -base64 48)
+      kubectl -n openstack create secret generic octavia-heartbeat-key \
+        --from-literal=heartbeat_key="$KEY"
+      /opt/genestack/bin/install-octavia.sh \
+        --set "conf.octavia.health_manager.heartbeat_key=$KEY"
+
+    This is a `helm upgrade` of Octavia; only the Octavia control-plane pods
+    (api, worker, health-manager) roll.
+
+    The heartbeat key authenticates the UDP heartbeats that *amphorae* send to
+    the health manager. For OVN-driver deployments there are no amphorae, so
+    changing the key has no data-plane impact on load balancers. For
+    amphora-driver deployments a one-shot rekey would cause the health manager
+    to drop every running amphora's heartbeat and trigger a fleet-wide mass
+    failover; perform that only within a maintenance window with coordinated
+    amphora rekeying.
