@@ -1199,6 +1199,8 @@ collectors:
               method: GET
             - endpoint: https://novnc.api.example.com/vnc_auto.html
               method: GET
+            - endpoint: https://ironic.api.example.com
+              method: GET
           collection_interval: 30s
 
         prometheus/infra:

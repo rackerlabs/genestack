@@ -135,16 +135,16 @@ Expected result:
 Ironic Python Agent images are required for deployment and cleaning operations.
 
 ```bash
-curl -o ipa-centos9-stable-2025.2.initramfs https://tarballs.opendev.org/openstack/ironic-python-agent/dib/files/ipa-centos9-stable-2025.2.initramfs
-curl -o ipa-centos9-stable-2025.2.kernel https://tarballs.opendev.org/openstack/ironic-python-agent/dib/files/ipa-centos9-stable-2025.2.kernel
+curl -o ipa-centos9-stable-2026.1.initramfs https://tarballs.opendev.org/openstack/ironic-python-agent/dib/files/ipa-centos9-stable-2026.1.initramfs
+curl -o ipa-centos9-stable-2026.1.kernel https://tarballs.opendev.org/openstack/ironic-python-agent/dib/files/ipa-centos9-stable-2026.1.kernel
 
-openstack image create ipa-centos9-stable-2025.2-aki --public \
+openstack image create ipa-centos9-stable-2026.1-aki --public \
    --disk-format aki --container-format aki \
-   --file ipa-centos9-stable-2025.2.kernel
+   --file ipa-centos9-stable-2026.1.kernel
 
-openstack image create ipa-centos9-stable-2025.2-ari --public \
+openstack image create ipa-centos9-stable-2026.1-ari --public \
    --disk-format ari --container-format ari \
-   --file ipa-centos9-stable-2025.2.initramfs
+   --file ipa-centos9-stable-2026.1.initramfs
 ```
 
 ### Verify Core Resources
@@ -204,15 +204,15 @@ This example uses the `idrac` driver, Redfish-based management, and the `ipxe` b
 ```bash
 node=123456-compute1
 node_mac="aa:bb:cc:dd:ee:ff" # MAC address of PXE interface
-deploy_aki=ipa-centos9-stable-2025.2-aki
-deploy_ari=ipa-centos9-stable-2025.2-ari
+deploy_aki=ipa-centos9-stable-2026.1-aki
+deploy_ari=ipa-centos9-stable-2026.1-ari
 resource=GP2_XL
 phys_arch=x86_64
 phys_cpus=128
 phys_ram=720896
 phys_disk=960
 
-openstack baremetal node create --driver idrac \
+openstack baremetal node create --driver redfish \
   --boot-interface ipxe \
   --driver-info redfish_username=root \
   --driver-info redfish_password=<password> \
@@ -221,9 +221,8 @@ openstack baremetal node create --driver idrac \
   --driver-info redfish_system_id=/redfish/v1/Systems/System.Embedded.1 \
   --driver-info deploy_kernel=`openstack image show $deploy_aki -c id |awk '/id / {print $4}'` \
   --driver-info deploy_ramdisk=`openstack image show $deploy_ari -c id |awk '/id / {print $4}'` \
-  --inspect-interface idrac-redfish \
-  --management-interface idrac-redfish \
-  --power-interface idrac-redfish \
+  --management-interface redfish \
+  --power-interface redfish \
   --property cpus=$phys_cpus \
   --property memory_mb=$phys_ram \
   --property local_gb=$phys_disk \
@@ -260,8 +259,8 @@ This example uses the `redfish` driver with the `redfish-virtual-media` boot int
 ```bash
 node=123456-compute2
 node_mac="aa:bb:cc:dd:ee:ff" # MAC address of PXE interface
-deploy_aki=ipa-centos9-stable-2025.2-aki
-deploy_ari=ipa-centos9-stable-2025.2-ari
+deploy_aki=ipa-centos9-stable-2026.1-aki
+deploy_ari=ipa-centos9-stable-2026.1-ari
 deploy_bootloader=esp
 resource=GP2_XL
 phys_arch=x86_64

@@ -17,6 +17,7 @@ components:
   masakari: false
   neutron: true
   nova: true
+  ironic: false
   octavia: false
   placement: true
   skyline: true
