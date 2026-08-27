@@ -6,6 +6,47 @@
 # no MetalLB, no host-side bridge plumbing required.
 # =========================================================================
 
+- name: Derive effective mgmt network recreation flag
+  ansible.builtin.set_fact:
+    _recreate_mgmt_network_resources: "{{ (trove_force_recreate_mgmt_network | default(false) | bool) or (force_full_recreation | default(false) | bool) }}"
+
+- name: Delete existing Trove mgmt network resources
+  ansible.builtin.shell: |
+    source {{ genestack_venv }}/bin/activate
+    set -a
+    source {{ genestack_rc }}
+    set +a
+    openstack router remove subnet {{ trove_mgmt_router_name }} {{ trove_mgmt_subnet_name }} 2>/dev/null || true
+    openstack router unset --external-gateway {{ trove_mgmt_router_name }} 2>/dev/null || true
+    openstack router delete {{ trove_mgmt_router_name }} 2>/dev/null || true
+    openstack port delete {{ trove_mgmt_router_port_name }} 2>/dev/null || true
+    openstack subnet delete {{ trove_mgmt_subnet_name }} 2>/dev/null || true
+    openstack network delete {{ trove_mgmt_network_name }} 2>/dev/null || true
+  args:
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: _recreate_mgmt_network_resources | bool
+
+- name: Check if Trove mgmt network already exist
+  ansible.builtin.shell: |
+    source {{ genestack_venv }}/bin/activate
+    set -a
+    source {{ genestack_rc }}
+    set +a
+    openstack network show trove-mgmt-net -f value -c id 2>/dev/null
+  args:
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_mgmt_network_check
+  changed_when: false
+  failed_when: false
+
+- name: Determine if mgmt network needs to be created
+  ansible.builtin.set_fact:
+    _do_create_mgmt_network: "{{ (_trove_mgmt_network_check.rc != 0) or (_recreate_mgmt_network_resources | bool) }}"
+
 - name: Create Trove management overlay network (geneve)
   ansible.builtin.command:
     cmd: >
@@ -17,6 +58,7 @@
   failed_when:
     - trove_mgmt_net_result.rc != 0
     - "'x' not in trove_mgmt_net_result.stderr"
+  when: _do_create_mgmt_network | bool
 
 - name: Create Trove management subnet on overlay
   # --dns-nameserver populates the subnet's metadata even with --no-dhcp;
@@ -40,6 +82,7 @@
   failed_when:
     - trove_mgmt_subnet_result.rc != 0
     - "'already exists' not in trove_mgmt_subnet_result.stderr"
+  when: _do_create_mgmt_network | bool
 
 - name: Create router for trove mgmt network with external gateway to public provider network
   ansible.builtin.command:
@@ -51,6 +94,7 @@
   failed_when:
     - trove_mgmt_router_result.rc != 0
     - "'already exists' not in trove_mgmt_router_result.stderr"
+  when: _do_create_mgmt_network | bool
 
 - name: Attach trove mgmt subnet to trove mgmt router
   ansible.builtin.command:
@@ -62,6 +106,7 @@
   failed_when:
     - trove_mgmt_router_attach_result.rc != 0
     - "'already' not in (trove_mgmt_router_attach_result.stderr | default(''))"
+  when: _do_create_mgmt_network | bool
 
 - name: Change trove mgmt router port name
   ansible.builtin.shell: |
@@ -81,3 +126,4 @@
   changed_when: trove_mgmt_router_port_name_change.rc == 0
   failed_when:
     - trove_mgmt_router_port_name_change.rc != 0
+  when: _do_create_mgmt_network | bool
