@@ -16,7 +16,7 @@ notification_service_id = mysql:2f3ff068-2bfb-4f70-9a9d-a6bb65bc084b
 os_region_name = {{ trove_region_name }}
 swift_endpoint_type = internalURL
 swift_service_type = object-store
-swift_url = http://{{ trove_services_anchor_ip }}:8080/v1/AUTH_%(tenant_id)s
+swift_url = http://{{ trove_services_anchor_ip }}:8080/v1/AUTH_
 taskmanager_manager = trove.taskmanager.manager.Manager
 #transport_url = rabbit://trove:{{ trove_rabbitmq_password }}@rabbitmq.openstack.svc.cluster.local:5672/trove
 trove_auth_url = http://keystone-api.openstack.svc.cluster.local:5000/v3
@@ -62,6 +62,9 @@ usage_timeout = 400
 volume_support = true
 ignore_users = os_admin
 ignore_dbs = mysql, information_schema, performance_schema, sys
+guest_log_exposed_logs = general,slow_query
+database_service_uid = 1001
+database_service_gid = 1001
 
 [oslo_concurrency]
 lock_path = /var/lib/trove/tmp

@@ -643,8 +643,8 @@ main() {
     run_test "instance_restart"             test_instance_restart
 #    run_test "resize_instance"              test_resize_instance
     run_test "resize_volume"                test_resize_volume
-#    run_test "log_list"                     test_log_list
-#    run_test "log_enable_disable"           test_log_enable_disable
+   run_test "log_list"                     test_log_list
+   run_test "log_enable_disable"           test_log_enable_disable
 
     # ── backup & restore
     run_test "backup_create"                test_backup_create

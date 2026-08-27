@@ -3,6 +3,24 @@
 # into the existing trove-helm-overrides.yaml.
 
 # =========================================================================
+# PART 0: SWIFT ROLE ASSIGNMENT FOR GUEST LOG PUBLISHING
+# =========================================================================
+# The trove service user needs the swiftoperator role on the service
+# project so the guest agent can publish database logs to Swift.
+
+- name: Ensure trove user has swiftoperator role for guest log publishing
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      source {{ genestack_venv }}/bin/activate
+      openstack --os-cloud {{ os_cloud }} role add \
+        --user trove --project service swiftoperator 2>/dev/null || true
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  changed_when: false
+
+# =========================================================================
 # PART 1: GATHER REQUIRED IDS
 # =========================================================================
 
