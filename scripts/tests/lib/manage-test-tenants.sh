@@ -58,7 +58,7 @@ destroy_tenant() {
   echo "  Cleaning up ${tenant} (${PROJECT_ID})..."
 
   # Database Instances
-  TENANT_DBS=$($OS database instance list --project "$PROJECT_ID" --all-projects -f json 2>/dev/null \
+  TENANT_DBS=$($OS database instance list --project "$PROJECT_ID" -f json 2>/dev/null \
     | python3 -c 'import json,sys; [print(s["ID"]) for s in json.load(sys.stdin)]' 2>/dev/null) || true
   for id in $TENANT_DBS; do
     echo "    Deleting database instance $id..."
@@ -66,7 +66,7 @@ destroy_tenant() {
   done
 
   # Servers
-  TENANT_SERVERS=$($OS server list --project "$PROJECT_ID" --all-projects -f json 2>/dev/null \
+  TENANT_SERVERS=$($OS server list --project "$PROJECT_ID" -f json 2>/dev/null \
     | python3 -c 'import json,sys; [print(s["ID"]) for s in json.load(sys.stdin)]' 2>/dev/null) || true
   for id in $TENANT_SERVERS; do
     echo "    Deleting server $id..."
@@ -206,14 +206,14 @@ HEADER
     $OS project create "$tenant" \
       --domain default \
       --description "Test tenant: ${tenant}" \
-      2>/dev/null || echo "  (project already exists)"
+      2>/dev/null || echo "  ===> project already exists"
 
     $OS user create "$USERNAME" \
       --domain default \
       --project "$tenant" \
       --password "$PASSWORD" \
       --description "Admin user for ${tenant}" \
-      2>/dev/null || echo "  (user already exists, resetting password)"
+      2>/dev/null || echo "  ===> user already exists, resetting password"
 
     $OS user set "$USERNAME" --password "$PASSWORD" 2>/dev/null || true
 
@@ -296,9 +296,9 @@ CLOUDS_YAML_EOF
 
     openstack --os-cloud="${tenant}" router add subnet \
       "${tenant}-router" "${tenant}-subnet" 2>/dev/null \
-      || echo "  (subnet already attached to router)"
+      || echo "  ===> subnet already attached to router"
 
-    echo "  Created: ${tenant}-net / ${tenant}-subnet (${SUBNET_CIDR}) / ${tenant}-router → flat"
+    echo "  Network: ${tenant}-net / ${tenant}-subnet (${SUBNET_CIDR}) / ${tenant}-router → flat"
   done
 
   # Restore default clouds.yaml search path for admin commands

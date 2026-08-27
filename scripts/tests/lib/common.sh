@@ -18,6 +18,8 @@ TOTAL_TESTS=0
 # JUnit XML storage
 JUNIT_XML=""
 
+FAILED_TESTS=""
+
 # Initialize test framework
 # Creates results directory and starts JUnit XML output
 init_tests() {
@@ -68,7 +70,9 @@ run_test() {
     else
         echo "FAILED"
         ((TESTS_FAILED += 1))
+        FAILED_TESTS+="* ${test_name}\n"
         record_test_result "${test_name}" "failed" "${output}" "" "${duration}"
+
     fi
 }
 
@@ -142,6 +146,7 @@ finalize_tests() {
     # Exit with appropriate code
     if [ ${TESTS_FAILED} -gt 0 ]; then
         echo "FAILURE: Some tests failed"
+        echo -e "${FAILED_TESTS}"
         return 1
     else
         echo "SUCCESS: All tests passed"
