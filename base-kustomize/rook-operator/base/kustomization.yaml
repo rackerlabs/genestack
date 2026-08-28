@@ -1,6 +1,7 @@
 sortOptions:
   order: fifo
 resources:
-  - crds.yaml
   - common.yaml
+  - crds.yaml
+  - csi-operator.yaml
   - operator.yaml

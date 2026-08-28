@@ -17,7 +17,7 @@ kubectl apply -k /etc/genestack/kustomize/rook-operator/base
     example of how one can pin the operator version if so desired.
 
     ``` shell
-    kubectl -n rook-ceph set image deploy/rook-ceph-operator rook-ceph-operator=rook/ceph:v1.16.5
+    kubectl -n rook-ceph set image deploy/rook-ceph-operator rook-ceph-operator=rook/ceph:v1.20.3
     ```
 
 ### Label the Storage Nodes
