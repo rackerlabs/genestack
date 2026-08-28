@@ -50,8 +50,9 @@
 #       -e tc_cleanup_dry_run=false
 #
 #   Optional targeting / pacing:
-#     --limit <group>            restrict the pass (run a final unlimited
-#                                pass so the coverage check sees every node)
+#     --limit <host-or-group>    restrict the pass; works with any pattern
+#                                (run a final unlimited pass so the coverage
+#                                check sees every node)
 #     -e tc_serial=20            hosts per batch (default 10)
 #     -e tc_strict=true          fail the run if any node is skipped,
 #                                failed or uncovered
@@ -65,28 +66,47 @@
 #   k8s_node_name       per-host override when inventory name != node name
 #   tc_cleanup_log      default /home/ubuntu/maintenances/flex-2026.2/tc-flush-ansible.log
 
-- name: Gather ovs-ovn pod map from the Kubernetes API
-  hosts: localhost
+- name: Clear stranded chain-0 TC flower filters per node
+  hosts: "{{ target_hosts | default('all') }}"
   gather_facts: false
-  tasks:
-    - name: Find ovs-ovn pods by label
+  become: true
+  # run_once below requires the linear strategy; pinned so it cannot be
+  # changed out from under this play by configuration.
+  strategy: linear
+  serial: "{{ tc_serial | default(10) }}"
+  vars:
+    node_name: "{{ k8s_node_name | default(inventory_hostname) }}"
+    ovs_pod: "{{ ovs_pod_by_node[node_name] | default('') }}"
+    dry_run: "{{ tc_cleanup_dry_run | default(true) | bool }}"
+  # The Kubernetes queries below run once (delegated to the controller) and
+  # their results propagate to every host in the play. They live inside this
+  # play, not in a separate localhost play, so that any --limit pattern
+  # works without having to include localhost.
+  pre_tasks:
+    - name: Find ovs-ovn pods by label  # noqa: run-once[task]
       kubernetes.core.k8s_info:
         kind: Pod
         namespace: kube-system
         label_selectors:
           - app=ovs-ovn
         kubeconfig: "{{ kubeconfig | default(omit) }}"
+      delegate_to: localhost
+      become: false
+      run_once: true
       register: tc_pods_by_label
 
-    - name: Fall back to name-prefix match when the label finds nothing
+    - name: Fall back to name-prefix match when the label finds nothing  # noqa: run-once[task]
       kubernetes.core.k8s_info:
         kind: Pod
         namespace: kube-system
         kubeconfig: "{{ kubeconfig | default(omit) }}"
+      delegate_to: localhost
+      become: false
+      run_once: true
       register: tc_pods_all
       when: tc_pods_by_label.resources | length == 0
 
-    - name: Select the ovs-ovn pod list
+    - name: Select the ovs-ovn pod list  # noqa: run-once[task]
       ansible.builtin.set_fact:
         tc_ovs_pods: >-
           {{ tc_pods_by_label.resources
@@ -94,29 +114,21 @@
              else tc_pods_all.resources
                   | selectattr('metadata.name', 'match', '^ovs-ovn-')
                   | list }}
+      run_once: true
 
-    - name: Build the map of node name to ovs-ovn pod name
+    - name: Build the map of node name to ovs-ovn pod name  # noqa: run-once[task]
       ansible.builtin.set_fact:
         ovs_pod_by_node: >-
           {{ dict(tc_ovs_pods | map(attribute='spec.nodeName')
                   | zip(tc_ovs_pods | map(attribute='metadata.name'))) }}
+      run_once: true
 
-    - name: Report OVS node count
+    - name: Report OVS node count  # noqa: run-once[task]
       ansible.builtin.debug:
         msg: >-
           ovs-ovn pods found on {{ ovs_pod_by_node | length }} nodes;
           dry_run={{ tc_cleanup_dry_run | default(true) }}
-
-
-- name: Clear stranded chain-0 TC flower filters per node
-  hosts: "{{ target_hosts | default('all') }}"
-  gather_facts: false
-  become: true
-  serial: "{{ tc_serial | default(10) }}"
-  vars:
-    node_name: "{{ k8s_node_name | default(inventory_hostname) }}"
-    ovs_pod: "{{ hostvars['localhost'].ovs_pod_by_node[node_name] | default('') }}"
-    dry_run: "{{ tc_cleanup_dry_run | default(true) | bool }}"
+      run_once: true
   tasks:
     - name: Skip hosts that do not run an ovs-ovn pod
       when: ovs_pod | length == 0
@@ -214,12 +226,13 @@
 
 
 - name: Summary and coverage check
-  hosts: localhost
+  hosts: "{{ target_hosts | default('all') }}"
   gather_facts: false
+  strategy: linear
   vars:
     log_path: "{{ tc_cleanup_log | default('/home/ubuntu/maintenances/flex-2026.2/tc-flush-ansible.log') }}"
   tasks:
-    - name: Collect per-host results
+    - name: Collect per-host results  # noqa: run-once[task]
       ansible.builtin.set_fact:
         tc_lines: >-
           {{ tc_lines | default([])
@@ -233,8 +246,11 @@
       when: hostvars[item].tc_status is defined
       loop_control:
         label: "{{ item }}"
+      run_once: true
+      delegate_to: localhost
+      become: false
 
-    - name: Compute uncovered OVS nodes (in cluster, not processed by this run)
+    - name: Compute uncovered OVS nodes (in cluster, not processed by this run)  # noqa: run-once[task]
       ansible.builtin.set_fact:
         tc_uncovered: >-
           {{ ovs_pod_by_node | default({}) | list
@@ -242,14 +258,20 @@
         tc_skipped: >-
           {{ tc_lines | default([])
              | select('search', 'SKIPPED-NOT-FLIPPED|GATE-ERROR') | list }}
+      run_once: true
+      delegate_to: localhost
+      become: false
 
-    - name: Ensure log directory exists
+    - name: Ensure log directory exists  # noqa: run-once[task]
       ansible.builtin.file:
         path: "{{ log_path | dirname }}"
         state: directory
         mode: "0755"
+      run_once: true
+      delegate_to: localhost
+      become: false
 
-    - name: Write summary log
+    - name: Write summary log  # noqa: run-once[task]
       ansible.builtin.copy:
         dest: "{{ log_path }}"
         mode: "0644"
@@ -264,16 +286,22 @@
           {% for n in tc_uncovered %}
           #   {{ n }}
           {% endfor %}
+      run_once: true
+      delegate_to: localhost
+      become: false
 
-    - name: Summary
+    - name: Summary  # noqa: run-once[task]
       ansible.builtin.debug:
         msg:
           - "processed: {{ tc_lines | default([]) | length }}"
           - "skipped / gate errors: {{ tc_skipped | length }}"
           - "uncovered OVS nodes: {{ tc_uncovered }}"
           - "log: {{ log_path }}"
+      run_once: true
+      delegate_to: localhost
+      become: false
 
-    - name: Strict gate (only with -e tc_strict=true)
+    - name: Strict gate (only with -e tc_strict=true)  # noqa: run-once[task]
       ansible.builtin.assert:
         that:
           - tc_uncovered | length == 0
@@ -283,3 +311,6 @@
           node(s), {{ tc_skipped | length }} skipped or gate-error node(s).
           Resolve and re-run (the playbook is idempotent).
       when: tc_strict | default(false) | bool
+      run_once: true
+      delegate_to: localhost
+      become: false
