@@ -47,9 +47,35 @@ This method demonstrates how a tenant application server can connect to a Trove 
 
 ### Prerequisites
 
-- A valid `clouds.yaml` with credentials for your project (e.g., `acme-corp`)
 - The OpenStack CLI installed and configured
 
+### Create tenant and clouds.yaml
+``` shell
+AUTH_URL=$(openstack endpoint list --service keystone --interface internal -f value -c URL)
+TENANT=acme-corp
+USERNAME="${TENANT}-admin"
+PASSWORD="${USERNAME}-pwd"
+openstack  project create "${TENANT}" --domain default --description "Test tenant: ${TENANT}"
+openstack user create "${USERNAME}" --domain default --project "${TENANT}" --password "${PASSWORD}" --description "Admin user for ${TENANT}"
+openstack user set "${USERNAME}" --password "${PASSWORD}"
+openstack role add --project "${TENANT}" --user "${USERNAME}" member 2>/dev/null || true
+openstack role add --project "${TENANT}" --user "${USERNAME}" admin 2>/dev/null || true
+cat > "clouds.yaml" << CLOUDS_YAML_EOF
+clouds:
+  ${TENANT}:
+    auth:
+      auth_url: ${AUTH_URL}
+      project_name: ${TENANT}
+      project_domain_name: Default
+      username: ${USERNAME}
+      user_domain_name: Default
+      password: ${PASSWORD}
+    region_name: RegionOne
+    interface: internal
+    identity_api_version: 3
+CLOUDS_YAML_EOF
+chmod 0640 "clouds.yaml"
+```
 ### Set the target cloud
 
 ``` shell
@@ -65,7 +91,7 @@ openstack network create \
   --internal \
   --enable-port-security \
   --enable \
-  "acme-corp-network"
+  "acme-corp-net"
 ```
 
 ### Create the subnet
@@ -74,7 +100,7 @@ openstack network create \
 openstack subnet create \
   --project="acme-corp" \
   --dhcp \
-  --network="acme-corp-network" \
+  --network="acme-corp-net" \
   --subnet-range=192.168.50.0/24 \
   --gateway=192.168.50.1 \
   --dns-nameserver 1.1.1.1 \
@@ -105,9 +131,12 @@ openstack keypair create --public-key ./acme_corp_ssh_key.pub acme-corp-keypair
 cp acme_corp_ssh_key* ~/.ssh/
 ```
 
-!!! tip
+!!! note
 
-    If accessing the application server through jump hosts, copy the private key (`acme_corp_ssh_key`) to `~/.ssh/` on each jump host and set permissions with `chmod 600`.
+    The private key (`acme_corp_ssh_key`) needs to exist on each compute host, so execute the following on each compute host:
+``` shell
+    > cat ~/.ssh/acme_corp_ssh_key | ssh ubuntu@<COMPUTE_HOST_NAME> "cat > ~/.ssh/acme_corp_ssh_key && chmod 600 ~/.ssh/acme_corp_ssh_key"
+```
 
 ### Create security groups
 
@@ -122,19 +151,37 @@ openstack security group rule create --protocol icmp --remote-ip 0.0.0.0/0 acme-
 openstack security group rule create --protocol tcp --dst-port 22 --remote-ip 0.0.0.0/0 acme-corp-app-secgroup
 ```
 
+### Load an Ubuntu image (need for application server build in next step)
+
+``` shell
+pushd /tmp
+wget https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
+openstack --os-cloud default image create \
+  --disk-format qcow2 \
+  --container-format bare \
+  --file jammy-server-cloudimg-amd64.img \
+  --property os_distro='ubuntu' \
+  --property os_version='22.04' \
+  --property hw_disk_bus='scsi' \
+  --property hw_scsi_model='virtio-scsi' \
+  --public \
+  "Ubuntu 22.04 LTS"
+popd
+```
+
 ### Launch the application server
 
 ``` shell
 openstack server create \
   --flavor m1.small \
   --image "Ubuntu 22.04 LTS" \
-  --nic net-id=acme-corp-network \
+  --nic net-id=acme-corp-net \
   --key-name acme-corp-keypair \
   --security-group acme-corp-app-secgroup \
   acme-corp-app-server
 ```
 
-### Create the database instance
+### Create a private database instance
 
 ``` shell
 openstack database instance create \
@@ -144,7 +191,7 @@ openstack database instance create \
   --users acme_user:acme_pwd \
   --datastore mysql \
   --datastore-version-number 8.4 \
-  --nic net-id=$(openstack network list -f value | grep acme-corp-network | awk '{print $1}') \
+  --nic net-id=$(openstack network list -f value | grep acme-corp-net | awk '{print $1}') \
   --allowed-cidr $(openstack subnet show acme-corp-subnet -f value -c cidr) \
   acme-corp-db-server
 ```
@@ -154,6 +201,8 @@ openstack database instance create \
 Once all resources are active, SSH into the application server and connect to the database:
 
 ``` shell
+sudo apt update
+sudo apt install mysql-client-core-8.0
 mysql --host=<DB_INSTANCE_IP> --user=acme_user --password=acme_pwd
 ```
 
@@ -169,17 +218,17 @@ Public access to a database instance on a tenant network can be achieved by pass
 openstack database instance create \
   --flavor m1.small \
   --size 10 \
-  --databases acme_db \
+  --databases acme_pub_db \
   --users acme_user:acme_pwd \
   --datastore mysql \
   --datastore-version-number 8.4 \
-  --nic net-id=$(openstack network list -f value | grep acme-corp-network | awk '{print $1}') \
+  --nic net-id=$(openstack network list -f value | grep acme-corp-net | awk '{print $1}') \
   --allowed-cidr $(openstack subnet show acme-corp-subnet -f value -c cidr) \
   --is-public \
-  acme-corp-db-pub-server
+  acme-corp-pub-db-server
 ```
 
-Create a security group for the database instance (allows MySQL on port 3306):
+Create a security group for the database instance (allows MySQL on port 3306 from IPs outside the tenant network):
 
 ``` shell
 openstack security group create \
@@ -201,6 +250,8 @@ openstack server add security group \
 Once the instance is active, connect from any external location:
 
 ``` shell
+sudo apt update
+sudo apt install mysql-client-core-8.0
 mysql --host=<PUBLIC_DB_IP> --user=acme_user --password=acme_pwd
 ```
 
@@ -294,6 +345,8 @@ Replace `<EXTERNAL_NETWORK>` with the name of your external/public provider netw
 Once the floating IP is associated, connect from any external location:
 
 ``` shell
+sudo apt update
+sudo apt install mysql-client-core-8.0
 mysql --host=<FLOATING_IP> --user=acme_user --password=acme_pwd
 ```
 
