@@ -17,3 +17,11 @@ ${GUEST_USERNAME}
 ${GUEST_USERNAME}
 _EOF_
 fi
+
+# Ensure group membership is applied even when the base image already
+# created ${GUEST_USERNAME} (in which case the useradd block above is
+# skipped and its -G sudo never takes effect). usermod -aG is idempotent.
+#   sudo            -> privilege escalation
+#   adm, systemd-journal -> read the journal (e.g. journalctl -u
+#                      trove-mgmt-dhclient) without needing sudo
+usermod -aG sudo,adm,systemd-journal ${GUEST_USERNAME}
