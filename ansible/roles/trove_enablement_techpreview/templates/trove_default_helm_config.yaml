@@ -129,6 +129,9 @@ conf:
       # Re-enable when upstream trove ships SQLAlchemy 2.x compat
       # for DBInstance.find_by (or we ship a patched trove image).
       enable_secure_rpc_messaging: false
+    mysql:
+      volume_support: true
+      guest_log_exposed_logs: general,slow_query
     network:
       enable_access_check: false
       network_isolation: true

@@ -85,6 +85,14 @@ if [ -f /var/lib/trove-images/datastore-backup.tar ]; then
   docker push localhost:5000/mysql-backup:8.4
 fi
 
+# Disable trove-image-loader.service - we pre-load images via cloud-init
+# above, so the upstream loader is unnecessary and fails on Debian.
+# echo "Disabling trove-image-loader service"
+# systemctl disable trove-image-loader.service 2>/dev/null || true
+# systemctl mask trove-image-loader.service 2>/dev/null || true
+# But TODO: Re-enable this once datastore images are shipped via the
+# genestack-images repo and cloud-init image loading is removed.
+
 # guest-agent.service may have started already (it depends on
 # network.target, not cloud-init.target), so it likely loaded its config
 # before transport.conf was written. Force a restart so it picks up the

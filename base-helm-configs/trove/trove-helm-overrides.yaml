@@ -117,6 +117,7 @@ conf:
       # heat_url: null
     mysql:
       volume_support: true
+      guest_log_exposed_logs: general,slow_query
     cache:
       enabled: true
       backend: oslo_cache.memcache_pool
