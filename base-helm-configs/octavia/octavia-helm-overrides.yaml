@@ -163,6 +163,12 @@ conf:
       jobboard_redis_backend_db: 0
       jobboard_redis_backend_ssl_options: "ssl:False"
       jobboard_redis_sentinel_ssl_options: "ssl:False"
+      jobboard_backend_port: 26379
+      jobboard_backend_hosts:
+        - redis-sentinel-sentinel-0.redis-sentinel-sentinel-headless.redis-systems.svc.cluster.local
+        - redis-sentinel-sentinel-1.redis-sentinel-sentinel-headless.redis-systems.svc.cluster.local
+        - redis-sentinel-sentinel-2.redis-sentinel-sentinel-headless.redis-systems.svc.cluster.local
+
   octavia_api_uwsgi:
     uwsgi:
       processes: 2
