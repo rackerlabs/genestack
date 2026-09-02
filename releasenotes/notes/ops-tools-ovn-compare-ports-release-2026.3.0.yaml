@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds ``ops-tools/ovn/ovn_compare_neutron_ports_with_ovn_ports.py`` for
+    Genestack 2026.3.0. The Python scanner compares Neutron ports, excluding
+    floating IP ports, with OVN logical switch ports and can delete stale
+    logical switch ports with explicit fix confirmation.
+  - |
+    Adds a suspended Kubernetes CronJob manifest for read-only JSON Neutron
+    port/OVN port comparison scans with one-week finished Job retention.

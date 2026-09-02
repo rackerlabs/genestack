@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Adds ``ops-tools/ovn/find_ovn_duplicate_ip.py`` for Genestack 2026.3.0.
+    The Python scanner finds duplicate Kube-OVN IP CRD addresses and reports
+    whether each referenced pod still exists.
+  - |
+    Adds a suspended Kubernetes CronJob manifest for read-only JSON duplicate
+    IP CRD scans with one-week finished Job retention.

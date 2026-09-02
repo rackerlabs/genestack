@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    Added ``ops-tools/find_orphan_instances``, a Python operator tool that
+    audits Nova compute hosts for UUID-shaped directories under
+    ``/var/lib/nova/instances`` that are absent from both the host-scoped Nova
+    server list and active Nova database rows.
+  - |
+    The orphan instance directory auditor supports read-only text or JSON
+    output by default, optional backup and deletion workflows, stable exit
+    codes, command timeouts, per-host errors, and explicit
+    ``--yes-im-really-sure`` confirmation for destructive cleanup.
+  - |
+    Adds a suspended Kubernetes CronJob manifest for read-only JSON orphan
+    instance scans with one-week finished Job retention.

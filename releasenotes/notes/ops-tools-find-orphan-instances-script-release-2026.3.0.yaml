@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Documents ``ops-tools/find_orphan_instances/find_orphan_instances.py`` for
+    Genestack 2026.3.0. The Python scanner identifies Nova instance
+    directories that are absent from active Nova state, emits text or JSON
+    reports, and gates backup/deletion workflows behind explicit operator
+    confirmation.
+  - |
+    Documents the suspended read-only CronJob manifest that runs the scanner in
+    JSON mode and retains finished Jobs for one week.

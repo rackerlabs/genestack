@@ -19,7 +19,7 @@ User=root
 Group=root
 WorkingDirectory=/var/lib/check_octavia_ovn
 EnvironmentFile=-/etc/default/check-octavia-ovn
-ExecStart=/usr/local/bin/check_octavia_ovn.sh --apply
+ExecStart=/usr/local/bin/check_octavia_ovn.sh --apply --yes-im-really-sure
 SyslogIdentifier=check-octavia-ovn
 
 # These can be overridden in /etc/default/check-octavia-ovn

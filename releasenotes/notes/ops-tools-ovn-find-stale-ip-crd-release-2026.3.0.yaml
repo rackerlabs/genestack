@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds ``ops-tools/ovn/find_ovn_stale_ip_crd.py`` for Genestack 2026.3.0.
+    The Python scanner finds Kube-OVN IP CRDs whose referenced pods no longer
+    exist and can delete stale CRDs only when run with
+    ``--fix --yes-im-really-sure``.
+  - |
+    Adds a suspended Kubernetes CronJob manifest for read-only JSON stale IP
+    CRD scans with one-week finished Job retention.

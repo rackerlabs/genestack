@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds ``ops-tools/ovn/ovn_compare_neutron_routers_with_logical_routers.py``
+    for Genestack 2026.3.0. The Python scanner compares Neutron routers and
+    router ports with OVN logical routers and logical router ports, reporting
+    missing state and optionally deleting stale OVN router resources.
+  - |
+    Adds a suspended Kubernetes CronJob manifest for read-only JSON Neutron
+    router/OVN router comparison scans with one-week finished Job retention.

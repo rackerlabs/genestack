@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Adds the ``ops-tools/ovn`` tool directory for Genestack 2026.3.0 with
+    Python rewrites of the legacy OVN/Neutron consistency shell scripts. The
+    migrated tools provide read-only defaults, structured JSON output,
+    command timeouts, explicit destructive-action confirmation, and focused
+    unit tests.
+  - |
+    Adds suspended Kubernetes CronJob manifests for each OVN ops tool, running
+    read-only JSON scans with one-week finished Job retention.

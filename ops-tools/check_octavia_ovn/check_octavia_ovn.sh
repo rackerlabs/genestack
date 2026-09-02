@@ -25,16 +25,17 @@
 #
 # Usage:
 #   ./check_octavia_ovn.sh
-#   ./check_octavia_ovn.sh --apply                # enable failover/state changes
+#   ./check_octavia_ovn.sh --apply --yes-im-really-sure  # enable failover/state changes
 #   ./check_octavia_ovn.sh --dry-run              # explicit dry-run
 #   ./check_octavia_ovn.sh --log-file /var/log/octavia_ovn_check.log   # optional file copy
 #   DEBUG=1 ./check_octavia_ovn.sh                # include raw OVN JSON output
 #   PARALLEL=20 ./check_octavia_ovn.sh            # set max parallel jobs
-#   DRY_RUN=0 ./check_octavia_ovn.sh              # env-var apply mode
+#   DRY_RUN=0 YES_IM_REALLY_SURE=1 ./check_octavia_ovn.sh  # env-var apply mode
 #
 # Env overrides:
 #   PARALLEL=20, STATE_FILE=/tmp/x.state, FAILOVER_TIMEOUT=300 (seconds),
-#   DRY_RUN=1 (default), LOG_FILE=/var/log/octavia_ovn_check.log
+#   DRY_RUN=1 (default), YES_IM_REALLY_SURE=0,
+#   LOG_FILE=/var/log/octavia_ovn_check.log
 #
 # Read-only commands (openstack show/list, kubectl ko sbctl) are retried to
 # ride out transient API/network failures. Each failed attempt is logged with
@@ -63,6 +64,7 @@ RETRY_DELAY="${RETRY_DELAY:-5}"
 STATE_FILE="${STATE_FILE:-/var/lib/check_octavia_ovn/failovers.state}"
 FAILOVER_TIMEOUT="${FAILOVER_TIMEOUT:-300}"   # seconds before re-issuing a failover (default: 5 min)
 DRY_RUN="${DRY_RUN:-1}"
+YES_IM_REALLY_SURE="${YES_IM_REALLY_SURE:-0}"
 LOG_FILE="${LOG_FILE:-}"
 
 # ---------------------------------------------------------------------------
@@ -81,17 +83,18 @@ section() { log "---- $* ----"; }
 
 usage() {
     cat <<USAGE
-Usage: $0 [--dry-run|-n] [--apply|-a] [--log-file PATH|-l PATH] [--help|-h]
+Usage: $0 [--dry-run|-n] [--apply|-a] [--yes-im-really-sure] [--log-file PATH|-l PATH] [--help|-h]
 
 Options:
-  -n, --dry-run   Check and report only; do not run failover and do not change state (default)
-  -a, --apply     Enable failover actions and state file updates
-  -l, --log-file  Optional: append output to PATH while still writing to stdout/stderr
-  -h, --help      Show this help
+  -n, --dry-run             Check and report only; do not run failover and do not change state (default)
+  -a, --apply               Enable failover actions and state file updates
+  --yes-im-really-sure      Required with --apply or DRY_RUN=0
+  -l, --log-file            Optional: append output to PATH while still writing to stdout/stderr
+  -h, --help                Show this help
 
 Env overrides:
   PARALLEL, STATE_FILE, FAILOVER_TIMEOUT, DRY_RUN, KUBECTL_CMD, DEBUG, LOG_FILE,
-  RETRIES, RETRY_DELAY
+  RETRIES, RETRY_DELAY, YES_IM_REALLY_SURE
 USAGE
 }
 
@@ -103,6 +106,9 @@ parse_args() {
                 ;;
             -a|--apply)
                 DRY_RUN=0
+                ;;
+            --yes-im-really-sure)
+                YES_IM_REALLY_SURE=1
                 ;;
             -l|--log-file)
                 shift
@@ -122,6 +128,12 @@ parse_args() {
         esac
         shift
     done
+}
+
+validate_mode() {
+    if [[ "$DRY_RUN" != "1" && "$YES_IM_REALLY_SURE" != "1" ]]; then
+        die "--apply or DRY_RUN=0 requires --yes-im-really-sure"
+    fi
 }
 
 init_logging() {
@@ -402,6 +414,7 @@ check_lb() {
 # Main
 # ---------------------------------------------------------------------------
 parse_args "$@"
+validate_mode
 init_logging
 check_deps
 state_init

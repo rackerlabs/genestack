@@ -2,6 +2,30 @@
 
 This document explains how the `check_octavia_ovn` script is installed, where its files live, how to enable supported features, and how to access logs.
 
+## Installation
+
+Install the checker as a systemd service and timer from this directory:
+
+```bash
+cd ops-tools/check_octavia_ovn
+sudo ./install_check_octavia_ovn_systemd.sh
+```
+
+The installer copies the script and unit files into place, creates the state
+directory, installs a default environment file, reloads systemd, and enables
+the timer.
+
+Verify the timer and service after installation:
+
+```bash
+sudo systemctl status check-octavia-ovn.timer
+sudo systemctl cat check-octavia-ovn.service
+```
+
+This tool is intentionally packaged as a systemd unit and timer, not as a
+Kubernetes CronJob. It runs where the required OpenStack and OVN access are
+available and keeps failover state on the host filesystem.
+
 ## Installed file locations
 
 When [`install_check_octavia_ovn_systemd.sh`](/Users/chris.breu/code/flex/genestack/ops-tools/check_octavia_ovn/install_check_octavia_ovn_systemd.sh) is run as root, it installs:
@@ -27,12 +51,14 @@ The timer runs the service once per minute by default.
 The service currently starts the script with:
 
 ```ini
-ExecStart=/usr/local/bin/check_octavia_ovn.sh --apply
+ExecStart=/usr/local/bin/check_octavia_ovn.sh --apply --yes-im-really-sure
 ```
 
 That means:
 
 - Failover actions are enabled by default under systemd
+- Apply mode is explicitly confirmed by the packaged
+  `--yes-im-really-sure` argument
 - Output is sent to `journald`
 - File logging is not enabled unless you explicitly configure `LOG_FILE`
 - The state file is preserved at `/var/lib/check_octavia_ovn/failovers.state`
@@ -183,10 +209,12 @@ DRY_RUN=1 /usr/local/bin/check_octavia_ovn.sh
 However, the current systemd service uses:
 
 ```ini
-ExecStart=/usr/local/bin/check_octavia_ovn.sh --apply
+ExecStart=/usr/local/bin/check_octavia_ovn.sh --apply --yes-im-really-sure
 ```
 
-Because `--apply` is passed directly in the unit file, setting `DRY_RUN=1` in `/etc/default/check-octavia-ovn` will not put the systemd-managed run into dry-run mode.
+Because `--apply --yes-im-really-sure` is passed directly in the unit file,
+setting `DRY_RUN=1` in `/etc/default/check-octavia-ovn` will not put the
+systemd-managed run into dry-run mode.
 
 To make the systemd-managed service run in dry-run mode, you must modify the service definition so `--apply` is removed from `ExecStart`, then control mode via the environment file.
 

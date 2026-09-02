@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    Added release coverage for ``ops-tools/check_octavia_ovn``, an operator
+    tool that audits Amphora load balancer VIP port bindings in OVN and can
+    fail over unhealthy load balancers when explicitly run in apply mode.
+other:
+  - |
+    Documented the ``check_octavia_ovn`` systemd deployment, state file,
+    timer behavior, dry-run mode, retry settings, and logging workflow as part
+    of the ops tools shipped with Genestack 2026.3.0.
+  - |
+    Aligned apply mode with the ops tools remediation standard by requiring
+    ``--yes-im-really-sure`` for failover/state changes and carrying that
+    explicit confirmation in the packaged systemd unit.

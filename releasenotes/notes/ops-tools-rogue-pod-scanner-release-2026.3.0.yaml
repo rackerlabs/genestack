@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    Added release coverage for ``ops-tools/rogue_pod_scanner``, a Python
+    scanner that compares CRI pod sandboxes reported by ``crictl`` on a node
+    with pods scheduled to that node in the Kubernetes API.
+  - |
+    Adds a suspended Kubernetes CronJob manifest for all-node read-only JSON
+    rogue pod scans with one-week finished Job retention.
+other:
+  - |
+    Documented rogue pod scanner usage for single-node and all-node scans,
+    Kubernetes node address selection, JSON output, progress logs, and exit
+    codes for Genestack 2026.3.0.
+  - |
+    Aligned the scanner with the ops tools CLI standard by adding
+    ``--format text|json`` and bounded command execution with SSH and command
+    timeout options while preserving ``--json`` as a compatibility alias.

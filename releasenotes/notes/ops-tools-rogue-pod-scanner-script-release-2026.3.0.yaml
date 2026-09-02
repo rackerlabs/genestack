@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Documents ``ops-tools/rogue_pod_scanner/rogue_pod_scanner.py`` for
+    Genestack 2026.3.0. The Python scanner compares CRI pod sandboxes on
+    nodes with Kubernetes API pod state, supports text or JSON output, and
+    includes bounded SSH and command execution controls.
+  - |
+    Documents the suspended read-only CronJob manifest that runs the scanner in
+    JSON mode and retains finished Jobs for one week.

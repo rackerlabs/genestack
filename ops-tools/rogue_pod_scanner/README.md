@@ -12,7 +12,7 @@ node but are no longer visible through Kubernetes.
 ```bash
 ops-tools/rogue_pod_scanner/rogue_pod_scanner.py node-01
 ops-tools/rogue_pod_scanner/rogue_pod_scanner.py ubuntu@10.0.0.12 --node-name node-01 --sudo
-ops-tools/rogue_pod_scanner/rogue_pod_scanner.py node-01 --json
+ops-tools/rogue_pod_scanner/rogue_pod_scanner.py node-01 --format json
 ops-tools/rogue_pod_scanner/rogue_pod_scanner.py --all-nodes --ssh-user ubuntu --sudo
 ```
 
@@ -27,8 +27,13 @@ Useful options:
 - `--node-name`: Kubernetes node name when it differs from the SSH target.
 - `--sudo`: run `sudo -n crictl pods -o json` on the remote node.
 - `--ssh-option`: pass additional SSH options. Repeat as needed.
+- `--ssh-connect-timeout`: SSH connect timeout in seconds. Default: `10`.
+- `--command-timeout`: timeout per local or SSH command in seconds. Default:
+  `120`.
 - `--include-notready`: include non-ready CRI sandboxes in the comparison.
 - `--kubeconfig` and `--context`: select the Kubernetes API target.
+- `--format text|json`: output format. Default: `text`.
+- `--json`: compatibility alias for `--format json`.
 - `--quiet`: suppress progress logs.
 - `--no-fail`: report findings but always exit `0`.
 
@@ -98,4 +103,47 @@ ops-tools/rogue_pod_scanner/rogue_pod_scanner.py \
   --ssh-user ubuntu \
   --node-address-type ExternalIP \
   --node-address-type InternalIP
+```
+
+## Kubernetes CronJob
+
+`manifests/cronjob.yaml` provides a suspended read-only CronJob that emits JSON
+and retains completed Jobs for one week. The manifest uses `--no-fail` so rogue
+pod findings are captured in a completed Job log for operator review.
+
+Install the suspended CronJob manifest:
+
+```bash
+kubectl apply -f ops-tools/rogue_pod_scanner/manifests/cronjob.yaml
+```
+
+Enable the schedule after service account, RBAC, and SSH credentials are ready:
+
+```bash
+kubectl -n openstack patch cronjob ops-tools-rogue-pod-scanner \
+  --type merge \
+  -p '{"spec":{"suspend":false}}'
+```
+
+Review retained scan logs:
+
+```bash
+kubectl -n openstack get jobs -l app.kubernetes.io/component=rogue-pod-scanner
+kubectl -n openstack logs job/<job-name>
+```
+
+## Development
+
+Run unit tests with:
+
+```bash
+python3 -m unittest ops-tools/rogue_pod_scanner/test_rogue_pod_scanner.py
+```
+
+Run a syntax check with:
+
+```bash
+python3 -m py_compile \
+  ops-tools/rogue_pod_scanner/rogue_pod_scanner.py \
+  ops-tools/rogue_pod_scanner/test_rogue_pod_scanner.py
 ```
