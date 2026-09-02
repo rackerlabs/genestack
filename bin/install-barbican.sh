@@ -138,6 +138,21 @@ set_args=(
     --set "conf.barbican.keystone_authtoken.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
 )
 
+# Detects if missing PKCS#11 HSM p11_crypto_plugin and regenerates the file automatically.
+if [[ "${BARBICAN_HSM_ENABLED:-false}" == "true" ]] || [[ "${HYPERCONVERGED_BARBICAN_HSM:-false}" == "true" ]]; then
+
+    override_file="${SERVICE_CUSTOM_OVERRIDES}/barbican-helm-overrides.yaml"
+
+    # If override file is missing OR does not contain p11_crypto_plugin, regenerate it
+    if [[ ! -f "${override_file}" ]] || ! grep -q "p11_crypto_plugin" "${override_file}" 2>/dev/null; then
+        echo "HSM enabled but p11_crypto_plugin missing in ${override_file}. Regenerating..."
+        rm -f "${override_file}"
+        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        source "${SCRIPT_DIR}/../scripts/lib/hyperconverged-common.sh"
+        writeServiceHelmOverrides "${GENESTACK_OVERRIDES_DIR}/helm-configs"
+    fi
+fi
+
 # PKCS#11 HSM PIN Injection
 # Reads PIN from barbican-hsm-credentials K8s Secret (created by create-secrets.sh).
 # No-op when secret doesn't exist or PIN is empty.
@@ -174,3 +189,22 @@ echo
 
 # Execute the command directly from the array
 "${helm_command[@]}"
+
+# Post-Install HSM Key Initialization
+# Runs ONLY in Hyperconverged lab when:
+#   1. BARBICAN_HSM_ENABLED=true (exported during automated hyperconverged lab run)
+#   2. HYPERCONVERGED_BARBICAN_HSM=true (set manually when running script directly)
+if [[ "${BARBICAN_HSM_ENABLED:-false}" == "true" ]] || [[ "${HYPERCONVERGED_BARBICAN_HSM:-false}" == "true" ]]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    if ! declare -f initBarbicanHSMKeys >/dev/null 2>&1; then
+        common_sh="${SCRIPT_DIR}/../scripts/lib/hyperconverged-common.sh"
+        if [[ -f "${common_sh}" ]]; then
+            source "${common_sh}" >/dev/null 2>&1 || true
+        fi
+    fi
+
+    if declare -f initBarbicanHSMKeys >/dev/null 2>&1; then
+        initBarbicanHSMKeys
+    fi
+fi

@@ -168,6 +168,21 @@ function parseCommonArgs() {
         echo "manila-share enabled: manila control plane + share enablement (secrets, service image build, share type)"
     fi
 
+    # Resolve barbican-hsm pseudo service. It can be enabled with '-i barbican-hsm'
+    # or the legacy HYPERCONVERGED_BARBICAN_HSM=true environment variable, and disabled
+    # with '-e barbican-hsm' (which wins over both).
+    BARBICAN_HSM_ENABLED="${HYPERCONVERGED_BARBICAN_HSM:-false}"
+    if isIncluded barbican-hsm; then
+        BARBICAN_HSM_ENABLED=true
+    fi
+    if isExcluded barbican-hsm; then
+        BARBICAN_HSM_ENABLED=false
+    fi
+    export BARBICAN_HSM_ENABLED
+    if [ "${BARBICAN_HSM_ENABLED}" = "true" ]; then
+        echo "barbican-hsm enabled"
+    fi
+
     export RUN_EXTRAS
     export INCLUDE_LIST
     export EXCLUDE_LIST
@@ -798,7 +813,56 @@ EOF
     fi
 
     if [ ! -f "${config_base}/barbican/barbican-helm-overrides.yaml" ]; then
-        if [ "${CINDER_VOLUME_ENABLED:-false}" = "true" ]; then
+        if [[ "${BARBICAN_HSM_ENABLED:-false}" = "true" ]] || [[ "${HYPERCONVERGED_BARBICAN_HSM:-false}" = "true" ]]; then
+            cat > "${config_base}/barbican/barbican-helm-overrides.yaml" <<EOF
+---
+pod:
+  resources:
+    enabled: false
+
+  mounts:
+    barbican_api:
+      barbican_api:
+        volumeMounts:
+          - name: softhsm-tokens
+            mountPath: /var/lib/softhsm/tokens
+        volumes:
+          - name: softhsm-tokens
+            persistentVolumeClaim:
+              claimName: barbican-softhsm-tokens
+
+conf:
+  barbican_api_uwsgi:
+    uwsgi:
+      processes: 4
+  barbican:
+    oslo_messaging_notifications:
+      driver: noop
+    p11_crypto_plugin:
+      library_path: "/usr/lib/softhsm/libsofthsm2.so"
+      token_labels:
+        - "barbican_token"
+      slot_id: 1
+    crypto:
+      enabled_crypto_plugins:
+        - p11_crypto
+        - simple_crypto
+EOF
+            # Create PVC for SoftHSM2 token persistence
+            kubectl apply --namespace openstack -f - <<EOF
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: barbican-softhsm-tokens
+  namespace: openstack
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+EOF
+        elif [ "${CINDER_VOLUME_ENABLED:-false}" = "true" ]; then
             cat > "${config_base}/barbican/barbican-helm-overrides.yaml" <<EOF
 ---
 pod:
@@ -1521,6 +1585,101 @@ endpoints:
       public: https
 EOF
     fi
+}
+
+function initBarbicanHSMKeys() {
+    # Initializes SoftHSM2 token + generates MKEK/HMAC keys inside barbican pod.
+    # Idempotent — skips if token/keys already exist.
+    # Called only when BARBICAN_HSM_ENABLED=true or HYPERCONVERGED_BARBICAN_HSM = true (hyperconverged lab).
+
+    if [[ "${BARBICAN_HSM_ENABLED:-false}" != "true" ]] && [[ "${HYPERCONVERGED_BARBICAN_HSM:-false}" != "true" ]]; then
+        return 0
+    fi
+
+    echo "=== Barbican HSM Key Initialization ==="
+
+    local hsm_pin token_label library_path slot_id mkek_label hmac_label pod
+
+    hsm_pin="$(kubectl --namespace openstack get secret barbican-hsm-credentials \
+        -o jsonpath='{.data.pin}' 2>/dev/null | base64 -d)" || true
+    if [[ -z "${hsm_pin}" ]]; then
+        echo "ERROR: barbican-hsm-credentials not found. Run create-secrets.sh first."
+        return 1
+    fi
+
+    library_path="/usr/lib/softhsm/libsofthsm2.so"
+    token_label="barbican_token"
+    slot_id="1"
+    mkek_label="barbican_mkek"
+    hmac_label="barbican_hmac"
+
+    echo "Waiting for barbican-api pod..."
+    kubectl --namespace openstack wait --for=condition=ready pod \
+        -l application=barbican,component=api --timeout=300s
+
+    pod="$(kubectl --namespace openstack get pod \
+        -l application=barbican,component=api \
+        -o jsonpath='{.items[0].metadata.name}')"
+    echo "Using pod: ${pod}"
+
+    # Initialize SoftHSM2 token
+    echo "Checking SoftHSM2 token (${token_label})..."
+    if ! kubectl --namespace openstack exec "${pod}" -- \
+        softhsm2-util --show-slots 2>/dev/null | grep -q "${token_label}"; then
+        echo "Initializing token..."
+        kubectl --namespace openstack exec "${pod}" -- \
+            softhsm2-util --init-token --free \
+                --label "${token_label}" \
+                --pin "${hsm_pin}" \
+                --so-pin "${hsm_pin}"
+    else
+        echo "Token exists — OK"
+    fi
+
+    # Generate MKEK
+    echo "Checking MKEK (${mkek_label})..."
+    if kubectl --namespace openstack exec "${pod}" -- \
+        barbican-manage hsm check_mkek \
+            --library-path "${library_path}" \
+            --passphrase "${hsm_pin}" \
+            --slot-id "${slot_id}" \
+            --label "${mkek_label}" 2>/dev/null; then
+        echo "MKEK exists — OK"
+    else
+        echo "Generating MKEK..."
+        kubectl --namespace openstack exec "${pod}" -- \
+            barbican-manage hsm gen_mkek \
+                --library-path "${library_path}" \
+                --passphrase "${hsm_pin}" \
+                --slot-id "${slot_id}" \
+                --label "${mkek_label}" \
+                --length 32
+    fi
+
+    # Generate HMAC key
+    echo "Checking HMAC key (${hmac_label})..."
+    if kubectl --namespace openstack exec "${pod}" -- \
+        barbican-manage hsm check_hmac \
+            --library-path "${library_path}" \
+            --passphrase "${hsm_pin}" \
+            --slot-id "${slot_id}" \
+            --label "${hmac_label}" \
+            --key-type CKK_AES 2>/dev/null; then
+        echo "HMAC key exists — OK"
+    else
+        echo "Generating HMAC key..."
+        kubectl --namespace openstack exec "${pod}" -- \
+            barbican-manage hsm gen_hmac \
+                --library-path "${library_path}" \
+                --passphrase "${hsm_pin}" \
+                --slot-id "${slot_id}" \
+                --label "${hmac_label}" \
+                --key-type CKK_AES \
+                --length 32 \
+                --mechanism CKM_AES_KEY_GEN
+    fi
+
+    echo "=== HSM initialization complete ==="
 }
 
 function createPostSetupResources() {
