@@ -29,12 +29,13 @@ source "${SCRIPT_DIR}/lib/common.sh"
 source "${SCRIPT_DIR}/lib/openstack.sh"
 
 # ── defaults ──────────────────────────────────────────────────────────────────
+INSTANCE=""
 DATASTORE="mysql"
 DS_VERSION="8.4"
 FLAVOR="m1.small"
 VOL_SIZE="10"
 INSTANCE_TIMEOUT=1200
-CLEANUP=1
+CLEANUP="skip_net"
 OS_CLOUD="${OS_CLOUD:-default}"
 CUSTOMER_DIR="/home/ubuntu/customers"
 
@@ -45,7 +46,8 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         -h|--help)        sed -n '/^# USAGE:/,/^# EXIT CODES:/p' "$0" | sed 's/^# \?//'; exit 0 ;;
         --os-cloud)       OS_CLOUD="${2:?}"; shift 2 ;;
-        --no-cleanup)     CLEANUP=0; shift ;;
+        --cleanup)        CLEANUP="${2:?}"; shift 2 ;;
+        --instance)       INSTANCE="${2:?}"; shift 2 ;;
         --datastore)      DATASTORE="${2:?}"; shift 2 ;;
         --ds-version)     DS_VERSION="${2:?}"; shift 2 ;;
         --flavor)         FLAVOR="${2:?}"; shift 2 ;;
@@ -58,7 +60,7 @@ done
 
 # ── resource naming ───────────────────────────────────────────────────────────
 TS="$(date +%s)"
-PFX="trove-test-${TS}"
+PFX="test-trove-${TS}"
 
 INST_PRIMARY="${PFX}-primary"
 INST_REPLICA="${PFX}-replica"
@@ -88,12 +90,22 @@ wait_for_instance() {
     while (( elapsed < timeout )); do
         local s; s=$(instance_status "$inst")
         case "$s" in
-            ACTIVE)  echo "Instance $inst is ACTIVE after $elapsed seconds." >&2; return 0 ;;
+            ACTIVE)  echo "Instance $inst is ACTIVE after $elapsed seconds." >&2;
+                     # wait for Operating Status to be HEALTHY
+                     while (( elapsed < timeout )); do
+                         local operating_status=$(db instance show "$inst" -f value -c "operating status")
+                         if [[ "$operating_status" == "HEALTHY" ]]; then
+                             echo "Instance $inst is HEALTHY after $elapsed seconds." >&2
+                             return 0
+                         fi
+                         sleep 10; (( elapsed += 10 ));
+                     done
+                     ;;
             ERROR)   echo "Instance $inst entered ERROR state." >&2; return 1 ;;
             *)       sleep 10; (( elapsed += 10 )) ;;
         esac
     done
-    echo "Timeout waiting $timeout seconds for instance $inst to become ACTIVE." >&2
+    echo "Timeout waiting $timeout seconds for instance $inst to become ACTIVE/HEALTHY." >&2
     return 1
 }
 
@@ -117,7 +129,7 @@ config_id()   { db configuration show "$1" -f value -c id 2>/dev/null || true; }
 
 # ── cleanup ───────────────────────────────────────────────────────────────────
 cleanup() {
-    [[ "$CLEANUP_DONE" -eq 1 || "$CLEANUP" -eq 0 ]] && return
+    [[ "$CLEANUP_DONE" -eq 1 || "$CLEANUP" == "none" ]] && return
     echo ""
     echo "══ Cleaning up test resources ══"
 
@@ -192,20 +204,54 @@ test_flavor_list() {
     echo "$out" | sed 's/^/  /'
 }
 
+test_flavor_show() {
+    local out; out=$(db flavor show ${FLAVOR} 2>&1)
+    echo "$out" | grep -vq "^No flavor" \
+        || { echo "Flavor ${FLAVOR} not found."; return 1; }
+    echo "Flavor ${FLAVOR} details:"
+    echo "$out" | sed 's/^/  /'
+}
+
+test_limit_list() {
+    local out; out=$(db limit list 2>&1)
+    [[ -n "$out" ]] || { echo "No Trove limits found."; return 1; }
+    echo "Trove limits:"
+    echo "$out" | sed 's/^/  /'
+}
+
+test_quota_show() {
+    local out; out=$(db quota show ${OS_CLOUD} 2>&1)
+    [[ -n "$out" ]] || { echo "Quotas not found."; return 1; }
+    echo "Quotas:"
+    echo "$out" | sed 's/^/  /'
+}
+
+test_quota_update() {
+    local out; out=$(db quota update ${OS_CLOUD} instances 20 2>&1)
+    echo "$out" | grep -q "instance.*20" \
+        || { echo "Quota not updated."; return 1; }
+    echo "Quota details:"
+    echo "$out" | sed 's/^/  /'
+}
+
 # ── instance lifecycle ────────────────────────────────────────────────────────
 test_create_instance() {
-    echo "Creating primary instance: $INST_PRIMARY ..."
-    db instance create "$INST_PRIMARY" \
-        --flavor "$FLAVOR" \
-        --size "$VOL_SIZE" \
-        --volume-type Standard \
-        --datastore "$DATASTORE" \
-        --datastore-version-number "$DS_VERSION" \
-        --databases "$DB_NAME" \
-        --users "${USER_NAME}:${USER_PASS}" \
-        --nic net-id=${NET_ID} \
-        --allowed-cidr ${ALLOWED_CIDR} \
-        || { echo "Failed to issue create command for $INST_PRIMARY."; return 1; }
+    if [[ -n "${INSTANCE}" ]]; then
+      echo "Using existing primary instance: $INST_PRIMARY ..."
+    else
+      echo "Creating primary instance: $INST_PRIMARY ..."
+      db instance create "$INST_PRIMARY" \
+          --flavor "$FLAVOR" \
+          --size "$VOL_SIZE" \
+          --volume-type Standard \
+          --datastore "$DATASTORE" \
+          --datastore-version-number "$DS_VERSION" \
+          --databases "$DB_NAME" \
+          --users "${USER_NAME}:${USER_PASS}" \
+          --nic net-id=${NET_ID} \
+          --allowed-cidr ${ALLOWED_CIDR} \
+          || { echo "Failed to issue create command for $INST_PRIMARY."; return 1; }
+    fi
     echo "Waiting for $INST_PRIMARY to become ACTIVE (timeout=${INSTANCE_TIMEOUT}s) ..."
     wait_for_instance "$INST_PRIMARY"
     echo "Instance $INST_PRIMARY is ACTIVE."
@@ -284,6 +330,23 @@ test_user_list() {
     echo "$out" | sed 's/^/  /'
 }
 
+test_user_show() {
+    local out; out=$(db user show "$INST_PRIMARY" "$USER_NAME" 2>&1)
+    echo "$out" | grep -qF "$USER_NAME" \
+        || { echo "$USER_NAME not found in user details."; return 1; }
+    echo "User details on $INST_PRIMARY:"
+    echo "$out" | sed 's/^/  /'
+}
+
+test_user_update_attributes() {
+    openstack database user update attributes $(instance_id "$INST_PRIMARY") "$USER_NAME" --new_name "${USER_NAME}_new"
+    local out; out=$(db user list "$INST_PRIMARY" 2>&1)
+    echo "$out" | grep -qF "${USER_NAME}_new" \
+        || { echo "User attributes not updated."; return 1; }
+    echo "User list on $INST_PRIMARY:"
+    echo "$out" | sed 's/^/  /'
+}
+
 test_user_show_access() {
     local out; out=$(db user show access "$INST_PRIMARY" "$USER_NAME" 2>&1)
     echo "Access for $USER_NAME: $out"
@@ -294,8 +357,15 @@ test_user_grant_access() {
     db db create "$INST_PRIMARY" "$extra_db" 2>&1 2>&1 || true
     db user grant access "$INST_PRIMARY" "$USER_NAME" "$extra_db" 2>&1 \
         || { echo "Failed to grant access."; return 1; }
-    db db delete "$INST_PRIMARY" "$extra_db" 2>&1 2>&1 || true
     echo "Grant access succeeded."
+}
+
+test_user_revoke_access() {
+    local extra_db="${DB_NAME}2_access_test"
+    db user revoke access "$INST_PRIMARY" "$USER_NAME" "$extra_db" 2>&1 \
+        || { echo "Failed to revoke access."; return 1; }
+    db db delete "$INST_PRIMARY" "$extra_db" 2>&1 2>&1 || true
+    echo "Revoke access succeeded."
 }
 
 test_user_delete() {
@@ -305,16 +375,27 @@ test_user_delete() {
     echo "User $extra_user deleted."
 }
 
-test_root_enable() {
-    local out; out=$(db root enable "$INST_PRIMARY" 2>&1)
-    echo "$out" | grep -qi "password\|root" \
-        || { echo "Unexpected root-enable output: $out"; return 1; }
-    echo "Root access enabled on $INST_PRIMARY."
-}
-
 test_root_show() {
     local out; out=$(db root show "$INST_PRIMARY" 2>&1)
     echo "Root status: $out"
+}
+
+test_root_enable() {
+    local out; out=$(db root enable "$INST_PRIMARY" 2>&1)
+    echo "$out" | grep -qi "password\|root" \
+        || { echo "Unexpected root enable output: $out"; return 1; }
+    echo "Root access enabled on $INST_PRIMARY."
+    echo "root enable output:\n${out}"
+}
+
+test_root_disable() {
+    db root disable "$INST_PRIMARY" 2>&1
+    local out; out=$(db root show "$INST_PRIMARY" 2>&1)
+    echo "$out" | grep -q "is_root_enabled.*False" \
+        || { echo "Unexpected root disable output: $out"; return 1; }
+    echo "Root access disabled on $INST_PRIMARY."
+    echo "root disable output:\n${out}"
+
 }
 
 # ── backup & restore ──────────────────────────────────────────────────────────
@@ -333,6 +414,13 @@ test_backup_list() {
     echo "$out" | grep -qF "$BACKUP_NAME" \
         || { echo "$BACKUP_NAME not found in backup list."; return 1; }
     echo "Backup list includes $BACKUP_NAME."
+}
+
+test_backup_list_instance() {
+    local out; out=$(db backup list instance "$INST_PRIMARY" -f value -c name 2>&1)
+    echo "$out" | grep -qF "$BACKUP_NAME" \
+        || { echo "$BACKUP_NAME not found in backup list for instance."; return 1; }
+    echo "Backup list for instance includes $BACKUP_NAME."
 }
 
 test_backup_show() {
@@ -414,10 +502,58 @@ test_configuration_detach() {
 }
 
 test_configuration_parameter_list() {
-    local out; out=$(db configuration parameter list $DS_VERSION --datastore "$DATASTORE" -f value -c name 2>&1)
+    local out; out=$(db configuration parameter list $DS_VERSION --datastore $DATASTORE 2>&1)
     [[ -n "$out" ]] \
-        || { echo "No configuration parameters returned."; return 1; }
-    echo "Configuration parameters available (showing first 5):"
+        || { echo "No configuration default returned."; return 1; }
+    echo "Configuration parameter list available (showing first 5):"
+    echo "$out" | head -5 | sed 's/^/  /'
+}
+
+test_configuration_default() {
+    local out; out=$(db configuration default $INST_PRIMARY 2>&1)
+    [[ -n "$out" ]] \
+        || { echo "No configuration default returned."; return 1; }
+    echo "Configuration default available (showing first 5):"
+    echo "$out" | head -5 | sed 's/^/  /'
+}
+
+test_configuration_instances() {
+    local out; out=$(db configuration instances $CONFIG_GROUP 2>&1)
+    [[ -n "$out" ]] \
+        || { echo "No instances with $CONFIG_GROUP attached."; return 1; }
+    echo "Instances w/ configuration $CONFIG_GROUP attached:"
+    echo "$out" | head -5 | sed 's/^/  /'
+}
+
+test_configuration_parameter_set() {
+    echo "Setting parameters for configuration group $CONFIG_GROUP ..."
+    db configuration parameter set $(config_id "$CONFIG_GROUP") \
+        '{"max_connections": 200}' \
+        2>&1 \
+        || { echo "Configuration group parameter set failed."; return 1; }
+    echo "Configuration group $CONFIG_GROUP updated."
+}
+
+test_configuration_parameter_show() {
+    local out; out=$(db configuration parameter show "$DS_VERSION" max_connections --datastore "$DATASTORE" 2>&1)
+    [[ -n "$out" ]] \
+        || { echo "Configuration parameter show failed."; return 1; }
+    echo "Configuration parameter details:"
+    echo "$out" | head -5 | sed 's/^/  /'
+}
+
+test_configuration_set() {
+    echo "Setting configuration group $CONFIG_GROUP ..."
+    db configuration set $(config_id "$CONFIG_GROUP") \
+        '{"max_connections": 200}' \
+        --name "${CONFIG_GROUP}_new"\
+        --description "Trove feature test config group (new)" \
+        2>&1 \
+        || { echo "Configuration group parameter set failed."; return 1; }
+    local out; out=$(db configuration show "${CONFIG_GROUP}_new" 2>&1)
+    echo "$out" | grep -q "description.*Trove feature test config group (new)" \
+        || { echo "Expected description not found for configuration."; return 1; }
+    echo "Configuration details:"
     echo "$out" | head -5 | sed 's/^/  /'
 }
 
@@ -437,7 +573,6 @@ test_create_replica() {
 }
 
 test_replica_list() {
-    local primary_id; primary_id=$(instance_id "$INST_PRIMARY")
     local out; out=$(db instance list -f value -c name -c replica_of 2>&1)
     echo "$out" | grep -qF "$INST_REPLICA" \
         || { echo "$INST_REPLICA not found in instance list."; return 1; }
@@ -445,9 +580,8 @@ test_replica_list() {
 }
 
 test_promote_to_replica_source() {
-    # Promote the replica to be a standalone replica source (detach from primary)
     echo "Promoting $INST_REPLICA to replica source ..."
-    db instance promote-to-replica-source "$INST_REPLICA" 2>&1 \
+    db instance promote "$INST_REPLICA" 2>&1 \
         || { echo "Promote-to-replica-source failed."; return 1; }
     wait_for_instance "$INST_REPLICA"
     echo "Promotion of $INST_REPLICA complete."
@@ -455,19 +589,50 @@ test_promote_to_replica_source() {
 
 test_eject_replica_source() {
     echo "Ejecting replica source from $INST_PRIMARY ..."
-    db instance eject-replica-source "$INST_PRIMARY" 2>&1 \
+    db instance eject "$INST_PRIMARY" 2>&1 \
         || { echo "Eject-replica-source failed."; return 1; }
     wait_for_instance "$INST_PRIMARY"
     echo "Replica source ejected from $INST_PRIMARY."
 }
 
 # ── instance actions ──────────────────────────────────────────────────────────
+test_instance_reboot() {
+    echo "Rebooting instance $INST_PRIMARY ..."
+    local primary_id; primary_id=$(instance_id "$INST_PRIMARY")
+    db instance reboot "$primary_id" 2>&1 \
+        || { echo "Instance reboot failed."; return 1; }
+    wait_for_instance "$INST_PRIMARY"
+    echo "Instance $INST_PRIMARY rebooted successfully."
+}
+
 test_instance_restart() {
     echo "Restarting instance $INST_PRIMARY ..."
     db instance restart "$INST_PRIMARY" 2>&1 \
         || { echo "Instance restart failed."; return 1; }
     wait_for_instance "$INST_PRIMARY"
     echo "Instance $INST_PRIMARY restarted successfully."
+}
+
+test_instance_reset_status() {
+    echo "Resetting instance $INST_PRIMARY status ..."
+    db instance reset status "$INST_PRIMARY" 2>&1 \
+        || { echo "Resetting instance status failed."; return 1; }
+    wait_for_instance "$INST_PRIMARY"
+    echo "Instance $INST_PRIMARY status reset successfully."
+}
+
+test_instance_update() {
+    echo "Updating instance  $INST_PRIMARY ..."
+    db instance update $INST_PRIMARY \
+        --allowed-cidr ${ALLOWED_CIDR} \
+        --allowed-cidr "1.2.3.4/5" \
+        2>&1 \
+        || { echo "Updating instance failed."; return 1; }
+    local out; out=$(db instance show "$INST_PRIMARY" -f value -c allowed_cidrs 2>&1)
+    echo "$out" | grep -q "1.2.3.4/5" \
+        || { echo "Expected allowed cidr not found for instance."; return 1; }
+    echo "Instance details:"
+    echo "$out" | head -5 | sed 's/^/  /'
 }
 
 test_log_list() {
@@ -560,11 +725,11 @@ test_delete_configuration() {
     echo "Configuration group $CONFIG_GROUP deleted."
 }
 
-test_delete_primary_instance() {
+test_force_delete_primary_instance() {
     [[ -n $(db instance list 2>/dev/null | grep $INST_PRIMARY) ]] \
         || { echo "$INST_PRIMARY not found, skipping."; return 0; }
     echo "Deleting primary instance $INST_PRIMARY ..."
-    db instance delete "$INST_PRIMARY" 2>&1 \
+    db instance force delete "$INST_PRIMARY" 2>&1 \
         || { echo "Failed to delete $INST_PRIMARY."; return 1; }
     local elapsed=0
     while [[ -n $(db instance list 2>/dev/null | grep $INST_PRIMARY) ]] && (( elapsed < 180 )); do
@@ -586,6 +751,20 @@ main() {
         exit 1
     fi
 
+    # ── customer network setup
+    /opt/genestack/scripts/tests/lib/manage-test-tenants.sh create
+
+    if [[ -n "${INSTANCE}" ]]; then
+        openstack --os-cloud "$OS_CLOUD" database instance show ${INSTANCE} -f value -c name
+        INST_NAME=$(cd $CUSTOMER_DIR; openstack --os-cloud "$OS_CLOUD" database instance show ${INSTANCE} -f value -c name 2>/dev/null || true)
+        if [[ -z "$INST_NAME" ]]; then
+            echo "===> ERROR: $INSTANCE not found" && exit 99
+        else
+            export INST_PRIMARY=$INST_NAME
+            echo "INST_PRIMARY: $INST_PRIMARY"
+        fi
+    fi
+
     echo ""
     echo "════════════════════════════════════════════════════"
     echo "  Trove Feature Validation Suite"
@@ -595,12 +774,9 @@ main() {
     echo "  Volume:      ${VOL_SIZE}GB"
     echo "  Network:     ${NET_NAME}"
     echo "  Prefix:      $PFX"
-    echo "  Cleanup:     $([ "$CLEANUP" -eq 1 ] && echo yes || echo no)"
+    echo "  Cleanup:     ${CLEANUP}"
     echo "════════════════════════════════════════════════════"
     echo ""
-
-    # ── customer network setup
-    /opt/genestack/scripts/tests/lib/manage-test-tenants.sh create
 
     export NET_ID=$(os network show ${NET_NAME} -f value -c id)
     export ALLOWED_CIDR=$(os subnet show ${SUBNET_NAME} -f value -c cidr)
@@ -613,6 +789,10 @@ main() {
     run_test "datastore_list"               test_datastore_list
     run_test "datastore_version_list"       test_datastore_version_list
     run_test "flavor_list"                  test_flavor_list
+    run_test "flavor_show"                  test_flavor_show
+    run_test "limit_list"                   test_limit_list
+    run_test "quota_show"                   test_quota_show
+    run_test "quota_update"                 test_quota_update
 
     # ── primary instance lifecycle
     run_test "create_instance"              test_create_instance
@@ -625,23 +805,36 @@ main() {
     run_test "database_delete"              test_database_delete
     run_test "user_create"                  test_user_create
     run_test "user_list"                    test_user_list
+    run_test "user_show"                    test_user_show
     run_test "user_show_access"             test_user_show_access
     run_test "user_grant_access"            test_user_grant_access
+    run_test "user_revoke_access"           test_user_revoke_access
+    run_test "user_update_attributes"       test_user_update_attributes
     run_test "user_delete"                  test_user_delete
-#    run_test "root_enable"                  test_root_enable
-#    run_test "root_show"                    test_root_show
+    run_test "root_show"                    test_root_show
+    run_test "root_enable"                  test_root_enable
+    run_test "root_disable"                 test_root_disable
 
     # ── configuration groups
-    run_test "configuration_parameter_list" test_configuration_parameter_list
-    run_test "configuration_create"         test_configuration_create
-    run_test "configuration_list"           test_configuration_list
-    run_test "configuration_show"           test_configuration_show
-    run_test "configuration_attach"         test_configuration_attach
-    run_test "configuration_detach"         test_configuration_detach
+    run_test "configuration_parameter_list"   test_configuration_parameter_list
+    run_test "configuration_default"          test_configuration_default
+    run_test "configuration_create"           test_configuration_create
+    run_test "configuration_list"             test_configuration_list
+    run_test "configuration_show"             test_configuration_show
+    run_test "configuration_attach"           test_configuration_attach
+    run_test "configuration_instances"        test_configuration_instances
+    run_test "configuration_detach"           test_configuration_detach
+    run_test "configuration_default"          test_configuration_default
+    run_test "configuration_parameter_set"    test_configuration_parameter_set
+    run_test "configuration_parameter_show"   test_configuration_parameter_show
+    run_test "configuration_set"              test_configuration_set
 
     # ── instance actions
+    run_test "instance_reboot"              test_instance_reboot
     run_test "instance_restart"             test_instance_restart
-#    run_test "resize_instance"              test_resize_instance
+    run_test "instance_update"              test_instance_update
+    run_test "instance_reset_status"        test_instance_reset_status
+    run_test "resize_instance"              test_resize_instance
     run_test "resize_volume"                test_resize_volume
    run_test "log_list"                     test_log_list
    run_test "log_enable_disable"           test_log_enable_disable
@@ -649,6 +842,7 @@ main() {
     # ── backup & restore
     run_test "backup_create"                test_backup_create
     run_test "backup_list"                  test_backup_list
+    run_test "backup_list_instance"         test_backup_list_instance
     run_test "backup_show"                  test_backup_show
     run_test "incremental_backup_create"    test_incremental_backup_create
     run_test "restore_from_backup"          test_restore_from_backup
@@ -659,17 +853,21 @@ main() {
     run_test "detach_instance"              test_detach_instance
 
     # ── deletion (ordered: restore → replica → backup → config → primary)
-    run_test "delete_restore_instance"      test_delete_restore_instance
-    run_test "delete_replica_instance"      test_delete_replica_instance
-    run_test "delete_backups"               test_delete_backups
-    run_test "delete_configuration"         test_delete_configuration
-    run_test "delete_primary_instance"      test_delete_primary_instance
+    if [[ "$CLEANUP" != "none" ]]; then
+        run_test "delete_restore_instance"      test_delete_restore_instance
+        run_test "delete_replica_instance"      test_delete_replica_instance
+        run_test "delete_backups"               test_delete_backups
+        run_test "delete_configuration"         test_delete_configuration
+        run_test "delete_primary_instance"      test_force_delete_primary_instance
+    fi
 
     CLEANUP_DONE=1   # All resources explicitly deleted above
     finalize_tests
 
     # ── customer network teardown
-    /opt/genestack/scripts/tests/lib/manage-test-tenants.sh destroy
+    if [[ "$CLEANUP" != "none" && "$CLEANUP" != "skip_net" ]]; then
+        /opt/genestack/scripts/tests/lib/manage-test-tenants.sh destroy
+    fi
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
