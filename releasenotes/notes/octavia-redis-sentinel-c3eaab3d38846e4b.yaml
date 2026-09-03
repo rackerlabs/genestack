@@ -1,0 +1,9 @@
+---
+prelude: >
+    Octavia now uses Redis Sentinel endpoints.
+other:
+  - |
+    Octavia has been configured to use individual Redis Sentinel endpoints
+    rather than the master replication service endpoint. This allows the
+    redis client to better handle Redis communications while avoiding
+    potential service endpoint outages.

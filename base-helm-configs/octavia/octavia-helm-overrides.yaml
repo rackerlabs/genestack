@@ -158,6 +158,17 @@ conf:
       insecure: true
     task_flow:
       jobboard_enabled: false
+      jobboard_backend_driver: redis_taskflow_driver
+      jobboard_redis_sentinel: myMaster
+      jobboard_redis_backend_db: 0
+      jobboard_redis_backend_ssl_options: "ssl:False"
+      jobboard_redis_sentinel_ssl_options: "ssl:False"
+      jobboard_backend_port: 26379
+      jobboard_backend_hosts:
+        - redis-sentinel-sentinel-0.redis-sentinel-sentinel-headless.redis-systems.svc.cluster.local
+        - redis-sentinel-sentinel-1.redis-sentinel-sentinel-headless.redis-systems.svc.cluster.local
+        - redis-sentinel-sentinel-2.redis-sentinel-sentinel-headless.redis-systems.svc.cluster.local
+
   octavia_api_uwsgi:
     uwsgi:
       processes: 2
@@ -231,15 +242,15 @@ endpoints:
   valkey:
     name: valkey
     hosts:
-      default: redis-replication-master.redis-systems.svc.cluster.local
+      default: redis-sentinel-sentinel.redis-systems.svc.cluster.local
     # NOTE(rlin): we should only provide password when not using CA cert.
     password: null
     host_fqdn_override:
-      default: redis-replication-master.redis-systems.svc.cluster.local
+      default: redis-sentinel-sentinel.redis-systems.svc.cluster.local
     port:
       server:
-        default: 6379
-        sentinel: 6379
+        default: 26379
+        sentinel: 26379
 
 # NOTE: (brew) requests cpu/mem values based on a three node
 # hyperconverged lab (/scripts/hyperconverged-lab.sh).
