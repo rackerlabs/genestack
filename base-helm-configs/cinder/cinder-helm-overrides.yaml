@@ -77,10 +77,17 @@ pod:
       limits: {}
   security_context:
     cinder_api:
+      pod:
+        # cinder-api does not need to run as root; the image provides the
+        # cinder user (uid 42424) and root-only work is delegated to rootwrap.
+        runAsUser: 42424
       container:
         cinder_api:
-          allowPrivilegeEscalation: true
-          privileged: true
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 42424
+          privileged: false
     cinder_backup:
       container:
         cinder_backup:

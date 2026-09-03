@@ -5,6 +5,10 @@
 # and the value of the custom_host variable must be a valid domain.
 custom_host: grafana.example.com
 
+# The standalone Grafana pod does not call the Kubernetes API (no sidecars
+# enabled), so do not mount the service account token.
+automountServiceAccountToken: false
+
 persistence:
   type: pvc
   enabled: true

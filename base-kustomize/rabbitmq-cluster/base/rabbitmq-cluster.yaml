@@ -55,6 +55,7 @@ spec:
       spec:
         template:
           spec:
+            automountServiceAccountToken: false
             containers: []
             topologySpreadConstraints:
               - maxSkew: 1

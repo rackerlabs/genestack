@@ -160,6 +160,9 @@ set_args=(
     # Certificate passphrase
     --set "conf.octavia.certificates.ca_private_key_passphrase=$(kubectl --namespace openstack get secret octavia-certificates -o jsonpath='{.data.password}' | base64 -d)"
 
+    # Health manager heartbeat key (per-cluster generated)
+    --set "conf.octavia.health_manager.heartbeat_key=$(kubectl --namespace openstack get secret octavia-heartbeat-key -o jsonpath='{.data.heartbeat_key}' | base64 -d)"
+
     # OVN connections (dynamic clusterIP lookup)
     --set "conf.octavia.ovn.ovn_nb_connection=$CONNECTION_STRING:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
     --set "conf.octavia.ovn.ovn_sb_connection=$CONNECTION_STRING:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
