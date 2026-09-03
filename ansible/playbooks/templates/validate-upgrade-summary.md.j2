@@ -1,0 +1,97 @@
+# Upgrade Validation Summary
+
+- Generated at: {{ validation_generated_at }}
+- Namespace: `{{ openstack_namespace }}`
+- Admin client pod: `{{ openstack_admin_client_pod }}`
+- Smoke test enabled: `{{ run_tenant_smoke | bool }}`
+- Overall result: `{% if (validation_results | selectattr('ok', 'equalto', false) | list | length) == 0 %}PASS{% else %}FAIL{% endif %}`
+
+## Smoke Test Configuration
+- Enabled: `{{ run_tenant_smoke | bool }}`
+- Image: `{% if smoke_image | length > 0 %}{{ smoke_image }}{% else %}<not set>{% endif %}`
+- Flavor: `{% if smoke_flavor | length > 0 %}{{ smoke_flavor }}{% else %}<not set>{% endif %}`
+- Tenant network: `{% if smoke_network | length > 0 %}{{ smoke_network }}{% else %}<create temporary network>{% endif %}`
+- External network for floating IPs: `{{ smoke_external_network }}`
+- Create temporary network resources: `{{ smoke_create_network_resources | bool }}`
+- Keypair mode: `{% if smoke_existing_keypair_name | length > 0 %}existing keypair {{ smoke_existing_keypair_name }}{% else %}generate temporary keypair{% endif %}`
+- SSH user/port: `{{ smoke_ssh_user }}:{{ smoke_ssh_port }}`
+- SSH command retries: `{{ smoke_ssh_command_retries }} x {{ smoke_ssh_command_delay }}s`
+- Volume size: `{{ smoke_volume_size }} GiB`
+- Server snapshot test: `{{ smoke_run_server_snapshot | bool }}`
+- Volume snapshot test: `{{ smoke_run_volume_snapshot | bool }}`
+- Octavia test: `{{ smoke_run_octavia_test | bool }}`
+- Heat test: `{{ smoke_run_heat_test | bool }}`
+- Barbican test: `{{ smoke_run_barbican_test | bool }}`
+- Designate test: `{{ smoke_run_designate_test | bool }}`
+{% if not (run_tenant_smoke | bool) %}
+- Skip reason: `run_tenant_smoke` is false. Smoke tests only run when enabled with an extra var or inventory/group var.
+{% endif %}
+
+## Checks
+{% set checks = namespace(lines=[]) %}
+{% for result in validation_results %}
+{% set line = '- **' ~ result.name ~ '**: `' ~ ('OK' if result.ok else 'FAILED') ~ '`' %}
+{% if result.detail %}
+{% set line = line ~ ' - ' ~ (result.detail | replace('\n', ' | ')) %}
+{% endif %}
+{% set _ = checks.lines.append(line) %}
+{% endfor %}
+{{ checks.lines | join('\n') }}
+
+## OpenStack Component Images
+{% if openstack_component_image_lines | default([]) | length == 0 %}
+- None captured
+{% else %}
+{% set image_inventory = namespace(lines=[]) %}
+{% for line in openstack_component_image_lines | default([]) %}
+{% set _ = image_inventory.lines.append('- ' ~ line) %}
+{% endfor %}
+{{ image_inventory.lines | join('\n') }}
+{% endif %}
+
+## Failed Checks
+{% set failed_results = validation_results | selectattr('ok', 'equalto', false) | list %}
+{% if failed_results | length == 0 %}
+- None
+{% else %}
+{% set failed = namespace(lines=[]) %}
+{% for result in failed_results %}
+{% set _ = failed.lines.append('- **' ~ result.name ~ '**: ' ~ (result.detail | replace('\n', ' | '))) %}
+{% endfor %}
+{{ failed.lines | join('\n') }}
+{% endif %}
+
+{% if event_check_enabled | bool %}
+## Actionable Warning Events
+{% if actionable_warning_events | default([]) | length == 0 %}
+- None
+{% else %}
+{% set actionable = namespace(lines=[]) %}
+{% for line in actionable_warning_events | default([]) %}
+{% set _ = actionable.lines.append('- ' ~ line) %}
+{% endfor %}
+{{ actionable.lines | join('\n') }}
+{% endif %}
+{% endif %}
+
+{% if event_check_enabled | bool %}
+## Ignored Warning Events
+{% if ignored_warning_events | default([]) | length == 0 %}
+- None
+{% else %}
+{% set ignored = namespace(lines=[]) %}
+{% for line in ignored_warning_events | default([]) %}
+{% set _ = ignored.lines.append('- ' ~ line) %}
+{% endfor %}
+{{ ignored.lines | join('\n') }}
+{% endif %}
+{% endif %}
+
+{% if event_check_enabled | bool %}
+## Component States
+{% set components = namespace(lines=[]) %}
+{% for component_name, enabled in (effective_component_states | default({}) | dictsort) %}
+{% set _ = components.lines.append('- `' ~ component_name ~ '`: `' ~ ('enabled' if enabled else 'disabled') ~ '`') %}
+{% endfor %}
+{{ components.lines | join('\n') }}
+{% endif %}
