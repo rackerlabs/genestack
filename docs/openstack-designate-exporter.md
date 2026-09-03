@@ -1,4 +1,4 @@
-# Designate Prometheus and Alerting Rules
+# Designate Prometheus and Alerting Rules (DEPRECATED as of 2026.2.0)
 
 Add additional alerting rules in /etc/genestack/helm-configs/kube-prometheus-stack/rules/designate_prometheus_rules.yaml
  
@@ -54,5 +54,3 @@ additionalPrometheusRulesMap:
               description: |
                 The dns zone `{{`{{$labels.id}}`}}` has been in PENDING state for over 5 mins
 ```
-
-

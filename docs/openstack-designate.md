@@ -29,12 +29,21 @@ This will allow for record management for all multi-project VMs to their respect
                 --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
         ```
 
-## Add a RNDC (Remote Name Daemon Control)  key as a secret
+## Add a RNDC (Remote Name Daemon Control) Key as a secret
 
-Create a rndc.key file or import it from the running dns server
+!!! Note "Example rndc.key file content"
 
 ```shell
-kubectl create secret generic --namespace  openstack rndc-key-secret --from-file=rndc.key
+key "rndc-key" {
+  algorithm hmac-sha256;
+  secret "ztevgpD9oMdowVWSr1104tWC/vCVaj8/ljnK6uWiVrc=";
+};
+```
+
+Create a rndc.key file or import it from the running DNS server
+
+```shell
+kubectl create secret generic --namespace  openstack rndc-key-secret --from-file=<PATH_TO_RNDC.KEY_FILE>
 ```
 
 ## Run the package deployment
@@ -54,7 +63,18 @@ kubectl create secret generic --namespace  openstack rndc-key-secret --from-file
 
 ## Validate functionality
 
+### Check service API
+
 ``` shell
 kubectl --namespace openstack exec -ti openstack-admin-client -- openstack dns service list
 ```
 
+### Create a test zone
+
+```shell
+kubectl --namespace openstack exec -ti openstack-admin-client -- openstack zone create --email noreply@example.net example.net.
+
+kubectl --namespace openstack exec -ti openstack-admin-client -- openstack zone list
+```
+
+!!! Wait for zone to go 'ACTIVE' state, also watch logs on DNS server logs to see if zone serial is logging on Nameserver

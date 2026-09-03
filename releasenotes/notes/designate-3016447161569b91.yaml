@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Extended Designate capability to Neutron. Allow Designate to create PTR and A records from VMs
+    that have a network ports with dns_domain flag. This allows direct integration with Neutron to
+    allow records create/update for network ports and floating IPs.
+fixes:
+  - |
+    fixed templates and overrides in designate to allow for BIND9 server config
+    with rndc.key file.

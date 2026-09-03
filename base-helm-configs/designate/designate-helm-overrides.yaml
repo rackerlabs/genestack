@@ -1,46 +1,4 @@
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# Default values for designate.
-# This is a YAML-formatted file.
-# Declare name/value pairs to be passed into your templates.
-# name: value
-
 ---
-release_group: null
-
-labels:
-  api:
-    node_selector_key: openstack-control-plane
-    node_selector_value: enabled
-  central:
-    node_selector_key: openstack-control-plane
-    node_selector_value: enabled
-  producer:
-    node_selector_key: openstack-control-plane
-    node_selector_value: enabled
-  worker:
-    node_selector_key: openstack-control-plane
-    node_selector_value: enabled
-  job:
-    node_selector_key: openstack-control-plane
-    node_selector_value: enabled
-  mdns:
-    node_selector_key: openstack-control-plane
-    node_selector_value: enabled
-  sink:
-    node_selector_key: openstack-control-plane
-    node_selector_value: enabled
-
 images:
   tags:
     bootstrap: "ghcr.io/rackerlabs/genestack-images/heat:2026.1-latest"
@@ -62,54 +20,8 @@ images:
     rabbit_init: null
     test: null
   pull_policy: "IfNotPresent"
-  local_registry:
-    active: false
-    exclude:
-      - dep_check
-      - image_repo_sync
 
 pod:
-  affinity:
-    anti:
-      type:
-        default: preferredDuringSchedulingIgnoredDuringExecution
-      topologyKey:
-        default: kubernetes.io/hostname
-  mounts:
-    designate_api:
-      init_container: null
-      designate_api:
-        volumeMounts:
-        volumes:
-    designate_central:
-      init_container: null
-      designate_central:
-        volumeMounts:
-        volumes:
-    designate_mdns:
-      init_container: null
-      designate_mdns:
-        volumeMounts:
-        volumes:
-    designate_worker:
-      init_container: null
-      designate_worker:
-        volumeMounts:
-        volumes:
-    designate_producer:
-      init_container: null
-      designate_producer:
-        volumeMounts:
-        volumes:
-    designate_sink:
-      init_container: null
-      designate_sink:
-        volumeMounts:
-        volumes:
-    designate_db_sync:
-      designate_db_sync:
-        volumeMounts:
-        volumes:
   replicas:
     api: 1
     central: 1
@@ -117,53 +29,82 @@ pod:
     producer: 1
     sink: 1
     worker: 1
-  lifecycle:
-    upgrades:
-      deployments:
-        revision_history: 3
-        pod_replacement_strategy: RollingUpdate
-        rolling_update:
-          max_unavailable: 20%
-          max_surge: 3
-    disruption_budget:
-      api:
-        min_available: 0
-      central:
-        min_available: 0
-      mdns:
-        min_available: 0
-      worker:
-        min_available: 0
-      producer:
-        min_available: 0
-      sink:
-        min_available: 0
-    termination_grace_period:
-      api:
-        timeout: 60
-      mdns:
-        timeout: 60
   resources:
-    enabled: true
+    enabled: false
     api:
       requests:
         memory: "384Mi"
         cpu: "100m"
       limits: {}
+  mounts:
+    designate_api:
+      init_container: null
+      designate_api:
+        volumeMounts:
+          - name: rndc-key
+            mountPath: /etc/designate/rndc.key
+            subPath: rndc.key
+        volumes:
+          - name: rndc-key
+            secret:
+              secretName: rndc-key-secret
+    designate_central:
+      init_container: null
+      designate_central:
+        volumeMounts:
+          - name: rndc-key
+            mountPath: /etc/designate/rndc.key
+            subPath: rndc.key
+        volumes:
+          - name: rndc-key
+            secret:
+              secretName: rndc-key-secret
+    designate_mdns:
+      init_container: null
+      designate_mdns:
+        volumeMounts:
+          - name: rndc-key
+            mountPath: /etc/designate/rndc.key
+            subPath: rndc.key
+        volumes:
+          - name: rndc-key
+            secret:
+              secretName: rndc-key-secret
+    designate_worker:
+      init_container: null
+      designate_worker:
+        volumeMounts:
+          - name: rndc-key
+            mountPath: /etc/designate/rndc.key
+            subPath: rndc.key
+        volumes:
+          - name: rndc-key
+            secret:
+              secretName: rndc-key-secret
+    designate_producer:
+      init_container: null
+      designate_producer:
+        volumeMounts:
+          - name: rndc-key
+            mountPath: /etc/designate/rndc.key
+            subPath: rndc.key
+        volumes:
+          - name: rndc-key
+            secret:
+              secretName: rndc-key-secret
+    designate_sink:
+      init_container: null
+      designate_sink:
+        volumeMounts:
+          - name: rndc-key
+            mountPath: /etc/designate/rndc.key
+            subPath: rndc.key
+        volumes:
+          - name: rndc-key
+            secret:
+              secretName: rndc-key-secret
 
 network:
-  api:
-    ingress:
-      public: true
-      classes:
-        namespace: "nginx"
-        cluster: "nginx-cluster"
-      annotations:
-        nginx.ingress.kubernetes.io/rewrite-target: /
-    external_policy_local: false
-    node_port:
-      enabled: false
-      port: 9001
   mdns:
     name: "designate-mdns"
     proto: "http"
@@ -171,129 +112,6 @@ network:
     node_port:
       enabled: true
       port: 5354
-
-bootstrap:
-  enabled: false
-  script: |
-    openstack token issue
-
-dependencies:
-  dynamic:
-    common:
-      local_image_registry:
-        jobs:
-          - designate-image-repo-sync
-        services:
-          - endpoint: node
-            service: local_image_registry
-    job_rabbit_init:
-      api:
-        jobs:
-          - designate-rabbit-init
-      sink:
-        jobs:
-          - designate-rabbit-init
-      central:
-        jobs:
-          - designate-rabbit-init
-      worker:
-        jobs:
-          - designate-rabbit-init
-  static:
-    db_init:
-      services:
-        - service: oslo_db
-          endpoint: internal
-    db_sync:
-      jobs:
-        - designate-db-init
-      services:
-        - service: oslo_db
-          endpoint: internal
-    ks_user:
-      services:
-        - service: identity
-          endpoint: internal
-    ks_service:
-      services:
-        - service: identity
-          endpoint: internal
-    ks_endpoints:
-      jobs:
-        - designate-ks-service
-      services:
-        - service: identity
-          endpoint: internal
-    rabbit_init:
-      services:
-        - service: oslo_messaging
-          endpoint: internal
-    api:
-      jobs:
-        - designate-db-sync
-        - designate-ks-user
-        - designate-ks-endpoints
-      service:
-        - service: oslo_db
-          endpoint: internal
-        - service: identity
-          endpoint: internal
-        - service: oslo_messaging
-          endpoint: internal
-    central:
-      jobs:
-        - designate-db-sync
-        - designate-ks-user
-        - designate-ks-endpoints
-      service:
-        - service: oslo_db
-          endpoint: internal
-        - service: identity
-          endpoint: internal
-        - service: oslo_messaging
-          endpoint: internal
-    worker:
-      jobs:
-        - designate-db-sync
-        - designate-ks-user
-        - designate-ks-endpoints
-      services:
-        - service: oslo_db
-          endpoint: internal
-        - service: identity
-          endpoint: internal
-        - service: mdns
-          endpoint: internal
-    mdns:
-      jobs:
-        - designate-db-sync
-        - designate-ks-user
-        - designate-ks-endpoints
-      services:
-        - service: oslo_db
-          endpoint: internal
-        - service: identity
-          endpoint: internal
-    producer:
-      jobs:
-        - designate-db-sync
-        - designate-ks-user
-        - designate-ks-endpoints
-      services:
-        - service: oslo_db
-          endpoint: internal
-        - service: identity
-          endpoint: internal
-    sink:
-      jobs:
-        - designate-db-sync
-        - designate-ks-user
-        - designate-ks-endpoints
-      services:
-        - service: oslo_db
-          endpoint: internal
-        - service: identity
-          endpoint: internal
 
 conf:
   pools: |
@@ -339,69 +157,12 @@ conf:
             port: {{ tuple "powerdns" "internal" "powerdns" . | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
             api_endpoint: http://${POWERDNS_SERVICE_HOST}:{{ tuple "powerdns" "internal" "powerdns_api" . | include "helm-toolkit.endpoints.endpoint_port_lookup" }}
             api_token: {{ tuple "powerdns" "service" . | include "helm-toolkit.endpoints.endpoint_token_lookup" }}
-  paste:
-    composite:osapi_dns:
-      use: egg:Paste#urlmap
-      /: osapi_dns_versions
-      /v2: osapi_dns_v2
-      /admin: osapi_dns_admin
-    composite:osapi_dns_versions:
-      use: call:designate.api.middleware:auth_pipeline_factory
-      noauth: http_proxy_to_wsgi cors maintenance faultwrapper osapi_dns_app_versions
-      keystone: http_proxy_to_wsgi cors maintenance faultwrapper osapi_dns_app_versions
-    app:osapi_dns_app_versions:
-      paste.app_factory: designate.api.versions:factory
-    composite:osapi_dns_v2:
-      use: call:designate.api.middleware:auth_pipeline_factory
-      noauth: http_proxy_to_wsgi cors request_id faultwrapper validation_API_v2 noauthcontext maintenance normalizeuri osapi_dns_app_v2
-      keystone: http_proxy_to_wsgi cors request_id faultwrapper validation_API_v2 authtoken keystonecontext maintenance normalizeuri osapi_dns_app_v2
-    app:osapi_dns_app_v2:
-      paste.app_factory: designate.api.v2:factory
-    composite:osapi_dns_admin:
-      use: call:designate.api.middleware:auth_pipeline_factory
-      noauth: http_proxy_to_wsgi cors request_id faultwrapper noauthcontext maintenance normalizeuri osapi_dns_app_admin
-      keystone: http_proxy_to_wsgi cors request_id faultwrapper authtoken keystonecontext maintenance normalizeuri osapi_dns_app_admin
-    app:osapi_dns_app_admin:
-      paste.app_factory: designate.api.admin:factory
-    filter:cors:
-      paste.filter_factory: oslo_middleware.cors:filter_factory
-      oslo_config_project: designate
-    filter:request_id:
-      paste.filter_factory: oslo_middleware:RequestId.factory
-    filter:http_proxy_to_wsgi:
-      paste.filter_factory: oslo_middleware:HTTPProxyToWSGI.factory
-    filter:noauthcontext:
-      paste.filter_factory: designate.api.middleware:NoAuthContextMiddleware.factory
-    filter:authtoken:
-      paste.filter_factory: keystonemiddleware.auth_token:filter_factory
-    filter:keystonecontext:
-      paste.filter_factory: designate.api.middleware:KeystoneContextMiddleware.factory
-    filter:maintenance:
-      paste.filter_factory: designate.api.middleware:MaintenanceMiddleware.factory
-    filter:normalizeuri:
-      paste.filter_factory: designate.api.middleware:NormalizeURIMiddleware.factory
-    filter:faultwrapper:
-      paste.filter_factory: designate.api.middleware:FaultWrapperMiddleware.factory
-    filter:validation_API_v2:
-      paste.filter_factory: designate.api.middleware:APIv2ValidationErrorMiddleware.factory
+
   policy: {}
   designate:
     DEFAULT:
       debug: false
       log_config_append: /etc/designate/logging.conf
-    service:api:
-      auth_strategy: keystone
-      enable_api_v2: true
-      enable_api_admin: true
-      enabled_extensions_v2: quotas,reports
-      workers: 2
-    service:worker:
-      enabled: true
-      notify: false
-    oslo_middleware:
-      enable_proxy_headers_parsing: true
-    oslo_policy:
-      policy_file: /etc/designate/policy.yaml
     database:
       connection_debug: 0
       connection_recycle_time: 600
@@ -410,8 +171,6 @@ conf:
       mysql_sql_mode: {}
       use_db_reconnect: true
       pool_timeout: 60
-      max_retries: -1
-    storage:sqlalchemy:
       max_retries: -1
     keystone_authtoken:
       service_token_roles: service
@@ -441,275 +200,28 @@ conf:
       # https://review.opendev.org/c/openstack/oslo.messaging/+/866617
       kombu_reconnect_delay: 0.5
 
-  logging:
-    loggers:
-      keys:
-        - root
-        - designate
-    handlers:
-      keys:
-        - stdout
-        - stderr
-        - "null"
-    formatters:
-      keys:
-        - context
-        - default
-    logger_root:
-      level: INFO
-      handlers:
-        - stdout
-    logger_designate:
-      level: INFO
-      handlers:
-        - stdout
-      qualname: designate
-    logger_amqp:
-      level: WARNING
-      handlers: stderr
-      qualname: amqp
-    logger_amqplib:
-      level: WARNING
-      handlers: stderr
-      qualname: amqplib
-    logger_eventletwsgi:
-      level: WARNING
-      handlers: stderr
-      qualname: eventlet.wsgi.server
-    logger_sqlalchemy:
-      level: WARNING
-      handlers: stderr
-      qualname: sqlalchemy
-    logger_boto:
-      level: WARNING
-      handlers: stderr
-      qualname: boto
-    handler_null:
-      class: logging.NullHandler
-      formatter: default
-      args: ()
-    handler_stdout:
-      class: StreamHandler
-      args: (sys.stdout,)
-      formatter: context
-    handler_stderr:
-      class: StreamHandler
-      args: (sys.stderr,)
-      formatter: context
-    formatter_context:
-      class: oslo_log.formatters.ContextFormatter
-      datefmt: "%Y-%m-%d %H:%M:%S"
-    formatter_default:
-      format: "%(message)s"
-      datefmt: "%Y-%m-%d %H:%M:%S"
-
-# Names of secrets used by bootstrap and environmental checks
-secrets:
-  identity:
-    admin: designate-keystone-admin
-    designate: designate-keystone-user
-    test: designate-keystone-test
-  oslo_db:
-    admin: designate-db-admin
-    designate: designate-db-user
-  oslo_messaging:
-    admin: designate-rabbitmq-admin
-    designate: designate-rabbitmq-user
-  tls:
-    dns:
-      api:
-        public: designate-tls-public
-  oci_image_registry:
-    designate: designate-oci-image-registry
-
 endpoints:
-  cluster_domain_suffix: cluster.local
-  local_image_registry:
-    name: docker-registry
-    namespace: docker-registry
-    hosts:
-      default: localhost
-      internal: docker-registry
-      node: localhost
-    host_fqdn_override:
-      default: null
-    port:
-      registry:
-        node: 5000
-  oci_image_registry:
-    name: oci-image-registry
-    namespace: oci-image-registry
-    auth:
-      enabled: false
-      designate:
-        username: designate
-        password: password
-    hosts:
-      default: localhost
-    host_fqdn_override:
-      default: null
-    port:
-      registry:
-        default: null
-  identity:
-    name: keystone
-    auth:
-      admin:
-        region_name: RegionOne
-        username: admin
-        password: password
-        project_name: admin
-        user_domain_name: default
-        project_domain_name: default
-      designate:
-        role: admin
-        region_name: RegionOne
-        username: designate
-        password: password
-        project_name: service
-        user_domain_name: service
-        project_domain_name: service
-      test:
-        role: admin
-        region_name: RegionOne
-        username: designate-test
-        password: password
-        project_name: test
-        user_domain_name: service
-        project_domain_name: service
-    hosts:
-      default: keystone
-      internal: keystone-api
-    host_fqdn_override:
-      default: null
-    path:
-      default: /v3
-    scheme:
-      default: http
-    port:
-      api:
-        default: 80
-        internal: 5000
-  dns:
-    name: designate
-    hosts:
-      default: designate-api
-      public: designate
-    host_fqdn_override:
-      default: null
-    path:
-      default: /
-    scheme:
-      default: "http"
-    port:
-      api:
-        default: 9001
-        public: 80
-  mdns:
-    name: minidns
-    hosts:
-      default: minidns
-      public: designate-mdns
-    host_fqdn_override:
-      default: null
-    path:
-      default: null
-    scheme:
-      default: "tcp"
-    port:
-      ipc:
-        default: 5354
   oslo_db:
-    auth:
-      admin:
-        username: root
-        password: password
-        secret:
-          tls:
-            internal: mariadb-tls-direct
+    host_fqdn_override:
+      default: mariadb-cluster-primary.openstack.svc.cluster.local
     hosts:
       default: mariadb-cluster-primary
-    host_fqdn_override:
-      default: null
-    path: /designate
-    scheme: mysql+pymysql
-    port:
-      mysql:
-        default: 3306
   oslo_cache:
+    host_fqdn_override:
+      default: memcached.openstack.svc.cluster.local
     hosts:
       default: memcached
-    host_fqdn_override:
-      default: null
     statefulset:
       name: memcached-memcached
       replicas: 3
-    port:
-      memcache:
-        default: 11211
-    auth:
-      # NOTE: this is used to define the value for keystone
-      # authtoken cache encryption key, if not set it will be populated
-      # automatically with a random value, but to take advantage of
-      # this feature all services should be set to use the same key,
-      # and memcache service.
-      memcache_secret_key: null
   oslo_messaging:
-    auth:
-      admin:
-        username: rabbitmq
-        password: password
-        secret:
-          tls:
-            internal: rabbitmq-tls-direct
-      designate:
-        username: designate
-        password: password
-    statefulset:
-      replicas: 3
-      name: rabbitmq-server
-    hosts:
-      default: rabbitmq-nodes
     host_fqdn_override:
       default: rabbitmq.openstack.svc.cluster.local
-    path: /designate
-    scheme: rabbit
-    port:
-      amqp:
-        default: 5672
-      http:
-        default: 15672
-  powerdns:
-    auth:
-      service:
-        token: chiave_segreta
     hosts:
-      default: 8.8.8.8
-    host_fqdn_override:
-      default: null
-    port:
-      powerdns_api:
-        default: 8081
-      powerdns:
-        default: 53
-  fluentd:
-    namespace: fluentbit
-    name: fluentd
-    hosts:
-      default: fluentd-logging
-    host_fqdn_override:
-      default: null
-    path:
-      default: null
-    scheme: "http"
-    port:
-      service:
-        default: 24224
-      metrics:
-        default: 24220
+      default: rabbitmq-nodes
+
 manifests:
-  configmap_bin: true
-  configmap_etc: true
+  cron_job_service_cleaner: true
   deployment_api: true
   deployment_central: true
   deployment_worker: true
@@ -717,24 +229,6 @@ manifests:
   deployment_mdns: true
   deployment_sink: false
   ingress_api: false
-  job_bootstrap: true
-  job_db_init: true
-  job_db_sync: true
-  job_ks_endpoints: true
-  job_ks_service: true
-  job_ks_user: true
   job_rabbit_init: false
-  pdb_api: true
-  pdb_producer: true
-  pdb_central: true
-  pdb_worker: true
-  pdb_mdns: true
-  pdb_sink: false
-  secret_db: true
   secret_ingress_tls: false
-  secret_keystone: true
-  secret_rabbitmq: true
-  secret_registry: true
-  service_api: true
-  service_mdns: true
   service_ingress_api: false
