@@ -1,0 +1,50 @@
+---
+name: Helm GitHub Actions for redis-operator
+
+on:
+  pull_request:
+    paths:
+      - base-kustomize/redis-operator/**
+      - base-helm-configs/redis-operator/**
+      - helm-chart-versions.yaml
+      - .github/workflows/helm-redis-operator.yaml
+jobs:
+  helm:
+    strategy:
+      matrix:
+        overlays:
+          - base
+    name: Helm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: azure/setup-helm@v3
+        with:
+          version: v3.14.3
+          token: ${{ secrets.GITHUB_TOKEN }}
+        id: helm
+      - name: Get chart version
+        uses: ./.github/actions/get-chart-version
+        id: chart-version
+        with:
+          chart-name: redis-operator
+      - name: Add ot-helm repo to helm
+        run: |
+          ${{ steps.helm.outputs.helm-path }} repo add ot-helm https://ot-container-kit.github.io/helm-charts
+          ${{ steps.helm.outputs.helm-path }} repo update
+      - name: Run Helm Template
+        run: |
+          ${{ steps.helm.outputs.helm-path }} template redis-operator ot-helm/redis-operator \
+            --version ${{ steps.chart-version.outputs.version }} \
+            --create-namespace \
+            --namespace=redis-system \
+            --timeout 120m \
+            -f ${{ github.workspace }}/base-helm-configs/redis-operator/redis-operator-helm-overrides.yaml \
+            --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
+            --post-renderer-args redis-operator/${{ matrix.overlays }} > /tmp/rendered.yaml
+      - name: Return helm Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-redis-operator-artifact-${{ matrix.overlays }}
+          path: /tmp/rendered.yaml

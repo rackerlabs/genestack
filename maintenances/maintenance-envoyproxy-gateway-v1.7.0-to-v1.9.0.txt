@@ -1,0 +1,251 @@
+### Envoy Gateway Maintenance: v1.7.0 to v1.9.0
+
+### Notes
+
+# (opt) refers to /opt, the standard install path for Genestack.
+# (etc) refers to /etc, the standard override path for Genestack.
+# Replace all placeholder values in angle brackets before using this runbook.
+# Keep this runbook operational. Prefer exact commands, exact file paths, expected outputs, and explicit validation steps.
+
+### Validation
+
+# Kubernetes 1.35.4 satisfies Envoy Gateway v1.9.0 upstream requirements (K8s 1.31+).
+# Upgrading from v1.7.0 to v1.9.0 is a two-minor-version hop.
+# The Envoy Gateway chart is distributed via OCI: oci://docker.io/envoyproxy/gateway-helm
+# Validated source version: v1.7.0.
+# Validated target version: v1.9.0.
+
+# Major operational risks:
+# - Envoy Gateway v1.9.0 introduces breaking changes (see upstream release notes).
+# - Gateway API CRDs may need upgrading before the chart upgrade.
+# - TCPRoute/UDPRoute API moves to v1 (from v1alpha2).
+# - The egctl binary download in install-envoy-gateway.sh:207 uses the version for the release URL.
+# - Lua EnvoyExtensionPolicies are now disabled by default.
+# - BackendTLSPolicy and SecurityPolicy schemas have stricter validation.
+
+# Read upstream upgrade guide:
+#   https://gateway.envoyproxy.io/news/releases/notes/v1.9.0/
+#   https://gateway.envoyproxy.io/docs/upgrade/
+
+### Goal
+
+# Upgrade Envoy Gateway from v1.7.0 to v1.9.0 without traffic disruption,
+# with all Gateway resources reconciled and all HTTPRoutes/GRPCRoutes healthy.
+
+### Prep
+
+## Deployment Node
+
+# Identify the deployment host with kubectl, helm access.
+
+# Verify current health:
+kubectl -n envoyproxy-gateway-system get pods
+
+# Expected:
+# - envoy-gateway deployment: Running
+# - envoy-gateway-controller-manager: Running
+# - envoy and envoy-west (DaemonSet): Running
+
+# Verify Gateway API health:
+kubectl get gateway,gatewayclass -A
+kubectl get httproute,grpcroute,tcproute,udproute -A 2>/dev/null | head -20
+
+# Verify current Envoy Gateway version:
+helm list -n envoyproxy-gateway-system
+grep '^[[:space:]]*envoyproxy-gateway:' /etc/genestack/helm-chart-versions.yaml
+
+# Expected:
+# - envoyproxy-gateway: v1.7.0
+
+# Verify installed CRDs:
+kubectl get crd | grep gateway.networking
+
+# Backup Gateway resources:
+kubectl get gateway,gatewayclass,httproute,grpcroute,tcproute,udproute,gatewayAPI -A -o yaml > /tmp/gateway-resources-backup.yaml
+kubectl get crd -l app.kubernetes.io/name=gateway-api -o yaml > /tmp/gateway-crd-definitions.yaml
+helm -n envoyproxy-gateway-system get values envoyproxy-gateway > /tmp/envoy-gateway-helm-values.yaml
+
+# Backup Gateway API CRDs before upgrade:
+kubectl get crd gateways.gateway.networking.k8s.io,gatewayclasses.gateway.networking.k8s.io,httproutes.gateway.networking.k8s.io -o yaml > /tmp/gateway-api-crds-backup.yaml
+
+# Verify cluster health:
+kubectl get nodes
+kubectl get pods -A --no-headers | awk '$4 != "Running" && $4 != "Completed" {print}'
+
+## Configuration Review
+
+# Check for EnvoyExtensionPolicy with Lua source:
+kubectl get envoyextensionpolicy -A 2>/dev/null | head -5
+# Lua is disabled by default in v1.9.0 — if you use Lua, add enableLua: true to the policy.
+
+# Check for SecurityPolicy with deprecated fields:
+kubectl get securitypolicy -A 2>/dev/null | head -5
+# SecurityPolicy v1.9 has stricter validation on apiKeyAuth.extractFrom and mergeType.
+
+# Check for BackendTrafficPolicy using mergeType with non-xRoute targets:
+kubectl get backendtrafficpolicy -A 2>/dev/null | head -5
+
+# Check for TLSRoute using WellKnownCACertificates: System:
+kubectl get tlsroute -A 2>/dev/null | head -5
+
+# Review the existing override file:
+cat /opt/genestack/base-helm-configs/envoyproxy-gateway/envoyproxy-gateway-helm-overrides.yaml
+
+# Verify the install script's egctl download:
+grep "egctl" /opt/genestack/bin/install-envoy-gateway.sh | head -5
+
+## Pre-Change Safety Checks
+
+# Check Gateway status:
+kubectl get gateway -A -o wide
+kubectl get httproute -A | head -10
+
+# Verify no Gateway is in an error state:
+kubectl get gateway -A -o json | jq -r '.items[] | select(.status.conditions[]?.reason != "Accepted" or .status.conditions[].status != "True") | .metadata.name'
+
+# Verify all Envoy pods are healthy:
+kubectl -n envoyproxy-gateway-system get ds envoy envoy-west
+
+# Disable HPA:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh lock 2>/dev/null || true
+
+### Execute
+
+## Upgrade Gateway API CRDs First
+
+# Envoy Gateway v1.9.0 requires Gateway API v1.6 CRDs for TCPRoute/UDPRoute support.
+# Install the Gateway API CRDs:
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.6.0/crds.yaml
+
+# Wait for CRDs to be established:
+kubectl wait --for=condition=Established crd/gateways.gateway.networking.k8s.io --timeout=300s
+kubectl wait --for=condition=Established crd/tcproutes.gateway.networking.k8s.io --timeout=300s 2>/dev/null || true
+kubectl wait --for=condition=Established crd/udproutes.gateway.networking.k8s.io --timeout=300s 2>/dev/null || true
+
+# Verify Gateway API version:
+kubectl get crd gateways.gateway.networking.k8s.io -o jsonpath='{.spec.versions[*].name}'
+
+## Update the Target Version
+
+# Edit /etc/genestack/helm-chart-versions.yaml:
+# envoyproxy-gateway: v1.9.0
+
+## Download Updated egctl Binary
+
+# The install script downloads egctl based on the version.
+# Manually download the correct version first:
+cd /tmp
+wget https://github.com/envoyproxy/gateway/releases/download/v1.9.0/egctl-1.9.0-linux-amd64.tar.gz
+tar xzf egctl-1.9.0-linux-amd64.tar.gz
+sudo mv egctl /usr/local/bin/
+egctl version
+
+## Run a Dry-Run
+
+# Test that the chart renders correctly:
+helm template envoyproxy-gateway oci://docker.io/envoyproxy/gateway-helm \
+  --version v1.9.0 \
+  --namespace envoyproxy-gateway-system \
+  -f /opt/genestack/base-helm-configs/envoyproxy-gateway/envoyproxy-gateway-helm-overrides.yaml \
+  > /tmp/envoy-gateway-render.yaml 2>&1
+
+# Check for errors:
+grep -i "error\|fail\|warning" /tmp/envoy-gateway-render.yaml | head -20 || echo "No errors found"
+
+## Run the Helm Upgrade
+
+cd /opt/genestack
+./bin/install-envoy-gateway.sh
+
+# Wait for the rollout:
+kubectl -n envoyproxy-gateway-system rollout status deployment/envoy-gateway --timeout=600s
+
+# Wait for Envoy DaemonSets:
+kubectl -n envoyproxy-gateway-system rollout status daemonset/envoy --timeout=300s 2>/dev/null || true
+kubectl -n envoyproxy-gateway-system rollout status daemonset/envoy-west --timeout=300s 2>/dev/null || true
+
+# Wait for Gateway resources to be accepted:
+kubectl wait --for=condition=Accepted gateway -A --timeout=300s 2>/dev/null || true
+
+# Wait for Gateway resources to be programmed:
+kubectl wait --for=condition=Programmed gateway -A --timeout=300s 2>/dev/null || true
+
+### Post-Maint
+
+# Verify deployed version:
+grep '^[[:space:]]*envoyproxy-gateway:' /etc/genestack/helm-chart-versions.yaml
+helm -n envoyproxy-gateway-system list -f envoyproxy-gateway
+kubectl -n envoyproxy-gateway-system get deployment envoy-gateway -o jsonpath='{.spec.template.spec.containers[*].image}'
+
+# Expected: envoyproxy/gateway:v1.9.0
+
+# Verify Gateway API CRDs:
+kubectl get crd | grep gateway.networking | head -10
+kubectl get crd tcproutes.gateway.networking.k8s.io -o jsonpath='{.spec.versions[*].name}'
+
+# Verify all pods are Running:
+kubectl -n envoyproxy-gateway-system get pods
+
+# Verify Gateways are Accepted and Programmed:
+kubectl get gateway -A -o wide
+kubectl get gatewayclass
+
+# Verify HTTPRoutes are accepted:
+kubectl get httproute -A -o wide
+
+# Verify TCP/UDP routes (if using v1.6 CRDs):
+kubectl get tcproute,udproute -A 2>/dev/null | head -10
+
+# Verify traffic flows through Gateway:
+curl -s -o /dev/null -w "%{http_code}" http://<your-gateway-endpoint>/
+
+# Re-enable HPA:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+# Clean up:
+rm -f /tmp/envoy-gateway-render.yaml /tmp/eectl-1.9.0-linux-amd64.tar.gz
+
+### Troubleshooting
+
+## Common Failure Signals
+
+# If Gateway resources show Accepted=False:
+kubectl describe gateway -A
+kubectl -n envoyproxy-gateway-system logs deployment/envoy-gateway --tail=100
+
+# If Envoy pods are not receiving traffic:
+kubectl -n envoyproxy-gateway-system logs daemonset/envoy --tail=50
+
+# If Lua EnvoyExtensionPolicies fail:
+# Add enableLua: true to the policy:
+# kubectl patch envoyextensionpolicy <name> -n <ns> --type merge -p '{"spec":{"extensionApis":{"enableLua":true}}}'
+
+# If BackendTLSPolicy or SecurityPolicy validation fails:
+# Review the policies for stricter v1.9 validation rules.
+kubectl describe backendtrafficpolicy -A
+kubectl describe securitypolicy -A
+
+## Rollback
+
+# If the upgrade fails:
+helm -n envoyproxy-gateway-system rollback envoyproxy-gateway <revision>
+
+# Or reinstall the old version:
+helm uninstall envoyproxy-gateway -n envoyproxy-gateway-system
+helm install envoyproxy-gateway oci://docker.io/envoyproxy/gateway-helm \
+  --version v1.7.0 \
+  --namespace envoyproxy-gateway-system \
+  -f /opt/genestack/base-helm-configs/envoyproxy-gateway/envoyproxy-gateway-helm-overrides.yaml
+
+# Re-enable HPA:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+### Sources
+
+# https://gateway.envoyproxy.io/news/releases/notes/v1.9.0/
+# https://gateway.envoyproxy.io/docs/upgrade/
+# https://docs.rackspacecloud.com/infrastructure-envoy-gateway-api/
+

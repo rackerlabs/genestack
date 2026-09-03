@@ -1,0 +1,50 @@
+---
+name: Helm GitHub Actions for grafana
+
+on:
+  pull_request:
+    paths:
+      - base-kustomize/grafana/**
+      - base-helm-configs/grafana/**
+      - helm-chart-versions.yaml
+      - .github/workflows/helm-grafana.yaml
+jobs:
+  helm:
+    strategy:
+      matrix:
+        overlays:
+          - base
+    name: Helm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: azure/setup-helm@v3
+        with:
+          version: v3.14.3
+          token: ${{ secrets.GITHUB_TOKEN }}
+        id: helm
+      - name: Get chart version
+        uses: ./.github/actions/get-chart-version
+        id: chart-version
+        with:
+          chart-name: grafana
+      - name: Add grafana repo to helm
+        run: |
+          ${{ steps.helm.outputs.helm-path }} repo add grafana https://grafana.github.io/helm-charts
+          ${{ steps.helm.outputs.helm-path }} repo update
+      - name: Run Helm Template
+        run: |
+          ${{ steps.helm.outputs.helm-path }} template grafana grafana/grafana \
+            --version ${{ steps.chart-version.outputs.version }} \
+            --create-namespace \
+            --namespace=monitoring \
+            --timeout 120m \
+            -f ${{ github.workspace }}/base-helm-configs/grafana/grafana-helm-overrides.yaml \
+            --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
+            --post-renderer-args grafana/${{ matrix.overlays }} > /tmp/rendered.yaml
+      - name: Return helm Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-grafana-artifact-${{ matrix.overlays }}
+          path: /tmp/rendered.yaml

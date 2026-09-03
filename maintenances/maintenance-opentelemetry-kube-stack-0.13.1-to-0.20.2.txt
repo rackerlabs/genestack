@@ -1,0 +1,228 @@
+### OpenTelemetry Kube Stack Maintenance: 0.13.1 to 0.20.2
+
+### Notes
+
+# (opt) refers to /opt, the standard install path for Genestack.
+# (etc) refers to /etc, the standard override path for Genestack.
+# Replace all placeholder values in angle brackets before using this runbook.
+# Keep this runbook operational. Prefer exact commands, exact file paths, expected outputs, and explicit validation steps.
+
+### Validation
+
+# Kubernetes 1.35.4 satisfies opentelemetry-kube-stack 0.20.2 requirements.
+# Upgrading from chart 0.13.1 to 0.20.2 is a major version jump (7 minor versions).
+# App version jumps from collector v0.115.0 to v0.154.0.
+# Validated source version: 0.13.1.
+# Validated target version: 0.20.2.
+
+# Major operational risks:
+# - Collector CRD v1→v2 schema migration.
+# - Significant changes to collector config between v0.115 and v0.154.
+# - The override file pins the cleanupJob kubectl image tag at line 11 (currently v1.35.0 after update).
+# - The existing maintenance-observability-stack-upgrade.txt provides a similar uninstall/reinstall pattern.
+
+# Read upstream upgrade guide:
+#   https://github.com/open-telemetry/opentelemetry-helm-charts
+
+### Goal
+
+# Upgrade opentelemetry-kube-stack from 0.13.1 to 0.20.2 with all collectors running the new version
+# and all telemetry pipelines (logs, metrics, traces) healthy.
+
+### Prep
+
+## Deployment Node
+
+# Identify the deployment host with kubectl, helm access.
+
+# Verify current health:
+kubectl -n monitoring get pods | grep otel
+
+# Expected:
+# - All opentelemetry-collector pods are Running
+# - The opentelemetry-operator is Running
+
+# Verify current chart version:
+helm list -n monitoring -f opentelemetry
+grep '^[[:space:]]*opentelemetry-kube-stack:' /etc/genestack/helm-chart-versions.yaml
+
+# Expected:
+# - opentelemetry-kube-stack: 0.13.1
+
+# Backup all OpenTelemetry CRDs and resources:
+kubectl get opentelemetrycollectors.opentelemetry.io -A -o yaml > /tmp/otel-collectors-backup.yaml
+kubectl get opentelemetryinstrumentation -A -o yaml > /tmp/otel-instrumentation-backup.yaml 2>/dev/null || true
+kubectl get crd -l app.kubernetes.io/name=opentelemetry-opentelemetry -o yaml > /tmp/otel-crd-definitions.yaml 2>/dev/null || true
+helm -n monitoring get values opentelemetry-kube-stack > /tmp/otel-helm-values.yaml
+
+# Verify the cleanup image tag in overrides:
+grep 'tag:' /opt/genestack/base-helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-overrides.yaml | head -5
+
+# Verify cluster health:
+kubectl get nodes
+kubectl get pods -A --no-headers | awk '$4 != "Running" && $4 != "Completed" {print}'
+
+## Configuration Review
+
+# The opentelemetry-kube-stack override file is large (1826 lines).
+# Review key sections for breaking changes:
+# 1. receivers section — check for deprecated receiver names
+# 2. processors section — check for deprecated processor config
+# 3. exporters section — check for deprecated exporter config
+# 4. service.pipelines section — check pipeline structure
+
+# Key changes between collector v0.115 and v0.154:
+# - The k8sattributes processor configuration may have changed
+# - The prometheus receiver scrape configs may need updating
+# - The otlpc exporter endpoint format may have changed
+
+# Check for deprecated config patterns:
+grep -n "in_cluster" /opt/genestack/base-helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-overrides.yaml | head -5
+
+# Verify the override file renders with the new chart version:
+helm template opentelemetry-kube-stack open-telemetry/opentelemetry-kube-stack \
+  --version 0.20.2 \
+  -f /opt/genestack/base-helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-overrides.yaml \
+  --namespace monitoring > /tmp/otel-render.yaml 2>&1
+
+grep -i "error\|fail\|warning" /tmp/otel-render.yaml | head -10 || echo "No errors found"
+
+## Pre-Change Safety Checks
+
+# Check for unhealthy OTel pods:
+kubectl -n monitoring get pods | grep otel
+
+# Check Prometheus targets for OTel collectors:
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090 &>/dev/null &
+sleep 5
+curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | select(.labels.job | contains("opentelemetry")) | .health'
+kill %1 2>/dev/null || true
+
+# Verify Loki is ingesting OTel logs:
+kubectl -n grafana port-forward svc/loki-gateway 3100 &>/dev/null &
+sleep 5
+curl -s "http://localhost:3100/loki/api/v1/query?query={app=\"otel\"}" | jq '.data.result | length'
+kill %1 2>/dev/null || true
+
+# Disable HPA during upgrade:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh lock 2>/dev/null || true
+
+### Execute
+
+## Update the Target Version
+
+# Edit /etc/genestack/helm-chart-versions.yaml:
+# opentelemetry-kube-stack: 0.20.2
+
+## Run a Dry-Run
+
+# Test that the chart renders correctly:
+helm template opentelemetry-kube-stack open-telemetry/opentelemetry-kube-stack \
+  --version 0.20.2 \
+  --namespace monitoring \
+  -f /opt/genestack/base-helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-overrides.yaml \
+  > /tmp/otel-render.yaml 2>&1
+
+# Check for errors:
+grep -i "error\|fail\|warning" /tmp/otel-render.yaml | head -20 || echo "No errors found"
+
+## Upgrade CRDs First
+
+# The CRDs may need updating before the chart upgrade:
+helm template opentelemetry-kube-stack open-telemetry/opentelemetry-kube-stack \
+  --version 0.20.2 --include-crds > /tmp/otel-crds.yaml 2>&1
+kubectl apply -f /tmp/otel-crds.yaml
+
+# Wait for CRDs to be established:
+kubectl wait --for=condition=Established crd/opentelemetrycollectors.opentelemetry.io --timeout=600s
+
+## Run the Helm Upgrade
+
+cd /opt/genestack
+./bin/install-opentelemetry-kube-stack.sh
+
+# Wait for CRDs to settle:
+sleep 30
+
+# Wait for operator rollout:
+kubectl -n monitoring rollout status deployment/opentelemetry-kube-stack-operator --timeout=600s 2>/dev/null || \
+kubectl -n monitoring rollout status deployment/opentelemetry-kube-stack-grafana --timeout=600s 2>/dev/null || true
+
+# Wait for collector pods:
+kubectl -n monitoring wait --for=condition=Ready pods -l app.kubernetes.io/name=opentelemetry-kube-stack --timeout=600s
+
+# Wait for all OTel pods to be Running:
+while kubectl -n monitoring get pods | grep otel | grep -qv Running; do
+  echo "Waiting for OTel pods..."
+  sleep 10
+done
+
+### Post-Maint
+
+# Verify deployed version:
+grep '^[[:space:]]*opentelemetry-kube-stack:' /etc/genestack/helm-chart-versions.yaml
+helm -n monitoring list -f opentelemetry
+kubectl -n monitoring get deployment -l app.kubernetes.io/name=opentelemetry-kube-stack -o jsonpath='{range .items[*]}{.spec.template.spec.containers[*].image}{"\n"}{end}'
+
+# Expected: images reference collector v0.154.0 or similar
+
+# Verify all OTel pods are Running:
+kubectl -n monitoring get pods | grep otel
+
+# Verify Prometheus targets for OTel are up:
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090 &>/dev/null &
+sleep 10
+curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | select(.labels.job | contains("opentelemetry")) | .health'
+kill %1 2>/dev/null || true
+
+# Verify logs are being collected:
+kubectl -n grafana port-forward svc/loki-gateway 3100 &>/dev/null &
+sleep 5
+curl -s "http://localhost:3100/loki/api/v1/query?query={app=\"otel\"}" | jq '.data.result | length'
+kill %1 2>/dev/null || true
+
+# Verify traces are being collected (check Tempo):
+kubectl -n monitoring get pods | grep tempo
+
+# Re-enable HPA:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+# Clean up temp files:
+rm -f /tmp/otel-render.yaml /tmp/otel-crds.yaml
+
+### Troubleshooting
+
+## Common Failure Signals
+
+# If collector pods fail with config validation errors:
+# Review the collector config for breaking changes between v0.115 and v0.154.
+# Check the render output: cat /tmp/otel-render.yaml
+# Key areas: k8sattributes processor, prometheus receiver, otlpc exporter.
+
+# If CRDs fail to install:
+# Apply them manually:
+# kubectl apply -f https://raw.githubusercontent.com/open-telemetry/opentelemetry-operator/v0.130.0/config/crd/bases/opentelemetry.io_opentelemetrycollectors.yaml
+
+# If metrics are missing from Prometheus:
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090 &>/dev/null &
+sleep 5
+curl -s "http://localhost:9090/api/v1/series?match={__name__=\"up\",job=~\"opentelemetry.*\"}" | jq
+kill %1 2>/dev/null || true
+
+## Rollback
+
+# If the upgrade fails:
+helm -n monitoring rollback opentelemetry-kube-stack <revision>
+
+# Re-enable HPA after rollback:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+### Sources
+
+# https://github.com/open-telemetry/opentelemetry-helm-charts/releases
+# https://docs.grafana.com/loki/latest/agents/helm/
+# https://docs.rackspacecloud.com/monitoring-opentelemetry/
+

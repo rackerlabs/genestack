@@ -1,0 +1,209 @@
+### MariaDB Operator Maintenance: 26.3.0 to 26.6.0
+
+### Notes
+
+# (opt) refers to /opt, the standard install path for Genestack.
+# (etc) refers to /etc, the standard override path for Genestack.
+# Replace all placeholder values in angle brackets before using this runbook.
+# Keep this runbook operational. Prefer exact commands, exact file paths, expected outputs, and explicit validation steps.
+
+### Validation
+
+# Kubernetes 1.35.4 satisfies mariadb-operator 26.6.0 requirements.
+# Upgrading from 26.3.0 to 26.6.0 is a minor version bump within 26.x.
+# The existing maintenance-mariadb-operator-galera-25.10.4-to-26.3.0.txt documents the 26.x upgrade pattern.
+# Validated source version: 26.3.0.
+# Validated target version: 26.6.0.
+
+# Major operational risks:
+# - Minimal — minor version bump within the same major.
+# - The MariaDB clusters (Galera and MaxScale) should not be affected.
+# - The x-chart-version annotation in the override file must also be updated.
+
+# Read upstream upgrade guide:
+#   https://github.com/mariadb-operator/mariadb-operator/releases
+
+### Goal
+
+# Upgrade mariadb-operator from 26.3.0 to 26.6.0 without MariaDB cluster disruption.
+
+### Prep
+
+## Deployment Node
+
+# Verify current health:
+kubectl -n mariadb-system get deployment,pods
+
+# Verify current version:
+helm list -n mariadb-system -f mariadb-operator
+grep '^[[:space:]]*mariadb-operator:' /etc/genestack/helm-chart-versions.yaml
+
+# Expected:
+# - mariadb-operator: 26.3.0
+
+# Verify MariaDB cluster health:
+kubectl -n openstack get mariadb,mariadbd,mariadbmaxscale -o wide 2>/dev/null
+kubectl -n openstack get secret mariadb -o yaml > /tmp/mariadb-secrets-backup.yaml
+kubectl -n openstack get configmap -l app.kubernetes.io/name=mariadb -o yaml > /tmp/mariadb-configmaps-backup.yaml 2>/dev/null || true
+
+# Backup Helm values:
+helm -n mariadb-system get values mariadb-operator > /tmp/mariadb-operator-helm-values.yaml
+
+# Verify the x-chart-version annotation:
+grep "x-chart-version" /opt/genestack/base-helm-configs/mariadb-operator/mariadb-operator-helm-overrides.yaml
+
+# Expected: x-chart-version: "26.3.0"
+
+# Verify Galera health:
+MARIADB_ROOT_PASSWORD="$(kubectl -n openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)"
+kubectl -n openstack get pods -l app.kubernetes.io/name=mariadb 2>/dev/null
+kubectl -n openstack get pods -l app.kubernetes.io/name=mariadbd 2>/dev/null
+
+# Verify cluster health:
+kubectl get nodes
+kubectl get pods -A --no-headers | awk '$4 != "Running" && $4 != "Completed" {print}'
+
+## Pre-Change Safety Checks
+
+# Check for unhealthy MariaDB pods:
+kubectl -n openstack get pods -l app.kubernetes.io/name=mariadb
+kubectl -n openstack get pods -l app.kubernetes.io/name=mariadbd
+
+# Verify Galera state:
+for pod in $(kubectl -n openstack get pods -l app.kubernetes.io/name=mariadbd -o name 2>/dev/null); do
+  echo "=== $pod ==="
+  kubectl -n openstack exec "$pod" -- bash -c "mariadb -u root -p'$MARIADB_ROOT_PASSWORD' -e 'SHOW STATUS LIKE \"wsrep_cluster_size\"; SHOW STATUS LIKE \"wsrep_cluster_status\";'" 2>/dev/null || echo "Connection failed"
+done
+
+# Disable HPA during upgrade:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh lock 2>/dev/null || true
+
+### Execute
+
+## Update the Target Version
+
+# Edit /etc/genestack/helm-chart-versions.yaml:
+# mariadb-operator: 26.6.0
+
+# Edit /opt/genestack/base-helm-configs/mariadb-operator/mariadb-operator-helm-overrides.yaml:
+# Change line 3 from:
+#   x-chart-version: "26.3.0"
+# To:
+#   x-chart-version: "26.6.0"
+
+## Run a Dry-Run
+
+# Test that the chart renders correctly:
+helm template mariadb-operator mariadb-operator/mariadb-operator \
+  --version 26.6.0 --repo https://helm.mariadb.com/mariadb-operator \
+  -f /opt/genestack/base-helm-configs/mariadb-operator/mariadb-operator-helm-overrides.yaml \
+  --namespace mariadb-system > /tmp/mariadb-operator-render.yaml 2>&1
+
+grep -i "error\|fail\|warning" /tmp/mariadb-operator-render.yaml | head -10 || echo "No errors found"
+
+## Run the Maintenance
+
+# Scale down the old operator:
+kubectl scale deployment mariadb-operator-controller -n mariadb-system --replicas=0 2>/dev/null || \
+kubectl scale deployment mariadb-operator -n mariadb-system --replicas=0
+
+# Wait for pods to terminate:
+sleep 10
+
+# Uninstall the old operator:
+helm -n mariadb-system uninstall mariadb-operator 2>/dev/null || \
+helm -n mariadb-system uninstall mariadb-operator-controller 2>/dev/null || true
+
+# Remove webhook configurations:
+kubectl delete validatingwebhookconfiguration mariadb-operator-webhook --ignore-not-found
+kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook 2>/dev/null --ignore-not-found
+
+# Install the new operator:
+cd /opt/genestack
+./bin/install-mariadb-operator.sh
+
+# Wait for CRDs to be established:
+kubectl wait --for=condition=Established crd/mariadbs.k8s.mariadb.com --timeout=300s
+kubectl wait --for=condition=Established crd/mariadbmaxscales.k8s.mariadb.com --timeout=300s
+kubectl wait --for=condition=Established crd/pointintimerecoveries.k8s.mariadb.com --timeout=300s
+
+# Wait for the operator to be ready:
+kubectl -n mariadb-system rollout status deployment/mariadb-operator-controller --timeout=600s 2>/dev/null || \
+kubectl -n mariadb-system rollout status deployment/mariadb-operator --timeout=600s
+
+# Reapply the MariaDB manifests:
+kubectl --namespace=openstack apply -k /etc/genestack/kustomize/mariadb-cluster/overlay 2>/dev/null || \
+kubectl --namespace=openstack apply -k /etc/genestack/kustomize/mariadb/overlay 2>/dev/null || true
+
+### Post-Maint
+
+# Verify deployed version:
+grep '^[[:space:]]*mariadb-operator:' /etc/genestack/helm-chart-versions.yaml
+helm -n mariadb-system list | grep mariadb
+grep 'x-chart-version:' /opt/genestack/base-helm-configs/mariadb-operator/mariadb-operator-helm-overrides.yaml
+
+# Expected: x-chart-version: "26.6.0"
+
+# Verify operator deployment:
+kubectl -n mariadb-system get deployment mariadb-operator-controller -o jsonpath='{range .spec.template.spec.containers[*]}{.image}{"\n"}{end}' 2>/dev/null || \
+kubectl -n mariadb-system get deployment mariadb-operator -o jsonpath='{range .spec.template.spec.containers[*]}{.image}{"\n"}{end}'
+
+# Expected: ghcr.io/mariadb-operator/mariadb-operator:v26.6.0 or similar
+
+# Verify CRDs exist:
+kubectl get crd | grep k8s.mariadb.com
+
+# Verify MariaDB clusters are healthy:
+kubectl -n openstack get mariadb,mariadbd,mariadbmaxscale -o wide 2>/dev/null
+
+# Verify Galera health:
+for pod in $(kubectl -n openstack get pods -l app.kubernetes.io/name=mariadbd -o name 2>/dev/null); do
+  echo "=== $pod ==="
+  kubectl -n openstack exec "$pod" -- bash -c "mariadb -u root -p'$MARIADB_ROOT_PASSWORD' -e 'SHOW STATUS LIKE \"wsrep_cluster_size\"; SHOW STATUS LIKE \"wsrep_cluster_status\";'" 2>/dev/null || echo "Connection failed"
+done
+
+# Verify pointintimerecoveries CRD:
+kubectl get crd pointintimerecoveries.k8s.mariadb.com
+
+# Re-enable HPA:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+# Clean up:
+rm -f /tmp/mariadb-operator-render.yaml
+
+### Troubleshooting
+
+## Common Failure Signals
+
+# If MariaDB clusters fail to reconcile:
+kubectl -n mariadb-system logs deployment/mariadb-operator-controller --tail=100 2>/dev/null || \
+kubectl -n mariadb-system logs deployment/mariadb-operator --tail=100
+
+# If webhook configuration fails:
+kubectl describe validatingwebhookconfiguration mariadb-operator-webhook 2>/dev/null || true
+
+# If CRDs fail to install:
+kubectl get crd | grep mariadb
+kubectl describe crd mariadbs.k8s.mariadb.com
+
+## Rollback
+
+# If the upgrade fails:
+helm -n mariadb-system rollback mariadb-operator <revision> 2>/dev/null || \
+helm -n mariadb-system rollback mariadb-operator-controller <revision> 2>/dev/null || true
+
+# Revert the x-chart-version in overrides:
+# In base-helm-configs/mariadb-operator/mariadb-operator-helm-overrides.yaml:
+#   x-chart-version: "26.3.0"
+
+# Re-enable HPA:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+### Sources
+
+# https://github.com/mariadb-operator/mariadb-operator/releases
+# https://docs.rackspacecloud.com/openstack-mariadb-operator-upgrade/
+

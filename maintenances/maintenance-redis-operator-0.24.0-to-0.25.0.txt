@@ -1,0 +1,175 @@
+### Redis-Operator Maintenance: 0.24.0 to 0.25.0
+
+### Notes
+
+# (opt) refers to /opt, the standard install path for Genestack.
+# (etc) refers to /etc, the standard override path for Genestack.
+# Replace all placeholder values in angle brackets before using this runbook.
+# Keep this runbook operational. Prefer exact commands, exact file paths, expected outputs, and explicit validation steps.
+
+### Validation
+
+# Kubernetes 1.35.4 satisfies redis-operator 0.25.0 requirements.
+# Upgrading from 0.24.0 to 0.25.0 is a minor version bump.
+# The OT-helm redis-operator uses Bitnami redis images underneath.
+# Validated source version: 0.24.0.
+# Validated target version: 0.25.0.
+
+# Major operational risks:
+# - Minimal — minor version bump within 0.x series.
+# - The redis-operator chart manages Redis clusters via the ot-helm API.
+# - Redis data is in PVCs — should be preserved.
+
+# Read upstream upgrade guide:
+#   https://ot-container-kit.github.io/helm-charts/
+
+### Goal
+
+# Upgrade redis-operator from 0.24.0 to 0.25.0 without Redis data loss
+# and with all Redis clusters remaining healthy.
+
+### Prep
+
+## Deployment Node
+
+# Verify current health:
+kubectl -n redis-system get pods
+kubectl get redis,redisfailover,rediscluster -A 2>/dev/null | head -20
+
+# Verify current chart version:
+helm list -n redis-system -f redis-operator
+grep '^[[:space:]]*redis-operator:' /etc/genestack/helm-chart-versions.yaml
+
+# Expected:
+# - redis-operator: 0.24.0
+
+# Backup Redis CRs:
+kubectl get redis,redisfailover,rediscluster -A -o yaml > /tmp/redis-crds-backup.yaml
+kubectl get crd -l app.kubernetes.io/name=redis-operator -o yaml > /tmp/redis-operator-crds.yaml 2>/dev/null || true
+helm -n redis-system get values redis-operator > /tmp/redis-operator-helm-values.yaml
+
+# Verify Redis cluster health:
+for cluster in $(kubectl get redis -A -o jsonpath='{.items[*].metadata.name}'); do
+  namespace=$(kubectl get redis -A -o jsonpath="{.items[?(@.metadata.name==\"$cluster\")].metadata.namespace}")
+  echo "=== $namespace/$cluster ==="
+  kubectl -n "$namespace" get redis "$cluster" -o jsonpath='{.status.status}' 2>/dev/null
+done
+
+# Verify cluster health:
+kubectl get nodes
+kubectl get pods -A --no-headers | awk '$4 != "Running" && $4 != "Completed" {print}'
+
+## Configuration Review
+
+# Verify the override file renders with the new chart version:
+helm template redis-operator ot-helm/redis-operator \
+  --version 0.25.0 \
+  -f /opt/genestack/base-helm-configs/redis-operator/redis-operator-helm-overrides.yaml \
+  --namespace redis-system > /tmp/redis-operator-render.yaml 2>&1
+
+grep -i "error\|fail\|warning" /tmp/redis-operator-render.yaml | head -10 || echo "No errors found"
+
+## Pre-Change Safety Checks
+
+# Check for unhealthy Redis pods:
+kubectl get redis -A -o wide
+
+# Verify no Redis clusters are mid-reconciliation:
+kubectl get redis -A -o json | jq -r '.items[] | .metadata.namespace + "/" + .metadata.name + " - " + (.status.status // "unknown")'
+
+# Disable HPA during upgrade:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh lock 2>/dev/null || true
+
+### Execute
+
+## Update the Target Version
+
+# Edit /etc/genestack/helm-chart-versions.yaml:
+# redis-operator: 0.25.0
+
+## Run a Dry-Run
+
+# Test that the chart renders correctly:
+helm template redis-operator ot-helm/redis-operator \
+  --version 0.25.0 \
+  --namespace redis-system \
+  -f /opt/genestack/base-helm-configs/redis-operator/redis-operator-helm-overrides.yaml > /tmp/redis-operator-render.yaml 2>&1
+
+# Check for errors:
+grep -i "error\|fail\|warning" /tmp/redis-operator-render.yaml | head -20 || echo "No errors found"
+
+## Run the Helm Upgrade
+
+cd /opt/genestack
+helm repo add ot-helm https://ot-container-kit.github.io/helm-charts
+helm repo update
+helm upgrade --install redis-operator ot-helm/redis-operator \
+  --version 0.25.0 \
+  --namespace=redis-system \
+  --create-namespace \
+  --timeout 300m \
+  -f /opt/genestack/base-helm-configs/redis-operator/redis-operator-helm-overrides.yaml
+
+# Wait for rollout:
+kubectl -n redis-system rollout status deployment/redis-operator --timeout=300s
+
+### Post-Maint
+
+# Verify deployed version:
+grep '^[[:space:]]*redis-operator:' /etc/genestack/helm-chart-versions.yaml
+helm -n redis-system list -f redis-operator
+kubectl -n redis-system get deployment redis-operator -o jsonpath='{range .spec.template.spec.containers[*]}{.image}{"\n"}{end}'
+
+# Verify all Redis clusters are healthy:
+kubectl get redis -A -o custom-columns=NAME:.metadata.name,NAMESPACE:.metadata.namespace,STATUS:.status.status
+
+# Verify all Redis pods are Running:
+kubectl get redis -A -o wide
+
+# Verify Redis connectivity:
+for cluster in $(kubectl get redis -A -o jsonpath='{.items[*].metadata.name}'); do
+  namespace=$(kubectl get redis -A -o jsonpath="{.items[?(@.metadata.name==\"$cluster\")].metadata.namespace}")
+  pod=$(kubectl -n "$namespace" get pod -l app=redis-cluster,redis-name="$cluster" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+  if [ -n "$pod" ]; then
+    echo "=== $namespace/$cluster ==="
+    kubectl -n "$namespace" exec "$pod" -- redis-cli ping 2>/dev/null || echo "Connection failed"
+  fi
+done
+
+# Re-enable HPA:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+# Clean up:
+rm -f /tmp/redis-operator-render.yaml
+
+### Troubleshooting
+
+## Common Failure Signals
+
+# If Redis clusters fail to reconcile:
+kubectl -n redis-system logs deployment/redis-operator --tail=100
+
+# If Redis pods fail to start:
+kubectl describe pod -l app=redis-cluster -n <namespace>
+kubectl logs -l app=redis-cluster -n <namespace> --tail=50
+
+# If data is lost after restart:
+# Check PVCs are still bound:
+kubectl get pvc -A | grep redis
+
+## Rollback
+
+# If the upgrade fails:
+helm -n redis-system rollback redis-operator <revision>
+
+# Re-enable HPA:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+### Sources
+
+# https://ot-container-kit.github.io/helm-charts/
+# https://github.com/OT-Center/Redis-Operator
+

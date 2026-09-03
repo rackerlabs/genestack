@@ -1,0 +1,129 @@
+### Prometheus Pushgateway Maintenance: 3.4.2 to 3.8.0
+
+### Notes
+
+# (opt) refers to /opt, the standard install path for Genestack.
+# (etc) refers to /etc, the standard override path for Genestack.
+# Replace all placeholder values in angle brackets before using this runbook.
+# Keep this runbook operational. Prefer exact commands, exact file paths, expected outputs, and explicit validation steps.
+
+### Validation
+
+# Kubernetes 1.35.4 satisfies prometheus-pushgateway chart 3.x requirements.
+# Upgrading from 3.4.2 to 3.8.0 is a minor version bump within 3.x.
+# Validated source version: 3.4.2.
+# Validated target version: 3.8.0.
+
+# Major operational risks:
+# - Minimal — minor version bump within 3.x.
+# - Pushgateway data (push metrics to the gateway) is ephemeral by default.
+# - Verify that any long-running job metrics are captured before upgrade.
+
+# Read upstream upgrade guide:
+#   https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus-pushgateway
+
+### Goal
+
+# Upgrade prometheus-pushgateway from 3.4.2 to 3.8.0 without losing any pending
+# push metrics and with the service returning healthy.
+
+### Prep
+
+## Deployment Node
+
+# Verify current health:
+kubectl -n monitoring get pods | grep pushgateway
+kubectl -n monitoring get deployment prometheus-pushgateway -o wide
+
+# Verify current version:
+helm list -n monitoring -f prometheus-pushgateway
+grep '^[[:space:]]*prometheus-pushgateway:' /etc/genestack/helm-chart-versions.yaml
+
+# Expected:
+# - prometheus-pushgateway: 3.4.2
+
+# Backup Helm values:
+helm -n monitoring get values prometheus-pushgateway > /tmp/prometheus-pushgateway-helm-values.yaml
+
+# Check for any metrics being pushed:
+kubectl -n monitoring port-forward svc/prometheus-pushgateway 9091 &>/dev/null &
+sleep 5
+echo "Current metrics on pushgateway:"
+curl -s http://localhost:9091/metrics | grep -c "^pushgateway_" || echo "No metrics"
+kill %1 2>/dev/null || true
+
+# Verify cluster health:
+kubectl get nodes
+kubectl get pods -A --no-headers | awk '$4 != "Running" && $4 != "Completed" {print}'
+
+## Pre-Change Safety Checks
+
+# Check for pushgateway pod health:
+kubectl -n monitoring get pods -l app.kubernetes.io/name=prometheus-pushgateway
+
+# Disable HPA during upgrade:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh lock 2>/dev/null || true
+
+### Execute
+
+## Update the Target Version
+
+# Edit /etc/genestack/helm-chart-versions.yaml:
+# prometheus-pushgateway: 3.8.0
+
+## Run the Helm Upgrade
+
+cd /opt/genestack
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm upgrade --install prometheus-pushgateway prometheus-community/prometheus-pushgateway \
+  --version 3.8.0 \
+  --namespace=monitoring \
+  --create-namespace \
+  --timeout 300m \
+  -f /opt/genestack/base-helm-configs/prometheus-pushgateway/prometheus-pushgateway-helm-overrides.yaml
+
+# Wait for rollout:
+kubectl -n monitoring rollout status deployment/prometheus-pushgateway --timeout=300s
+
+### Post-Maint
+
+# Verify deployed version:
+grep '^[[:space:]]*prometheus-pushgateway:' /etc/genestack/helm-chart-versions.yaml
+helm -n monitoring list -f prometheus-pushgateway
+kubectl -n monitoring get deployment prometheus-pushgateway -o jsonpath='{range .spec.template.spec.containers[*]}{.image}{"\n"}{end}'
+
+# Verify workload health:
+kubectl -n monitoring get pods | grep pushgateway
+
+# Verify pushgateway is reachable:
+kubectl -n monitoring port-forward svc/prometheus-pushgateway 9091 &>/dev/null &
+sleep 5
+curl -s http://localhost:9091/ready
+curl -s http://localhost:9091/metrics | head -10
+kill %1 2>/dev/null || true
+
+# Verify metrics are being collected by Prometheus:
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090 &>/dev/null &
+sleep 5
+curl -s "http://localhost:9090/api/v1/query?query=up{job=\"prometheus-pushgateway\"}" | jq '.data.result'
+kill %1 2>/dev/null || true
+
+# Re-enable HPA:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+### Troubleshooting
+
+## Rollback
+helm -n monitoring rollback prometheus-pushgateway <revision>
+
+# Re-enable HPA:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+### Sources
+
+# https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus-pushgateway
+

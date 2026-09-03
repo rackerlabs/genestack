@@ -1,0 +1,213 @@
+### TopoLVM Maintenance: 16.1.1 to 17.1.0
+
+### Notes
+
+# (opt) refers to /opt, the standard install path for Genestack.
+# (etc) refers to /etc, the standard override path for Genestack.
+# Replace all placeholder values in angle brackets before using this runbook.
+# Keep this runbook operational. Prefer exact commands, exact file paths, expected outputs, and explicit validation steps.
+
+### Validation
+
+# Kubernetes 1.35.4 satisfies TopoLVM 17.1.0 requirements.
+# Upgrading from chart 16.1.1 to 17.1.0 is a major chart version bump.
+# App version moves to v0.41.0 (from v0.18.1).
+# Validated source version: 16.1.1.
+# Validated target version: 17.1.0.
+
+# Major operational risks:
+# - Major chart version may have CRD or values schema changes.
+# - Storage class and volume handling may change.
+# - The useLegacy parameter is already set to false in overrides (v1 API).
+# - PVC data should be compatible (same CSI driver, different chart version).
+
+# Read upstream upgrade guide:
+#   https://github.com/topolvm/topolvm
+#   https://topolvm.github.io/topolvm/
+
+### Goal
+
+# Upgrade TopoLVM from chart 16.1.1 to 17.1.0 without storage disruption.
+# All volumes should remain attached and accessible after the upgrade.
+
+### Prep
+
+## Deployment Node
+
+# Identify the deployment host with kubectl, helm access.
+
+# Verify current health:
+kubectl -n topolvm-system get pods
+
+# Expected:
+# - topolvm-controller: Running
+# - topolvm-node (DaemonSet): Running on all storage nodes
+# - topo-csi-node (DaemonSet): Running on all nodes with volumes
+
+# Verify current chart version:
+helm list -n topolvm-system -f topolvm
+grep '^[[:space:]]*topolvm:' /etc/genestack/helm-chart-versions.yaml
+
+# Expected:
+# - topolvm: 16.1.1
+
+# Check for any unhealthy volumes before upgrade:
+kubectl get pv | grep topolvm
+kubectl get vct,topolvmbk,topolvmpartition 2>/dev/null | head -10
+
+# Backup TopoLVM state:
+kubectl get crd -l app.kubernetes.io/name=topolvm -o yaml > /tmp/topolvm-crds-backup.yaml
+kubectl get pv -o yaml > /tmp/topolvm-pvs-backup.yaml
+kubectl get nodes -o yaml > /tmp/topolvm-nodes-backup.yaml
+helm -n topolvm-system get values topolvm > /tmp/topolvm-helm-values.yaml
+
+# Verify cluster health:
+kubectl get nodes
+kubectl get pods -A --no-headers | awk '$4 != "Running" && $4 != "Completed" {print}'
+
+# Verify all PVCs using TopoLVM are bound:
+kubectl get pvc -A | grep -E "Bound.*topolvm" | head -10
+
+# Verify no volumes are in a degraded state:
+kubectl get volumesnapshot,backupstoragepolicies,topolvmschedules 2>/dev/null | head -5 || echo "No snapshots found"
+
+## Configuration Review
+
+# Check the override file:
+grep -n "useLegacy\|image\|tag\|nodeAffinity\|storageClass" /opt/genestack/base-helm-configs/topolvm/helm-topolvm-overrides.yaml | head -15
+
+# Verify the image tag in overrides is empty (chart default):
+grep "tag:" /opt/genestack/base-helm-configs/topolvm/helm-topolvm-overrides.yaml | head -5
+
+# Verify the chart renders with the new version:
+helm template topolvm topolvm/topolvm \
+  --version 17.1.0 \
+  -f /opt/genestack/base-helm-configs/topolvm/helm-topolvm-overrides.yaml \
+  --namespace topolvm-system > /tmp/topolvm-render.yaml 2>&1
+
+grep -i "error\|fail\|warning" /tmp/topolvm-render.yaml | head -10 || echo "No errors found"
+
+## Pre-Change Safety Checks
+
+# Check for unhealthy TopoLVM pods:
+kubectl -n topolvm-system get pods
+
+# Check for any stuck volumes:
+kubectl get pv | grep -v Bound | grep topolvm
+
+# Disable HPA during upgrade:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh lock 2>/dev/null || true
+
+### Execute
+
+## Update the Target Version
+
+# Edit /etc/genestack/helm-chart-versions.yaml:
+# topolvm: 17.1.0
+
+## Run a Dry-Run
+
+# Test that the chart renders correctly:
+helm template topolvm topolvm/topolvm \
+  --version 17.1.0 \
+  --namespace topolvm-system \
+  -f /opt/genestack/base-helm-configs/topolvm/helm-topolvm-overrides.yaml > /tmp/topolvm-render.yaml 2>&1
+
+# Check for errors:
+grep -i "error\|fail\|warning" /tmp/topolvm-render.yaml | head -20 || echo "No errors found"
+
+## Run the Helm Upgrade
+
+cd /opt/genestack
+helm repo add topolvm https://topolvm.github.io/topolvm
+helm repo update
+helm upgrade --install topolvm topolvm/topolvm \
+  --version 17.1.0 \
+  --namespace=topolvm-system \
+  --create-namespace \
+  --timeout 300m \
+  -f /opt/genestack/base-helm-configs/topolvm/helm-topolvm-overrides.yaml
+
+## Wait for Reconciliation
+
+# Wait for controller:
+kubectl -n topolvm-system rollout status deployment/topolvm-controller --timeout=600s
+
+# Wait for node daemonset:
+kubectl -n topolvm-system rollout status daemonset/topolvm-node --timeout=600s
+
+# Wait for CSI node driver:
+kubectl -n topolvm-system rollout status daemonset/topolvm-csi-node --timeout=600s 2>/dev/null || true
+
+### Post-Maint
+
+# Verify deployed version:
+grep '^[[:space:]]*topolvm:' /etc/genestack/helm-chart-versions.yaml
+helm -n topolvm-system list -f topolvm
+
+# Verify all pods are Running:
+kubectl -n topolvm-system get pods -o wide
+
+# Verify all volumes are still attached:
+kubectl get pv | grep topolvm | head -10
+kubectl get pvc -A | grep -E "Bound.*topolvm" | head -10
+
+# Verify no volumes are lost:
+kubectl get pv -o custom-columns=NAME:.metadata.name,CLAIM:.spec.claimRef.name,STATUS:.status.phase
+
+# Verify storage class is intact:
+kubectl get sc | grep topolvm
+
+# Verify CSI driver is registered:
+kubectl get csidrivers | grep topolvm
+
+# Verify all nodes show volume attachments:
+kubectl get volumeattachments | grep topolvm
+
+# Re-enable HPA:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+# Clean up:
+rm -f /tmp/topolvm-render.yaml
+
+### Troubleshooting
+
+## Common Failure Signals
+
+# If volumes become detached:
+# 1. Check node daemonset status:
+kubectl -n topolvm-system get ds topolvm-node -o wide
+
+# 2. Check CSI driver registration:
+kubectl get csidrivers | grep topolvm
+
+# 3. If nodes need rescheduling:
+kubectl -n topolvm-system delete pod -l app=topolvm-node
+
+# If PV/PVC binding fails:
+kubectl describe pv <pv-name>
+kubectl describe pvc <pvc-name> -n <namespace>
+
+# If the controller panics:
+kubectl -n topolvm-system logs deployment/topolvm-controller --tail=100
+
+## Rollback
+
+# If the upgrade fails:
+helm -n topolvm-system rollback topolvm <revision>
+
+# Restart CSI node daemon:
+kubectl -n topolvm-system delete pod -l app.kubernetes.io/name=topolvm-csi
+
+# Re-enable HPA:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+### Sources
+
+# https://github.com/topolvm/topolvm
+# https://topolvm.github.io/topolvm/
+# https://docs.rackspacecloud.com/storage-topolvm/
+

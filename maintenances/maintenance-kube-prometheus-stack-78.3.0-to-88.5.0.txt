@@ -1,0 +1,293 @@
+### Kube-Prometheus-Stack Maintenance: 78.3.0 to 88.5.0
+
+### Notes
+
+# (opt) refers to /opt, the standard install path for Genestack.
+# (etc) refers to /etc, the standard override path for Genestack.
+# Replace all placeholder values in angle brackets before using this runbook.
+# Keep this runbook operational. Prefer exact commands, exact file paths, expected outputs, and explicit validation steps.
+
+### Validation
+
+# Kubernetes 1.35.4 (kubespray v2.31.0) satisfies kube-prometheus-stack 88.5.0 requirements.
+# Upgrading from chart 78.3.0 to 88.5.0 is a major chart version jump (10 chart versions).
+# App version jumps from Prometheus Operator v0.74.x to v0.93.1.
+# Validated source version: 78.3.0.
+# Validated target version: 88.5.0.
+
+# Major operational risks:
+# - Prometheus CRD v1→v2 migration (stored versions change).
+# - Prometheus app version jumps from 2.x to v0.93.1 (app v3.x).
+# - Alertmanager CRD may also have schema changes.
+# - Existing PVC data should be compatible, but verify before upgrade.
+# - The override file pins specific image tags that may be incompatible with the new chart.
+
+# Read upstream upgrade guide:
+#   https://github.com/prometheus-community/helm-charts
+
+### Goal
+
+# Upgrade kube-prometheus-stack from 78.3.0 to 88.5.0, migrating Prometheus CRDs to v2
+# and ensuring all monitoring targets remain healthy with data preserved where possible.
+
+### Prep
+
+## Deployment Node
+
+# Identify the deployment host with kubectl, helm, and jq access.
+
+# Verify current Prometheus health:
+kubectl -n monitoring get pods -l app.kubernetes.io/name=prometheus
+kubectl -n monitoring get prometheus
+kubectl -n prometheus get pods
+
+# Expected:
+# - All Prometheus pods are Running
+# - Prometheus object exists and reports Available=True
+
+# Verify current chart version:
+helm list -n monitoring -f kube-prometheus-stack
+grep '^[[:space:]]*kube-prometheus-stack:' /etc/genestack/helm-chart-versions.yaml
+
+# Expected:
+# - kube-prometheus-stack: 78.3.0
+
+# Verify Prometheus version:
+kubectl -n monitoring get prometheus -o jsonpath='{.items[0].status.version}' 2>/dev/null || \
+kubectl -n prometheus exec deploy/kube-prometheus-stack-prometheus -c prometheus -- \
+  promtool --version 2>/dev/null
+
+# Backup Prometheus CRDs and data:
+kubectl get prometheus,prometheusrule,servicemonitor,podmonitor -A -o yaml > /tmp/prometheus-crds-backup.yaml
+kubectl get alertingrule,prometheusrule -A -o yaml > /tmp/prometheus-rules-backup.yaml 2>/dev/null || true
+kubectl -n prometheus get pvc -o yaml > /tmp/prometheus-pvcs-backup.yaml
+
+# Backup Prometheus data:
+PROM_PE=$(kubectl -n prometheus get statefulset kube-prometheus-stack-prometheus -o jsonpath='{.spec.replicas}')
+echo "Prometheus replicas: $PROM_PE"
+
+# Create a snapshot of the Prometheus data PVC if using a CSI provider:
+kubectl -n prometheus get pvc -l app.kubernetes.io/name=prometheus
+# If using snapshot support:
+kubectl get volumesnapshotclass 2>/dev/null || echo "No volumesnapshotclass available"
+
+# Backup Alertmanager:
+kubectl -n monitoring get alertmanager -o yaml > /tmp/alertmanager-backup.yaml
+kubectl -n monitoring get secret -l app.kubernetes.io/name=alertmanager -o yaml > /tmp/alertmanager-secrets.yaml
+
+# Backup Helm values:
+helm -n monitoring get values kube-prometheus-stack > /tmp/kube-prometheus-stack-values.yaml
+
+# Verify cluster health:
+kubectl get nodes
+kubectl get pods -A --no-headers | awk '$4 != "Running" && $4 != "Completed" {print}'
+
+## Configuration Review
+
+# The override file at base-helm-configs/kube-prometheus-stack/kube-prometheus-stack-helm-overrides.yaml
+# has pinned image tags that are incompatible with chart 88.5.0:
+# - alertmanager.alertmanagerSpec.image.tag: "" (was v0.26.0, now cleared to use chart default)
+# - prometheus.prometheusSpec.image.tag: "" (was v2.49.1, now cleared to use chart default)
+# - prometheusOperator.thanosImage.tag: "" (was v0.34.0, now cleared to use chart default)
+# - thanosRuler.thanosRulerSpec.image.tag: "" (was v0.34.0, now cleared to use chart default)
+# Verify these have been cleared:
+grep -n "tag:" /opt/genestack/base-helm-configs/kube-prometheus-stack/kube-prometheus-stack-helm-overrides.yaml
+
+# Check for deprecated Prometheus Operator CRD versions:
+# Old: monitoring.coreos.com/v1beta1 (Prometheus, ServiceMonitor, PodMonitor, Alertmanager)
+# New: monitoring.coreos.com/v1 (Prometheus, ServiceMonitor, PodMonitor, Alertmanager)
+kubectl get crd prometheuses.monitoring.coreos.com -o jsonpath='{.spec.versions[*].name}'
+
+# Check alertmanager config:
+kubectl -n monitoring get secret kube-prometheus-stack-alertmanagerconfig -o yaml 2>/dev/null || echo "No alertmanagerconfig found"
+kubectl -n monitoring get secret kube-prometheus-stack-alertmanager -o yaml 2>/dev/null || echo "No alertmanager secret found"
+
+## Pre-Change Safety Checks
+
+# Check Prometheus target health:
+kubectl -n prometheus port-forward svc/kube-prometheus-stack-prometheus 9090 &>/dev/null &
+sleep 5
+UP_COUNT=$(curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets | length')
+DOWN_COUNT=$(curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | select(.health != "up") | .scrapeURL' | wc -l)
+echo "Prometheus targets: $UP_COUNT total, $DOWN_COUNT down"
+kill %1 2>/dev/null || true
+
+# Check for failing alerts:
+# kubectl -n monitoring get prometheusrule -A | head -5
+
+# Verify all Prometheus PVCs are bound:
+kubectl -n prometheus get pvc -l app.kubernetes.io/name=prometheus
+
+# Verify Alertmanager is healthy:
+kubectl -n monitoring get alertmanager
+kubectl -n monitoring get pods -l app.kubernetes.io/name=alertmanager
+
+# Wait for any ongoing Prometheus rule evaluations to complete:
+echo "Waiting for pending tasks to complete..."
+sleep 30
+
+# Create a backup of the Prometheus data directory:
+# kubectl -n prometheus exec prometheus-kube-prometheus-stack-prometheus-0 -- tar czf /tmp/prometheus-backup.tar.gz /prometheus 2>/dev/null &
+# Wait for backup to complete
+# kubectl -n prometheus cp prometheus-kube-prometheus-stack-prometheus-0:/tmp/prometheus-backup.tar.gz /tmp/prometheus-backup.tar.gz
+
+# Disable HPA during upgrade:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh lock 2>/dev/null || true
+
+### Execute
+
+## Update the Target Version
+
+# Edit /etc/genestack/helm-chart-versions.yaml:
+# kube-prometheus-stack: 88.5.0
+
+## Run a Dry-Run
+
+# Test that the chart renders correctly:
+helm template prometheus prometheus-community/kube-prometheus-stack \
+  --version 88.5.0 \
+  --create-namespace \
+  --namespace=monitoring \
+  -f /opt/genestack/base-helm-configs/kube-prometheus-stack/kube-prometheus-stack-helm-overrides.yaml \
+  -f /opt/genestack/base-helm-configs/kube-prometheus-stack/alertmanager_config.yaml \
+  > /tmp/kube-prometheus-stack-render.yaml 2>&1
+
+# Check for errors:
+grep -i "error\|fail\|warning" /tmp/kube-prometheus-stack-render.yaml | head -20 || echo "No errors found"
+
+## Upgrade Prometheus CRDs First
+
+# CRDs are managed by the chart; upgrade them separately to ensure they are established:
+helm template prometheus prometheus-community/kube-prometheus-stack \
+  --version 88.5.0 \
+  --include-crds > /tmp/kube-prometheus-stack-crds.yaml 2>&1
+
+# Apply only the CRD definitions:
+kubectl apply -f /tmp/kube-prometheus-stack-crds.yaml
+
+# Wait for CRDs to be established:
+kubectl wait --for=condition=Established crd/prometheuses.monitoring.coreos.com --timeout=600s
+kubectl wait --for=condition=Established crd/servicemonitors.monitoring.coreos.com --timeout=300s
+kubectl wait --for=condition=Established crd/podmonitors.monitoring.coreos.com --timeout=300s
+kubectl wait --for=condition=Established crd/alertmanagers.monitoring.coreos.com --timeout=300s
+kubectl wait --for=condition=Established crd/thanosrulers.monitoring.coreos.com --timeout=300s
+
+# Verify CRD stored versions (may show both v1 and v1beta1 during migration):
+kubectl get crd prometheuses.monitoring.coreos.com -o jsonpath='{.status.storedVersions}'
+
+## Run the Helm Upgrade
+
+# Run the full upgrade:
+cd /opt/genestack
+./bin/install-kube-prometheus-stack.sh
+
+# Wait for the operator to be ready:
+kubectl -n monitoring rollout status deployment/kube-prometheus-stack-prometheus-operator --timeout=600s
+
+# Wait for CRDs to be fully migrated:
+kubectl get crd prometheuses.monitoring.coreos.com -o jsonpath='{.status.storedVersions}'
+# Expected: [v1] (after all objects are migrated)
+
+# Wait for Prometheus StatefulSet:
+kubectl -n prometheus rollout status statefulset/kube-prometheus-stack-prometheus --timeout=600s
+
+# Wait for Alertmanager:
+kubectl -n monitoring rollout status statefulset/kube-prometheus-stack-alertmanager --timeout=300s
+
+# Wait for all pods in monitoring namespace:
+kubectl -n monitoring rollout status deployment/kube-prometheus-stack-prometheus-operator --timeout=300s
+kubectl -n monitoring rollout status deployment/kube-prometheus-stack kube-prometheus-stack-prometheus --timeout=600s 2>/dev/null || true
+
+### Post-Maint
+
+# Verify deployed version:
+grep '^[[:space:]]*kube-prometheus-stack:' /etc/genestack/helm-chart-versions.yaml
+helm -n monitoring list -f kube-prometheus-stack
+kubectl -n monitoring get deployment kube-prometheus-stack-prometheus-operator -o jsonpath='{range .spec.template.spec.containers[*]}{.image}{"\n"}{end}'
+
+# Verify CRD versions:
+kubectl get crd prometheuses.monitoring.coreos.com -o jsonpath='{.status.storedVersions}'
+kubectl get crd servicemonitors.monitoring.coreos.com -o jsonpath='{.status.storedVersions}'
+kubectl get crd alertmanagers.monitoring.coreos.com -o jsonpath='{.status.storedVersions}'
+
+# Expected: All should show [v1] or [v1 v1beta1] during migration (v1beta1 eventually removed)
+
+# Verify all pods are Running:
+kubectl -n monitoring get pods
+kubectl -n prometheus get pods
+
+# Verify Prometheus target health:
+kubectl -n prometheus port-forward svc/kube-prometheus-stack-prometheus 9090 &>/dev/null &
+sleep 10
+UP_COUNT=$(curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets | length')
+DOWN_COUNT=$(curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | select(.health != "up") | .scrapeURL' | wc -l)
+echo "Prometheus targets: $UP_COUNT total, $DOWN_COUNT down"
+kill %1 2>/dev/null || true
+
+# Verify Prometheus version:
+PROM_VER=$(kubectl -n monitoring get prometheus -o jsonpath='{.items[0].status.version}' 2>/dev/null)
+echo "Prometheus version: $PROM_VER"
+
+# Verify Alertmanager:
+kubectl -n monitoring get alertmanager
+kubectl -n monitoring get pods -l app.kubernetes.io/name=alertmanager
+
+# Verify PVCs are intact:
+kubectl -n prometheus get pvc -l app.kubernetes.io/name=prometheus
+
+# Re-enable HPA:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+# Clean up temp files:
+rm -f /tmp/kube-prometheus-stack-render.yaml /tmp/kube-prometheus-stack-crds.yaml
+
+### Troubleshooting
+
+## Common Failure Signals
+
+# If CRDs fail to migrate to v1:
+# This can happen if the Prometheus Operator does not perform the storage migration.
+# Manually check for v1beta1 objects:
+kubectl get prometheus -A -o jsonpath='{range .items[*]}{.metadata.namespace}/{.metadata.name}{"\n"}{end}'
+
+# If Prometheus PVC is incompatible:
+# The Prometheus app version jump may render old data incompatible.
+# Restore from backup if needed:
+# kubectl -n prometheus delete pvc -l app.kubernetes.io/name=prometheus
+# kubectl -n prometheus apply -f /tmp/prometheus-pvcs-backup.yaml
+# Restore data from backup tarball
+
+# If target scrape failures:
+kubectl -n prometheus port-forward svc/kube-prometheus-stack-prometheus 9090 &>/dev/null &
+sleep 5
+curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | select(.health != "up")'
+kill %1 2>/dev/null || true
+
+# If Helm upgrade fails with schema validation errors:
+# The override values may have fields incompatible with the new chart version.
+# Check: helm get values kube-prometheus-stack -n monitoring
+# Compare against the chart's values.yaml at: https://github.com/prometheus-community/helm-charts/blob/main/charts/kube-prometheus-stack/values.yaml
+
+## Rollback
+
+# If the upgrade fails:
+helm -n monitoring rollback kube-prometheus-stack <revision>
+
+# Verify rollback:
+helm -n monitoring list -f kube-prometheus-stack
+kubectl -n monitoring get pods
+
+# Restore Prometheus data if PVC was corrupted:
+# Restore from the backup created in Prep section
+
+# Re-enable HPA after rollback:
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+### Sources
+
+# https://github.com/prometheus-community/helm-charts/releases
+# https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md
+# https://docs.rackspacecloud.com/monitoring-prometheus/
+

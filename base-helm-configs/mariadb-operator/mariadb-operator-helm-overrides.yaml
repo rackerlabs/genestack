@@ -1,6 +1,6 @@
 ---
 # -- Helm chart version to be used in CI workflows
-x-chart-version: "26.3.0"
+x-chart-version: "26.6.0"
 
 nameOverride: ""
 fullnameOverride: ""

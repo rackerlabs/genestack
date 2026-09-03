@@ -1,0 +1,174 @@
+### Longhorn Maintenance: 1.11.1 to 1.11.3
+
+### Notes
+
+# (opt) refers to /opt, the standard install path for Genestack.
+# (etc) refers to /etc, the standard override path for Genestack.
+# Replace all placeholder values in angle brackets before using this runbook.
+# Keep this runbook operational. Prefer exact commands, exact file paths, expected outputs, and explicit validation steps.
+
+### Validation
+
+# Kubernetes 1.35.4 satisfies Longhorn 1.11.3 requirements.
+# Upgrading from 1.11.1 to 1.11.3 is a patch version upgrade.
+# No CRD or schema changes expected.
+# Validated source version: 1.11.1.
+# Validated target version: 1.11.3.
+
+# Major operational risks:
+# - Minimal — patch version upgrade.
+# - PVC data should be fully preserved.
+# - No CRD changes expected between patch versions.
+
+# Read upstream upgrade guide:
+#   https://longhorn.io/docs/1.11.1/deploy/upgrade/
+
+### Goal
+
+# Upgrade Longhorn from 1.11.1 to 1.11.3 without volume or data availability regressions.
+
+### Prep
+
+## Deployment Node
+
+# Verify current health:
+kubectl -n longhorn-system get pods -o wide
+
+# Expected:
+# - All Longhorn pods (deployment, daemonsets) are Running
+# - No volumes in Maintenance state
+
+# Verify current version:
+helm list -n longhorn-system -f longhorn
+grep '^[[:space:]]*longhorn:' /etc/genestack/helm-chart-versions.yaml
+
+# Expected:
+# - longhorn: 1.11.1
+
+# Check for volumes in Maintenance state:
+kubectl get lhvolume -n longhorn-system 2>/dev/null | grep -i maintenance || echo "No volumes in maintenance"
+
+# Check for faulted volumes:
+kubectl get lhvolume -n longhorn-system 2>/dev/null | grep -i faulted || echo "No faulted volumes"
+
+# Backup Helm values:
+helm -n longhorn-system get values longhorn > /tmp/longhorn-helm-values.yaml
+kubectl get secret,configmap -n longhorn-system -o yaml > /tmp/longhorn-config-backup.yaml
+
+# Verify all volumes are healthy:
+kubectl get lhvolume -n longhorn-system 2>/dev/null | grep -c Healthy
+kubectl get lhvolume -n longhorn-system 2>/dev/null | grep -c -- "-" || echo "No unhealthy volumes"
+
+# Verify cluster health:
+kubectl get nodes
+kubectl get pods -A --no-headers | awk '$4 != "Running" && $4 != "Completed" {print}'
+
+## Configuration Review
+
+# Check the override file for version-specific settings:
+# (No specific overrides needed for patch upgrade)
+
+## Pre-Change Safety Checks
+
+# Disable HPA during upgrade:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh lock 2>/dev/null || true
+
+# Verify Longhorn is healthy via its own health check endpoint:
+kubectl -n longhorn-system get pods -l app=longhorn-manager
+
+### Execute
+
+## Update the Target Version
+
+# Edit /etc/genestack/helm-chart-versions.yaml:
+# longhorn: 1.11.3
+
+## Run a Dry-Run
+
+# Test that the chart renders correctly:
+helm template longhorn longhorn/longhorn \
+  --version 1.11.3 \
+  -f /opt/genestack/base-helm-configs/longhorn/longhorn-helm-overrides.yaml \
+  --namespace longhorn-system > /tmp/longhorn-render.yaml 2>&1
+
+grep -i "error\|fail\|warning" /tmp/longhorn-render.yaml | head -10 || echo "No errors found"
+
+## Run the Helm Upgrade
+
+cd /opt/genestack
+helm repo add longhorn https://charts.longhorn.io
+helm repo update
+helm upgrade --install longhorn longhorn/longhorn \
+  --version 1.11.3 \
+  --namespace=longhorn-system \
+  --create-namespace \
+  --timeout 300m \
+  -f /opt/genestack/base-helm-configs/longhorn/longhorn-helm-overrides.yaml
+
+## Wait for Reconciliation
+
+# Wait for the manager:
+kubectl -n longhorn-system rollout status deployment/longhorn-manager --timeout=600s 2>/dev/null || \
+kubectl -n longhorn-system rollout status daemonset/longhorn-manager --timeout=600s
+
+# Wait for all components:
+kubectl -n longhorn-system rollout status daemonset/longhorn-driver-deployer --timeout=300s 2>/dev/null || true
+kubectl -n longhorn-system rollout status deployment/longhorn-ui --timeout=300s 2>/dev/null || true
+kubectl -n longhorn-system rollout status deployment/csi-attacher --timeout=300s 2>/dev/null || true
+kubectl -n longhorn-system rollout status deployment/csi-provisioner --timeout=300s 2>/dev/null || true
+
+### Post-Maint
+
+# Verify deployed version:
+grep '^[[:space:]]*longhorn:' /etc/genestack/helm-chart-versions.yaml
+helm -n longhorn-system list -f longhorn
+kubectl -n longhorn-system get deployment longhorn-manager -o jsonpath='{range .spec.template.spec.containers[*]}{.image}{"\n"}{end}' 2>/dev/null || \
+kubectl -n longhorn-system get ds longhorn-manager -o jsonpath='{range .spec.template.spec.containers[*]}{.image}{"\n"}{end}' 2>/dev/null
+
+# Verify all Longhorn pods are Running:
+kubectl -n longhorn-system get pods -o wide
+
+# Verify no volumes are in Maintenance or Faulted state:
+kubectl get lhvolume -n longhorn-system 2>/dev/null | grep -i maintenance || echo "No volumes in maintenance"
+kubectl get lhvolume -n longhorn-system 2>/dev/null | grep -i faulted || echo "No faulted volumes"
+
+# Verify PVCs are intact:
+kubectl get pvc -A | grep longhorn | head -10
+
+# Verify Longhorn UI is accessible:
+kubectl -n longhorn-system get svc longhorn-frontend
+
+# Re-enable HPA:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+# Clean up:
+rm -f /tmp/longhorn-render.yaml
+
+### Troubleshooting
+
+## Common Failure Signals
+
+# If volumes become inaccessible:
+# 1. Check Longhorn manager pods:
+kubectl -n longhorn-system get pods -l app=longhorn-manager -o wide
+
+# 2. Check for node issues:
+kubectl get nodes
+
+# 3. Restart the problematic component:
+kubectl -n longhorn-system delete pod -l app=longhorn-manager
+
+# If the upgrade causes a rollback:
+helm -n longhorn-system rollback longhorn <revision>
+
+# Re-enable HPA:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+### Sources
+
+# https://longhorn.io/docs/1.11.1/deploy/upgrade/
+# https://github.com/longhorn/longhorn/releases/tag/v1.11.3
+

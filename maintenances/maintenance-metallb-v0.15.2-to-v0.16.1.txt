@@ -1,0 +1,214 @@
+### Metallb Maintenance: v0.15.2 to v0.16.1
+
+### Notes
+
+# (opt) refers to /opt, the standard install path for Genestack.
+# (etc) refers to /etc, the standard override path for Genestack.
+# Replace all placeholder values in angle brackets before using this runbook.
+# Keep this runbook operational. Prefer exact commands, exact file paths, expected outputs, and explicit validation steps.
+
+### Validation
+
+# Kubernetes 1.35.4 satisfies Metallb v0.16.1 minimum requirements (K8s 1.25+).
+# Upgrading from v0.15.2 to v0.16.1 is a minor version bump.
+# Validated source version: v0.15.2.
+# Validated target version: v0.16.1.
+
+# Major operational risks:
+# - MetalLB v0.16 introduces the IPAttached CRD (new resource type).
+# - The metallb.io/configlevel annotation prefix changed in v0.15 (already handled).
+# - Existing LoadBalancer services should continue to work.
+# - Check for breaking changes in Helm values structure.
+
+# Read upstream upgrade guide:
+#   https://metallb.universe.tf/release-notes/#version-0-16-0
+
+### Goal
+
+# Upgrade Metallb from v0.15.2 to v0.16.1 without LoadBalancer service disruption
+# and with the IPAttached CRD properly installed and healthy.
+
+### Prep
+
+## Deployment Node
+
+# Identify the deployment host with kubectl, helm access.
+
+# Verify current health:
+kubectl -n metallb-system get pods
+
+# Expected:
+# - metallb-controller: Running, Available
+# - metallb-speaker (DaemonSet): Running on all nodes
+
+# Verify current version:
+helm list -n metallb-system -f metallb
+grep '^[[:space:]]*metallb:' /etc/genestack/helm-chart-versions.yaml
+
+# Expected:
+# - metallb: v0.15.2
+
+# Capture deprecated annotation inventory (should already be clean from prior upgrade):
+kubectl get svc -A -o json | jq -r '.items[] | select(.metadata.annotations | has("metallb.universe.tf/address-pool")) | .metadata.namespace + "/" + .metadata.name'
+
+# Backup Metallb config:
+kubectl get ipaddresspools,l2advertisements -n metallb-system -o yaml > /tmp/metallb-crds-backup.yaml
+kubectl get secret,configmap -n metallb-system -o yaml > /tmp/metallb-configmaps-secrets.yaml
+helm -n metallb-system get values metallb > /tmp/metallb-helm-values.yaml
+
+# Verify LoadBalancer services are healthy:
+kubectl get svc -A | grep LoadBalancer
+kubectl get svc -A | grep metallb.io/address-pool
+
+# Verify no services are stuck in pending:
+kubectl get svc -A | grep "<pending>"
+
+# Verify cluster health:
+kubectl get nodes
+kubectl get pods -A --no-headers | awk '$4 != "Running" && $4 != "Completed" {print}'
+
+## Configuration Review
+
+# Check the override file:
+cat /opt/genestack/base-helm-configs/metallb/metallb-helm-overrides.yaml
+
+# Verify no v0.15-specific settings that may conflict with v0.16:
+grep -n "address-pool\|config-level\|configlevel\|metallb.io" /opt/genestack/base-helm-configs/metallb/metallb-helm-overrides.yaml 2>/dev/null
+
+# Verify the override file renders with the new chart version:
+helm template metallb metallb/metallb \
+  --version v0.16.1 \
+  -f /opt/genestack/base-helm-configs/metallb/metallb-helm-overrides.yaml \
+  --namespace metallb-system > /tmp/metallb-render.yaml 2>&1
+
+grep -i "error\|fail\|warning" /tmp/metallb-render.yaml | head -10 || echo "No errors found"
+
+## Pre-Change Safety Checks
+
+# Check for unhealthy MetalLB pods:
+kubectl -n metallb-system get pods
+
+# Verify LoadBalancer IP assignments:
+kubectl get svc -A | grep LoadBalancer | head -10
+
+# Verify no services are stuck in pending:
+kubectl get svc -A | grep "<pending>" | grep -v "metallb\|kubernetes"
+
+# Disable HPA during upgrade:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh lock 2>/dev/null || true
+
+### Execute
+
+## Update the Target Version
+
+# Edit /etc/genestack/helm-chart-versions.yaml:
+# metallb: v0.16.1
+
+## Run a Dry-Run
+
+# Test that the chart renders correctly:
+helm template metallb metallb/metallb \
+  --version v0.16.1 \
+  --namespace metallb-system \
+  -f /opt/genestack/base-helm-configs/metallb/metallb-helm-overrides.yaml > /tmp/metallb-render.yaml 2>&1
+
+# Check for errors:
+grep -i "error\|fail\|warning" /tmp/metallb-render.yaml | head -20 || echo "No errors found"
+
+## Run the Helm Upgrade
+
+cd /opt/genestack
+./bin/install-metallb.sh
+
+# Wait for the controller rollout:
+kubectl -n metallb-system rollout status deployment/metallb-controller --timeout=300s
+
+# Wait for speaker daemonset:
+kubectl -n metallb-system rollout status daemonset/metallb-speaker --timeout=300s
+
+## Install IPAttached CRD (if not auto-installed by chart)
+
+# MetalLB v0.16 introduces the IPAttached CRD:
+kubectl get crd ipattacheds.metallb.io 2>/dev/null || \
+  kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.16.1/config/crd/metallb.io_ipattached.yaml
+
+# Wait for CRD to be established:
+kubectl wait --for=condition=Established crd/ipattacheds.metallb.io --timeout=300s 2>/dev/null || true
+
+### Post-Maint
+
+# Verify deployed version:
+grep '^[[:space:]]*metallb:' /etc/genestack/helm-chart-versions.yaml
+helm -n metallb-system list -f metallb
+kubectl -n metallb-system get deployment metallb-controller -o jsonpath='{range .spec.template.spec.containers[*]}{.image}{"\n"}{end}'
+
+# Expected: quay.io/metallb/controller:v0.16.1
+
+# Verify IPAttached CRD:
+kubectl get crd ipattacheds.metallb.io
+
+# Verify all pods are Running:
+kubectl -n metallb-system get pods
+kubectl -n metallb-system get ds metallb-speaker -o wide
+
+# Verify LoadBalancer services are healthy:
+kubectl get svc -A | grep LoadBalancer
+kubectl get svc -A | grep "<pending>" | grep -v "metallb\|kubernetes" || echo "No pending services"
+
+# Verify MetalLB config is intact:
+kubectl -n metallb-system get ipaddresspools,l2advertisements
+
+# Test LoadBalancer service functionality:
+# Pick one LoadBalancer service and verify it has an IP:
+kubectl get svc -A | grep LoadBalancer | head -5
+
+# Verify Helm release:
+helm -n metallb-system list -f metallb
+
+# Re-enable HPA:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+# Clean up:
+rm -f /tmp/metallb-render.yaml
+
+### Troubleshooting
+
+## Common Failure Signals
+
+# If LoadBalancer services lose their IPs:
+# 1. Check speaker pods:
+kubectl -n metallb-system get ds metallb-speaker -o wide
+kubectl -n metallb-system logs ds/metallb-speaker | tail -20
+
+# 2. Verify IPAddressPool is still valid:
+kubectl -n metallb-system get ipaddresspools
+kubectl -n metallb-system describe ipaddresspool
+
+# If IPAttached CRD installation fails:
+kubectl describe crd ipattacheds.metallb.io
+
+# If services are stuck in pending:
+# Check if the config-level annotation was properly migrated:
+kubectl get svc -A -o json | jq -r '.items[] | select(.metadata.annotations | has("metallb.universe.tf/address-pool")) | .metadata.namespace + "/" + .metadata.name'
+
+## Rollback
+
+# If the upgrade fails:
+helm -n metallb-system rollback metallb <revision>
+
+# Verify rollback:
+helm -n metallb-system list -f metallb
+kubectl -n metallb-system get pods
+
+# Re-enable HPA:
+cd /opt/genestack
+/opt/genestack/scripts/manage_hpa.sh unlock 2>/dev/null || true
+
+### Sources
+
+# https://metallb.universe.tf/release-notes/#version-0-16-0
+# https://github.com/metallb/metallb/releases/tag/v0.16.1
+# https://docs.rackspacecloud.com/infrastructure-metallb/
+
