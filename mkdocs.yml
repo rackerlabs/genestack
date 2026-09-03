@@ -217,9 +217,9 @@ nav:
                       - Nova: openstack-compute-kit-nova.md
                       - Neutron: openstack-compute-kit-neutron.md
                   - Ironic:
+                      - Ironic Lifecycle Management: openstack-ironic-lifecycle-management.md
                       - Ironic Deployment: openstack-ironic.md
                       - Ironic Policy: openstack-ironic-policy.md
-                      - Ironic Lifecycle Management: openstack-ironic-lifecycle-management.md
                       - Ironic Operational Guide: openstack-ironic-operational-guide.md
                   - Dashboards:
                       - Horizon: openstack-horizon.md
