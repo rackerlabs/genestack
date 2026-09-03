@@ -43,6 +43,7 @@ networking:
 
 func:
   ENABLE_EXTERNAL_VPC: true
+  HW_OFFLOAD: false  # Enable hardware offload, if supported by the underlying network hardware.
   OVSDB_CON_TIMEOUT: 5
   OVSDB_INACTIVITY_TIMEOUT: 30
 
