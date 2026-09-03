@@ -1,0 +1,11 @@
+---
+
+- name: Remove storage-cinder conf staging file
+  ansible.builtin.file:
+    path: /etc/cinder/{{ cinder_worker_name }}-cinder.conf.stage
+    state: absent
+
+- name: Remove cinder conf staging file
+  ansible.builtin.file:
+    path: /etc/cinder/cinder.conf.stage
+    state: absent

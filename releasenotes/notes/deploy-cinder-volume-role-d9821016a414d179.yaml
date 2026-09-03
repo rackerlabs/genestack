@@ -1,0 +1,28 @@
+---
+features:
+  - |
+    The playbooks `deploy-cinder-volumes-reference.yaml` and
+    `deploy-cinder-netapp-volumes-reference.yaml` are consolidated into the `cinder_volumes`
+    role.
+    Most of the existing override are retained and consistently prefixed by
+    `cinder_` and are listed as example inside the `inventory.yaml.example`.
+
+    `cinder_backend_name` Enables a named or list of cinder backends on the local `cinder-volume`
+    service.
+
+    `cinder_worker_name` Defines the service name of the of the local `cinder-volume` service.
+upgrade:
+  - |
+    The playbooks `deploy-cinder-volumes-reference.yaml` and
+    `deploy-cinder-netapp-volumes-reference.yaml` are consolidated into the `cinder_volumes`
+    role.
+    Most of the existing override are retained and consistently prefixed by
+    `cinder_` and are listed as example inside the `inventory.yaml.example`
+deprecations:
+  - |
+    The playbooks `deploy-cinder-volumes-reference.yaml` and
+    `deploy-cinder-netapp-volumes-reference.yaml` are consolidated into the `cinder_volumes`
+    role.
+
+    The override `custom_multipath` is deprecated and replaced with `storage_network_multipath`
+    to simplify the configuration.

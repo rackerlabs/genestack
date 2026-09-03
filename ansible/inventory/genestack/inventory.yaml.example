@@ -104,6 +104,16 @@ all:
                 ceph-02.env1.example.local: null
                 ceph-03.env1.example.local: null
             cinder_storage_nodes:  # nodes used for cinder storage labeled as openstack-storage-node=enabled
+              vars:
+                cinder_backend_name: netapp-iscsi-1
+                cinder_worker_name: netapp # Other possibilities: lvm, storage (non NetApp)
+                storage_network_multipath: false
+                # Non LVM storage options
+                cinder_enable_storage_ssl: false
+                cinder_storage_cert_src_dir: "/root/ssl/certs"
+                cinder_storage_cert_filenames:
+                  - "ontap-cluster-host.crt"
+                  - "ontap-vserver-host.crt"
               hosts:
                 storage-01.env1.example.local: null
                 storage-02.env1.example.local: null

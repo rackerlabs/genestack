@@ -1,0 +1,231 @@
+---
+
+- name: Gather variables for each operating system
+  ansible.builtin.include_vars: "{{ lookup('first_found', params) }}"
+  vars:
+    params:
+      files:
+        - "{{ ansible_facts['distribution'] | lower }}-{{ ansible_facts['distribution_version'] | lower }}.yaml"
+        - "{{ ansible_facts['distribution'] | lower }}-{{ ansible_facts['distribution_major_version'] | lower }}.yaml"
+        - "{{ ansible_facts['os_family'] | lower }}-{{ ansible_facts['distribution_major_version'] | lower }}.yaml"
+        - "{{ ansible_facts['distribution'] | lower }}.yaml"
+        - "{{ ansible_facts['os_family'] | lower }}.yaml"
+      paths:
+        - "{{ role_path }}/vars"
+  tags:
+    - always
+
+- ansible.builtin.debug:
+    msg:
+      - "Configuring backend: {{ cinder_backend_name }}"
+      - "Configuring worker: {{ cinder_worker_name }}"
+
+- ansible.builtin.debug:
+    msg:
+      - "Multipath: {{ storage_network_multipath }}"
+  when:
+    - cinder_worker_name | lower == "lvm"
+
+- ansible.builtin.debug:
+    msg:
+      - "Client SSL Cert: {{ cinder_enable_storage_ssl }}"
+      - "Client SSL Dir: {{ cinder_storage_cert_src_dir }}"
+      - "Client SSL Certs: {{ cinder_storage_cert_filenames }}"
+  when:
+    - cinder_worker_name | lower != "lvm"
+
+- name: K8S Facts block
+  delegate_to: "{{ groups['kube_control_plane'][0] }}"
+  block:
+    - name: Ensure python3-kubernetes is available
+      ansible.builtin.package:
+        name: python3-kubernetes
+        state: present
+        update_cache: true
+
+    - name: Read cinder-etc secrets
+      kubernetes.core.k8s_info:
+        kind: Secret
+        name: cinder-etc
+        namespace: openstack
+      register: _kubernetes_cinder_etc_secret
+
+- name: Install cinder distro packages
+  ansible.builtin.package:
+    name: "{{ cinder_volume_package_list }}"
+    state: "{{ cinder_volume_package_state }}"
+    update_cache: true
+  when:
+    - cinder_volume_package_list | length > 0
+  register: install_packages
+  until: install_packages is success
+  retries: 5
+  delay: 2
+
+- name: Install cinder-backend distro packages
+  ansible.builtin.package:
+    name: "{{ cinder_backend_packages[ cinder_worker_name ] }}"
+    state: "{{ cinder_volume_package_state }}"
+    update_cache: true
+  when:
+    - cinder_volume_package_list | length > 0
+  register: install_backend_packages
+  until: install_backend_packages is success
+  retries: 5
+  delay: 2
+
+- name: Determine iscsi initiator name
+  set_fact:
+    initiator_name: >
+      {% set _iqn = "iqn.2004-10.com." + ansible_distribution |lower() + ":" + ansible_hostname -%}
+      {% if ansible_iscsi_iqn is defined -%}
+      {% if (ansible_iscsi_iqn |length >= 15) -%}
+      {% set _iqn = ansible_iscsi_iqn  -%}
+      {% endif -%}
+      {% endif -%}
+      {{ _iqn }}
+
+- name: Set iscsi initiator name if not set
+  ansible.builtin.lineinfile:
+    path: /etc/iscsi/initiatorname.iscsi
+    regexp: '^InitiatorName=.*|^GenerateName=.*'
+    line: "InitiatorName={{ initiator_name }}"
+
+- name: Configure SSL certificate for storage API access
+  ansible.builtin.include_tasks: configure_storage_certificate.yaml
+  when:
+    - cinder_worker_name | lower != "lvm"
+
+- name: Upgrade pip and install required packages
+  ansible.builtin.pip:
+    name:
+      - pip
+      - pymysql
+      - "git+https://github.com/openstack/cinder@{{ cinder_release_branch }}"
+      - "git+https://github.com/rackerlabs/cinder-rxt.git"
+    state: present
+    virtualenv: "{{ cinder_virtualenv_path }}"
+    virtualenv_command: python3 -m venv
+
+- name: "Get Python site-packages path from virtualenv"
+  command: "{{ cinder_virtualenv_path }}/bin/python -c 'import site; print(site.getsitepackages()[0])'"
+  register: venv_site
+  changed_when: false
+
+- name: "Normalize site-packages path"
+  set_fact:
+    venv_site_packages: "{{ venv_site.stdout | trim }}"
+
+- name: "Ensure site-packages exists"
+  file:
+    path: "{{ venv_site_packages }}"
+    state: directory
+  when: venv_site_packages != ""
+
+- name: Install eventlet SSL patch
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode | default('0644') }}"
+  loop:
+    - src: "../templates/zzz_eventlet_ssl_patch.pth"
+      dest: "{{ venv_site_packages }}/zzz_eventlet_ssl_patch.pth"
+      mode: "0644"
+    - src: "../templates/eventlet_ssl_patch.py"
+      dest: "{{ venv_site_packages }}/eventlet_ssl_patch.py"
+      mode: "0644"
+  when:
+    - cinder_worker_name | lower != "lvm"
+
+- name: Create the cinder system user
+  ansible.builtin.user:
+    name: cinder
+    comment: Cinder system user
+    shell: /bin/false
+    system: true
+    createhome: true
+    home: /var/lib/cinder
+
+- name: Create the cinder system group
+  ansible.builtin.group:
+    name: cinder
+    system: true
+
+- name: Create the cinder service directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: cinder
+    group: cinder
+    mode: "0755"
+  loop:
+    - /var/lib/cinder/backup
+    - /var/lib/cinder/tmp
+    - /var/lib/cinder/volumes
+
+- name: Create symlink for the etc directory
+  ansible.builtin.file:
+    src: /opt/cinder/etc/cinder
+    dest: /etc/cinder
+    state: link
+    owner: cinder
+    group: cinder
+
+- name: Create the cinder-volume filters and logging configuration
+  ansible.builtin.copy:
+    content: "{{ _kubernetes_cinder_etc_secret.resources[0].data[item.src] | b64decode }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - src: "logging.conf"
+      dest: /etc/cinder/logging.conf
+    - src: "volume.filters"
+      dest: /etc/cinder/volume.filters
+
+- name: "Create the cinder-volume configuration stage file"
+  changed_when: false
+  ansible.builtin.copy:
+    content: "{{ _kubernetes_cinder_etc_secret.resources[0].data['cinder.conf'] | b64decode }}"
+    dest: "/etc/cinder/cinder.conf.stage"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Replace the host in the cinder.conf.stage with the current Ansible FQDN in the stage file
+  changed_when: false
+  community.general.ini_file:
+    path: "/etc/cinder/cinder.conf.stage"
+    section: DEFAULT
+    option: host
+    value: "{{ inventory_hostname }}"
+    create: true
+
+- name: Replace exec path in rootwrap
+  community.general.ini_file:
+    path: /etc/cinder/rootwrap.conf
+    section: DEFAULT
+    option: "{{ item.key }}"
+    value: "{{ item.value }}"
+    create: true
+  loop:
+    - key: "exec_dirs"
+      value: "/opt/cinder/bin,/sbin,/usr/sbin,/bin,/usr/bin,/usr/local/bin,/usr/local/sbin,/usr/lpp/mmfs/bin"
+    - key: "filters_path"
+      value: "/etc/cinder/rootwrap.d"
+
+- name: Configure storage backend
+  ansible.builtin.include_tasks: configure_backend.yaml
+  when:
+    - cinder_worker_name | lower != "lvm"
+
+- name: Configure lvm backend
+  ansible.builtin.include_tasks: configure_backend_lvm.yaml
+  when:
+    - cinder_worker_name | lower == "lvm"
+
+- name: Cleanup
+  ansible.builtin.include_tasks: cleanup.yaml
