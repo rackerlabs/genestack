@@ -1,0 +1,122 @@
+#!/bin/bash
+# Fix the isc-dhcp-client rfc3442 classless-static-routes exit hook so it
+# reinstalls DHCP option 121 routes on ALL dhclient lease events, not just
+# BOUND/REBOOT.
+#
+# Background
+# ----------
+# The Trove management network delivers the guest's routes to the anchor
+# gateway via DHCP option 121 -- specifically 0.0.0.0/1 and 128.0.0.0/1 via
+# the mgmt gateway (see trove_mgmt_network.yml: the --host-route pair).
+# Those routes are the guest's only path to in-cluster RabbitMQ, Keystone,
+# and Swift (reached through the trove-mgmt-bridge anchor).
+#
+# On Debian, isc-dhcp-client processes option 121 only through the
+# /etc/dhcp/dhclient-exit-hooks.d/rfc3442-classless-routes hook. The stock
+# hook (a) ships non-executable and (b) only installs routes on BOUND/REBOOT.
+# Handling RENEW/REBIND fixed forced-renewal route loss, but instances still
+# lose their RabbitMQ connection at ~12h, which correlates with the DHCP
+# lease timeout. This version is the "handle everything" experiment: it acts
+# on all reasons that can touch routes, and falls back to the previous
+# lease's route data (old_*) when the current lease data (new_*) is empty --
+# which is what happens on EXPIRE. It also logs the reason + interface
+# address to /var/log/trove-dhcp-reason.log so we can tell, after the next
+# ~12h failure, whether the address itself survived (hook can help) or was
+# torn down (hook cannot help and we pivot to a lease-independent fix).
+#
+# NOTE (experiment caveat): on EXPIRE the lease is gone and dhclient-script
+# also removes the interface address; re-adding routes may not stick if the
+# address is torn down. The logger is what makes this experiment conclusive.
+set -e
+set -o xtrace
+
+HOOK=/etc/dhcp/dhclient-exit-hooks.d/rfc3442-classless-routes
+
+cat > "${HOOK}" <<'EOF'
+# Set classless static routes (DHCP option 121, RFC 3442) on every lease
+# event. Genestack experiment: handle all reasons, fall back to old_* route
+# data when new_* is empty (EXPIRE), use idempotent "ip route replace".
+
+# Diagnostic: record what fired and whether the interface still has an addr.
+echo "$(date -u +%FT%TZ) reason=${reason} new=[${new_rfc3442_classless_static_routes:+set}] old=[${old_rfc3442_classless_static_routes:+set}] addr=[$(ip -br addr show ${interface:-ens4} 2>/dev/null | awk '{print $3}')]" >> /var/log/trove-dhcp-reason.log 2>/dev/null
+
+RUN="yes"
+
+if [ "$RUN" = "yes" ]; then
+	# Act on any reason that can add/remove routes. On teardown reasons the
+	# current-lease var is empty, so fall back to the previous lease's routes.
+	case "$reason" in
+		BOUND|RENEW|REBIND|REBOOT|EXPIRE|STOP|RELEASE|FAIL|TIMEOUT) ;;
+		*) return 0 ;;
+	esac
+
+	routes="${new_rfc3442_classless_static_routes:-$old_rfc3442_classless_static_routes}"
+
+	if [ -n "$routes" ]; then
+		set -- $routes
+
+		while [ $# -gt 0 ]; do
+			net_length=$1
+			via_arg=''
+
+			case $net_length in
+				32|31|30|29|28|27|26|25)
+					if [ $# -lt 9 ]; then
+						return 1
+					fi
+					net_address="${2}.${3}.${4}.${5}"
+					gateway="${6}.${7}.${8}.${9}"
+					shift 9
+					;;
+				24|23|22|21|20|19|18|17)
+					if [ $# -lt 8 ]; then
+						return 1
+					fi
+					net_address="${2}.${3}.${4}.0"
+					gateway="${5}.${6}.${7}.${8}"
+					shift 8
+					;;
+				16|15|14|13|12|11|10|9)
+					if [ $# -lt 7 ]; then
+						return 1
+					fi
+					net_address="${2}.${3}.0.0"
+					gateway="${4}.${5}.${6}.${7}"
+					shift 7
+					;;
+				8|7|6|5|4|3|2|1)
+					if [ $# -lt 6 ]; then
+						return 1
+					fi
+					net_address="${2}.0.0.0"
+					gateway="${3}.${4}.${5}.${6}"
+					shift 6
+					;;
+				0)	# default route
+					if [ $# -lt 5 ]; then
+						return 1
+					fi
+					net_address="0.0.0.0"
+					gateway="${2}.${3}.${4}.${5}"
+					shift 5
+					;;
+				*)	# error
+					return 1
+					;;
+			esac
+
+			# take care of link-local routes
+			if [ "${gateway}" != '0.0.0.0' ]; then
+				via_arg="via ${gateway}"
+			fi
+
+			# replace route (idempotent: add if missing, update if present;
+			# ip detects host routes automatically)
+			ip -4 route replace "${net_address}/${net_length}" \
+				${via_arg} dev "${interface}" >/dev/null 2>&1
+		done
+	fi
+fi
+EOF
+
+chmod +x "${HOOK}"

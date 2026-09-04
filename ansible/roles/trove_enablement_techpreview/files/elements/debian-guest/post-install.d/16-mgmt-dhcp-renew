@@ -1,0 +1,46 @@
+#!/bin/bash
+# Guarantee a persistent, renewing DHCP client on the Trove mgmt NIC (ens4).
+#
+# Root cause this addresses:
+# On the Debian guest (ifupdown + isc-dhcp-client, no systemd-networkd), the
+# ens4 DHCP lease is acquired once at boot but no dhclient daemon is left
+# resident to renew it. The lease is never renewed at T1/T2 and lapses at
+# expiry (~12h); dhclient then removes the ens4 IPv4 address, every route
+# through it (the mgmt routes 0.0.0.0/1 + 128.0.0.0/1 via the anchor gateway)
+# is dropped, and the guest-agent loses its RabbitMQ/Keystone/Swift path with
+# "[Errno 101] ENETUNREACH" until reboot. Ubuntu guests use systemd-networkd,
+# which renews the lease in-daemon -- which is why this was Debian-only.
+#
+# This installs a systemd service that runs dhclient in the foreground (-d)
+# for ens4 only, so a renewing client is always resident. dhclient handles
+# T1/T2 renewal itself; systemd restarts it if it ever exits. The rfc3442
+# exit hook (see 14-classless-routes-hook) reinstalls the option-121 routes
+# on each renewal event.
+set -e
+set -o xtrace
+
+UNIT=/etc/systemd/system/trove-mgmt-dhclient.service
+
+cat > "${UNIT}" <<'EOF'
+[Unit]
+Description=Persistent renewing DHCP client for Trove mgmt NIC (ens4)
+Documentation=man:dhclient(8)
+# Wait for the interface to exist before starting.
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+# -d: run in foreground so systemd supervises it and it stays resident to
+# renew the lease at T1/T2. -4: IPv4 only. Single interface: ens4.
+ExecStart=/sbin/dhclient -d -4 ens4
+Restart=always
+RestartSec=5
+# Only start once ens4 is present; if not, keep retrying.
+ExecStartPre=/bin/sh -c 'until ip link show ens4 >/dev/null 2>&1; do sleep 2; done'
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl enable trove-mgmt-dhclient.service

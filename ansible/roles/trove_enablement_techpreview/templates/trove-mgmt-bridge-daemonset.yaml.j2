@@ -35,6 +35,21 @@ spec:
       # Init container moves t-mgmt0 from root netns into the pod netns
       # using the host PID of the init process, so we need hostPID=true.
       hostPID: true
+      # Tune TCP keepalive for the haproxy sockets. The config enables
+      # keepalive via option clitcpka/srvtcpka, but the kernel defaults
+      # (tcp_keepalive_time=7200s) are far too long to catch a silently
+      # half-open guest-agent<->RabbitMQ connection. These namespaced
+      # sysctls make the kernel start probing an idle socket after 5min
+      # and tear down a dead peer within ~2min of probing, forcing a
+      # prompt guest reconnect instead of blackholing the next publish.
+      securityContext:
+        sysctls:
+          - name: net.ipv4.tcp_keepalive_time
+            value: "300"
+          - name: net.ipv4.tcp_keepalive_intvl
+            value: "30"
+          - name: net.ipv4.tcp_keepalive_probes
+            value: "4"
       tolerations:
         - operator: Exists
       volumes:

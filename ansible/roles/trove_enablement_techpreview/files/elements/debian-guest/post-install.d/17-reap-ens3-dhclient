@@ -1,0 +1,58 @@
+#!/bin/bash
+# Reap the orphaned ens3 dhclient after Trove's prepare step tears down ens3.
+#
+# Trove's guest prepare, by design, removes the tenant NIC (ens3) and
+# repurposes it into a veth/bridge for the datastore docker container. The
+# dhclient that ifupdown started for ens3 at boot is NOT stopped when the
+# interface goes away, so it keeps sending DHCPDISCOVERs against a
+# non-existent interface forever:
+#   dhclient[423]: DHCPDISCOVER on ens3 ...
+#   dhclient[423]: dhclient.c:2600: Failed to send ... over ens3 interface.
+# These are harmless (the mgmt path is ens4, which is healthy) but they spam
+# the logs every few seconds, bury real ens4 events, and waste cycles.
+#
+# IMPORTANT (why this is Type=simple and ordered After=cloud-final):
+# This service waits for ens3 to disappear, which does not happen until
+# Trove's guest-agent prepare runs -- i.e. AFTER cloud-init has finished.
+# It must therefore never sit in the boot-critical path. An earlier version
+# used Type=oneshot + WantedBy=multi-user.target with a blocking "while"
+# loop; because multi-user.target waits for oneshot units to complete, that
+# blocked multi-user.target forever, which in turn blocked cloud-final.service
+# (ordered After=multi-user.target) -- so cloud-init's final stage (and the
+# mysql cloud-init shellscript) never ran. Using Type=simple means systemd
+# considers the unit "started" as soon as it forks, so it never blocks the
+# boot transaction, and ordering it After=cloud-final guarantees it can't
+# precede cloud-init's final stage.
+set -e
+set -o xtrace
+
+UNIT=/etc/systemd/system/trove-reap-ens3-dhclient.service
+
+cat > "${UNIT}" <<'EOF'
+[Unit]
+Description=Reap orphaned ens3 dhclient after Trove prepare tears down ens3
+# Run only after cloud-init has fully finished so we never block its stages.
+After=cloud-final.service network.target
+Wants=cloud-final.service
+
+[Service]
+# Type=simple: considered started as soon as the process forks, so nothing
+# (multi-user.target, cloud-final) ever waits on this to "complete". The
+# blocking wait below therefore cannot stall the boot transaction.
+Type=simple
+ExecStart=/bin/sh -c '\
+  while ip link show ens3 >/dev/null 2>&1; do sleep 10; done; \
+  if [ -f /run/dhclient.ens3.pid ]; then \
+    /sbin/dhclient -x -pf /run/dhclient.ens3.pid >/dev/null 2>&1 || true; \
+  fi; \
+  pkill -f "dhclient.*ens3" 2>/dev/null || true; \
+  echo "ens3 gone; dhclient reaped"'
+# Do not restart: once ens3 is reaped the job is done. If ens3 never goes
+# away (non-Trove use), the process simply waits harmlessly.
+Restart=no
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl enable trove-reap-ens3-dhclient.service

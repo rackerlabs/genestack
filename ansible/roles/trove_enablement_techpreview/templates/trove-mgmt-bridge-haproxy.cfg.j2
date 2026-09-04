@@ -6,9 +6,22 @@ defaults
   mode tcp
   log global
   option tcplog
+  # Kernel TCP keepalive on both legs. The guest-agent<->RabbitMQ AMQP
+  # connection is long-lived and mostly idle (only ~20s heartbeat frames).
+  # oslo.messaging heartbeats are application frames written into the send
+  # buffer; they do NOT detect a silently half-open socket. With keepalive
+  # on, the kernel probes idle sockets (see keepalive sysctls on the pod)
+  # and tears down a dead peer in minutes, forcing the guest to reconnect
+  # through a healthy path instead of blackholing the next publish.
+  option clitcpka
+  option srvtcpka
   timeout connect 5s
   timeout client 1h
   timeout server 1h
+  # Bound the established tunnel phase explicitly. Unset, HAProxy uses the
+  # client/server inactivity timeouts for the tunnel; setting it makes a
+  # stale AMQP tunnel get recycled rather than lingering indefinitely.
+  timeout tunnel 1h
 
 # RabbitMQ — trove-guestagent oslo.messaging backplane.
 frontend rabbitmq_in
