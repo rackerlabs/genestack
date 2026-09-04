@@ -107,6 +107,7 @@ EOF
     prompt_component "skyline" "Skyline (Dashboard)"
     prompt_component "freezer" "Freezer (Backup Restore)"
     prompt_component "zaqar" "Zaqar (Messaging)"
+    prompt_component "qonos" "Qonos (Scheduled Actions)"
 fi
 
 # Block on Keystone
@@ -132,6 +133,7 @@ is_component_enabled "gnocchi" && runTrackErator /opt/genestack/bin/install-gnoc
 is_component_enabled "cloudkitty" && runTrackErator /opt/genestack/bin/install-cloudkitty.sh
 is_component_enabled "freezer" && runTrackErator /opt/genestack/bin/install-freezer.sh
 is_component_enabled "zaqar" && runTrackErator /opt/genestack/bin/install-zaqar.sh
+is_component_enabled "qonos" && runTrackErator /opt/genestack/bin/install-qonos.sh
 
 waitErator
 

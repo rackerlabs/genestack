@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: qonos
+  namespace: openstack
+  labels:
+    app.kubernetes.io/name: qonos
+    app.kubernetes.io/instance: qonos
+    application: qonos
+    release_group: qonos
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: qonos-entrypoint
+  namespace: openstack
+rules:
+  - apiGroups: ["", "batch", "apps"]
+    resources: ["endpoints", "services", "jobs", "pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: qonos-entrypoint
+  namespace: openstack
+subjects:
+  - kind: ServiceAccount
+    name: qonos
+    namespace: openstack
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: qonos-entrypoint

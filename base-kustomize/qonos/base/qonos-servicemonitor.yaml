@@ -1,0 +1,71 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: qonos-api
+  namespace: openstack
+  labels:
+    app.kubernetes.io/component: api
+    app.kubernetes.io/instance: qonos
+    app.kubernetes.io/name: qonos
+    application: qonos
+    component: api
+    release: kube-prometheus-stack
+    release_group: qonos
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: qonos
+      component: api
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: qonos-worker
+  namespace: openstack
+  labels:
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/instance: qonos
+    app.kubernetes.io/name: qonos
+    application: qonos
+    component: worker
+    release: kube-prometheus-stack
+    release_group: qonos
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: qonos
+      component: worker
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: qonos-scheduler
+  namespace: openstack
+  labels:
+    app.kubernetes.io/component: scheduler
+    app.kubernetes.io/instance: qonos
+    app.kubernetes.io/name: qonos
+    application: qonos
+    component: scheduler
+    release: kube-prometheus-stack
+    release_group: qonos
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: qonos
+      component: scheduler
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
