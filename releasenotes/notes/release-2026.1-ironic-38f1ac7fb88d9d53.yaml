@@ -1,0 +1,230 @@
+---
+prelude: |
+  Genestack ``release-2026.1`` deploys Ironic from the OpenStack 2026.1
+  series. Ironic 35.0 is a SLURP release and supports a direct upgrade from
+  OpenStack 2025.1 (Ironic 29.0). This series adds trait-based networking,
+  automatic deploy-interface selection, improved Redfish inspection and
+  virtual-media support, and substantial API and deployment security
+  hardening.
+
+features:
+  - |
+    Genestack now enables periodic collection of Ironic conductor and bare-metal
+    hardware sensor data, including deployed and undeployed nodes. An
+    ``ironic-prometheus-exporter`` sidecar in every conductor pod exposes the
+    collected metrics on port 9608 through a dedicated Kubernetes Service. An
+    optional OpenTelemetry receiver can discover ready exporter endpoints and
+    forward their metrics to the configured monitoring backend; the standard
+    monitoring configuration also checks availability of the public Ironic API.
+  - |
+    The new ``autodetect`` deploy interface selects ``ramdisk``, ``bootc``, or
+    ``direct`` from image metadata and node configuration. Both ``autodetect``
+    and ``bootc`` are enabled by default, and ``ramdisk`` can now consume a
+    single suitably annotated Glance image.
+  - |
+    Trait-based networking can dynamically select ports and portgroups for
+    network attachment, including creating portgroups as needed. REST API
+    microversion 1.111 adds ``available_for_dynamic_portgroup`` to ports and
+    the read-only ``dynamic_portgroup`` field to portgroups.
+  - |
+    The experimental ``ironic-networking`` service provides switch
+    configuration through ``networking-generic-switch`` for standalone Ironic
+    deployments that do not use Neutron. OpenStack-integrated deployments also
+    gain VXLAN support and support for multiple physical switches.
+  - |
+    Redfish virtual-media boot now supports NFS and CIFS/SMB in addition to
+    HTTP. Ironic detects the transports advertised by the BMC, while operators
+    remain responsible for providing a share reachable by the BMC.
+  - |
+    Redfish out-of-band inspection now collects storage-controller, drive,
+    LLDP, port-speed, manufacturer, model, system UUID, and hardware-health
+    information. The ``health`` node field is exposed from API microversion
+    1.109 and is updated during periodic power synchronization for drivers that
+    implement health monitoring.
+  - |
+    Cleaning and servicing flows can skip IPA automatically when every step
+    declares ``requires_ramdisk=False``. Redfish BIOS configuration can poll
+    ``BootProgress`` and verify settings without booting IPA, and Redfish
+    firmware updates no longer require an in-band agent afterward.
+  - |
+    API microversion 1.110 permits aborting a deployment in ``DEPLOYWAIT``.
+    Deploy steps can declare whether they are abortable, matching clean and
+    service steps.
+  - |
+    Operators can load custom WSGI middleware through the
+    ``ironic.api.middleware`` entry-point namespace. Ironic 35.1 also adds
+    middleware that rejects JSON bodies exceeding configurable size or nesting
+    limits before parsing them.
+
+issues:
+  - |
+    Changing a node's ``owner`` does not update its parent or child nodes.
+    Operators must keep ownership consistent across related nodes; the upgrade
+    check warns when a node and its parent have different owners.
+  - |
+    NIC firmware inventory can be absent for newly enrolled nodes when a BMC
+    only exposes ``NetworkAdapters`` while the node is powered on. Validate
+    inventory after powering on or running the applicable cleaning or service
+    workflow.
+
+upgrade:
+  - |
+    Ironic now requires MySQL 8.0 or later, or MariaDB 10.3 or later, and
+    converts all existing tables from ``utf8mb3`` to ``utf8mb4`` during
+    ``ironic-dbsync upgrade``. Each table is locked while it is rewritten.
+    Plan control-plane downtime and test the migration against a copy of the
+    production database to estimate its duration, especially for large
+    deployments.
+  - |
+    Ironic Python Agent versions without in-band deploy-step support are no
+    longer compatible. Update old IPA kernel and ramdisk images before the
+    control-plane upgrade.
+  - |
+    Genestack sets ``[api]ramdisk_heartbeat_timeout=3600``, increasing the
+    maximum interval between Ironic Python Agent heartbeats from the upstream
+    default of 300 seconds. Account for the longer failure-detection window in
+    monitoring and automation; it accommodates long-running deployment and
+    provisioning operations that would otherwise time out.
+  - |
+    The default ``[DEFAULT]autodetect_deploy_interfaces`` value is now
+    ``ramdisk,bootc,direct``. Where ``autodetect`` is used, a Glance image with
+    ramdisk metadata can therefore select the ``ramdisk`` interface without an
+    explicit local override. Pin the option if the previous selection behavior
+    must be retained.
+  - |
+    Do not leave Redfish BIOS clean or service steps in progress during the
+    upgrade. The internal state changes to the structured
+    ``redfish_bios_state`` format. Ironic cleans up state from an operation
+    started by the old code when the next BIOS step is invoked.
+  - |
+    The deprecated ``inspector`` inspect interface has been removed. Migrate
+    nodes and configuration to the built-in ``agent`` inspection interface
+    before upgrading.
+  - |
+    Shellinabox support has been removed, including the
+    ``ipmitool-shellinabox`` console interface, the node web console that
+    depended on it, and the iLO ``console`` interface. Unset an explicitly
+    configured ``console_interface`` on affected iLO nodes and migrate console
+    workflows to a supported provider.
+  - |
+    Existing ports receive ``available_for_dynamic_portgroup=True`` and
+    existing portgroups receive ``dynamic_portgroup=False`` when the API 1.111
+    schema migration is applied. Review these defaults before enabling
+    trait-based networking on existing inventory.
+  - |
+    Generic Redfish inspection no longer stores ``sku`` in ``system_vendor``.
+    Dell service tags are reported as ``serial_number`` by the
+    ``idrac-redfish`` inspection interface. Update inspection rules or external
+    consumers that depend on the old field.
+  - |
+    The ``ilo`` console and inspector removals, database migration, deploy
+    interface defaults, and all security-related configuration changes should
+    be validated in a staging environment before conductors are upgraded.
+
+deprecations:
+  - |
+    The node ``driver_info`` value ``pxe_template`` is deprecated and is
+    expected to be removed in Ironic 2027.2. Absolute-path template overrides
+    are also disabled by default for security reasons; remove these overrides
+    instead of enabling the compatibility option.
+  - |
+    The Fujitsu ``irmc`` hardware type, all iRMC-specific interfaces, and the
+    ``[irmc]`` configuration options are deprecated. Operators should plan a
+    migration to a supported hardware type.
+  - |
+    Using ``ironic.api.wsgi:initialize_wsgi_app`` to select a custom
+    configuration file is deprecated. Use ``IRONIC_CONFIG_DIR`` and
+    ``IRONIC_CONFIG_FILE`` instead.
+  - |
+    The unused ``[drac]config_job_max_retries`` and
+    ``[drac]bios_factory_reset_timeout`` options are deprecated following the
+    earlier removal of the iDRAC WSMAN interfaces.
+
+critical:
+  - |
+    The mandatory ``utf8mb4`` database conversion rewrites and locks every
+    Ironic table. Do not treat this as an online migration: schedule downtime,
+    verify the database server version and row-format support, take a tested
+    backup, and measure the migration against production-like data first.
+
+security:
+  - |
+    Genestack now requires TLS for communication with Ironic Python Agent by
+    setting ``[agent]require_tls=True`` and ``[agent]verify_ca=True``. Callback
+    URLs without ``https://`` are rejected. Auto-generated certificates used
+    to validate ramdisk connections are stored in
+    ``[agent]certificates_path=/var/lib/ironic/certificates``. Ensure custom IPA
+    images and site overrides support TLS and preserve access to this directory
+    before upgrading.
+  - |
+    Ironic 35.1 includes fixes for ISO9660 path traversal (CVE-2026-48681),
+    unvalidated ``file://`` image sources that could exhaust conductor workers
+    (CVE-2026-44919), PXE template path overrides (CVE-2026-44917), and boot
+    script injection through ``kernel_append_params`` (CVE-2026-46447). Strict
+    kernel-parameter parsing is enabled by default and should not be disabled.
+  - |
+    The ``ipmitool`` vendor-passthru ``send_raw`` method is disabled by default.
+    Ironic recommends Redfish where possible; do not re-enable raw IPMI access
+    without a documented operational need and compensating access controls.
+  - |
+    IPA BIOS bootloader installation can be disabled with
+    ``enable_bios_bootloader_install=False`` to reduce exposure addressed by
+    CVE-2026-43003. The option remains ``True`` by default on this stable
+    branch for compatibility, so security-sensitive deployments must opt out.
+  - |
+    API authorization now prevents cross-project parent-node relationships and
+    reassignment of ports, portgroups, volume targets, and volume connectors
+    across node owners. Portgroup shard queries also apply owner and lessee
+    filtering.
+  - |
+    JSON body size and depth limits protect API workers from memory exhaustion
+    and recursion crashes. Review ``[api]max_json_body_size``,
+    ``[api]max_json_body_size_provision``,
+    ``[api]max_json_body_size_inspection``, and
+    ``[api]max_json_body_depth`` if clients submit unusually large payloads.
+  - |
+    The noVNC security proxy now bounds server-supplied failure reasons to
+    prevent a malicious BMC-side VNC server from exhausting proxy memory.
+    Volume-target responses also mask password-like iSCSI properties
+    independently of RBAC policy enforcement.
+
+fixes:
+  - |
+    Redfish firmware and BIOS updates receive more reliable task-state
+    handling, stabilization checks, timeout controls, reboot behavior, and Dell
+    iDRAC lifecycle-job detection. Power synchronization no longer interrupts
+    an in-progress firmware update.
+  - |
+    Redfish boot and power handling is more tolerant of BMC differences,
+    including full boot-parameter requests, transient power-on conflicts,
+    changes attempted during POST, missing Storage APIs or Volumes links, and
+    virtual-media slots without ``InsertMedia`` support.
+  - |
+    Inspection fixes cover MAC-address normalization, inspection-rule variable
+    interpolation, ``network.tags`` evaluation, missing inventory fields,
+    cleanup of inspection VIFs on failure, fast-track heartbeats, and graceful
+    shutdown before virtual-media ejection.
+  - |
+    Image handling now validates URLs before checksum calculation, streams
+    checksums while downloading large images, uses practical download chunk
+    sizes, supports secure Glance hashes, and correctly copies cached images
+    across filesystems or reuses an existing hard link.
+  - |
+    Networking fixes prevent orphaned Neutron ports for iPXE interfaces,
+    preserve physical-network consistency between ports and portgroups, use
+    service credentials for Neutron operations, and correctly unplug VIFs when
+    Nova reschedules a bare-metal instance.
+  - |
+    API fixes cover field-level RBAC decisions when callers request a limited
+    field set, masked volume-target update responses, portgroup shard filtering,
+    read-only virtual-media queries under concurrent operations, and node
+    deletion races that previously returned a misleading HTTP 409.
+
+other:
+  - |
+    Review the complete upstream Ironic 2026.1 series
+    [release notes](https://docs.openstack.org/releasenotes/ironic/2026.1.html)
+    before upgrading. The upstream page includes hardware- and driver-specific
+    changes that may apply to site-specific BMCs, out-of-tree drivers,
+    inspection rules, and firmware workflows beyond the Genestack highlights
+    above.
