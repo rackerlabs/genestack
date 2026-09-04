@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Documents ``ops-tools/check_octavia_ovn/install_check_octavia_ovn_systemd.sh``
+    for Genestack 2026.3.0. The installer deploys the Octavia/OVN checker as
+    a systemd-managed workflow and carries the explicit remediation
+    confirmation required by the ops tools standard.

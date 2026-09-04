@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Adds ``ops-tools/ovn/ovn_compare_neutron_security_groups_with_acl.py`` for
+    Genestack 2026.3.0. The Python scanner compares Neutron security groups
+    and rules with OVN port groups and ACLs, reporting missing state and
+    optionally deleting stale OVN security resources.
+  - |
+    Adds a suspended Kubernetes CronJob manifest for read-only JSON Neutron
+    security group/OVN ACL comparison scans with one-week finished Job
+    retention.

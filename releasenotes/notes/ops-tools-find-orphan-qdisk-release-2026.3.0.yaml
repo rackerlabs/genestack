@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Added ``ops-tools/find_orphan_qdisk``, a Python auditor for stale libvirt
+    tap ingress qdiscs that can cause Nova/libvirt spawn failures with
+    ``tc qdisc add ... ingress`` exclusivity errors.
+  - |
+    The qdisc auditor supports cluster, node, pod, and specific tap scans,
+    text or JSON output, read-only operation by default, stable exit codes, and
+    automated remediation guarded by ``--fix --yes-im-really-sure``.
+  - |
+    Adds a suspended Kubernetes CronJob manifest for read-only JSON qdisc
+    scans with one-week finished Job retention.

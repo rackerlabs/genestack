@@ -1,0 +1,48 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ops-tools-rogue-pod-scanner
+  namespace: openstack
+  labels:
+    app.kubernetes.io/name: ops-tools
+    app.kubernetes.io/component: rogue-pod-scanner
+    app.kubernetes.io/part-of: genestack
+spec:
+  schedule: "29 */6 * * *"
+  suspend: true
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 7
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 604800
+      backoffLimit: 0
+      activeDeadlineSeconds: 3600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: ops-tools
+            app.kubernetes.io/component: rogue-pod-scanner
+            app.kubernetes.io/part-of: genestack
+        spec:
+          serviceAccountName: ops-tools
+          restartPolicy: Never
+          containers:
+            - name: rogue-pod-scanner
+              image: ghcr.io/rackerlabs/genestack-images/ops-tools:latest
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/bash
+                - -lc
+              args:
+                - |
+                  set -uo pipefail
+                  python /opt/genestack/ops-tools/rogue_pod_scanner/rogue_pod_scanner.py --all-nodes --ssh-user ubuntu --sudo --format json --quiet --no-fail
+              terminationMessagePolicy: FallbackToLogsOnError
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi

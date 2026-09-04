@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Documents ``ops-tools/check_octavia_ovn/check_octavia_ovn.sh`` for
+    Genestack 2026.3.0. The script audits Amphora VIP port bindings in OVN,
+    runs dry by default, supports apply mode for load balancer failover, and
+    now requires ``--yes-im-really-sure`` before performing state-changing
+    remediation.

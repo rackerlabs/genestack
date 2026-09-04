@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Documents ``ops-tools/find_orphan_qdisk/find_orphan_qdisk.py`` for
+    Genestack 2026.3.0. The Python scanner finds stale libvirt tap ingress
+    qdiscs associated with Nova spawn failures, defaults to read-only output,
+    and requires ``--fix --yes-im-really-sure`` before deleting ingress qdiscs.
+  - |
+    Documents the suspended read-only CronJob manifest that runs the scanner in
+    JSON mode and retains finished Jobs for one week.

@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds ``ops-tools/ovn/ovn_compare_neutron_fips_with_ovn_nat.py`` for
+    Genestack 2026.3.0. The Python scanner compares assigned Neutron floating
+    IPs with OVN ``dnat_and_snat`` NAT rows, reports missing or stale NAT
+    state, and can remove stale OVN NAT rows with explicit fix confirmation.
+  - |
+    Adds a suspended Kubernetes CronJob manifest for read-only JSON floating
+    IP/NAT comparison scans with one-week finished Job retention.

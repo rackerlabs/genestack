@@ -1,0 +1,53 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ops-tools-ovn-compare-neutron-sgs-ovn-acls
+  namespace: openstack
+  labels:
+    app.kubernetes.io/name: ops-tools
+    app.kubernetes.io/component: ovn-compare-neutron-sgs-ovn-acls
+    app.kubernetes.io/part-of: genestack
+spec:
+  schedule: "43 */6 * * *"
+  suspend: true
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 7
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 604800
+      backoffLimit: 0
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: ops-tools
+            app.kubernetes.io/component: ovn-compare-neutron-sgs-ovn-acls
+            app.kubernetes.io/part-of: genestack
+        spec:
+          serviceAccountName: ops-tools
+          restartPolicy: Never
+          containers:
+            - name: ovn-compare-neutron-security-groups-with-acl
+              image: ghcr.io/rackerlabs/genestack-images/ops-tools:latest
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/bash
+                - -lc
+              args:
+                - |
+                  set -uo pipefail
+                  rc=0
+                  python /opt/genestack/ops-tools/ovn/ovn_compare_neutron_security_groups_with_acl.py --format json --quiet || rc=$?
+                  if [ "${rc}" -eq 2 ]; then
+                    exit 0
+                  fi
+                  exit "${rc}"
+              terminationMessagePolicy: FallbackToLogsOnError
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi

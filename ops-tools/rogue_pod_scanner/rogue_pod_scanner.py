@@ -12,6 +12,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+EXIT_OK = 0
+EXIT_ERROR = 1
+EXIT_FINDINGS = 2
+
 
 @dataclass(frozen=True)
 class CrictlPod:
@@ -59,17 +63,27 @@ def log(message: str, *, quiet: bool = False) -> None:
     print(f"[{timestamp}] {message}", file=sys.stderr, flush=True)
 
 
-def run_command(command: list[str], *, input_text: str | None = None) -> str:
+def run_command(
+    command: list[str],
+    *,
+    timeout: int,
+    input_text: str | None = None,
+) -> str:
     try:
         completed = subprocess.run(
             command,
             input=input_text,
             text=True,
             capture_output=True,
+            timeout=timeout,
             check=False,
         )
     except FileNotFoundError as exc:
         raise SystemExit(f"required command not found: {command[0]}") from exc
+    except subprocess.TimeoutExpired as exc:
+        detail = exc.stderr if isinstance(exc.stderr, str) else ""
+        detail = detail.strip() or f"command timed out after {timeout}s"
+        raise SystemExit(f"command timed out: {shlex.join(command)}\n{detail}") from exc
 
     if completed.returncode != 0:
         stderr = completed.stderr.strip()
@@ -86,10 +100,22 @@ def run_ssh_json(
     ssh_target: str,
     remote_command: list[str],
     ssh_options: list[str],
+    command_timeout: int,
+    ssh_connect_timeout: int,
 ) -> dict[str, Any]:
-    command = ["ssh", *ssh_options, ssh_target, shlex.join(remote_command)]
+    command = [
+        "ssh",
+        "-q",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        f"ConnectTimeout={ssh_connect_timeout}",
+        *ssh_options,
+        ssh_target,
+        shlex.join(remote_command),
+    ]
     return parse_json(
-        run_command(command),
+        run_command(command, timeout=command_timeout),
         f"ssh {ssh_target} {shlex.join(remote_command)}",
     )
 
@@ -156,6 +182,8 @@ def load_crictl_pods(
     ssh_options: list[str],
     crictl_command: str,
     use_sudo: bool,
+    command_timeout: int,
+    ssh_connect_timeout: int,
     quiet: bool,
 ) -> list[CrictlPod]:
     remote_command = []
@@ -167,7 +195,13 @@ def load_crictl_pods(
         f"SSH {ssh_target}: running {shlex.join(remote_command)}",
         quiet=quiet,
     )
-    payload = run_ssh_json(ssh_target, remote_command, ssh_options)
+    payload = run_ssh_json(
+        ssh_target,
+        remote_command,
+        ssh_options,
+        command_timeout,
+        ssh_connect_timeout,
+    )
     pods = payload.get("items", [])
     if not isinstance(pods, list):
         raise SystemExit("unexpected crictl JSON: .items is not a list")
@@ -208,6 +242,7 @@ def load_kubernetes_pods(
     node_name: str,
     kubeconfig: str | None,
     context: str | None,
+    command_timeout: int,
     quiet: bool,
 ) -> list[KubernetesPod]:
     command = [
@@ -222,7 +257,10 @@ def load_kubernetes_pods(
     ]
 
     log(f"Kubernetes {node_name}: querying scheduled pods", quiet=quiet)
-    payload = parse_json(run_command(command), shlex.join(command))
+    payload = parse_json(
+        run_command(command, timeout=command_timeout),
+        shlex.join(command),
+    )
     pods = payload.get("items", [])
     if not isinstance(pods, list):
         raise SystemExit("unexpected kubectl JSON: .items is not a list")
@@ -287,6 +325,7 @@ def load_kubernetes_nodes(
     context: str | None,
     address_preference: list[str],
     ssh_user: str | None,
+    command_timeout: int,
     quiet: bool,
 ) -> list[NodeTarget]:
     command = [
@@ -297,7 +336,10 @@ def load_kubernetes_nodes(
         "json",
     ]
     log("Kubernetes inventory: querying node list", quiet=quiet)
-    payload = parse_json(run_command(command), shlex.join(command))
+    payload = parse_json(
+        run_command(command, timeout=command_timeout),
+        shlex.join(command),
+    )
     nodes = payload.get("items", [])
     if not isinstance(nodes, list):
         raise SystemExit("unexpected kubectl JSON: .items is not a list")
@@ -371,7 +413,7 @@ def print_table(
         )
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "SSH to a node, read CRI pod sandboxes with crictl, and compare them "
@@ -415,6 +457,18 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--ssh-connect-timeout",
+        type=int,
+        default=10,
+        help="SSH connect timeout in seconds. Default: 10.",
+    )
+    parser.add_argument(
+        "--command-timeout",
+        type=int,
+        default=120,
+        help="Timeout per local or SSH command in seconds. Default: 120.",
+    )
+    parser.add_argument(
         "--sudo",
         action="store_true",
         help="Run crictl through sudo -n on the remote node.",
@@ -445,7 +499,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--json",
         action="store_true",
-        help="Emit machine-readable JSON instead of tables.",
+        help="Compatibility alias for --format json.",
+    )
+    parser.add_argument(
+        "--format",
+        choices=["text", "json"],
+        default="text",
+        help="Output format. Default: text.",
     )
     parser.add_argument(
         "--quiet",
@@ -457,7 +517,7 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Always exit 0, even when rogue pods are found.",
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def ssh_host_from_target(ssh_target: str) -> str:
@@ -484,6 +544,8 @@ def scan_node(
         ssh_options,
         args.crictl_command,
         args.sudo,
+        args.command_timeout,
+        args.ssh_connect_timeout,
         args.quiet,
     )
     if not args.include_notready:
@@ -506,6 +568,7 @@ def scan_node(
         node_name,
         args.kubeconfig,
         args.context,
+        args.command_timeout,
         args.quiet,
     )
 
@@ -626,8 +689,8 @@ def print_result(result: ScanResult) -> None:
     print()
 
 
-def main() -> int:
-    args = parse_args()
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
     if args.all_nodes and args.ssh_target:
         raise SystemExit("pass either --all-nodes or ssh_target, not both")
     if args.ssh_user and not args.all_nodes:
@@ -653,6 +716,7 @@ def main() -> int:
             args.context,
             address_preference,
             args.ssh_user,
+            args.command_timeout,
             args.quiet,
         )
     else:
@@ -701,7 +765,7 @@ def main() -> int:
         quiet=args.quiet,
     )
 
-    if args.json:
+    if args.json or args.format == "json":
         summary = {
             "nodes_scanned": len(results),
             "nodes_failed": sum(1 for result in results if result.error),
@@ -735,10 +799,10 @@ def main() -> int:
     has_errors = any(result.error for result in results)
     has_rogue_pods = any(result.rogue_uids for result in results)
     if has_errors:
-        return 1
+        return EXIT_ERROR
     if has_rogue_pods and not args.no_fail:
-        return 2
-    return 0
+        return EXIT_FINDINGS
+    return EXIT_OK
 
 
 if __name__ == "__main__":

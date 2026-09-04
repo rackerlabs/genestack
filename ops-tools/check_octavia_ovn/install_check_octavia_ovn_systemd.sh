@@ -77,6 +77,7 @@ install_files() {
 # LOG_FILE=/var/log/octavia_ovn_check.log
 # KUBECTL_CMD=kubectl
 # DEBUG=0
+# YES_IM_REALLY_SURE=1 is supplied by the packaged systemd unit ExecStart.
 EOF
     fi
 
