@@ -2,7 +2,7 @@
 # This file is used to determine which services will be installed automatically
 # via the hyperconverged lab and in a future release the genestack-installed.
 components:
-  barbican: true
+  barbican: false
   blazar: false
   ceilometer: false
   cinder: false
