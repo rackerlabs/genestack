@@ -148,6 +148,7 @@ if [[ "${BARBICAN_HSM_ENABLED:-false}" == "true" ]] || [[ "${HYPERCONVERGED_BARB
         echo "HSM enabled but p11_crypto_plugin missing in ${override_file}. Regenerating..."
         rm -f "${override_file}"
         SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        # shellcheck source=/dev/null
         source "${SCRIPT_DIR}/../scripts/lib/hyperconverged-common.sh"
         writeServiceHelmOverrides "${GENESTACK_OVERRIDES_DIR}/helm-configs"
     fi
@@ -165,6 +166,81 @@ if [[ -n "${hsm_pin}" ]]; then
     )
 fi
 unset hsm_pin
+
+# ============================================================================
+# Barbican simple_crypto master KEK injection
+#
+# Reads the KEK from the barbican-simple-crypto-plugin-kek Kubernetes Secret
+# and injects it via --set (highest helm precedence, overrides all -f files).
+# If the Secret is absent or empty, the --set is skipped and the kek must
+# come from the helm-overrides files: Gazpacho barbican has no built-in
+# default and fails to start without an explicit kek.
+#
+# *** WARNING: CHANGING THE SECRET TRIGGERS KEY ROTATION ON NEXT DEPLOY ***
+# The chart defaults simple_crypto_kek_rewrap.old_kek to the well-known
+# default, so as soon as this --set supplies a kek, the db-sync job's rewrap
+# gate is armed. While the Secret holds the well-known default the rewrap is
+# an idempotent no-op. The FIRST deploy after the Secret is changed to a new
+# key performs a ONE-WAY rewrap of every project KEK in the barbican DB
+# during db-sync. Before changing the Secret's value:
+#   1. Back up the barbican database (and verify the restore).
+#   2. Stage rotations ONLY with scripts/barbican-kek-rewrite-planner.py
+#      (--apply / --adopt); it validates the deployed kek against the DB
+#      and records the old_keks history the rewrap depends on.
+#   3. Plan for the brief window where not-yet-rolled API pods hold the
+#      old kek after the rewrap completes.
+#   4. Afterward: 'barbican-kek-rewrite-planner.py --validate deployed'
+#      must pass, and the db-sync job logs must show zero rewrap failures.
+# Do NOT edit the Secret as part of a routine chart/version bump.
+# ============================================================================
+barbican_kek="$(kubectl --namespace openstack get secret barbican-simple-crypto-plugin-kek \
+    -o jsonpath='{.data.barbican_simple_crypto_plugin_kek}' 2>/dev/null | base64 -d 2>/dev/null || true)"
+
+if [[ -n "$barbican_kek" ]]; then
+    if [[ ${#barbican_kek} -eq 44 ]] && \
+       (( $(printf '%s' "$barbican_kek" | tr -- '-_' '+/' | base64 -d 2>/dev/null | wc -c) == 32 )); then
+        set_args+=(--set "conf.barbican.simple_crypto_plugin.kek=${barbican_kek}")
+    else
+        echo "ERROR: barbican-simple-crypto-plugin-kek exists but is not a valid 44-char Fernet key; refusing to deploy" >&2
+        exit 1
+    fi
+else
+    echo "NOTICE: barbican-simple-crypto-plugin-kek absent/empty; kek must come from helm overrides" >&2
+    # Gazpacho barbican has NO built-in default kek: if nothing renders a
+    # kek into barbican.conf, barbican-api fails to start with
+    # 'SimpleCrypto KEK is undefined'. Predict that here instead of
+    # discovering it in crashlooping pods. Advisory only, not fatal:
+    # simple_crypto may be legitimately disabled (e.g. HSM-only).
+    kek_in_overrides=false
+    for f in "${overrides_args[@]}"; do
+        [[ "$f" == "-f" ]] && continue
+        if grep -Eq '^[[:space:]]*kek[[:space:]]*:' "$f" 2>/dev/null; then
+            kek_in_overrides=true
+            break
+        fi
+    done
+    if [[ "$kek_in_overrides" == "false" ]]; then
+        echo "WARNING: no 'kek:' found in any override file either." >&2
+        echo "         Gazpacho barbican requires an explicit kek; if simple_crypto is" >&2
+        echo "         enabled this deploy WILL fail: 'SimpleCrypto KEK is undefined'." >&2
+        if kubectl --namespace openstack get secret barbican-etc >/dev/null 2>&1; then
+            echo "         Existing barbican detected: run" >&2
+            echo "         scripts/barbican-kek-rewrite-planner.py --adopt (see release notes)" >&2
+            echo "         to stage the currently active kek, then re-run this install." >&2
+        fi
+    fi
+fi
+unset barbican_kek
+
+barbican_old_keks="$(kubectl --namespace openstack get secret barbican-simple-crypto-plugin-kek \
+    -o jsonpath='{.data.old_keks}' 2>/dev/null | base64 -d 2>/dev/null || true)"
+
+if [[ -n "$barbican_old_keks" ]]; then
+    # comma is --set list syntax; escape so the whole history survives as one string
+    set_args+=(--set-string "conf.simple_crypto_kek_rewrap.old_kek=${barbican_old_keks//,/\\,}")
+fi
+# absent/empty -> chart default old_kek (well-known) applies; no action needed
+unset barbican_old_keks
 
 helm_command=(
     helm upgrade --install "$SERVICE_NAME_DEFAULT" "$HELM_CHART_PATH"
@@ -200,6 +276,7 @@ if [[ "${BARBICAN_HSM_ENABLED:-false}" == "true" ]] || [[ "${HYPERCONVERGED_BARB
     if ! declare -f initBarbicanHSMKeys >/dev/null 2>&1; then
         common_sh="${SCRIPT_DIR}/../scripts/lib/hyperconverged-common.sh"
         if [[ -f "${common_sh}" ]]; then
+            # shellcheck source=/dev/null
             source "${common_sh}" >/dev/null 2>&1 || true
         fi
     fi

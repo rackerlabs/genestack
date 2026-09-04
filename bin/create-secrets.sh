@@ -36,6 +36,15 @@ generate_password() {
     < /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32}
 }
 
+generate_fernet_token() (
+    # Subshell body '()' so the option change stays local to this function.
+    # pipefail must be off here: head -c exits after N chars, tr (still
+    # streaming /dev/urandom) takes SIGPIPE(141), and under pipefail+errexit
+    # that kills the whole script silently. Exit status comes from base64.
+    set +o pipefail
+    < /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32} | base64 -w0
+)
+
 backup_suffix="$(date +%Y%m%d%H%M%S)"
 for ssh_key_file in nova_ssh_key nova_ssh_key.pub manila_ssh_key manila_ssh_key.pub; do
     if [[ -f "${ssh_key_file}" ]]; then
@@ -98,6 +107,7 @@ barbican_admin_password=$(generate_password 32)
 # Hyperconverged lab: auto-generated when BARBICAN_HSM_PIN is not set.
 # Production/Staging: export BARBICAN_HSM_PIN="<pin-from-hsm-admin>" before running.
 barbican_hsm_pin="${BARBICAN_HSM_PIN:-$(generate_password 32)}"
+barbican_simple_crypto_plugin_kek=$(generate_fernet_token 32)
 magnum_rabbitmq_password=$(generate_password 64)
 magnum_db_password=$(generate_password 32)
 magnum_admin_password=$(generate_password 32)
@@ -645,6 +655,20 @@ metadata:
 type: Opaque
 data:
   pin: $(echo -n $barbican_hsm_pin | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: barbican-simple-crypto-plugin-kek
+  namespace: openstack
+type: Opaque
+data:
+  barbican_simple_crypto_plugin_kek: $(echo -n $barbican_simple_crypto_plugin_kek | base64 -w0)
+  # old_keks: rotation history, comma-separated 44-char Fernet keys.
+  # Seeded empty on greenfield (chart-default old_kek covers the upstream
+  # well-known value); populated by scripts/barbican-kek-rewrite-planner.py
+  # on --apply/--adopt. Consumed by install-barbican.sh via --set-string.
+  old_keks: $(echo -n "" | base64)
 ---
 apiVersion: v1
 kind: Secret
