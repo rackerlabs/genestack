@@ -1,0 +1,57 @@
+---
+name: Helm GitHub Actions for ironic
+
+on:
+  pull_request:
+    paths:
+      - base-helm-configs/ironic/**
+      - base-kustomize/ironic/**
+      - helm-chart-versions.yaml
+      - .github/workflows/helm-ironic.yaml
+jobs:
+  helm:
+    strategy:
+      matrix:
+        overlays:
+          - base
+    name: Helm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: azure/setup-helm@v3
+        with:
+          version: v3.14.3
+          token: ${{ secrets.GITHUB_TOKEN }}
+        id: helm
+      - name: Kubectl Install
+        working-directory: /usr/local/bin/
+        run: |
+          if [ ! -f /usr/local/bin/kubectl ]; then
+            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+            chmod +x ./kubectl
+          fi
+      - name: Get chart version
+        uses: ./.github/actions/get-chart-version
+        id: chart-version
+        with:
+          chart-name: ironic
+      - name: Pull OSH repositories
+        run: |
+          helm repo add openstack-helm https://tarballs.opendev.org/openstack/openstack-helm
+          helm repo update
+      - name: Run Helm Template
+        run: |
+          ${{ steps.helm.outputs.helm-path }} template ironic openstack-helm/ironic \
+            --version ${{ steps.chart-version.outputs.version }} \
+            --namespace=openstack \
+            --wait \
+            --timeout 120m \
+            -f ${{ github.workspace }}/base-helm-configs/ironic/ironic-helm-overrides.yaml \
+            --post-renderer ${{ github.workspace }}/base-kustomize/kustomize.sh \
+            --post-renderer-args ironic/${{ matrix.overlays }} > /tmp/rendered.yaml
+      - name: Return helm Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-ironic-artifact-${{ matrix.overlays }}
+          path: /tmp/rendered.yaml

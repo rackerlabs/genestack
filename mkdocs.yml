@@ -194,7 +194,9 @@ nav:
               - Memcached: infrastructure-memcached.md
               - Redis: infrastructure-redis.md
               - Libvirt: infrastructure-libvirt.md
-              - OVN: infrastructure-ovn-setup.md
+              - OVN:
+                  - OVN Setup: infrastructure-ovn-setup.md
+                  - OVN Ironic setup: infrastructure-ovn-ironic-setup.md
           - OpenStack:
               - openstack-overview.md
               - OpenStack Services:
@@ -214,6 +216,11 @@ nav:
                       - Placement: openstack-compute-kit-placement.md
                       - Nova: openstack-compute-kit-nova.md
                       - Neutron: openstack-compute-kit-neutron.md
+                  - Ironic:
+                      - Ironic Lifecycle Management: openstack-ironic-lifecycle-management.md
+                      - Ironic Deployment: openstack-ironic.md
+                      - Ironic Policy: openstack-ironic-policy.md
+                      - Ironic Operational Guide: openstack-ironic-operational-guide.md
                   - Dashboards:
                       - Horizon: openstack-horizon.md
                       - skyline: openstack-skyline.md
@@ -245,6 +252,7 @@ nav:
               - Grafana: monitoring-grafana.md
               - OpenStack Exporter: openstack-exporter.md
               - OpenStack Metrics Exporter: prometheus-openstack-metrics-exporter.md
+              - Ironic Prometheus Exporter: openstack-ironic-monitoring.md
               - Custom Node Metrics: prometheus-custom-node-metrics.md
               - Pushgateway: prometheus-pushgateway.md
               - Barbican Exporter: openstack-barbican-exporter.md

@@ -1,25 +1,21 @@
 # OpenStack Ironic Operational Guide
 
-This guide provides an operational workflow for provisioning bare metal servers with OpenStack Ironic. It covers the major steps required to prepare the environment, enroll hardware, validate node readiness, and launch instances using either PXE/iPXE or virtual media boot.
-
-## Introduction
-
-OpenStack Ironic is the bare metal provisioning service in OpenStack. It allows operators to manage physical servers in a way that is similar to virtual machine lifecycle management, while still preserving direct access to dedicated hardware.
-
-This document is intended for operators who already have a working OpenStack environment and need a practical guide for day-to-day Ironic provisioning tasks.
+OpenStack Ironic is the bare metal provisioning service in OpenStack. This guide provides a practical operational workflow for operators who already have a working OpenStack environment. It covers preparing the environment, enrolling hardware, validating node readiness, and launching instances using either PXE/iPXE or virtual media boot.
 
 ## Scope And Assumptions
 
 This guide assumes the following:
 
-- The OpenStack control plane is already installed and operational.
-- Administrative credentials have already been sourced.
-- Required deployment, cleaning, and tenant images are already uploaded to Glance.
+- The OpenStack control plane, including Ironic and its supporting services, is installed and operational.
+- An administrative OpenStack credentials file is available to the operator.
+- The operator has permission to create networks, subnets, flavors, images, bare metal nodes, and instances.
+- A deployable tenant operating system image is already available in Glance.
 - The target node BMC is reachable from the Ironic conductor.
-- For PXE or iPXE boot, the provisioning network and network boot services are already configured.
-- For virtual media boot, the provisioning network is configured and the hardware supports a virtual media boot interface such as redfish-virtual-media.
+- Physical network connectivity between the Ironic services, bare-metal nodes, and their management controllers is available.
+- For PXE or iPXE boot, the provisioning network and network-boot services are available.
+- For virtual media boot, the provisioning network permits ramdisk connectivity and the hardware supports the `redfish-virtual-media` interface.
 
-Nova may not see a newly available node immediately after enrollment because the resource tracker updates periodically. In many environments this sync happens every 60 seconds, so a short delay is expected.
+The prerequisites in this guide source the administrative credentials, create the provisioning network and bare metal flavor, upload the Ironic Python Agent images, and verify the required OpenStack resources.
 
 ## High-Level Workflow
 
@@ -42,31 +38,18 @@ Validate node
    ->
 Manage node
    ->
+Optionally perform manual cleaning
+   ->
 Provide node
    ->
 Create server with matching flavor and required image
 ```
 
-## Purpose
-
-This guide walks through the following workflow:
-
-1. Create The Ironic Provisioning Network
-2. Create a flavor for bare metal server
-3. Set a resource class mapping so Nova can match the flavor to the correct Ironic node
-4. Enroll the physical node into Ironic with the correct driver and interfaces
-5. Set properties and driver details such as hardware specs, BMC credentials, and boot method
-6. Create ports so the node can participate in provisioning and tenant networking
-7. Validate step verifies that required fields are present and the interfaces such as power, management, deploy, boot, and others report valid/usable for the baremetal node
-8. Manage step moves the bare metal node from enroll to manageable by starting verification and confirming that Ironic can control the node using the configured interfaces and credentials.
-9. Provide the node to transition it into the available state, making it ready for scheduling.
-10. Create a server with the matching flavor and image using either PXE/iPXE or virtual media boot.
-
 Ironic supports multiple boot interfaces. PXE is the standard network boot mechanism, while virtual media typically relies on the BMC to mount boot media remotely instead of using traditional PXE infrastructure.
 
 ## Prerequisites
 
-Before enrolling a node, ensure that the OpenStack environment and all required services are properly configured and available. 
+Before enrolling a node, ensure that the OpenStack environment and all required services are properly configured and available.
 
 ### Source Administrative Credentials
 
@@ -112,11 +95,11 @@ openstack flavor set GP2.XL \
   --property resources:VCPU=0 \
   --property resources:MEMORY_MB=0 \
   --property resources:DISK_GB=0 \
-  --property capabilities:boot_option="local" \
+  --property capabilities:boot_mode="uefi" \
   --property resources:CUSTOM_GP2_XL=1
 ```
 
-The `CUSTOM_GP2_XL` property must match the `CUSTOM_<FLAVOR_NAME>` naming pattern used for the resource class. The standard flavor values still help communicate expected capacity to users, and the disk value is also used to determine root disk sizing behavior.
+The custom resource class must match the node's resource class. Nova represents an Ironic resource class by converting it to uppercase, replacing punctuation with underscores, and prefixing it with `CUSTOM_`. For example, the node resource class `GP2_XL` maps to `CUSTOM_GP2_XL`.
 
 Verify the flavor after creation:
 
@@ -135,16 +118,21 @@ Expected result:
 Ironic Python Agent images are required for deployment and cleaning operations.
 
 ```bash
-curl -o ipa-centos9-stable-2025.2.initramfs https://tarballs.opendev.org/openstack/ironic-python-agent/dib/files/ipa-centos9-stable-2025.2.initramfs
-curl -o ipa-centos9-stable-2025.2.kernel https://tarballs.opendev.org/openstack/ironic-python-agent/dib/files/ipa-centos9-stable-2025.2.kernel
+curl -o ipa-centos9-stable-2026.1.initramfs https://tarballs.opendev.org/openstack/ironic-python-agent/dib/files/ipa-centos9-stable-2026.1.initramfs
+curl -o ipa-centos9-stable-2026.1.kernel https://tarballs.opendev.org/openstack/ironic-python-agent/dib/files/ipa-centos9-stable-2026.1.kernel
 
-openstack image create ipa-centos9-stable-2025.2-aki --public \
+openstack image create ipa-centos9-stable-2026.1-aki --public \
    --disk-format aki --container-format aki \
-   --file ipa-centos9-stable-2025.2.kernel
+   --file ipa-centos9-stable-2026.1.kernel
 
-openstack image create ipa-centos9-stable-2025.2-ari --public \
+openstack image create ipa-centos9-stable-2026.1-ari --public \
    --disk-format ari --container-format ari \
-   --file ipa-centos9-stable-2025.2.initramfs
+   --file ipa-centos9-stable-2026.1.initramfs
+
+openstack image create --container-format aki \
+ --disk-format aki \
+ --file </path/to/esp-image.img> \
+ ubuntu-noble-esp
 ```
 
 ### Verify Core Resources
@@ -191,44 +179,47 @@ Choose one of the following methods:
 1. PXE or iPXE boot
 2. Virtual media boot
 
-## Option A: Enroll A Node With PXE Or IPXE Boot
+!!! warning "Redfish TLS certificate verification"
+    The examples below set `redfish_verify_ca=False` to accommodate BMCs that use self-signed or otherwise untrusted certificates. This disables verification of the BMC's identity and can expose Redfish credentials and management operations to man-in-the-middle attacks. In production, leave this option unset or set it to `True` when the issuing CA is available in the conductor's trust store. Alternatively, set it to the path of a trusted CA certificate or certificate directory. Use `False` only as a documented exception on a controlled management network after assessing and accepting the risk.
+
+### Option A: Enroll A Node With PXE Or IPXE Boot
 
 PXE is the standard network boot path for hardware that supports network booting. In this model, the node downloads boot artifacts over the provisioning network.
 
 ![Deploy PXE](assets/images/ironic_direct_deploy_pxe.svg)
 
-### Create The Node
+#### Create The Node
 
-This example uses the `idrac` driver, Redfish-based management, and the `ipxe` boot interface.
+This example uses the `redfish` driver, Redfish-based management, and the `ipxe` boot interface.
 
 ```bash
 node=123456-compute1
 node_mac="aa:bb:cc:dd:ee:ff" # MAC address of PXE interface
-deploy_aki=ipa-centos9-stable-2025.2-aki
-deploy_ari=ipa-centos9-stable-2025.2-ari
+node_oob=x.x.x.x # Node ILO/IDRAC address
+deploy_aki=ipa-centos9-stable-2026.1-aki
+deploy_ari=ipa-centos9-stable-2026.1-ari
 resource=GP2_XL
 phys_arch=x86_64
 phys_cpus=128
 phys_ram=720896
 phys_disk=960
 
-openstack baremetal node create --driver idrac \
+openstack baremetal node create --driver redfish \
   --boot-interface ipxe \
   --driver-info redfish_username=root \
-  --driver-info redfish_password=<password> \
-  --driver-info redfish_address=<OOB IP> \
+  --driver-info redfish_password=<REPLACE_WITH_PASSWORD> \
+  --driver-info redfish_address=https://${node_oob} \
   --driver-info redfish_verify_ca=False \
   --driver-info redfish_system_id=/redfish/v1/Systems/System.Embedded.1 \
-  --driver-info deploy_kernel=`openstack image show $deploy_aki -c id |awk '/id / {print $4}'` \
-  --driver-info deploy_ramdisk=`openstack image show $deploy_ari -c id |awk '/id / {print $4}'` \
-  --inspect-interface idrac-redfish \
-  --management-interface idrac-redfish \
-  --power-interface idrac-redfish \
+  --driver-info deploy_kernel=$(openstack image show "$deploy_aki" -c id -f value) \
+  --driver-info deploy_ramdisk=$(openstack image show "$deploy_ari" -c id -f value) \
+  --management-interface redfish \
+  --power-interface redfish \
   --property cpus=$phys_cpus \
   --property memory_mb=$phys_ram \
   --property local_gb=$phys_disk \
   --property cpu_arch=$phys_arch \
-  --property capabilities='boot_option:local,disk_label:gpt' \
+  --property capabilities='boot_mode:uefi' \
   --resource-class $resource \
   --network-interface flat \
   --name $node
@@ -245,7 +236,7 @@ openstack baremetal node clean --clean-steps '[{"interface": "deploy", "step": "
 openstack baremetal node provide $node
 ```
 
-## Option B: Enroll A Node With Virtual Media
+### Option B: Enroll A Node With Virtual Media
 
 Virtual media boot uses the server BMC to attach temporary boot media instead of depending on PXE infrastructure. This is commonly used with Redfish-capable hardware and UEFI-based booting.
 
@@ -253,16 +244,17 @@ Even when virtual media is used, the Ironic provisioning network is still requir
 
 ![Deploy Virtual Media](assets/images/ironic_direct_deploy_virtual_media.svg)
 
-### Create The Node
+#### Create The Node
 
 This example uses the `redfish` driver with the `redfish-virtual-media` boot interface.
 
 ```bash
 node=123456-compute2
-node_mac="aa:bb:cc:dd:ee:ff" # MAC address of PXE interface
-deploy_aki=ipa-centos9-stable-2025.2-aki
-deploy_ari=ipa-centos9-stable-2025.2-ari
-deploy_bootloader=esp
+node_mac="aa:bb:cc:dd:ee:ff" # MAC address of provisioning interface
+node_oob=x.x.x.x # Node ILO/IDRAC address
+deploy_aki=ipa-centos9-stable-2026.1-aki
+deploy_ari=ipa-centos9-stable-2026.1-ari
+deploy_bootloader=ubuntu-noble-esp
 resource=GP2_XL
 phys_arch=x86_64
 phys_cpus=128
@@ -272,7 +264,7 @@ phys_disk=960
 openstack baremetal node create --driver redfish \
   --driver-info redfish_address=https://${node_oob} \
   --driver-info redfish_username=root \
-  --driver-info redfish_password='<idrac-password>' \
+  --driver-info redfish_password=<REPLACE_WITH_PASSWORD> \
   --driver-info redfish_verify_ca=False \
   --name $node
 
@@ -281,18 +273,18 @@ openstack baremetal node set \
   $node
 
 openstack baremetal node set \
-  --driver-info bootloader=`openstack image show ${deploy_bootloader} -c id -f value` \
-  --driver-info deploy_kernel=`openstack image show ${deploy_aki} -c id -f value` \
-  --driver-info deploy_ramdisk=`openstack image show ${deploy_ari} -c id -f value` \
+  --driver-info bootloader=$(openstack image show ${deploy_bootloader} -c id -f value) \
+  --driver-info deploy_kernel=$(openstack image show "$deploy_aki" -c id -f value) \
+  --driver-info deploy_ramdisk=$(openstack image show "$deploy_ari" -c id -f value) \
   --property cpu_arch=$phys_arch \
   --property cpus=$phys_cpus \
   --property memory_mb=$phys_ram \
   --property local_gb=$phys_disk \
-  --property capabilities='boot_option:local,boot_mode:uefi' \
+  --property capabilities='boot_mode:uefi' \
   --resource-class $resource \
   $node
 
-openstack baremetal node set --property root_device='{"serial" : "CK0WW92CVXP0036P00NQ"}' \
+openstack baremetal node set --property root_device='{"serial" : "<REPLACE_WITH_DISK_SERIAL>"}' \
   $node
 
 openstack baremetal port create $node_mac \
@@ -340,22 +332,23 @@ openstack quota set --cores -1 --ram -1 --instances 100 `openstack project show 
 
 openstack server create \
   --flavor GP2.XL \
-  --image ubuntu-jammy-metal-simple \
-  --key-name <nova key name> \
-  --network baremetal-provisioning-network $node
-
---hint query='["=", "$hypervisor_hostname", "<baremetal_node_UUID>"]'
+  --image ubuntu-noble-metal-1 \
+  --use-config-drive \
+  --key-name "<key_name>" \
+  --hint query='["=", "$hypervisor_hostname", "<baremetal_node_UUID>"]' \
+  --network baremetal-provisioning-network \
+  $node
 
 openstack server list
 +--------------------------------------+-----------------------+--------+-----------------------------------------------+----------------------+-----------+
 | ID                                   | Name                  | Status | Networks                                      | Image                | Flavor    |
 +--------------------------------------+-----------------------+--------+-----------------------------------------------+----------------------+-----------+
-| c3f40ae6-b6ec-4c5d-a6e2-2e09cdfa1f7c | 123456-compute1       | ACTIVE | baremetal-provisioning-network=172.29.233.33  | ubuntu-jammy-metal-1 | GP2.XL    |
-| f55b4119-528a-41c3-8907-956047cb6854 | 123456-compute2       | ACTIVE | baremetal-provisioning-network=172.29.234.61  | ubuntu-jammy-metal-1 | GP2.XL    |
+| c3f40ae6-b6ec-4c5d-a6e2-2e09cdfa1f7c | 123456-compute1       | ACTIVE | baremetal-provisioning-network=172.29.233.33  | ubuntu-noble-metal-1 | GP2.XL    |
+| f55b4119-528a-41c3-8907-956047cb6854 | 123456-compute2       | ACTIVE | baremetal-provisioning-network=172.29.234.61  | ubuntu-noble-metal-1 | GP2.XL    |
 +--------------------------------------+-----------------------+--------+-----------------------------------------------+----------------------+-----------+
 ```
 
-If you need to target a specific bare metal host, use the scheduler hint shown in the example command.
+The scheduler hint shown in the example command is used to target a specific bare metal host.
 
 ## References
 

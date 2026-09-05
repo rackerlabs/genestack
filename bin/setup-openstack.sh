@@ -5,6 +5,8 @@ set -e
 declare -A pids
 declare -A pid_commands
 
+CONFIG_FILE="${CONFIG_FILE:-/etc/genestack/openstack-components.yaml}"
+
 function runTrackErator() {
     "${1}" &
     local pid=$!
@@ -67,9 +69,9 @@ prompt_component() {
     local prompt=$2
     read -p "Install ${prompt}? (y/n): " answer
     if [[ "$answer" =~ ^[Yy]$ ]]; then
-        echo "  ${component}: true" >> /etc/genestack/openstack-components.yaml
+        echo "  ${component}: true" >> "${CONFIG_FILE}"
     else
-        echo "  ${component}: false" >> /etc/genestack/openstack-components.yaml
+        echo "  ${component}: false" >> "${CONFIG_FILE}"
     fi
 }
 
@@ -79,8 +81,25 @@ is_component_enabled() {
     grep -qi "^[[:space:]]*${component}:[[:space:]]*true" "$CONFIG_FILE"
 }
 
+# Fail early when Ironic is selected without its required OpenStack services.
+validate_ironic_dependencies() {
+    is_component_enabled "ironic" || return 0
+
+    local missing_dependencies=()
+    local dependency
+    for dependency in glance placement nova neutron; do
+        if ! is_component_enabled "${dependency}"; then
+            missing_dependencies+=("${dependency}")
+        fi
+    done
+
+    if [ "${#missing_dependencies[@]}" -gt 0 ]; then
+        echo "ERROR: Ironic requires these components: ${missing_dependencies[*]}"
+        return 1
+    fi
+}
+
 # Check for YAML file and create if it doesn't exist
-CONFIG_FILE="/etc/genestack/openstack-components.yaml"
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "Configuration file $CONFIG_FILE not found. Creating it..."
     cat > "$CONFIG_FILE" << EOF
@@ -97,6 +116,7 @@ EOF
     prompt_component "placement" "Placement"
     prompt_component "nova" "Nova (Compute)"
     prompt_component "neutron" "Neutron (Networking)"
+    prompt_component "ironic" "Ironic (Bare Metal)"
     prompt_component "magnum" "Magnum (Container Orchestration)"
     prompt_component "octavia" "Octavia (Load Balancer)"
     prompt_component "masakari" "Masakari (Instance High Availability)"
@@ -109,6 +129,8 @@ EOF
     prompt_component "zaqar" "Zaqar (Messaging)"
     prompt_component "qonos" "Qonos (Scheduled Actions)"
 fi
+
+validate_ironic_dependencies
 
 # Block on Keystone
 /opt/genestack/bin/install-keystone.sh
@@ -136,6 +158,9 @@ is_component_enabled "zaqar" && runTrackErator /opt/genestack/bin/install-zaqar.
 is_component_enabled "qonos" && runTrackErator /opt/genestack/bin/install-qonos.sh
 
 waitErator
+
+# Install Ironic only after Keystone, Glance, Placement, Nova, and Neutron are up.
+is_component_enabled "ironic" && /opt/genestack/bin/install-ironic.sh
 
 # Install skyline after all services are up
 is_component_enabled "skyline" && /opt/genestack/bin/install-skyline.sh
