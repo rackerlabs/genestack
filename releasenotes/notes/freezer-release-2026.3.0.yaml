@@ -1,0 +1,59 @@
+---
+prelude: >
+  Freezer backup and restore functionality was integrated into the Skyline
+  dashboard for Genestack 2026.3.0. Users can enable per-instance backups at
+  create time, create and schedule backup jobs, and restore backups across
+  file system, Nova, Cinder, MySQL, and MongoDB modes. The full workflow was
+  validated end-to-end in a development environment.
+features:
+  - |
+    Added a Backup & Restore section to the Skyline dashboard, exposing Freezer
+    Jobs, Actions, Clients, and Backups. The section is shown only when the
+    ``freezer`` endpoint is present in the service catalog.
+  - |
+    Added an Enable Backup option to the instance create workflow. When enabled,
+    the freezer-agent and freezer-scheduler are installed automatically on first
+    boot via cloud-init. The option is a first-class field on the create form,
+    shown when Freezer is available.
+  - |
+    Added backup job creation supporting file system (``fs``), Nova VM snapshot,
+    Cinder volume, MySQL, and MongoDB (LVM) modes, with one-time and recurring
+    schedule options.
+  - |
+    Added restore support for all backup modes, including restoring a Nova
+    snapshot to a new instance on a selected network and restoring Cinder
+    volumes in place.
+  - |
+    Added Disable and Enable (resume) backup actions on the instance view to
+    pause and resume a VM's scheduled jobs without reinstalling the agent.
+  - |
+    The Swift container field on job creation accepts a new container name and
+    creates the container automatically at job submission time, removing the
+    need to pre-create it under Object Storage.
+  - |
+    The generated agent bootstrap suppresses the benign eventlet deprecation
+    warning from the freezer-scheduler and agent, keeping the scheduler log
+    clean on newly created VMs.
+issues:
+  - |
+    Federated and SSO users cannot use password authentication for the on-VM
+    freezer-scheduler and will encounter 401 errors. A Keystone-local user must
+    be used for the backup scheduler identity until a centralized scheduler is
+    available.
+  - |
+    Freezer backup and restore via Skyline was validated against the
+    ``stable/2025.1-latest`` freezer-api image.
+upgrade: []
+deprecations: []
+critical: []
+security:
+  - |
+    The backup scheduler credential supplied at instance create time is embedded
+    in the instance cloud-init user-data via config-drive so the on-VM scheduler
+    can authenticate to the Freezer API. It is not stored by Skyline and is not
+    logged.
+fixes: []
+other:
+  - |
+    Added Skyline user and operational documentation for Freezer backup and
+    restore, including manual agent installation and troubleshooting guidance.
