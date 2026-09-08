@@ -1,0 +1,59 @@
+#!/bin/bash
+
+set -euo pipefail
+
+# Spin up a temporary docker daemon pointing its data-root
+#  directly into the mounted DIB disk image root
+echo "===> Starting Docker daemon"
+dockerd \
+    --storage-driver=overlay2 \
+    --data-root="$TMP_BUILD_DIR/mnt/var/lib/docker" \
+    --pidfile="/tmp/dib-target-dockerd.pid" \
+    --host="unix:///tmp/dib-target-docker.sock" > /tmp/dockerd-preload.log 2>&1 &
+
+# Wait for the Docker daemon to become responsive
+echo "===> Waiting for Docker socket ..."
+for i in {1..30}; do
+    if docker info >/dev/null 2>&1; then
+        echo "===> Docker daemon is ready."
+        break
+    fi
+    sleep 1
+done
+
+if ! docker info >/dev/null 2>&1; then
+    echo "ERROR: Docker daemon failed to start. Logs:"
+    cat /tmp/dockerd-preload.log
+    exit 1
+fi
+
+# Force the host daemon to load the images into the VM's storage path
+echo "===> Preloading datastore images into docker cache"
+for tarball in /tmp/trove-image-build/*.tar; do
+    echo "===>    Loading $tarball"
+    docker -H unix:///tmp/dib-target-docker.sock load -i "$tarball"
+done
+
+echo "===> Image List: "
+docker -H unix:///tmp/dib-target-docker.sock images
+
+# Cleanly shut down the background daemon
+echo "===> Shutting down Docker daemon"
+kill $(cat /tmp/dib-target-dockerd.pid)
+
+# Wait up to 30 seconds for the daemon process to fully terminate safely
+echo "===> Waiting for Docker daemon to fully terminate ..."
+for i in {1..30}; do
+    if [ -f /tmp/dib-target-dockerd.pid ]; then
+        sleep 1
+    else
+        break
+    fi
+done
+
+# Force Linux to flush dirty buffers to the DIB image file system
+echo "===> Flushing dirty buffers"
+sync
+
+echo "===> Docker overlay2 directory contents"
+sudo ls -la $TMP_BUILD_DIR/mnt/var/lib/docker/overlay2/

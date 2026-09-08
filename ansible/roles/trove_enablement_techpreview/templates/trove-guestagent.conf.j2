@@ -1,5 +1,6 @@
 [DEFAULT]
 backup_segment_max_size = 2147483648
+control_exchange = trove
 datastore_registry_ext = mysql:trove.guestagent.datastore.mysql.manager.Manager
 debug = true
 default_datastore = mysql
@@ -18,7 +19,7 @@ swift_endpoint_type = internalURL
 swift_service_type = object-store
 swift_url = http://{{ trove_services_anchor_ip }}:8080/v1/AUTH_
 taskmanager_manager = trove.taskmanager.manager.Manager
-#transport_url = rabbit://trove:{{ trove_rabbitmq_password }}@rabbitmq.openstack.svc.cluster.local:5672/trove
+transport_url = rabbit://trove:{{ trove_rabbitmq_password }}@rabbitmq.openstack.svc.cluster.local:5672/trove
 trove_auth_url = http://keystone-api.openstack.svc.cluster.local:5000/v3
 trove_security_groups_support = true
 trove_volume_support = true
@@ -52,8 +53,8 @@ username = trove
 [mysql]
 backup_strategy = InnoBackupEx
 backup_incremental_strategy = InnoBackupExIncremental
-docker_image = localhost:5000/mysql
-backup_docker_image = localhost:5000/mysql-backup
+docker_image = mysql
+backup_docker_image = mysql-backup
 replication_strategy = MysqlGTIDReplication
 replication_namespace = trove.guestagent.strategies.replication.mysql_gtid
 mount_point = /var/lib/mysql
@@ -72,15 +73,20 @@ lock_path = /var/lib/trove/tmp
 [oslo_messaging_notifications]
 driver = noop
 
-#[oslo_messaging_rabbit]
-#amqp_durable_queues = false
+[oslo_messaging_rabbit]
+# Must match the conductor's RabbitMQ settings (in
+# trove-helm-overrides.yaml: conf.trove.oslo_messaging_rabbit) or
+# exchange/queue redeclares fail with PRECONDITION_FAILED. We use
+# classic non-durable queues here; production HA can re-enable
+# quorum queues by flipping these on both sides simultaneously.
+amqp_durable_queues = {{ trove_durable_queues }}
 #heartbeat_rate = 3
 #heartbeat_timeout_threshold = 60
 #kombu_reconnect_delay = 0.5
 #rabbit_ha_queues = false
 #rabbit_interval_max = 10
-#rabbit_quorum_queue = true
-#rabbit_transient_quorum_queue = false
+rabbit_quorum_queue = false
+rabbit_transient_quorum_queue = false
 #use_queue_manager = false
 
 [service_credentials]

@@ -57,6 +57,30 @@ destroy_tenant() {
 
   echo "  Cleaning up ${tenant} (${PROJECT_ID})..."
 
+  # Database configurations have to be deleted as the tenant since the configuration delete
+  #  command does not allow for --project like other database commands
+  export OS_CLIENT_CONFIG_FILE="${HOME}/.config/openstack/clouds.yaml"
+
+  # Database Configurations
+  TENANT_CONFIGS=$($OS database configuration list -f json 2>/dev/null \
+    | python3 -c 'import json,sys; [print(s["ID"]) for s in json.load(sys.stdin)]' 2>/dev/null) || true
+  for id in $TENANT_CONFIGS; do
+    echo "    Deleting database configuration $id..."
+    $OS database configuration delete "$id" 2>/dev/null || true
+  done
+
+  # Setup for admin power to eliminate tenant resources; this allows for stuck backup, builds, etc
+  #  to be deleted
+  export OS_CLIENT_CONFIG_FILE="${HOME}/.config/openstack/clouds.yaml"
+
+  # Database Backups
+  TENANT_BACKUPS=$($OS database backup list --project "$PROJECT_ID" -f json 2>/dev/null \
+    | python3 -c 'import json,sys; [print(s["ID"]) for s in json.load(sys.stdin)]' 2>/dev/null) || true
+  for id in $TENANT_BACKUPS; do
+    echo "    Deleting database backup $id..."
+    $OS database backup delete "$id" 2>/dev/null || true
+  done
+
   # Database Instances
   TENANT_DBS=$($OS database instance list --project "$PROJECT_ID" -f json 2>/dev/null \
     | python3 -c 'import json,sys; [print(s["ID"]) for s in json.load(sys.stdin)]' 2>/dev/null) || true
@@ -375,3 +399,5 @@ echo ""
 echo "Test with:"
 echo "  openstack --os-cloud=acme-corp token issue"
 echo "  openstack --os-cloud=acme-corp network list"
+echo ""
+echo ""
