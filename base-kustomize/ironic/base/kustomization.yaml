@@ -4,3 +4,4 @@ resources:
   - all.yaml
   - hpa-ironic-api.yaml
   - policies.yaml
+  - ironic-prometheus-exporter-svc.yaml

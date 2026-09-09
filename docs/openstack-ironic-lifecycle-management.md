@@ -1,14 +1,8 @@
 # Managing The Bare Metal Lifecycle With OpenStack Ironic
 
-Managing physical infrastructure has traditionally required significant manual effort across provisioning, maintenance, and retirement. OpenStack Ironic changes that model by treating bare metal as an API-driven infrastructure resource, allowing operators to automate the full server lifecycle in a way that is consistent, repeatable, and cloud-native.
+Managing physical infrastructure traditionally requires significant manual effort across provisioning, maintenance, and retirement. OpenStack Ironic changes this model by treating bare metal as an API-driven resource. Physical servers can be enrolled, inspected, provisioned, cleaned, and reused through consistent OpenStack services and APIs.
 
-This document explains how the bare metal lifecycle is typically managed, how Ironic improves that workflow, and how it integrates with the wider OpenStack platform.
-
-## Introduction
-
-In traditional environments, bare metal lifecycle management often depends on a combination of datacenter procedures, hardware vendor tooling, and manual operating system installation steps. These tasks are usually operationally expensive and difficult to standardize across large fleets.
-
-With Ironic, physical servers can be enrolled, provisioned, cleaned, and reused through OpenStack services and APIs. This gives operators a much more predictable and automated approach to hardware management.
+This document describes the bare metal lifecycle, how Ironic automates that lifecycle, and how it integrates with the wider OpenStack platform.
 
 ## Traditional Bare Metal Lifecycle
 
@@ -37,24 +31,30 @@ At a high level, Ironic manages a node through the following operational stages:
 ```text
 Enroll
    ->
-Manage
+Verifying
    ->
-Inspect and validate
+Manageable
    ->
-Provide
+Inspecting (optional)
    ->
-Deploy
+Manageable
    ->
-Active use
+Cleaning (through the provide action)
    ->
-Clean
+Available
+   ->
+Deploying
+   ->
+Active
+   ->
+Deleting and cleaning
    ->
 Available for reuse
 ```
 
 This lifecycle helps ensure that a node moves through a known set of transitions before it is exposed to users or returned to inventory.
 
-## Discovery And Registration
+## Node Enrollment And Registration
 
 The first step is to enroll the bare metal node in Ironic. During this stage, the operator registers the hardware and provides the required management details, such as:
 
@@ -79,13 +79,13 @@ Typical operator actions at this stage include:
 - Setting resource classes and scheduling properties
 - Running cleaning steps if metadata or disk state must be reset
 
-When the node passes validation and preparation, it can be moved to an available state. At that point, Nova can schedule workloads to it based on flavor and resource class matching.
+When the node passes validation and preparation, it can be moved to an available state. When Ironic is integrated with Nova, Nova can then schedule workloads to it based on flavor and resource class matching.
 
 ## Automated Provisioning
 
 Once a node is available, users or automation systems can request bare metal capacity through OpenStack APIs. Ironic then performs the provisioning workflow automatically.
 
-This typically includes the following actions:
+Depending on the deployment model, Nova scheduling or an Ironic allocation selects a suitable node. The provisioning workflow typically includes the following actions:
 
 - Selecting a suitable available node
 - Powering on the system
@@ -114,7 +114,7 @@ This makes it possible to include physical infrastructure in automation pipeline
 
 One of the most important parts of the bare metal lifecycle is returning a server to a known-good state after use.
 
-Ironic supports automated cleaning workflows that can:
+Ironic can perform automated cleaning before a node receives its first workload and when it is returned for reuse. Cleaning workflows can:
 
 - Erase partition metadata
 - Wipe disks
@@ -142,7 +142,6 @@ Ironic is most effective when used as part of the broader OpenStack control plan
 - **Neutron** for provisioning and tenant network connectivity
 - **Glance** for deployment image storage and retrieval
 - **Keystone** for authentication and authorization
-- **Skyline** for web-based administration and operational visibility
 - **Cinder** for optional block storage integration
 
 This integration allows bare metal infrastructure to behave like a first-class cloud resource while still preserving dedicated hardware characteristics.

@@ -60,11 +60,18 @@ conf:
       default_boot_option: "local"
       iso_master_path: "/var/lib/ironic/master_iso_images"
     agent:
+      require_tls: true
+      verify_ca: True
+      certificates_path: /var/lib/ironic/certificates
       efi_boot_partition: "/boot/efi"
       image_download_source: "http"
       deploy_logs_collect: "always"
       deploy_logs_storage_backend: "local"
       deploy_logs_local_path: "/var/lib/ironic/logs"
+    dhcp:
+      dhcp_provider: "neutron"
+    api:
+      ramdisk_heartbeat_timeout: 3600
     pxe:
       kernel_append_params: "nofb nomodeset vga=normal ipa-debug=1"
       images_path: /var/lib/openstack-helm/ironic/images
@@ -74,6 +81,7 @@ conf:
       pxe_bootfile_name: "undionly.kpxe"
       uefi_pxe_bootfile_name: "ipxe.efi"
       ipxe_enabled: true
+      # image_cache_size: "21474836480"
     ilo:
       use_web_server_for_images: "True"
       kernel_append_params: "nofb nomodeset vga=normal ipa-debug=1"
@@ -104,10 +112,24 @@ conf:
       valid_interfaces: internal
     neutron:
       auth_type: password
-      cleaning_network: "baremetal-cleaning-network"
+      cleaning_network: "baremetal-provisioning-network"
       provisioning_network: "baremetal-provisioning-network"
     service_catalog:
       valid_interfaces: public
+    sensor_data:
+      send_sensor_data: true
+      interval: 120
+      workers: 4
+      data_types: ALL
+      enable_for_conductor: true
+      enable_for_nodes: true
+      enable_for_undeployed_nodes: true
+    metrics:
+      backend: collector
+    oslo_messaging_notifications:
+      driver: prometheus_exporter
+      transport_url: fake://
+      location: /var/lib/ironic/metrics
     oslo_messaging_rabbit:
       amqp_durable_queues: false
       rabbit_ha_queues: false
@@ -146,6 +168,61 @@ network:
     neutron_subnet_alloc_start: 172.24.6.100
     neutron_subnet_alloc_end: 172.24.6.200
     neutron_subnet_dns_nameserver: 8.8.8.8 # Aligned with Neutron's OVN DNS
+
+conductor:
+  extraContainers:
+    - name: ironic-prometheus-exporter
+      image: ghcr.io/rackerlabs/genestack-images/ironic-prometheus-exporter:2026.1-latest
+      imagePullPolicy: "IfNotPresent"
+      env:
+        - name: IRONIC_CONFIG
+          value: /etc/ironic/ironic.conf
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+      command:
+        - /bin/sh
+        - -c
+        - |
+          exec gunicorn \
+            --bind "${POD_IP}:9608" \
+            --workers 4 \
+            --access-logfile - \
+            --error-logfile - \
+            ironic_prometheus_exporter.app.wsgi:application
+      ports:
+        - name: metrics
+          containerPort: 9608
+          protocol: TCP
+      readinessProbe:
+        httpGet:
+          path: /metrics
+          port: metrics
+          scheme: HTTP
+        initialDelaySeconds: 5
+        periodSeconds: 10
+        timeoutSeconds: 2
+        successThreshold: 1
+        failureThreshold: 3
+      livenessProbe:
+        httpGet:
+          path: /metrics
+          port: metrics
+          scheme: HTTP
+        initialDelaySeconds: 15
+        periodSeconds: 20
+        timeoutSeconds: 2
+        successThreshold: 1
+        failureThreshold: 3
+      volumeMounts:
+        - name: ironic-etc
+          mountPath: /etc/ironic/ironic.conf
+          subPath: ironic.conf
+          readOnly: true
+        - name: host-var-lib-ironic
+          mountPath: /var/lib/ironic
+          readOnly: true
 
 bootstrap:
   image:
