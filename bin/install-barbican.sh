@@ -148,6 +148,7 @@ if [[ "${BARBICAN_HSM_ENABLED:-false}" == "true" ]] || [[ "${HYPERCONVERGED_BARB
         echo "HSM enabled but p11_crypto_plugin missing in ${override_file}. Regenerating..."
         rm -f "${override_file}"
         SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        # shellcheck source=/dev/null
         source "${SCRIPT_DIR}/../scripts/lib/hyperconverged-common.sh"
         writeServiceHelmOverrides "${GENESTACK_OVERRIDES_DIR}/helm-configs"
     fi
@@ -165,6 +166,20 @@ if [[ -n "${hsm_pin}" ]]; then
     )
 fi
 unset hsm_pin
+
+# Barbican simple_crypto master KEK
+# Gazpacho barbican has no built-in default kek; the deploy must supply one.
+# scripts/barbican/kek.sh resolves the source (Secret, adoption of a deployed
+# kek, fresh generation, or none for HSM-only), guards against arming a
+# db-sync rewrap that cannot succeed, and appends the --set arguments.
+# Rotations are staged only with scripts/barbican/barbican-kek-rewrite-planner.py.
+# shellcheck source=/dev/null
+source "${GENESTACK_BASE_DIR}/scripts/barbican/kek.sh"
+override_files=()
+for f in "${overrides_args[@]}"; do
+    [[ "$f" == "-f" ]] || override_files+=("$f")
+done
+barbican_kek_resolve "${override_files[@]}"
 
 helm_command=(
     helm upgrade --install "$SERVICE_NAME_DEFAULT" "$HELM_CHART_PATH"
@@ -200,6 +215,7 @@ if [[ "${BARBICAN_HSM_ENABLED:-false}" == "true" ]] || [[ "${HYPERCONVERGED_BARB
     if ! declare -f initBarbicanHSMKeys >/dev/null 2>&1; then
         common_sh="${SCRIPT_DIR}/../scripts/lib/hyperconverged-common.sh"
         if [[ -f "${common_sh}" ]]; then
+            # shellcheck source=/dev/null
             source "${common_sh}" >/dev/null 2>&1 || true
         fi
     fi
