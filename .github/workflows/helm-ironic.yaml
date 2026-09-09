@@ -8,6 +8,8 @@ on:
       - base-kustomize/ironic/**
       - helm-chart-versions.yaml
       - .github/workflows/helm-ironic.yaml
+permissions:
+  contents: read
 jobs:
   helm:
     strategy:
