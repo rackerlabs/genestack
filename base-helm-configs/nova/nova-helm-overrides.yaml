@@ -112,8 +112,9 @@ conf:
       use_rootwrap_daemon: true
       vif_plugging_is_fatal: true
       vif_plugging_timeout: 300
-      cross_az_attach: true
       network_allocate_retries: 3
+    cinder:
+      cross_az_attach: true
     cache:
       enabled: true
       backend: oslo_cache.memcache_pool
@@ -125,7 +126,6 @@ conf:
       connection_debug: 0
       connection_recycle_time: 600
       connection_trace: true
-      idle_timeout: 3600
       mysql_sql_mode: {}
       use_db_reconnect: true
       pool_timeout: 60
@@ -134,7 +134,6 @@ conf:
       connection_debug: 0
       connection_recycle_time: 600
       connection_trace: true
-      idle_timeout: 3600
       mysql_sql_mode: {}
       use_db_reconnect: true
       pool_timeout: 60
@@ -147,7 +146,6 @@ conf:
       connection_debug: 0
       connection_recycle_time: 600
       connection_trace: true
-      idle_timeout: 3600
       mysql_sql_mode: {}
       use_db_reconnect: true
       pool_timeout: 60

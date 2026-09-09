@@ -214,7 +214,6 @@ conf:
       connection_debug: 0
       connection_recycle_time: 600
       connection_trace: true
-      idle_timeout: 3600
       mysql_sql_mode: {}
       use_db_reconnect: true
       max_pool_size: 30
@@ -241,7 +240,6 @@ conf:
       dns_servers: "8.8.8.8,1.1.1.1"
       enable_distributed_floating_ip: true
       neutron_sync_mode: "off"
-      ovn_l3_mode: "true"
       ovn_l3_scheduler: leastloaded
       ovn_nb_connection: "tcp:127.0.0.1:6641"
       ovn_sb_connection: "tcp:127.0.0.1:6642"
@@ -294,14 +292,13 @@ conf:
       ml2:
         extension_drivers: "port_security,qos,fwaas_v2"
         mechanism_drivers: ovn
-        tenant_network_types: geneve
+        project_network_types: geneve
         type_drivers: "flat,vlan,geneve"
       ml2_type_vlan:
         network_vlan_ranges: physnet1
       ovn:
         dns_servers: "8.8.8.8,1.1.1.1"
         neutron_sync_mode: "off"
-        ovn_l3_mode: "true"
         ovn_l3_scheduler: leastloaded
         ovn_metadata_enabled: true
         ovn_nb_connection: "tcp:127.0.0.1:6641"
