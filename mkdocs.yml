@@ -349,6 +349,7 @@ nav:
           - Backup Restore:
               - Freezer Backup Restore Creation: openstack-freezer.md
               - Freezer Backup Retention Policy: openstack-freezer-backup-retention.md
+              - Freezer Backup via Skyline: openstack-freezer-skyline.md
           - Databases:
               - Trove:
                   - Deployment: openstack-trove.md
