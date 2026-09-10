@@ -817,6 +817,11 @@ EOF
             cat > "${config_base}/barbican/barbican-helm-overrides.yaml" <<EOF
 ---
 pod:
+  security_context:
+    barbican_api:
+      pod:
+        runAsUser: 42424
+        fsGroup: 42424
   resources:
     enabled: false
 
@@ -826,10 +831,16 @@ pod:
         volumeMounts:
           - name: softhsm-tokens
             mountPath: /var/lib/softhsm/tokens
+          - name: softhsm-config
+            mountPath: /etc/softhsm/softhsm2.conf
+            subPath: softhsm2.conf
         volumes:
           - name: softhsm-tokens
             persistentVolumeClaim:
               claimName: barbican-softhsm-tokens
+          - name: softhsm-config
+            configMap:
+              name: barbican-softhsm-config
 
 conf:
   barbican_api_uwsgi:
@@ -838,15 +849,35 @@ conf:
   barbican:
     oslo_messaging_notifications:
       driver: noop
-    p11_crypto_plugin:
-      library_path: "/usr/lib/softhsm/libsofthsm2.so"
-      token_labels:
-        - "barbican_token"
-      slot_id: 1
+    secretstore:
+      enabled_secretstore_plugins:
+        - store_crypto
     crypto:
       enabled_crypto_plugins:
         - p11_crypto
         - simple_crypto
+    p11_crypto_plugin:
+      library_path: "/usr/lib/softhsm/libsofthsm2.so"
+      token_labels:
+        - "barbican_token"
+      mkek_label: "barbican_mkek"
+      mkek_length: 32
+      hmac_label: "barbican_hmac"
+      rw_session: true
+EOF
+            # Create ConfigMap for softhsm2.conf
+            kubectl apply --namespace openstack -f - <<EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: barbican-softhsm-config
+  namespace: openstack
+data:
+  softhsm2.conf: |
+    # SoftHSM v2 configuration file
+    directories.tokendir = /var/lib/softhsm/tokens
+    objectstore.backend = file
+    log.level = INFO
 EOF
             # Create PVC for SoftHSM2 token persistence
             kubectl apply --namespace openstack -f - <<EOF
@@ -857,7 +888,7 @@ metadata:
   namespace: openstack
 spec:
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   resources:
     requests:
       storage: 100Mi
@@ -1590,15 +1621,15 @@ EOF
 function initBarbicanHSMKeys() {
     # Initializes SoftHSM2 token + generates MKEK/HMAC keys inside barbican pod.
     # Idempotent — skips if token/keys already exist.
-    # Called only when BARBICAN_HSM_ENABLED=true or HYPERCONVERGED_BARBICAN_HSM = true (hyperconverged lab).
+    # Called only when BARBICAN_HSM_ENABLED=true or HYPERCONVERGED_BARBICAN_HSM=true.
 
     if [[ "${BARBICAN_HSM_ENABLED:-false}" != "true" ]] && [[ "${HYPERCONVERGED_BARBICAN_HSM:-false}" != "true" ]]; then
         return 0
     fi
 
-    echo "=== Barbican HSM Key Initialization ==="
+    echo "=== Barbican SoftHSM2 Key Initialization ==="
 
-    local hsm_pin token_label library_path slot_id mkek_label hmac_label pod
+    local hsm_pin token_label library_path mkek_label hmac_label pod
 
     hsm_pin="$(kubectl --namespace openstack get secret barbican-hsm-credentials \
         -o jsonpath='{.data.pin}' 2>/dev/null | base64 -d)" || true
@@ -1609,7 +1640,6 @@ function initBarbicanHSMKeys() {
 
     library_path="/usr/lib/softhsm/libsofthsm2.so"
     token_label="barbican_token"
-    slot_id="1"
     mkek_label="barbican_mkek"
     hmac_label="barbican_hmac"
 
@@ -1642,7 +1672,6 @@ function initBarbicanHSMKeys() {
         barbican-manage hsm check_mkek \
             --library-path "${library_path}" \
             --passphrase "${hsm_pin}" \
-            --slot-id "${slot_id}" \
             --label "${mkek_label}" 2>/dev/null; then
         echo "MKEK exists — OK"
     else
@@ -1651,7 +1680,6 @@ function initBarbicanHSMKeys() {
             barbican-manage hsm gen_mkek \
                 --library-path "${library_path}" \
                 --passphrase "${hsm_pin}" \
-                --slot-id "${slot_id}" \
                 --label "${mkek_label}" \
                 --length 32
     fi
@@ -1662,7 +1690,6 @@ function initBarbicanHSMKeys() {
         barbican-manage hsm check_hmac \
             --library-path "${library_path}" \
             --passphrase "${hsm_pin}" \
-            --slot-id "${slot_id}" \
             --label "${hmac_label}" \
             --key-type CKK_AES 2>/dev/null; then
         echo "HMAC key exists — OK"
@@ -1672,14 +1699,13 @@ function initBarbicanHSMKeys() {
             barbican-manage hsm gen_hmac \
                 --library-path "${library_path}" \
                 --passphrase "${hsm_pin}" \
-                --slot-id "${slot_id}" \
                 --label "${hmac_label}" \
                 --key-type CKK_AES \
                 --length 32 \
                 --mechanism CKM_AES_KEY_GEN
     fi
 
-    echo "=== HSM initialization complete ==="
+    echo "=== SoftHSM2 initialization complete ==="
 }
 
 function createPostSetupResources() {

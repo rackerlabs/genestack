@@ -138,14 +138,14 @@ set_args=(
     --set "conf.barbican.keystone_authtoken.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
 )
 
-# Detects if missing PKCS#11 HSM p11_crypto_plugin and regenerates the file automatically.
+# Detects if missing PKCS#11 SoftHSM2 configuration and regenerates the file automatically.
 if [[ "${BARBICAN_HSM_ENABLED:-false}" == "true" ]] || [[ "${HYPERCONVERGED_BARBICAN_HSM:-false}" == "true" ]]; then
 
     override_file="${SERVICE_CUSTOM_OVERRIDES}/barbican-helm-overrides.yaml"
 
-    # If override file is missing OR does not contain p11_crypto_plugin, regenerate it
-    if [[ ! -f "${override_file}" ]] || ! grep -q "p11_crypto_plugin" "${override_file}" 2>/dev/null; then
-        echo "HSM enabled but p11_crypto_plugin missing in ${override_file}. Regenerating..."
+    # If override file is missing OR does not contain p11_crypto_plugin/softhsm-config, regenerate it
+    if [[ ! -f "${override_file}" ]] || ! grep -q "p11_crypto_plugin" "${override_file}" 2>/dev/null || ! grep -q "softhsm-config" "${override_file}" 2>/dev/null; then
+        echo "HSM enabled but p11_crypto_plugin/softhsm-config missing in ${override_file}. Regenerating..."
         rm -f "${override_file}"
         SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
         source "${SCRIPT_DIR}/../scripts/lib/hyperconverged-common.sh"
@@ -153,7 +153,7 @@ if [[ "${BARBICAN_HSM_ENABLED:-false}" == "true" ]] || [[ "${HYPERCONVERGED_BARB
     fi
 fi
 
-# PKCS#11 HSM PIN Injection
+# PKCS#11 SoftHSM2 PIN Injection
 # Reads PIN from barbican-hsm-credentials K8s Secret (created by create-secrets.sh).
 # No-op when secret doesn't exist or PIN is empty.
 hsm_pin="$(kubectl --namespace openstack get secret barbican-hsm-credentials \
@@ -190,10 +190,10 @@ echo
 # Execute the command directly from the array
 "${helm_command[@]}"
 
-# Post-Install HSM Key Initialization
-# Runs ONLY in Hyperconverged lab when:
-#   1. BARBICAN_HSM_ENABLED=true (exported during automated hyperconverged lab run)
-#   2. HYPERCONVERGED_BARBICAN_HSM=true (set manually when running script directly)
+# Post-Install SoftHSM2 Key Initialization
+# Runs ONLY when:
+#   1. BARBICAN_HSM_ENABLED=true (exported during automated hyperconverged lab run with "-i barbican-hsm")
+#   2. HYPERCONVERGED_BARBICAN_HSM=true (set manually when running install-barbican.sh script directly)
 if [[ "${BARBICAN_HSM_ENABLED:-false}" == "true" ]] || [[ "${HYPERCONVERGED_BARBICAN_HSM:-false}" == "true" ]]; then
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

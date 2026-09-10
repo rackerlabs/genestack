@@ -4,6 +4,8 @@ sortOptions:
 resources:
   - barbican-mariadb-database.yaml
   - barbican-rabbitmq-queue.yaml
+  - barbican-softhsm-config.yaml
+  - barbican-softhsm-tokens-pvc.yaml
   - all.yaml
   - hpa-barbican-api.yaml
   - policies.yaml
