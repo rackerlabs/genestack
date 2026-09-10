@@ -7,8 +7,8 @@ SERVICE_NAMESPACE="openstack"
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
 GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 KUSTOMIZE_PATH="${GENESTACK_BASE_DIR}/base-kustomize/${SERVICE_NAME}/base"
-QONOS_CONF_DEFAULT="${GENESTACK_BASE_DIR}/etc/qonos/qonos.conf"
-QONOS_CONF_OVERRIDE="${GENESTACK_OVERRIDES_DIR}/qonos/qonos.conf"
+QONOS_CONF_DEFAULT="${KUSTOMIZE_PATH}/qonos.conf"
+QONOS_CONF_OVERRIDE="${GENESTACK_OVERRIDES_DIR}/kustomize/qonos/base/qonos.conf"
 
 resolve_qonos_conf() {
     if [ -f "${QONOS_CONF_OVERRIDE}" ]; then

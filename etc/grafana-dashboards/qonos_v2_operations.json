@@ -106,15 +106,15 @@
       "pluginVersion": "10.0.0",
       "targets": [
         {
-          "expr": "schedules_total",
+          "expr": "max(schedules_total)",
           "legendFormat": "schedules",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "${datasource}"
           },
-          "editorMode": "code",
-          "range": true
+          "range": false,
+          "instant": true
         }
       ],
       "title": "Active Schedules",
@@ -174,15 +174,15 @@
       },
       "targets": [
         {
-          "expr": "job_queue_depth",
+          "expr": "max(job_queue_depth)",
           "legendFormat": "queued",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "${datasource}"
           },
-          "editorMode": "code",
-          "range": true
+          "range": false,
+          "instant": true
         }
       ],
       "title": "Job Queue Depth",
@@ -239,10 +239,10 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "${datasource}"
           },
-          "editorMode": "code",
-          "range": true
+          "range": false,
+          "instant": true
         }
       ],
       "title": "Worker Active Jobs",
@@ -328,7 +328,7 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "${datasource}"
           },
           "editorMode": "code",
           "range": true
@@ -339,7 +339,7 @@
           "refId": "B",
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "${datasource}"
           },
           "editorMode": "code",
           "range": true
@@ -428,7 +428,7 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "${datasource}"
           },
           "editorMode": "code",
           "range": true
@@ -439,7 +439,7 @@
           "refId": "B",
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "${datasource}"
           },
           "editorMode": "code",
           "range": true
@@ -528,7 +528,7 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "${datasource}"
           },
           "editorMode": "code",
           "range": true
@@ -539,7 +539,7 @@
           "refId": "B",
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "${datasource}"
           },
           "editorMode": "code",
           "range": true
@@ -628,7 +628,7 @@
           "refId": "A",
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
+            "uid": "${datasource}"
           },
           "editorMode": "code",
           "range": true
