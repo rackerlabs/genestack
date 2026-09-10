@@ -38,7 +38,7 @@ spec:
         release_group: qonos
     spec:
       serviceAccountName: qonos
-      terminationGracePeriodSeconds: 30
+      terminationGracePeriodSeconds: 720
       securityContext:
         fsGroup: 65534
         seccompProfile:

@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    QonoS v2 is a modern, extensible scheduling platform for executing
+    time-based actions against OpenStack services. It provides cron-scheduled
+    operations including server snapshots (Nova), volume full and incremental
+    backups (Cinder), with Keystone authentication, trust-based delegation,
+    retention policies, and RabbitMQ notifications.
+
+    Supported action types:
+
+    - ``server_snapshot`` — Glance image snapshot of a Nova server
+    - ``volume_backup_full`` — full Cinder volume backup
+    - ``volume_backup_incremental`` — incremental Cinder backup
+
+    Enable during ``bin/setup-openstack.sh`` or install with
+    ``/opt/genestack/bin/install-qonos.sh``. See ``docs/openstack-qonos.md``
+    for secrets, config overrides, Gateway exposure, Skyline integration, and
+    validation.
