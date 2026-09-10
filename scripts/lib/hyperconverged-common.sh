@@ -1743,12 +1743,6 @@ function installK9s() {
         sudo apt install -y /tmp/k9s_linux_amd64.deb
         sudo rm /tmp/k9s_linux_amd64.deb
     fi
-
-    if [ ! -d ~/.kube ]; then
-        mkdir ~/.kube
-        sudo cp -i /etc/kubernetes/admin.conf ~/.kube/config 2>/dev/null || true
-        sudo chown $(id -u):$(id -g) ~/.kube/config 2>/dev/null || true
-    fi
 }
 
 function runGenestackSetup() {
@@ -1861,6 +1855,7 @@ if [ "\${HYPERCONVERGED_ENVOY_GATEWAY_CONFIG:-false}" = "true" ]; then
     export ENVOY_GATEWAY_CONFIG_FILE=/etc/genestack/envoy-gateways.yaml
 fi
 runGenestackSetup "${gateway_domain}" "${acme_email}" ${disable_openstack}
+
 EOF
     } | _ssh bash
 }
@@ -2213,22 +2208,12 @@ sudo /opt/genestack/bin/install-octavia.sh -f $OCTAVIA_HELM_FILE
 EOC
 }
 
-function setupKubeConfig() {
-    if [ ! -d ~/.kube ]; then
-        mkdir ~/.kube
-        sudo cp -i /etc/kubernetes/admin.conf ~/.kube/config 2>/dev/null || true
-        sudo chown $(id -u):$(id -g) ~/.kube/config 2>/dev/null || true
-    fi
-}
-
 function deploySwift() {
     echo "Running standalone Swift deployment ..."
 
     local swift_region_name="${1:-RegionOne}"
 
     {
-        declare -f setupKubeConfig
-
         cat << JUMP_HOST_EOF
 # check if swift is to be installed, otherwise exit cleanly
 if ! grep "swift: true" /etc/genestack/openstack-components.yaml &>/dev/null; then
@@ -2238,8 +2223,6 @@ fi
 
 set -e
 source /opt/genestack/scripts/genestack.rc
-
-setupKubeConfig
 
 echo "Deploying Swift SAIO"
 ansible-playbook /opt/genestack/ansible/playbooks/deploy-swift.yaml \
@@ -2296,8 +2279,6 @@ function deployTrove() {
     local trove_os_endpoint_type="${5:-internal}" # internal
 
     {
-        declare -f setupKubeConfig
-
         cat << JUMP_HOST_EOF
 # check if trove is to be installed, otherwise exit cleanly
 if ! grep "trove: true" /etc/genestack/openstack-components.yaml &>/dev/null; then
@@ -2308,8 +2289,6 @@ fi
 set -e
 # activate environment for openstack commands
 source /opt/genestack/scripts/genestack.rc
-
-setupKubeConfig
 
 echo "Running playbook for trove_secrets"
 ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
@@ -2332,11 +2311,11 @@ ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.y
     --tags trove_gateway \
     -e "trove_region_name=${trove_region_name} trove_gateway_hostname=${trove_gateway_hostname}"
 
-echo "Deploying Swift for Trove backup support"
-ansible-playbook /opt/genestack/ansible/playbooks/deploy-swift.yaml
-
 echo "Installing Trove via Helm chart"
 sudo /opt/genestack/bin/install-trove.sh
+
+# on jump host, may need to run
+# > kubectl get pods -A | grep "trove-api\|trove-cond\|trove-task\|trove-mgmt" | awk '{print$2}' | xargs kubectl delete pod -n openstack
 
 echo "Running playbook for trove_image_build"
 ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
