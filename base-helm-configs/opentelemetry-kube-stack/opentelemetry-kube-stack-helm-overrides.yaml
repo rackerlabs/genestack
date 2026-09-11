@@ -1172,34 +1172,43 @@ collectors:
               enabled: true
 
         httpcheck:
+          # Probes each OpenStack service API and records whether it returns a
+          # response (httpcheck_status = 1 when the HTTP status matches the
+          # 2xx status class). Both internal and public endpoints are
+          # supported: the defaults below use the in-cluster service endpoints,
+          # which the collector can always reach, with paths chosen to return a
+          # real response from each API. To also (or instead) monitor the
+          # external/public API URLs, add or replace entries with your
+          # service-catalog public URLs. You can keep both internal and public
+          # targets in this list to monitor them side by side.
           targets:
-            - endpoint: https://nova.api.example.com
+            - endpoint: http://keystone-api.openstack.svc.cluster.local:5000/v3
               method: GET
-            - endpoint: https://neutron.api.example.com
+            - endpoint: http://nova-api.openstack.svc.cluster.local:8774/v2.1/
               method: GET
-            - endpoint: https://keystone.api.example.com
+            - endpoint: http://neutron-server.openstack.svc.cluster.local:9696/v2.0/
               method: GET
-            - endpoint: https://octavia.api.example.com
+            - endpoint: http://glance-api.openstack.svc.cluster.local:9292/versions
               method: GET
-            - endpoint: https://glance.api.example.com
+            - endpoint: http://cinder-api.openstack.svc.cluster.local:8776/
               method: GET
-            - endpoint: https://heat.api.example.com
+            - endpoint: http://placement-api.openstack.svc.cluster.local:8778/
               method: GET
-            - endpoint: https://cinder.api.example.com
+            - endpoint: http://heat-api.openstack.svc.cluster.local:8004/
               method: GET
-            - endpoint: https://cloudformation.api.example.com
+            - endpoint: http://heat-cfn.openstack.svc.cluster.local:8000/
               method: GET
-            - endpoint: https://placement.api.example.com
+            - endpoint: http://octavia-api.openstack.svc.cluster.local:9876/
               method: GET
-            - endpoint: https://barbican.api.example.com
+            - endpoint: http://designate-api.openstack.svc.cluster.local:9001/
               method: GET
-            - endpoint: https://magnum.api.example.com
+            - endpoint: http://barbican-api.openstack.svc.cluster.local:9311/
               method: GET
-            - endpoint: https://masakari.api.example.com
+            - endpoint: http://magnum-api.openstack.svc.cluster.local:9511/
               method: GET
-            - endpoint: https://novnc.api.example.com/vnc_auto.html
+            - endpoint: http://masakari-api.openstack.svc.cluster.local:15868/
               method: GET
-            - endpoint: https://ironic.api.example.com
+            - endpoint: http://skyline-apiserver.openstack.svc.cluster.local:9999/
               method: GET
           collection_interval: 30s
 
@@ -1663,7 +1672,7 @@ collectors:
               - rabbitmq
               - receiver_creator/memcached
               - prometheus/infra
-#              - httpcheck # uncomment to add endpoint checking metrics with above endpoint config...
+              - httpcheck # emits httpcheck_* metrics for the OpenStack API URLs in the httpcheck receiver targets; replace the example.com endpoints with your real public API URLs
             processors:
               - resourcedetection/env
               - transform/memcached_labels

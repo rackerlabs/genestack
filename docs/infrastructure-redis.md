@@ -49,3 +49,62 @@ kubectl --namespace redis-systems get pods -w
 ``` shell
 kubectl --namespace redis-systems get pods -w
 ```
+
+## Monitoring Redis and Redis Sentinel
+
+Genestack ships two Grafana dashboards for Redis:
+
+- `etc/grafana-dashboards/redis_metrics.json` — **Redis Overview** (replication cluster health).
+- `etc/grafana-dashboards/redis_sentinel_metrics.json` — **Redis Sentinel** (Sentinel and failover health).
+
+The dashboards read the `redis_*` and `redis_sentinel_*` metrics from the redis_exporter,
+which is **disabled by default** in the base overrides. To enable it, create user
+override files under `/etc/genestack/helm-configs/` for each service:
+
+=== "Enable redis-replication exporter"
+
+    Create `/etc/genestack/helm-configs/redis-replication/redis-exporter-overrides.yaml`:
+
+    ``` yaml
+    redisExporter:
+      enabled: true
+      image: quay.io/opstree/redis-exporter
+      tag: "v1.44.0"
+
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+      scrapeTimeout: 10s
+      namespace: monitoring
+    ```
+
+=== "Enable redis-sentinel exporter"
+
+    Create `/etc/genestack/helm-configs/redis-sentinel/redis-exporter-overrides.yaml`:
+
+    ``` yaml
+    redisExporter:
+      enabled: true
+      image: quay.io/opstree/redis-exporter
+      tag: "v1.44.0"
+
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+      scrapeTimeout: 10s
+      namespace: monitoring
+    ```
+
+Then re-run the install scripts to apply the overrides:
+
+``` shell
+/opt/genestack/bin/install-redis-replication.sh
+/opt/genestack/bin/install-redis-sentinel.sh
+```
+
+!!! note
+
+    Until the exporter and ServiceMonitor are enabled, the Redis dashboards will
+    show "No Data".
+
+Import the dashboards using the standard [Grafana dashboard import](monitoring-grafana.md) workflow.

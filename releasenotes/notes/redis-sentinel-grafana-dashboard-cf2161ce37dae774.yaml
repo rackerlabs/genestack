@@ -1,0 +1,20 @@
+---
+features:
+  - |
+    Added a "Redis Sentinel" Grafana dashboard
+    (``etc/grafana-dashboards/redis_sentinel_metrics.json``). It surfaces
+    Sentinel up status, masters monitored, per-master status, quorum/ok
+    Sentinels, ok-versus-total slaves, known Sentinels, and uptime from the
+    ``redis_sentinel_*`` and ``redis_*`` metrics produced by the redis_exporter
+    running against the Sentinel nodes.
+upgrade:
+  - |
+    The redis_exporter sidecar and its ``ServiceMonitor`` remain disabled by
+    default in
+    ``base-helm-configs/redis-sentinel/redis-sentinel-helm-overrides.yaml``. To
+    collect the ``redis_sentinel_*`` metrics used by the "Redis Sentinel"
+    dashboard, enable them with a user override under
+    ``/etc/genestack/helm-configs/redis-sentinel/`` (setting
+    ``redisExporter.enabled: true`` and ``serviceMonitor.enabled: true``) and
+    re-run ``/opt/genestack/bin/install-redis-sentinel.sh``. Until then the
+    dashboard shows "No Data". See ``docs/infrastructure-redis.md``.

@@ -22,9 +22,25 @@ The default configuration enables:
 
 - PostgreSQL
 - HTTPCheck
-- 
-The deployment collector also includes placeholder `httpcheck` targets. 
-Update those endpoints in the base or service override values for your environment before relying on that receiver.
+
+### HTTPCheck (OpenStack API URL monitoring)
+
+The deployment collector's `httpcheck` receiver probes the OpenStack service API
+URLs and emits `httpcheck_*` metrics (keyed by the `http_url` label). It is
+enabled in the metrics pipeline, but ships with **placeholder** targets
+(`https://<service>.api.example.com`).
+
+Before relying on it, replace those endpoints with your environment's real
+public API URLs in the `httpcheck` receiver config under
+`collectors.deployment.config.receivers.httpcheck.targets` (base values, or a
+service override under `/etc/genestack/helm-configs/opentelemetry-kube-stack/`).
+The OpenStack service catalog public endpoints are a good source for this list.
+
+These metrics back the **OpenStack API URLs** Grafana dashboard
+(`etc/grafana-dashboards/openstack_api_urls_metrics.json`), which shows per-URL
+up/down status, availability, response duration, and the latest HTTP status
+code. Until the receiver has real URLs configured and the OTel collector can
+reach them, the dashboard will show "No Data".
 
 ## Secret and Database Preparation
 
