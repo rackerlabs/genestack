@@ -4,17 +4,40 @@
 Nova and Cinder references from old Glance image UUIDs to replacement image
 UUIDs.
 
-The tool is dry-run by default. In dry-run mode it does not connect to MariaDB;
-it prints the MariaDB command and the exact SQL payload it would execute.
+The tool is dry-run by default. In dry-run mode it connects to MariaDB and runs
+read-only count queries that summarize the rows it would update. Use
+`--offline` when you only want to print the SQL payload without connecting.
 
 ## Usage
 
-Generate SQL for the default Nova database and the Cinder database:
+Run a connected dry-run for the default Nova database and the Cinder database:
 
 ```bash
 ops-tools/image_uuid_migrations/image_uuid_migrations.py \
   --map-file image_uuid_map.csv \
   --cinder-database cinder
+```
+
+Run a connected dry-run from outside the MariaDB pod:
+
+```bash
+MYSQL_PASSWORD='change-me'
+ops-tools/image_uuid_migrations/image_uuid_migrations.py \
+  --map-file image_uuid_map.csv \
+  --mysql-host mariadb.example.net \
+  --mysql-port 3306 \
+  --mysql-user root \
+  --mysql-password-env MYSQL_PASSWORD \
+  --cinder-database cinder
+```
+
+Print the SQL without connecting:
+
+```bash
+ops-tools/image_uuid_migrations/image_uuid_migrations.py \
+  --map-file image_uuid_map.csv \
+  --cinder-database cinder \
+  --offline
 ```
 
 The tool defaults to the Nova database name `nova`. Override it only if the
@@ -37,14 +60,6 @@ ops-tools/image_uuid_migrations/image_uuid_migrations.py \
   --cinder-database cinder \
   --apply \
   --yes-im-really-sure
-```
-
-Generate SQL with a CSV mapping file:
-
-```bash
-ops-tools/image_uuid_migrations/image_uuid_migrations.py \
-  --map-file image_uuid_map.csv \
-  --cinder-database cinder
 ```
 
 Validate a CSV file before generating or applying SQL:
@@ -119,6 +134,14 @@ CSV preflight verifies:
 - `--format text|json`: dry-run plan output format. Default: `text`.
 - `--mysql-command`: MariaDB client command. Default: `mariadb`.
 - `--defaults-file`: optional MariaDB defaults file.
+- `--mysql-host`: MariaDB server hostname or IP address.
+- `--mysql-port`: MariaDB server TCP port.
+- `--mysql-user`: MariaDB username.
+- `--mysql-password`: MariaDB password. Dry-run output redacts the value.
+- `--mysql-password-env`: environment variable containing the MariaDB password.
+- `--mysql-socket`: MariaDB Unix socket path.
+- `--offline`: do not connect during dry-run; print the SQL that apply mode
+  would run.
 
 ## Exit Codes
 
@@ -128,12 +151,12 @@ CSV preflight verifies:
 
 ## Safety Notes
 
-The generated SQL validates table/column presence before optional Nova and
-Cinder updates. Database names and UUIDs are validated before SQL generation.
-Apply mode is gated by both `--apply` and `--yes-im-really-sure`.
+The dry-run SQL only creates a temporary mapping table and runs count queries.
+Apply mode generates separate update SQL and is gated by both `--apply` and
+`--yes-im-really-sure`.
 
-Run `--validate-map-only` for CSV migrations, then run the dry-run and review the
-count queries before applying.
+Run `--validate-map-only` for CSV migrations, then run the default connected
+dry-run and review the update summary before applying.
 
 ## Development
 

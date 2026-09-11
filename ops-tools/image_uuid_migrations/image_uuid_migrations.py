@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -37,11 +38,14 @@ class ImageMapping:
 class MigrationPlan:
     apply: bool
     command: list[str]
+    preview_command: list[str]
+    command_env: dict[str, str]
     nova_databases: list[str]
     cinder_database: str | None
     mapping_count: int
     changed_mapping_count: int
     sql: str
+    preview_sql: str
 
 
 class MigrationError(RuntimeError):
@@ -135,23 +139,24 @@ def get_mappings(args: argparse.Namespace) -> list[ImageMapping]:
     return load_csv_mappings(Path(args.map_file))
 
 
-def mapping_sql(mappings: list[ImageMapping]) -> str:
+def mapping_sql(mappings: list[ImageMapping], database: str) -> str:
+    map_table = f"{quoted_db(database)}.image_uuid_map"
     values = ",\n".join(
         f"({sql_string(row.image_name)}, {sql_string(row.old_uuid)}, {sql_string(row.new_uuid)})"
         for row in mappings
     )
-    return f"""CREATE TEMPORARY TABLE image_uuid_map (
+    return f"""CREATE TEMPORARY TABLE {map_table} (
   image_name varchar(255) NOT NULL,
   old_uuid char(36) NOT NULL PRIMARY KEY,
   new_uuid char(36) NOT NULL
 ) ENGINE=MEMORY;
 
-INSERT INTO image_uuid_map (image_name, old_uuid, new_uuid) VALUES
+INSERT INTO {map_table} (image_name, old_uuid, new_uuid) VALUES
 {values};
 """
 
 
-def nova_sql(database: str, include_deleted: bool) -> str:
+def nova_count_sql(database: str, include_deleted: bool, map_table: str) -> str:
     db = quoted_db(database)
     instance_filter = "" if include_deleted else "AND i.deleted = 0"
     bdm_filter = "" if include_deleted else "AND b.deleted = 0"
@@ -160,7 +165,7 @@ def nova_sql(database: str, include_deleted: bool) -> str:
 
 SELECT {sql_string(database + ':instances_to_update')} AS item, COUNT(*) AS count
 FROM instances i
-JOIN image_uuid_map m ON i.image_ref = m.old_uuid
+JOIN {map_table} m ON i.image_ref = m.old_uuid
 WHERE i.image_ref <> m.new_uuid
 {instance_filter};
 
@@ -172,7 +177,7 @@ SET @has_bdm_image_id = EXISTS (
 );
 SET @bdm_count_sql = IF(
   @has_bdm_image_id,
-  {sql_string("SELECT " + sql_string(database + ":block_device_mapping_to_update") + " AS item, COUNT(*) AS count FROM block_device_mapping b JOIN image_uuid_map m ON b.image_id = m.old_uuid WHERE b.image_id <> m.new_uuid " + bdm_filter)},
+  {sql_string("SELECT " + sql_string(database + ":block_device_mapping_to_update") + f" AS item, COUNT(*) AS count FROM block_device_mapping b JOIN {map_table} m ON b.image_id = m.old_uuid WHERE b.image_id <> m.new_uuid " + bdm_filter)},
   {sql_string("SELECT " + sql_string(database + ":block_device_mapping_to_update") + " AS item, 0 AS count")}
 );
 PREPARE bdm_count_stmt FROM @bdm_count_sql;
@@ -187,15 +192,24 @@ SET @has_instance_system_metadata = EXISTS (
 );
 SET @ism_count_sql = IF(
   @has_instance_system_metadata,
-  {sql_string("SELECT " + sql_string(database + ":instance_system_metadata_to_update") + " AS item, COUNT(*) AS count FROM instance_system_metadata ism JOIN image_uuid_map m ON ism.value = m.old_uuid JOIN instances i ON i.uuid = ism.instance_uuid WHERE ism.`key` = 'image_base_image_ref' AND ism.value <> m.new_uuid " + ism_filter)},
+  {sql_string("SELECT " + sql_string(database + ":instance_system_metadata_to_update") + f" AS item, COUNT(*) AS count FROM instance_system_metadata ism JOIN {map_table} m ON ism.value = m.old_uuid JOIN instances i ON i.uuid = ism.instance_uuid WHERE ism.`key` = 'image_base_image_ref' AND ism.value <> m.new_uuid " + ism_filter)},
   {sql_string("SELECT " + sql_string(database + ":instance_system_metadata_to_update") + " AS item, 0 AS count")}
 );
 PREPARE ism_count_stmt FROM @ism_count_sql;
 EXECUTE ism_count_stmt;
 DEALLOCATE PREPARE ism_count_stmt;
+"""
+
+
+def nova_sql(database: str, include_deleted: bool, map_table: str) -> str:
+    quoted_db(database)
+    instance_filter = "" if include_deleted else "AND i.deleted = 0"
+    bdm_filter = "" if include_deleted else "AND b.deleted = 0"
+    ism_filter = "" if include_deleted else "AND i.deleted = 0"
+    return f"""{nova_count_sql(database, include_deleted, map_table)}
 
 UPDATE instances i
-JOIN image_uuid_map m ON i.image_ref = m.old_uuid
+JOIN {map_table} m ON i.image_ref = m.old_uuid
 SET i.image_ref = m.new_uuid,
     i.updated_at = UTC_TIMESTAMP()
 WHERE i.image_ref <> m.new_uuid
@@ -204,7 +218,7 @@ SET @instances_updated = ROW_COUNT();
 
 SET @bdm_sql = IF(
   @has_bdm_image_id,
-  {sql_string("UPDATE block_device_mapping b JOIN image_uuid_map m ON b.image_id = m.old_uuid SET b.image_id = m.new_uuid, b.updated_at = UTC_TIMESTAMP() WHERE b.image_id <> m.new_uuid " + bdm_filter)},
+  {sql_string(f"UPDATE block_device_mapping b JOIN {map_table} m ON b.image_id = m.old_uuid SET b.image_id = m.new_uuid, b.updated_at = UTC_TIMESTAMP() WHERE b.image_id <> m.new_uuid " + bdm_filter)},
   'SELECT 0'
 );
 PREPARE bdm_stmt FROM @bdm_sql;
@@ -214,7 +228,7 @@ DEALLOCATE PREPARE bdm_stmt;
 
 SET @ism_sql = IF(
   @has_instance_system_metadata,
-  {sql_string("UPDATE instance_system_metadata ism JOIN image_uuid_map m ON ism.value = m.old_uuid JOIN instances i ON i.uuid = ism.instance_uuid SET ism.value = m.new_uuid, ism.updated_at = UTC_TIMESTAMP() WHERE ism.`key` = 'image_base_image_ref' AND ism.value <> m.new_uuid " + ism_filter)},
+  {sql_string(f"UPDATE instance_system_metadata ism JOIN {map_table} m ON ism.value = m.old_uuid JOIN instances i ON i.uuid = ism.instance_uuid SET ism.value = m.new_uuid, ism.updated_at = UTC_TIMESTAMP() WHERE ism.`key` = 'image_base_image_ref' AND ism.value <> m.new_uuid " + ism_filter)},
   'SELECT 0'
 );
 PREPARE ism_stmt FROM @ism_sql;
@@ -230,7 +244,7 @@ SELECT {sql_string(database + ':instance_system_metadata_updated')} AS item, @is
 """
 
 
-def cinder_sql(database: str, include_deleted: bool) -> str:
+def cinder_count_sql(database: str, include_deleted: bool, map_table: str) -> str:
     db = quoted_db(database)
     vgm_filter = "" if include_deleted else "AND vgm.deleted = 0"
     return f"""SET @has_cinder_volume_glance_metadata = EXISTS (
@@ -241,16 +255,22 @@ def cinder_sql(database: str, include_deleted: bool) -> str:
 );
 SET @cinder_vgm_count_sql = IF(
   @has_cinder_volume_glance_metadata,
-  {sql_string("SELECT " + sql_string(database + ":volume_glance_metadata_to_update") + f" AS item, COUNT(*) AS count FROM {db}.volume_glance_metadata vgm JOIN image_uuid_map m ON vgm.value = m.old_uuid WHERE vgm.`key` = 'image_id' AND vgm.value <> m.new_uuid " + vgm_filter)},
+  {sql_string("SELECT " + sql_string(database + ":volume_glance_metadata_to_update") + f" AS item, COUNT(*) AS count FROM {db}.volume_glance_metadata vgm JOIN {map_table} m ON vgm.value = m.old_uuid WHERE vgm.`key` = 'image_id' AND vgm.value <> m.new_uuid " + vgm_filter)},
   {sql_string("SELECT " + sql_string(database + ":volume_glance_metadata_to_update") + " AS item, 0 AS count")}
 );
 PREPARE cinder_vgm_count_stmt FROM @cinder_vgm_count_sql;
 EXECUTE cinder_vgm_count_stmt;
 DEALLOCATE PREPARE cinder_vgm_count_stmt;
+"""
 
+
+def cinder_sql(database: str, include_deleted: bool, map_table: str) -> str:
+    db = quoted_db(database)
+    vgm_filter = "" if include_deleted else "AND vgm.deleted = 0"
+    return f"""{cinder_count_sql(database, include_deleted, map_table)}
 SET @cinder_vgm_sql = IF(
   @has_cinder_volume_glance_metadata,
-  {sql_string(f"UPDATE {db}.volume_glance_metadata vgm JOIN image_uuid_map m ON vgm.value = m.old_uuid SET vgm.value = m.new_uuid, vgm.updated_at = UTC_TIMESTAMP() WHERE vgm.`key` = 'image_id' AND vgm.value <> m.new_uuid " + vgm_filter)},
+  {sql_string(f"UPDATE {db}.volume_glance_metadata vgm JOIN {map_table} m ON vgm.value = m.old_uuid SET vgm.value = m.new_uuid, vgm.updated_at = UTC_TIMESTAMP() WHERE vgm.`key` = 'image_id' AND vgm.value <> m.new_uuid " + vgm_filter)},
   'SELECT 0'
 );
 PREPARE cinder_vgm_stmt FROM @cinder_vgm_sql;
@@ -273,25 +293,94 @@ def build_sql(
     if cinder_database:
         quoted_db(cinder_database)
     validate_mappings(mappings, "migration mapping")
+    map_database = nova_databases[0]
+    map_table = f"{quoted_db(map_database)}.image_uuid_map"
     sections = [
         "-- Generated by ops-tools/image_uuid_migrations/image_uuid_migrations.py",
         f"-- generated_at_utc={datetime.now(timezone.utc).replace(microsecond=0).isoformat()}",
         "START TRANSACTION;",
-        mapping_sql(mappings),
-        "SELECT 'mapping_rows' AS item, COUNT(*) AS count FROM image_uuid_map;",
+        mapping_sql(mappings, map_database),
+        f"SELECT 'mapping_rows' AS item, COUNT(*) AS count FROM {map_table};",
     ]
-    sections.extend(nova_sql(database, include_deleted) for database in nova_databases)
+    sections.extend(
+        nova_sql(database, include_deleted, map_table) for database in nova_databases
+    )
     if cinder_database:
-        sections.append(cinder_sql(cinder_database, include_deleted))
+        sections.append(cinder_sql(cinder_database, include_deleted, map_table))
     sections.append("COMMIT;")
     return "\n\n".join(sections) + "\n"
 
 
-def command_for(args: argparse.Namespace) -> list[str]:
-    command = [args.mysql_command, "--table"]
+def build_preview_sql(
+    mappings: list[ImageMapping],
+    nova_databases: list[str],
+    cinder_database: str | None,
+    include_deleted: bool,
+) -> str:
+    for database in nova_databases:
+        quoted_db(database)
+    if cinder_database:
+        quoted_db(cinder_database)
+    validate_mappings(mappings, "migration mapping")
+    map_database = nova_databases[0]
+    map_table = f"{quoted_db(map_database)}.image_uuid_map"
+    sections = [
+        "-- Generated by ops-tools/image_uuid_migrations/image_uuid_migrations.py",
+        f"-- generated_at_utc={datetime.now(timezone.utc).replace(microsecond=0).isoformat()}",
+        mapping_sql(mappings, map_database),
+        f"SELECT 'mapping_rows' AS item, COUNT(*) AS count FROM {map_table};",
+    ]
+    sections.extend(
+        nova_count_sql(database, include_deleted, map_table)
+        for database in nova_databases
+    )
+    if cinder_database:
+        sections.append(cinder_count_sql(cinder_database, include_deleted, map_table))
+    return "\n\n".join(sections) + "\n"
+
+
+def base_command_for(args: argparse.Namespace) -> list[str]:
+    command = [args.mysql_command]
     if args.defaults_file:
         command.insert(1, f"--defaults-file={args.defaults_file}")
+    if args.mysql_host:
+        command.extend(["--host", args.mysql_host])
+    if args.mysql_port:
+        command.extend(["--port", str(args.mysql_port)])
+    if args.mysql_user:
+        command.extend(["--user", args.mysql_user])
+    if args.mysql_socket:
+        command.extend(["--socket", args.mysql_socket])
     return command
+
+
+def command_for(args: argparse.Namespace) -> list[str]:
+    return [*base_command_for(args), "--table"]
+
+
+def preview_command_for(args: argparse.Namespace) -> list[str]:
+    return [*base_command_for(args), "--batch", "--raw", "--skip-column-names"]
+
+
+def command_env_for(args: argparse.Namespace) -> dict[str, str]:
+    if args.mysql_password or args.mysql_password_env:
+        return {"MYSQL_PWD": "***"}
+    return {}
+
+
+def apply_env_for(args: argparse.Namespace) -> dict[str, str] | None:
+    password = args.mysql_password
+    if args.mysql_password_env:
+        password = os.environ.get(args.mysql_password_env)
+        if password is None:
+            raise MigrationError(
+                f"environment variable {args.mysql_password_env} is not set"
+            )
+    if not password:
+        return None
+    env = os.environ.copy()
+    env["MYSQL_PWD"] = password
+    return env
 
 
 def build_plan(args: argparse.Namespace) -> MigrationPlan:
@@ -300,9 +389,14 @@ def build_plan(args: argparse.Namespace) -> MigrationPlan:
     sql = build_sql(
         mappings, nova_databases, args.cinder_database, args.include_deleted
     )
+    preview_sql = build_preview_sql(
+        mappings, nova_databases, args.cinder_database, args.include_deleted
+    )
     return MigrationPlan(
         apply=args.apply,
         command=command_for(args),
+        preview_command=preview_command_for(args),
+        command_env=command_env_for(args),
         nova_databases=nova_databases,
         cinder_database=args.cinder_database,
         mapping_count=len(mappings),
@@ -310,6 +404,7 @@ def build_plan(args: argparse.Namespace) -> MigrationPlan:
             1 for row in mappings if row.old_uuid.lower() != row.new_uuid.lower()
         ),
         sql=sql,
+        preview_sql=preview_sql,
     )
 
 
@@ -342,6 +437,112 @@ def print_text(plan: MigrationPlan) -> None:
     print(plan.sql, end="")
     if not plan.apply:
         print("SQL")
+
+
+def printable_command(command: list[str], command_env: dict[str, str]) -> str:
+    env_prefix = " ".join(f"{key}={value}" for key, value in command_env.items())
+    rendered = " ".join(command)
+    if env_prefix:
+        return f"{env_prefix} {rendered}"
+    return rendered
+
+
+def print_offline_text(plan: MigrationPlan) -> None:
+    mode = "APPLY" if plan.apply else "DRY-RUN"
+    print(f"=== Image UUID migration plan ({mode}) ===")
+    print("Command:" if plan.apply else "Would run:")
+    print("  " + printable_command(plan.command, plan.command_env) + " <<'SQL'")
+    print("")
+    print(plan.sql, end="")
+    if not plan.apply:
+        print("SQL")
+
+
+def parse_preview_rows(output: str) -> list[tuple[str, int]]:
+    rows = []
+    for line in output.splitlines():
+        if not line.strip():
+            continue
+        parts = line.split("\t", 1)
+        if len(parts) != 2:
+            raise MigrationError(f"unexpected preview output line: {line}")
+        item, count = parts
+        try:
+            rows.append((item, int(count)))
+        except ValueError as exc:
+            raise MigrationError(
+                f"unexpected preview count for {item}: {count}"
+            ) from exc
+    return rows
+
+
+def print_preview_summary(plan: MigrationPlan, rows: list[tuple[str, int]]) -> None:
+    update_rows = [(item, count) for item, count in rows if item != "mapping_rows"]
+    total = sum(count for _, count in update_rows)
+    print("=== Image UUID migration dry-run ===")
+    print("Inspected with:")
+    print("  " + printable_command(plan.preview_command, plan.command_env) + " <<'SQL'")
+    print("")
+    print(f"Mapping rows: {plan.mapping_count}")
+    print(f"Rows with old_uuid != new_uuid: {plan.changed_mapping_count}")
+    print(f"Database rows that would be updated: {total}")
+    print("")
+    print("Would update:")
+    for item, count in update_rows:
+        print(f"  {item}: {count}")
+
+
+def preview_summary_json(plan: MigrationPlan, rows: list[tuple[str, int]]) -> str:
+    update_rows = [
+        {"item": item, "count": count} for item, count in rows if item != "mapping_rows"
+    ]
+    summary = {
+        "status": "passed",
+        "mapping_count": plan.mapping_count,
+        "changed_mapping_count": plan.changed_mapping_count,
+        "would_update_count": sum(row["count"] for row in update_rows),
+        "would_update": update_rows,
+        "command": plan.preview_command,
+        "command_env": plan.command_env,
+    }
+    return json.dumps(summary, indent=2, sort_keys=True)
+
+
+def run_preview(plan: MigrationPlan, args: argparse.Namespace) -> int:
+    if not shutil.which(args.mysql_command):
+        print(
+            f"ERROR: required command '{args.mysql_command}' is not installed or not in PATH",
+            file=sys.stderr,
+        )
+        return EXIT_ERROR
+    try:
+        env = apply_env_for(args)
+    except MigrationError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+    log("running dry-run database preview", args.quiet)
+    result = subprocess.run(
+        plan.preview_command,
+        input=plan.preview_sql,
+        text=True,
+        check=False,
+        env=env,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        if result.stderr:
+            print(result.stderr, file=sys.stderr, end="")
+        return EXIT_APPLY_FAILED
+    try:
+        rows = parse_preview_rows(result.stdout)
+    except MigrationError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+    if args.format == "json":
+        print(preview_summary_json(plan, rows))
+    else:
+        print_preview_summary(plan, rows)
+    return EXIT_OK
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -397,6 +598,23 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--defaults-file",
         help="Optional MariaDB defaults file, passed as --defaults-file=PATH.",
     )
+    parser.add_argument("--mysql-host", help="MariaDB server hostname or IP address.")
+    parser.add_argument("--mysql-port", type=int, help="MariaDB server TCP port.")
+    parser.add_argument("--mysql-user", help="MariaDB username.")
+    parser.add_argument(
+        "--mysql-password",
+        help="MariaDB password. Dry-run output redacts the value.",
+    )
+    parser.add_argument(
+        "--mysql-password-env",
+        help="Environment variable containing the MariaDB password.",
+    )
+    parser.add_argument("--mysql-socket", help="MariaDB Unix socket path.")
+    parser.add_argument(
+        "--offline",
+        action="store_true",
+        help="Do not connect during dry-run; print the SQL that apply mode would run.",
+    )
     return parser.parse_args(argv)
 
 
@@ -412,6 +630,15 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     if args.apply and not args.yes_im_really_sure:
         print("ERROR: --apply requires --yes-im-really-sure", file=sys.stderr)
+        return EXIT_ERROR
+    if args.mysql_password and args.mysql_password_env:
+        print(
+            "ERROR: use only one of --mysql-password or --mysql-password-env",
+            file=sys.stderr,
+        )
+        return EXIT_ERROR
+    if args.mysql_host and args.mysql_socket:
+        print("ERROR: use only one of --mysql-host or --mysql-socket", file=sys.stderr)
         return EXIT_ERROR
     if args.validate_map_only and not args.map_file:
         print("ERROR: --validate-map-only requires --map-file", file=sys.stderr)
@@ -430,10 +657,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ERROR: {exc}", file=sys.stderr)
         return EXIT_ERROR
     if not args.apply:
+        if not args.offline:
+            return run_preview(plan, args)
         if args.format == "json":
             print(json.dumps(asdict(plan), indent=2, sort_keys=True))
         else:
-            print_text(plan)
+            print_offline_text(plan)
         return EXIT_OK
     if not shutil.which(args.mysql_command):
         print(
@@ -442,7 +671,14 @@ def main(argv: list[str] | None = None) -> int:
         )
         return EXIT_ERROR
     log("applying image UUID migration SQL", args.quiet)
-    result = subprocess.run(plan.command, input=plan.sql, text=True, check=False)
+    try:
+        env = apply_env_for(args)
+    except MigrationError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+    result = subprocess.run(
+        plan.command, input=plan.sql, text=True, check=False, env=env
+    )
     return EXIT_OK if result.returncode == 0 else EXIT_APPLY_FAILED
 
 
