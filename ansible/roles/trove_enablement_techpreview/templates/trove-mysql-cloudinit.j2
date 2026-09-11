@@ -1,129 +1,85 @@
-Content-Type: multipart/mixed; boundary="==TROVE_BOUNDARY=="
-MIME-Version: 1.0
+#cloud-config
+runcmd:
+  - |
+    #!/bin/bash
+    # K8s service reachability via the trove-mgmt-bridge anchor pod on
+    # trove-mgmt-net (geneve overlay). The anchor IP runs haproxy that
+    # forwards 5672/5000 to the in-cluster Services.
+    echo "Updating /etc/hosts"
+    echo '{{ trove_services_vip_ip }} rabbitmq.openstack.svc.cluster.local' >> /etc/hosts
+    echo '{{ trove_services_vip_ip }} keystone-api.openstack.svc.cluster.local' >> /etc/hosts
+    echo '{{ trove_services_vip_ip }} swift-api.openstack.svc.cluster.local' >> /etc/hosts
 
---==TROVE_BOUNDARY==
-Content-Type: text/x-shellscript; charset="us-ascii"
-MIME-Version: 1.0
+    # Write the guest-agent transport_url + control_exchange.
+    echo "Updating /etc/trove/conf.d/transport.conf"
+    mkdir -p /etc/trove/conf.d
+    echo '{{ trove_guest_transport_conf_b64 }}' | base64 -d > /etc/trove/conf.d/transport.conf
+    chown debian:root /etc/trove/conf.d/transport.conf
 
-#!/bin/bash
-# K8s service reachability via the trove-mgmt-bridge anchor pod on
-# trove-mgmt-net (geneve overlay). The anchor IP runs haproxy that
-# forwards 5672/5000 to the in-cluster Services.
-echo "Updating /etc/hosts"
-echo '{{ trove_services_vip_ip }} rabbitmq.openstack.svc.cluster.local' >> /etc/hosts
-echo '{{ trove_services_vip_ip }} keystone-api.openstack.svc.cluster.local' >> /etc/hosts
-echo '{{ trove_services_vip_ip }} swift-api.openstack.svc.cluster.local' >> /etc/hosts
+    # make sure the log directory exists that is specified in the trove-guestagent.conf template
+    echo "Updating /var/log/trove/guest-agent.log"
+    mkdir -p /var/log/trove
+    touch /var/log/trove/guest-agent.log
+    chown -R debian:root /var/log/trove
 
-# Write the guest-agent transport_url + control_exchange. Without this,
-# trove-guestagent has no transport_url, falls back to localhost:5672,
-# and loops ECONNREFUSED forever. We do this in the shellscript section
-# (not via cloud-config write_files) because trove-taskmanager appends
-# its own write_files block to the same cloud-config part — duplicate
-# top-level YAML keys collapse to the last one and our entry is silently
-# dropped.
-echo "Updating /etc/trove/conf.d/transport.conf"
-mkdir -p /etc/trove/conf.d
-echo '{{ trove_guest_transport_conf_b64 }}' | base64 -d > /etc/trove/conf.d/transport.conf
-chown debian:root /etc/trove/conf.d/transport.conf
+    # remove soft link for /etc/mysql/my.cnf
+    echo "Removing /etc/mysql/my.cnf"
+    sudo rm -f /etc/mysql/my.cnf
 
-# make sure the log directory exists that is specified in the trove-guestagent.conf template
-echo "Updating /var/log/trove/guest-agent.log"
-mkdir -p /var/log/trove
-touch /var/log/trove/guest-agent.log
-chown -R debian:root /var/log/trove
+    # create new /etc/mysql/my.cnf soft link to /etc/mysql/mariadb.cnf
+    echo "Creating /etc/mysql/my.cnf"
+    sudo ln -s /etc/mysql/mariadb.cnf /etc/mysql/my.cnf
+    sudo chown -h database:database /etc/mysql/my.cnf
 
-# remove soft link for /etc/mysql/my.cnf since it points to /etc/alternatives/my.cnf which does
-#  not get mapped into the mysql docker container
-echo "Removing /etc/mysql/my.cnf"
-sudo rm -f /etc/mysql/my.cnf
+    echo "Starting local Docker registry"
+    echo '{"bridge": "none", "ip-forward": false, "iptables": false, "insecure-registries": ["localhost:5000", "127.0.0.1:5000", "0.0.0.0:5000"]}' > /etc/docker/daemon.json
+    sudo systemctl restart docker
+    docker network create --subnet=172.20.0.0/16 trove_docker_net
+    docker run -d --network trove_docker_net --ip 172.20.0.22 -p 5000:5000 --restart=always --name registry registry:2
 
-# create new /etc/mysql/my.cnf soft link to /etc/mysql/mariadb.cnf which contains the contents
-#  from trove rendering the mysql config template
-echo "Creating /etc/mysql/my.cnf"
-sudo ln -s /etc/mysql/mariadb.cnf /etc/mysql/my.cnf
-sudo chown -h database:database /etc/mysql/my.cnf
+    # Pre-baked datastore image
+    if [ -f /var/lib/trove-images/datastore.tar ]; then
+      echo "Load datastore image"
+      for _i in 1 2 3 4 5; do
+        if docker info >/dev/null 2>&1; then break; fi
+        sleep 2
+      done
+      docker load -i /var/lib/trove-images/datastore.tar 2>&1 | head -3
+      docker tag mysql:8.4 localhost:5000/mysql:8.4
+      docker push localhost:5000/mysql:8.4
+    fi
 
-echo "Starting local Docker registry"
-echo '{"bridge": "none", "ip-forward": false, "iptables": false, "insecure-registries": ["localhost:5000", "127.0.0.1:5000", "0.0.0.0:5000"]}' > /etc/docker/daemon.json
-sudo systemctl restart docker
-docker network create --subnet=172.20.0.0/16 trove_docker_net
-docker run -d --network trove_docker_net --ip 172.20.0.22 -p 5000:5000 --restart=always --name registry registry:2
-#docker run -d -p 5000:5000 --restart=always --name registry registry:2
-#docker run -d --net=host -e REGISTRY_HTTP_ADDR=0.0.0.0:4000 --restart=always -v /opt/trove_registry/:/var/lib/registry --name registry registry:2
+    # Pre-baked datastore backup image.
+    if [ -f /var/lib/trove-images/datastore-backup.tar ]; then
+      echo "Load datastore backup image"
+      for _i in 1 2 3 4 5; do
+        if docker info >/dev/null 2>&1; then break; fi
+        sleep 2
+      done
+      docker load -i /var/lib/trove-images/datastore-backup.tar 2>&1 | head -3
+      docker tag datastore-backup-image:latest localhost:5000/mysql-backup:8.4
+      docker push localhost:5000/mysql-backup:8.4
+    fi
 
-# Pre-baked datastore image — load it before guest-agent tries to
-# docker pull at prepare time. The image was injected into /var/lib/
-# trove-images/datastore.tar by virt-customize during guest image build,
-# so guests don't need internet at prepare time. Wait briefly for docker.service
-# to be ready (cloud-init final can race ahead of multi-user.target).
-if [ -f /var/lib/trove-images/datastore.tar ]; then
-  echo "Load datastore image"
-  for _i in 1 2 3 4 5; do
-    if docker info >/dev/null 2>&1; then break; fi
-    sleep 2
-  done
-  docker load -i /var/lib/trove-images/datastore.tar 2>&1 | head -3
-  # docker image import /var/lib/trove-images/datastore.tar mysql:8.4
-  docker tag mysql:8.4 localhost:5000/mysql:8.4
-  docker push localhost:5000/mysql:8.4
-fi
+    # Restart guest agent service
+    echo "Restart guest agent service"
+    systemctl try-restart guest-agent.service || true
 
-# Pre-baked datastore backup image.
-# The image was injected into /var/lib/trove-images/datastore-backup.tar
-# by virt-customize during guest image build.
-# Wait briefly for docker.service to be ready (cloud-init final can
-# race ahead of multi-user.target).
-if [ -f /var/lib/trove-images/datastore-backup.tar ]; then
-  echo "Load datastore backup image"
-  for _i in 1 2 3 4 5; do
-    if docker info >/dev/null 2>&1; then break; fi
-    sleep 2
-  done
-  docker load -i /var/lib/trove-images/datastore-backup.tar 2>&1 | head -3
-  # docker image import /var/lib/trove-images/datastore-backup.tar mysql-backup:8.4
-  docker tag datastore-backup-image:latest localhost:5000/mysql-backup:8.4
-  docker push localhost:5000/mysql-backup:8.4
-fi
+    # Updating /etc/resolv.conf
+    echo "Updating /etc/resolv.conf"
+    rm -f /etc/resolv.conf
+    cat >/etc/resolv.conf <<RESOLV
+    nameserver 1.1.1.1
+    nameserver 8.8.8.8
+    options timeout:2 attempts:2
+    RESOLV
+    chattr +i /etc/resolv.conf 2>/dev/null || true
 
-# Disable trove-image-loader.service - we pre-load images via cloud-init
-# above, so the upstream loader is unnecessary and fails on Debian.
-# echo "Disabling trove-image-loader service"
-# systemctl disable trove-image-loader.service 2>/dev/null || true
-# systemctl mask trove-image-loader.service 2>/dev/null || true
-# But TODO: Re-enable this once datastore images are shipped via the
-# genestack-images repo and cloud-init image loading is removed.
-
-# guest-agent.service may have started already (it depends on
-# network.target, not cloud-init.target), so it likely loaded its config
-# before transport.conf was written. Force a restart so it picks up the
-# transport_url; without this it loops ECONNREFUSED to localhost:5672.
-echo "Restart guest agent service"
-systemctl try-restart guest-agent.service || true
-
-# The mgmt subnet is --no-dhcp / --gateway none. The guest's *other*
-# vNIC (the customer tenant network) supplies DHCP, default route, and
-# resolver normally — but in the lab we hard-pin public resolvers as a
-# safety net so cloud-init's package fetches and docker pulls work even
-# if the tenant network's DNS lookup is slow.
-echo "Updating /etc/resolv.conf"
-rm -f /etc/resolv.conf
-cat >/etc/resolv.conf <<RESOLV
-nameserver 1.1.1.1
-nameserver 8.8.8.8
-options timeout:2 attempts:2
-RESOLV
-chattr +i /etc/resolv.conf 2>/dev/null || true
-
-# copy the os_admin.cnf that trove guest agent creates to /etc/mysql/conf.d so that it is
-# useable after entering the database docker container
-echo "Creating os_admin.cnf"
-until [ -f "/var/lib/mysql/conf.d/os_admin.cnf" ]
-do
-     sleep 5
-done
-sudo cp /var/lib/mysql/conf.d/os_admin.cnf /etc/mysql/conf.d
-sudo chown database:database /etc/mysql/conf.d/os_admin.cnf
-
---==TROVE_BOUNDARY==
-Content-Type: text/cloud-config; charset="us-ascii"
-MIME-Version: 1.0
+    # copy the os_admin.cnf
+    echo "Creating os_admin.cnf"
+    until [ -f "/var/lib/mysql/conf.d/os_admin.cnf" ]
+    do
+         sleep 5
+    done
+    sudo cp /var/lib/mysql/conf.d/os_admin.cnf /etc/mysql/conf.d
+    sudo chown database:database /etc/mysql/conf.d/os_admin.cnf
