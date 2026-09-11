@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    Added ``ops-tools/image_uuid_migrations``, a Python operator tool that
+    generates and optionally applies MariaDB SQL for migrating Nova and Cinder
+    image UUID references after Glance image replacement.
+  - |
+    The tool is dry-run by default, requires a CSV mapping file, handles one or
+    more Nova databases, optionally updates Cinder
+    ``volume_glance_metadata`` for bootable volumes, and requires
+    ``--yes-im-really-sure`` with apply mode.
+  - |
+    CSV mappings are validated before SQL generation or apply, with a
+    validation-only mode and a generic example CSV shipped with the tool.
