@@ -5,7 +5,7 @@ metadata:
 spec:
   containers:
     - name: kubectl
-      image: alpine/k8s:1.26.11
+      image: alpine/k8s:1.33.13
       command:
         - sleep
         - "infinity"
