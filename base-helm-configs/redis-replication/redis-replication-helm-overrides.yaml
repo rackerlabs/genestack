@@ -47,6 +47,8 @@ externalService:
   port: 6379
   #nodePort: 31000
 
+# Only needed when redisExporter is enabled; the otel collector scrapes the
+# pods directly and does not use this ServiceMonitor.
 serviceMonitor:
   enabled: false
   interval: 30s
@@ -57,6 +59,11 @@ serviceMonitor:
     # foo: bar
     # team: devops
 
+# Replication metrics are collected by the native OpenTelemetry redis receiver
+# (receiver_creator/redis in the opentelemetry-kube-stack overrides), which
+# reads the Redis INFO command directly from each pod. The redis_exporter
+# sidecar below is therefore not required and stays disabled.
+# See docs/infrastructure-redis.md.
 redisExporter:
   enabled: false
   image: quay.io/opstree/redis-exporter

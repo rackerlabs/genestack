@@ -1,0 +1,34 @@
+---
+features:
+  - |
+    Added a "Redis Sentinel" Grafana dashboard
+    (``etc/grafana-dashboards/redis_sentinel_metrics.json``). It surfaces
+    Sentinel up status, masters monitored, TILT state and TILT event rate,
+    Sentinel script queue depth, connected clients, and uptime.
+  - |
+    Redis Sentinel metrics are now collected by the native OpenTelemetry
+    ``redis`` receiver instead of a redis_exporter sidecar. A new
+    ``receiver_creator/redis_sentinel`` block in
+    ``base-helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-overrides.yaml``
+    discovers the ``redis-sentinel-sentinel-<n>`` pods on port 26379 through the
+    ``k8s_observer`` extension and enables the receiver's optional
+    ``redis.sentinel.*`` metrics.
+upgrade:
+  - |
+    The redis_exporter sidecar and its ``ServiceMonitor`` stay disabled by
+    default and are no longer required for the "Redis Sentinel" dashboard.
+issues:
+  - |
+    The OpenTelemetry ``redis`` receiver only parses the Sentinel ``INFO``
+    output and does not issue the ``SENTINEL masters`` command, so the
+    per-master series that redis_exporter provides have no receiver equivalent:
+    ``redis_sentinel_master_status``,
+    ``redis_sentinel_master_ok_sentinels``,
+    ``redis_sentinel_master_ok_slaves``, ``redis_sentinel_master_slaves`` and
+    ``redis_sentinel_known_sentinels``. The dashboard reports the
+    Sentinel-level signals the receiver does provide instead. Operators who
+    need the per-master quorum and failover detail can still enable the
+    redis_exporter alongside the receiver with a user override under
+    ``/etc/genestack/helm-configs/redis-sentinel/``; note that some metric
+    names overlap between the two sources with different labels, so scope such
+    queries by label. See ``docs/infrastructure-redis.md``.
