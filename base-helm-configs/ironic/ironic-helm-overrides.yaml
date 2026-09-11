@@ -30,20 +30,20 @@ conf:
       default_deploy_interface: "direct"
       default_inspect_interface: "agent"
       default_network_interface: "flat"
-      enabled_hardware_types: "ilo,ipmi,redfish,idrac"
-      enabled_bios_interfaces: "ilo,no-bios,idrac-redfish,redfish"
-      enabled_boot_interfaces: "pxe,ipxe,redfish-virtual-media,redfish-https,ilo-virtual-media,ilo-pxe"
+      enabled_hardware_types: "ipmi,redfish,idrac"
+      enabled_bios_interfaces: "no-bios,idrac-redfish,redfish"
+      enabled_boot_interfaces: "pxe,ipxe,redfish-virtual-media,redfish-https"
       enabled_console_interfaces: "no-console"
       enabled_deploy_interfaces: "direct,ramdisk"
       enabled_firmware_interfaces: "redfish,no-firmware"
-      enabled_inspect_interfaces: "ilo,agent,no-inspect,inspector,idrac-redfish,redfish"
-      enabled_management_interfaces: "ilo,ipmitool,idrac-redfish,redfish"
+      enabled_inspect_interfaces: "agent,no-inspect,idrac-redfish,redfish"
+      enabled_management_interfaces: "ipmitool,idrac-redfish,redfish"
       enabled_network_interfaces: "flat,neutron,noop"
-      enabled_power_interfaces: "ilo,ipmitool,idrac-redfish,redfish"
+      enabled_power_interfaces: "ipmitool,idrac-redfish,redfish"
       enabled_raid_interfaces: "agent,idrac-redfish,redfish,no-raid"
       enabled_rescue_interfaces: "no-rescue,agent"
       enabled_storage_interfaces: "noop"
-      enabled_vendor_interfaces: "ipmitool,ilo,idrac-redfish,redfish,no-vendor"
+      enabled_vendor_interfaces: "ipmitool,idrac-redfish,redfish,no-vendor"
     conductor:
       sync_power_state_interval: "60"
       automated_clean: "False"
@@ -82,9 +82,6 @@ conf:
       uefi_pxe_bootfile_name: "ipxe.efi"
       ipxe_enabled: true
       # image_cache_size: "21474836480"
-    ilo:
-      use_web_server_for_images: "True"
-      kernel_append_params: "nofb nomodeset vga=normal ipa-debug=1"
     redfish:
       use_swift: false
       kernel_append_params: "nofb nomodeset vga=normal ipa-debug=1"
@@ -92,7 +89,6 @@ conf:
       connection_debug: 0
       connection_recycle_time: 600
       connection_trace: true
-      idle_timeout: 3600
       mysql_sql_mode: ""
       use_db_reconnect: true
       pool_timeout: 60

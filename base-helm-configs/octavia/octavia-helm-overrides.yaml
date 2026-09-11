@@ -99,7 +99,6 @@ conf:
       connection_debug: 0
       connection_recycle_time: 600
       connection_trace: true
-      idle_timeout: 3600
       mysql_sql_mode: {}
       use_db_reconnect: true
       pool_timeout: 60
