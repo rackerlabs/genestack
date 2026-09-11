@@ -1,10 +1,17 @@
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import image_uuid_migrations as tool
+
+
+def subprocess_result(stdout="", stderr="", returncode=0):
+    return tool.subprocess.CompletedProcess(
+        args=["mariadb"], returncode=returncode, stdout=stdout, stderr=stderr
+    )
 
 
 class ImageUuidMigrationsTest(unittest.TestCase):
@@ -53,6 +60,78 @@ class ImageUuidMigrationsTest(unittest.TestCase):
         self.assertIn("UPDATE instances", plan.sql)
         self.assertIn("UPDATE `cinder`.volume_glance_metadata", plan.sql)
         self.assertIn("COMMIT", plan.sql)
+
+    def test_preview_plan_contains_counts_without_updates(self):
+        path = Path(__file__).resolve().parent / "image_migration.csv"
+        args = tool.parse_args(["--map-file", str(path), "--cinder-database", "cinder"])
+        plan = tool.build_plan(args)
+
+        self.assertIn("nova:instances_to_update", plan.preview_sql)
+        self.assertIn("nova:block_device_mapping_to_update", plan.preview_sql)
+        self.assertIn("cinder:volume_glance_metadata_to_update", plan.preview_sql)
+        self.assertNotIn("UPDATE instances", plan.preview_sql)
+        self.assertNotIn("UPDATE block_device_mapping", plan.preview_sql)
+        self.assertNotIn("UPDATE `cinder`.volume_glance_metadata", plan.preview_sql)
+
+    def test_connection_options_are_added_to_commands_and_password_is_redacted(self):
+        path = Path(__file__).resolve().parent / "image_migration.csv"
+        args = tool.parse_args(
+            [
+                "--map-file",
+                str(path),
+                "--mysql-host",
+                "db.example.test",
+                "--mysql-port",
+                "3307",
+                "--mysql-user",
+                "nova",
+                "--mysql-password",
+                "secret",
+            ]
+        )
+        plan = tool.build_plan(args)
+
+        self.assertIn("--host", plan.command)
+        self.assertIn("db.example.test", plan.command)
+        self.assertIn("--port", plan.command)
+        self.assertIn("3307", plan.command)
+        self.assertIn("--user", plan.command)
+        self.assertIn("nova", plan.command)
+        self.assertNotIn("secret", plan.command)
+        self.assertEqual(plan.command_env, {"MYSQL_PWD": "***"})
+        self.assertIn("--batch", plan.preview_command)
+
+    def test_parse_preview_rows(self):
+        rows = tool.parse_preview_rows(
+            "mapping_rows\t3\nnova:instances_to_update\t2\ncinder:volume_glance_metadata_to_update\t1\n"
+        )
+
+        self.assertEqual(
+            rows,
+            [
+                ("mapping_rows", 3),
+                ("nova:instances_to_update", 2),
+                ("cinder:volume_glance_metadata_to_update", 1),
+            ],
+        )
+
+    def test_run_preview_uses_preview_sql(self):
+        path = Path(__file__).resolve().parent / "image_migration.csv"
+        args = tool.parse_args(["--map-file", str(path), "--quiet"])
+        plan = tool.build_plan(args)
+        completed = subprocess_result(
+            stdout="mapping_rows\t3\nnova:instances_to_update\t0\nnova:block_device_mapping_to_update\t0\nnova:instance_system_metadata_to_update\t0\n"
+        )
+
+        with mock.patch.object(tool.shutil, "which", return_value="/usr/bin/mariadb"):
+            with mock.patch.object(
+                tool.subprocess, "run", return_value=completed
+            ) as run:
+                with mock.patch("builtins.print"):
+                    self.assertEqual(tool.run_preview(plan, args), 0)
+
+        self.assertEqual(run.call_args.kwargs["input"], plan.preview_sql)
+        self.assertNotIn("UPDATE instances", run.call_args.kwargs["input"])
 
     def test_rejects_invalid_database_name(self):
         path = Path(__file__).resolve().parent / "image_migration.csv"

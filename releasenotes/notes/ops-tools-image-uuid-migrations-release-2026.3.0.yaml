@@ -5,10 +5,12 @@ features:
     generates and optionally applies MariaDB SQL for migrating Nova and Cinder
     image UUID references after Glance image replacement.
   - |
-    The tool is dry-run by default, requires a CSV mapping file, handles one or
-    more Nova databases, optionally updates Cinder
+    The tool is dry-run by default, requires a CSV mapping file, supports
+    explicit MariaDB connection options, handles one or more Nova databases,
+    optionally updates Cinder
     ``volume_glance_metadata`` for bootable volumes, and requires
     ``--yes-im-really-sure`` with apply mode.
   - |
     CSV mappings are validated before SQL generation or apply, with a
-    validation-only mode and a generic example CSV shipped with the tool.
+    validation-only mode, connected dry-run update summaries, offline SQL
+    rendering, and a generic example CSV shipped with the tool.
