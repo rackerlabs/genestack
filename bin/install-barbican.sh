@@ -166,6 +166,83 @@ if [[ -n "${hsm_pin}" ]]; then
 fi
 unset hsm_pin
 
+# Programmatically Extract LEGACY_MASTER_KEK for simple_crypto Decryption
+# Only injects simple_crypto KEK if legacy encrypted secrets exist in MariaDB
+LEGACY_MASTER_KEK=""
+
+# 1. Discover active primary MariaDB pod via Kubernetes labels
+MARIADB_POD="$(kubectl --namespace "$SERVICE_NAMESPACE" get pod \
+    -l app.kubernetes.io/name=mariadb,k8s.mariadb.com/role=primary \
+    -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+
+# 2. Get Barbican DB password from Kubernetes secret
+BARBICAN_DB_PASS="$(kubectl --namespace "$SERVICE_NAMESPACE" get secret barbican-db-password \
+    -o jsonpath='{.data.password}' 2>/dev/null | base64 -d || true)"
+
+# 3. DB Gate: count simple_crypto KEK records in MariaDB
+SIMPLE_CRYPTO_SECRET_COUNT=0
+
+if [[ -n "${MARIADB_POD}" && -n "${BARBICAN_DB_PASS}" ]]; then
+    SIMPLE_CRYPTO_SECRET_COUNT="$(kubectl --namespace "$SERVICE_NAMESPACE" exec "${MARIADB_POD}" \
+        -c mariadb -- mariadb -u barbican -p"${BARBICAN_DB_PASS}" barbican -N -e \
+        "SELECT COUNT(*) FROM kek_data WHERE plugin_name LIKE '%SimpleCryptoPlugin%';" \
+        2>/dev/null | tr -d '[:space:]' || true)"
+else
+    echo "WARNING: Could not connect to MariaDB (pod='${MARIADB_POD}'). Skipping KEK DB gate check."
+fi
+
+echo "Found ${SIMPLE_CRYPTO_SECRET_COUNT:-0} simple_crypto KEK record(s) in database."
+
+if [[ "${SIMPLE_CRYPTO_SECRET_COUNT:-0}" -gt 0 ]]; then
+    echo "Legacy simple_crypto secrets detected. Extracting Master KEK..."
+
+    # Tier 1: Read kek from active barbican.conf in 'barbican-etc' Kubernetes Secret
+    if [[ -z "${LEGACY_MASTER_KEK}" ]]; then
+        LEGACY_MASTER_KEK="$(kubectl --namespace "$SERVICE_NAMESPACE" get secret barbican-etc \
+            -o jsonpath='{.data.barbican\.conf}' 2>/dev/null | base64 -d | \
+            grep -E "^\s*kek\s*=" | head -n1 | cut -d'=' -f2 | tr -d ' ' || true)"
+        [[ -n "${LEGACY_MASTER_KEK}" ]] && echo "KEK found in barbican-etc secret."
+    fi
+
+    # Tier 2: Read simple_crypto_plugin.kek or simple_crypto_kek_rewrap.old_kek
+    #         from the deployed Helm release values
+    if [[ -z "${LEGACY_MASTER_KEK}" ]]; then
+        LEGACY_MASTER_KEK="$(helm get values "$SERVICE_NAME_DEFAULT" --namespace "$SERVICE_NAMESPACE" --all 2>/dev/null | \
+            python3 -c "
+import sys, yaml
+try:
+    d = yaml.safe_load(sys.stdin) or {}
+    conf = d.get('conf', {})
+    kek = conf.get('barbican', {}).get('simple_crypto_plugin', {}).get('kek')
+    if isinstance(kek, list) and len(kek) > 0 and kek[0]:
+        print(kek[0])
+    elif isinstance(kek, str) and kek:
+        print(kek)
+    else:
+        old_kek = conf.get('simple_crypto_kek_rewrap', {}).get('old_kek')
+        if old_kek:
+            print(old_kek)
+except Exception:
+    pass
+" 2>/dev/null || true)"
+        [[ -n "${LEGACY_MASTER_KEK}" ]] && echo "KEK found in deployed Helm release values."
+    fi
+
+    # Inject the extracted KEK or fail fast
+    if [[ -n "${LEGACY_MASTER_KEK}" ]]; then
+        echo "Injecting Legacy Master KEK into Barbican configuration..."
+        set_args+=(
+            --set "conf.barbican.simple_crypto_plugin.kek=${LEGACY_MASTER_KEK}"
+        )
+    else
+        echo "ERROR: Legacy simple_crypto secrets exist in DB but no KEK could be extracted!"
+        echo "       Manual intervention required before upgrading Barbican."
+        exit 1
+    fi
+else
+    echo "No legacy simple_crypto secrets found. Skipping KEK injection (p11_crypto-only cluster)."
+fi
+
 helm_command=(
     helm upgrade --install "$SERVICE_NAME_DEFAULT" "$HELM_CHART_PATH"
     --version "${SERVICE_VERSION}"
