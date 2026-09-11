@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: barbican-softhsm-config
+  namespace: openstack
+data:
+  softhsm2.conf: |
+    # SoftHSM v2 configuration file
+    directories.tokendir = /var/lib/softhsm/tokens
+    objectstore.backend = file
+    log.level = INFO

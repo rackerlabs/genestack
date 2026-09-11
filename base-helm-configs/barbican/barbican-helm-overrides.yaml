@@ -103,7 +103,6 @@ conf:
       hmac_key_type: CKK_AES
       hmac_keygen_mechanism: CKM_AES_KEY_GEN
       key_wrap_mechanism: CKM_AES_CBC_PAD
-      slot_id: 1
       plugin_name: "PKCS11 HSM"
 
     crypto:
