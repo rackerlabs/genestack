@@ -1,0 +1,25 @@
+---
+features:
+  - |
+    Enabled the OpenTelemetry ``httpcheck`` receiver in the deployment
+    collector metrics pipeline. The receiver probes each OpenStack service API
+    and emits ``httpcheck_*`` metrics (keyed by the ``http_url`` label)
+    recording whether the endpoint returns an HTTP response. The receiver
+    targets default to the in-cluster service endpoints, which the collector
+    can always reach; both internal and public API endpoints are supported, so
+    operators can add or replace targets with their service-catalog public URLs
+    (or keep both in the list) in
+    ``base-helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-overrides.yaml``.
+  - |
+    Added an "OpenStack API URLs" Grafana dashboard
+    (``etc/grafana-dashboards/openstack_api_urls_metrics.json``) that surfaces
+    per-URL response status, overall availability, HTTP check duration, and the
+    latest HTTP status code returned by each OpenStack API, using the
+    ``httpcheck_*`` metrics.
+  - |
+    Added Grafana dashboards for infrastructure services whose metrics already
+    flow through the OpenTelemetry stack but previously had no visualization:
+    cert-manager (certificate validity and expiry), MetalLB (address pool
+    utilization and BGP/BFD session state), CoreDNS (query/response rates,
+    latency, and cache efficiency), and the Kubernetes control plane
+    (API server, scheduler, controller-manager workqueues, and etcd).

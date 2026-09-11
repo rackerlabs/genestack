@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    Added a "Redis Overview" Grafana dashboard
+    (``etc/grafana-dashboards/redis_metrics.json``) for the Redis replication
+    cluster. It surfaces up status, memory usage, connected clients, commands
+    per second, keyspace hit ratio, total keys, evictions, connected replicas,
+    and uptime from the ``redis_*`` metrics produced by the redis_exporter.
+upgrade:
+  - |
+    The redis_exporter sidecar and its ``ServiceMonitor`` remain disabled by
+    default in
+    ``base-helm-configs/redis-replication/redis-replication-helm-overrides.yaml``.
+    To collect the ``redis_*`` metrics used by the "Redis Overview" dashboard,
+    enable them with a user override under
+    ``/etc/genestack/helm-configs/redis-replication/`` (setting
+    ``redisExporter.enabled: true`` and ``serviceMonitor.enabled: true``) and
+    re-run ``/opt/genestack/bin/install-redis-replication.sh``. Until then the
+    dashboard shows "No Data". See ``docs/infrastructure-redis.md``.

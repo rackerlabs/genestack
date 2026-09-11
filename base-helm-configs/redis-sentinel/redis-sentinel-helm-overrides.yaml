@@ -9,3 +9,15 @@ redisSentinel:
   # limits:
   #   cpu: 100m
   #   memory: 128Mi
+
+redisExporter:
+  enabled: false
+  image: quay.io/opstree/redis-exporter
+  tag: "v1.44.0"
+
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  scrapeTimeout: 10s
+  namespace: monitoring
+  extraLabels: {}
