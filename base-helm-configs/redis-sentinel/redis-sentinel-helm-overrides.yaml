@@ -9,3 +9,28 @@ redisSentinel:
   # limits:
   #   cpu: 100m
   #   memory: 128Mi
+
+# Sentinel metrics are collected by the native OpenTelemetry redis receiver
+# (receiver_creator/redis_sentinel in the opentelemetry-kube-stack overrides),
+# which reads the Sentinel INFO command directly from each pod. The
+# redis_exporter sidecar below is therefore not required and stays disabled.
+#
+# Enable it only if you need the per-master Sentinel series that the otel
+# receiver cannot provide, because they come from the `SENTINEL masters`
+# command rather than INFO: redis_sentinel_master_status,
+# redis_sentinel_master_ok_sentinels, redis_sentinel_master_ok_slaves,
+# redis_sentinel_master_slaves and redis_sentinel_known_sentinels.
+# See docs/infrastructure-redis.md.
+redisExporter:
+  enabled: false
+  image: quay.io/opstree/redis-exporter
+  tag: "v1.44.0"
+
+# Only needed when redisExporter is enabled; the otel collector scrapes the
+# pods directly and does not use this ServiceMonitor.
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  scrapeTimeout: 10s
+  namespace: monitoring
+  extraLabels: {}

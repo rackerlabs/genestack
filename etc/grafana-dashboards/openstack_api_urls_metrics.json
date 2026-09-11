@@ -1,0 +1,560 @@
+{
+  "apiVersion": "dashboard.grafana.app/v2beta1",
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "openstack-api-urls-otel-target-aware",
+    "generation": 1,
+    "creationTimestamp": "2026-09-09T00:00:00Z",
+    "labels": {},
+    "annotations": {}
+  },
+  "spec": {
+    "annotations": [
+      {
+        "kind": "AnnotationQuery",
+        "spec": {
+          "builtIn": true,
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "query": {
+            "group": "grafana",
+            "kind": "DataQuery",
+            "spec": {"limit": 100, "matchAny": false, "tags": [], "type": "dashboard"},
+            "version": "v0"
+          }
+        }
+      }
+    ],
+    "cursorSync": "Crosshair",
+    "description": "Availability and latency of the OpenStack service API public URLs, from the OpenTelemetry httpcheck receiver (httpcheck_* metrics, keyed by the http_url label) remote-written to Prometheus. Requires the httpcheck receiver enabled with your real public API URLs configured.",
+    "editable": true,
+    "elements": {
+      "panel-1": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {"name": "${datasource}"},
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "count(max by (http_url) (httpcheck_status{http_url=~\"$url\"}) == 1)",
+                        "legendFormat": "APIs Responding",
+                        "range": true
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Number of OpenStack API URLs that returned an HTTP response to the last check. The httpcheck receiver sets one status class to 1 whenever the endpoint responds, so max()==1 means the API answered (any status code).",
+          "id": 1,
+          "links": [],
+          "title": "APIs Responding",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {"mode": "thresholds"},
+                  "decimals": 0,
+                  "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": 0}, {"color": "green", "value": 1}]},
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+                "textMode": "auto",
+                "wideLayout": true
+              }
+            },
+            "version": "12.2.0"
+          }
+        }
+      },
+      "panel-2": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {"name": "${datasource}"},
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "count(max by (http_url) (httpcheck_status{http_url=~\"$url\"}) == 0) or vector(0)",
+                        "legendFormat": "APIs Not Responding",
+                        "range": true
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Number of monitored OpenStack API URLs that did NOT return any HTTP response on the last check (all status classes 0). Should be zero.",
+          "id": 2,
+          "links": [],
+          "title": "APIs Not Responding",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {"mode": "thresholds"},
+                  "decimals": 0,
+                  "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": 0}, {"color": "red", "value": 1}]},
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "background",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+                "textMode": "auto",
+                "wideLayout": true
+              }
+            },
+            "version": "12.2.0"
+          }
+        }
+      },
+      "panel-3": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {"name": "${datasource}"},
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "100 * count(max by (http_url) (httpcheck_status{http_url=~\"$url\"}) == 1) / clamp_min(count(max by (http_url) (httpcheck_status{http_url=~\"$url\"})), 1)",
+                        "legendFormat": "Availability",
+                        "range": true
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Percentage of monitored OpenStack API URLs that returned an HTTP response on the last check.",
+          "id": 3,
+          "links": [],
+          "title": "APIs Responding %",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {"mode": "thresholds"},
+                  "decimals": 1,
+                  "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": 0}, {"color": "orange", "value": 90}, {"color": "green", "value": 100}]},
+                  "unit": "percent"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "background",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+                "textMode": "auto",
+                "wideLayout": true
+              }
+            },
+            "version": "12.2.0"
+          }
+        }
+      },
+      "panel-4": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {"name": "${datasource}"},
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "max by (http_url) (httpcheck_status{http_url=~\"$url\"})",
+                        "format": "table",
+                        "instant": true,
+                        "legendFormat": "{{http_url}}",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": [
+                {
+                  "kind": "organize",
+                  "spec": {
+                    "id": "organize",
+                    "options": {
+                      "excludeByName": {"Time": true, "__name__": true, "job": true, "instance": true, "endpoint": true, "pod": true, "service": true, "container": true, "namespace": true, "http_method": true, "http_status_class": true, "http_status_code": true},
+                      "indexByName": {"http_url": 0, "Value": 1},
+                      "renameByName": {"http_url": "API URL", "Value": "Status"}
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "description": "Per-URL response status for every monitored OpenStack API URL (1 = the API returned an HTTP response, 0 = no response).",
+          "id": 4,
+          "links": [],
+          "title": "API URL Response Status",
+          "vizConfig": {
+            "group": "table",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {"mode": "thresholds"},
+                  "custom": {"align": "auto", "cellOptions": {"type": "auto"}, "filterable": true, "inspect": false},
+                  "decimals": 0,
+                  "mappings": [{"options": {"0": {"color": "red", "index": 0, "text": "NO RESPONSE"}, "1": {"color": "green", "index": 1, "text": "RESPONDING"}}, "type": "value"}],
+                  "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": 0}, {"color": "green", "value": 1}]},
+                  "unit": "short"
+                },
+                "overrides": [
+                  {"matcher": {"id": "byName", "options": "Status"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}]}
+                ]
+              },
+              "options": {
+                "cellHeight": "sm",
+                "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false},
+                "showHeader": true,
+                "sortBy": [{"displayName": "Status", "desc": false}]
+              }
+            },
+            "version": "11.0.0"
+          }
+        }
+      },
+      "panel-5": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {"name": "${datasource}"},
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "max by (http_url) (httpcheck_status{http_url=~\"$url\"})",
+                        "legendFormat": "{{http_url}}",
+                        "range": true
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Per-URL responding state over time. A drop to 0 means the API URL returned no HTTP response on that check.",
+          "id": 5,
+          "links": [],
+          "title": "API URL Response Over Time",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {"mode": "palette-classic"},
+                  "custom": {"drawStyle": "line", "fillOpacity": 20, "gradientMode": "opacity", "lineInterpolation": "stepAfter", "lineWidth": 2, "pointSize": 5, "showPoints": "never", "spanNulls": false},
+                  "decimals": 0,
+                  "mappings": [{"options": {"0": {"color": "red", "index": 0, "text": "NO RESPONSE"}, "1": {"color": "green", "index": 1, "text": "RESPONDING"}}, "type": "value"}],
+                  "max": 1,
+                  "min": 0,
+                  "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": 0}, {"color": "green", "value": 1}]},
+                  "unit": "none"
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {"calcs": ["lastNotNull", "min"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+                "tooltip": {"mode": "multi", "sort": "asc"}
+              }
+            },
+            "version": "11.0.0"
+          }
+        }
+      },
+      "panel-6": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {"name": "${datasource}"},
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "max by (http_url) (httpcheck_duration{http_url=~\"$url\"})",
+                        "legendFormat": "{{http_url}}",
+                        "range": true
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Total HTTP check duration per API URL (httpcheck_duration, milliseconds). Rising latency can precede failures.",
+          "id": 6,
+          "links": [],
+          "title": "API Check Duration by URL",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {"mode": "palette-classic"},
+                  "custom": {"fillOpacity": 10, "gradientMode": "opacity", "lineInterpolation": "linear", "lineWidth": 2, "pointSize": 5, "showPoints": "never", "spanNulls": false},
+                  "decimals": 0,
+                  "thresholds": {"mode": "absolute", "steps": [{"color": "green"}, {"color": "orange", "value": 1000}, {"color": "red", "value": 5000}]},
+                  "unit": "ms"
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true},
+                "tooltip": {"mode": "multi", "sort": "desc"}
+              }
+            },
+            "version": "11.0.0"
+          }
+        }
+      },
+      "panel-7": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {"name": "${datasource}"},
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "max by (http_url, http_status_code, http_status_class) (httpcheck_status{http_url=~\"$url\"} == 1)",
+                        "format": "table",
+                        "instant": true,
+                        "legendFormat": "{{http_url}}",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": [
+                {
+                  "kind": "organize",
+                  "spec": {
+                    "id": "organize",
+                    "options": {
+                      "excludeByName": {"Time": true, "__name__": true, "job": true, "instance": true, "endpoint": true, "pod": true, "service": true, "container": true, "namespace": true, "http_method": true, "Value": true},
+                      "indexByName": {"http_url": 0, "http_status_code": 1, "http_status_class": 2},
+                      "renameByName": {"http_url": "API URL", "http_status_code": "HTTP Status Code", "http_status_class": "Class"}
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "description": "Most recent HTTP response status code returned by each API URL.",
+          "id": 7,
+          "links": [],
+          "title": "Latest HTTP Status Code by URL",
+          "vizConfig": {
+            "group": "table",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {"mode": "thresholds"},
+                  "custom": {"align": "auto", "cellOptions": {"type": "auto"}, "filterable": true, "inspect": false},
+                  "thresholds": {"mode": "absolute", "steps": [{"color": "green"}]},
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "cellHeight": "sm",
+                "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false},
+                "showHeader": true
+              }
+            },
+            "version": "11.0.0"
+          }
+        }
+      }
+    },
+    "layout": {
+      "kind": "GridLayout",
+      "spec": {
+        "items": [
+          {"kind": "GridLayoutItem", "spec": {"element": {"kind": "ElementReference", "name": "panel-1"}, "x": 0, "y": 0, "width": 6, "height": 4}},
+          {"kind": "GridLayoutItem", "spec": {"element": {"kind": "ElementReference", "name": "panel-2"}, "x": 6, "y": 0, "width": 6, "height": 4}},
+          {"kind": "GridLayoutItem", "spec": {"element": {"kind": "ElementReference", "name": "panel-3"}, "x": 12, "y": 0, "width": 12, "height": 4}},
+          {"kind": "GridLayoutItem", "spec": {"element": {"kind": "ElementReference", "name": "panel-4"}, "x": 0, "y": 4, "width": 12, "height": 10}},
+          {"kind": "GridLayoutItem", "spec": {"element": {"kind": "ElementReference", "name": "panel-7"}, "x": 12, "y": 4, "width": 12, "height": 10}},
+          {"kind": "GridLayoutItem", "spec": {"element": {"kind": "ElementReference", "name": "panel-5"}, "x": 0, "y": 14, "width": 24, "height": 8}},
+          {"kind": "GridLayoutItem", "spec": {"element": {"kind": "ElementReference", "name": "panel-6"}, "x": 0, "y": 22, "width": 24, "height": 8}}
+        ]
+      }
+    },
+    "liveNow": false,
+    "preload": false,
+    "editable": true,
+    "tags": ["openstack", "api", "httpcheck", "opentelemetry"],
+    "timeSettings": {"autoRefresh": "", "from": "now-6h", "to": "now", "timezone": "browser"},
+    "title": "OpenStack API URLs - OpenTelemetry Target Aware",
+    "variables": [
+      {
+        "kind": "DatasourceVariable",
+        "spec": {
+          "allowCustomValue": true,
+          "current": {"text": "", "value": ""},
+          "hide": "dontHide",
+          "includeAll": false,
+          "label": "Prometheus",
+          "multi": false,
+          "name": "datasource",
+          "options": [],
+          "pluginId": "prometheus",
+          "refresh": "onDashboardLoad",
+          "regex": "",
+          "skipUrlSync": false
+        }
+      },
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "allValue": ".*",
+          "allowCustomValue": true,
+          "current": {"text": "", "value": ""},
+          "definition": "label_values(httpcheck_status, http_url)",
+          "hide": "dontHide",
+          "includeAll": true,
+          "label": "API URL",
+          "multi": true,
+          "name": "url",
+          "options": [],
+          "query": {
+            "datasource": {"name": "${datasource}"},
+            "group": "prometheus",
+            "kind": "DataQuery",
+            "spec": {
+              "qryType": 1,
+              "query": "label_values(httpcheck_status, http_url)",
+              "refId": "PrometheusVariableQueryEditor-VariableQuery"
+            },
+            "version": "v0"
+          },
+          "refresh": "onDashboardLoad",
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": "alphabeticalAsc"
+        }
+      }
+    ]
+  },
+  "status": {}
+}

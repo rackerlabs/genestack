@@ -1,0 +1,42 @@
+---
+features:
+  - |
+    Added a "Redis Overview" Grafana dashboard
+    (``etc/grafana-dashboards/redis_metrics.json``) for the Redis replication
+    cluster. It surfaces up status, memory usage, connected clients, commands
+    per second, keyspace hit ratio, total keys, evictions, connected replicas,
+    and uptime.
+  - |
+    Redis replication metrics are now collected by the native OpenTelemetry
+    ``redis`` receiver instead of a redis_exporter sidecar. A new
+    ``receiver_creator/redis`` block in
+    ``base-helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-overrides.yaml``
+    discovers the ``redis-replication-<n>`` pods on port 6379 through the
+    ``k8s_observer`` extension and scrapes the Redis ``INFO`` command directly,
+    matching how memcached, MariaDB and RabbitMQ are already collected.
+  - |
+    Added a ``tcpcheck`` receiver covering the Redis and Sentinel members. It
+    emits ``tcpcheck_status_ratio`` and supplies the up/down signal that the
+    ``redis`` receiver does not provide, replacing the redis_exporter
+    ``redis_up`` gauge.
+upgrade:
+  - |
+    The ``k8s_observer`` extension is now scoped to both the ``openstack`` and
+    ``redis-systems`` namespaces so the collector can discover the Redis pods.
+  - |
+    The redis_exporter sidecar and its ``ServiceMonitor`` stay disabled by
+    default and are no longer required for the "Redis Overview" dashboard.
+  - |
+    Alerts or dashboards written against redis_exporter metric names need
+    updating, because the OpenTelemetry receiver uses the OpenTelemetry
+    semantic names: ``redis_connected_clients`` becomes
+    ``redis_clients_connected``, ``redis_connected_slaves`` becomes
+    ``redis_slaves_connected``, ``redis_uptime_in_seconds`` becomes
+    ``redis_uptime_seconds_total``, ``redis_evicted_keys_total`` becomes
+    ``redis_keys_evicted_total``, ``redis_memory_max_bytes`` becomes
+    ``redis_maxmemory_bytes``, ``redis_instance_info{role="master"}`` becomes
+    ``redis_role{role="primary"}``, and ``redis_up`` becomes
+    ``tcpcheck_status_ratio``. ``redis_memory_used_bytes``, ``redis_db_keys``,
+    ``redis_commands_processed_total``, ``redis_keyspace_hits_total`` and
+    ``redis_keyspace_misses_total`` are unchanged. See
+    ``docs/infrastructure-redis.md``.
