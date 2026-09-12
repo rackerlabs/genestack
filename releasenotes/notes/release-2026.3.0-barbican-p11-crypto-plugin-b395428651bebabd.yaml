@@ -1,0 +1,85 @@
+---
+prelude: >
+  Barbican in Genestack now supports SoftHSM2-backed PKCS#11 (`p11_crypto`)
+  as the primary crypto backend for encrypting all new secrets, while retaining
+  `simple_crypto` as a secondary read-only backend to ensure existing legacy
+  secrets remain accessible.
+
+  Additionally, deployments with Barbican Gazpacho (2026.1 / OpenStack-Helm 2026.1.x)
+  feature fully automated SoftHSM2 PIN generation, `simple_crypto` KEK persistence, and 3-tier
+  resolution. This eliminates service crashloops and encrypted volume/database creation
+  failures caused by Gazpacho's removal of the default simple_crypto KEK across both
+  brownfield upgrades and greenfield deployments.
+features:
+  - |
+    **SoftHSM2 PKCS#11 Crypto Backend Support:**
+    Integrated SoftHSM2 as a PKCS#11 HSM crypto plugin (`p11_crypto`). All new
+    secrets created in Barbican are encrypted using SoftHSM2 PKCS#11, while
+    existing secrets previously encrypted via `simple_crypto` remain readable
+    via dual-plugin operation (`p11_crypto` + `simple_crypto`).
+  - |
+    **SoftHSM2 Token Persistence & Pod Configuration:**
+    Added `barbican-softhsm-config` ConfigMap and `barbican-softhsm-tokens` PVC
+    (`ReadWriteMany`) to `base-kustomize/barbican/base/kustomization.yaml`,
+    ensuring SoftHSM2 configuration (`/etc/softhsm/softhsm2.conf`) and token
+    storage (`/var/lib/softhsm/tokens`) persist across pod restarts and
+    multi-replica deployments.
+  - |
+    **Cluster Bootstrap Secret Provisioning (bin/create-secrets.sh):**
+    Updated `bin/create-secrets.sh` to auto-generate and persist all required
+    Barbican credentials in Kubernetes Secrets at cluster bootstrap:
+    - `barbican_hsm_pin`: 32-character auto-generated PIN stored in the
+      `barbican-hsm-credentials` Kubernetes Secret for SoftHSM2 PKCS#11 token login.
+    - `barbican_simple_crypto_kek`: 32-byte urlsafe base64 (44-character) Fernet
+      Master KEK stored in the `barbican-simple-crypto-kek` Kubernetes Secret
+      for greenfield and fresh lab builds.
+  - |
+    **Updated Install Script (bin/install-barbican.sh):**
+    `install-barbican.sh` handles SoftHSM2 configuration checks, dynamic PIN
+    injection from `barbican-hsm-credentials` secret, and post-install token/key
+    initialization, and automated 3-tier simple_crypto Master KEK resolution and
+    injection for Gazpacho.
+  - |
+    **Automated 3-Tier Gazpacho KEK Resolution:**
+    Added 3-tier Master KEK resolution logic in `install-barbican.sh`:
+    - Tier 1: Extracts active KEK from `barbican-etc` Kubernetes Secret (`barbican.conf`).
+    - Tier 2: Extracts KEK from deployed Helm release values.
+    - Tier 3: Extracts persisted KEK from `barbican-simple-crypto-kek` Kubernetes Secret.
+    The resolved KEK is injected dynamically via `--set conf.barbican.simple_crypto_plugin.kek`.
+  - |
+    **Regional Override Enablement:**
+    Updated `helm-configs/barbican/barbican-helm-overrides.yaml` across regional
+    override repositories (`flex-dfw-dev-overrides`, `flex-dfw-prod-overrides`,
+    `flex-sjc-prod-overrides`, `flex-iad-prod-overrides`) to configure dual
+    plugins (`p11_crypto` + `simple_crypto`), SoftHSM2 volume mounts, and pod
+    securityContext (`runAsUser: 42424`, `fsGroup: 42424`).
+upgrade:
+  - |
+    **Zero-Touch Brownfield Gazpacho Upgrades:**
+    Gazpacho Barbican removes the upstream built-in default KEK for
+    `simple_crypto`. On brownfield clusters holding legacy encrypted secrets,
+    `install-barbican.sh` automatically extracts and injects the active `simple_crypto`
+    KEK during deployment — zero manual operator intervention required.
+  - |
+    **Greenfield Deployment Build Reliability:**
+    Fresh deployments automatically resolve the persisted bootstrap KEK via
+    Tier 3 (`barbican-simple-crypto-kek`), ensuring `simple_crypto` initializes
+    cleanly and preventing database instance (Trove) and encrypted Cinder volume
+    creation failures.
+  - |
+    **Fail-Fast Protection:**
+    If legacy `simple_crypto` records exist in MariaDB but no KEK can be
+    extracted from any tier, `install-barbican.sh` aborts with `exit 1` and an
+    actionable error message, preventing a broken deployment.
+security:
+  - |
+    **Dynamic Key & PIN Injection:**
+    Neither the SoftHSM2 PIN nor the `simple_crypto` Master KEK is stored
+    in version-controlled override files. All credentials are created and
+    persisted in Kubernetes Secrets (`barbican-hsm-credentials`,
+    `barbican-simple-crypto-kek`) and injected dynamically at deploy time.
+  - |
+    **Pod Security Context:**
+    Enforced non-root execution (`runAsUser: 42424`) and group ownership
+    (`fsGroup: 42424`) under `pod.securityContext` to ensure secure, correct
+    filesystem permissions for SoftHSM2 token storage mounted inside pods.
