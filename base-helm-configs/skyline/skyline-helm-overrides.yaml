@@ -78,6 +78,67 @@ conf:
       interface_type: internal
       default_region: RegionOne
       enforce_new_defaults: true
+    features:
+      compute: true
+      compute_instances: true
+      compute_instance_snapshots: true
+      compute_flavors: true
+      compute_server_groups: true
+      compute_images: true
+      compute_keypairs: true
+      storage: true
+      storage_volumes: true
+      storage_volume_backup: true
+      storage_volume_snapshots: true
+      storage_object_storage: false
+      storage_container_list: true
+      storage_swift_cdn: false
+      network: true
+      network_networks: true
+      network_ports: true
+      network_qos_policies: true
+      network_routers: true
+      network_floating_ips: true
+      network_topology: true
+      network_load_balancers: false
+      network_vpns: false
+      network_security_groups: true
+      network_firewalls: false
+      orchestration: false
+      orchestration_stacks: true
+      container: false
+      container_clusters: true
+      container_cluster_templates: true
+      key_manager: true
+      key_manager_secrets: true
+      key_manager_certificates: true
+      messaging: false
+      messaging_queues: true
+      reservation: false
+      reservation_leases: true
+      scheduled_actions: false
+      scheduled_actions_trusts: true
+      scheduled_actions_execution_profiles: true
+      scheduled_actions_schedules: true
+      scheduled_actions_jobs: true
+      backup_restore: false
+      backup_restore_jobs: true
+      backup_restore_actions: true
+      backup_restore_clients: true
+      backup_restore_backups: true
+      database: false
+      database_instances: true
+      database_backups: true
+      database_configurations: true
+      shared_file_systems: false
+      shared_file_systems_shares: true
+      shared_file_systems_networks: true
+      shared_file_systems_groups: true
+      shared_file_systems_types: true
+      shared_file_systems_group_types: true
+      shared_file_systems_servers: true
+      shared_file_systems_instances: true
+      shared_file_systems_backends: true
 
 manifests:
   certificates: false
