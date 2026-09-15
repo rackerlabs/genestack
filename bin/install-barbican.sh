@@ -167,7 +167,7 @@ fi
 unset hsm_pin
 
 # Programmatically Extract LEGACY_MASTER_KEK for simple_crypto Decryption
-# Only injects simple_crypto KEK if legacy encrypted secrets exist in MariaDB
+# Covers brownfield upgrades (Tier 1 & 2) and greenfield fresh install (Tier 3)
 LEGACY_MASTER_KEK=""
 
 # 1. Discover active primary MariaDB pod via Kubernetes labels
@@ -193,22 +193,19 @@ fi
 
 echo "Found ${SIMPLE_CRYPTO_SECRET_COUNT:-0} simple_crypto KEK record(s) in database."
 
-if [[ "${SIMPLE_CRYPTO_SECRET_COUNT:-0}" -gt 0 ]]; then
-    echo "Legacy simple_crypto secrets detected. Extracting Master KEK..."
+# TIER 1: Read kek from active barbican.conf in 'barbican-etc' Kubernetes Secret
+if [[ -z "${LEGACY_MASTER_KEK}" ]]; then
+    LEGACY_MASTER_KEK="$(kubectl --namespace "$SERVICE_NAMESPACE" get secret barbican-etc \
+        -o jsonpath='{.data.barbican\.conf}' 2>/dev/null | base64 -d | \
+        grep -E "^\s*kek\s*=" | head -n1 | cut -d'=' -f2 | tr -d ' ' || true)"
+    [[ -n "${LEGACY_MASTER_KEK}" ]] && echo "KEK found in barbican-etc secret."
+fi
 
-    # Tier 1: Read kek from active barbican.conf in 'barbican-etc' Kubernetes Secret
-    if [[ -z "${LEGACY_MASTER_KEK}" ]]; then
-        LEGACY_MASTER_KEK="$(kubectl --namespace "$SERVICE_NAMESPACE" get secret barbican-etc \
-            -o jsonpath='{.data.barbican\.conf}' 2>/dev/null | base64 -d | \
-            grep -E "^\s*kek\s*=" | head -n1 | cut -d'=' -f2 | tr -d ' ' || true)"
-        [[ -n "${LEGACY_MASTER_KEK}" ]] && echo "KEK found in barbican-etc secret."
-    fi
-
-    # Tier 2: Read simple_crypto_plugin.kek or simple_crypto_kek_rewrap.old_kek
-    #         from the deployed Helm release values
-    if [[ -z "${LEGACY_MASTER_KEK}" ]]; then
-        LEGACY_MASTER_KEK="$(helm get values "$SERVICE_NAME_DEFAULT" --namespace "$SERVICE_NAMESPACE" --all 2>/dev/null | \
-            python3 -c "
+# Tier 2: Read simple_crypto_plugin.kek or simple_crypto_kek_rewrap.old_kek
+#         from the deployed Helm release values
+if [[ -z "${LEGACY_MASTER_KEK}" ]]; then
+    LEGACY_MASTER_KEK="$(helm get values "$SERVICE_NAME_DEFAULT" --namespace "$SERVICE_NAMESPACE" --all 2>/dev/null | \
+        python3 -c "
 import sys, yaml
 try:
     d = yaml.safe_load(sys.stdin) or {}
@@ -225,22 +222,26 @@ try:
 except Exception:
     pass
 " 2>/dev/null || true)"
-        [[ -n "${LEGACY_MASTER_KEK}" ]] && echo "KEK found in deployed Helm release values."
-    fi
+    [[ -n "${LEGACY_MASTER_KEK}" ]] && echo "KEK found in deployed Helm release values."
+fi
 
-    # Inject the extracted KEK or fail fast
-    if [[ -n "${LEGACY_MASTER_KEK}" ]]; then
-        echo "Injecting Legacy Master KEK into Barbican configuration..."
-        set_args+=(
-            --set "conf.barbican.simple_crypto_plugin.kek=${LEGACY_MASTER_KEK}"
-        )
-    else
-        echo "ERROR: Legacy simple_crypto secrets exist in DB but no KEK could be extracted!"
-        echo "       Manual intervention required before upgrading Barbican."
-        exit 1
-    fi
-else
-    echo "No legacy simple_crypto secrets found. Skipping KEK injection (p11_crypto-only cluster)."
+# TIER 3: Greenfield / Fresh Lab - Read from barbican-simple-crypto-kek Secret
+if [[ -z "${LEGACY_MASTER_KEK}" ]]; then
+    LEGACY_MASTER_KEK="$(kubectl --namespace "$SERVICE_NAMESPACE" get secret barbican-simple-crypto-kek \
+        -o jsonpath='{.data.kek}' 2>/dev/null | base64 -d || true)"
+    [[ -n "${LEGACY_MASTER_KEK}" ]] && echo "KEK found in barbican-simple-crypto-kek secret (fresh install)."
+fi
+
+# Inject the resolved KEK or fail fast if brownfield has secrets in DB but no KEK found
+if [[ -n "${LEGACY_MASTER_KEK}" ]]; then
+    echo "Injecting simple_crypto Master KEK into Barbican configuration..."
+    set_args+=(
+        --set "conf.barbican.simple_crypto_plugin.kek=${LEGACY_MASTER_KEK}"
+    )
+elif [[ "${SIMPLE_CRYPTO_SECRET_COUNT:-0}" -gt 0 ]]; then
+    echo "ERROR: Legacy simple_crypto secrets exist in DB but no KEK could be extracted!"
+    echo "       Manual intervention required before upgrading Barbican."
+    exit 1
 fi
 
 helm_command=(
