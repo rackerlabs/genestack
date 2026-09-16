@@ -1,0 +1,500 @@
+{
+  "apiVersion": "dashboard.grafana.app/v2beta1",
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "cert-manager-otel-target-aware",
+    "generation": 1,
+    "creationTimestamp": "2026-09-09T00:00:00Z",
+    "labels": {},
+    "annotations": {}
+  },
+  "spec": {
+    "annotations": [
+      {
+        "kind": "AnnotationQuery",
+        "spec": {
+          "builtIn": true,
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "query": {
+            "group": "grafana",
+            "kind": "DataQuery",
+            "spec": {
+              "limit": 100,
+              "matchAny": false,
+              "tags": [],
+              "type": "dashboard"
+            },
+            "version": "v0"
+          }
+        }
+      }
+    ],
+    "cursorSync": "Crosshair",
+    "description": "cert-manager certificate validity and expiry from certmanager_* metrics scraped by the OpenTelemetry collector (job=cert-manager) and remote-written to Prometheus. Confirms cert-manager is running and certificates are Ready with healthy remaining lifetime.",
+    "editable": true,
+    "elements": {
+      "panel-1": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {"name": "${datasource}"},
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "count(certmanager_certificate_ready_status{condition=\"True\", namespace=~\"$namespace\"} == 1)",
+                        "legendFormat": "Ready",
+                        "range": true
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Number of certificates currently in Ready=True state.",
+          "id": 1,
+          "links": [],
+          "title": "Certificates Ready",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {"mode": "thresholds"},
+                  "decimals": 0,
+                  "thresholds": {"mode": "absolute", "steps": [{"color": "green"}]},
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+                "textMode": "auto",
+                "wideLayout": true
+              }
+            },
+            "version": "12.2.0"
+          }
+        }
+      },
+      "panel-2": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {"name": "${datasource}"},
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "count(certmanager_certificate_ready_status{condition=\"True\", namespace=~\"$namespace\"} == 0) or vector(0)",
+                        "legendFormat": "Not Ready",
+                        "range": true
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Number of certificates NOT in Ready=True state. Should be zero.",
+          "id": 2,
+          "links": [],
+          "title": "Certificates Not Ready",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {"mode": "thresholds"},
+                  "decimals": 0,
+                  "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": 0}, {"color": "red", "value": 1}]},
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "background",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+                "textMode": "auto",
+                "wideLayout": true
+              }
+            },
+            "version": "12.2.0"
+          }
+        }
+      },
+      "panel-3": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {"name": "${datasource}"},
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "min(certmanager_certificate_expiration_timestamp_seconds{namespace=~\"$namespace\"} - time())",
+                        "legendFormat": "Soonest Expiry",
+                        "range": true
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Time until the soonest-expiring certificate expires. Turns red under 15 days, orange under 30 days.",
+          "id": 3,
+          "links": [],
+          "title": "Soonest Certificate Expiry",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {"mode": "thresholds"},
+                  "decimals": 1,
+                  "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": 0}, {"color": "orange", "value": 1296000}, {"color": "green", "value": 2592000}]},
+                  "unit": "s"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "background",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+                "textMode": "auto",
+                "wideLayout": true
+              }
+            },
+            "version": "12.2.0"
+          }
+        }
+      },
+      "panel-4": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {"name": "${datasource}"},
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "(certmanager_certificate_expiration_timestamp_seconds{namespace=~\"$namespace\"} - time()) / 86400",
+                        "format": "table",
+                        "instant": true,
+                        "legendFormat": "{{name}}",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": [
+                {
+                  "kind": "organize",
+                  "spec": {
+                    "id": "organize",
+                    "options": {
+                      "excludeByName": {"Time": true, "__name__": true, "job": true, "instance": true, "endpoint": true, "pod": true, "service": true, "container": true, "condition": true, "issuer_group": true, "issuer_kind": true, "issuer_name": true},
+                      "indexByName": {"name": 0, "namespace": 1, "Value": 2},
+                      "renameByName": {"name": "Certificate", "namespace": "Namespace", "Value": "Days Until Expiry"}
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "description": "Per-certificate days until expiry, keyed by the Certificate name (the service it secures). Sorted ascending to surface certificates nearing renewal.",
+          "id": 4,
+          "links": [],
+          "title": "Certificate Expiry by Service",
+          "vizConfig": {
+            "group": "table",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {"mode": "thresholds"},
+                  "custom": {"align": "auto", "cellOptions": {"type": "auto"}, "filterable": true, "inspect": false},
+                  "decimals": 1,
+                  "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": 0}, {"color": "orange", "value": 15}, {"color": "green", "value": 30}]},
+                  "unit": "short"
+                },
+                "overrides": [
+                  {
+                    "matcher": {"id": "byName", "options": "Days Until Expiry"},
+                    "properties": [{"id": "custom.cellOptions", "value": {"type": "color-background"}}]
+                  }
+                ]
+              },
+              "options": {
+                "cellHeight": "sm",
+                "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false},
+                "showHeader": true,
+                "sortBy": [{"displayName": "Days Until Expiry", "desc": false}]
+              }
+            },
+            "version": "11.0.0"
+          }
+        }
+      },
+      "panel-5": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {"name": "${datasource}"},
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "count(count by (name, namespace) (certmanager_certificate_expiration_timestamp_seconds{namespace=~\"$namespace\"} - time() < 2592000))",
+                        "legendFormat": "Expiring < 30d",
+                        "range": true
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Number of certificates that will expire within 30 days. cert-manager should renew these automatically; a growing count with no renewal indicates a problem.",
+          "id": 5,
+          "links": [],
+          "title": "Certificates Expiring < 30 Days",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {"mode": "thresholds"},
+                  "decimals": 0,
+                  "mappings": [{"options": {"match": "null", "result": {"index": 0, "text": "0"}}, "type": "special"}],
+                  "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": 0}, {"color": "orange", "value": 1}]},
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+                "textMode": "auto",
+                "wideLayout": true
+              }
+            },
+            "version": "12.2.0"
+          }
+        }
+      },
+      "panel-7": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {"name": "${datasource}"},
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "count(certmanager_certificate_expiration_timestamp_seconds{namespace=~\"$namespace\"})",
+                        "legendFormat": "Total",
+                        "range": true
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Total number of certificates cert-manager is tracking. A value here confirms cert-manager is running and reporting metrics.",
+          "id": 7,
+          "links": [],
+          "title": "Total Certificates",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {"mode": "thresholds"},
+                  "decimals": 0,
+                  "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": 0}, {"color": "green", "value": 1}]},
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+                "textMode": "auto",
+                "wideLayout": true
+              }
+            },
+            "version": "12.2.0"
+          }
+        }
+      }
+    },
+    "layout": {
+      "kind": "GridLayout",
+      "spec": {
+        "items": [
+          {"kind": "GridLayoutItem", "spec": {"element": {"kind": "ElementReference", "name": "panel-7"}, "x": 0, "y": 0, "width": 5, "height": 4}},
+          {"kind": "GridLayoutItem", "spec": {"element": {"kind": "ElementReference", "name": "panel-1"}, "x": 5, "y": 0, "width": 5, "height": 4}},
+          {"kind": "GridLayoutItem", "spec": {"element": {"kind": "ElementReference", "name": "panel-2"}, "x": 10, "y": 0, "width": 5, "height": 4}},
+          {"kind": "GridLayoutItem", "spec": {"element": {"kind": "ElementReference", "name": "panel-5"}, "x": 15, "y": 0, "width": 4, "height": 4}},
+          {"kind": "GridLayoutItem", "spec": {"element": {"kind": "ElementReference", "name": "panel-3"}, "x": 19, "y": 0, "width": 5, "height": 4}},
+          {"kind": "GridLayoutItem", "spec": {"element": {"kind": "ElementReference", "name": "panel-4"}, "x": 0, "y": 4, "width": 24, "height": 18}}
+        ]
+      }
+    },
+    "liveNow": false,
+    "preload": false,
+    "editable": true,
+    "tags": ["cert-manager", "opentelemetry"],
+    "timeSettings": {"autoRefresh": "", "from": "now-6h", "to": "now", "timezone": "browser"},
+    "title": "cert-manager - OpenTelemetry Target Aware",
+    "variables": [
+      {
+        "kind": "DatasourceVariable",
+        "spec": {
+          "allowCustomValue": true,
+          "current": {"text": "", "value": ""},
+          "hide": "dontHide",
+          "includeAll": false,
+          "label": "Prometheus",
+          "multi": false,
+          "name": "datasource",
+          "options": [],
+          "pluginId": "prometheus",
+          "refresh": "onDashboardLoad",
+          "regex": "",
+          "skipUrlSync": false
+        }
+      },
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "allValue": ".*",
+          "allowCustomValue": true,
+          "current": {"text": "", "value": ""},
+          "definition": "label_values(certmanager_certificate_ready_status, namespace)",
+          "hide": "dontHide",
+          "includeAll": true,
+          "label": "Namespace",
+          "multi": true,
+          "name": "namespace",
+          "options": [],
+          "query": {
+            "datasource": {"name": "${datasource}"},
+            "group": "prometheus",
+            "kind": "DataQuery",
+            "spec": {
+              "qryType": 1,
+              "query": "label_values(certmanager_certificate_ready_status, namespace)",
+              "refId": "PrometheusVariableQueryEditor-VariableQuery"
+            },
+            "version": "v0"
+          },
+          "refresh": "onDashboardLoad",
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": "alphabeticalAsc"
+        }
+      }
+    ]
+  },
+  "status": {}
+}
