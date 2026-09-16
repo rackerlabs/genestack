@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -euo pipefail
+
+echo "===> Starting copy of trove-guestagent.conf ..."
+
+CONF_FILE="/tmp/trove-guestagent.conf"
+
+# $TMP_BUILD_DIR/mnt represents the "/" root partition of the new image
+DEST_DIR="$TMP_BUILD_DIR/mnt/etc/trove/conf.d"
+
+# Copy files directly into the target image filesystem
+mkdir -p $DEST_DIR
+echo "===>    Copying $CONF_FILE to $DEST_DIR/"
+cp "$CONF_FILE" "$DEST_DIR/"
+
+echo "===> Copy of trove-guestagent.conf completed successfully."

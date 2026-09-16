@@ -4,9 +4,8 @@
 # =========================================================================
 # Trove guest image (built with diskimage-builder + custom elements)
 # =========================================================================
-# Guest image using the debian-guest and debian-docker elements from
-# files/elements/. Uses Debian's debootstrap flow via DIB's built-in
-# `debian-minimal` element.
+# Guest image using the custom elements from files/elements/.
+# Uses Debian's debootstrap flow via DIB's built-in `debian-minimal` element.
 #
 # trove_guest_image_name embeds the OS release so changing
 # trove_guest_image_os_release triggers an automatic rebuild — the
