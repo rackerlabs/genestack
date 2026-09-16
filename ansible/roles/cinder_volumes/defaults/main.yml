@@ -1,6 +1,6 @@
 ---
 
-cinder_release_branch: "unmaintained/2024.1"
+cinder_release_branch: "stable/2026.1"
 storage_network_interface: ansible_br_storage
 storage_network_interface_secondary:
 cinder_backend_name: ""
