@@ -45,14 +45,15 @@ features:
     - Tier 1: Extracts active KEK from `barbican-etc` Kubernetes Secret (`barbican.conf`).
     - Tier 2: Extracts KEK from deployed Helm release values.
     - Tier 3: Extracts persisted KEK from `barbican-simple-crypto-kek` Kubernetes Secret.
-    The resolved KEK is injected dynamically via `--set conf.barbican.simple_crypto_plugin.kek`.
+    The resolved KEK is injected via a Helm values file (not `--set`, which
+    strips Fernet padding).
   - |
-    **Regional Override Enablement:**
-    Updated `helm-configs/barbican/barbican-helm-overrides.yaml` across regional
-    override repositories (`flex-dfw-dev-overrides`, `flex-dfw-prod-overrides`,
-    `flex-sjc-prod-overrides`, `flex-iad-prod-overrides`) to configure dual
-    plugins (`p11_crypto` + `simple_crypto`), SoftHSM2 volume mounts, and pod
-    securityContext (`runAsUser: 42424`, `fsGroup: 42424`).
+    **Default dual-plugin enablement:**
+    `base-helm-configs/barbican/barbican-helm-overrides.yaml` now enables
+    `p11_crypto` then `simple_crypto` (oslo MultiStrOpt), SoftHSM2 library
+    path, token label, volume mounts, and `runAsUser`/`fsGroup` 42424.
+    Regional overrides no longer need to turn p11 on; they only need to
+    keep `simple_crypto` loaded until legacy secrets are converted.
 upgrade:
   - |
     **Zero-Touch Brownfield Gazpacho Upgrades:**
