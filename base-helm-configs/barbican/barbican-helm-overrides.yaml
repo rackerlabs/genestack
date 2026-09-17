@@ -25,6 +25,28 @@ pod:
         memory: 256Mi
         cpu: 100m
       limits: {}
+  # SoftHSM token dir is group-owned; uid 42424 is the barbican user in the image.
+  security_context:
+    barbican_api:
+      pod:
+        runAsUser: 42424
+        fsGroup: 42424
+  mounts:
+    barbican_api:
+      barbican_api:
+        volumeMounts:
+          - name: softhsm-tokens
+            mountPath: /var/lib/softhsm/tokens
+          - name: softhsm-config
+            mountPath: /etc/softhsm/softhsm2.conf
+            subPath: softhsm2.conf
+        volumes:
+          - name: softhsm-tokens
+            persistentVolumeClaim:
+              claimName: barbican-softhsm-tokens
+          - name: softhsm-config
+            configMap:
+              name: barbican-softhsm-config
   lifecycle:
     upgrades:
       deployments:
@@ -86,27 +108,35 @@ conf:
     oslo_middleware:
       enable_proxy_headers_parsing: true
 
-    # PKCS#11 Crypto Plugin
-    # INERT until "p11_crypto" is added to crypto.enabled_crypto_plugins.
-    # login (HSM PIN) injected at deploy time by install-barbican.sh.
+    # PKCS#11 Crypto Plugin (SoftHSM2). login (HSM PIN) is injected at
+    # deploy time by install-barbican.sh — not stored here.
+    # enabled_crypto_plugins is an oslo MultiStrOpt; a YAML list is rendered
+    # as one comma-separated name and no plugin loads.
     p11_crypto_plugin:
-      library_path: ""
+      library_path: "/usr/lib/softhsm/libsofthsm2.so"
       token_serial_number: ""
-      token_labels: []
+      token_labels:
+        - "barbican_token"
       login: ""
       mkek_label: "barbican_mkek"
       mkek_length: 32
       hmac_label: "barbican_hmac"
       hmac_mechanism: CKM_SHA256_HMAC
       encryption_mechanism: CKM_AES_CBC
-      hmac_key_type: CKK_AES
-      hmac_keygen_mechanism: CKM_AES_KEY_GEN
-      key_wrap_mechanism: CKM_AES_CBC_PAD
+      hmac_key_type: CKK_GENERIC_SECRET
+      hmac_keygen_mechanism: CKM_GENERIC_SECRET_KEY_GEN
+      key_wrap_mechanism: CKM_AES_KEY_WRAP_PAD
+      key_wrap_generate_iv: false
       plugin_name: "PKCS11 HSM"
 
     crypto:
+      # p11_crypto encrypts new secrets. simple_crypto stays loaded so
+      # existing SimpleCryptoPlugin blobs keep decrypting until converted.
       enabled_crypto_plugins:
-        - simple_crypto
+        type: multistring
+        values:
+          - p11_crypto
+          - simple_crypto
 
   barbican_api_uwsgi:
     uwsgi:

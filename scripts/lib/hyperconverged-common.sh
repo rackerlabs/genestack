@@ -854,8 +854,10 @@ conf:
         - store_crypto
     crypto:
       enabled_crypto_plugins:
-        - p11_crypto
-        - simple_crypto
+        type: multistring
+        values:
+          - p11_crypto
+          - simple_crypto
     p11_crypto_plugin:
       library_path: "/usr/lib/softhsm/libsofthsm2.so"
       token_labels:
@@ -863,6 +865,11 @@ conf:
       mkek_label: "barbican_mkek"
       mkek_length: 32
       hmac_label: "barbican_hmac"
+      hmac_key_type: CKK_GENERIC_SECRET
+      hmac_keygen_mechanism: CKM_GENERIC_SECRET_KEY_GEN
+      hmac_mechanism: CKM_SHA256_HMAC
+      key_wrap_mechanism: CKM_AES_KEY_WRAP_PAD
+      key_wrap_generate_iv: false
       rw_session: true
 EOF
             # Create ConfigMap for softhsm2.conf
@@ -1621,11 +1628,7 @@ EOF
 function initBarbicanHSMKeys() {
     # Initializes SoftHSM2 token + generates MKEK/HMAC keys inside barbican pod.
     # Idempotent — skips if token/keys already exist.
-    # Called only when BARBICAN_HSM_ENABLED=true or HYPERCONVERGED_BARBICAN_HSM=true.
-
-    if [[ "${BARBICAN_HSM_ENABLED:-false}" != "true" ]] && [[ "${HYPERCONVERGED_BARBICAN_HSM:-false}" != "true" ]]; then
-        return 0
-    fi
+    # Caller (install-barbican.sh) decides when to invoke this.
 
     echo "=== Barbican SoftHSM2 Key Initialization ==="
 
@@ -1634,7 +1637,8 @@ function initBarbicanHSMKeys() {
     hsm_pin="$(kubectl --namespace openstack get secret barbican-hsm-credentials \
         -o jsonpath='{.data.pin}' 2>/dev/null | base64 -d)" || true
     if [[ -z "${hsm_pin}" ]]; then
-        echo "ERROR: barbican-hsm-credentials not found. Run create-secrets.sh first."
+        echo "ERROR: barbican-hsm-credentials not found."
+        echo "       install-barbican.sh creates this when SoftHSM p11 is enabled."
         return 1
     fi
 
@@ -1684,25 +1688,60 @@ function initBarbicanHSMKeys() {
                 --length 32
     fi
 
-    # Generate HMAC key
-    echo "Checking HMAC key (${hmac_label})..."
+    # Generate HMAC key (SoftHSM + Barbican: CKK_GENERIC_SECRET + CKM_SHA256_HMAC).
+    echo "Checking HMAC key (${hmac_label}, CKK_GENERIC_SECRET)..."
     if kubectl --namespace openstack exec "${pod}" -- \
         barbican-manage hsm check_hmac \
             --library-path "${library_path}" \
             --passphrase "${hsm_pin}" \
             --label "${hmac_label}" \
-            --key-type CKK_AES 2>/dev/null; then
+            --key-type CKK_GENERIC_SECRET \
+            --hmac-wrap-mechanism CKM_SHA256_HMAC 2>/dev/null; then
         echo "HMAC key exists — OK"
     else
-        echo "Generating HMAC key..."
+        # Brownfield: an AES HMAC may already exist under this label from the
+        # previous init path. SoftHSM cannot use that key with CKM_SHA256_HMAC.
+        if kubectl --namespace openstack exec "${pod}" -- \
+            barbican-manage hsm check_hmac \
+                --library-path "${library_path}" \
+                --passphrase "${hsm_pin}" \
+                --label "${hmac_label}" \
+                --key-type CKK_AES 2>/dev/null; then
+            echo "Removing leftover AES HMAC key ${hmac_label}..."
+            kubectl --namespace openstack exec "${pod}" -- \
+                env HSM_PIN="${hsm_pin}" HMAC_LABEL="${hmac_label}" \
+                LIBRARY_PATH="${library_path}" TOKEN_LABEL="${token_label}" \
+                python3 -c '
+import os
+from barbican.plugin.crypto.pkcs11 import PKCS11
+p = PKCS11(
+    library_path=os.environ["LIBRARY_PATH"],
+    login_passphrase=os.environ["HSM_PIN"],
+    token_labels=[os.environ["TOKEN_LABEL"]],
+    encryption_mechanism="CKM_AES_CBC",
+    hmac_mechanism="CKM_SHA256_HMAC",
+    key_wrap_mechanism="CKM_AES_KEY_WRAP_PAD",
+    key_wrap_gen_iv=False,
+)
+session = p.get_session()
+handle = p.get_key_handle("CKK_AES", os.environ["HMAC_LABEL"], session)
+if handle is not None:
+    p.destroy_object(handle, session)
+    print("Destroyed leftover AES HMAC key")
+p.return_session(session)
+p.finalize()
+'
+        fi
+        echo "Generating HMAC key (CKK_GENERIC_SECRET)..."
         kubectl --namespace openstack exec "${pod}" -- \
             barbican-manage hsm gen_hmac \
                 --library-path "${library_path}" \
                 --passphrase "${hsm_pin}" \
                 --label "${hmac_label}" \
-                --key-type CKK_AES \
+                --key-type CKK_GENERIC_SECRET \
                 --length 32 \
-                --mechanism CKM_AES_KEY_GEN
+                --mechanism CKM_GENERIC_SECRET_KEY_GEN \
+                --hmac-wrap-mechanism CKM_SHA256_HMAC
     fi
 
     echo "=== SoftHSM2 initialization complete ==="
