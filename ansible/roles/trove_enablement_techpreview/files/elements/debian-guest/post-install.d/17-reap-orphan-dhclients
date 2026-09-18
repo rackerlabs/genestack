@@ -1,0 +1,90 @@
+#!/bin/bash
+# Reap orphaned dhclient processes left on interfaces that Trove prepare
+# tears down.
+#
+# Trove's guest prepare, by design, removes the tenant NIC (historically
+# ens3) and repurposes it into a veth/bridge for the datastore docker
+# container. The dhclient that ifupdown started for that NIC at boot is NOT
+# stopped when the interface goes away, so it keeps sending DHCPDISCOVERs
+# against a non-existent interface forever:
+#   dhclient[...]: DHCPDISCOVER on <iface> ...
+#   dhclient[...]: dhclient.c:2600: Failed to send ... over <iface> interface.
+# These are harmless (the mgmt path is a different NIC, which is healthy) but
+# they spam the logs every few seconds, bury real mgmt-NIC events, and waste
+# cycles.
+#
+# Interface detection (no hardcoded interface name):
+# Rather than watch a named interface, this watches for dhclient PID files
+# (/run/dhclient.<iface>.pid) whose <iface> no longer exists. Any such client
+# is orphaned and reaped. The mgmt NIC (detected via option-121 routes with
+# /usr/local/sbin/trove-detect-mgmt-nic, installed by 16-mgmt-dhcp-renew) is
+# always excluded so we never touch the healthy mgmt client. This is fully
+# name-agnostic and targets the actual condition (a dhclient bound to a NIC
+# that has been torn down).
+#
+# IMPORTANT (why this is Type=simple and ordered After=cloud-final):
+# The teardown does not happen until Trove's guest-agent prepare runs -- i.e.
+# AFTER cloud-init has finished. This unit must never sit in the boot-critical
+# path. An earlier version used Type=oneshot + WantedBy=multi-user.target with
+# a blocking "while" loop; because multi-user.target waits for oneshot units
+# to complete, that blocked multi-user.target forever, which in turn blocked
+# cloud-final.service (ordered After=multi-user.target) -- so cloud-init's
+# final stage (and the mysql cloud-init shellscript) never ran. Type=simple
+# means systemd considers the unit "started" as soon as it forks, so it never
+# blocks the boot transaction, and ordering it After=cloud-final guarantees it
+# cannot precede cloud-init's final stage.
+set -e
+set -o xtrace
+
+REAPER=/usr/local/sbin/trove-reap-orphan-dhclients
+mkdir -p /usr/local/sbin
+cat > "${REAPER}" <<'EOF'
+#!/bin/sh
+# Continuously reap dhclient processes whose interface no longer exists,
+# excluding the mgmt NIC. Runs as a long-lived (Type=simple) service.
+DETECT=/usr/local/sbin/trove-detect-mgmt-nic
+
+while :; do
+    mgmt=$("$DETECT" 2>/dev/null || true)
+    for pf in /run/dhclient.*.pid; do
+        [ -e "$pf" ] || continue
+        # Extract <iface> from /run/dhclient.<iface>.pid
+        base=${pf#/run/dhclient.}
+        iface=${base%.pid}
+        # Never touch the mgmt NIC's client.
+        [ -n "$mgmt" ] && [ "$iface" = "$mgmt" ] && continue
+        # Only reap if the interface is gone.
+        if ! ip link show "$iface" >/dev/null 2>&1; then
+            /sbin/dhclient -x -pf "$pf" >/dev/null 2>&1 || true
+            pkill -f "dhclient.*[[:space:]]${iface}\$" 2>/dev/null || true
+            echo "reaped orphaned dhclient for missing interface ${iface}"
+            rm -f "$pf" 2>/dev/null || true
+        fi
+    done
+    sleep 10
+done
+EOF
+chmod +x "${REAPER}"
+
+UNIT=/etc/systemd/system/trove-reap-orphan-dhclients.service
+
+cat > "${UNIT}" <<'EOF'
+[Unit]
+Description=Reap orphaned dhclients on interfaces torn down by Trove prepare
+# Run only after cloud-init has fully finished so we never block its stages.
+After=cloud-final.service network.target
+Wants=cloud-final.service
+
+[Service]
+# Type=simple: considered started as soon as the process forks, so nothing
+# (multi-user.target, cloud-final) ever waits on this to "complete".
+Type=simple
+ExecStart=/usr/local/sbin/trove-reap-orphan-dhclients
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl enable trove-reap-orphan-dhclients.service

@@ -3,15 +3,16 @@
 #
 # The base/vm/debian-minimal elements populate /etc/network/interfaces.d/
 # with generic "auto eth0 / iface eth0 inet dhcp" (and eth1) stanzas. On
-# these guests the real NICs are ens3 (tenant) and ens4 (Trove mgmt), so
-# eth0/eth1 do not exist. "ifup -a" (networking.service) then tries to
-# bring up eth0/eth1, fails, and exits non-zero -- which leaves ifupdown's
-# state machine inconsistent and, critically, means isc-dhcp-client is not
-# left running as a persistent renewing daemon for ens4.
+# these guests the real NICs are enumerated as ens*/predictable names (the
+# tenant NIC and the Trove mgmt NIC), so eth0/eth1 do not exist. "ifup -a"
+# (networking.service) then tries to bring up eth0/eth1, fails, and exits
+# non-zero -- which leaves ifupdown's state machine inconsistent and,
+# critically, means isc-dhcp-client is not left running as a persistent
+# renewing daemon for the mgmt NIC.
 #
-# With no resident dhclient, the ens4 DHCP lease is acquired once at boot
+# With no resident dhclient, the mgmt-NIC DHCP lease is acquired once at boot
 # and never renewed at T1/T2; it lapses at expiry (~12h), dhclient removes
-# the ens4 address, all mgmt routes (0.0.0.0/1 + 128.0.0.0/1 via the anchor)
+# the mgmt address, all mgmt routes (0.0.0.0/1 + 128.0.0.0/1 via the anchor)
 # disappear, and the guest-agent loses RabbitMQ with "[Errno 101]
 # ENETUNREACH" until a reboot. Removing these bogus stanzas lets "ifup -a"
 # succeed so networking is managed cleanly. (See also 16-mgmt-dhcp-renew for
