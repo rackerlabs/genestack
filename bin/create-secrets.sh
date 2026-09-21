@@ -36,6 +36,12 @@ generate_password() {
     < /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32}
 }
 
+# N random bytes (default 32) as urlsafe base64. For 32 bytes that is the
+# 44-character Fernet key format, carrying the full 256 bits of entropy.
+generate_fernet_token() {
+    head -c "${1:-32}" /dev/urandom | base64 -w0 | tr '+/' '-_'
+}
+
 backup_suffix="$(date +%Y%m%d%H%M%S)"
 for ssh_key_file in nova_ssh_key nova_ssh_key.pub manila_ssh_key manila_ssh_key.pub; do
     if [[ -f "${ssh_key_file}" ]]; then
@@ -97,7 +103,7 @@ barbican_admin_password=$(generate_password 32)
 # PKCS#11 SoftHSM2 PIN auto-generated.
 barbican_hsm_pin=$(generate_password 32)
 # simple_crypto Fernet Master KEK (32-byte urlsafe base64 / 44 chars).
-barbican_simple_crypto_kek="$(python3 -c 'import secrets, base64; print(base64.urlsafe_b64encode(secrets.token_bytes(32)).decode())' 2>/dev/null || openssl rand -base64 32)"
+barbican_simple_crypto_kek=$(generate_fernet_token 32)
 magnum_rabbitmq_password=$(generate_password 64)
 magnum_db_password=$(generate_password 32)
 magnum_admin_password=$(generate_password 32)
@@ -654,6 +660,7 @@ metadata:
 type: Opaque
 data:
   kek: $(echo -n $barbican_simple_crypto_kek | base64 -w0)
+  old_keks: ""
 ---
 apiVersion: v1
 kind: Secret

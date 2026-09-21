@@ -161,6 +161,7 @@ if [[ "${BARBICAN_HSM_ENABLED:-false}" == "true" ]] || [[ "${HYPERCONVERGED_BARB
     if [[ ! -f "${override_file}" ]]; then
         echo "HSM enabled and ${override_file} is missing. Generating SoftHSM overlay..."
         SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        # shellcheck source=/dev/null
         source "${SCRIPT_DIR}/../scripts/lib/hyperconverged-common.sh"
         writeServiceHelmOverrides "${GENESTACK_OVERRIDES_DIR}/helm-configs"
     fi
@@ -196,92 +197,230 @@ if [[ -n "${hsm_pin}" ]]; then
 fi
 unset hsm_pin
 
-# Programmatically Extract LEGACY_MASTER_KEK for simple_crypto Decryption
-# Covers brownfield upgrades (Tier 1 & 2) and greenfield fresh install (Tier 3)
-LEGACY_MASTER_KEK=""
+# =============================================================================
+# Barbican simple_crypto master KEK
+#
+# Gazpacho barbican has no built-in default kek: with simple_crypto enabled and
+# no kek rendered into barbican.conf, barbican-api crashloops with
+# "SimpleCrypto KEK is undefined". A kek set in an override file is deployed as
+# is. Otherwise the source of truth is the Kubernetes Secret
+# barbican-simple-crypto-kek, written by create-secrets.sh on greenfield:
+#   kek       44-char Fernet key -> [simple_crypto_plugin] kek
+#   old_keks  comma-separated history -> db-sync rewrap old_kek
+#
+# The chart's db-sync job rewraps every simple_crypto project KEK one-way from
+# old_kek onto the rendered kek; a row it cannot unwrap fails the job, which
+# barbican-api waits on (an outage, not data loss). Rotations of a
+# Secret-managed kek are staged with scripts/rotate-barbican-kek.py, which this
+# script never calls.
+#
+# PROLOGUE
+#   override_kek = conf.barbican.simple_crypto_plugin.kek from the -f files,
+#                  last file wins
+#   secret_kek   = read_secret(barbican-simple-crypto-kek, kek)
+#
+# CASE 1  override_kek set          -> deploy as is: the -f files carry the
+#                                      kek and any old_kek; nothing is
+#                                      injected, no Secret is written
+#                                      (NOTICE if a Secret also exists)
+#
+# CASE 2  secret_kek set            -> abort if it fails kek_format_ok
+#                                      -> GUARD + INJECT
+#
+# CASE 3  no Secret, rows > 0       -> abort: barbican data is wrapped with
+#         (or rows unreadable)         a kek nobody manages. Adopt it into
+#                                      the Secret (scripts/rotate-barbican-kek.py
+#                                      --adopt checks it against the
+#                                      database first), then re-run
+#
+# CASE 4  no Secret, no rows        -> kubectl apply Secret
+#                                      {kek: 32 random bytes, old_keks: ""}
+#                                      -> INJECT (nothing to rewrap, no GUARD)
+#
+# GUARD   secret_old   = read_secret(..., old_keks)
+#         deployed_kek = kek_deployed(): the first "kek =" under
+#                        [simple_crypto_plugin] in the rendered barbican.conf;
+#                        no kek line: the upstream default; no release: empty
+#   no release               -> deploy  (nothing to compare)
+#   secret_kek == deployed   -> deploy  (rewrap is a no-op)
+#   deployed in secret_old   -> deploy with WARNING: staged rotation,
+#                               one-way rewrap, back up the DB first
+#   kek_data_rows() == 0     -> deploy  (nothing to rewrap)
+#   otherwise                -> abort   (rewrap could not succeed)
+#
+# INJECT
+#   --set-string conf.barbican.simple_crypto_plugin.kek=secret_kek
+#   --set-string conf.simple_crypto_kek_rewrap.old_kek=secret_old
+# =============================================================================
+KEK_SECRET="barbican-simple-crypto-kek"
+# Upstream default kek that every pre-Gazpacho deploy without an explicit kek
+# ran on. Public knowledge (OpenStack docs, OSH chart values); derived at
+# runtime so no key-shaped blob sits in the repo.
+KEK_WELL_KNOWN="$(printf '%s' 'thirty_two_byte_keyblahblahblahh' | base64 | tr -d '\n')"
 
-# 1. Discover active primary MariaDB pod via Kubernetes labels
-MARIADB_POD="$(kubectl --namespace "$SERVICE_NAMESPACE" get pod \
-    -l app.kubernetes.io/name=mariadb,k8s.mariadb.com/role=primary \
-    -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+# Decoded data key of a Secret in the service namespace; empty when absent.
+read_secret() {
+    kubectl --namespace "$SERVICE_NAMESPACE" get secret "$1" -o "jsonpath={.data.$2}" 2>/dev/null \
+        | base64 -d 2>/dev/null || true
+}
 
-# 2. Get Barbican DB password from Kubernetes secret
-BARBICAN_DB_PASS="$(kubectl --namespace "$SERVICE_NAMESPACE" get secret barbican-db-password \
-    -o jsonpath='{.data.password}' 2>/dev/null | base64 -d || true)"
+# 44 chars that base64-decode to exactly 32 bytes: a Fernet key.
+kek_format_ok() {
+    [[ ${#1} -eq 44 ]] && (( $(printf '%s' "$1" | tr -- '-_' '+/' | base64 -d 2>/dev/null | wc -c) == 32 ))
+}
 
-# 3. DB Gate: count simple_crypto KEK records in MariaDB
-SIMPLE_CRYPTO_SECRET_COUNT=0
-
-if [[ -n "${MARIADB_POD}" && -n "${BARBICAN_DB_PASS}" ]]; then
-    SIMPLE_CRYPTO_SECRET_COUNT="$(kubectl --namespace "$SERVICE_NAMESPACE" exec "${MARIADB_POD}" \
-        -c mariadb -- mariadb -u barbican -p"${BARBICAN_DB_PASS}" barbican -N -e \
-        "SELECT COUNT(*) FROM kek_data WHERE plugin_name LIKE '%SimpleCryptoPlugin%';" \
-        2>/dev/null | tr -d '[:space:]' || true)"
-else
-    echo "WARNING: Could not connect to MariaDB (pod='${MARIADB_POD}'). Skipping KEK DB gate check."
-fi
-
-echo "Found ${SIMPLE_CRYPTO_SECRET_COUNT:-0} simple_crypto KEK record(s) in database."
-
-# TIER 1: Read kek from active barbican.conf in 'barbican-etc' Kubernetes Secret
-if [[ -z "${LEGACY_MASTER_KEK}" ]]; then
-    # Use cut -f2- so Fernet padding ("=") is not stripped by the field split.
-    LEGACY_MASTER_KEK="$(kubectl --namespace "$SERVICE_NAMESPACE" get secret barbican-etc \
-        -o jsonpath='{.data.barbican\.conf}' 2>/dev/null | base64 -d | \
-        grep -E "^\s*kek\s*=" | head -n1 | cut -d'=' -f2- | tr -d ' ' || true)"
-    [[ -n "${LEGACY_MASTER_KEK}" ]] && echo "KEK found in barbican-etc secret."
-fi
-
-# Tier 2: Read simple_crypto_plugin.kek or simple_crypto_kek_rewrap.old_kek
-#         from the deployed Helm release values
-if [[ -z "${LEGACY_MASTER_KEK}" ]]; then
-    LEGACY_MASTER_KEK="$(helm get values "$SERVICE_NAME_DEFAULT" --namespace "$SERVICE_NAMESPACE" --all 2>/dev/null | \
-        python3 -c "
-import sys, yaml
-try:
-    d = yaml.safe_load(sys.stdin) or {}
-    conf = d.get('conf', {})
-    kek = conf.get('barbican', {}).get('simple_crypto_plugin', {}).get('kek')
-    if isinstance(kek, list) and len(kek) > 0 and kek[0]:
-        print(kek[0])
-    elif isinstance(kek, str) and kek:
-        print(kek)
-    else:
-        old_kek = conf.get('simple_crypto_kek_rewrap', {}).get('old_kek')
-        if old_kek:
-            print(old_kek)
-except Exception:
-    pass
-" 2>/dev/null || true)"
-    [[ -n "${LEGACY_MASTER_KEK}" ]] && echo "KEK found in deployed Helm release values."
-fi
-
-# TIER 3: Greenfield / Fresh Lab - Read from barbican-simple-crypto-kek Secret
-if [[ -z "${LEGACY_MASTER_KEK}" ]]; then
-    LEGACY_MASTER_KEK="$(kubectl --namespace "$SERVICE_NAMESPACE" get secret barbican-simple-crypto-kek \
-        -o jsonpath='{.data.kek}' 2>/dev/null | base64 -d || true)"
-    [[ -n "${LEGACY_MASTER_KEK}" ]] && echo "KEK found in barbican-simple-crypto-kek secret (fresh install)."
-fi
-
-# Inject the resolved KEK or fail fast if brownfield has secrets in DB but no KEK found.
-# Helm --set treats "=" as a delimiter and drops Fernet padding, so pass the KEK
-# via a values file instead.
-if [[ -n "${LEGACY_MASTER_KEK}" ]]; then
-    # 32-byte Fernet keys always need a single trailing "="; restore it if a
-    # previous --set/cut stripped it.
-    if [[ "${LEGACY_MASTER_KEK}" != *= ]]; then
-        LEGACY_MASTER_KEK="${LEGACY_MASTER_KEK}="
+# The kek the running release renders into barbican.conf: the first "kek ="
+# line under [simple_crypto_plugin] in the barbican-etc Secret (the rule the
+# rotation tool applies too, so a kek option in another section is never
+# mistaken for it). Prints nothing when there is no release. A release with no
+# kek line is a pre-Gazpacho deploy on the implicit upstream default, so that
+# default is what it prints then.
+kek_deployed() {
+    local conf section line
+    conf="$(read_secret barbican-etc 'barbican\.conf')"
+    [[ -n "$conf" ]] || return 0
+    # the [simple_crypto_plugin] section only: from its header up to the next header
+    section="$(sed -n '/^\[simple_crypto_plugin\]/,/^\[/p' <<< "$conf")"
+    # the first kek line; when there are several, the first one encrypts
+    line="$(grep -m1 -E '^[[:space:]]*kek[[:space:]]*=' <<< "$section")"
+    if [[ -z "$line" ]]; then
+        printf '%s' "$KEK_WELL_KNOWN"
+        return 0
     fi
-    echo "Injecting simple_crypto Master KEK into Barbican configuration..."
-    KEK_VALUES_FILE="$(mktemp)"
-    trap 'rm -f "${KEK_VALUES_FILE}"' EXIT
-    python3 -c 'import json,sys; print("conf:\n  barbican:\n    simple_crypto_plugin:\n      kek: %s" % json.dumps(sys.argv[1]))' \
-        "${LEGACY_MASTER_KEK}" > "${KEK_VALUES_FILE}"
-    set_args+=(-f "${KEK_VALUES_FILE}")
-elif [[ "${SIMPLE_CRYPTO_SECRET_COUNT:-0}" -gt 0 ]]; then
-    echo "ERROR: Legacy simple_crypto secrets exist in DB but no KEK could be extracted!"
-    echo "       Manual intervention required before upgrading Barbican."
-    exit 1
+    line="${line#*=}"                     # drop "kek =", keeping the key's own trailing =
+    printf '%s' "${line//[[:space:]]/}"  # and any surrounding whitespace
+}
+
+# Number of simple_crypto project KEKs in barbican.kek_data, read on the MariaDB
+# primary. Uses the root credential the deploy already holds: the barbican
+# database user does not exist before the first barbican deploy, and cases 3
+# and 4 need this probe to answer "no table yet" rather than "access denied"
+# then. The password travels over stdin, never argv. Prints 0 when barbican has
+# no schema yet; fails when the database cannot be reached.
+kek_data_rows() {
+    local pod pw out err
+    pod="$(kubectl --namespace "$SERVICE_NAMESPACE" get pod \
+        -l app.kubernetes.io/name=mariadb,k8s.mariadb.com/role=primary \
+        -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)"
+    pw="$(read_secret mariadb root-password)"
+    [[ -n "$pod" && -n "$pw" ]] || return 1
+    err="$(mktemp)"
+    # stderr goes to a file so client warnings can never be mistaken for the count
+    out="$(kubectl --namespace "$SERVICE_NAMESPACE" exec -i "$pod" -c mariadb -- \
+        sh -c "MYSQL_PWD=\$(cat) mariadb -uroot -N -B -e \"SELECT COUNT(*) FROM barbican.kek_data WHERE plugin_name = 'barbican.plugin.crypto.simple_crypto.SimpleCryptoPlugin'\"" \
+        <<< "$pw" 2>"$err" | tail -n1)"
+    if [[ "$out" =~ ^[0-9]+$ ]]; then
+        rm -f "$err"; echo "$out"
+    elif grep -qE "ERROR (1146|1049)" "$err"; then
+        rm -f "$err"; echo 0        # no barbican schema or table yet
+    else
+        rm -f "$err"; return 1      # connection or auth failure
+    fi
+}
+
+# kek set in an override file: the last file wins (helm precedence). Only its
+# presence matters here; the -f files deliver the value to helm as is.
+override_kek=""
+for f in "${overrides_args[@]}"; do
+    [[ "$f" == "-f" ]] && continue
+    v="$(yq eval '.conf.barbican.simple_crypto_plugin.kek // ""' "$f" 2>/dev/null | head -n1)"
+    [[ -n "$v" && "$v" != "null" ]] && override_kek="$v"
+done
+secret_kek="$(read_secret "$KEK_SECRET" kek)"
+
+if [[ -n "$override_kek" ]]; then
+    # Case 1: the override files carry the kek (and any old_kek).
+    echo "conf.barbican.simple_crypto_plugin.kek is set in the override files: deploying it as is."
+    if [[ -n "$secret_kek" ]]; then
+        echo "NOTICE: ${KEK_SECRET} exists but is ignored while the override files set the kek."
+    fi
+elif [[ -n "$secret_kek" ]]; then
+    # Case 2: the Secret is the kek. Guard the db-sync rewrap before injecting it.
+    if ! kek_format_ok "$secret_kek"; then
+        echo "ERROR: ${KEK_SECRET} holds a value that is not a 44-char Fernet key; refusing to deploy" >&2
+        exit 1
+    fi
+    secret_old="$(read_secret "$KEK_SECRET" old_keks)"
+    deployed_kek="$(kek_deployed)"
+    if [[ -z "$deployed_kek" ]]; then
+        echo "no barbican release yet: injecting the kek from ${KEK_SECRET}."
+    elif [[ "$secret_kek" == "$deployed_kek" ]]; then
+        echo "Secret kek matches the deployed kek; the db-sync rewrap is a no-op."
+    elif [[ ",${secret_old}," == *",${deployed_kek},"* ]]; then
+        # A staged rotation. rotate-barbican-kek.py --stage records the deployed
+        # kek in old_keks, and old_keks is exactly what is injected below, so the
+        # rewrap's decryptor set never depends on a chart default.
+        echo "WARNING: Secret kek differs from the deployed kek: this deploy performs a ONE-WAY rewrap of"
+        echo "         every simple_crypto project KEK during db-sync. Back up the barbican DB first."
+        echo "         Afterwards run: ${GENESTACK_BASE_DIR}/scripts/rotate-barbican-kek.py --validate deployed"
+        echo "         and confirm the db-sync job logs show zero rewrap failures."
+    elif rows="$(kek_data_rows)" && (( rows == 0 )); then
+        # Nothing is wrapped yet (a first install that crashlooped before db-sync
+        # wrapped anything): there is no rotation to arm, the Secret simply becomes
+        # the kek.
+        echo "Secret kek differs from the deployed kek, but barbican.kek_data holds no simple_crypto"
+        echo "project keys; there is nothing to rewrap."
+    else
+        echo "ERROR: Secret kek differs from the deployed kek, and the deployed kek is not in" >&2
+        echo "       ${KEK_SECRET}/old_keks, so the db-sync rewrap could not unwrap the existing project" >&2
+        echo "       keys and barbican would not start. Not deploying. Stage rotations only with" >&2
+        echo "       ${GENESTACK_BASE_DIR}/scripts/rotate-barbican-kek.py --stage (it records the deployed" >&2
+        echo "       kek in old_keks), or delete the Secret deliberately and re-adopt the deployed kek with" >&2
+        echo "       ${GENESTACK_BASE_DIR}/scripts/rotate-barbican-kek.py --adopt before re-running this install." >&2
+        exit 1
+    fi
+else
+    # No Secret and no override: whether barbican already holds data decides.
+    if ! rows="$(kek_data_rows)"; then
+        echo "ERROR: ${KEK_SECRET} is absent and barbican.kek_data could not be read on the MariaDB primary," >&2
+        echo "       so whether barbican data exists is unknown. Refusing to generate a kek that existing data" >&2
+        echo "       may not be wrapped with. Restore database access and re-run." >&2
+        exit 1
+    fi
+    if (( rows > 0 )); then
+        # Case 3: the rows are wrapped with a kek nothing manages. Deploying
+        # without one crashloops barbican-api; guessing one strands the rows.
+        echo "ERROR: barbican.kek_data holds ${rows} simple_crypto project KEK(s) and ${KEK_SECRET} is absent:" >&2
+        echo "       the kek they are wrapped with is not managed anywhere, and a Gazpacho barbican without a" >&2
+        echo "       kek does not start. Not deploying. Adopt the deployed kek into the Secret (it is" >&2
+        echo "       checked against the database first), then re-run this install:" >&2
+        echo "         ${GENESTACK_BASE_DIR}/scripts/rotate-barbican-kek.py --adopt" >&2
+        exit 1
+    fi
+    # Case 4 (also recovers a first Gazpacho install that crashlooped before wrapping anything)
+    echo "no simple_crypto data in barbican.kek_data and ${KEK_SECRET} is absent: generating a fresh kek."
+    # 32 random bytes, urlsafe base64: the Fernet key format. The Secret is
+    # written over stdin so the kek never appears in argv or ps.
+    new_kek="$(head -c 32 /dev/urandom | base64 | tr -d '\n' | tr '+/' '-_')"
+    kubectl --namespace "$SERVICE_NAMESPACE" apply -f - <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ${KEK_SECRET}
+  namespace: ${SERVICE_NAMESPACE}
+type: Opaque
+data:
+  kek: $(printf '%s' "$new_kek" | base64 | tr -d '\n')
+  old_keks: ""
+EOF
+    unset new_kek
+    # Read it back: only a kek that is actually stored gets injected.
+    secret_kek="$(read_secret "$KEK_SECRET" kek)"
+    secret_old=""
+    if ! kek_format_ok "$secret_kek"; then
+        echo "ERROR: ${KEK_SECRET} still holds no valid kek after generating one" >&2
+        exit 1
+    fi
+    echo "fresh kek: the db-sync rewrap has no project keys to process."
+fi
+
+# Inject (cases 2 and 4).
+if [[ -z "$override_kek" ]]; then
+    set_args+=(--set-string "conf.barbican.simple_crypto_plugin.kek=${secret_kek}")
+    if [[ -n "$secret_old" ]]; then
+        # a comma is --set list syntax; escape it so the whole history survives as one string
+        set_args+=(--set-string "conf.simple_crypto_kek_rewrap.old_kek=${secret_old//,/\\,}")
+    fi
 fi
 
 helm_command=(
@@ -317,6 +456,7 @@ if [[ "${SOFTHSM_P11}" == "true" ]]; then
     if ! declare -f initBarbicanHSMKeys >/dev/null 2>&1; then
         common_sh="${SCRIPT_DIR}/../scripts/lib/hyperconverged-common.sh"
         if [[ -f "${common_sh}" ]]; then
+            # shellcheck source=/dev/null
             source "${common_sh}" >/dev/null 2>&1 || true
         fi
     fi
