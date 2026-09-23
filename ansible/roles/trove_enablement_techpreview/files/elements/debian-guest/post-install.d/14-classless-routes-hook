@@ -38,7 +38,9 @@ cat > "${HOOK}" <<'EOF'
 # data when new_* is empty (EXPIRE), use idempotent "ip route replace".
 
 # Diagnostic: record what fired and whether the interface still has an addr.
-echo "$(date -u +%FT%TZ) reason=${reason} new=[${new_rfc3442_classless_static_routes:+set}] old=[${old_rfc3442_classless_static_routes:+set}] addr=[$(ip -br addr show ${interface:-ens4} 2>/dev/null | awk '{print $3}')]" >> /var/log/trove-dhcp-reason.log 2>/dev/null
+# $interface is always set by dhclient when invoking this hook; no hardcoded
+# fallback so this stays interface-name agnostic.
+echo "$(date -u +%FT%TZ) reason=${reason} interface=${interface} new=[${new_rfc3442_classless_static_routes:+set}] old=[${old_rfc3442_classless_static_routes:+set}] addr=[$([ -n "${interface}" ] && ip -br addr show "${interface}" 2>/dev/null | awk '{print $3}')]" >> /var/log/trove-dhcp-reason.log 2>/dev/null
 
 RUN="yes"
 
