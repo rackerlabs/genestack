@@ -101,7 +101,7 @@ After the collector rolls out, confirm the receivers are producing data:
 
 ``` shell
 # the collector logs the receivers it started for each discovered endpoint
-kubectl --namespace monitoring logs -l app.kubernetes.io/name=opentelemetry-kube-stack-deployment-collector \
+kubectl --tail=-1 -n monitoring logs -l app.kubernetes.io/name=opentelemetry-kube-stack-deployment-collector \
   | grep -Ei 'redis|tcpcheck'
 ```
 
@@ -116,7 +116,7 @@ names:
 - `etc/grafana-dashboards/redis_metrics.json` — **Redis Overview** (replication cluster health).
 - `etc/grafana-dashboards/redis_sentinel_metrics.json` — **Redis Sentinel** (Sentinel health).
 
-Import them using the standard [Grafana dashboard import](monitoring-grafana.md) workflow.
+Import them using the standard [Grafana Dashboard Import](import-grafana-dashboard.md) workflow.
 
 ### Metric name changes
 
