@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Neutron now reads Kube-OVN's effective ``networking.ENABLE_SSL`` Helm
+    value. When enabled, the installer synchronizes the Kube-OVN client
+    certificate, uses SSL for all northbound and southbound database
+    connections, and mounts the certificate only into Neutron workloads that
+    connect to OVN. Non-SSL deployments continue to use TCP without rendering
+    OVN TLS mounts or certificate settings.
