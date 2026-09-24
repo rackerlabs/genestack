@@ -251,6 +251,7 @@ nav:
               - Loki: monitoring-loki.md
               - Tempo: monitoring-tempo.md
               - Grafana: monitoring-grafana.md
+              - Grafana Dashboards: import-grafana-dashboard.md
               - OpenStack Exporter: openstack-exporter.md
               - OpenStack Metrics Exporter: prometheus-openstack-metrics-exporter.md
               - Ironic Prometheus Exporter: openstack-ironic-monitoring.md
