@@ -1,0 +1,27 @@
+---
+pod:
+  mounts:
+    octavia_api:
+      octavia_api: &ovn_tls_mount
+        volumes:
+          - name: ovn-tls
+            secret:
+              secretName: ovn-client-tls
+        volumeMounts:
+          - name: ovn-tls
+            mountPath: /etc/octavia/ovn
+            readOnly: true
+    octavia_worker:
+      octavia_worker: *ovn_tls_mount
+    octavia_driver_agent:
+      octavia_driver_agent: *ovn_tls_mount
+
+conf:
+  octavia:
+    ovn:
+      ovn_nb_private_key: /etc/octavia/ovn/key
+      ovn_nb_certificate: /etc/octavia/ovn/cert
+      ovn_nb_ca_cert: /etc/octavia/ovn/cacert
+      ovn_sb_private_key: /etc/octavia/ovn/key
+      ovn_sb_certificate: /etc/octavia/ovn/cert
+      ovn_sb_ca_cert: /etc/octavia/ovn/cacert

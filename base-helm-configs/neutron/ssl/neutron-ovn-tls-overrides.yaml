@@ -1,0 +1,44 @@
+---
+pod:
+  mounts:
+    neutron_server:
+      neutron_server: &ovn_tls_mount
+        volumes:
+          - name: ovn-tls
+            secret:
+              secretName: ovn-client-tls
+        volumeMounts:
+          - name: ovn-tls
+            mountPath: /etc/neutron/ovn
+            readOnly: true
+    neutron_rpc_server:
+      neutron_rpc_server: *ovn_tls_mount
+    neutron_periodic_worker:
+      neutron_periodic_worker: *ovn_tls_mount
+    neutron_ovn_maintenance_worker:
+      neutron_ovn_maintenance_worker: *ovn_tls_mount
+    neutron_dhcp_agent:
+      neutron_dhcp_agent: *ovn_tls_mount
+    neutron_ovn_db_sync:
+      neutron_ovn_db_sync: *ovn_tls_mount
+    neutron_ovn_agent:
+      neutron_ovn_agent: *ovn_tls_mount
+    neutron_ovn_metadata_agent:
+      neutron_ovn_metadata_agent: *ovn_tls_mount
+    ovn_vpn_agent:
+      ovn_vpn_agent: *ovn_tls_mount
+
+conf:
+  neutron:
+    ovn: &ovn_tls_config
+      ovn_nb_private_key: /etc/neutron/ovn/key
+      ovn_nb_certificate: /etc/neutron/ovn/cert
+      ovn_nb_ca_cert: /etc/neutron/ovn/cacert
+      ovn_sb_private_key: /etc/neutron/ovn/key
+      ovn_sb_certificate: /etc/neutron/ovn/cert
+      ovn_sb_ca_cert: /etc/neutron/ovn/cacert
+  ovn_metadata_agent:
+    ovn: *ovn_tls_config
+  plugins:
+    ml2_conf:
+      ovn: *ovn_tls_config
