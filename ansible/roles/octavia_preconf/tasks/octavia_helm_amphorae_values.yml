@@ -40,6 +40,29 @@
   set_fact:
     cert_passwd: "{{  _octavia_cert_passwd.resources[0].data.password | b64decode }}"
 
+- name: Obtain effective Kube-OVN Helm values
+  command:
+    argv:
+      - helm
+      - --namespace
+      - kube-system
+      - get
+      - values
+      - kube-ovn
+      - --all
+      - --output
+      - json
+  register: _octavia_kube_ovn_values
+  changed_when: false
+
+- name: Set the Kube-OVN SSL state
+  set_fact:
+    octavia_kube_ovn_enable_ssl: >-
+      {{
+        ((_octavia_kube_ovn_values.stdout | from_json).networking.ENABLE_SSL
+        | default(false)) | bool
+      }}
+
 - name: Create the helm values file for amphora provider
   template:
     src: templates/octavia_amphora_provider.yaml.j2
