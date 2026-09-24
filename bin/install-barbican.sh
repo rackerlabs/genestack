@@ -138,24 +138,54 @@ set_args=(
     --set "conf.barbican.keystone_authtoken.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
 )
 
-# Detects if missing PKCS#11 HSM p11_crypto_plugin and regenerates the file automatically.
+# SoftHSM p11 is the default in base helm. Treat it as enabled when any
+# values file (base, global, or site) has both p11_crypto and libsofthsm2,
+# or when a hyperconverged/lab flag is set.
+override_file="${SERVICE_CUSTOM_OVERRIDES}/barbican-helm-overrides.yaml"
+SOFTHSM_P11=false
+for ((i = 0; i < ${#overrides_args[@]}; i++)); do
+    if [[ "${overrides_args[$i]}" == "-f" ]]; then
+        f="${overrides_args[$((i + 1))]}"
+        if [[ -f "${f}" ]] \
+            && grep -q "p11_crypto" "${f}" 2>/dev/null \
+            && grep -q "libsofthsm2" "${f}" 2>/dev/null; then
+            SOFTHSM_P11=true
+            break
+        fi
+    fi
+done
 if [[ "${BARBICAN_HSM_ENABLED:-false}" == "true" ]] || [[ "${HYPERCONVERGED_BARBICAN_HSM:-false}" == "true" ]]; then
-
-    override_file="${SERVICE_CUSTOM_OVERRIDES}/barbican-helm-overrides.yaml"
-
-    # If override file is missing OR does not contain p11_crypto_plugin, regenerate it
-    if [[ ! -f "${override_file}" ]] || ! grep -q "p11_crypto_plugin" "${override_file}" 2>/dev/null; then
-        echo "HSM enabled but p11_crypto_plugin missing in ${override_file}. Regenerating..."
-        rm -f "${override_file}"
+    SOFTHSM_P11=true
+    # Generate a SoftHSM overlay only when no site file exists. Never rewrite
+    # an existing environment override (region, images, policy would be lost).
+    if [[ ! -f "${override_file}" ]]; then
+        echo "HSM enabled and ${override_file} is missing. Generating SoftHSM overlay..."
         SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
         source "${SCRIPT_DIR}/../scripts/lib/hyperconverged-common.sh"
         writeServiceHelmOverrides "${GENESTACK_OVERRIDES_DIR}/helm-configs"
     fi
 fi
 
-# PKCS#11 HSM PIN Injection
-# Reads PIN from barbican-hsm-credentials K8s Secret (created by create-secrets.sh).
-# No-op when secret doesn't exist or PIN is empty.
+# Ensure barbican-hsm-credentials exists. create-secrets.sh does this on
+# greenfield; brownfield never re-runs that script, so the install path
+# creates the secret once and leaves it alone on later upgrades.
+if [[ "${SOFTHSM_P11}" == "true" ]]; then
+    existing_pin="$(kubectl --namespace openstack get secret barbican-hsm-credentials \
+        -o jsonpath='{.data.pin}' 2>/dev/null | base64 -d)" || true
+    if [[ -n "${existing_pin}" ]]; then
+        echo "barbican-hsm-credentials already present — leaving PIN unchanged"
+    else
+        echo "Creating barbican-hsm-credentials (missing on this brownfield cluster)"
+        hsm_pin="$(python3 -c 'import secrets,string; a=string.ascii_letters+string.digits; print("".join(secrets.choice(a) for _ in range(32)))')"
+        kubectl --namespace openstack create secret generic barbican-hsm-credentials \
+            --from-literal=pin="${hsm_pin}" --dry-run=client -o yaml | \
+            kubectl apply -f -
+        unset hsm_pin
+    fi
+    unset existing_pin
+fi
+
+# PKCS#11 SoftHSM2 PIN Injection
 hsm_pin="$(kubectl --namespace openstack get secret barbican-hsm-credentials \
     -o jsonpath='{.data.pin}' 2>/dev/null | base64 -d)" || true
 if [[ -n "${hsm_pin}" ]]; then
@@ -165,6 +195,94 @@ if [[ -n "${hsm_pin}" ]]; then
     )
 fi
 unset hsm_pin
+
+# Programmatically Extract LEGACY_MASTER_KEK for simple_crypto Decryption
+# Covers brownfield upgrades (Tier 1 & 2) and greenfield fresh install (Tier 3)
+LEGACY_MASTER_KEK=""
+
+# 1. Discover active primary MariaDB pod via Kubernetes labels
+MARIADB_POD="$(kubectl --namespace "$SERVICE_NAMESPACE" get pod \
+    -l app.kubernetes.io/name=mariadb,k8s.mariadb.com/role=primary \
+    -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+
+# 2. Get Barbican DB password from Kubernetes secret
+BARBICAN_DB_PASS="$(kubectl --namespace "$SERVICE_NAMESPACE" get secret barbican-db-password \
+    -o jsonpath='{.data.password}' 2>/dev/null | base64 -d || true)"
+
+# 3. DB Gate: count simple_crypto KEK records in MariaDB
+SIMPLE_CRYPTO_SECRET_COUNT=0
+
+if [[ -n "${MARIADB_POD}" && -n "${BARBICAN_DB_PASS}" ]]; then
+    SIMPLE_CRYPTO_SECRET_COUNT="$(kubectl --namespace "$SERVICE_NAMESPACE" exec "${MARIADB_POD}" \
+        -c mariadb -- mariadb -u barbican -p"${BARBICAN_DB_PASS}" barbican -N -e \
+        "SELECT COUNT(*) FROM kek_data WHERE plugin_name LIKE '%SimpleCryptoPlugin%';" \
+        2>/dev/null | tr -d '[:space:]' || true)"
+else
+    echo "WARNING: Could not connect to MariaDB (pod='${MARIADB_POD}'). Skipping KEK DB gate check."
+fi
+
+echo "Found ${SIMPLE_CRYPTO_SECRET_COUNT:-0} simple_crypto KEK record(s) in database."
+
+# TIER 1: Read kek from active barbican.conf in 'barbican-etc' Kubernetes Secret
+if [[ -z "${LEGACY_MASTER_KEK}" ]]; then
+    # Use cut -f2- so Fernet padding ("=") is not stripped by the field split.
+    LEGACY_MASTER_KEK="$(kubectl --namespace "$SERVICE_NAMESPACE" get secret barbican-etc \
+        -o jsonpath='{.data.barbican\.conf}' 2>/dev/null | base64 -d | \
+        grep -E "^\s*kek\s*=" | head -n1 | cut -d'=' -f2- | tr -d ' ' || true)"
+    [[ -n "${LEGACY_MASTER_KEK}" ]] && echo "KEK found in barbican-etc secret."
+fi
+
+# Tier 2: Read simple_crypto_plugin.kek or simple_crypto_kek_rewrap.old_kek
+#         from the deployed Helm release values
+if [[ -z "${LEGACY_MASTER_KEK}" ]]; then
+    LEGACY_MASTER_KEK="$(helm get values "$SERVICE_NAME_DEFAULT" --namespace "$SERVICE_NAMESPACE" --all 2>/dev/null | \
+        python3 -c "
+import sys, yaml
+try:
+    d = yaml.safe_load(sys.stdin) or {}
+    conf = d.get('conf', {})
+    kek = conf.get('barbican', {}).get('simple_crypto_plugin', {}).get('kek')
+    if isinstance(kek, list) and len(kek) > 0 and kek[0]:
+        print(kek[0])
+    elif isinstance(kek, str) and kek:
+        print(kek)
+    else:
+        old_kek = conf.get('simple_crypto_kek_rewrap', {}).get('old_kek')
+        if old_kek:
+            print(old_kek)
+except Exception:
+    pass
+" 2>/dev/null || true)"
+    [[ -n "${LEGACY_MASTER_KEK}" ]] && echo "KEK found in deployed Helm release values."
+fi
+
+# TIER 3: Greenfield / Fresh Lab - Read from barbican-simple-crypto-kek Secret
+if [[ -z "${LEGACY_MASTER_KEK}" ]]; then
+    LEGACY_MASTER_KEK="$(kubectl --namespace "$SERVICE_NAMESPACE" get secret barbican-simple-crypto-kek \
+        -o jsonpath='{.data.kek}' 2>/dev/null | base64 -d || true)"
+    [[ -n "${LEGACY_MASTER_KEK}" ]] && echo "KEK found in barbican-simple-crypto-kek secret (fresh install)."
+fi
+
+# Inject the resolved KEK or fail fast if brownfield has secrets in DB but no KEK found.
+# Helm --set treats "=" as a delimiter and drops Fernet padding, so pass the KEK
+# via a values file instead.
+if [[ -n "${LEGACY_MASTER_KEK}" ]]; then
+    # 32-byte Fernet keys always need a single trailing "="; restore it if a
+    # previous --set/cut stripped it.
+    if [[ "${LEGACY_MASTER_KEK}" != *= ]]; then
+        LEGACY_MASTER_KEK="${LEGACY_MASTER_KEK}="
+    fi
+    echo "Injecting simple_crypto Master KEK into Barbican configuration..."
+    KEK_VALUES_FILE="$(mktemp)"
+    trap 'rm -f "${KEK_VALUES_FILE}"' EXIT
+    python3 -c 'import json,sys; print("conf:\n  barbican:\n    simple_crypto_plugin:\n      kek: %s" % json.dumps(sys.argv[1]))' \
+        "${LEGACY_MASTER_KEK}" > "${KEK_VALUES_FILE}"
+    set_args+=(-f "${KEK_VALUES_FILE}")
+elif [[ "${SIMPLE_CRYPTO_SECRET_COUNT:-0}" -gt 0 ]]; then
+    echo "ERROR: Legacy simple_crypto secrets exist in DB but no KEK could be extracted!"
+    echo "       Manual intervention required before upgrading Barbican."
+    exit 1
+fi
 
 helm_command=(
     helm upgrade --install "$SERVICE_NAME_DEFAULT" "$HELM_CHART_PATH"
@@ -190,11 +308,10 @@ echo
 # Execute the command directly from the array
 "${helm_command[@]}"
 
-# Post-Install HSM Key Initialization
-# Runs ONLY in Hyperconverged lab when:
-#   1. BARBICAN_HSM_ENABLED=true (exported during automated hyperconverged lab run)
-#   2. HYPERCONVERGED_BARBICAN_HSM=true (set manually when running script directly)
-if [[ "${BARBICAN_HSM_ENABLED:-false}" == "true" ]] || [[ "${HYPERCONVERGED_BARBICAN_HSM:-false}" == "true" ]]; then
+# Post-Install SoftHSM2 Key Initialization (token, MKEK, HMAC).
+# Runs when the site override already enables SoftHSM p11, or when the
+# hyperconverged/lab HSM flags are set. No extra env var required.
+if [[ "${SOFTHSM_P11}" == "true" ]]; then
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
     if ! declare -f initBarbicanHSMKeys >/dev/null 2>&1; then
@@ -206,5 +323,8 @@ if [[ "${BARBICAN_HSM_ENABLED:-false}" == "true" ]] || [[ "${HYPERCONVERGED_BARB
 
     if declare -f initBarbicanHSMKeys >/dev/null 2>&1; then
         initBarbicanHSMKeys
+    else
+        echo "ERROR: initBarbicanHSMKeys not found; SoftHSM keys were not initialized"
+        exit 1
     fi
 fi

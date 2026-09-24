@@ -281,42 +281,6 @@
 
 # --- Step 4: Cloud-init ConfigMap pointing trove guests at the anchor IP ---
 
-- name: Render & base64-encode trove-guest transport.conf
-  # Single shell that reads the rabbit creds from the K8s secret, builds
-  # the transport.conf content, and base64-encodes it. Avoids Jinja
-  # backslash-newline pitfalls.
-  ansible.builtin.shell:
-    cmd: |
-      set -o pipefail
-      U=$(kubectl -n openstack get secret trove-rabbitmq-password \
-            -o jsonpath='{.data.username}' | base64 -d)
-      P=$(kubectl -n openstack get secret trove-rabbitmq-password \
-            -o jsonpath='{.data.password}' | base64 -d)
-      cat <<EOF | base64 -w0
-      [DEFAULT]
-      transport_url = rabbit://${U}:${P}@rabbitmq.openstack.svc.cluster.local:5672/trove
-      control_exchange = trove
-
-      [oslo_messaging_rabbit]
-      # Must match the conductor's RabbitMQ settings (in
-      # trove-helm-overrides.yaml: conf.trove.oslo_messaging_rabbit) or
-      # exchange/queue redeclares fail with PRECONDITION_FAILED. We use
-      # classic non-durable queues here; production HA can re-enable
-      # quorum queues by flipping these on both sides simultaneously.
-      rabbit_quorum_queue = false
-      rabbit_transient_quorum_queue = false
-      amqp_durable_queues = {{ trove_durable_queues }}
-      EOF
-    executable: /bin/bash
-  register: _trove_transport_b64
-  changed_when: false
-  no_log: true
-
-- name: Set trove_guest_transport_conf_b64 fact
-  ansible.builtin.set_fact:
-    trove_guest_transport_conf_b64: "{{ _trove_transport_b64.stdout | trim }}"
-  no_log: true
-
 - name: Template Trove guest cloud-init file
   ansible.builtin.template:
     src: trove-mysql-cloudinit.j2

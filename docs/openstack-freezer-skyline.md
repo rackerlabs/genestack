@@ -135,6 +135,7 @@ sudo systemctl start freezer-scheduler
 | **Schedule Start Date** | When to first run (blank = run immediately) |
 | **Schedule Interval** | Repeat interval e.g. `24 hours`, `7 days` (blank = one-time) |
 | **Schedule End Date** | When to stop repeating (optional) |
+| **Remove Older Than (days)** | Retention policy — prune backups older than this many days on each run. Decimals allowed (e.g. `0.5` = 12 hours). Blank = keep all |
 | **Max Retries** | Retry count on failure (default 0) |
 
 **Backup modes:**
@@ -148,6 +149,29 @@ sudo systemctl start freezer-scheduler
 | `mongo` | MongoDB via LVM snapshot | LVM Source Volume, Volume Group, Snapshot Size, Mount Path |
 
 3. Click **Create Job**. The scheduler on the target VM picks it up within 60 seconds.
+
+---
+
+### :material-broom: Backup Retention
+
+Set **Remove Older Than (days)** on a job to automatically prune old backups. On
+each run, backups in the container older than the given age are deleted. Decimals
+are allowed for sub-day windows (e.g. `0.5` = 12 hours). Leave it blank to keep
+all backups.
+
+!!! warning "Retention only applies to scheduled (recurring) jobs"
+    Pruning happens **when a job runs**, and a run never deletes the backup it
+    just created (it is not old enough yet). So retention takes effect only on
+    **recurring** jobs — each run prunes backups that earlier runs created once
+    they cross the age threshold. A **one-time** job will not prune its own
+    backup, and in a fresh container it deletes nothing. Set a **Schedule
+    Interval** for retention to be meaningful.
+
+!!! note "The container is not deleted"
+    Retention removes backup objects, not the Swift container. An emptied
+    container is kept for the next backup cycle. To remove the container itself,
+    delete it manually from Object Storage once you no longer need the backup
+    target.
 
 ---
 

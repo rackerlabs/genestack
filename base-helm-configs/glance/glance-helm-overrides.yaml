@@ -55,7 +55,6 @@ network_policy:
 conf:
   glance:
     DEFAULT:
-      workers: 2
       # NOTE(cloudnull): This option is required when using the new glance multi-backend feature.
       #                  The example below is for the rxt_swift backend, but could easily be used
       #                  for other backends.
@@ -77,10 +76,6 @@ conf:
       #                  option should be set to the name of the default backend section.
       # default_backend: rxt_swift
       filesystem_store_datadir: /var/lib/glance/images
-      swift_auth_address: https://swift.cluster.local
-      swift_auth_version: 3
-      swift_user: glance:glance-store
-      swift_password: override_from_your_secrets_files
     rxt_swift:
       swift_store_auth_address: http://keystone-api.openstack.svc.cluster.local:5000/v3
       swift_store_create_container_on_put: true
@@ -91,7 +86,6 @@ conf:
       connection_debug: 0
       connection_recycle_time: 600
       connection_trace: true
-      idle_timeout: 3600
       mysql_sql_mode: {}
       use_db_reconnect: true
       pool_timeout: 60
@@ -146,10 +140,12 @@ conf:
     user = {{ .Values.endpoints.ceph_object_store.auth.glance.username }}:swift
     key = {{ .Values.endpoints.ceph_object_store.auth.glance.password }}
     {{- else if eq .Values.storage "swift" }}
-    auth_version = {{ .Values.conf.glance.glance_store.swift_auth_version }}
-    auth_address = {{ .Values.conf.glance.glance_store.swift_auth_address }}
-    user = {{ .Values.conf.glance.glance_store.swift_user }}
-    key = {{ .Values.conf.glance.glance_store.swift_password }}
+    auth_version = 3
+    auth_address = {{ tuple "identity" "internal" "api" . | include "helm-toolkit.endpoints.keystone_endpoint_uri_lookup" }}
+    user = {{ .Values.endpoints.identity.auth.glance.project_name }}:{{ .Values.endpoints.identity.auth.glance.username }}
+    key = {{ .Values.endpoints.identity.auth.glance.password }}
+    user_domain_name = {{ .Values.endpoints.identity.auth.glance.user_domain_name }}
+    project_domain_name = {{ .Values.endpoints.identity.auth.glance.project_domain_name }}
     {{- else }}
     user = {{ .Values.endpoints.identity.auth.glance.project_name }}:{{ .Values.endpoints.identity.auth.glance.username }}
     key = {{ .Values.endpoints.identity.auth.glance.password }}

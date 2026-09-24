@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -euo pipefail
+
+echo "===> Updating /etc/mysql/my.cnf"
+
+# remove soft link for /etc/mysql/my.cnf since it points to /etc/alternatives/my.cnf which does
+#  not get mapped into the mysql docker container
+echo "===>    Removing /etc/mysql/my.cnf"
+rm -f /etc/mysql/my.cnf
+
+# create new /etc/mysql/my.cnf soft link to /etc/mysql/mariadb.cnf which contains the contents
+#  from trove rendering the mysql config template
+echo "===>    Creating /etc/mysql/my.cnf"
+ln -s /etc/mysql/mariadb.cnf /etc/mysql/my.cnf
+
+echo "===> Update of /etc/mysql/my.cnf completed successfully."

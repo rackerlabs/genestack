@@ -6,13 +6,17 @@
 #
 # OPTIONS:
 #   -h, --help            Show this help
-#   --os-cloud            Cloud config name
-#   --no-cleanup          Keep all test resources after the run
+#   --os-cloud            Cloud config name (default: acme-corp)
+#   --cleanup             Cleanup test resources after the run
+#                             all      - cleanup DB resources and network setup
+#                             skip_net - cleanup only DB resources (default)
+#                             none     - do not cleanup any DB resources or network setup
+#   --instance            ID of DB instance to use for primary test instance
 #   --datastore DS        Datastore type to test against (default: mysql)
 #   --ds-version VER      Datastore version number     (default: 8.4)
 #   --flavor FLAVOR       Nova flavor for instances    (default: m1.small)
-#   --volume-size GB      Instance volume size in GB   (default: 5)
-#   --timeout SECS        Max seconds to wait for ACTIVE (default: 600)
+#   --volume-size GB      Instance volume size in GB   (default: 10)
+#   --timeout SECS        Max seconds to wait for ACTIVE (default: 1200)
 #
 # ENV:
 #   OS_CLOUD              os-cloud name (default: default)
@@ -36,7 +40,7 @@ FLAVOR="m1.small"
 VOL_SIZE="10"
 INSTANCE_TIMEOUT=1200
 CLEANUP="skip_net"
-OS_CLOUD="${OS_CLOUD:-default}"
+OS_CLOUD="${OS_CLOUD:-acme-corp}"
 CUSTOMER_DIR="/home/ubuntu/customers"
 
 RESIZE_FLAVOR=m1.medium
@@ -54,7 +58,7 @@ while [[ $# -gt 0 ]]; do
         --resize-flavor)  RESIZE_FLAVOR="${2:?}"; shift 2 ;;
         --volume-size)    VOL_SIZE="${2:?}"; shift 2 ;;
         --timeout)        INSTANCE_TIMEOUT="${2:?}"; shift 2 ;;
-        *) echo "unknown argument: $1" >&2; exit 1 ;;
+        *) echo "ERROR: unknown argument: $1" >&2; sed -n '/^# USAGE:/,/^# EXIT CODES:/p' "$0" | sed 's/^# \?//'; exit 1 ;;
     esac
 done
 
@@ -253,7 +257,7 @@ test_create_instance() {
           || { echo "Failed to issue create command for $INST_PRIMARY."; return 1; }
     fi
     echo "Waiting for $INST_PRIMARY to become ACTIVE (timeout=${INSTANCE_TIMEOUT}s) ..."
-    wait_for_instance "$INST_PRIMARY"
+    wait_for_instance "$INST_PRIMARY" || return 1
     echo "Instance $INST_PRIMARY is ACTIVE."
 }
 
@@ -478,6 +482,8 @@ test_configuration_list() {
     echo "$out" | grep -qF "$CONFIG_GROUP" \
         || { echo "$CONFIG_GROUP not found in configuration list."; return 1; }
     echo "Configuration list includes $CONFIG_GROUP."
+    echo "Configuration list:"
+    echo "$out"
 }
 
 test_configuration_show() {
@@ -549,12 +555,19 @@ test_configuration_set() {
         --name "${CONFIG_GROUP}_new"\
         --description "Trove feature test config group (new)" \
         2>&1 \
-        || { echo "Configuration group parameter set failed."; return 1; }
+        || { echo "Configuration group set failed."; return 1; }
     local out; out=$(db configuration show "${CONFIG_GROUP}_new" 2>&1)
     echo "$out" | grep -q "description.*Trove feature test config group (new)" \
         || { echo "Expected description not found for configuration."; return 1; }
     echo "Configuration details:"
-    echo "$out" | head -5 | sed 's/^/  /'
+    echo "$out" | sed 's/^/  /'
+
+    # Undo name change
+    db configuration set $(config_id "${CONFIG_GROUP}_new") \
+        '{"max_connections": 200}' \
+        --name "${CONFIG_GROUP}"\
+        2>&1 \
+        || { echo "Configuration group set to undo name change failed."; return 1; }
 }
 
 # ── replication ───────────────────────────────────────────────────────────────
@@ -836,8 +849,8 @@ main() {
     run_test "instance_reset_status"        test_instance_reset_status
     run_test "resize_instance"              test_resize_instance
     run_test "resize_volume"                test_resize_volume
-   run_test "log_list"                     test_log_list
-   run_test "log_enable_disable"           test_log_enable_disable
+    run_test "log_list"                     test_log_list
+    run_test "log_enable_disable"           test_log_enable_disable
 
     # ── backup & restore
     run_test "backup_create"                test_backup_create

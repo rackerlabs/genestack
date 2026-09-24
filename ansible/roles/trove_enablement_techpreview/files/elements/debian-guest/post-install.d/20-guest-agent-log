@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -euo pipefail
+
+echo "===> Updating /var/log/trove/guest-agent.log"
+
+TROVE_LOG_DIR="/var/log/trove"
+
+# make sure the log directory exists that is specified in the trove-guestagent.conf template
+mkdir -p $TROVE_LOG_DIR
+touch $TROVE_LOG_DIR/guest-agent.log
+chown -R debian:root $TROVE_LOG_DIR
+
+echo "===> Update of /var/log/trove/guest-agent.log completed successfully."

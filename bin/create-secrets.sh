@@ -94,10 +94,10 @@ octavia_heartbeat_key=$(generate_password 64)
 barbican_rabbitmq_password=$(generate_password 64)
 barbican_db_password=$(generate_password 32)
 barbican_admin_password=$(generate_password 32)
-# PKCS#11 HSM PIN
-# Hyperconverged lab: auto-generated when BARBICAN_HSM_PIN is not set.
-# Production/Staging: export BARBICAN_HSM_PIN="<pin-from-hsm-admin>" before running.
-barbican_hsm_pin="${BARBICAN_HSM_PIN:-$(generate_password 32)}"
+# PKCS#11 SoftHSM2 PIN auto-generated.
+barbican_hsm_pin=$(generate_password 32)
+# simple_crypto Fernet Master KEK (32-byte urlsafe base64 / 44 chars).
+barbican_simple_crypto_kek="$(python3 -c 'import secrets, base64; print(base64.urlsafe_b64encode(secrets.token_bytes(32)).decode())' 2>/dev/null || openssl rand -base64 32)"
 magnum_rabbitmq_password=$(generate_password 64)
 magnum_db_password=$(generate_password 32)
 magnum_admin_password=$(generate_password 32)
@@ -645,6 +645,15 @@ metadata:
 type: Opaque
 data:
   pin: $(echo -n $barbican_hsm_pin | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: barbican-simple-crypto-kek
+  namespace: openstack
+type: Opaque
+data:
+  kek: $(echo -n $barbican_simple_crypto_kek | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret

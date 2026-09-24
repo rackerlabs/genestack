@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -euo pipefail
+
+echo "===> Updating /etc/hosts"
+
+# K8s service reachability via the trove-mgmt-bridge anchor pod on
+# trove-mgmt-net (geneve overlay). The anchor IP runs haproxy that
+# forwards 5672/5000 to the in-cluster Services.
+echo "$TROVE_SERVICES_VIP_IP rabbitmq.openstack.svc.cluster.local" >> /etc/hosts
+echo "$TROVE_SERVICES_VIP_IP keystone-api.openstack.svc.cluster.local" >> /etc/hosts
+echo "$TROVE_SERVICES_VIP_IP swift-api.openstack.svc.cluster.local" >> /etc/hosts
+
+echo "===> Update of /etc/hosts completed successfully."
+
+echo "===> Contents of /etc/hosts:"
+cat /etc/hosts

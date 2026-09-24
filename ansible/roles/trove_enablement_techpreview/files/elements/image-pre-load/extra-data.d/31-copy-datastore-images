@@ -1,0 +1,19 @@
+#!/bin/bash
+
+set -euo pipefail
+
+echo "===> Starting copy of datastore images..."
+
+HOST_SOURCE_DIR="/tmp/trove-image-build"
+
+# $TMP_BUILD_DIR/mnt represents the "/" root partition of the new image
+IMAGE_DEST_DIR="$TMP_BUILD_DIR/mnt/var/lib/trove-images"
+
+# Copy files directly into the target image filesystem
+mkdir -p $IMAGE_DEST_DIR
+for tarball in $HOST_SOURCE_DIR/*.tar; do
+    echo "===>    Copying $tarball to $IMAGE_DEST_DIR/"
+    cp "$tarball" "$IMAGE_DEST_DIR/"
+done
+
+echo "===> Copy of datastore images completed successfully."

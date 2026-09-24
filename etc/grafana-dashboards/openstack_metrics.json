@@ -2170,7 +2170,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "PUBLICNET FloatingIPs Total",
+      "description": "Floating IPs Total across all networks flagged as external (router:external=true) in Neutron, regardless of network name.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2226,7 +2226,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(last_over_time(openstack_neutron_network_ip_availabilities_total{network_name=\"PUBLICNET\"}[1d]))",
+          "expr": "sum(\n  last_over_time(openstack_neutron_network_ip_availabilities_total[1d])\n  and on(network_id)\n  label_replace(openstack_neutron_network{is_external=\"true\"}, \"network_id\", \"$1\", \"id\", \"(.+)\")\n)",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
@@ -2242,7 +2242,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "PUBLICNET FloatingIPs Available",
+      "description": "Floating IPs Available (total minus used) across all networks flagged as external (router:external=true) in Neutron, regardless of network name.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2298,7 +2298,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(last_over_time(openstack_neutron_network_ip_availabilities_total{network_name=\"PUBLICNET\"}[1d])) - sum(last_over_time(openstack_neutron_network_ip_availabilities_used{network_name=\"PUBLICNET\"}[1d])) ",
+          "expr": "sum(\n  last_over_time(openstack_neutron_network_ip_availabilities_total[1d])\n  and on(network_id)\n  label_replace(openstack_neutron_network{is_external=\"true\"}, \"network_id\", \"$1\", \"id\", \"(.+)\")\n)\n-\nsum(\n  last_over_time(openstack_neutron_network_ip_availabilities_used[1d])\n  and on(network_id)\n  label_replace(openstack_neutron_network{is_external=\"true\"}, \"network_id\", \"$1\", \"id\", \"(.+)\")\n)",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
@@ -2307,6 +2307,142 @@
         }
       ],
       "title": "Floating IPs Available",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Total number of Floating IP resources created in Neutron, regardless of network or assignment status.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unitScale": true
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 57
+      },
+      "id": 111,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.3.3",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "openstack_neutron_floating_ips",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "__auto",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Floating IPs Created",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Floating IPs currently assigned to a port, derived from openstack_neutron_floating_ip{status=\"ACTIVE\"}. Neutron reports a floating IP's status as ACTIVE once it is associated to a port and DOWN while unassociated; there is no direct port_id label on this metric.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unitScale": true
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 61
+      },
+      "id": 112,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.3.3",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "count(openstack_neutron_floating_ip{status=\"ACTIVE\"})",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "__auto",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Floating IPs Assigned to Ports",
       "type": "stat"
     },
     {
