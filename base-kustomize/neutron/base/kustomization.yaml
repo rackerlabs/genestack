@@ -8,7 +8,6 @@ resources:
   - policies.yaml
 
 patches:
-  - path: patch-ovn-tls-optional.yaml
   - path: patch-fix-world-writable-files.yaml
   - target:
       kind: ConfigMap

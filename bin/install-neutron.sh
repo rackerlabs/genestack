@@ -76,6 +76,64 @@ echo "[DEBUG] HELM_REPO_NAME=$HELM_REPO_NAME"
 echo "[DEBUG] SERVICE_NAME=$SERVICE_NAME"
 echo "[DEBUG] HELM_CHART_PATH=$HELM_CHART_PATH"
 
+# Resolve Kube-OVN's effective TLS setting, including chart defaults.
+source "${GENESTACK_BASE_DIR}/scripts/lib/functions.sh"
+ensureYq
+
+if ! KUBE_OVN_VALUES=$(helm --namespace kube-system get values kube-ovn --all --output yaml); then
+    echo "Error: Unable to read effective values for the kube-ovn release." >&2
+    exit 1
+fi
+
+KUBE_OVN_ENABLE_SSL=$(printf '%s\n' "$KUBE_OVN_VALUES" | yq eval -r '.networking.ENABLE_SSL // false' -)
+OVN_TLS_OVERRIDES="${SERVICE_BASE_OVERRIDES}/ssl/neutron-ovn-tls-overrides.yaml"
+
+case "$KUBE_OVN_ENABLE_SSL" in
+    true)
+        CONNECTION_STRING="ssl"
+
+        if [[ ! -f "$OVN_TLS_OVERRIDES" ]]; then
+            echo "Error: Neutron OVN TLS overrides not found at $OVN_TLS_OVERRIDES" >&2
+            exit 1
+        fi
+
+        if ! KUBE_OVN_TLS_SECRET=$(kubectl --namespace kube-system get secret kube-ovn-tls --output yaml); then
+            echo "Error: kube-ovn has networking.ENABLE_SSL=true, but kube-system/kube-ovn-tls is unavailable." >&2
+            exit 1
+        fi
+
+        if ! printf '%s\n' "$KUBE_OVN_TLS_SECRET" \
+            | yq eval -e '.data.cacert != null and .data.cert != null and .data.key != null' - >/dev/null; then
+            echo "Error: kube-system/kube-ovn-tls must contain cacert, cert, and key." >&2
+            exit 1
+        fi
+
+        if ! OPENSTACK_OVN_TLS_SECRET=$(printf '%s\n' "$KUBE_OVN_TLS_SECRET" | yq eval '
+            .metadata = {
+                "name": "ovn-client-tls",
+                "namespace": "openstack"
+            }
+        ' -); then
+            echo "Error: Unable to prepare the Neutron OVN client TLS secret." >&2
+            exit 1
+        fi
+
+        if ! printf '%s\n' "$OPENSTACK_OVN_TLS_SECRET" | kubectl apply --filename -; then
+            echo "Error: Unable to synchronize openstack/ovn-client-tls." >&2
+            exit 1
+        fi
+        ;;
+    false)
+        CONNECTION_STRING="tcp"
+        ;;
+    *)
+        echo "Error: networking.ENABLE_SSL must be true or false; got '$KUBE_OVN_ENABLE_SSL'." >&2
+        exit 1
+        ;;
+esac
+
+echo "Using ${CONNECTION_STRING} connections for the OVN northbound and southbound databases."
+
 # Prepare an array to collect -f arguments
 overrides_args=()
 
@@ -92,6 +150,12 @@ if [[ -d "$SERVICE_BASE_OVERRIDES" ]]; then
     done
 else
     echo "Warning: Base override directory not found: $SERVICE_BASE_OVERRIDES"
+fi
+
+# TLS mounts and client settings must only be rendered when Kube-OVN uses SSL.
+if [[ "$KUBE_OVN_ENABLE_SSL" == "true" ]]; then
+    echo "Including Kube-OVN TLS overrides: $OVN_TLS_OVERRIDES"
+    overrides_args+=("-f" "$OVN_TLS_OVERRIDES")
 fi
 
 # Include all YAML files from the GLOBAL configuration directory
@@ -124,17 +188,16 @@ fi
 
 echo
 
-# Set connection string based on whether we use Kube-OVN TLS
-# Source functions library for ensureYq
-source "${GENESTACK_BASE_DIR}/scripts/lib/functions.sh"
-ensureYq
+if ! OVN_NB_ENDPOINT=$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}') \
+    || [[ -z "$OVN_NB_ENDPOINT" ]]; then
+    echo "Error: Unable to resolve the ovn-nb service endpoint." >&2
+    exit 1
+fi
 
-if helm -n kube-system get values kube-ovn \
-  | yq -e '.networking.ENABLE_SSL == true' >/dev/null 2>&1
-then
-    CONNECTION_STRING="ssl"
-else
-    CONNECTION_STRING="tcp"
+if ! OVN_SB_ENDPOINT=$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}') \
+    || [[ -z "$OVN_SB_ENDPOINT" ]]; then
+    echo "Error: Unable to resolve the ovn-sb service endpoint." >&2
+    exit 1
 fi
 
 # Collect all --set arguments, executing commands and quoting safely
@@ -156,12 +219,12 @@ set_args=(
     --set "conf.neutron.keystone_authtoken.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
     --set "endpoints.oslo_messaging.auth.admin.password=$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.oslo_messaging.auth.neutron.password=$(kubectl --namespace openstack get secret neutron-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)"
-    --set "conf.neutron.ovn.ovn_nb_connection=$CONNECTION_STRING:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
-    --set "conf.neutron.ovn.ovn_sb_connection=$CONNECTION_STRING:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
-    --set "conf.plugins.ml2_conf.ovn.ovn_nb_connection=$CONNECTION_STRING:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
-    --set "conf.plugins.ml2_conf.ovn.ovn_sb_connection=$CONNECTION_STRING:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
-    --set "conf.ovn_metadata_agent.ovn.ovn_nb_connection=$CONNECTION_STRING:$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
-    --set "conf.ovn_metadata_agent.ovn.ovn_sb_connection=$CONNECTION_STRING:$(kubectl --namespace kube-system get service ovn-sb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}')"
+    --set "conf.neutron.ovn.ovn_nb_connection=$CONNECTION_STRING:$OVN_NB_ENDPOINT"
+    --set "conf.neutron.ovn.ovn_sb_connection=$CONNECTION_STRING:$OVN_SB_ENDPOINT"
+    --set "conf.plugins.ml2_conf.ovn.ovn_nb_connection=$CONNECTION_STRING:$OVN_NB_ENDPOINT"
+    --set "conf.plugins.ml2_conf.ovn.ovn_sb_connection=$CONNECTION_STRING:$OVN_SB_ENDPOINT"
+    --set "conf.ovn_metadata_agent.ovn.ovn_nb_connection=$CONNECTION_STRING:$OVN_NB_ENDPOINT"
+    --set "conf.ovn_metadata_agent.ovn.ovn_sb_connection=$CONNECTION_STRING:$OVN_SB_ENDPOINT"
 
 )
 
