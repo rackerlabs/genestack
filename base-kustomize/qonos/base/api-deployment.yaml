@@ -98,7 +98,7 @@ spec:
         openstack-control-plane: enabled
       containers:
         - name: qonos-api
-          image: ghcr.io/rackerlabs/qonosv2:1788332954
+          image: ghcr.io/rackerlabs/qonosv2:1789988495
           imagePullPolicy: IfNotPresent
           command:
             - uvicorn
