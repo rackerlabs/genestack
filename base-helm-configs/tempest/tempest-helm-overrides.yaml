@@ -8,7 +8,7 @@ images:
   tags:
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
     tempest_run_tests: "localhost/my-tempest:orig"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
     image_repo_sync: null
   pull_policy: "IfNotPresent"
 
