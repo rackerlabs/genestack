@@ -4,7 +4,8 @@ This script helps you **import Grafana dashboards** from a local directory that 
 
 
 ## Prerequisites
-- A running [monitoring stack](https://github.com/rackerlabs/genestack/blob/main/docs/monitoring-info.md)
+- A running [Prometheus](https://github.com/rackerlabs/genestack/blob/main/docs/monitoring-prometheus.md)
+- A running [Opentelemetry stack](https://github.com/rackerlabs/genestack/blob/main/docs/monitoring-opentelemetry.md)
 - Dashboards exported as valid [JSON files](https://github.com/rackerlabs/genestack/tree/main/etc/grafana-dashboards)
 - A Grafana service account token (see [Authentication](#authentication))
 
@@ -40,7 +41,7 @@ export GRAFANA_TOKEN=$(curl -sS -X POST "${GRAFANA_URL}/api/serviceaccounts/${SA
   -d '{"name": "genestack-dashboards"}' | jq -r '.key')
 ```
 
-The token value is only returned once, so store it somewhere safe (for example a
+The token value is only returned once as `$GRAFANA_TOKEN`, so store it somewhere safe (for example a
 Kubernetes secret) if you need it again. Tokens never expire by default; add
 `"secondsToLive": 604800` to the token request body to give it a lifetime.
 
@@ -72,7 +73,7 @@ Set the following environment variables before running the script:
 | Variable          | Required | Description                                           | Default                         |
 |-------------------|----------|-------------------------------------------------------|---------------------------------|
 | `GRAFANA_TOKEN`   | True     | Grafana service account token                         | None.                           |
-| `GRAFANA_URL`     | False    | URL of your Grafana instance                          | `http://grafana.monitoring.svc.cluster.local:80` |
+| `GRAFANA_URL`     | False    | URL of your Grafana instance                          | `http://<public_grafana_endpoint>` |
 
 !!! warning "Basic auth is deprecated"
 

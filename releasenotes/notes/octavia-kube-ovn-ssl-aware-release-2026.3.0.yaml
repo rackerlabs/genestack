@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Octavia now reads Kube-OVN's effective ``networking.ENABLE_SSL`` Helm
+    value before configuring the OVN provider. When enabled, the installer
+    synchronizes the Kube-OVN client certificate, uses SSL for the northbound
+    and southbound database connections, and mounts the certificate into the
+    Octavia API, worker, and OVN driver-agent containers. Non-SSL deployments
+    continue to use TCP without rendering OVN TLS secrets, mounts, or
+    certificate settings.

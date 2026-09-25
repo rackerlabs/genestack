@@ -23,13 +23,17 @@ pod:
             subPath: client.key-and-cert.pem
           - name: pod-run-octavia
             mountPath: /var/run/octavia
+{% if octavia_kube_ovn_enable_ssl | bool %}
           - name: ovn-tls
             mountPath: /etc/octavia/ovn
             readOnly: true
+{% endif %}
         volumes:
+{% if octavia_kube_ovn_enable_ssl | bool %}
           - name: ovn-tls
             secret:
               secretName: ovn-client-tls
+{% endif %}
           - name: octavia-certs
             secret:
               secretName: octavia-certs
@@ -53,13 +57,17 @@ pod:
             subPath: client.key-and-cert.pem
           - name: pod-run-octavia
             mountPath: /var/run/octavia
+{% if octavia_kube_ovn_enable_ssl | bool %}
           - name: ovn-tls
             mountPath: /etc/octavia/ovn
             readOnly: true
+{% endif %}
         volumes:
+{% if octavia_kube_ovn_enable_ssl | bool %}
           - name: ovn-tls
             secret:
               secretName: ovn-client-tls
+{% endif %}
           - name: octavia-certs
             secret:
               secretName: octavia-certs
