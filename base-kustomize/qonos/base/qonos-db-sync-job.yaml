@@ -61,7 +61,7 @@ spec:
         openstack-control-plane: enabled
       containers:
         - name: qonos-db-sync
-          image: ghcr.io/rackerlabs/qonosv2:1788332954
+          image: ghcr.io/rackerlabs/qonosv2:1789988495
           imagePullPolicy: IfNotPresent
           command:
             - /tmp/qonos-db-sync.sh
