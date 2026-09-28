@@ -253,9 +253,9 @@ Query by labels, then search content → Fast and efficient
 
 ### Configuration
 
-All configurations for Loki and OpenTelemetry are in:
-- **Loki**: `genestack/base-helm-configs/loki`
-- **OpenTelemetry**: `genestack/base-helm-configs/opentelemetry`
+Base configurations are maintained in the observability repository: - Loki: `/opt/genestack-observability/helm-configs/loki` - OpenTelemetry: `/opt/genestack-observability/helm-configs/opentelemetry-kube-stack`
+- Loki Helm values: `/opt/genestack-observability/helm-configs/loki`
+- OpenTelemetry Helm values: `/opt/genestack-observability/helm-configs/opentelemetry-kube-stack`
 
 Review the default deployment settings and adjust for your needs.
 

@@ -26,7 +26,6 @@ while [[ "$#" -gt 0 ]]; do
             ;;
     esac
 done
-
 # Check if the region argument is provided
 if [ -z "$region" ]; then
     usage
@@ -43,7 +42,6 @@ for ssh_key_file in nova_ssh_key nova_ssh_key.pub manila_ssh_key manila_ssh_key.
         echo "Moved existing ${ssh_key_file} to ${ssh_key_file}.bak.${backup_suffix}"
     fi
 done
-
 mariadb_root_password=$(generate_password 32)
 mariadb_password=$(generate_password 32)
 keystone_rabbitmq_password=$(generate_password 64)
@@ -121,9 +119,6 @@ ceilometer_keystone_test_password=$(generate_password 32)
 ceilometer_rabbitmq_password=$(generate_password 32)
 swift_rabbitmq_password=$(generate_password 32)
 memcached_shared_secret=$(generate_password 32)
-grafana_secret=$(generate_password 32)
-grafana_root_secret=$(generate_password 32)
-mariadb_monitoring_password=$(generate_password 32)
 ironic_db_password=$(generate_password 32)
 ironic_rabbitmq_password=$(generate_password 32)
 blazar_rabbitmq_password=$(generate_password 64)
@@ -143,12 +138,6 @@ zaqar_keystone_test_password=$(generate_password 32)
 qonos_db_password=$(generate_password 32)
 qonos_rabbitmq_password=$(generate_password 64)
 qonos_admin_password=$(generate_password 32)
-keystone_auth_url="http://keystone-api.openstack.svc.cluster.local:5000/v3"
-keystone_username="admin"
-keystone_user_domain="Default"
-keystone_project_name="admin"
-keystone_project_domain="Default"
-
 OUTPUT_FILE="/etc/genestack/kubesecrets.yaml"
 GENERATED_FILE=$(mktemp)
 EXISTING_NAMES_FILE=$(mktemp)
@@ -166,7 +155,6 @@ cleanup() {
     rm -f "${GENERATED_FILE}" "${EXISTING_NAMES_FILE}" "${MISSING_SECRETS_FILE}"
 }
 trap cleanup EXIT
-
 cat <<EOF > "${GENERATED_FILE}"
 ---
 apiVersion: v1
@@ -862,35 +850,6 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: mariadb-monitoring
-  namespace: openstack
-type: Opaque
-data:
-  username: $(echo -n "monitoring" | base64 -w0)
-  password: $(echo -n $mariadb_monitoring_password | base64 -w0)
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  labels:
-    kubernetes.io/metadata.name: monitoring
-    name: monitoring
-  name: monitoring
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: grafana-db
-  namespace: monitoring
-type: Opaque
-data:
-  password: $(echo -n $grafana_secret | base64 -w0)
-  root-password: $(echo -n $grafana_root_secret | base64 -w0)
-  username: $(echo -n grafana | base64 -w0)
----
-apiVersion: v1
-kind: Secret
-metadata:
   name: etcd-backup-secrets
   namespace: openstack
 type: Opaque
@@ -1004,20 +963,6 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: keystone-auth-openstack-exporter
-  namespace: monitoring
-type: Opaque
-data:
-  AUTH_URL: $(echo -n $keystone_auth_url | base64 -w0)
-  USERNAME: $(echo -n $keystone_username | base64 -w0)
-  PASSWORD: $(echo -n $keystone_admin_password | base64 -w0)
-  USER_DOMAIN_NAME: $(echo -n $keystone_user_domain | base64 -w0)
-  PROJECT_NAME: $(echo -n $keystone_project_name | base64 -w0)
-  PROJECT_DOMAIN_NAME: $(echo -n $keystone_project_domain | base64 -w0)
----
-apiVersion: v1
-kind: Secret
-metadata:
   name: zaqar-signed-url-secret-key
   namespace: openstack
 type: Opaque
@@ -1089,7 +1034,6 @@ type: Opaque
 data:
   password: $(echo -n $qonos_admin_password | base64 -w0)
 EOF
-
 # Check if kube-ovn-tls secret exists, and copy to openstack namespace if it does
 if kubectl -n kube-system get secret kube-ovn-tls >/dev/null 2>&1
 then
@@ -1107,10 +1051,8 @@ data:
   key: $(kubectl -n kube-system get secret kube-ovn-tls -o jsonpath='{.data.key}')
 EOF
 fi
-
 if [[ -f "${OUTPUT_FILE}" ]]; then
     awk '/ name:/ {print $2}' "${OUTPUT_FILE}" | sort -u > "${EXISTING_NAMES_FILE}"
-
     awk '
     BEGIN {
         while ((getline < ARGV[1]) > 0) {
@@ -1142,7 +1084,6 @@ if [[ -f "${OUTPUT_FILE}" ]]; then
         }
     }
     ' "${EXISTING_NAMES_FILE}" "${GENERATED_FILE}" > "${MISSING_SECRETS_FILE}"
-
     if [[ -s "${MISSING_SECRETS_FILE}" ]]; then
         cat "${MISSING_SECRETS_FILE}" >> "${OUTPUT_FILE}"
         echo "Appended missing secrets to existing ${OUTPUT_FILE}"

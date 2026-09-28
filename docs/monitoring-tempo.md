@@ -4,13 +4,13 @@ Tempo is Genestack's distributed tracing backend. It is deployed into the `monit
 
 ## Paths
 
-- Base Helm values: `/opt/genestack/base-helm-configs/tempo/`
-- Service overrides: `/etc/genestack/helm-configs/tempo/`
-- Kustomize overlay: `/etc/genestack/kustomize/tempo/overlay/`
+* Base Helm values: `/opt/genestack-observability/helm-configs/tempo/`
+* Service overrides: `/etc/genestack/helm-configs/tempo/`
+* Kustomize overlay: `/etc/genestack/kustomize/tempo/overlay/`
 
 ## Default Behavior
 
-The default base file, `/opt/genestack/base-helm-configs/tempo/tempo-helm-overrides.yaml`, uses PVC-backed local storage.
+The default base file, `/opt/genestack-observability/helm-configs/tempo/tempo-helm-overrides.yaml`, uses PVC-backed local storage.
 
 ## Optional Object Storage
 
@@ -18,13 +18,13 @@ Add an override file to `/etc/genestack/helm-configs/tempo/` before installation
 
 Available examples:
 
-- Generic S3-compatible: `/opt/genestack/base-helm-configs/tempo/tempo-helm-s3-overrides.yaml.example`
-- Rook/Ceph RGW: `/opt/genestack/base-helm-configs/tempo/tempo-helm-rook-rgw-overrides.yaml.example`
+* Generic S3-compatible: `/opt/genestack-observability/helm-configs/tempo/tempo-helm-s3-overrides.yaml.example`
+* Rook/Ceph RGW: `/opt/genestack-observability/helm-configs/tempo/tempo-helm-rook-rgw-overrides.yaml.example`
 
 If you are using Rook RGW, the helper below creates the user, buckets, Kubernetes secret, and override files:
 
 ```shell
-/opt/genestack/bin/setup-monitoring-rgw-storage.sh
+/opt/genestack/bin/install-observability.sh monitoring-rgw-storage
 ```
 
 This helper uses `mc` (the MinIO Client) for bucket creation. If `mc` is not installed, the script downloads a temporary copy. In restricted environments, install `mc` first or allow HTTPS access to `dl.min.io`.
@@ -32,7 +32,7 @@ This helper uses `mc` (the MinIO Client) for bucket creation. If `mc` is not ins
 ## Install
 
 ```shell
-/opt/genestack/bin/install-tempo.sh
+/opt/genestack/bin/install-observability.sh tempo
 ```
 
 ## Verify

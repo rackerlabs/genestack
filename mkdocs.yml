@@ -246,6 +246,8 @@ nav:
           - Monitoring and Observability:
               - Monitoring and Observability Overview: monitoring-observability-overview.md
               - Getting Started: monitoring-getting-started.md
+              - Deployment and Repository Workflow: monitoring-observability-deployment.md
+              - Alert and Rule Management: monitoring-alerting-rules.md
               - OpenTelemetry: monitoring-opentelemetry.md
               - Prometheus: monitoring-prometheus.md
               - Loki: monitoring-loki.md
