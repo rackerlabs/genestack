@@ -66,6 +66,28 @@ Current pre-configured DNS plugins:
       --domain your.domain.tld
     ```
 
+### Route request timeouts
+
+Envoy applies a default route timeout of 15 seconds to every HTTPRoute that does not set a timeout,
+either through `spec.rules[].timeouts` on the route or through a `BackendTrafficPolicy` that targets
+it. Genestack sets timeouts with a `BackendTrafficPolicy` next to the service that needs them, and
+only in one place per route: if a route sets `spec.rules[].timeouts`, the policy's timeout is
+ignored.
+
+Two OpenStack routes need more than the default:
+
+* **Glance** — bulk image transfers (`base-kustomize/glance/base/glance-backendtrafficpolicy.yaml`).
+* **Nova** — attaching a volume. For compute API microversions below `2.101`,
+  `POST /servers/{server_id}/os-volume_attachments` blocks in nova-api until nova-compute has
+  reserved a device name for the instance, and that reservation waits behind any attach or detach
+  already running for the same instance (roughly 10 seconds each). Attaching several volumes to one
+  server in quick succession therefore exceeds 15 seconds: Envoy returns `504 upstream request
+  timeout` to the client while nova still completes the attach, and the client and the cloud
+  disagree about the result. `base-kustomize/nova/base/nova-backendtrafficpolicy.yaml` sets
+  `requestTimeout: 120s` so the request is allowed to finish; raise it to match the largest number
+  of volumes your users attach to a single server at once. Clients that send microversion `2.101`
+  or newer receive `202 Accepted` immediately and are not affected.
+
 ## Validation
 
 At this stage, Envoy Gateway should be operational. To validate the configuration, run the following command.

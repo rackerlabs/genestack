@@ -1,0 +1,35 @@
+---
+# BackendTrafficPolicy — upstream (Envoy -> nova-api) settings.
+#
+# Namespace MUST match the HTTPRoute's namespace (openstack).
+#
+# POST /servers/{id}/os-volume_attachments is synchronous for compute API
+# microversions below 2.101: nova-api waits for nova-compute to reserve a
+# device name, and that reservation is serialized per instance behind any
+# attach or detach already running for the same server (roughly 10s each).
+# Attaching several volumes to one server in quick succession therefore
+# exceeds the 15s Envoy route default; the client gets 504 while nova still
+# completes the attach. requestTimeout lets the request finish instead.
+# Raise it if your users attach more volumes per server at once.
+#
+# PRECEDENCE WARNING: if custom-nova-gateway-route ever gains
+# spec.rules[].timeouts, the HTTPRoute wins and this timeout block is ignored
+# entirely. Set timeouts in one place only.
+#
+# Verify attachment:
+#   kubectl -n openstack get backendtrafficpolicy nova-volume-attach \
+#     -o jsonpath='{range .status.ancestors[*]}{range .conditions[*]}{.type}={.status}{" "}{.message}{"\n"}{end}{end}'
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: nova-volume-attach
+  namespace: openstack
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: custom-nova-gateway-route
+
+  timeout:
+    http:
+      requestTimeout: 120s
