@@ -1,12 +1,12 @@
 ---
 images:
   tags:
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
     neutron_db_sync: "ghcr.io/rackerlabs/genestack-images/neutron:2026.1-latest"
     neutron_dhcp: "ghcr.io/rackerlabs/genestack-images/neutron:2026.1-latest"
     neutron_l3: "ghcr.io/rackerlabs/genestack-images/neutron:2026.1-latest"
