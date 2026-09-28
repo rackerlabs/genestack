@@ -154,8 +154,8 @@
       set -o pipefail
       rm -f {{ trove_build_dir }}/datastore-image.tar
       skopeo copy --override-os linux --override-arch amd64 \
-        docker://docker.io/library/{{ trove_datastore_name }}:{{ trove_datastore_version_name }} \
-        docker-archive:{{ trove_build_dir }}/datastore-image.tar:{{ trove_datastore_name }}:{{ trove_datastore_version_name }}
+        docker://docker.io/library/{{ _trove_ds_profile.docker_image }}:{{ _trove_ds_profile.version }} \
+        docker-archive:{{ trove_build_dir }}/datastore-image.tar:{{ _trove_ds_profile.docker_image }}:{{ _trove_ds_profile.version }}
     executable: /bin/bash
   become: true
   become_user: root
@@ -199,9 +199,12 @@
       set -o pipefail
       rm -f {{ trove_build_dir }}/datastore-backup-image.tar
       cd {{ trove_build_dir }}/trove/backup
-      # docker build --output type=docker,dest={{ trove_build_dir }}/datastore-backup-image.tar .
-      docker build --build-arg DATSTORE=mysql --build-arg DATASTORE_VERSION=8.4 -t mysql-backup:8.4 .
-      docker image save mysql-backup:8.4 -o {{ trove_build_dir }}/datastore-backup-image.tar
+      docker build \
+        --build-arg DATASTORE={{ _trove_ds_profile.name }} \
+        --build-arg DATASTORE_VERSION={{ _trove_ds_profile.version }} \
+        -t {{ _trove_ds_profile.docker_image }}-backup:{{ _trove_ds_profile.version }} .
+      docker image save {{ _trove_ds_profile.docker_image }}-backup:{{ _trove_ds_profile.version }} \
+        -o {{ trove_build_dir }}/datastore-backup-image.tar
       chmod 644 {{ trove_build_dir }}/datastore-backup-image.tar
     executable: /bin/bash
   become: true
@@ -430,11 +433,11 @@
         --property os_type=linux \
         --property os_distro=debian \
         --property os_version={{ trove_guest_image_os_release }} \
-        --property trove_datastore={{ trove_datastore_name }} \
-        --property trove_datastore_version={{ trove_datastore_version_name }} \
+        --property trove_datastore={{ _trove_ds_profile.name }} \
+        --property trove_datastore_version={{ _trove_ds_profile.version_name }} \
         --tag trove \
-        --tag {{ trove_datastore_name }} \
-        --tag {{ trove_mysql_version }} \
+        --tag {{ _trove_ds_profile.name }} \
+        --tag {{ _trove_ds_profile.version }} \
         --tag {{ trove_guest_image_os_release }} \
         --file "{{ trove_build_dir }}/{{ trove_guest_image_name }}.qcow2" \
         "{{ trove_guest_image_name }}" \
