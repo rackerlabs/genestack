@@ -1132,8 +1132,30 @@ pod:
 conf:
   magnum_api_uwsgi:
     uwsgi:
+      # Magnum 22.0.0 no longer installs the magnum-api-wsgi script.
+      module: magnum.wsgi.api:application
       processes: 1
       threads: 1
+      wsgi-file: null
+  paste:
+    composite:main:
+      paste.composite_factory: magnum.api:root_app_factory
+      /: api
+      /healthcheck: healthcheck
+    pipeline:api:
+      pipeline: cors http_proxy_to_wsgi request_id osprofiler authtoken api_v1
+    app:healthcheck:
+      paste.app_factory: oslo_middleware:Healthcheck.app_factory
+      backends: disable_by_file
+      disable_by_file_path: /etc/magnum/healthcheck_disable
+    filter:http_proxy_to_wsgi:
+      paste.filter_factory: oslo_middleware.http_proxy_to_wsgi:HTTPProxyToWSGI.factory
+      oslo_config_project: magnum
+    filter:osprofiler:
+      paste.filter_factory: magnum.common.profiler:WsgiMiddleware.factory
+    # Remove the chart's obsolete filter-based PasteDeploy topology.
+    pipeline:main: null
+    filter:healthcheck: null
 EOF
     fi
 
