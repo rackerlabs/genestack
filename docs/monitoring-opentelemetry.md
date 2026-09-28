@@ -48,7 +48,7 @@ Before Helm runs, the install script:
 
 PostgreSQL telemetry is optional and not enabled by default. If you want to collect PostgreSQL metrics, add a service override file under `/etc/genestack/helm-configs/opentelemetry-kube-stack/` before installation. You can start from `/opt/genestack-observability/helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-postgresql-overrides.yaml.example`, then adjust the secret and endpoint values for your environment.
 
-You will also need to ensure that you've re-installed the Postgres operator to create the `postgres-monitoring-user` within the postgres cluster. See [PostgreSQL installation docs](openstack-postgres.md) for more information.
+You will also need to ensure that you've re-installed the Postgres operator to create the `postgres-monitoring-user` within the postgres cluster. See [PostgreSQL installation docs](infrastructure-postgresql.md) for more information.
 
 ## Install
 
