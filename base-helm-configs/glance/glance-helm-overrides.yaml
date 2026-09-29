@@ -7,16 +7,16 @@ images:
     test: null
     glance_storage_init: "quay.io/rackspace/rackerlabs-ceph-config-helper:latest-ubuntu_jammy"
     glance_metadefs_load: "ghcr.io/rackerlabs/genestack-images/glance:2026.1-latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
     glance_db_sync: "ghcr.io/rackerlabs/genestack-images/glance:2026.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
     rabbit_init: null
     glance_api: "ghcr.io/rackerlabs/genestack-images/glance:2026.1-latest"
     # Bootstrap image requires curl
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
     image_repo_sync: null
 
