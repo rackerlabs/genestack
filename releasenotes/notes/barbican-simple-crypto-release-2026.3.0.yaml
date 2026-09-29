@@ -1,0 +1,138 @@
+---
+prelude: >
+  Barbican's simple_crypto master key-encryption-key (KEK) can now be
+  managed through Kubernetes instead of Helm override files. Unless an
+  override file sets the KEK, which always takes precedence, the KEK is
+  read at deploy time from the `barbican-simple-crypto-kek` Kubernetes
+  Secret and injected by `install-barbican.sh`; rotation is planned and
+  staged with `scripts/rotate-barbican-kek.py` and executed by the
+  OpenStack-Helm db-sync KEK rewrap.
+  This applies to the OpenStack-Helm 2026.1.x barbican charts, the
+  OpenStack Gazpacho stream; see `helm-chart-versions.yaml`.
+  SoftHSM2-backed PKCS#11 (`p11_crypto`) is the primary crypto backend in
+  this release, with `simple_crypto` retained to read existing secrets (see
+  the Barbican PKCS#11 notes). The KEK requirements below apply regardless.
+features:
+  - |
+    `create-secrets.sh` now generates a 44-character Fernet-format KEK from
+    32 random bytes (`generate_fernet_token`) and stores it in the
+    `barbican-simple-crypto-kek` Kubernetes Secret, alongside an
+    initially empty `old_keks` rotation-history data key. New greenfield
+    regions therefore start on a unique, region-specific KEK instead of
+    the publicly documented upstream default.
+  - |
+    `install-barbican.sh` injects the KEK from the
+    `barbican-simple-crypto-kek` Secret via `--set-string` (validated as
+    a 44-character Fernet key; malformed values abort the deploy) and the
+    `old_keks` history via `--set-string` into
+    `conf.simple_crypto_kek_rewrap.old_kek`, unless an override file sets
+    `conf.barbican.simple_crypto_plugin.kek`.
+  - |
+    `install-barbican.sh` resolves the KEK situation before every deploy
+    instead of letting a missing KEK surface as crashlooping `barbican-api`
+    pods. A KEK set in an override file
+    (`conf.barbican.simple_crypto_plugin.kek`) always takes precedence: it
+    is deployed as is, nothing is injected and no Secret is written.
+    Otherwise, when the `barbican-simple-crypto-kek` Secret exists, it is
+    injected. When neither supplies a KEK, the script counts the
+    simple_crypto project keys in `barbican.kek_data` (read-only, on the
+    MariaDB primary): if any exist (an upgrade of a running Barbican whose
+    KEK is managed nowhere) it refuses to deploy and points at
+    `rotate-barbican-kek.py --adopt` to move the running KEK into the
+    Secret; if none
+    exist (first Barbican install on an existing cluster, or recovery from a
+    first install that crashlooped) it generates a fresh KEK into the
+    Secret, the same as `create-secrets.sh` does on greenfield. When the
+    Secret holds a KEK that differs from the deployed one, the deploy
+    proceeds (with a rotation warning) only if the deployed KEK is listed in
+    the Secret's `old_keks`, which `rotate-barbican-kek.py --stage` always
+    records, or when `barbican.kek_data` holds no simple_crypto project keys
+    yet; otherwise it refuses, since the db-sync rewrap could not succeed.
+    The upstream default is not treated as covered, so a fresh Secret
+    applied to a running region cannot rotate its KEK by accident:
+    rotations of a Secret-managed KEK happen only through `--stage`. A KEK
+    from an override file gets no such check; on that path the chart's
+    db-sync rewrap is the only safeguard, and it fails the deploy rather
+    than losing data. The Secret in the cluster is authoritative for
+    environments without a KEK override: a stale copy of it in
+    `/etc/genestack/kubesecrets.yaml` that is re-applied later is caught by
+    that same guard on the next deploy. `install-barbican.sh` never calls
+    `rotate-barbican-kek.py`.
+  - |
+    Added `scripts/rotate-barbican-kek.py`: plans (dry-run,
+    read-only), stages (`--stage`), or adopts (`--adopt`) KEK rotations,
+    and verifies KEKs against the database (`--validate
+    deployed|staged|<kek>`). Every staged rotation is first proven to
+    cover the keys actually wrapping the `kek_data` rows, and a
+    staged-but-undeployed rotation is protected from being overwritten.
+upgrade:
+  - |
+    **Gazpacho Barbican requires an explicit KEK.** The simple_crypto
+    plugin no longer falls back to the built-in well-known default: if no
+    kek is rendered into `barbican.conf`, barbican fails to start with
+    `SimpleCrypto KEK is undefined`. Environments that already set a KEK
+    in their Helm overrides need no changes: the override is deployed as
+    is. Environments that never set one — previously running implicitly
+    on the well-known default — must put that KEK under Secret management
+    before the upgrade by running
+    `scripts/rotate-barbican-kek.py --adopt`, which validates the
+    currently deployed KEK against the database from inside the
+    `barbican-api` pod and stores it in the `barbican-simple-crypto-kek`
+    Secret (no rotation occurs). `install-barbican.sh` refuses to deploy
+    an environment that holds Barbican data while neither supplies a KEK,
+    rather than leaving `barbican-api` crashlooping. Adoption requires a
+    running `barbican-api` pod for database validation: run it from a
+    healthy state. If a Gazpacho deploy has already crashlooped without a
+    KEK on an environment that holds Barbican data, `helm rollback` to the
+    last good revision, adopt, and re-run `install-barbican.sh`; on an
+    environment with no simple_crypto project keys yet (a first install),
+    simply re-run it and a fresh KEK is generated.
+    Do not create the Secret by hand and do not expect `create-secrets.sh`
+    to configure Barbican on an existing environment: on an environment
+    without a KEK override, a Secret whose value is not coordinated with
+    the deployed KEK becomes the KEK on the next deploy, and
+    `install-barbican.sh` will refuse to deploy it unless `old_keks`
+    covers the deployed KEK.
+  - |
+    To rotate an existing environment off the upstream well-known default
+    KEK: run `scripts/rotate-barbican-kek.py` (dry run), review,
+    re-run with `--stage`, **back up the Barbican database**, then run
+    `install-barbican.sh` — the db-sync job performs a one-way rewrap of
+    all project KEKs. Afterward `rotate-barbican-kek.py
+    --validate deployed` must pass and the db-sync logs must show zero
+    rewrap failures. Note that Octavia certificates and Cinder volume
+    encryption keys depend on Barbican secrets remaining decryptable.
+  - |
+    Environments that rotated their KEK on earlier releases can adopt
+    Secret-based management without another rotation:
+    `scripts/rotate-barbican-kek.py --adopt` stages the currently
+    deployed KEK into the Secret. Then remove the KEK from your override
+    files, since an override always takes precedence over the Secret, run
+    `install-barbican.sh` once and confirm `--validate deployed` passes.
+  - |
+    Running `p11_crypto` as the primary backend does not re-encrypt
+    existing secrets: rows stored under `simple_crypto` remain wrapped by
+    the simple_crypto KEK indefinitely (dual-plugin operation decrypts them
+    via their original backend), so the KEK requirements and rotation
+    workflow above remain in force. The db-sync rewrap and the tool's
+    validation only consider `simple_crypto` rows; `p11_crypto` data is
+    never touched by a KEK rotation.
+security:
+  - |
+    Deployments that never set a KEK have been running simple_crypto on
+    Barbican's publicly documented default key, meaning stored secrets
+    (including Octavia certificates and Cinder encryption keys) were
+    protected by a key that is public knowledge. The rotation workflow
+    above moves stored secrets off that default; it stays listed in
+    `old_keks` as a decrypt-only entry, which exposes nothing new since the
+    key is public already. No KEK value is stored in Genestack
+    repositories; keys exist only in Kubernetes and in the rendered
+    Barbican configuration.
+issues:
+  - |
+    The OpenStack-Helm 2026.1.x barbican chart's `values.yaml` still
+    contains a comment stating that barbican falls back to a well-known
+    default when no kek is provided. That comment is stale: the Gazpacho
+    barbican service removed the default (`kek` defaults to an empty
+    list and plugin initialization raises `SimpleCrypto KEK is
+    undefined`). Trust the service behavior, not the chart comment.
