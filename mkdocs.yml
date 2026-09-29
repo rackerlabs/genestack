@@ -331,6 +331,7 @@ nav:
               - Keystone Admin Password Rotation: openstack-keystone-admin-password-rotation.md
           - Networking:
               - Creating Networks: openstack-neutron-networks.md
+              - VPNaaS with OVN: openstack-vpnaas.md
           - Containers:
               - Creating Kubernetes Clusters (CAPI): openstack-magnum.md
               - Creating Kubernetes Clusters (Legacy): magnum-kubernetes-cluster-setup-guide.md
