@@ -262,6 +262,11 @@ HEADER
     identity_api_version: 3
 CLOUDS_YAML_EOF
 
+    # give the tenant more volume quota than the defaults
+    echo ">>> Bumping volume quotas for project: ${tenant}"
+    $OS quota set --gigabytes 200 --volumes 20 ${tenant}
+    $OS database quota update ${tenant} volumes 200
+
   done
 
   chmod 0640 "${CUSTOMER_DIR}/clouds.yaml"
