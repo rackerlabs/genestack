@@ -1,0 +1,214 @@
+#!/bin/bash
+# Install the boot-time "load datastore images if missing" services into the
+# guest image.
+#
+# BACKGROUND
+# 31-preload-datastore-images (pre-finalise.d) bakes mysql:8.4 and
+# mysql-backup:8.4 into /var/lib/docker at build time, so a freshly built
+# instance boots with a warm cache. A Trove datastore upgrade drives a guest
+# reboot (and a rebuild re-images the root disk); after such an event the
+# datastore image is needed the moment the guest agent runs start_db/prepare,
+# and the backup image (mysql-backup:8.4, which does NOT exist upstream) is
+# needed later when a backup is requested (the backup path uses
+# containers.run with no pull fallback).
+#
+# WHY TWO UNITS (the important part)
+# An earlier single blocking oneshot ordered Before=guest-agent.service loaded
+# BOTH tarballs. When a full load was needed it took ~4 minutes, and because
+# the guest agent was ordered after it, the agent started ~4 minutes into
+# boot. Meanwhile the taskmanager, after the upgrade-reboot, sends a start_db
+# RPC and waits only ~3 minutes for a reply -> it timed out before the guest
+# agent was even alive (observed: GuestError "Timed out waiting for a reply").
+#
+# Fix: split the work by urgency.
+#   * trove-load-datastore-images.service  (BLOCKING, Before=guest-agent):
+#       loads ONLY the datastore image (mysql:8.4). With correct manifest
+#       parsing this is a sub-second inspect-and-skip on a normal reboot
+#       (image already cached), so it no longer delays the agent. It only
+#       does a real load when the datastore image is genuinely absent.
+#   * trove-load-backup-image.service      (NON-BLOCKING, WantedBy multi-user,
+#       NOT ordered before guest-agent): loads mysql-backup:8.4 in the
+#       background. Even a multi-minute load here can never delay the guest
+#       agent or the reboot RPC, and it completes long before any backup is
+#       requested.
+#
+# NOTE: files are written inline via heredocs rather than copied from the
+# element tree. DIB does not stage arbitrary install.d subdirectories into
+# the chroot (/tmp/in_target.d only holds the executable hook scripts), so
+# this matches the repo pattern used by 16-mgmt-dhcp-renew and
+# 17-reap-orphan-dhclients.
+if [ ${DIB_DEBUG_TRACE:-0} -gt 0 ]; then
+    set -x
+fi
+set -eu
+set -o pipefail
+
+echo "===> Installing Trove datastore image loader"
+
+LOADER=/usr/local/bin/trove-load-datastore-images.sh
+mkdir -p /usr/local/bin
+
+cat > "${LOADER}" <<'EOF'
+#!/bin/bash
+# Restore Trove datastore container images into the local Docker cache from
+# the tarballs baked into the guest image at /var/lib/trove-images.
+#
+# Usage: trove-load-datastore-images.sh <datastore|backup>
+#   datastore  Load only the datastore image tarball(s) (blocking path; must
+#              be present before the guest agent runs start_db/prepare).
+#   backup     Load only the backup image tarball(s) (async path; needed only
+#              when a backup is later requested).
+#
+# "Load only if missing": if every RepoTag a tarball declares is already in
+# the local cache, this is a cheap `docker image inspect` and returns without
+# loading. A `docker load` runs only when an image is genuinely absent.
+set -euo pipefail
+
+MODE="${1:-}"
+IMAGE_DIR="/var/lib/trove-images"
+
+# Which tarball basenames belong to each mode. These names are produced by
+# trove_guest_image_builder.yml:
+#   datastore-image.tar         -> mysql:8.4
+#   datastore-backup-image.tar  -> mysql-backup:8.4
+case "$MODE" in
+    datastore) match_glob="datastore-image.tar" ;;
+    backup)    match_glob="datastore-backup-image.tar" ;;
+    *)
+        echo "[trove-load-datastore-images] usage: $0 <datastore|backup>" >&2
+        exit 2
+        ;;
+esac
+
+log() { echo "[trove-load-datastore-images:${MODE}] $*"; }
+
+tarball="${IMAGE_DIR}/${match_glob}"
+
+if [ ! -e "$tarball" ]; then
+    log "Tarball $tarball not found; nothing to do."
+    exit 0
+fi
+
+# Read the RepoTags a docker-archive tarball declares, without loading it.
+# The archive contains a top-level manifest.json: a JSON array of objects,
+# each with a "RepoTags" list (e.g. ["mysql:8.4"]). Parse it with python3
+# (guaranteed present in the guest image). A previous grep/tr pipeline
+# mis-parsed this and emitted JSON punctuation like ":[" instead of the real
+# tags, which made the "already present?" check always fail and forced a full
+# ~4-minute `docker load` on EVERY boot -- the delay that blew the RPC
+# timeout. Correct parsing keeps normal boots to a sub-second skip.
+repo_tags_for_tarball() {
+    local t="$1"
+    tar -xOf "$t" manifest.json 2>/dev/null \
+        | python3 -c 'import sys, json
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+for entry in data:
+    for tag in (entry.get("RepoTags") or []):
+        print(tag)
+' 2>/dev/null || true
+}
+
+image_present() {
+    docker image inspect "$1" >/dev/null 2>&1
+}
+
+tags="$(repo_tags_for_tarball "$tarball")"
+
+if [ -z "$tags" ]; then
+    # Could not determine the tag from the manifest. Be safe: load it.
+    # Loading an already-present image is a correctness no-op (just slower),
+    # acceptable for the rare unparseable-manifest case.
+    log "Could not read RepoTags from $tarball; loading to be safe."
+    docker load -i "$tarball" || log "WARNING: failed to load $tarball"
+    log "Done."
+    exit 0
+fi
+
+missing=0
+while IFS= read -r tag; do
+    [ -z "$tag" ] && continue
+    if image_present "$tag"; then
+        log "Image already present, skipping: $tag"
+    else
+        log "Image missing, will load from tarball: $tag"
+        missing=1
+    fi
+done <<<"$tags"
+
+if [ "$missing" -eq 1 ]; then
+    log "Loading $tarball ..."
+    docker load -i "$tarball" || log "WARNING: failed to load $tarball"
+fi
+
+log "Done."
+EOF
+chmod 0755 "${LOADER}"
+
+# ---------------------------------------------------------------------------
+# BLOCKING unit: datastore image only. Ordered before the guest agent so
+# mysql:8.4 is present before start_db/prepare. Fast (inspect+skip) on a
+# normal reboot; only slow when the datastore image is genuinely absent.
+# ---------------------------------------------------------------------------
+UNIT_DS=/etc/systemd/system/trove-load-datastore-images.service
+cat > "${UNIT_DS}" <<'EOF'
+[Unit]
+Description=Load Trove datastore image (mysql) into the Docker cache if missing
+Documentation=man:docker(1)
+After=docker.service
+Requires=docker.service
+# The guest agent runs start_db/prepare which needs the datastore image, so
+# this must finish first. It is a sub-second no-op when the image is already
+# cached (the normal reboot case), so it does not meaningfully delay boot.
+Before=guest-agent.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/trove-load-datastore-images.sh datastore
+# Bound the blocking window well under the taskmanager RPC reply timeout
+# (~180s). On a normal reboot this completes in ~1s; if the datastore image
+# is genuinely absent and a full load would exceed this, we would rather fail
+# the unit than wedge the guest agent past the RPC deadline.
+TimeoutStartSec=150
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# ---------------------------------------------------------------------------
+# NON-BLOCKING unit: backup image. NOT ordered before the guest agent, so a
+# multi-minute load here can never delay the agent or the reboot RPC. Runs in
+# parallel and finishes long before any backup is requested.
+# ---------------------------------------------------------------------------
+UNIT_BK=/etc/systemd/system/trove-load-backup-image.service
+cat > "${UNIT_BK}" <<'EOF'
+[Unit]
+Description=Load Trove backup image (mysql-backup) into the Docker cache if missing
+Documentation=man:docker(1)
+After=docker.service
+Requires=docker.service
+# Deliberately NOT Before=guest-agent.service: the backup image is only needed
+# when a backup is later requested, so loading it must never block the guest
+# agent's startup (that delay previously blew the upgrade-reboot RPC timeout).
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/trove-load-datastore-images.sh backup
+# The backup image can be ~500MB+; give it room. Nothing waits on this unit.
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Enable both oneshots (WantedBy=multi-user.target). They run on every boot;
+# the datastore one blocks the agent briefly (or not at all when cached), the
+# backup one runs in the background.
+systemctl enable trove-load-datastore-images.service
+systemctl enable trove-load-backup-image.service
+
+echo "===> Trove datastore image loaders installed and enabled."
