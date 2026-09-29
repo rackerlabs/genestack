@@ -6,10 +6,10 @@ prelude: >
   secrets remain accessible.
 
   Additionally, deployments with Barbican Gazpacho (2026.1 / OpenStack-Helm 2026.1.x)
-  feature fully automated SoftHSM2 PIN generation, `simple_crypto` KEK persistence, and 3-tier
-  resolution. This eliminates service crashloops and encrypted volume/database creation
-  failures caused by Gazpacho's removal of the default simple_crypto KEK across both
-  brownfield upgrades and greenfield deployments.
+  feature fully automated SoftHSM2 PIN generation. The `simple_crypto` master KEK,
+  which Gazpacho no longer defaults, is managed through the `barbican-simple-crypto-kek`
+  Kubernetes Secret; see the Barbican KEK notes in this release and the "Simple crypto
+  master KEK" section of `docs/openstack-barbican.md`.
 features:
   - |
     **SoftHSM2 PKCS#11 Crypto Backend Support:**
@@ -30,23 +30,17 @@ features:
     Barbican credentials in Kubernetes Secrets at cluster bootstrap:
     - `barbican_hsm_pin`: 32-character auto-generated PIN stored in the
       `barbican-hsm-credentials` Kubernetes Secret for SoftHSM2 PKCS#11 token login.
-    - `barbican_simple_crypto_kek`: 32-byte urlsafe base64 (44-character) Fernet
-      Master KEK stored in the `barbican-simple-crypto-kek` Kubernetes Secret
-      for greenfield and fresh lab builds.
+    - `barbican_simple_crypto_kek`: 32 random bytes as urlsafe base64 (44
+      characters), the Fernet master KEK, stored in the
+      `barbican-simple-crypto-kek` Kubernetes Secret alongside
+      an initially empty `old_keks` rotation history, for greenfield and fresh
+      lab builds.
   - |
     **Updated Install Script (bin/install-barbican.sh):**
-    `install-barbican.sh` handles SoftHSM2 configuration checks, dynamic PIN
-    injection from `barbican-hsm-credentials` secret, and post-install token/key
-    initialization, and automated 3-tier simple_crypto Master KEK resolution and
-    injection for Gazpacho.
-  - |
-    **Automated 3-Tier Gazpacho KEK Resolution:**
-    Added 3-tier Master KEK resolution logic in `install-barbican.sh`:
-    - Tier 1: Extracts active KEK from `barbican-etc` Kubernetes Secret (`barbican.conf`).
-    - Tier 2: Extracts KEK from deployed Helm release values.
-    - Tier 3: Extracts persisted KEK from `barbican-simple-crypto-kek` Kubernetes Secret.
-    The resolved KEK is injected via a Helm values file (not `--set`, which
-    strips Fernet padding).
+    `install-barbican.sh` handles SoftHSM2 configuration checks, creation of the
+    `barbican-hsm-credentials` Secret on brownfield clusters, dynamic PIN injection
+    from that Secret, post-install token/key initialization, and injection of the
+    `simple_crypto` master KEK from the `barbican-simple-crypto-kek` Secret.
   - |
     **Default dual-plugin enablement:**
     `base-helm-configs/barbican/barbican-helm-overrides.yaml` now enables
@@ -56,22 +50,22 @@ features:
     keep `simple_crypto` loaded until legacy secrets are converted.
 upgrade:
   - |
-    **Zero-Touch Brownfield Gazpacho Upgrades:**
+    **Gazpacho KEK handling:**
     Gazpacho Barbican removes the upstream built-in default KEK for
-    `simple_crypto`. On brownfield clusters holding legacy encrypted secrets,
-    `install-barbican.sh` automatically extracts and injects the active `simple_crypto`
-    KEK during deployment — zero manual operator intervention required.
-  - |
-    **Greenfield Deployment Build Reliability:**
-    Fresh deployments automatically resolve the persisted bootstrap KEK via
-    Tier 3 (`barbican-simple-crypto-kek`), ensuring `simple_crypto` initializes
-    cleanly and preventing database instance (Trove) and encrypted Cinder volume
-    creation failures.
-  - |
-    **Fail-Fast Protection:**
-    If legacy `simple_crypto` records exist in MariaDB but no KEK can be
-    extracted from any tier, `install-barbican.sh` aborts with `exit 1` and an
-    actionable error message, preventing a broken deployment.
+    `simple_crypto`. A KEK set in an override file always takes precedence
+    and is deployed as is. Otherwise `install-barbican.sh` injects the KEK
+    from the `barbican-simple-crypto-kek` Secret on every deploy. On
+    brownfield clusters that hold `simple_crypto` data but have no KEK
+    configured anywhere, it refuses to deploy and points at
+    `scripts/rotate-barbican-kek.py --adopt` to move the running KEK into
+    the Secret; on clusters without Barbican
+    data it generates one, so fresh deployments create Trove instances and
+    encrypted Cinder volumes without manual steps. A deploy that would leave
+    Barbican unable to start, or that would arm a db-sync rewrap of a
+    Secret-managed KEK that cannot succeed, is refused with guidance instead.
+    Rotation is handled by `scripts/rotate-barbican-kek.py`, which
+    `install-barbican.sh` never calls; see the Barbican KEK notes in this
+    release.
 security:
   - |
     **Dynamic Key & PIN Injection:**
