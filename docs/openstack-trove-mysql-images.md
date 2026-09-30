@@ -1,349 +1,330 @@
+!!! banner "TECH PREVIEW"
+
 # Building MySQL Images for Trove
 
-This guide explains how to build and configure MySQL database images for use with OpenStack Trove Database as a Service.
+Trove boots each database instance as a Nova guest VM from a purpose-built image that carries
+the database engine, the Trove guest agent, and the supporting tooling the agent expects at
+runtime. This guide explains how Genestack builds that image and how to customize the build.
 
 ## Overview
 
-Trove requires pre-built database images that contain the database software and the Trove guest agent. This document covers building MySQL 8.4 images and configuring them for use with Trove.
+In Genestack the guest image is **not** produced by customizing a stock cloud image with
+`virt-customize`. It is built with [diskimage-builder](https://docs.openstack.org/diskimage-builder/latest/)
+(DIB) and a set of custom elements, all driven by the `trove_enablement_techpreview` Ansible
+role (task file `trove_guest_image_builder.yml`). The result is a Debian `bookworm` qcow2 named
+`trove-mysql-8.4-bookworm` that is uploaded to Glance and shared with the `admin` and `service`
+projects.
+
+The image build is one phase of the larger Trove enablement flow. For the full deployment,
+see the [Deploy Trove](openstack-trove.md) guide — in most cases you will run the enablement
+playbook rather than building the image by hand.
+
+## What the build produces
+
+The guest image contains:
+
+- **Debian bookworm** base, built via DIB's `debian-minimal` element (debootstrap).
+- **MySQL 8.4 as a container**: rather than installing mysqld on the host, the datastore runs
+  as the `mysql:8.4` Docker image, pre-loaded into the guest's Docker cache at build time.
+  A `mysql-backup:8.4` image (built from the Trove repo's `backup/` Dockerfile) is also baked
+  in for backups.
+- **Docker CE**, installed from Docker's official Debian repository (`debian-docker` element).
+- **The Trove guest agent**, from the upstream `guest-agent` element at the release branch
+  (`stable/2025.2` by default).
+- **A `debian` guest user** in the `sudo`, `adm`, `systemd-journal` and `docker` groups.
+- **Baseline tooling** — `default-mysql-client`, `curl`, `chrony`, `iputils-ping`,
+  `traceroute`, `net-tools`, `telnet`, and debug helpers.
+- **Boot-time image loaders** — systemd units that restore the datastore and backup images
+  into the Docker cache if they are missing (see [Datastore image loaders](#datastore-image-loaders)).
 
 ## Prerequisites
 
-### System Requirements
+The build runs on the Genestack jump host / launcher node and needs:
 
-- Ubuntu 22.04 or later (recommended)
-- At least 10GB free disk space
-- 4GB RAM minimum
-- Internet connection for downloading packages
+- The genestack virtualenv at `/home/ubuntu/.venvs/genestack` and `genestack.rc`.
+- A working `openstack` CLI against the cluster (Keystone + Glance reachable).
+- Internet access to clone the Trove repo, pull the `mysql:8.4` image, and install packages.
+- At least ~10 GB of free space in `/tmp` for the build.
 
-### Required Packages
+The role installs the build-time system dependencies itself (`qemu-utils`, `debootstrap`,
+`kpartx`, `skopeo`, `libguestfs-tools`, Docker), so you do not need to pre-install them.
 
-Install the required packages on your build system:
+## Building the image with the role
 
-```bash
-sudo apt-get update
-sudo apt-get install -y \
-    qemu-utils \
-    libguestfs-tools \
-    wget \
-    curl \
-    python3-openstackclient
+The recommended way to build (and upload) the image is through the enablement playbook. The
+image build is tagged `trove_image_build`, so you can run just that phase:
+
+!!! example "Build and upload the guest image"
+
+    ``` shell
+    cd /opt/genestack/ansible/playbooks
+    ansible-playbook trove-enablement-techpreview.yaml --tags trove_image_build
+    ```
+
+The build is **idempotent**: if `trove-mysql-8.4-bookworm` already exists in Glance the build is
+skipped. To force a fresh build and re-upload:
+
+!!! example "Force a rebuild"
+
+    ``` shell
+    ansible-playbook trove-enablement-techpreview.yaml -e force_rebuild_image=true
+    ```
+
+### What the build does, step by step
+
+`trove_guest_image_builder.yml` performs the following:
+
+1. Installs `python-troveclient` into the genestack venv and the build-time system packages.
+2. Clones `openstack/trove` at `stable/{{ trove_openstack_release }}` and creates an isolated
+   build virtualenv with `diskimage-builder`.
+3. Checks Glance for the target image and decides whether a build is needed.
+4. Pulls `docker.io/library/mysql:8.4` as a docker-archive tarball with `skopeo`, and builds
+   `mysql-backup:8.4` from the Trove repo's `backup/` Dockerfile.
+5. Renders `trove-guestagent.conf` and copies this role's custom DIB elements into the Trove
+   elements path.
+6. Runs `disk-image-create` to build the qcow2.
+7. Uploads the image to Glance (shared) with datastore properties and tags, then adds the
+   `service` and `admin` projects as image members and accepts the membership.
+
+### The disk-image-create invocation
+
+For reference, the core build command the role runs is:
+
+``` shell
+disk-image-create \
+    -a amd64 \
+    -o trove-mysql-8.4-bookworm \
+    -t qcow2 \
+    --image-size 10 \
+    -x \
+    --logfile /tmp/trove-build-guest-image.log \
+    base vm debian-minimal cloud-init-datasources \
+    pip-cache guest-agent debian-guest debian-docker image-pre-load
 ```
 
-### OpenStack Environment
+The last three elements (`debian-guest`, `debian-docker`, `image-pre-load`) are the custom
+elements this role ships. Key environment variables set for the build include
+`DIB_RELEASE=bookworm`, `DISTRO_NAME=debian`, `GUEST_USERNAME=debian`,
+`DIB_CLOUD_INIT_DATASOURCES=ConfigDrive`, and `TROVE_SERVICES_VIP_IP` (the services anchor IP).
 
-Ensure you have:
-- Access to an OpenStack environment with Trove deployed
-- OpenStack credentials configured
-- Glance service available for image uploads
+## The custom DIB elements
 
-## Building MySQL 8.4 Image
+The role's elements live under
+`ansible/roles/trove_enablement_techpreview/files/elements/`:
 
-### Automated Build Process
+### `debian-guest`
 
-Use the provided script to build a MySQL 8.4 image:
+Prepares the Debian guest for Trove: installs baseline packages, creates the `debian` guest
+user, configures NTP/chrony, DHCP-renew and management-NIC hooks, and adjusts MySQL's
+`my.cnf`. Notably, `post-install.d/21-mysql-my-cnf` replaces the `/etc/mysql/my.cnf` symlink
+so it points at `mariadb.cnf` (which receives the config Trove renders from its template)
+instead of `/etc/alternatives/my.cnf`, which is not mapped into the MySQL container.
 
-```bash
-# Basic build with defaults
-/opt/genestack/scripts/build-trove-mysql-image.sh
+### `debian-docker`
 
-# Custom build with specific parameters
-IMAGE_NAME="my-mysql-8.4" \
-IMAGE_SIZE="10G" \
-WORK_DIR="/tmp/my-build" \
-/opt/genestack/scripts/build-trove-mysql-image.sh
-```
+Installs Docker CE from Docker's official Debian repository, enables it at boot, and adds the
+`debian` user to the `docker` group. The datastore runs as a container, so Docker is required
+in the guest.
 
-### Build Process Details
+### `image-pre-load`
 
-The build script performs the following steps:
+Bakes the datastore images into the guest so instances boot with a warm Docker cache:
 
-1. **Downloads Ubuntu 22.04 cloud image** as the base
-2. **Installs MySQL 8.4** from the official MySQL APT repository
-3. **Configures MySQL** for Trove compatibility
-4. **Installs Trove guest agent** from the stable/2024.2 branch
-5. **Configures cloud-init** for proper initialization
-6. **Creates systemd services** for automatic startup
-7. **Optimizes the image** and uploads to Glance
+- `extra-data.d/31-copy-datastore-images` copies the `*.tar` image tarballs from the host
+  build directory into the mounted image's `/var/lib/trove-images`.
+- `pre-finalise.d/31-preload-datastore-images` starts a temporary dockerd pointed at the
+  image's `/var/lib/docker` and `docker load`s the tarballs so they are in the cache.
+- `install.d/32-install-datastore-image-loader` installs the boot-time loader (below).
 
-### Manual Build Process
+## Datastore image loaders
 
-If you prefer to build manually:
+The guest ships two systemd units and a loader script
+(`/usr/local/bin/trove-load-datastore-images.sh`) that restore the datastore/backup images
+into the Docker cache from `/var/lib/trove-images` if they are missing (for example after a
+datastore upgrade or a rebuild re-images the root disk).
 
-```bash
-# Create working directory
-mkdir -p /tmp/trove-build
-cd /tmp/trove-build
+The loader is "load only if missing": if every `RepoTag` a tarball declares is already in the
+local cache it returns after a sub-second `docker image inspect`; a real `docker load` runs
+only when an image is genuinely absent.
 
-# Download base image
-wget https://cloud-images.ubuntu.com/releases/22.04/release/ubuntu-22.04-server-cloudimg-amd64.img
+!!! example "Loader usage (invoked by the systemd units in the guest)"
 
-# Copy and resize
-cp ubuntu-22.04-server-cloudimg-amd64.img mysql-8.4-base.qcow2
-qemu-img resize mysql-8.4-base.qcow2 5G
+    ``` shell
+    # Blocking unit — datastore image only, before the guest agent
+    trove-load-datastore-images.sh datastore
 
-# Customize with virt-customize
-virt-customize -a mysql-8.4-base.qcow2 \
-    --run-command 'apt-get update && apt-get upgrade -y' \
-    --install python3,python3-pip,mysql-server \
-    --run-command 'pip3 install python-troveclient' \
-    # ... additional customization commands
-```
+    # Non-blocking unit — backup image, in the background
+    trove-load-datastore-images.sh backup
+    ```
 
-## Image Configuration
+**What it does and why two units:** `trove-load-datastore-images.service` is ordered
+`Before=guest-agent.service` and loads only the datastore image (`mysql:8.4`), so the image is
+present before the agent runs `start_db`/`prepare`. Because it is a near-instant no-op when
+the image is already cached, it does not meaningfully delay boot.
+`trove-load-backup-image.service` is deliberately **not** ordered before the guest agent and
+loads the larger `mysql-backup:8.4` image in the background, so even a multi-minute load can
+never delay the agent or push a reboot past the taskmanager's RPC reply timeout.
 
-### MySQL Configuration
+## Guest agent configuration
 
-The image includes optimized MySQL settings in `/etc/mysql/mysql.conf.d/trove.cnf`:
+The guest agent configuration is rendered from
+`templates/trove-guestagent.conf.j2` at build/config time and delivered to the guest. It
+points the agent at the in-cluster services via the management overlay:
 
-```ini
-[mysqld]
-bind-address = 0.0.0.0
-log-bin = mysql-bin
-server-id = 1
-binlog-format = ROW
-default-storage-engine = InnoDB
-innodb_file_per_table = 1
-collation-server = utf8_general_ci
-character-set-server = utf8
-max_connections = 1000
-max_allowed_packet = 1G
-```
+- `transport_url` → `rabbit://trove:<password>@rabbitmq.openstack.svc.cluster.local:5672/trove`
+- `trove_auth_url` → `http://keystone-api.openstack.svc.cluster.local:5000/v3`
+- `swift_url` → `http://<services-anchor-ip>:8080/v1/AUTH_` (for backups)
+- classic non-durable RabbitMQ queues (`rabbit_quorum_queue = false`) to match the conductor
 
-### Trove Guest Agent Configuration
-
-The guest agent configuration is located at `/etc/trove/trove-guestagent.conf`:
-
-```ini
-[DEFAULT]
-log_file = /var/log/trove/trove-guestagent.log
-debug = True
-control_exchange = trove
-trove_auth_url = http://keystone-api.openstack.svc.cluster.local:5000/v3
-rpc_backend = rabbit
-rabbit_host = rabbitmq.openstack.svc.cluster.local
-rabbit_userid = trove
-rabbit_password = password
-rabbit_virtual_host = trove
-
-[mysql]
-root_password = root
-default_password_length = 36
-```
+Guest VMs reach these hostnames through the `trove-mgmt-bridge` DaemonSet described in the
+[Deploy Trove](openstack-trove.md#guest-connectivity-the-trove-mgmt-bridge) guide. A small
+cloud-init snippet (`templates/trove-mysql-cloudinit.j2`) also copies the `os_admin.cnf` that
+the guest agent creates during `prepare` into `/etc/mysql/conf.d` so it is usable inside the
+MySQL container.
 
 ## Uploading to Glance
 
-### Automatic Upload
+The role uploads the image and shares it automatically. If you need to upload a
+locally-built qcow2 by hand, the equivalent command is:
 
-The build script automatically uploads the image to Glance if OpenStack credentials are configured:
-
-```bash
-# Ensure credentials are set
-source /path/to/openrc
-
-# Build and upload
-/opt/genestack/scripts/build-trove-mysql-image.sh
-```
-
-### Manual Upload
-
-Upload the image manually:
-
-```bash
+``` shell
 openstack image create \
     --disk-format qcow2 \
     --container-format bare \
-    --public \
+    --shared \
     --property os_type=linux \
-    --property os_distro=ubuntu \
-    --property os_version=22.04 \
+    --property os_distro=debian \
+    --property os_version=bookworm \
     --property trove_datastore=mysql \
     --property trove_datastore_version=8.4 \
-    --file /tmp/trove-image-build/trove-mysql-8.4.qcow2 \
-    trove-mysql-8.4
+    --tag trove --tag mysql --tag 8.4 --tag bookworm \
+    --file /tmp/trove-image-build/trove-mysql-8.4-bookworm.qcow2 \
+    trove-mysql-8.4-bookworm
 ```
 
-## Configuring Trove Datastores
+The `--tag` values matter: the datastore version is linked to the image by tags, not by ID
+(see [Configuring the datastore](#configuring-the-datastore)).
 
-After uploading the image, configure Trove to use it:
+## Configuring the datastore
 
-### Automated Setup
+After the image is in Glance and the Trove API is running, register the datastore version.
+The role does this in `trove_datastore_setup.yml` (tag `trove_datastore`):
 
-Use the provided setup script:
+!!! example "Register the datastore version"
 
-```bash
-/opt/genestack/scripts/setup-trove-datastores.sh
+    ``` shell
+    ansible-playbook trove-enablement-techpreview.yaml --tags trove_datastore
+    ```
+
+The equivalent manual commands are:
+
+``` shell
+# Trove auto-creates the 'mysql' datastore type when the first version is created.
+openstack datastore version create 8.4 mysql mysql "" \
+    --image-tags trove,mysql,8.4,bookworm --active --default
+
+# Load the configuration parameter validation rules (run inside the taskmanager pod)
+TM_POD=$(kubectl -n openstack get pods --no-headers | awk '/trove-task/ {print $1; exit}')
+kubectl -n openstack exec "$TM_POD" -- \
+    trove-manage db_load_datastore_config_parameters mysql 8.4 \
+    /var/lib/openstack/lib/python3.12/site-packages/trove/templates/mysql/validation-rules.json
 ```
 
-### Manual Configuration
+To rebuild the datastore version (for example after re-uploading the image):
 
-1. **Create the datastore**:
-```bash
-openstack datastore create mysql
+``` shell
+ansible-playbook trove-enablement-techpreview.yaml -e force_create_dsv=true
 ```
 
-2. **Create datastore versions**:
-```bash
-# Get image ID
-IMAGE_ID=$(openstack image show trove-mysql-8.4 -f value -c id)
+## Customizing the build
 
-# Create version
-openstack datastore version create \
-    --datastore mysql \
-    --image $IMAGE_ID \
-    --packages mysql-server \
-    --active \
-    8.4 \
-    8.4
-```
+The build is driven by variables in
+`ansible/roles/trove_enablement_techpreview/defaults/main.yml`. The most relevant for image
+building are:
 
-3. **Create default configuration**:
-```bash
-openstack database configuration create \
-    --datastore mysql \
-    --datastore-version 8.4 \
-    --description "Default MySQL 8.4 configuration" \
-    mysql-default-config \
-    '{"max_connections": 1000, "innodb_buffer_pool_size": "75%"}'
-```
+| Variable                       | Default                     | Description                                       |
+|--------------------------------|-----------------------------|---------------------------------------------------|
+| `trove_mysql_version`          | `8.4`                       | MySQL version (datastore container tag)           |
+| `trove_guest_image_os_release` | `bookworm`                  | Debian release for the guest                      |
+| `trove_guest_image_name`       | `trove-mysql-8.4-bookworm`  | Glance image name (derived from the two above)    |
+| `trove_openstack_release`      | `2025.2`                    | Trove branch for DIB elements + guest agent       |
+| `trove_dib_distribution_mirror`| `http://deb.debian.org/debian` | Debian mirror used by debootstrap             |
 
-## Testing the Image
+!!! example "Build for a different MySQL version"
 
-### Create Test Instance
+    ``` shell
+    ansible-playbook trove-enablement-techpreview.yaml \
+        --tags trove_image_build \
+        -e trove_mysql_version=8.0 \
+        -e force_rebuild_image=true
+    ```
 
-Create a test database instance to verify the image works:
+!!! warning "Guest agent and server release must match"
 
-```bash
-# Create instance
-openstack database instance create \
-    --flavor db.small \
+    `trove_openstack_release` controls the guest agent branch and must be compatible with the
+    Trove server-side image configured in `trove-helm-overrides.yaml`. A mismatch across the
+    23.x/25.x boundary can cause silently dropped RPC heartbeats and guest-agent build
+    timeouts. See the extensive comments in `defaults/main.yml` for the rationale before
+    changing it.
+
+## Testing the image
+
+Once the image is uploaded and the datastore version is registered, create a test instance:
+
+``` shell
+openstack database instance create test-mysql-instance \
+    --flavor <flavor-id> \
     --size 10 \
     --datastore mysql \
     --datastore-version 8.4 \
-    --nic net-id=$(openstack network list --internal -f value -c ID | head -n1) \
-    test-mysql-instance
+    --nic net-id=<tenant-network-id>
 
-# Check status
 openstack database instance show test-mysql-instance
-
-# List instances
 openstack database instance list
 ```
 
-### Verify Database Functionality
+Then verify basic database functionality:
 
-Once the instance is active:
-
-```bash
-# Create a database
+``` shell
 openstack database db create test-mysql-instance testdb
-
-# Create a user
 openstack database user create test-mysql-instance testuser testpass --databases testdb
-
-# List databases
 openstack database db list test-mysql-instance
-
-# List users
 openstack database user list test-mysql-instance
 ```
 
 ## Troubleshooting
 
-### Common Issues
+### Build fails
 
-1. **Image build fails**:
-   - Check disk space (need at least 10GB free)
-   - Verify internet connectivity
-   - Check libguestfs-tools installation
+- Check the DIB log at `/tmp/trove-build-guest-image.log`.
+- Ensure there is enough free space in `/tmp` (the build stages several GB).
+- Verify the host can pull `docker.io/library/mysql:8.4` and reach the Debian mirror.
+- Stale DIB mounts from a previous failed run can interfere; the role cleans
+  `/tmp/dib_build.*` and `/tmp/dib_image.*`, but a manual `umount`/`rm -rf` of those paths
+  may be needed if a build was interrupted.
 
-2. **Upload to Glance fails**:
-   - Verify OpenStack credentials
-   - Check Glance service availability
-   - Ensure sufficient quota
+### Instance stuck in BUILD, then guest-agent timeout
 
-3. **Instance creation fails**:
-   - Verify datastore configuration
-   - Check flavor availability
-   - Ensure network connectivity
+Usually a guest agent/server release mismatch (see the warning above), or the guest cannot
+reach the services anchor IP. Check the `trove-mgmt-bridge` pods and the instance console log:
 
-### Debug Instance Issues
-
-Check instance logs:
-
-```bash
-# Get instance details
-openstack database instance show test-mysql-instance
-
-# Check Nova instance logs
-nova_instance_id=$(openstack database instance show test-mysql-instance -f value -c server_id)
-openstack server show $nova_instance_id
-openstack console log show $nova_instance_id
+``` shell
+kubectl --namespace openstack get ds trove-mgmt-bridge
+SERVER_ID=$(openstack database instance show test-mysql-instance -f value -c server_id)
+openstack console log show "$SERVER_ID"
 ```
 
-### Guest Agent Logs
+### Datastore version not found
 
-Access guest agent logs from within the instance:
+Confirm the image exists and its tags match what the datastore version expects:
 
-```bash
-# SSH to instance (if accessible)
-tail -f /var/log/trove/trove-guestagent.log
-
-# Check service status
-systemctl status trove-guestagent
-systemctl status mysql
+``` shell
+openstack image show trove-mysql-8.4-bookworm
+openstack datastore version list mysql
 ```
 
-## Advanced Configuration
+## Related documentation
 
-### Custom MySQL Versions
-
-To build images for different MySQL versions:
-
-```bash
-MYSQL_VERSION="8.0" \
-IMAGE_NAME="trove-mysql-8.0" \
-/opt/genestack/scripts/build-trove-mysql-image.sh
-```
-
-### Performance Tuning
-
-Modify the MySQL configuration in the build script for specific workloads:
-
-```ini
-# For high-performance workloads
-innodb_buffer_pool_size = 80%
-innodb_log_file_size = 256M
-innodb_flush_log_at_trx_commit = 2
-sync_binlog = 0
-```
-
-### Security Hardening
-
-Additional security configurations:
-
-```ini
-# Security settings
-skip-symbolic-links
-local-infile = 0
-secure-file-priv = /var/lib/mysql-files/
-sql_mode = STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
-```
-
-## Best Practices
-
-1. **Regular Updates**: Rebuild images regularly with security updates
-2. **Version Management**: Maintain separate images for different MySQL versions
-3. **Testing**: Always test images before production use
-4. **Monitoring**: Monitor guest agent logs for issues
-5. **Backup**: Ensure proper backup strategies for database instances
-
-## Integration with Genestack
-
-The MySQL image building process integrates with the Genestack deployment:
-
-1. **Automated Builds**: Include in CI/CD pipelines
-2. **Version Management**: Track image versions with Helm chart versions
-3. **Configuration Management**: Use Kustomize overlays for environment-specific settings
-4. **Monitoring**: Integrate with existing monitoring stack
-
-For more information on Trove deployment and management, see the [OpenStack Trove documentation](openstack-trove.md).
+- [Deploy Trove](openstack-trove.md) — full enablement flow, networking, and validation.
+- [OpenStack Trove documentation](https://docs.openstack.org/trove/latest/)
+- [diskimage-builder documentation](https://docs.openstack.org/diskimage-builder/latest/)
