@@ -7,7 +7,7 @@ charts:
   ceilometer: 2026.1.3+a659ab8a2
   cert-manager: v1.19.5
   cinder: 2026.1.9+a2a343968
-  cloudkitty: 2026.1.3+a659ab8a2
+  cloudkitty: 2026.1.30+11919f713
   designate: 2026.1.8+a659ab8a2
   envoyproxy-gateway: v1.7.0
   freezer: 2026.1.8+d03dd061a
