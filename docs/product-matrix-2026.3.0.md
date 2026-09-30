@@ -1,6 +1,6 @@
 # Product Matrix for release-2026.3-rc
 
-This matrix is generated from the exact git diff between `release-2026.2.0.2` and `release-2026.3-rc`.
+This matrix is generated from the exact git diff between `release-2026.2.0.2` and `release-2026.3.0`.
 
 ## Chart Changes In This Release
 
