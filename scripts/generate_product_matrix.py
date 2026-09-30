@@ -19,10 +19,20 @@ def parse_args():
         "--to-tag",
         help="End of a git diff range, for example: release-2026.2.0",
     )
+    parser.add_argument(
+        "--version",
+        help=(
+            "Output version override for range mode, for example: 2026.3.0 "
+            "when --to-tag is an rc branch."
+        ),
+    )
     args = parser.parse_args()
 
     if args.release and (args.from_tag or args.to_tag):
         parser.error("Use either --release or --from-tag/--to-tag, not both.")
+
+    if args.version and args.release:
+        parser.error("--version is only valid with --from-tag/--to-tag range mode.")
 
     if args.release:
         return args
@@ -179,6 +189,7 @@ def generate_product_matrix_index(repo_dir):
                 "pip install -r doc-requirements.txt -r dev-requirements.txt",
                 "python scripts/generate_product_matrix.py --release release-2026.2.0",
                 "python scripts/generate_product_matrix.py --from-tag release-2026.1.0 --to-tag release-2026.2.0",
+                "python scripts/generate_product_matrix.py --from-tag release-2026.2.0.2 --to-tag release-2026.3-rc --version 2026.3.0",
                 "```",
                 "",
             ]
@@ -200,7 +211,7 @@ def main():
         from_tag = args.from_tag
         to_tag = args.to_tag
         parse_release_tag(from_tag)
-        version = parse_release_tag(to_tag)
+        version = args.version or parse_release_tag(to_tag)
         output_file, change_count = generate_range_matrix(
             root, from_tag, to_tag, version
         )
