@@ -1,6 +1,6 @@
 # Release 2026.3.0
 
-This release note set covers the exact git diff from `release-2026.2.0.2` to `release-2026.3-rc`.
+This release note set covers the exact git diff from `release-2026.2.0.2` to `release-2026.3.0`.
 Curated reno note fragments are listed first. Supplemental commit-derived items are listed separately afterward.
 
 [Product Matrix](product-matrix-2026.3.0.md)
