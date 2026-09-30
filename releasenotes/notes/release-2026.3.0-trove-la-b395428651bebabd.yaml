@@ -1,0 +1,32 @@
+---
+prelude: |
+  Limited Availability (LA) release of our managed Database-as-a-Service (DBaaS),
+  powered by OpenStack Trove.
+
+  **Scope & Constraints:**
+  Because this service is in LA, the following constraints apply:
+    - No SLA Guarantees: This service does not currently carry a Service Level Agreement (SLA).
+    - Capacity Quotas: Each enrolled account is limited to a maximum of 40 GB of total storage
+                       for all database instance volumes.
+
+  **How to Provide Feedback:**
+  Your feedback is critical to helping us refine this service.
+  Please submit any bugs, performance issues, or feature requests via the Rackspace ticketing
+  system(s) or create a github issue.
+features:
+  - |
+    This release allows selected customers to provision, manage, and scale relational
+    databases seamlessly through our cloud portal and API.
+issues:
+  - |
+    Upgrade and Rebuild break backups and any operation dependent on backups, like
+    restore and creating replicas
+upgrade: []
+deprecations: []
+critical: []
+security: []
+fixes: []
+other:
+  - |
+    Only MySQL 8.4 is supported.
+    The MySQL 8.4 backup image was built using Trove 2025.2 instead of Trove 2026.1
