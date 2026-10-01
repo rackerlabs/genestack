@@ -1,0 +1,23 @@
+---
+fixes:
+  - |
+    The host-based ``cinder-volume`` deployment (``ansible/roles/cinder_volumes``,
+    run by ``deploy-cinder-volume.yaml``) has been rewritten to mirror the
+    modular configuration structure used by in-cluster Cinder pods in
+    OpenStack-Helm (2026.1.x / Gazpacho).
+
+    Instead of copying and mutating ``cinder.conf.stage``, the role now installs
+    the pristine base ``cinder.conf`` directly from the ``cinder-etc`` Secret and
+    creates the modular snippet directory ``/etc/cinder/cinder.conf.d/``, populating
+    it with the Keystone credentials and service account configurations
+    (``cinder_service_user.conf``, ``cinder_nova.conf``, and
+    ``cinder_keystone_authtoken.conf``) from the ``cinder-ks-etc`` Secret.
+
+    Backend workers and LVM now declare their specific ``host`` and
+    ``enabled_backends`` overrides in isolated configuration files (e.g.
+    ``/etc/cinder/<worker>-cinder.conf`` and ``/etc/cinder/lvm-cinder.conf``),
+    and systemd unit files load both the base configuration and the modular
+    directory via ``--config-dir /etc/cinder/cinder.conf.d``. This resolves
+    failures where volumes created from images went into error due to missing
+    Glance service user credentials, and ensures multi-backend storage nodes
+    coexist safely without configuration collisions.

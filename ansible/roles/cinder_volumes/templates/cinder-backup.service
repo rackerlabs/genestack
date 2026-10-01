@@ -7,7 +7,7 @@ After = syslog.target
 Type = simple
 User = cinder
 Group = cinder
-ExecStart = /opt/cinder/bin/cinder-backup --config-file /etc/cinder/cinder.conf
+ExecStart = /opt/cinder/bin/cinder-backup --config-file /etc/cinder/cinder.conf --config-dir /etc/cinder/cinder.conf.d
 ExecReload = /bin/kill -HUP $MAINPID
 # Give a reasonable amount of time for the server to start up/shut down
 TimeoutSec = 120
