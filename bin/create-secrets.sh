@@ -67,6 +67,13 @@ heat_stack_user_password=$(generate_password 32)
 cinder_rabbitmq_password=$(generate_password 64)
 cinder_db_password=$(generate_password 32)
 cinder_admin_password=$(generate_password 32)
+# Keystone service accounts the cinder chart's ks-user job manages besides
+# 'cinder': cinder_nova ([nova]), cinder_service_user ([service_user]) and
+# cinder_swift (backup_swift_key). Without these the chart uses its
+# values.yaml default password for all three.
+cinder_keystone_nova_password=$(generate_password 32)
+cinder_keystone_service_password=$(generate_password 32)
+cinder_keystone_swift_password=$(generate_password 32)
 cloudkitty_rabbitmq_password=$(generate_password 64)
 cloudkitty_db_password=$(generate_password 32)
 cloudkitty_admin_password=$(generate_password 32)
@@ -323,6 +330,33 @@ metadata:
 type: Opaque
 data:
   password: $(echo -n $cinder_admin_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cinder-keystone-nova-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $cinder_keystone_nova_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cinder-keystone-service-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $cinder_keystone_service_password | base64 -w0)
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cinder-keystone-swift-password
+  namespace: openstack
+type: Opaque
+data:
+  password: $(echo -n $cinder_keystone_swift_password | base64 -w0)
 ---
 apiVersion: v1
 kind: Secret
