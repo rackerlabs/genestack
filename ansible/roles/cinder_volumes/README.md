@@ -88,32 +88,26 @@
 
 | Name | Module | Has Conditions |
 | ---- | ------ | -------------- |
-| Remove storage-cinder conf staging file | ansible.builtin.file | False |
-| Remove cinder conf staging file | ansible.builtin.file | False |
+| Remove legacy cinder staging files | ansible.builtin.file | False |
 
 #### File: tasks/configure_backend.yaml
 
 | Name | Module | Has Conditions |
 | ---- | ------ | -------------- |
-| Set enabled backend fact | set_fact | False |
+| Set enabled backend fact | ansible.builtin.set_fact | False |
 | Create the cinder-volume-{{ cinder_worker_name }} backend configuration | ansible.builtin.copy | False |
-| Create the cinder-volume-{{ cinder_worker_name }} configuration stage file | ansible.builtin.copy | False |
-| Ensure the backend configuration is set to our expected value | community.general.ini_file | False |
-| Override host value in {{ cinder_worker_name }}-cinder.conf.stage | community.general.ini_file | False |
-| Create the cinder-volume-{{ cinder_worker_name }} configuration | ansible.builtin.copy | False |
+| Create the cinder-volume-{{ cinder_worker_name }} worker configuration override | ansible.builtin.copy | False |
 | Create the cinder-volume-{{ cinder_worker_name }} systemd service units | ansible.builtin.template | False |
 
 #### File: tasks/configure_backend_lvm.yaml
 
 | Name | Module | Has Conditions |
 | ---- | ------ | -------------- |
-| Unnamed | set_fact | False |
+| Set LVM backend fact | ansible.builtin.set_fact | False |
 | Create the cinder-volume backend configuration | ansible.builtin.copy | False |
-| Ensure the backend configuration is set to our expected value | community.general.ini_file | False |
-| Create the cinder-volume configuration | ansible.builtin.copy | False |
-| Create the cinder-volume-{{ cinder_worker_name }} systemd service units | ansible.builtin.copy | False |
+| Create the LVM worker configuration override | ansible.builtin.copy | False |
 | Create the cinder tgtd integration | ansible.builtin.copy | False |
-| Create the cinder-volume systemd service units | ansible.builtin.copy | False |
+| Create the cinder-volume systemd service units | ansible.builtin.template | False |
 
 #### File: tasks/configure_storage_certificate.yaml
 
@@ -133,6 +127,7 @@
 | K8S Facts block | block | False |  |
 | Ensure python3-kubernetes is available | ansible.builtin.package | False |  |
 | Read cinder-etc secrets | kubernetes.core.k8s_info | False |  |
+| Read cinder-ks-etc secrets | kubernetes.core.k8s_info | False |  |
 | Install cinder distro packages | ansible.builtin.package | True |  |
 | Install cinder-backend distro packages | ansible.builtin.package | True |  |
 | Determine iscsi initiator name | set_fact | False |  |
@@ -146,10 +141,11 @@
 | Create the cinder system user | ansible.builtin.user | False |  |
 | Create the cinder system group | ansible.builtin.group | False |  |
 | Create the cinder service directory | ansible.builtin.file | False |  |
+| Create the cinder configuration directories | ansible.builtin.file | False |  |
 | Create symlink for the etc directory | ansible.builtin.file | False |  |
+| Create the base cinder-volume configuration | ansible.builtin.copy | False |  |
+| Deploy modular snippets from cinder-ks-etc into cinder.conf.d | ansible.builtin.copy | True |  |
 | Create the cinder-volume filters and logging configuration | ansible.builtin.copy | False |  |
-| Create the cinder-volume configuration stage file | ansible.builtin.copy | False |  |
-| Replace the host in the cinder.conf.stage with the current Ansible FQDN in the stage file | community.general.ini_file | False |  |
 | Replace exec path in rootwrap | community.general.ini_file | False |  |
 | Configure storage backend | ansible.builtin.include_tasks | True |  |
 | Configure lvm backend | ansible.builtin.include_tasks | True |  |
