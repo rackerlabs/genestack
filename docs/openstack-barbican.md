@@ -6,31 +6,7 @@ OpenStack Barbican is the dedicated security service within the OpenStack ecosys
 
 !!! note "Information about the secrets used"
 
-    Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
-
-    ??? example "Example secret generation"
-
-        ``` shell
-        kubectl --namespace openstack \
-                create secret generic barbican-rabbitmq-password \
-                --type Opaque \
-                --from-literal=username="barbican" \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
-        kubectl --namespace openstack \
-                create secret generic barbican-db-password \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        kubectl --namespace openstack \
-                create secret generic barbican-admin \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        # Simple crypto Fernet master KEK (32-byte urlsafe base64 / 44 chars)
-        kubectl --namespace openstack \
-                create secret generic barbican-simple-crypto-kek \
-                --type Opaque \
-                --from-literal=kek="$(head -c 32 /dev/urandom | base64 | tr -d '\n' | tr '+/' '-_')" \
-                --from-literal=old_keks=""
-        ```
+    Service secrets are managed idempotently by this service's install script. The installer creates any missing Kubernetes secrets and reuses existing values.
 
 ## Setup Barbican Overrides
 
@@ -80,21 +56,20 @@ Barbican's `simple_crypto` plugin wraps every project key with a master key-encr
 no built-in default: if no KEK is rendered into `barbican.conf`, `barbican-api` fails to start with `SimpleCrypto KEK is
 undefined`. A KEK set in an override file (`conf.barbican.simple_crypto_plugin.kek`) always takes precedence and is
 deployed as is: `install-barbican.sh` injects nothing and writes no Secret. Otherwise Genestack keeps the KEK in the
-`barbican-simple-crypto-kek` Kubernetes Secret, which `create-secrets.sh` generates on a new deployment and
-`install-barbican.sh` injects on every deploy together with the `old_keks` rotation history.
+`barbican-simple-crypto-kek` Kubernetes Secret, which `install-barbican.sh` creates on a new deployment and injects on
+every deploy together with the `old_keks` rotation history.
 
 !!! note "What `install-barbican.sh` does when neither an override file nor the Secret supplies a KEK"
 
-    - If Barbican already holds `simple_crypto` data, the deploy is refused: the KEK those project keys are wrapped with
-      is managed nowhere, and a Gazpacho deploy without one crashloops. Adopt it into the Secret with
-      `rotate-barbican-kek.py --adopt` (see below), then re-run.
-    - If there is no Barbican data yet, a fresh KEK is generated into the Secret.
+    - If a running deployment already rendered a KEK into the `barbican-etc` Secret, the installer adopts that KEK into
+      `barbican-simple-crypto-kek` before any random generation is considered.
+    - If no override, managed Secret, or deployed `barbican-etc` KEK exists, the installer treats the deployment as a
+      first install and generates a fresh KEK into the Secret.
 
 When the Secret holds a KEK that differs from the deployed one, the deploy only proceeds if the deployed KEK is listed
-in the Secret's `old_keks`, which `--stage` always records, or if the database holds no simple_crypto project keys
-yet. Otherwise the script refuses, because the db-sync rewrap could not succeed. A KEK from an override file gets no
-such check: on that path the chart's db-sync job is the only safeguard, and it fails the deploy rather than losing
-data when the KEK cannot unwrap the existing project keys.
+in the Secret's `old_keks`, which `--stage` always records. Otherwise the script refuses, because the db-sync rewrap
+could not succeed. A KEK from an override file gets no such check: on that path the chart's db-sync job is the only
+safeguard, and it fails the deploy rather than losing data when the KEK cannot unwrap the existing project keys.
 
 ### Rotate the KEK
 
@@ -126,6 +101,8 @@ rejects.
 
     `--adopt` validates the currently deployed KEK against the database from inside a ready `barbican-api` pod and
     stores it in the Secret. (Note: `barbican-api` must be running; if a previous deploy crashlooped, `helm rollback`
-    to the last good revision first). If a `kek` line is set in your override files, remove it (since an override always
-    takes precedence over the Secret), then run `install-barbican.sh`: the Secret's KEK matches the deployed one, so
-    nothing is rewrapped.
+    to the last good revision first). The installer can also adopt the deployed KEK directly from `barbican-etc` when
+    no managed Secret exists, but the rotation tool remains the safer operator workflow when you want database
+    validation before changing management mode. If a `kek` line is set in your override files, remove it (since an
+    override always takes precedence over the Secret), then run `install-barbican.sh`: the Secret's KEK matches the
+    deployed one, so nothing is rewrapped.

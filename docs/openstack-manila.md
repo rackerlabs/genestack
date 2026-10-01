@@ -28,32 +28,7 @@ Reference the full online [OpenStack Manila documentation](https://docs.openstac
 !!! note "Information about the secrets used"
 !!! note "manila-service-keypair is only required for Generic share driver"
 
-    Manual secret generation is only required if you haven't run the
-    `create-secrets.sh` script located in `/opt/genestack/bin`.
-
-    ??? example "Example secret generation"
-
-        ``` shell
-        kubectl --namespace openstack \
-                create secret generic manila-admin \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        kubectl --namespace openstack \
-                create secret generic manila-db-password \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        kubectl --namespace openstack \
-                create secret generic manila-rabbitmq-password \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        ssh-keygen -qt ed25519 -N '' -C "manila_ssh" -f manila_ssh_key && \
-        kubectl --namespace openstack \
-                create secret generic manila-service-keypair \
-                --type Opaque \
-                --from-literal=public_key="$(cat manila_ssh_key.pub)" \
-                --from-literal=private_key="$(cat manila_ssh_key)"
-        rm -f manila_ssh_key manila_ssh_key.pub
-        ```
+    Service secrets are managed idempotently by this service's install script. The installer creates any missing Kubernetes secrets and reuses existing values.
 
 ## NetApp Clustered Data ONTAP driver configuration
 

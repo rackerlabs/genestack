@@ -2,7 +2,7 @@
 # Trove — full lifecycle
 # =========================================================================
 
-- name: Create Trove K8s secrets
+- name: Ensure Trove K8s secrets
   import_tasks: trove_k8s_secrets.yml
   become: true
   become_user: ubuntu

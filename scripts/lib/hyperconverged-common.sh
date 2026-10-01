@@ -148,8 +148,8 @@ function parseCommonArgs() {
 
     # Resolve the 'manila-share' pseudo service. 'manila' refers to the
     # control-plane chart only; 'manila-share' covers the full enablement
-    # (secrets, service image build, pre/post deploy incl. share type). It can
-    # be enabled with '-i manila-share' or the legacy
+    # (secret prerequisites, service image build, pre/post deploy incl. share
+    # type). It can be enabled with '-i manila-share' or the legacy
     # HYPERCONVERGED_MANILA_SHARE=true environment variable, and disabled with
     # '-e manila-share' (which wins over both). Like cinder-volume, the
     # implied control plane is installed by the enablement step (deployManila
@@ -165,7 +165,7 @@ function parseCommonArgs() {
     fi
     export MANILA_SHARE_ENABLED
     if [ "${MANILA_SHARE_ENABLED}" = "true" ]; then
-        echo "manila-share enabled: manila control plane + share enablement (secrets, service image build, share type)"
+        echo "manila-share enabled: manila control plane + share enablement (secret prerequisites, service image build, share type)"
     fi
 
     # Resolve barbican-hsm pseudo service. It can be enabled with '-i barbican-hsm'
@@ -2320,7 +2320,7 @@ JUMP_HOST_EOF
 
 function deployManila() {
     # Run the Manila enablement flow on the jump host:
-    #   secrets → image_build → pre_deploy → helm install → post_deploy
+    #   secret prerequisites → image_build → pre_deploy → helm install → post_deploy
     # (tag sequence documented in ansible/roles/manila_enablement_techpreview)
     # The playbook is self-sufficient: it reads the keystone-admin password
     # from the K8s secret and authenticates via its own OS_* environment.
@@ -2335,7 +2335,7 @@ set -e
 # activate environment for openstack commands
 source /opt/genestack/scripts/genestack.rc
 
-echo "Running playbook for manila secrets"
+echo "Running playbook for Manila secret prerequisites"
 ansible-playbook /opt/genestack/ansible/playbooks/manila-enablement-techpreview.yaml \
     --tags secrets
 
@@ -2377,7 +2377,7 @@ set -e
 # activate environment for openstack commands
 source /opt/genestack/scripts/genestack.rc
 
-echo "Running playbook for trove_secrets"
+echo "Running playbook for Trove secret prerequisites"
 ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
     --tags trove_secrets \
     -e "trove_region_name=${trove_region_name}"

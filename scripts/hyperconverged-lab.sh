@@ -57,7 +57,8 @@ OPTIONS:
                                   + volume/VG prep, cinder volumes playbook,
                                   volume type/QoS
                    manila-share   full manila stack: chart + enablement
-                                  (secrets, service image build, share type)
+                                  (secret prerequisites, service image build,
+                                  share type)
                  Add the plain component name only when you want the chart
                  without the data plane.
     -e <list>    Comma-separated list of OpenStack services to exclude.
@@ -109,8 +110,8 @@ ENVIRONMENT VARIABLES:
                         always matches the control plane.
     HYPERCONVERGED_MANILA_SHARE
                         If set to "true", runs the full Manila enablement
-                        (secrets, service image build, share type) with a
-                        single manila chart install performed by the
+                        (secret prerequisites, service image build, share type)
+                        with a single manila chart install performed by the
                         enablement step. Equivalent to including the
                         'manila-share' pseudo service via -i; '-e manila-share'
                         overrides both. Default "false" installs no manila.

@@ -1101,30 +1101,7 @@ From genestack control-plane node : Verify Magnum API is properly exposed.
 
 !!! note "Information about the secrets used"
 
-    Manual secret generation is only required if you haven't run the `create-secrets.sh`.
-    Script located in `/opt/genestack/bin`.
-
-    ??? example "Example secret generation"
-
-        From genestack control-plane node:
-
-        ```shell
-        kubectl --namespace openstack \
-                create secret generic magnum-rabbitmq-password \
-                --type Opaque \
-                --from-literal=username="magnum" \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
-
-        kubectl --namespace openstack \
-                create secret generic magnum-db-password \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-
-        kubectl --namespace openstack \
-                create secret generic magnum-admin \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        ```
+    Service secrets are managed idempotently by this service's install script. The installer creates any missing Kubernetes secrets and reuses existing values.
 
 ---
 

@@ -1,0 +1,17 @@
+---
+service:
+  name: envoy-gateway
+  namespace: envoyproxy-gateway-system
+  version: ~
+
+chart:
+  repo_name: envoyproxy-gateway
+  repo_url: oci://docker.io/envoyproxy/gateway-helm
+  service_name: envoy-gateway
+  global_overrides: false
+
+kustomize:
+  enabled: true
+  overlay_path: envoyproxy-gateway/overlay
+
+secrets: []

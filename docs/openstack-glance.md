@@ -4,27 +4,9 @@ OpenStack Glance is the image service within the OpenStack ecosystem, responsibl
 
 ## Create secrets
 
-!!! note "Information about the secretes used"
+!!! note "Information about the secrets used"
 
-    Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
-
-    ??? example "Example secret generation"
-
-        ``` shell
-        kubectl --namespace openstack \
-                create secret generic glance-rabbitmq-password \
-                --type Opaque \
-                --from-literal=username="glance" \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
-        kubectl --namespace openstack \
-                create secret generic glance-db-password \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        kubectl --namespace openstack \
-                create secret generic glance-admin \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        ```
+    Service secrets are managed idempotently by this service's install script. The installer creates any missing Kubernetes secrets and reuses existing values.
 
 !!! info
 
