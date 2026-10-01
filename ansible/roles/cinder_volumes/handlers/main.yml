@@ -14,13 +14,15 @@
 # limitations under the License.
 
 - name: "Restart cinder-volume-backend systemd services"
+  listen: restart cinder services
   ansible.builtin.systemd:
     name: "{{ item }}"
     state: restarted
     daemon_reload: true
     enabled: true
   loop:
-    - cinder-volume-{{ cinder_worker_name }}
+    - "cinder-volume-{{ cinder_worker_name }}"
+  when: cinder_worker_name | lower != 'lvm'
 
 - name: "Restart cinder-volume systemd services"
   ansible.builtin.systemd:
@@ -30,6 +32,7 @@
     enabled: true
   loop:
     - cinder-volume
+  when: cinder_worker_name | lower == 'lvm'
 
 - name: Reload cinder-volume-tgt systemd service
   ansible.builtin.systemd:
@@ -41,6 +44,7 @@
     - tgt.service
 
 - name: Restart cinder-volume and cinder-backup systemd services
+  listen: restart cinder services
   ansible.builtin.systemd:
     name: "{{ item }}"
     state: restarted
@@ -51,3 +55,4 @@
     - cinder-volume-usage-audit
     - cinder-backup
     - iscsid.service
+  when: cinder_worker_name | lower == 'lvm'

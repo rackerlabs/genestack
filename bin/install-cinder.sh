@@ -124,12 +124,33 @@ fi
 
 echo
 
+# Keystone service accounts the chart's ks-user job manages besides 'cinder':
+# cinder_nova ([nova]), cinder_service_user ([service_user]) and cinder_swift
+# (backup_swift_key). Their passwords come from the Secrets below; without
+# them the chart uses its values.yaml default "password" for all three.
+# create-secrets.sh generates them on greenfield. Brownfield clusters never
+# re-run it, so create each missing Secret once here and leave it alone on
+# later deploys. The ks-user job sets the Keystone password to the Secret's
+# value on every deploy, so the first deploy after this replaces the default.
+for secret in cinder-keystone-nova-password cinder-keystone-service-password cinder-keystone-swift-password; do
+    if [[ -n "$(kubectl --namespace openstack get secret "${secret}" -o jsonpath='{.data.password}' 2>/dev/null)" ]]; then
+        continue
+    fi
+    echo "Creating ${secret} (missing on this cluster)"
+    kubectl --namespace openstack create secret generic "${secret}" \
+        --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c 32)" \
+        --dry-run=client -o yaml | kubectl apply -f -
+done
+
 # Collect all --set arguments, executing commands and quoting safely
 # NOTE: This array contains OpenStack-specific secret retrievals and MUST be updated
 #       with the necessary --set arguments for your target SERVICE_NAME_DEFAULT.
 set_args=(
     --set "endpoints.identity.auth.admin.password=$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.identity.auth.cinder.password=$(kubectl --namespace openstack get secret cinder-admin -o jsonpath='{.data.password}' | base64 -d)"
+    --set "endpoints.identity.auth.nova.password=$(kubectl --namespace openstack get secret cinder-keystone-nova-password -o jsonpath='{.data.password}' | base64 -d)"
+    --set "endpoints.identity.auth.service.password=$(kubectl --namespace openstack get secret cinder-keystone-service-password -o jsonpath='{.data.password}' | base64 -d)"
+    --set "endpoints.identity.auth.swift.password=$(kubectl --namespace openstack get secret cinder-keystone-swift-password -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.oslo_db.auth.admin.password=$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)"
     --set "endpoints.oslo_db.auth.cinder.password=$(kubectl --namespace openstack get secret cinder-db-password -o jsonpath='{.data.password}' | base64 -d)"
     --set "endpoints.oslo_cache.auth.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
