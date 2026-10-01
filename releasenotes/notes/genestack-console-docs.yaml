@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added a Genestack Console page to the deployment guide. The console
+    runs on the deploy host. The page links to PIndustries/genestack-console
+    for the operator manual and the current release.
