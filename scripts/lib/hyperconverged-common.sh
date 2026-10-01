@@ -2404,14 +2404,24 @@ sudo /opt/genestack/bin/install-trove.sh
 # on jump host, may need to run
 # > kubectl get pods -A | grep "trove-api\|trove-cond\|trove-task\|trove-mgmt" | awk '{print$2}' | xargs kubectl delete pod -n openstack
 
-echo "Running playbook for trove_image_build"
+echo "Running playbook for trove_image_build (MySQL 8.4)"
 ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
     --tags trove_image_build \
-    -e "trove_region_name=${trove_region_name}"
-echo "Running playbook for trove_datastore"
+    -e "trove_region_name=${trove_region_name} trove_datastore_name=mysql"
+echo "Running playbook for trove_datastore (MySQL 8.4)"
 ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
     --tags trove_datastore \
-    -e "trove_region_name=${trove_region_name}"
+    -e "trove_region_name=${trove_region_name} trove_datastore_name=mysql"
+
+echo "Running playbook for trove_image_build (MariaDB 11.8)"
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_image_build \
+    -e "trove_region_name=${trove_region_name} trove_datastore_name=mariadb"
+echo "Running playbook for trove_datastore (MariaDB 11.8)"
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_datastore \
+    -e "trove_region_name=${trove_region_name} trove_datastore_name=mariadb"
+
 echo "Running playbook for trove_client"
 ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
     --tags trove_client \

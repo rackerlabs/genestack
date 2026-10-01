@@ -12,8 +12,7 @@
 # state-detection step looks up the image by name, sees it doesn't
 # exist, and runs disk-image-create.
 trove_guest_image_os_release: bookworm
-trove_mysql_version: "8.4"
-trove_guest_image_name: "trove-mysql-{{ trove_mysql_version }}-{{ trove_guest_image_os_release }}"
+trove_guest_image_name: "trove-{{ _trove_ds_profile.name }}-{{ _trove_ds_profile.version_name }}-{{ trove_guest_image_os_release }}"
 trove_dib_distribution_mirror: "http://deb.debian.org/debian"
 # OpenStack release branch to clone for DIB elements + guest-agent.
 # Must match the trove server-side image (api/taskmanager/conductor)
@@ -34,7 +33,58 @@ trove_openstack_release: "2025.2"
 # Trove datastore
 # =========================================================================
 trove_datastore_name: mysql
-trove_datastore_version_name: "8.4"
+# Per-datastore settings. Keyed by trove_datastore_name. Add a new key
+# here to teach the role about another datastore.
+trove_datastore_profiles:
+  mysql:
+    name: mysql
+    # version must match something that actually exists on Docker Hub, in the build - you can't invent it.
+    version: "8.4"
+    # version_name is the label you chose to call this datastore version inside Trove. Trove lets it be an arbitrary string.
+    version_name: "8.4"
+    # Guest-agent manager (datastore_registry_ext / taskmanager mapping).
+    guest_manager: trove.guestagent.datastore.mysql.manager.Manager
+    # Unique notification event id (must match trove.common.cfg
+    # notification_service_id[<datastore>]).
+    notification_service_id: 2f3ff068-2bfb-4f70-9a9d-a6bb65bc084b
+    # Replication strategy + namespace.
+    replication_strategy: MysqlGTIDReplication
+    replication_namespace: trove.guestagent.strategies.replication.mysql_gtid
+    # Backup strategy (guest-agent [<datastore>] section).
+    backup_strategy: InnoBackupEx
+    backup_incremental_strategy: InnoBackupExIncremental
+    # Docker image name pulled from docker.io/library/<docker_image>:<version>
+    # and re-tagged into the guest's local registry.
+    docker_image: mysql
+    # my.cnf config templates shipped to the trove-taskmanager pod as an
+    # overlay (see trove_helm_config.yml PART 5). MySQL 8.4 needs the
+    # patched template to avoid the default_authentication_plugin panic.
+    needs_config_template_override: true
+    config_template_file: trove-mysql-config-template
+    replica_config_template_file: trove-mysql-replica-config-template
+  mariadb:
+    name: mariadb
+    version: "11.8"
+    version_name: "11.8"
+    guest_manager: trove.guestagent.datastore.mariadb.manager.Manager
+    notification_service_id: 7a4f82cc-10d2-4bc6-aadc-d9aacc2a3cb5
+    replication_strategy: MariaDBGTIDReplication
+    replication_namespace: trove.guestagent.strategies.replication.mariadb_gtid
+    backup_strategy: mariabackup
+    backup_incremental_strategy: mariabackup
+    docker_image: mariadb
+    # MariaDB renders a valid my.cnf on its own (no
+    # default_authentication_plugin issue), so no taskmanager overlay is
+    # strictly needed. We still ship a lab-tuned template
+    # (innodb_use_native_aio OFF) mounted the same way, so keep this true;
+    # the files are mariadb-specific.
+    needs_config_template_override: true
+    config_template_file: trove-mariadb-config-template
+    replica_config_template_file: trove-mariadb-replica-config-template
+
+# Resolved active profile for trove_datastore_name. Referenced throughout
+# the role so datastore-specific values come from one place.
+_trove_ds_profile: "{{ trove_datastore_profiles[trove_datastore_name] }}"
 
 # =========================================================================
 # Trove RabbitMQ

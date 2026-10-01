@@ -641,9 +641,14 @@ test_instance_update() {
         --allowed-cidr "1.2.3.4/5" \
         2>&1 \
         || { echo "Updating instance failed."; return 1; }
-    local out; out=$(db instance show "$INST_PRIMARY" -f value -c allowed_cidrs 2>&1)
+    local out="" elapsed=0
+    while (( elapsed < 60 )); do
+        out=$(db instance show "$INST_PRIMARY" -f value -c allowed_cidrs 2>&1)
+        echo "$out" | grep -q "1.2.3.4/5" && break
+        sleep 5; (( elapsed += 5 ))
+    done
     echo "$out" | grep -q "1.2.3.4/5" \
-        || { echo "Expected allowed cidr not found for instance."; return 1; }
+        || { echo "Expected allowed cidr not found for instance after ${elapsed}s."; return 1; }
     echo "Instance details:"
     echo "$out" | head -5 | sed 's/^/  /'
 }

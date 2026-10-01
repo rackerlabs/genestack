@@ -2,13 +2,18 @@
 
 End-to-end enablement of OpenStack Trove (Database as a Service) for Genestack deployments.
 
+Supports two datastores, selected with `trove_datastore_name`:
+
+- `mysql` (default) — MySQL 8.4, `docker.io/library/mysql:8.4`
+- `mariadb` — MariaDB 11.8 LTS, `docker.io/library/mariadb:11.8`
+
 ## What It Does
 
 1. **Installs python-troveclient** in the genestack virtualenv
-2. **Builds a MySQL guest image** using virt-customize (Ubuntu 22.04 + MySQL + trove-guestagent)
-3. **Uploads the image** to Glance with proper tags and properties
+2. **Builds a guest image** with diskimage-builder (Debian bookworm + docker + trove-guestagent) and bakes in the datastore engine + backup container images (`mysql:8.4` or `mariadb:11.8`)
+3. **Uploads the image** to Glance with proper tags and properties (`trove,<datastore>,<version>,<os_release>`)
 4. **Configures gateway and kustomize** — Envoy listener, HTTPRoute, kustomize overlay, endpoint merge
-5. **Deep-merges Helm config** — management network, security group, keypair into trove-helm-overrides.yaml
+5. **Deep-merges Helm config** — management network, security group, keypair, datastore config into trove-helm-overrides.yaml
 6. **Creates datastore type and version** (post-deploy) — links the Glance image to Trove
 
 ## Prerequisites
@@ -27,11 +32,37 @@ End-to-end enablement of OpenStack Trove (Database as a Service) for Genestack d
 ansible-playbook ansible/playbooks/trove-enablement-techpreview.yaml
 ```
 
-### Post-Deploy Only (datastore setup after Trove is running)
+### Pre-install only (before the Trove Helm install)
 
 ```bash
-ansible-playbook ansible/playbooks/trove-enablement-techpreview.yaml --tags post_deploy
+ansible-playbook ansible/playbooks/trove-enablement-techpreview.yaml \
+  --tags trove_pre_install
 ```
+
+### Post-install only (after Trove is running)
+
+```bash
+ansible-playbook ansible/playbooks/trove-enablement-techpreview.yaml \
+  --tags trove_post_install
+```
+
+### Enable the MariaDB 11.8 (LTS) datastore
+
+Build the guest image and register the datastore version for MariaDB by
+selecting the datastore with `trove_datastore_name=mariadb`:
+
+```bash
+ansible-playbook ansible/playbooks/trove-enablement-techpreview.yaml \
+  --tags trove_image_build,trove_datastore \
+  -e trove_datastore_name=mariadb
+
+ansible-playbook ansible/playbooks/trove-enablement-techpreview.yaml \
+  --tags trove_post_install \
+  -e trove_datastore_name=mariadb
+```
+
+This builds the `trove-mariadb-11.8-bookworm` Glance image and registers the
+MariaDB 11.8 datastore version.
 
 ### Force Rebuild Image
 
@@ -58,10 +89,9 @@ ansible-playbook ansible/playbooks/trove-enablement-techpreview.yaml \
 
 | Variable                         | Default                 | Description                                         |
 |----------------------------------|-------------------------|-----------------------------------------------------|
-| `trove_guest_image_name`         | `trove-mysql-8.4`       | Name of the Glance image                            |
-| `trove_mysql_version`            | `8.4`                   | MySQL version to install                            |
-| `trove_datastore_name`           | `mysql`                 | Trove datastore type name                           |
-| `trove_datastore_version_name`   | `8.4`                   | Trove datastore version                             |
+| `trove_datastore_name`           | `mysql`                 | Datastore to enable: `mysql` or `mariadb`           |
+| `trove_datastore_profiles`       | see `defaults/main.yml` | Per-datastore settings map. Each profile carries `name`, `version` (engine/docker tag), `version_name` (Trove datastore-version label), `docker_image`, `guest_manager`, backup/replication strategy, and config templates. |
+| `trove_guest_image_name`         | `trove-<name>-<version_name>-<os>` | Glance image name, derived from the selected profile (e.g. `trove-mariadb-11.8-bookworm`) |
 | `trove_keypair_name`             | `trove-access-keypair`  | Nova keypair for instance access                    |
 | `trove_secgroup_name`            | `trove-access-secgroup` | Security group for Trove instances                  |
 | `trove_mgmt_public_network_name` | `flat`                  | Management network name for public provider network |
@@ -71,10 +101,30 @@ ansible-playbook ansible/playbooks/trove-enablement-techpreview.yaml \
 
 ## Tags
 
+### Grouping tags
+
 | Tag | Scope |
 |-----|-------|
-| `always` | Client install, image build, gateway, helm config |
-| `post_deploy` | Datastore type and version creation |
+| `trove_pre_install` | Runs before the Helm install: secrets, mgmt network, security groups, helm config, gateway/kustomize |
+| `trove_post_install` | Runs after Trove is up: image build, datastore version, client, keypair, ssh-key distribute |
+| `deploy_swift` | Deploy Swift (object-store) for backup/restore |
+
+### Granular tags
+
+## Trove Setup Tasks
+
+| **Tag**                    | **Task**                                   |
+| :------------------------- | :----------------------------------------- |
+| `trove_secrets`            | Create Trove Kubernetes Secrets            |
+| `trove_mgmt_network`       | Create Management Network, Subnet & Router |
+| `trove_security_groups`    | Create Trove Security Groups               |
+| `trove_helm_config`        | Deep-Merge Trove Helm Values               |
+| `trove_gateway`            | Configure Gateway, Kustomize & Endpoints   |
+| `trove_image_build`        | Build & Upload the Trove Guest Image       |
+| `trove_datastore`          | Create Datastore Type & Version            |
+| `trove_client`             | Install `python-troveclient`               |
+| `trove_keypair`            | Create Trove Keypair                       |
+| `trove_ssh_key_distribute` | Distribute Trove SSH Key to Nodes          |
 
 ## License
 
