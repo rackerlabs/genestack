@@ -1237,7 +1237,7 @@ EOF
         capi_helm:
           kubeconfig_file: /etc/magnum/kubeconfig.conf
           helm_chart_repo: https://rackerlabs.github.io/genestack-capi-helm-charts
-          default_helm_chart_version: 0.1.0
+          default_helm_chart_version: 0.1.2
     ```
 
 #### Verify the Overrides File
