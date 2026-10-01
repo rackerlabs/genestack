@@ -8,9 +8,10 @@ pre-production evaluation.
 
 This role handles the full lifecycle of getting Manila operational:
 
-1. **K8s Secrets** — Generates and manages four Kubernetes secrets
-   (RabbitMQ password, DB password, admin password, SSH keypair).
-   Syncs passwords to RabbitMQ and MariaDB when secrets are recreated.
+1. **Secret prerequisites** — Ensures install-script managed Manila secrets
+   exist before the service image workflow needs them. Chart-derived passwords
+   are owned by `bin/install-manila.sh` and `bin/services/manila.yaml`; this
+   role may force recreation only for the Manila service SSH keypair.
 
 2. **Service Image** — Builds an Ubuntu-based Manila service VM image
    using upstream `manila-image-elements`, uploads it to Glance, and
@@ -64,7 +65,7 @@ ansible-playbook ... -e force_rebuild_image=true
 # Recreate keypair + rebuild image
 ansible-playbook ... -e force_recreate_keypair=true
 
-# Nuclear: regenerate ALL secrets, sync passwords, recreate everything
+# Recreate Manila service keypair and rebuild/re-upload dependent resources
 ansible-playbook ... -e force_full_recreation=true
 ```
 
@@ -78,10 +79,10 @@ See `defaults/main.yml` for the full list. Key variables:
 | `manila_service_image_name` | `manila-service-image` | Glance image name |
 | `manila_service_instance_flavor_name` | `m1.medium` | Flavor for share server VMs |
 | `manila_driver_config_template` | `manila_default_helm_config.yaml` | Helm driver template |
-| `manila_force_recreate_secrets` | `false` | Force-regenerate all K8s secrets |
+| `manila_force_recreate_secrets` | `false` | Force-regenerate the Manila service keypair secret |
 | `force_rebuild_image` | `false` | Rebuild and re-upload Glance image |
 | `force_recreate_keypair` | `false` | Recreate SSH keypair + rebuild image |
-| `force_full_recreation` | `false` | Full recreation of all resources |
+| `force_full_recreation` | `false` | Recreate the service keypair and dependent Manila resources |
 
 ## Included Utility Scripts
 

@@ -6,7 +6,7 @@ OpenStack Barbican is the dedicated security service within the OpenStack ecosys
 
 !!! note "Information about the secrets used"
 
-    Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
+    Service secrets are managed idempotently by this service's install script. The installer creates any missing Kubernetes secrets and reuses existing values.
 
     ??? example "Example secret generation"
 
@@ -80,8 +80,8 @@ Barbican's `simple_crypto` plugin wraps every project key with a master key-encr
 no built-in default: if no KEK is rendered into `barbican.conf`, `barbican-api` fails to start with `SimpleCrypto KEK is
 undefined`. A KEK set in an override file (`conf.barbican.simple_crypto_plugin.kek`) always takes precedence and is
 deployed as is: `install-barbican.sh` injects nothing and writes no Secret. Otherwise Genestack keeps the KEK in the
-`barbican-simple-crypto-kek` Kubernetes Secret, which `create-secrets.sh` generates on a new deployment and
-`install-barbican.sh` injects on every deploy together with the `old_keks` rotation history.
+`barbican-simple-crypto-kek` Kubernetes Secret, which `install-barbican.sh` creates on a new deployment and injects on
+every deploy together with the `old_keks` rotation history.
 
 !!! note "What `install-barbican.sh` does when neither an override file nor the Secret supplies a KEK"
 

@@ -17,6 +17,12 @@ HELM_REPO_URL_DEFAULT="https://tarballs.opendev.org/openstack/openstack-helm"
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
 GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 
+# Common secret helpers. Missing secrets are generated in Kubernetes and
+# existing secrets are never overwritten.
+# shellcheck source=helpers.sh
+source "${GENESTACK_BASE_DIR}/bin/helpers.sh"
+trap cleanup_tmp EXIT
+
 # Define service-specific override directories based on the framework
 SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME_DEFAULT}"
 SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME_DEFAULT}"
@@ -64,7 +70,7 @@ if [[ "$HELM_REPO_URL" == oci://* ]]; then
     HELM_CHART_PATH="$HELM_REPO_URL/$HELM_REPO_NAME/$SERVICE_NAME"
 else
     # --- Helm Repository and Execution ---
-    helm repo add "$HELM_REPO_NAME" "$HELM_REPO_URL"
+    helm repo add --force-update "$HELM_REPO_NAME" "$HELM_REPO_URL" 2>/dev/null || true
     helm repo update
     HELM_CHART_PATH="$HELM_REPO_NAME/$SERVICE_NAME"
 fi
@@ -96,28 +102,17 @@ case "$KUBE_OVN_ENABLE_SSL" in
             exit 1
         fi
 
-        if ! KUBE_OVN_TLS_SECRET=$(kubectl --namespace kube-system get secret kube-ovn-tls --output yaml); then
+        if ! secret_exists kube-system kube-ovn-tls; then
             echo "Error: kube-ovn has networking.ENABLE_SSL=true, but kube-system/kube-ovn-tls is unavailable." >&2
             exit 1
         fi
 
-        if ! printf '%s\n' "$KUBE_OVN_TLS_SECRET" \
-            | yq eval -e '.data.cacert != null and .data.cert != null and .data.key != null' - >/dev/null; then
+        if ! secret_has_keys kube-system kube-ovn-tls cacert cert key; then
             echo "Error: kube-system/kube-ovn-tls must contain cacert, cert, and key." >&2
             exit 1
         fi
 
-        if ! OPENSTACK_OVN_TLS_SECRET=$(printf '%s\n' "$KUBE_OVN_TLS_SECRET" | yq eval '
-            .metadata = {
-                "name": "ovn-client-tls",
-                "namespace": "openstack"
-            }
-        ' -); then
-            echo "Error: Unable to prepare the Octavia OVN client TLS secret." >&2
-            exit 1
-        fi
-
-        if ! printf '%s\n' "$OPENSTACK_OVN_TLS_SECRET" | kubectl apply --filename -; then
+        if ! ensure_ovn_client_tls_secret kube-system openstack kube-ovn-tls ovn-client-tls; then
             echo "Error: Unable to synchronize openstack/ovn-client-tls." >&2
             exit 1
         fi
@@ -202,31 +197,13 @@ fi
 # Collect all --set arguments, executing commands and quoting safely
 # NOTE: This array contains OpenStack-specific secret retrievals and MUST be updated
 #       with the necessary --set arguments for your target SERVICE_NAME_DEFAULT.
-set_args=(
-    # Keystone endpoint passwords
-    --set "endpoints.identity.auth.admin.password=$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.identity.auth.octavia.password=$(kubectl --namespace openstack get secret octavia-admin -o jsonpath='{.data.password}' | base64 -d)"
+# Collect secret-backed --set arguments from bin/services/${SERVICE_NAME_DEFAULT}.yaml.
+set_args=()
+while IFS= read -r token; do
+    [[ -n "$token" ]] && set_args+=("$token")
+done < <(prepare_service_secret_set_args "$SERVICE_NAME_DEFAULT")
 
-    # DB passwords
-    --set "endpoints.oslo_db.auth.admin.password=$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)"
-    --set "endpoints.oslo_db.auth.octavia.password=$(kubectl --namespace openstack get secret octavia-db-password -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.oslo_db_persistence.auth.octavia.password=$(kubectl --namespace openstack get secret octavia-db-password -o jsonpath='{.data.password}' | base64 -d)"
-
-    # Messaging passwords
-    --set "endpoints.oslo_messaging.auth.admin.password=$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.oslo_messaging.auth.octavia.password=$(kubectl --namespace openstack get secret octavia-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)"
-
-    # Memcache secrets
-    --set "endpoints.oslo_cache.auth.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
-    --set "conf.octavia.keystone_authtoken.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
-
-    # Certificate passphrase
-    --set "conf.octavia.certificates.ca_private_key_passphrase=$(kubectl --namespace openstack get secret octavia-certificates -o jsonpath='{.data.password}' | base64 -d)"
-
-    # Health manager heartbeat key (per-cluster generated)
-    --set "conf.octavia.health_manager.heartbeat_key=$(kubectl --namespace openstack get secret octavia-heartbeat-key -o jsonpath='{.data.heartbeat_key}' | base64 -d)"
-
-    # OVN connections (dynamic clusterIP lookup)
+set_args+=(
     --set "conf.octavia.ovn.ovn_nb_connection=$CONNECTION_STRING:$OVN_NB_ENDPOINT"
     --set "conf.octavia.ovn.ovn_sb_connection=$CONNECTION_STRING:$OVN_SB_ENDPOINT"
 )

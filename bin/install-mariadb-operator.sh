@@ -18,6 +18,12 @@ HELM_REPO_URL_DEFAULT="https://helm.mariadb.com/mariadb-operator"
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
 GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 
+# Common secret helpers. Missing secrets are generated in Kubernetes and
+# existing secrets are never overwritten.
+# shellcheck source=helpers.sh
+source "${GENESTACK_BASE_DIR}/bin/helpers.sh"
+trap cleanup_tmp EXIT
+
 # Define service-specific override directories based on the framework
 SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME_DEFAULT}"
 SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME_DEFAULT}"
@@ -88,7 +94,7 @@ if [[ "$HELM_REPO_URL" == oci://* ]]; then
     HELM_CHART_PATH="$HELM_REPO_URL/$HELM_REPO_NAME/$SERVICE_NAME"
 else
     # --- Helm Repository and Execution ---
-    helm repo add "$HELM_REPO_NAME" "$HELM_REPO_URL"
+    helm repo add --force-update "$HELM_REPO_NAME" "$HELM_REPO_URL" 2>/dev/null || true
     helm repo update
     CRDS_CHART_PATH="$HELM_REPO_NAME/$CRDS_NAME"
     HELM_CHART_PATH="$HELM_REPO_NAME/$SERVICE_NAME"
@@ -137,7 +143,11 @@ fi
 echo
 
 # Collect all --set arguments, executing commands and quoting safely
+# Collect secret-backed --set arguments from bin/services/${SERVICE_NAME_DEFAULT}.yaml.
 set_args=()
+while IFS= read -r token; do
+    [[ -n "$token" ]] && set_args+=("$token")
+done < <(prepare_service_secret_set_args "$SERVICE_NAME_DEFAULT")
 
 # Install the CRDs that match the version defined
 helm upgrade --install --namespace="$SERVICE_NAMESPACE" --create-namespace "$CRDS_NAME_DEFAULT" "$CRDS_CHART_PATH" --version "${SERVICE_VERSION}"

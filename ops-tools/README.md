@@ -10,11 +10,13 @@ tests or deployment assets needed to operate it safely.
 | Tool | Purpose | Default mode |
 | --- | --- | --- |
 | `check_octavia_ovn` | Checks Amphora load balancer VIP port bindings in OVN and can fail over unhealthy load balancers. | Dry-run from the script, apply from the provided systemd unit |
+| `default_password_detector` | Reports Kubernetes Secrets that still match pinned Helm chart default credentials. | Read-only |
 | `find_orphan_instances` | Finds Nova instance directories that are no longer active in Nova. | Read-only |
 | `find_orphan_qdisk` | Finds stale libvirt tap ingress qdiscs that can block Nova instance spawns. | Read-only |
 | `image_uuid_migrations` | Generates or applies Nova/Cinder database migrations from old Glance image UUIDs to replacement UUIDs. | Dry-run |
 | `ovn` | Compares Neutron, Kube-OVN IP CRD, and OVN NBDB state for stale or missing networking resources. | Read-only |
 | `rogue_pod_scanner` | Compares CRI pod sandboxes on a node with pods reported by Kubernetes. | Read-only |
+| `secret_schema_validator` | Compares service secret descriptors with sensitive values from pinned Helm chart versions. | Read-only |
 
 ## Directory Standard
 

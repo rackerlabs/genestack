@@ -21,7 +21,7 @@ Create the secret:
 
 !!! note "Information about the secrets used"
 
-    Manual secret generation is only required if you haven't run the create-secrets.sh script located in /opt/genestack/bin.
+    The relevant service installer creates the backup Secret if it is missing and reuses existing values when rerun.
     However, you still need to add data to a couple of empty keys that are region-specific.
 
     ??? example "Example secret generation"

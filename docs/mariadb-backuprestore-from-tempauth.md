@@ -22,11 +22,11 @@ This document provides procedures to restore MariaDB backups stored in Swift obj
 
 !!! note "Information about the secrets used"
 
-    The `mariadb-backup-secrets` secret is automatically created with placeholder values when you run the `create-secrets.sh` script located in `/opt/genestack/bin`. However, you still need to populate the empty keys (`access-key-id`, `secret-access-key`, `S3_ENDPOINT`) with your region-specific values. You can use `/etc/genestack/secrets.yaml` to store these per-region values.
+    The `mariadb-backup-secrets` secret is automatically created with placeholder values by the relevant service installer. However, you still need to populate the empty keys (`access-key-id`, `secret-access-key`, `S3_ENDPOINT`) with your region-specific values. You can use `/etc/genestack/secrets.yaml` to store these per-region values.
 
     ??? example "Example secret generation"
 
-        If you haven't run `create-secrets.sh`, you can create the secret manually:
+        If the Secret is not present yet, you can create it manually:
 
         ``` shell
         kubectl --namespace openstack \

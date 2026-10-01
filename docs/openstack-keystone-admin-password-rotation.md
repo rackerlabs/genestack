@@ -51,19 +51,16 @@
     - Record the location or bookmark your credential store
 
 1. Retrieve the current `admin` password and its base64 encoding from
-   `/etc/genestack/kubesecrets.yaml`
+   the live `keystone-admin` Kubernetes Secret
     - You may record the base64 encoding now, or wait until directed
       in later steps
-    - You can skip this step if your installation doesn't have this file
-    - If it exists, verify that it matches the password you retrieved
-      in the previous step.
+    - Verify that it matches the password you retrieved in the previous step.
 
     ```
-    cd /etc/genestack
-    yq 'select(.metadata.name == "keystone-admin") |
-      .data.password' kubesecrets.yaml | base64 -d ; echo
-    yq 'select(.metadata.name == "keystone-admin") |
-      .data.password' kubesecrets.yaml
+    kubectl -n openstack get secret keystone-admin \
+      -o jsonpath='{.data.password}' | base64 -d ; echo
+    kubectl -n openstack get secret keystone-admin \
+      -o jsonpath='{.data.password}' ; echo
     ```
 
 1. Generate and record a list of where the current admin password
@@ -303,39 +300,26 @@
     REDACTED
     ```
 
-1. Verify the base64 encoding of the old password matches
-   `/etc/genestack/kubesecrets.yaml`
+1. Verify the base64 encoding of the old password matches the live
+   `keystone-admin` Kubernetes Secret
     - Previous steps directed recording the base64 encoding of the old
       password
     - This should match the base64 encoding you generated if you did
       that in previous steps
-    - Your installation may not have this file; if so, skip this step
 
     ```
-    cd /etc/genestack
-    yq 'select(.metadata.name == "keystone-admin") | .data.password' kubesecrets.yaml
+    kubectl -n openstack get secret keystone-admin \
+      -o jsonpath='{.data.password}' ; echo
     ```
 
 ## Execute
 
-1. Backup the current `/etc/genestack/kubesecrets.yaml` file
-   - Your installation may not have this file. If so, skip this step.
+1. Backup the current `keystone-admin` Secret manifest before changing it.
 
     ```
-    cd /etc/genestack
     TS="$(date +%s)"
-    cp kubesecrets.yaml kubesecrets.yaml.${TS}.bak
-    ```
-
-1. Edit `/etc/genestack/kubesecrets.yaml` and put in the base64
-   encoding of the new password
-    - Your installation may not have this file. If so, skip this step.
-    - Replace the base64 encoding for keystone-admin with the base64
-      encoding of the new password as previously recorded in the
-      preliminary steps
-
-    ```
-    vi kubesecrets.yaml
+    kubectl -n openstack get secret keystone-admin -o yaml \
+      > "keystone-admin.${TS}.yaml"
     ```
 
 1. Confirm the form of the `openstack` command to operate as the `admin`

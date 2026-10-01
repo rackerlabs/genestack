@@ -28,8 +28,7 @@ Reference the full online [OpenStack Manila documentation](https://docs.openstac
 !!! note "Information about the secrets used"
 !!! note "manila-service-keypair is only required for Generic share driver"
 
-    Manual secret generation is only required if you haven't run the
-    `create-secrets.sh` script located in `/opt/genestack/bin`.
+    Service secrets are managed idempotently by this service's install script. The installer creates any missing Kubernetes secrets and reuses existing values.
 
     ??? example "Example secret generation"
 

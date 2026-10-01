@@ -29,7 +29,7 @@ The supported install order is:
 - `kubectl` pointed at the target cluster
 - `helm` 3.x
 - `yq` 4.x
-- A generated `/etc/genestack/kubesecrets.yaml`
+- Access to create Kubernetes Secrets in the namespaces used by the monitoring components
 
 Run bootstrap first:
 
@@ -53,11 +53,7 @@ Bootstrap creates the monitoring override directories under `/etc/genestack` so 
 - `/etc/genestack/kustomize/grafana/overlay`
 - `/etc/genestack/kustomize/opentelemetry-kube-stack/overlay`
 
-Generate the shared secrets file before installing Grafana or OpenTelemetry:
-
-```shell
-/opt/genestack/bin/create-secrets.sh
-```
+Monitoring installers create any missing Kubernetes Secrets they own and reuse existing values when rerun.
 
 ## Namespace Preparation
 
@@ -166,7 +162,7 @@ curl http://127.0.0.1:3200/ready
 
 Grafana uses `/etc/genestack/helm-configs/grafana/` for service overrides. Set `custom_host` there if you are publishing Grafana through an ingress or gateway.
 
-The Grafana installer ensures the `grafana-db` secret exists in `monitoring`. If you generated `/etc/genestack/kubesecrets.yaml` with `create-secrets.sh`, that secret will be applied automatically.
+The Grafana installer ensures the `grafana-db` secret exists in `monitoring` before deploying the chart.
 
 Install Grafana:
 

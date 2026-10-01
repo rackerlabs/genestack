@@ -10,23 +10,7 @@ Grafana is deployed into the `monitoring` namespace with the upstream Grafana He
 
 ## Secrets
 
-The supported way to prepare Grafana secrets is:
-
-```shell
-/opt/genestack/bin/create-secrets.sh
-```
-
-That workflow generates the `grafana-db` secret in `/etc/genestack/kubesecrets.yaml`. The Grafana installer applies it to the `monitoring` namespace automatically if it is not already present.
-
-Manual secret creation is only needed if you are not using `create-secrets.sh`:
-
-```shell
-kubectl -n monitoring create secret generic grafana-db \
-  --type Opaque \
-  --from-literal=password="$(tr -dc _A-Za-z0-9 </dev/urandom | head -c32)" \
-  --from-literal=root-password="$(tr -dc _A-Za-z0-9 </dev/urandom | head -c32)" \
-  --from-literal=username=grafana
-```
+The Grafana installer manages the `grafana-db` Kubernetes Secret idempotently. If the Secret already exists, the installer reuses the existing values. If it is missing, the installer creates it before applying the Helm chart.
 
 ## Custom Values
 

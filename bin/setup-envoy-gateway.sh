@@ -497,6 +497,25 @@ TSIG_SECRET=""
 TSIG_ALGORITHM="HMACSHA256"
 
 INTERACTIVE_MODE=true
+TEMP_FILES=()
+
+cleanup_temp_files() {
+    local file
+
+    for file in "${TEMP_FILES[@]:-}"; do
+        [[ -n "${file}" ]] && rm -f "${file}" >/dev/null 2>&1 || true
+    done
+}
+
+mk_temp_file() {
+    local file
+
+    file="$(mktemp)"
+    TEMP_FILES+=("${file}")
+    echo "${file}"
+}
+
+trap cleanup_temp_files EXIT
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -970,10 +989,9 @@ apply_config_gateway_class() {
     envoy_proxy_name=$(json_value "${gateway_json}" '.envoy_proxy // .envoyProxy // .parameters_ref.name // .parametersRef.name' 'custom-proxy-config')
     envoy_proxy_namespace=$(json_value "${gateway_json}" '.envoy_proxy_namespace // .envoyProxyNamespace // .parameters_ref.namespace // .parametersRef.namespace' "${gateway_namespace}")
 
-    manifest=$(mktemp)
+    manifest=$(mk_temp_file)
     render_config_gateway_class "${gateway_class_name}" "${envoy_proxy_name}" "${envoy_proxy_namespace}" > "${manifest}"
     kubectl apply -f "${manifest}"
-    rm -f "${manifest}"
 }
 
 config_acme_gateway_name() {
@@ -1027,7 +1045,7 @@ apply_config_acme_issuer() {
     fi
     gateway_namespace=$(json_value "${gateway_json}" '.namespace' 'envoy-gateway')
 
-    manifest=$(mktemp)
+    manifest=$(mk_temp_file)
     cat > "${manifest}" <<EOF
 ---
 apiVersion: cert-manager.io/v1
@@ -1050,7 +1068,6 @@ spec:
                 namespace: ${gateway_namespace}
 EOF
     kubectl apply -f "${manifest}"
-    rm -f "${manifest}"
 }
 
 delete_legacy_config_gateway_resources() {
@@ -1166,7 +1183,7 @@ apply_config_gateway() {
     create_config_namespace "${gateway_namespace}"
     apply_config_gateway_class "${gateway_class_name}" "${gateway_json}" "${gateway_namespace}"
 
-    manifest=$(mktemp)
+    manifest=$(mk_temp_file)
     render_config_gateway \
         "${gateway_name}" \
         "${gateway_json}" \
@@ -1179,7 +1196,6 @@ apply_config_gateway() {
         "${certificate_secret}" > "${manifest}"
 
     kubectl apply -f "${manifest}"
-    rm -f "${manifest}"
 
     kubectl -n "${gateway_namespace}" wait --timeout=5m "gateways.gateway.networking.k8s.io/${gateway_name}" --for=condition=Accepted
 }
@@ -1388,7 +1404,7 @@ copy_listener_template() {
         return 0
     fi
 
-    temp_file=$(mktemp)
+    temp_file=$(mk_temp_file)
     sed "s/your.domain.tld/${gateway_domain}/g" "${listener_template}" > "${temp_file}"
     sudo mv -v "${temp_file}" "${output_file}"
 }
@@ -1441,7 +1457,7 @@ ensure_gateway_listener_for_gateway() {
             | .key
         ' <<< "${gateway_json}")
         if [ -n "${existing_index}" ]; then
-            patch_file=$(mktemp)
+            patch_file=$(mk_temp_file)
             jq -n --argjson index "${existing_index}" --argjson listener "${desired_listener}" \
                 '[{"op":"replace","path":("/spec/listeners/" + ($index|tostring)),"value":$listener}]' \
                 > "${patch_file}"
@@ -1449,7 +1465,6 @@ ensure_gateway_listener_for_gateway() {
             kubectl patch -n "${gateway_namespace}" gateway "${gateway_name}" \
                 --type='json' \
                 --patch-file "${patch_file}"
-            rm -f "${patch_file}"
             return
         fi
     fi
@@ -1500,7 +1515,7 @@ apply_config_routes() {
 
         configured_file=$(json_value "${route_json}" '.file // .template_file // .templateFile' '')
         output_file="${route_dir}/${route_name}-${gateway_name}.yaml"
-        temp_output_file=$(mktemp)
+        temp_output_file=$(mk_temp_file)
 
         if route_template=$(find_route_template "${route_name}" "${configured_file}"); then
             write_template_route "${route_json}" "${gateway_name}" "${gateway_namespace}" "${gateway_domain}" "${route_template}" "${temp_output_file}"
@@ -2145,8 +2160,9 @@ done
 # Process listeners
 sudo mkdir -p /etc/genestack/gateway-api/listeners
 for listener in $(ls -1 /opt/genestack/etc/gateway-api/listeners); do
-    sed "s/your.domain.tld/${GATEWAY_DOMAIN}/g" "/opt/genestack/etc/gateway-api/listeners/${listener}" > "/tmp/${listener}"
-    sudo mv -v "/tmp/${listener}" "/etc/genestack/gateway-api/listeners/${listener}"
+    listener_tmp_file="$(mk_temp_file)"
+    sed "s/your.domain.tld/${GATEWAY_DOMAIN}/g" "/opt/genestack/etc/gateway-api/listeners/${listener}" > "${listener_tmp_file}"
+    sudo mv -v "${listener_tmp_file}" "/etc/genestack/gateway-api/listeners/${listener}"
 done
 
 function ensure_gateway_listener() {
@@ -2179,7 +2195,7 @@ function ensure_gateway_listener() {
             | .key
         ' <<< "${gateway_json}")
         if [ -n "${existing_index}" ]; then
-            patch_file=$(mktemp)
+            patch_file=$(mk_temp_file)
             jq -n --argjson index "${existing_index}" --argjson listener "${desired_listener}" \
                 '[{"op":"replace","path":("/spec/listeners/" + ($index|tostring)),"value":$listener}]' \
                 > "${patch_file}"
@@ -2187,7 +2203,6 @@ function ensure_gateway_listener() {
             kubectl patch -n envoy-gateway gateway flex-gateway \
                 --type='json' \
                 --patch-file "${patch_file}"
-            rm -f "${patch_file}"
             return
         fi
     fi

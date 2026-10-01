@@ -1,0 +1,11 @@
+service:
+  namespace: monitoring
+chart:
+  repo_name: grafana
+  repo_url: https://grafana.github.io/helm-charts
+  global_overrides: true
+kustomize:
+  enabled: true
+  overlay_path: ${service_name}/overlay
+helm:
+  timeout: 120m

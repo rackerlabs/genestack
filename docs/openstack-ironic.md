@@ -8,7 +8,7 @@ In this document, we will discuss the deployment of OpenStack Ironic using Genes
 
 !!! note "Information about the secretes used"
 
-    Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
+    Service secrets are managed idempotently by this service's install script. The installer creates any missing Kubernetes secrets and reuses existing values.
 
     ??? example "Manual secret generation"
 

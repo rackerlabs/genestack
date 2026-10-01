@@ -1,0 +1,12 @@
+---
+service:
+  name: metallb
+  namespace: metallb-system
+  version: ~
+
+chart:
+  repo_name: metallb
+  repo_url: https://metallb.github.io/metallb
+  global_overrides: false
+
+secrets: []

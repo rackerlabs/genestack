@@ -209,13 +209,8 @@ fi
 echo "Waiting for the cert-manager to be available"
 kubectl -n cert-manager wait --timeout=5m deployments.apps/cert-manager --for=condition=available
 
-# Deploy the Genestack secrets
-if [ -f /etc/genestack/kubesecrets.yaml ]; then
-  echo "Reusing existing /etc/genestack/kubesecrets.yaml"
-else
-  /opt/genestack/bin/create-secrets.sh
-fi
-kubectl apply -f /etc/genestack/kubesecrets.yaml
+# Deploy service secrets
+echo "Skipping legacy secret bootstrap; service installers manage secrets idempotently."
 
 # Deploy mariadb
 /opt/genestack/bin/install-mariadb-operator.sh
