@@ -133,7 +133,7 @@ trove_mgmt_anchor_base_offset: 10
 
 # Build paths and environment
 # =========================================================================
-trove_tmp_dir: /tmp
+trove_tmp_dir: /home/ubuntu/tmp
 trove_build_dir: "{{ trove_tmp_dir }}/trove-image-build"
 trove_venv_dir: "{{ trove_tmp_dir }}/trove-image-build/trove-dib-build"
 genestack_rc: /opt/genestack/scripts/genestack.rc
