@@ -4,25 +4,21 @@ OpenStack Exporter probes OpenStack API endpoints and exposes their availability
 
 ## Paths
 
-- Local chart: `/opt/genestack/base-helm-configs/openstack-api-exporter-chart/`
-- Service overrides: `/etc/genestack/helm-configs/openstack-api-exporter-chart/`
-- Kustomize overlay: `/etc/genestack/kustomize/openstack-api-exporter-chart/overlay/`
+* Base chart/configuration: `/opt/genestack-observability/helm-configs/openstack-api-exporter-chart/`
+* Service overrides: `/etc/genestack/helm-configs/openstack-api-exporter-chart/`
+* Kustomize overlay: `/etc/genestack/kustomize/openstack-api-exporter-chart/overlay/`
 
 ## Prerequisites
 
-- `kube-prometheus-stack` installed
-- `keystone-auth-openstack-exporter` secret available in the `monitoring` namespace
+* `kube-prometheus-stack` installed
+* `keystone-auth-openstack-exporter` secret available in the `monitoring` namespace
 
-The supported way to generate the Keystone secret is:
-
-```shell
-/opt/genestack/bin/create-secrets.sh
-```
+The exporter installer and shared monitoring helpers ensure the required Keystone authentication secret exists.
 
 ## Install
 
 ```shell
-/opt/genestack/bin/install-openstack-exporter.sh
+/opt/genestack/bin/install-observability.sh openstack-exporter
 ```
 
 ## Verify

@@ -4,21 +4,15 @@ Grafana is deployed into the `monitoring` namespace with the upstream Grafana He
 
 ## Paths
 
-- Base Helm values: `/opt/genestack/base-helm-configs/grafana/`
-- Service overrides: `/etc/genestack/helm-configs/grafana/`
-- Kustomize overlay: `/etc/genestack/kustomize/grafana/overlay/`
+* Base Helm values: `/opt/genestack-observability/helm-configs/grafana/`
+* Service overrides: `/etc/genestack/helm-configs/grafana/`
+* Kustomize overlay: `/etc/genestack/kustomize/grafana/overlay/`
 
 ## Secrets
 
-The supported way to prepare Grafana secrets is:
+The Grafana installer ensures the `grafana-db` secret exists in the `monitoring` namespace.
 
-```shell
-/opt/genestack/bin/create-secrets.sh
-```
-
-That workflow generates the `grafana-db` secret in `/etc/genestack/kubesecrets.yaml`. The Grafana installer applies it to the `monitoring` namespace automatically if it is not already present.
-
-Manual secret creation is only needed if you are not using `create-secrets.sh`:
+Manual secret creation is normally not required. If you need to pre-provision the secret, use:
 
 ```shell
 kubectl -n monitoring create secret generic grafana-db \
@@ -40,20 +34,18 @@ custom_host: grafana.api.example.tld
 
 If you are integrating with Azure AD, apply the client secret in the `monitoring` namespace:
 
-```yaml
 --8<-- "manifests/grafana/azure-client-secret.yaml"
-```
 
-Then add your Azure overrides in:
+Then add your Azure overrides using the example maintained in the observability repository:
 
-```yaml
---8<-- "base-helm-configs/grafana/azure-overrides.yaml.example"
+```text
+/opt/genestack-observability/helm-configs/grafana/azure-overrides.yaml.example
 ```
 
 ## Install
 
 ```shell
-/opt/genestack/bin/install-grafana.sh
+/opt/genestack/bin/install-observability.sh grafana
 ```
 
 ## Verify

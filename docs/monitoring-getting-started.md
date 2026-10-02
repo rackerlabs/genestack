@@ -1,63 +1,62 @@
 # Getting Started with Genestack Monitoring
 
-This guide documents the supported monitoring install flow for Genestack. The monitoring stack is installed component-by-component, and each component uses the same override layout as the rest of the platform:
+This guide documents the supported monitoring install flow for Genestack. Site-specific configuration continues to use the same override layout as the rest of the platform:
 
-- Helm overrides: `/etc/genestack/helm-configs/<service>`
-- Kustomize overlays: `/etc/genestack/kustomize/<service>/overlay`
+* Helm overrides: `/etc/genestack/helm-configs/<service>`
+* Kustomize overlays: `/etc/genestack/kustomize/<service>/overlay`
 
-That service-specific layout is the Genestack standard. The docs still group the monitoring stack conceptually so you can reason about it as one system:
+The monitoring implementation, base Helm values, base Kustomize resources, dashboards, and service installers are maintained in the `genestack-observability` repository at `/opt/genestack-observability`.
 
-- [Prometheus](monitoring-prometheus.md) for metrics storage, scraping, and alerting
-- [Loki](monitoring-loki.md) for logs
-- [Tempo](monitoring-tempo.md) for traces
-- [Grafana](monitoring-grafana.md) for dashboards and datasources
-- [OpenTelemetry](monitoring-opentelemetry.md) for telemetry collection and infrastructure receivers
-- [OpenStack Exporter](openstack-exporter.md) for OpenStack API availability probes
-- [Pushgateway](prometheus-pushgateway.md) for short-lived job metrics
+The docs still group the monitoring stack conceptually so you can reason about it as one system:
 
-The supported install order is:
+* [Prometheus](monitoring-prometheus.md) for metrics storage, scraping, and alerting
+* [Loki](monitoring-loki.md) for logs
+* [Tempo](monitoring-tempo.md) for traces
+* [Grafana](monitoring-grafana.md) for dashboards and datasources
+* [OpenTelemetry](monitoring-opentelemetry.md) for telemetry collection and infrastructure receivers
+* [OpenStack Exporter](openstack-exporter.md) for OpenStack API availability probes
+* [Pushgateway](prometheus-pushgateway.md) for short-lived job metrics
 
-1. `kube-prometheus-stack`
-2. `loki`
-3. `tempo`
-4. `grafana`
-5. `opentelemetry-kube-stack`
+The unified installer uses the component order defined in `/etc/genestack/observability-components.yaml`. The component-by-component examples below cover the primary stack in the same practical order used for day-one validation: Prometheus, Loki, Tempo, Grafana, and OpenTelemetry.
 
 ## Prerequisites
 
-- A bootstrapped Genestack host
-- `kubectl` pointed at the target cluster
-- `helm` 3.x
-- `yq` 4.x
-- A generated `/etc/genestack/kubesecrets.yaml`
+* A bootstrapped Genestack host
+* `kubectl` pointed at the target cluster
+* `helm` 3.x
+* `yq` 4.x
 
-Run bootstrap first:
+Run the normal Genestack bootstrap first:
 
 ```shell
 /opt/genestack/bootstrap.sh
 ```
 
-Bootstrap creates the monitoring override directories under `/etc/genestack` so the install scripts can use the same pattern as the rest of Genestack. After bootstrap you should have:
-
-- `/etc/genestack/helm-configs/kube-prometheus-stack`
-- `/etc/genestack/helm-configs/loki`
-- `/etc/genestack/helm-configs/tempo`
-- `/etc/genestack/helm-configs/grafana`
-- `/etc/genestack/helm-configs/opentelemetry-kube-stack`
-- `/etc/genestack/helm-configs/prometheus-pushgateway`
-- `/etc/genestack/helm-configs/openstack-api-exporter-chart`
-- `/etc/genestack/helm-configs/openstack-metrics-exporter`
-- `/etc/genestack/kustomize/kube-prometheus-stack/overlay`
-- `/etc/genestack/kustomize/loki/overlay`
-- `/etc/genestack/kustomize/tempo/overlay`
-- `/etc/genestack/kustomize/grafana/overlay`
-- `/etc/genestack/kustomize/opentelemetry-kube-stack/overlay`
-
-Generate the shared secrets file before installing Grafana or OpenTelemetry:
+Then bootstrap the observability repository without installing services:
 
 ```shell
-/opt/genestack/bin/create-secrets.sh
+/opt/genestack/bin/bootstrap-observability.sh --no-install
 ```
+
+The observability bootstrap clones or updates `/opt/genestack-observability`, updates its Git submodules recursively, creates the Genestack observability integration symlinks, and seeds `/etc/genestack/observability-components.yaml` if the site file does not already exist.
+
+Site-specific monitoring overrides remain under `/etc/genestack`. After bootstrap you should have the service directories needed by your environment, including:
+
+* `/etc/genestack/helm-configs/kube-prometheus-stack`
+* `/etc/genestack/helm-configs/loki`
+* `/etc/genestack/helm-configs/tempo`
+* `/etc/genestack/helm-configs/grafana`
+* `/etc/genestack/helm-configs/opentelemetry-kube-stack`
+* `/etc/genestack/helm-configs/prometheus-pushgateway`
+* `/etc/genestack/helm-configs/openstack-api-exporter-chart`
+* `/etc/genestack/helm-configs/openstack-metrics-exporter`
+* `/etc/genestack/kustomize/kube-prometheus-stack/overlay`
+* `/etc/genestack/kustomize/loki/overlay`
+* `/etc/genestack/kustomize/tempo/overlay`
+* `/etc/genestack/kustomize/grafana/overlay`
+* `/etc/genestack/kustomize/opentelemetry-kube-stack/overlay`
+
+Monitoring-specific secrets are created or ensured by `monitoring-common.sh` and the individual observability installers that consume them. They are not sourced from a separate observability secrets file.
 
 ## Namespace Preparation
 
@@ -90,7 +89,7 @@ The monitoring install scripts also apply these labels automatically when the pr
 Prometheus, Alertmanager, node-exporter, and kube-state-metrics are installed first:
 
 ```shell
-/opt/genestack/bin/install-kube-prometheus-stack.sh
+/opt/genestack/bin/install-observability.sh kube-prometheus-stack
 ```
 
 Verify the deployment:
@@ -108,15 +107,15 @@ The default Loki base values use a single-binary filesystem deployment that is s
 
 Available examples:
 
-- Generic S3-compatible: `/opt/genestack/base-helm-configs/loki/loki-helm-s3-overrides.yaml.example`
-- Rook/Ceph RGW: `/opt/genestack/base-helm-configs/loki/loki-helm-rook-rgw-overrides.yaml.example`
-- Swift: `/opt/genestack/base-helm-configs/loki/loki-helm-swift-overrides.yaml.example`
-- MinIO: `/opt/genestack/base-helm-configs/loki/loki-helm-minio-overrides.yaml.example`
+* Generic S3-compatible: `/opt/genestack-observability/helm-configs/loki/loki-helm-s3-overrides.yaml.example`
+* Rook/Ceph RGW: `/opt/genestack-observability/helm-configs/loki/loki-helm-rook-rgw-overrides.yaml.example`
+* Swift: `/opt/genestack-observability/helm-configs/loki/loki-helm-swift-overrides.yaml.example`
+* MinIO: `/opt/genestack-observability/helm-configs/loki/loki-helm-minio-overrides.yaml.example`
 
 If you are using Rook/Ceph RGW, the helper below creates the object-store user, buckets, Kubernetes secret, and service override files for Loki and Tempo:
 
 ```shell
-/opt/genestack/bin/setup-monitoring-rgw-storage.sh
+/opt/genestack/bin/install-observability.sh monitoring-rgw-storage
 ```
 
 The helper uses `mc` (the MinIO Client) to create the buckets. If `mc` is not already on `PATH`, the script downloads a temporary copy automatically. Restricted environments must either allow HTTPS access to `dl.min.io` or install `mc` manually before running the helper.
@@ -126,7 +125,7 @@ You can override the defaults with environment variables such as `ROOK_NAMESPACE
 Install Loki:
 
 ```shell
-/opt/genestack/bin/install-loki.sh
+/opt/genestack/bin/install-observability.sh loki
 ```
 
 If your cluster DNS service is not named `coredns`, add a Loki override file that sets `global.dnsService` before installing. The Loki gateway uses this value to generate its NGINX resolver configuration.
@@ -145,13 +144,13 @@ The default Tempo base values use PVC-backed local storage. For object storage, 
 
 Available examples:
 
-- Generic S3-compatible: `/opt/genestack/base-helm-configs/tempo/tempo-helm-s3-overrides.yaml.example`
-- Rook/Ceph RGW: `/opt/genestack/base-helm-configs/tempo/tempo-helm-rook-rgw-overrides.yaml.example`
+* Generic S3-compatible: `/opt/genestack-observability/helm-configs/tempo/tempo-helm-s3-overrides.yaml.example`
+* Rook/Ceph RGW: `/opt/genestack-observability/helm-configs/tempo/tempo-helm-rook-rgw-overrides.yaml.example`
 
 Install Tempo:
 
 ```shell
-/opt/genestack/bin/install-tempo.sh
+/opt/genestack/bin/install-observability.sh tempo
 ```
 
 Verify Tempo:
@@ -166,12 +165,12 @@ curl http://127.0.0.1:3200/ready
 
 Grafana uses `/etc/genestack/helm-configs/grafana/` for service overrides. Set `custom_host` there if you are publishing Grafana through an ingress or gateway.
 
-The Grafana installer ensures the `grafana-db` secret exists in `monitoring`. If you generated `/etc/genestack/kubesecrets.yaml` with `create-secrets.sh`, that secret will be applied automatically.
+The Grafana installer ensures the `grafana-db` secret exists in `monitoring`.
 
 Install Grafana:
 
 ```shell
-/opt/genestack/bin/install-grafana.sh
+/opt/genestack/bin/install-observability.sh grafana
 ```
 
 Verify Grafana:
@@ -188,21 +187,21 @@ The OpenTelemetry stack deploys the operator, daemon collector, and deployment c
 
 Before installation, the script:
 
-- ensures the `monitoring` namespace exists
-- applies Talos namespace labels when appropriate
-- creates or applies the `mariadb-monitoring` secret in `openstack`
-- creates or applies the `rabbitmq-monitoring-user` secret in `openstack`
-- copies `mariadb-monitoring` into `monitoring`
-- applies the MariaDB monitoring `User` and `Grant` resources in `openstack`
-- applies the RabbitMQ monitoring `User` and `Permission` resources in `openstack`
-- copies `rabbitmq-monitoring-user` into `monitoring`
+* ensures the `monitoring` namespace exists
+* applies Talos namespace labels when appropriate
+* creates or applies the `mariadb-monitoring` secret in `openstack`
+* creates or applies the `rabbitmq-monitoring-user` secret in `openstack`
+* copies `mariadb-monitoring` into `monitoring`
+* applies the MariaDB monitoring `User` and `Grant` resources in `openstack`
+* applies the RabbitMQ monitoring `User` and `Permission` resources in `openstack`
+* copies `rabbitmq-monitoring-user` into `monitoring`
 
-If you run PostgreSQL and want OpenTelemetry to scrape it, add a service override file in `/etc/genestack/helm-configs/opentelemetry-kube-stack/` before installation. Start from `/opt/genestack/base-helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-postgresql-overrides.yaml.example`, then adjust the secret and endpoint values for your environment.
+If you run PostgreSQL and want OpenTelemetry to scrape it, add a service override file in `/etc/genestack/helm-configs/opentelemetry-kube-stack/` before installation. Start from `/opt/genestack-observability/helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-postgresql-overrides.yaml.example`, then adjust the secret and endpoint values for your environment.
 
 Install OpenTelemetry:
 
 ```shell
-/opt/genestack/bin/install-opentelemetry-kube-stack.sh
+/opt/genestack/bin/install-observability.sh opentelemetry-kube-stack
 ```
 
 Verify OpenTelemetry:
@@ -224,17 +223,17 @@ kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:909
 
 Use Grafana to confirm that Prometheus, Loki, Tempo, and Alertmanager datasources are healthy. Then verify:
 
-- metrics are being scraped into Prometheus
-- logs are queryable in Loki
-- traces are queryable in Tempo
-- OpenTelemetry collectors are forwarding telemetry successfully
+* metrics are being scraped into Prometheus
+* logs are queryable in Loki
+* traces are queryable in Tempo
+* OpenTelemetry collectors are forwarding telemetry successfully
 
 ## Component Guides
 
-- [Prometheus](monitoring-prometheus.md)
-- [Loki](monitoring-loki.md)
-- [Tempo](monitoring-tempo.md)
-- [Grafana](monitoring-grafana.md)
-- [OpenTelemetry](monitoring-opentelemetry.md)
-- [OpenStack Exporter](openstack-exporter.md)
-- [Pushgateway](prometheus-pushgateway.md)
+* [Prometheus](monitoring-prometheus.md)
+* [Loki](monitoring-loki.md)
+* [Tempo](monitoring-tempo.md)
+* [Grafana](monitoring-grafana.md)
+* [OpenTelemetry](monitoring-opentelemetry.md)
+* [OpenStack Exporter](openstack-exporter.md)
+* [Pushgateway](prometheus-pushgateway.md)
