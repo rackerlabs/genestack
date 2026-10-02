@@ -6,5 +6,6 @@ features:
     the Genestack tree in ``/opt/genestack``. Bare-metal machines stay on
     local disk unless they are commissioned and then booted into Talos.
     ``https://my.genestack.dev`` is the account portal for that console,
-    not a hosted copy of it. The operator manual is in the
-    PIndustries/genestack-console repository.
+    not a hosted copy of it. The console source is pinned at
+    ``submodules/genestack-console`` from PIndustries/genestack-console
+    tag v2026.10.02. The operator manual is in that repository.

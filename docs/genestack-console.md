@@ -13,7 +13,14 @@ Follow [Getting the code](genestack-getting-started.md) first. `bootstrap.sh` wr
 | `/opt/genestack` | This repository. The console runs the scripts from here. |
 | `/etc/genestack` | Inventory, provider, and the overrides you already edit for Ansible. |
 | `/opt/genestack-console` | The console install. It is next to the Genestack tree, not inside it. |
+| `submodules/genestack-console` | The console source, pinned like Kubespray. |
 | `127.0.0.1:8080` | The UI. It binds loopback until you change `server.host`. |
+
+The pin is a submodule of [PIndustries/genestack-console](https://github.com/PIndustries/genestack-console){:target="_blank"} at release `v2026.10.02`. A normal clone skips it (`ignore = all`). Fetch it when you want the source next to this tree:
+
+``` shell
+git submodule update --init submodules/genestack-console
+```
 
 On the deploy host:
 
