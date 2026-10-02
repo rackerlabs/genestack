@@ -33,8 +33,10 @@ Open `http://127.0.0.1:8080/ui`. The first screen is Guided setup. The first adm
 The published build for this page is [v2026.10.03](https://github.com/PIndustries/genestack-console/releases/tag/v2026.10.03){:target="_blank"}. The Linux file is `genestack-console-linux-amd64`. [`version.json`](https://github.com/PIndustries/genestack-console/releases/download/v2026.10.03/version.json){:target="_blank"} on that release points at the download. The console repository also documents this installer, which pulls from the console release channel:
 
 ``` shell
-curl -fsSL https://genestack.dev/console.sh | bash
+curl -fsSL https://get.genestack.dev/console.sh | bash
 ```
+
+That URL redirects to the current GitHub Release asset `console.sh`.
 
 Use the GitHub Release asset when you need the `v2026.10.03` binary specifically. Linux, WSL, and a Mac lab are covered in the console install guide. `config.yaml` and the console database hold users, sessions, and the encrypted BMC secrets. Back them up together. The database alone cannot decrypt those secrets.
 
