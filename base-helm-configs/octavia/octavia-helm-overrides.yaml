@@ -80,6 +80,8 @@ conf:
         - stdout
       level: INFO
   octavia:
+    health_manager:
+      heartbeat_key: insecure
     amphora_agent:
       disable_local_log_storage: true
     api_settings:
