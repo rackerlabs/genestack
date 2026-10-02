@@ -14,8 +14,7 @@ OpenStack Horizon is the web-based dashboard for the OpenStack ecosystem, provid
         kubectl --namespace openstack \
                 create secret generic horizon-secret-key \
                 --type Opaque \
-                --from-literal=username="horizon" \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
+                --from-literal=horizon_secret_key="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
         kubectl --namespace openstack \
                 create secret generic horizon-db-password \
                 --type Opaque \

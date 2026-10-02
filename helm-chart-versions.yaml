@@ -15,7 +15,7 @@ charts:
   gnocchi: 2026.1.9+50c697fc3
   grafana: 10.1.0
   heat: 2026.1.9+50c697fc3
-  horizon: 2026.1.9+50c697fc3
+  horizon: 2026.1.31+0ee5adeff
   ironic: 2026.1.8+db238e7c3
   keystone: 2026.1.8+db238e7c3
   kube-ovn: v1.15.4
