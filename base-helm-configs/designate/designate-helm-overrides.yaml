@@ -163,6 +163,11 @@ conf:
     DEFAULT:
       debug: false
       log_config_append: /etc/designate/logging.conf
+      # The bind9 backend runs rndc through designate-rootwrap. The chart mounts
+      # an emptyDir over /etc/designate, which hides the rootwrap.conf that pip
+      # installs there, so point root_helper at the copy the image keeps outside
+      # that path. See rackerlabs/genestack-images#211.
+      root_helper: sudo designate-rootwrap /etc/designate-rootwrap.conf
     database:
       connection_debug: 0
       connection_recycle_time: 600
