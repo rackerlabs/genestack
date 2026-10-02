@@ -1029,9 +1029,9 @@ if [ "${TEST_LEVEL}" = "off" ]; then
     # HYPERCONVERGED_MANILA_SHARE=true environment variable; both resolve to
     # MANILA_SHARE_ENABLED in parseCommonArgs. By default 'manila: true' only
     # installs the chart (control-plane pods), keeping smoke tests fast; the
-    # enablement additionally runs secrets, the service image build and
-    # pre/post deploy. Runs after the OpenStack APIs are ready because the
-    # image build uploads to Glance. deployManila also self-gates on
+    # enablement additionally runs secret prerequisites, the service image
+    # build and pre/post deploy. Runs after the OpenStack APIs are ready
+    # because the image build uploads to Glance. deployManila also self-gates on
     # 'manila: true' in openstack-components.yaml, so '-e manila' (which sets
     # it false) skips it too.
     if [ "${MANILA_SHARE_ENABLED:-false}" = "true" ] && [ ${DISABLE_OPENSTACK} = "false" ]; then

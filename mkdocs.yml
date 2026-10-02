@@ -82,13 +82,11 @@ extra:
       link: https://blog.rackspacecloud.com/
 
 extra_css:
-  - overrides/stylesheets/adr.css
   - overrides/stylesheets/admonition.css
 
 plugins:
   - search
   - swagger-ui-tag
-  - mkdocs-material-adr/adr
   - glightbox
 
 markdown_extensions:

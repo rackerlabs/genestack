@@ -153,7 +153,7 @@ def kek_format_ok(kek):
 
 
 def generate_kek():
-    """32 random bytes, urlsafe base64: the Fernet key format (same as create-secrets.sh)."""
+    """32 random bytes, urlsafe base64: the Fernet key format used by service installers."""
     return base64.urlsafe_b64encode(secrets.token_bytes(32)).decode()
 
 

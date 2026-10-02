@@ -97,7 +97,7 @@ ansible-playbook ansible/playbooks/trove-enablement-techpreview.yaml \
 | `trove_mgmt_public_network_name` | `flat`                  | Management network name for public provider network |
 | `force_rebuild_image`            | `false`                 | Force rebuild and re-upload guest image             |
 | `force_create_dsv`               | `false`                 | Force rebuild of datastore version                  |
-| `force_full_recreation`          | `false`                 | Nuclear option — rebuild everything                 |
+| `force_full_recreation`          | `false`                 | Recreate techpreview SSH, image, keypair, security group, and datastore resources |
 
 ## Tags
 
@@ -105,7 +105,7 @@ ansible-playbook ansible/playbooks/trove-enablement-techpreview.yaml \
 
 | Tag | Scope |
 |-----|-------|
-| `trove_pre_install` | Runs before the Helm install: secrets, mgmt network, security groups, helm config, gateway/kustomize |
+| `trove_pre_install` | Runs before the Helm install: install-script managed secrets, mgmt network, security groups, helm config, gateway/kustomize |
 | `trove_post_install` | Runs after Trove is up: image build, datastore version, client, keypair, ssh-key distribute |
 | `deploy_swift` | Deploy Swift (object-store) for backup/restore |
 
@@ -115,7 +115,7 @@ ansible-playbook ansible/playbooks/trove-enablement-techpreview.yaml \
 
 | **Tag**                    | **Task**                                   |
 | :------------------------- | :----------------------------------------- |
-| `trove_secrets`            | Create Trove Kubernetes Secrets            |
+| `trove_secrets`            | Ensure Trove secret prerequisites          |
 | `trove_mgmt_network`       | Create Management Network, Subnet & Router |
 | `trove_security_groups`    | Create Trove Security Groups               |
 | `trove_helm_config`        | Deep-Merge Trove Helm Values               |

@@ -1,0 +1,28 @@
+---
+service:
+  name: qonos
+  namespace: openstack
+  family: ""
+
+chart: {}
+kustomize:
+  enabled: false
+
+secrets:
+  - name: qonos-db-password
+    namespace: openstack
+    type: Opaque
+    keys:
+      password: generate
+
+  - name: qonos-rabbitmq-password
+    namespace: openstack
+    type: Opaque
+    keys:
+      password: generate
+
+  - name: qonos-admin
+    namespace: openstack
+    type: Opaque
+    keys:
+      password: generate

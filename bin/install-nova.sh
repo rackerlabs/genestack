@@ -17,6 +17,12 @@ HELM_REPO_URL_DEFAULT="https://tarballs.opendev.org/openstack/openstack-helm"
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
 GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 
+# Common secret helpers. Missing secrets are generated in Kubernetes and
+# existing secrets are never overwritten.
+# shellcheck source=helpers.sh
+source "${GENESTACK_BASE_DIR}/bin/helpers.sh"
+trap cleanup_tmp EXIT
+
 # Define service-specific override directories based on the framework
 SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME_DEFAULT}"
 SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME_DEFAULT}"
@@ -64,7 +70,7 @@ if [[ "$HELM_REPO_URL" == oci://* ]]; then
     HELM_CHART_PATH="$HELM_REPO_URL/$HELM_REPO_NAME/$SERVICE_NAME"
 else
     # --- Helm Repository and Execution ---
-    helm repo add "$HELM_REPO_NAME" "$HELM_REPO_URL"
+    helm repo add --force-update "$HELM_REPO_NAME" "$HELM_REPO_URL" 2>/dev/null || true
     helm repo update
     HELM_CHART_PATH="$HELM_REPO_NAME/$SERVICE_NAME"
 fi
@@ -123,44 +129,11 @@ fi
 
 echo
 
-# Retrieve the Nova SSH public key
-pub_key="$(kubectl -n openstack get secret nova-ssh -o jsonpath='{.data.public-key}' | base64 -d)"
-
-# Create a temporary file to securely store the private key
-tmp_priv="$(mktemp)"
-
-# Ensure the temporary private key file is automatically deleted when the script exits or fails
-trap 'rm -f "$tmp_priv"' EXIT
-
-# Extract, decode, and save the Nova SSH private key to temp file
-kubectl -n openstack get secret nova-ssh -o jsonpath='{.data.private-key}' | base64 -d > "$tmp_priv"
-
-# Collect all --set arguments, executing commands and quoting safely
-# NOTE: This array contains OpenStack-specific secret retrievals and MUST be updated
-#       with the necessary --set arguments for your target SERVICE_NAME_DEFAULT.
-set_args=(
-    --set "conf.nova.neutron.metadata_proxy_shared_secret=$(kubectl --namespace openstack get secret metadata-shared-secret -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.identity.auth.admin.password=$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.identity.auth.nova.password=$(kubectl --namespace openstack get secret nova-admin -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.identity.auth.service.password=$(kubectl --namespace openstack get secret nova-keystone-service-password -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.identity.auth.test.password=$(kubectl --namespace openstack get secret nova-keystone-test-password -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.identity.auth.neutron.password=$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.identity.auth.ironic.password=$(kubectl --namespace openstack get secret ironic-admin -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.identity.auth.placement.password=$(kubectl --namespace openstack get secret placement-admin -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.identity.auth.cinder.password=$(kubectl --namespace openstack get secret cinder-admin -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.oslo_db.auth.admin.password=$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)"
-    --set "endpoints.oslo_db.auth.nova.password=$(kubectl --namespace openstack get secret nova-db-password -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.oslo_db_api.auth.admin.password=$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)"
-    --set "endpoints.oslo_db_api.auth.nova.password=$(kubectl --namespace openstack get secret nova-db-password -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.oslo_db_cell0.auth.admin.password=$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)"
-    --set "endpoints.oslo_db_cell0.auth.nova.password=$(kubectl --namespace openstack get secret nova-db-password -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.oslo_cache.auth.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
-    --set "conf.nova.keystone_authtoken.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
-    --set "endpoints.oslo_messaging.auth.admin.password=$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.oslo_messaging.auth.nova.password=$(kubectl --namespace openstack get secret nova-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)"
-    --set-string "network.ssh.public_key=${pub_key}"
-    --set-file   "network.ssh.private_key=${tmp_priv}"
-)
+# Collect secret-backed --set arguments from bin/services/${SERVICE_NAME_DEFAULT}.yaml.
+set_args=()
+while IFS= read -r token; do
+    [[ -n "$token" ]] && set_args+=("$token")
+done < <(prepare_service_secret_set_args "$SERVICE_NAME_DEFAULT")
 
 
 helm_command=(

@@ -17,6 +17,12 @@ HELM_REPO_URL_DEFAULT="https://kubeovn.github.io/kube-ovn"
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
 GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 
+# Common secret helpers. Missing secrets are generated in Kubernetes and
+# existing secrets are never overwritten.
+# shellcheck source=helpers.sh
+source "${GENESTACK_BASE_DIR}/bin/helpers.sh"
+trap cleanup_tmp EXIT
+
 # Define service-specific override directories based on the framework
 SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME_DEFAULT}"
 SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME_DEFAULT}"
@@ -55,25 +61,24 @@ echo "Found $MASTER_NODE_COUNT master node(s) with IPs: ${MASTER_NODES//\\,/ }."
 # --------------------------------------------------------------------
 
 # Generate OVN TLS cert with proper DNS SANs if it doesn't exist yet
-if ! kubectl -n "$SERVICE_NAMESPACE" get secret kube-ovn-tls &>/dev/null; then
+if ! secret_exists "$SERVICE_NAMESPACE" kube-ovn-tls; then
     echo "Generating kube-ovn-tls secret with DNS SANs..."
-    openssl genrsa -out /tmp/ovn-ca-key.pem 2048 2>/dev/null
-    openssl req -x509 -new -key /tmp/ovn-ca-key.pem -out /tmp/ovn-ca.pem -days 3650 -subj "/CN=ovn-ca"
-    openssl genrsa -out /tmp/ovn-key.pem 2048 2>/dev/null
-    openssl req -new -key /tmp/ovn-key.pem -out /tmp/ovn.csr -subj "/CN=ovn"
-    openssl x509 -req -in /tmp/ovn.csr -CA /tmp/ovn-ca.pem -CAkey /tmp/ovn-ca-key.pem -CAcreateserial \
-      -out /tmp/ovn-cert.pem -days 3650 \
+    ovn_tls_dir="$(mk_tmp_dir)"
+    openssl genrsa -out "${ovn_tls_dir}/ovn-ca-key.pem" 2048 2>/dev/null
+    openssl req -x509 -new -key "${ovn_tls_dir}/ovn-ca-key.pem" -out "${ovn_tls_dir}/ovn-ca.pem" -days 3650 -subj "/CN=ovn-ca"
+    openssl genrsa -out "${ovn_tls_dir}/ovn-key.pem" 2048 2>/dev/null
+    openssl req -new -key "${ovn_tls_dir}/ovn-key.pem" -out "${ovn_tls_dir}/ovn.csr" -subj "/CN=ovn"
+    openssl x509 -req -in "${ovn_tls_dir}/ovn.csr" -CA "${ovn_tls_dir}/ovn-ca.pem" -CAkey "${ovn_tls_dir}/ovn-ca-key.pem" -CAcreateserial \
+      -out "${ovn_tls_dir}/ovn-cert.pem" -days 3650 \
       -extfile <(printf "subjectAltName=DNS:ovn,DNS:ovn-nb,DNS:ovn-nb.kube-system.svc,DNS:ovn-sb,DNS:ovn-sb.kube-system.svc,DNS:ovn-northd,DNS:ovn-northd.kube-system.svc")
-    kubectl -n "$SERVICE_NAMESPACE" create secret generic kube-ovn-tls \
-      --from-file=cacert=/tmp/ovn-ca.pem \
-      --from-file=cert=/tmp/ovn-cert.pem \
-      --from-file=key=/tmp/ovn-key.pem \
-      --save-config
+    secret_sync_from_files "$SERVICE_NAMESPACE" kube-ovn-tls \
+      "cacert=${ovn_tls_dir}/ovn-ca.pem" \
+      "cert=${ovn_tls_dir}/ovn-cert.pem" \
+      "key=${ovn_tls_dir}/ovn-key.pem"
     kubectl -n "$SERVICE_NAMESPACE" annotate secret kube-ovn-tls \
       meta.helm.sh/release-name="$SERVICE_NAME_DEFAULT" \
       meta.helm.sh/release-namespace="$SERVICE_NAMESPACE"
     kubectl -n "$SERVICE_NAMESPACE" label secret kube-ovn-tls --overwrite app.kubernetes.io/managed-by=Helm 2>/dev/null || true
-    rm -f /tmp/ovn-*
 fi
 
 # Load chart metadata from custom override YAML if defined
@@ -98,7 +103,7 @@ if [[ "$HELM_REPO_URL" == oci://* ]]; then
     HELM_CHART_PATH="$HELM_REPO_URL/$HELM_REPO_NAME/$SERVICE_NAME"
 else
     # --- Helm Repository and Execution ---
-    helm repo add "$HELM_REPO_NAME" "$HELM_REPO_URL"
+    helm repo add --force-update "$HELM_REPO_NAME" "$HELM_REPO_URL" 2>/dev/null || true
     helm repo update
     HELM_CHART_PATH="$HELM_REPO_NAME/$SERVICE_NAME"
 fi
@@ -158,7 +163,13 @@ fi
 echo
 
 # Collect all --set arguments, executing commands and quoting safely
-set_args=(
+# Collect secret-backed --set arguments from bin/services/${SERVICE_NAME_DEFAULT}.yaml.
+set_args=()
+while IFS= read -r token; do
+    [[ -n "$token" ]] && set_args+=("$token")
+done < <(prepare_service_secret_set_args "$SERVICE_NAME_DEFAULT")
+
+set_args+=(
     --set "MASTER_NODES=${MASTER_NODES}"
     --set "replicaCount=${MASTER_NODE_COUNT}"
 )

@@ -1,0 +1,25 @@
+---
+service:
+  name: mariadb-operator
+  namespace: mariadb-system
+  version: ~
+  family: ""
+
+chart:
+  repo_name: mariadb-operator
+  repo_url: https://helm.mariadb.com/mariadb-operator
+  service_name: mariadb-operator
+  global_overrides: false
+
+kustomize:
+  enabled: false
+
+crd_chart: mariadb-operator-crds
+
+secrets:
+  - name: mariadb
+    namespace: openstack
+    type: Opaque
+    keys:
+      root-password: generate
+      password: generate

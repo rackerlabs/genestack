@@ -1,0 +1,16 @@
+---
+service:
+  name: blazar-reservation-splitter
+  version: ~
+  family: ""
+
+chart:
+  repo_name: genestack-blazar-reservation-splitter-helm-chart
+  repo_url: https://rackerlabs.github.io/genestack-blazar-reservation-splitter-helm-chart
+  service_name: blazar-reservation-splitter
+  global_overrides: false
+
+kustomize:
+  enabled: false
+
+secrets: []

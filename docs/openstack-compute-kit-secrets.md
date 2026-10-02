@@ -4,7 +4,7 @@ Part of running Nova is also running placement. Setup all credentials now so we 
 
 !!! note "Information about the secretes used"
 
-    Manual secret generation is only required if you haven't run the `create-secrets.sh` script located in `/opt/genestack/bin`.
+    Service secrets are managed idempotently by this service's install script. The installer creates any missing Kubernetes secrets and reuses existing values.
 
     ??? example "Example secret generation"
 

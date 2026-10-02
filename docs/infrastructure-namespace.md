@@ -1,28 +1,9 @@
 # Create our basic OpenStack namespace
 
-The following command will generate our OpenStack namespace and ensure we have everything needed to proceed with the deployment.
+The following command generates the OpenStack namespace and prepares the base resources needed before service deployment.
 
 ``` shell
 kubectl apply -k /etc/genestack/kustomize/openstack/base
 ```
 
-Then you can create all needed secrets by running the create-secrets.sh command located in /opt/genestack/bin
-
-!!! tip "Optional --region param"
-
-    Note that the `create-secrets.sh` script by default creates a secret
-    with a default region of *RegionOne*. This can be overridden with the
-    `--region` parameter to specify your custom region name in Keystone.
-    > Usage: ./create-secrets.sh [--region <region>]
-
-``` shell
-/opt/genestack/bin/create-secrets.sh
-```
-
-That will create a kubesecrets.yaml file located in /etc/genestack
-
-You can then apply it to kubernetes with the following command:
-
-``` shell
-kubectl create -f /etc/genestack/kubesecrets.yaml
-```
+Service secrets are managed by the individual `/opt/genestack/bin/install-*.sh` scripts. Each installer creates missing Kubernetes secrets idempotently and reuses existing values on subsequent runs.
