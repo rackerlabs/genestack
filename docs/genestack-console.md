@@ -109,6 +109,12 @@ The environment, the job log, and the management-port passwords stay on the depl
 
 How the sign-in is configured is written in [Connect a console to my.genestack.dev](https://github.com/PIndustries/genestack-console/blob/main/docs/hosted-mode.md){:target="_blank"}.
 
+## Adding an operation
+
+An operation is one job the console knows how to run: power a server, push config, deploy. Each one is a Python file. The files for one area sit in a folder. The folder's `__init__.py` is the class that lists those files, in order.
+
+The built-in folders live in the console repository under `app/modules/`. Bare metal is `app/modules/baremetal/`. To add your own, make a folder with the same shape and put its path in `modules.paths` in `config.yaml`. The console loads it on startup. The layout and a worked example are in the console manual, [Modules](https://github.com/PIndustries/genestack-console/blob/main/docs/modules.md).
+
 ## The rest of the manual
 
 The links below open the console repository. The binary named on this page is `v2026.10.03`. The manual can be ahead of that tag.
