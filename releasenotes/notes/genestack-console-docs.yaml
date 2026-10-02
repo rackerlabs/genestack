@@ -1,6 +1,10 @@
 ---
 features:
   - |
-    Added a Genestack Console page to the deployment guide. The console
-    runs on the deploy host. The page links to PIndustries/genestack-console
-    for the operator manual and the current release.
+    Documented the Genestack Console under Getting Started. The console
+    is installed at ``/opt/genestack-console`` on the deploy host and runs
+    the Genestack tree in ``/opt/genestack``. Bare-metal machines stay on
+    local disk unless they are commissioned and then booted into Talos.
+    ``https://my.genestack.dev`` is the account portal for that console,
+    not a hosted copy of it. The operator manual is in the
+    PIndustries/genestack-console repository.
