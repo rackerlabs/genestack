@@ -1,8 +1,12 @@
 # Genestack Console
 
-The Genestack Console is the program you run on the deploy host when you want one place to drive this repository. You still clone Genestack to `/opt/genestack` and you still keep inventory in `/etc/genestack`. The console sits next to that checkout and runs the same bootstrap, Ansible, and Talos steps an operator runs by hand.
+Genestack is this repository: the scripts, Ansible, and charts that install OpenStack on Kubernetes. Genestack Console is a separate program you install on the same Linux computer as this checkout. It is the browser page and the job runner for the work those scripts already do.
 
-It is a separate project, with its own releases: [PIndustries/genestack-console](https://github.com/PIndustries/genestack-console){:target="_blank"}. This page is how it fits a Genestack deploy. The install matrix, the HTTP API, and the release notes live in that repository.
+That computer is the deploy host. Pick a machine that can reach the servers you are installing. The console, the saved settings, the job log, and the passwords for the server management ports stay on it. The UI is `http://127.0.0.1:8080/ui` on that machine. The first screen is Guided setup.
+
+The console also answers DHCP on the server network and hands a server a boot file when you are installing it. DHCP is how a machine asks for an IP address. The boot file is what the network card downloads when the server is told to start from the network. A server you have not selected boots from its own disk. A server you select is wiped from a small in-memory system, then booted once into Talos. Talos is the operating system Kubernetes runs on for this bare-metal path. The deploy job then continues with the scripts in this repository. The steps are in [Bare metal](#bare-metal).
+
+The console is its own project, with its own releases: [PIndustries/genestack-console](https://github.com/PIndustries/genestack-console){:target="_blank"}. The install matrix, the HTTP API, and the release notes live in that repository.
 
 ## Where the files go
 
@@ -52,7 +56,9 @@ Roles on the console are viewer, operator, and admin. API keys in `config.yaml` 
 
 ## Bare metal
 
-Each machine has its own next boot. **disk** is the default, including for a MAC you have never asked the console to install. The machine boots its local disk. **commission** is a RAM disk that wipes the fixed-disk headers and posts one report. **talos** is the Talos maintenance image, and the console will only serve it after that report has been accepted. Machine config is pushed after the wipe. It is not put on the kernel command line.
+Each server has a management port (BMC, iLO, or iDRAC) and a port on the same network as the machine that serves DHCP. You enter both. The console powers the server through the management port. It matches the other port by MAC address when it hands out an IP and a boot file.
+
+Each machine has its own next boot. **disk** is the default, including for a MAC you have never asked the console to install. The machine boots its local disk. **commission** is a small system in memory that wipes the fixed-disk headers and posts one report. **talos** is the Talos maintenance image, and the console will only serve it after that report has been accepted. Machine config is pushed after the wipe. It is not put on the kernel command line.
 
 The machine loads a chain script first. The chain hands off to the file for that MAC, or it exits to the local disk. A machine that shows up on the provisioning network and was not selected is left alone.
 
@@ -65,7 +71,7 @@ For a machine you did select:
 
 An ISO cannot be the first boot of a reprovision. An ISO does not wipe the disks, so the console rejects `boot=iso` for this path.
 
-DHCP and the boot files have to be on the same L2 network as the machines. If the console host is on that network, it serves them. If the machines are on the other side of a firewall, put the console agent on that site. The agent dials out to the console and serves PXE there. The overlay address and the agent install are in the console install guide.
+DHCP and the boot files have to be on the same Ethernet network as the machines, with no router between them. If the deploy host is on that network, the console serves them. If the machines are on the other side of a firewall, put the console agent on that site. The agent opens a connection out to the console and serves DHCP and the boot files there. The agent install is in the console install guide.
 
 !!! warning
 
