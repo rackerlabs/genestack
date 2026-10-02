@@ -1,105 +1,127 @@
 # Genestack Console
 
-Genestack is this repository: the scripts, Ansible, and charts that install OpenStack on Kubernetes. Genestack Console is a separate program you install on the same Linux computer as this checkout. It is the browser page and the job runner for the work those scripts already do.
+Genestack is this repository. It is the scripts, Ansible playbooks, and charts that install OpenStack on Kubernetes.
 
-That computer is the deploy host. Pick a machine that can reach the servers you are installing. The console, the saved settings, the job log, and the passwords for the server management ports stay on it. The UI is `http://127.0.0.1:8080/ui` on that machine. The first screen is Guided setup.
+Genestack Console is a different program. You install it on the same Linux computer as this checkout, then open it in a browser. From that page you:
 
-The console also answers DHCP on the server network and hands a server a boot file when you are installing it. DHCP is how a machine asks for an IP address. The boot file is what the network card downloads when the server is told to start from the network. A server you have not selected boots from its own disk. A server you select is wiped from a small in-memory system, then booted once into Talos. Talos is the operating system Kubernetes runs on for this bare-metal path. The deploy job then continues with the scripts in this repository. The steps are in [Bare metal](#bare-metal).
+- save the settings for one cloud
+- turn the physical servers on and off
+- give a server an IP address and a boot file while you install an operating system on it
+- run the scripts in this repository and read the log
 
-The console is its own project, with its own releases: [PIndustries/genestack-console](https://github.com/PIndustries/genestack-console){:target="_blank"}. The install matrix, the HTTP API, and the release notes live in that repository.
+The computer you install it on is the deploy host. That phrase means the machine that performs the install. Pick a Linux machine that can reach the servers. The console, the saved settings, the job log, and the passwords for the server management ports stay on that machine.
 
-## Where the files go
+The console is published on its own: [PIndustries/genestack-console](https://github.com/PIndustries/genestack-console){:target="_blank"}. This page is the chapter in the Genestack manual. Install details, the HTTP API, and the release notes are in that repository.
 
-Follow [Getting the code](genestack-getting-started.md) first. `bootstrap.sh` writes `/etc/genestack/provider`. Kubespray is the default Kubernetes provider. Talos is the other one, and the bare-metal path below uses the same maintenance-then-config order as [Talos Linux](k8s-talos.md).
-
-| Path | What it is |
-| --- | --- |
-| `/opt/genestack` | This repository. The console runs the scripts from here. |
-| `/etc/genestack` | Inventory, provider, and the overrides you already edit for Ansible. |
-| `/opt/genestack-console` | The console install. It is next to the Genestack tree, not inside it. |
-| `submodules/genestack-console` | The console source, pinned like Kubespray. |
-| `127.0.0.1:8080` | The UI. It binds loopback until you change `server.host`. |
-
-The pin is a submodule of [PIndustries/genestack-console](https://github.com/PIndustries/genestack-console){:target="_blank"} at release `v2026.10.03`. A normal clone skips it (`ignore = all`). Fetch it when you want the source next to this tree:
-
-``` shell
-git submodule update --init submodules/genestack-console
-```
+## Install the console
 
 On the deploy host:
-
-``` shell
-ssh -L 8080:127.0.0.1:8080 <deploy-host>
-```
-
-Open `http://127.0.0.1:8080/ui`. The first screen is Guided setup. The first admin password is written to `/opt/genestack-console/ADMIN_CREDENTIALS.txt` with mode `0600`.
-
-The published build for this page is [v2026.10.03](https://github.com/PIndustries/genestack-console/releases/tag/v2026.10.03){:target="_blank"}. The Linux file is `genestack-console-linux-amd64`. [`version.json`](https://github.com/PIndustries/genestack-console/releases/download/v2026.10.03/version.json){:target="_blank"} on that release points at the download. The console repository also documents this installer, which pulls from the console release channel:
 
 ``` shell
 curl -fsSL https://get.genestack.dev/console.sh | bash
 ```
 
-That URL redirects to the current GitHub Release asset `console.sh`.
+That address redirects to the current installer attached to a GitHub Release. The script installs the program under `/opt/genestack-console` and starts a web page at `127.0.0.1:8080`. The page listens only on the deploy host until you change `server.host`.
 
-Use the GitHub Release asset when you need the `v2026.10.03` binary specifically. Linux, WSL, and a Mac lab are covered in the console install guide. `config.yaml` and the console database hold users, sessions, and the encrypted BMC secrets. Back them up together. The database alone cannot decrypt those secrets.
+From a laptop, forward that port:
 
-## What you do in it
+``` shell
+ssh -L 8080:127.0.0.1:8080 <deploy-host>
+```
 
-An environment is one cloud: a lab, a rack, or a region. It belongs to one tenant. Jobs and credentials stay inside that environment.
+Open `http://127.0.0.1:8080/ui`. The first screen is Guided setup. The first admin password is written to `/opt/genestack-console/ADMIN_CREDENTIALS.txt`. The file mode is `0600`.
 
-You point the environment at `/opt/genestack` and at the `/etc/genestack` directory `bootstrap.sh` already filled in. A saved config can be pushed to the deploy host. A deploy job then runs the install scripts and playbooks from this tree, with `GENESTACK_BASE_DIR`, `GENESTACK_CONFIG`, and the Ansible inventory. The job log is on that same environment.
+The build described here is [v2026.10.03](https://github.com/PIndustries/genestack-console/releases/tag/v2026.10.03){:target="_blank"}. The Linux file on that release is `genestack-console-linux-amd64`. [`version.json`](https://github.com/PIndustries/genestack-console/releases/download/v2026.10.03/version.json){:target="_blank"} on the same release names that file. Use those assets when you need this exact version. The `curl` command above follows whatever the latest release is.
 
-After the cluster is up, the environment is where you read Kubernetes and run the namespace, node, and pod actions, run the OpenStack service workflows, and download the kubeconfig and talosconfig. Skyline is still the OpenStack dashboard for project users. The console is for the people operating the deploy.
+Back up two things together: `/opt/genestack-console/config.yaml`, and the console database. The database holds the users and the sessions. Passwords stored in it are encrypted with a key from `config.yaml`. A copy of the database without that file cannot be decrypted.
 
-Roles on the console are viewer, operator, and admin. API keys in `config.yaml` are the break-glass path.
+## Where the files go
 
-## Bare metal
+Clone this repository first. [Getting the code](genestack-getting-started.md) is that step. On the deploy host the checkout lives at `/opt/genestack`.
 
-Each server has a management port (BMC, iLO, or iDRAC) and a port on the same network as the machine that serves DHCP. You enter both. The console powers the server through the management port. It matches the other port by MAC address when it hands out an IP and a boot file.
+`bootstrap.sh`, in that checkout, creates `/etc/genestack`. That directory is the inventory and the settings the install reads. One file it writes is `/etc/genestack/provider`, which records which Kubernetes installer you are using. Kubespray is the default. It installs Kubernetes onto machines that already have an operating system. Talos is the other choice. Talos is an operating system that boots a machine straight into Kubernetes. The bare-metal steps on this page follow the same order as [Talos Linux](k8s-talos.md): wipe the disks, boot Talos, then send the machine config.
 
-Each machine has its own next boot. **disk** is the default, including for a MAC you have never asked the console to install. The machine boots its local disk. **commission** is a small system in memory that wipes the fixed-disk headers and posts one report. **talos** is the Talos maintenance image, and the console will only serve it after that report has been accepted. Machine config is pushed after the wipe. It is not put on the kernel command line.
+| Path | What it is |
+| --- | --- |
+| `/opt/genestack` | This repository, on the deploy host. The console runs the scripts from here. |
+| `/etc/genestack` | Inventory and settings. `bootstrap.sh` creates the directory. You still edit the files the way the rest of this manual describes. |
+| `/opt/genestack-console` | The console program. It is installed beside this checkout. It is not a folder inside it. |
+| `submodules/genestack-console` | The console source, pinned in this repository the same way Kubespray is pinned. A normal clone does not download it. |
+| `127.0.0.1:8080` | The console web page, on the deploy host. |
 
-The machine loads a chain script first. The chain hands off to the file for that MAC, or it exits to the local disk. A machine that shows up on the provisioning network and was not selected is left alone.
+The pin is [PIndustries/genestack-console](https://github.com/PIndustries/genestack-console){:target="_blank"} at release `v2026.10.03`. The submodule is marked `ignore = all`, so a normal clone skips it. Fetch the source when you want it next to this tree:
 
-For a machine you did select:
+``` shell
+git submodule update --init submodules/genestack-console
+```
 
-1. The console writes the commission script for that MAC and sends a one-shot PXE through the BMC.
-2. The RAM disk wipes the fixed disks and posts one report. Posting the same report again does not start another wipe.
-3. The console switches that MAC to Talos and PXE-boots it once.
-4. Talos comes up in maintenance. The deploy job continues from the [Talos Linux](k8s-talos.md) flow.
+## What you do in the console
 
-An ISO cannot be the first boot of a reprovision. An ISO does not wipe the disks, so the console rejects `boot=iso` for this path.
+An environment is one cloud: a lab, one rack, or one region. A tenant is the group of people allowed to use that cloud. Jobs and passwords for the cloud stay inside the environment.
 
-DHCP and the boot files have to be on the same Ethernet network as the machines, with no router between them. If the deploy host is on that network, the console serves them. If the machines are on the other side of a firewall, put the console agent on that site. The agent opens a connection out to the console and serves DHCP and the boot files there. The agent install is in the console install guide.
+Point the environment at `/opt/genestack` and at the `/etc/genestack` directory `bootstrap.sh` already created. Saving settings in the console does not change those directories by itself. A job copies the saved settings onto the deploy host, then runs the install scripts from this tree. The log of that job stays on the environment.
+
+When the install has finished, the same environment is where you look at Kubernetes, act on namespaces, nodes, and pods, run the OpenStack service steps, and download two credential files. The kubeconfig is how you talk to Kubernetes. The talosconfig is how you talk to Talos. Skyline is the OpenStack web page for people using the cloud day to day. The console is the page for the people who build the cloud.
+
+People who sign in have one of three roles: viewer, operator, or admin. An API key in `config.yaml` is the emergency login, for when the user accounts cannot be used.
+
+## How a server gets an operating system
+
+The deploy host and the servers have to be on the same Ethernet network, with no router between them. On that network the console answers DHCP. DHCP is the request a machine sends when it wants an IP address. The console also serves a boot file. That file is a small program the network card downloads when the server is told to start from the network instead of from its disk. Both services run inside the console. You do not install a separate DHCP server for this.
+
+Each server has two addresses you type in.
+
+- The management port. Vendors call it the BMC, iLO, or iDRAC. It is a small controller inside the server that stays on when the main computer is off. The console uses it to power the server, and to ask the server to boot from the network one time.
+- The port plugged into the same network as the deploy host. The console matches that port by its MAC address. A MAC address is the hardware address of the network card.
+
+Every server has its own next boot.
+
+- **Disk** is the default. A server you have never asked the console to install boots from its own disk.
+- **Commission** is a small system that runs from memory. It wipes the starts of the fixed disks and sends one report back to the console.
+- **Talos** is offered to that server only after the report has been accepted. The Talos machine config is sent after the wipe. It is not placed on the boot command line.
+
+A server the console has not selected downloads a short script and then returns to its own disk. It is left alone.
+
+For a server you did select:
+
+1. The console writes the wipe program for that MAC address and asks the management port to network-boot the server once.
+2. The wipe program clears the disks and posts one report. Sending the same report again does not wipe the disks again.
+3. The console switches that server to Talos and network-boots it once.
+4. Talos comes up in maintenance. Maintenance means Talos is running and waiting for its configuration. The job then continues with the [Talos Linux](k8s-talos.md) steps in this manual.
+
+An ISO image cannot be the first boot of a reinstall. An ISO does not wipe the disks, so the console rejects that choice on this path.
+
+Servers on the far side of a firewall cannot hear the deploy host. Install the console agent on a computer that sits on those servers' network. The agent opens a connection out to the console. DHCP and the boot files for that site run on the agent. The agent install is in the console install guide linked below.
 
 !!! warning
 
-    The wipe report has to reach the console. A server that only hands out the boot files will leave the machine on the commission image, because nothing accepts the report and switches the MAC to Talos.
+    The wipe report has to reach the console. If some other machine hands out the boot file, and the report never arrives, the server stays on the wipe image. The console is what accepts the report and switches that server over to Talos.
 
 !!! tip
 
-    Stop the job after commission if you want to look at the wipe before Talos is served. Stop after Talos if you want maintenance mode and you do not want the job to continue into inventory and OpenStack.
+    Stop the job after the wipe if you want to inspect the disks before Talos is served. Stop after Talos if you want the server left in maintenance, and you do not want the job to continue into inventory and OpenStack.
 
 ## my.genestack.dev
 
-`https://my.genestack.dev` is the account page for a console you already run. From there you manage the account, connect the Mac, iPhone, iPad, and Apple Watch apps to that console, and ask us for support. The apps sign in at the portal. The portal forwards the session to your console over the tunnel on the deploy host.
+`https://my.genestack.dev` is the account page for a console you already installed. On that page you manage the account, connect the Mac, iPhone, iPad, and Apple Watch apps to the console, and ask for support. The apps sign in on that page. The page then opens your console.
 
-The portal does not run a copy of the console. There is no environment, job log, or BMC secret stored there. Everything you do to the cloud happens on the console at `/opt/genestack-console`. Operators on the deploy host can also sign in locally, with an API key, or with their own identity provider, and never touch the portal.
+The environment, the job log, and the management-port passwords stay on the deploy host, in `/opt/genestack-console`. People on the deploy host can sign in with a local user, an API key, or their company's login, and never open the account page.
 
-Issuer, redirect, and the `gsc_console` cookie are written up in [Connect a console to my.genestack.dev](https://github.com/PIndustries/genestack-console/blob/main/docs/hosted-mode.md){:target="_blank"}.
+How the sign-in is configured is written in [Connect a console to my.genestack.dev](https://github.com/PIndustries/genestack-console/blob/main/docs/hosted-mode.md){:target="_blank"}.
 
 ## The rest of the manual
 
+The links below open the console repository. The binary named on this page is `v2026.10.03`. The manual can be ahead of that tag.
+
 | You need | Read |
 | --- | --- |
-| Install, systemd, Mac and WSL | [Install](https://github.com/PIndustries/genestack-console/blob/v2026.10.03/docs/install.md){:target="_blank"} |
-| A local all-in-one lab | [Install AIO](https://github.com/PIndustries/genestack-console/blob/v2026.10.03/docs/install-aio.md){:target="_blank"} |
-| Jobs, agents, and auth | [Architecture](https://github.com/PIndustries/genestack-console/blob/v2026.10.03/docs/architecture.md){:target="_blank"} |
-| Portal account and the Apple apps | [Connect a console to my.genestack.dev](https://github.com/PIndustries/genestack-console/blob/main/docs/hosted-mode.md){:target="_blank"} |
+| Install on Linux, a Mac, or Windows | [Install](https://github.com/PIndustries/genestack-console/blob/main/docs/install.md){:target="_blank"} |
+| A lab with one local virtual machine | [Install AIO](https://github.com/PIndustries/genestack-console/blob/main/docs/install-aio.md){:target="_blank"} |
+| How the program is put together | [Architecture](https://github.com/PIndustries/genestack-console/blob/main/docs/architecture.md){:target="_blank"} |
+| The account page and the Apple apps | [Connect a console to my.genestack.dev](https://github.com/PIndustries/genestack-console/blob/main/docs/hosted-mode.md){:target="_blank"} |
 | HTTP API | [API reference](https://github.com/PIndustries/genestack-console/blob/v2026.10.03/API_REFERENCE.md){:target="_blank"}, and `/swagger` on a running console |
-| How a release is cut | [Releasing](https://github.com/PIndustries/genestack-console/blob/v2026.10.03/docs/releasing.md){:target="_blank"} |
+| How a release is cut | [Releasing](https://github.com/PIndustries/genestack-console/blob/main/docs/releasing.md){:target="_blank"} |
 
 !!! note
 
-    This site is built from the `main` branch of Genestack. The console is released on its own tags. If this page and a console release disagree, use the console repository at that tag.
+    This site is built from the `main` branch of Genestack. The console program is released on its own tags. If a step on this page and the `v2026.10.03` binary disagree, follow the console repository at that tag.
