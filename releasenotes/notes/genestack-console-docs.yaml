@@ -8,4 +8,4 @@ features:
     ``https://my.genestack.dev`` is the account portal for that console,
     not a hosted copy of it. The console source is pinned at
     ``submodules/genestack-console`` from PIndustries/genestack-console
-    tag v2026.10.02. The operator manual is in that repository.
+    tag v2026.10.03. The operator manual is in that repository.

@@ -16,7 +16,7 @@ Follow [Getting the code](genestack-getting-started.md) first. `bootstrap.sh` wr
 | `submodules/genestack-console` | The console source, pinned like Kubespray. |
 | `127.0.0.1:8080` | The UI. It binds loopback until you change `server.host`. |
 
-The pin is a submodule of [PIndustries/genestack-console](https://github.com/PIndustries/genestack-console){:target="_blank"} at release `v2026.10.02`. A normal clone skips it (`ignore = all`). Fetch it when you want the source next to this tree:
+The pin is a submodule of [PIndustries/genestack-console](https://github.com/PIndustries/genestack-console){:target="_blank"} at release `v2026.10.03`. A normal clone skips it (`ignore = all`). Fetch it when you want the source next to this tree:
 
 ``` shell
 git submodule update --init submodules/genestack-console
@@ -30,13 +30,13 @@ ssh -L 8080:127.0.0.1:8080 <deploy-host>
 
 Open `http://127.0.0.1:8080/ui`. The first screen is Guided setup. The first admin password is written to `/opt/genestack-console/ADMIN_CREDENTIALS.txt` with mode `0600`.
 
-The published build for this page is [v2026.10.02](https://github.com/PIndustries/genestack-console/releases/tag/v2026.10.02){:target="_blank"}. The Linux file is `genestack-console-linux-amd64`. [`version.json`](https://github.com/PIndustries/genestack-console/releases/download/v2026.10.02/version.json){:target="_blank"} on that release points at the download. The console repository also documents this installer, which pulls from the console release channel:
+The published build for this page is [v2026.10.03](https://github.com/PIndustries/genestack-console/releases/tag/v2026.10.03){:target="_blank"}. The Linux file is `genestack-console-linux-amd64`. [`version.json`](https://github.com/PIndustries/genestack-console/releases/download/v2026.10.03/version.json){:target="_blank"} on that release points at the download. The console repository also documents this installer, which pulls from the console release channel:
 
 ``` shell
-curl -fsSL https://get.genestack.dev/console.sh | bash
+curl -fsSL https://genestack.dev/console.sh | bash
 ```
 
-Use the GitHub Release asset when you need the `v2026.10.02` binary specifically. Linux, WSL, and a Mac lab are covered in the console install guide. `config.yaml` and the console database hold users, sessions, and the encrypted BMC secrets. Back them up together. The database alone cannot decrypt those secrets.
+Use the GitHub Release asset when you need the `v2026.10.03` binary specifically. Linux, WSL, and a Mac lab are covered in the console install guide. `config.yaml` and the console database hold users, sessions, and the encrypted BMC secrets. Back them up together. The database alone cannot decrypt those secrets.
 
 ## What you do in it
 
@@ -85,12 +85,12 @@ Issuer, redirect, and the `gsc_console` cookie are written up in [Connect a cons
 
 | You need | Read |
 | --- | --- |
-| Install, systemd, Mac and WSL | [Install](https://github.com/PIndustries/genestack-console/blob/v2026.10.02/docs/install.md){:target="_blank"} |
-| A local all-in-one lab | [Install AIO](https://github.com/PIndustries/genestack-console/blob/v2026.10.02/docs/install-aio.md){:target="_blank"} |
-| Jobs, agents, and auth | [Architecture](https://github.com/PIndustries/genestack-console/blob/v2026.10.02/docs/architecture.md){:target="_blank"} |
+| Install, systemd, Mac and WSL | [Install](https://github.com/PIndustries/genestack-console/blob/v2026.10.03/docs/install.md){:target="_blank"} |
+| A local all-in-one lab | [Install AIO](https://github.com/PIndustries/genestack-console/blob/v2026.10.03/docs/install-aio.md){:target="_blank"} |
+| Jobs, agents, and auth | [Architecture](https://github.com/PIndustries/genestack-console/blob/v2026.10.03/docs/architecture.md){:target="_blank"} |
 | Portal account and the Apple apps | [Connect a console to my.genestack.dev](https://github.com/PIndustries/genestack-console/blob/main/docs/hosted-mode.md){:target="_blank"} |
-| HTTP API | [API reference](https://github.com/PIndustries/genestack-console/blob/v2026.10.02/API_REFERENCE.md){:target="_blank"}, and `/swagger` on a running console |
-| How a release is cut | [Releasing](https://github.com/PIndustries/genestack-console/blob/v2026.10.02/docs/releasing.md){:target="_blank"} |
+| HTTP API | [API reference](https://github.com/PIndustries/genestack-console/blob/v2026.10.03/API_REFERENCE.md){:target="_blank"}, and `/swagger` on a running console |
+| How a release is cut | [Releasing](https://github.com/PIndustries/genestack-console/blob/v2026.10.03/docs/releasing.md){:target="_blank"} |
 
 !!! note
 
