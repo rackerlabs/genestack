@@ -15,7 +15,7 @@ We recommend the deploy host be L2 with the servers you are installing. L2 means
 
 When the deploy host cannot be L2 with a site, install the console agent on a computer that is. The agent gives out the addresses and the boot files at that site, and it connects out to the console. You still run the job from the console. One console often looks after several sites this way, such as more than one datacenter in the same private cloud.
 
-The console is published on its own: [PIndustries/genestack-console](https://github.com/PIndustries/genestack-console){:target="_blank"}. This page is the chapter in the Genestack manual. Install details, the HTTP API, and the release notes are in that repository.
+The console is published on its own: [PIndustries/genestack-console](https://github.com/PIndustries/genestack-console){:target="_blank"}. This page is the chapter in the Genestack manual. The pages after it walk through the program. Install details for a Mac or Windows, and how a release is cut, stay in that repository.
 
 ## Install the console
 
@@ -113,23 +113,57 @@ The environment, the job log, and the management-port passwords stay on the depl
 
 How the sign-in is configured is written in [Connect a console to my.genestack.dev](https://github.com/PIndustries/genestack-console/blob/main/docs/hosted-mode.md){:target="_blank"}.
 
+## What the code is doing
+
+The installed program is one Linux binary and two processes. The first serves this page, the API, and, when the deploy host is L2 with the servers, DHCP and the boot file. The second is the worker. A click records a job. The worker runs it, so a long install is not stuck inside the browser request.
+
+The source is the Python package `app` in the console repository.
+
+| Path | What it is |
+| --- | --- |
+| `app/main.py` | Starts the API process and attaches every route. |
+| `app/routers/` | One file per area of the API. A route checks who you are, then reads or queues a job. |
+| `app/services/` | The work those routes and jobs call: the settings document, the pipeline, DHCP, the management port. |
+| `app/modules/` | The jobs. One folder per area. One Python file per operation. The folder's `__init__.py` lists those files and does not call them. |
+| `app/services/job_runner.py` | Prepares the environment, then calls the one function that matches the job. |
+| `app/worker/runner.py` | Claims queued jobs. Two workers cannot take the same row. |
+| `app/models.py`, `app/db.py` | The tables, and the code that opens them. There is no separate migration tool. |
+| `app/static/`, `app/templates/ui.html` | The web page. The shell is the HTML file. Each screen is a JavaScript file. |
+| `config.yaml` | Bind address, secret key, API keys, the database, and any extra module folders. |
+| `agent/` | The program you install at a site this machine cannot reach at L2. It connects out. |
+
+The next pages walk through that split.
+
+| Page | What it explains |
+| --- | --- |
+| [The program](genestack-console-program.md) | The two processes, the database, who can sign in, the collector, and the agent. |
+| [How a job runs](genestack-console-runtime.md) | From the click, to the worker, to `/opt/genestack`, including the settings document and DHCP. |
+| [Jobs](genestack-console-jobs.md) | Every operation that ships, the pipeline stages, and how to add one. |
+| [The HTTP API](genestack-console-api.md) | How a call is authenticated, and which file serves which route. |
+| [The web page](genestack-console-ui.md) | The sidebar, one environment, and what each screen file draws. |
+
 ## Adding an operation
 
-An operation is one job the console knows how to run: power a server, push config, deploy. Each one is a Python file. The files for one area sit in a folder. The folder's `__init__.py` is the class that lists those files, in order.
+An operation is one job the console knows how to run: power a server, push config, deploy. Each one is a Python file. The files for one area sit in a folder. The folder's `__init__.py` is the class that lists those files, in order. It does not call them.
 
-The built-in folders live in the console repository under `app/modules/`. Bare metal is `app/modules/baremetal/`. To add your own, make a folder with the same shape and put its path in `modules.paths` in `config.yaml`. The console loads it on startup. The layout and a worked example are in the console manual, [Modules](https://github.com/PIndustries/genestack-console/blob/main/docs/modules.md).
+The built-in folders live under `app/modules/`. Bare metal is `app/modules/baremetal/`. To add your own, make a folder with the same shape and put its path in `modules.paths` in `config.yaml`. The console loads it on startup. The full list, the pipeline, and the steps are on [Jobs](genestack-console-jobs.md). The same layout, with a worked example, is [Modules](https://github.com/PIndustries/genestack-console/blob/main/docs/modules.md){:target="_blank"}.
 
 ## The rest of the manual
 
-The links below open the console repository. The binary named on this page is `v2026.10.03`. The manual can be ahead of that tag.
+The first rows are the rest of this chapter. The links after them open the console repository. The binary named on this page is `v2026.10.03`. The source on `main` can be ahead of that tag.
 
 | You need | Read |
 | --- | --- |
+| The two processes and the database | [The program](genestack-console-program.md) |
+| How a click becomes a command | [How a job runs](genestack-console-runtime.md) |
+| Every operation, and how to add one | [Jobs](genestack-console-jobs.md) |
+| The HTTP routes | [The HTTP API](genestack-console-api.md) |
+| The screens | [The web page](genestack-console-ui.md) |
 | Install on Linux, a Mac, or Windows | [Install](https://github.com/PIndustries/genestack-console/blob/main/docs/install.md){:target="_blank"} |
 | A lab with one local virtual machine | [Install AIO](https://github.com/PIndustries/genestack-console/blob/main/docs/install-aio.md){:target="_blank"} |
-| How the program is put together | [Architecture](https://github.com/PIndustries/genestack-console/blob/main/docs/architecture.md){:target="_blank"} |
+| The longer design notes | [Architecture](https://github.com/PIndustries/genestack-console/blob/main/docs/architecture.md){:target="_blank"} |
 | The account page and the Apple apps | [Connect a console to my.genestack.dev](https://github.com/PIndustries/genestack-console/blob/main/docs/hosted-mode.md){:target="_blank"} |
-| HTTP API | [API reference](https://github.com/PIndustries/genestack-console/blob/v2026.10.03/API_REFERENCE.md){:target="_blank"}, and `/swagger` on a running console |
+| Path-by-path HTTP reference | [API reference](https://github.com/PIndustries/genestack-console/blob/v2026.10.03/API_REFERENCE.md){:target="_blank"}, and `/swagger` on a running console |
 | How a release is cut | [Releasing](https://github.com/PIndustries/genestack-console/blob/main/docs/releasing.md){:target="_blank"} |
 
 !!! note

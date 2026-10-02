@@ -160,7 +160,13 @@ nav:
       - Getting Started:
           - Building Virtual Environments: build-test-envs.md
           - Getting the code: genestack-getting-started.md
-          - Genestack Console: genestack-console.md
+          - Genestack Console:
+              - Overview: genestack-console.md
+              - The program: genestack-console-program.md
+              - How a job runs: genestack-console-runtime.md
+              - Jobs: genestack-console-jobs.md
+              - The HTTP API: genestack-console-api.md
+              - The web page: genestack-console-ui.md
       - Open Infrastructure:
           - Kubernetes:
               - k8s-overview.md
