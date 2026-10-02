@@ -2,7 +2,7 @@
 
 Genestack is this repository. It is the scripts, Ansible playbooks, and charts that install OpenStack on Kubernetes.
 
-Genestack Console is a different program. The recommended place for it is a dedicated Linux server, on the same Ethernet network as the bare-metal machines, with no router between them. That is Layer 2. Clone this repository onto that server, install the console beside the checkout, and open the console in a browser. From that page you:
+Genestack Console is a different program. The recommended place for it is a dedicated Linux server that is L2 with the servers in that environment. L2 means the console and those servers share a local network. That is what lets the console answer DHCP and serve PXE itself. DHCP is how a machine asks for an IP address. PXE is the network boot: the server downloads a boot file and runs it. Clone this repository onto that server, install the console beside the checkout, and open the console in a browser. From that page you:
 
 - save the settings for one cloud
 - turn the physical servers on and off
@@ -11,7 +11,9 @@ Genestack Console is a different program. The recommended place for it is a dedi
 
 The computer you install it on is the deploy host. That phrase means the machine that performs the install. The cluster is the Kubernetes and OpenStack cloud the scripts in this repository build. The deploy host never joins the cluster. It is not a Kubernetes node, and it is not an OpenStack compute node. It sits just outside the cloud.
 
-You use the deploy host as out-of-band management. Out of band means the console reaches the servers on that same Ethernet network and through each server's management port, on a path that does not go through the cluster. A management port is the small controller inside a server that stays on when the main computer is off. Vendors call it the BMC, iLO, or iDRAC. If the cluster stops answering, this machine can still power the servers, hand a server an IP address and a boot file, and run the install scripts. The console, the saved settings, the job log, and the passwords for the server management ports stay on that machine.
+You use the deploy host as out-of-band management. Out of band means the console reaches the servers on their L2 network and through each server's management port, on a path that does not go through the cluster. A management port is the small controller inside a server that stays on when the main computer is off. Vendors call it the BMC, iLO, or iDRAC. If the cluster stops answering, this machine can still power the servers, hand a server an IP address and a boot file, and run the install scripts. The console, the saved settings, the job log, and the passwords for the server management ports stay on that machine.
+
+If the console cannot be L2 with the servers, install the Genestack Console agent on a computer that is L2 with them. The agent answers DHCP and serves PXE in that location. It opens a connection out to the console. You still manage the environment from the console. One console often runs many environments this way. A private cloud with several datacenters is the usual case: the console stays outside every cluster, L2 with the servers it can reach, and an agent in each remote datacenter.
 
 The console is published on its own: [PIndustries/genestack-console](https://github.com/PIndustries/genestack-console){:target="_blank"}. This page is the chapter in the Genestack manual. Install details, the HTTP API, and the release notes are in that repository.
 
@@ -69,12 +71,12 @@ People who sign in have one of three roles: viewer, operator, or admin. An API k
 
 ## How a server gets an operating system
 
-The deploy host and the servers have to be on the same Ethernet network, with no router between them. On that network the console answers DHCP. DHCP is the request a machine sends when it wants an IP address. The console also serves a boot file. That file is a small program the network card downloads when the server is told to start from the network instead of from its disk. Both services run inside the console. You do not install a separate DHCP server for this.
+Where the deploy host is L2 with the servers, the console answers DHCP and serves the boot file on that network. The boot file is the small program the network card downloads when the server is told to start from the network instead of from its disk. Both services run inside the console. You do not install a separate DHCP server for this.
 
 Each server has two addresses you type in.
 
 - The management port. Vendors call it the BMC, iLO, or iDRAC. It is a small controller inside the server that stays on when the main computer is off. The console uses it to power the server, and to ask the server to boot from the network one time.
-- The port plugged into the same network as the deploy host. The console matches that port by its MAC address. A MAC address is the hardware address of the network card.
+- The port on the L2 network. The console, or the agent at a remote site, matches that port by its MAC address. A MAC address is the hardware address of the network card.
 
 Every server has its own next boot.
 
@@ -93,7 +95,7 @@ For a server you did select:
 
 An ISO image cannot be the first boot of a reinstall. An ISO does not wipe the disks, so the console rejects that choice on this path.
 
-Servers on the far side of a firewall cannot hear the deploy host. Install the console agent on a computer that sits on those servers' network. The agent opens a connection out to the console. DHCP and the boot files for that site run on the agent. The agent install is in the console install guide linked below.
+Where the deploy host cannot be L2 with the servers, install the Genestack Console agent on a computer that is. The agent opens a connection out to the console. DHCP and the boot files for that environment run on the agent. You still start the job from the console. The agent install is in the console install guide linked below.
 
 !!! warning
 

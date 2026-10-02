@@ -2,9 +2,11 @@
 features:
   - |
     Documented the Genestack Console under Getting Started. The console
-    is a separate program. Install it on a dedicated server on the same
-    Ethernet as the bare metal, outside the cluster, so it can still
-    manage the servers when the cluster is down. From its web page you
+    is a separate program. Install it on a dedicated server outside the
+    cluster. L2 with the servers is recommended, so that server serves
+    DHCP and PXE for the environment. Where it cannot be L2, an agent
+    there serves DHCP and PXE, and the console still manages the
+    environment. From its web page you
     save the cloud settings, power the servers, hand a server an IP
     address and a boot file, and run the Genestack scripts. The install
     path is ``/opt/genestack-console``.
