@@ -7,7 +7,7 @@ After = syslog.target
 Type = simple
 User = cinder
 Group = cinder
-ExecStart = /bin/bash -c "/opt/cinder/bin/cinder-volume-usage-audit --config-file /etc/cinder/cinder.conf --config-dir /etc/cinder/cinder.conf.d --start_time \"$$(date +%%Y-%%m-%%d\ %%H:00:00 -d -1hour)\" --end_time \"$$(date +%%Y-%%m-%%d\ %%H:00:00)\" --send_actions"
+ExecStart = /bin/bash -c "/opt/cinder/bin/cinder-volume-usage-audit --config-file /etc/cinder/cinder.conf --config-file /etc/cinder/lvm-cinder.conf --config-dir /etc/cinder/cinder.conf.d --start_time \"$$(date +%%Y-%%m-%%d\ %%H:00:00 -d -1hour)\" --end_time \"$$(date +%%Y-%%m-%%d\ %%H:00:00)\" --send_actions"
 ExecReload = /bin/kill -HUP $MAINPID
 # Give a reasonable amount of time for the server to start up/shut down
 TimeoutSec = 120
