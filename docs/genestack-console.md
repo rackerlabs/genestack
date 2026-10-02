@@ -2,14 +2,16 @@
 
 Genestack is this repository. It is the scripts, Ansible playbooks, and charts that install OpenStack on Kubernetes.
 
-Genestack Console is a different program. You install it on the same Linux computer as this checkout, then open it in a browser. From that page you:
+Genestack Console is a different program. The recommended place for it is a dedicated Linux server, on the same Ethernet network as the bare-metal machines, with no router between them. That is Layer 2. Clone this repository onto that server, install the console beside the checkout, and open the console in a browser. From that page you:
 
 - save the settings for one cloud
 - turn the physical servers on and off
 - give a server an IP address and a boot file while you install an operating system on it
 - run the scripts in this repository and read the log
 
-The computer you install it on is the deploy host. That phrase means the machine that performs the install. Pick a Linux machine that can reach the servers. The console, the saved settings, the job log, and the passwords for the server management ports stay on that machine.
+The computer you install it on is the deploy host. That phrase means the machine that performs the install. The cluster is the Kubernetes and OpenStack cloud the scripts in this repository build. The deploy host never joins the cluster. It is not a Kubernetes node, and it is not an OpenStack compute node. It sits just outside the cloud.
+
+You use the deploy host as out-of-band management. Out of band means the console reaches the servers on that same Ethernet network and through each server's management port, on a path that does not go through the cluster. A management port is the small controller inside a server that stays on when the main computer is off. Vendors call it the BMC, iLO, or iDRAC. If the cluster stops answering, this machine can still power the servers, hand a server an IP address and a boot file, and run the install scripts. The console, the saved settings, the job log, and the passwords for the server management ports stay on that machine.
 
 The console is published on its own: [PIndustries/genestack-console](https://github.com/PIndustries/genestack-console){:target="_blank"}. This page is the chapter in the Genestack manual. Install details, the HTTP API, and the release notes are in that repository.
 

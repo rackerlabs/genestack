@@ -2,10 +2,12 @@
 features:
   - |
     Documented the Genestack Console under Getting Started. The console
-    is a separate program you install on the same Linux computer as this
-    checkout. From its web page you save the cloud settings, power the
-    servers, hand a server an IP address and a boot file, and run the
-    Genestack scripts. The install path is ``/opt/genestack-console``.
+    is a separate program. Install it on a dedicated server on the same
+    Ethernet as the bare metal, outside the cluster, so it can still
+    manage the servers when the cluster is down. From its web page you
+    save the cloud settings, power the servers, hand a server an IP
+    address and a boot file, and run the Genestack scripts. The install
+    path is ``/opt/genestack-console``.
     A server boots from its own disk until you select it. ``https://my.genestack.dev``
     is the account page for the Apple apps that connect to that console.
     The console source is pinned at ``submodules/genestack-console`` from
