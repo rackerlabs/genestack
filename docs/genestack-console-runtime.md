@@ -67,7 +67,7 @@ Each environment has one YAML document. Every save is a new row in `env_config_v
 | `helm_overrides` | Writes `helm-configs/<service>/console-rendered.yaml`. The filename is the console's, so it does not replace a file you maintain by hand. Helm reads every file in the directory. |
 | `kustomize_patches` | Writes an overlay under `kustomize/<service>/overlay/`. |
 | `group_vars` | Writes `inventory/group_vars/<group>/console-rendered.yml`. |
-| `secrets` | Merges into `kubesecrets.yaml`. An existing secret is kept. A name that exists in both files takes the console's value. |
+| `secrets` | Merges into `kubesecrets.yaml`. An existing secret is kept. A name that exists in both files takes the console's value. The file is on the deploy host only while the job is running. |
 | `storage` | Cinder keys go to the Cinder group vars. A Ceph block renders the Rook overlay. |
 | `network` | Not a file. The keys are environment variables on the install commands. |
 | `talos` | Talos image and machine settings for the bootstrap. Not a file in `/etc/genestack` by itself. |
@@ -109,7 +109,7 @@ A site that has its own agent gets a directory, `data/pxe/<agent_id>/`, rendered
 
 The `pxe` section names the interface, the DHCP range, and `http_port`. DHCP listens on UDP port 67. Set `http_port` yourself. When the key is omitted, the in-process server uses 8088, and the URL written into the boot file uses 8080. Those are not the same number, and neither one is a reason to move the console page off 8080. Servers you have recorded get a DHCP reservation from their MAC address and the address you typed.
 
-`app/services/bootselect.py` is the per-MAC choice. The commission image is a small system that runs from memory. It does not mount a disk. It clears the front of each fixed disk, so the old bootloader cannot win the next start, and it posts one report. Talos is served for that MAC only after the console accepts the report. A MAC you have not selected is sent back to its own disk.
+`app/services/bootselect.py` is the per-MAC choice. The commission image is a small system that runs from memory. It does not mount a disk. It clears the front of each fixed disk, so the old bootloader cannot win the next start, and it posts one report. Talos is served for that MAC only after the console accepts the report. Ubuntu is the other operating system. It installs that one machine from `data/pxe/ubuntu/<hostname>/` and does not require the commission wipe. You place the kernel and initrd at `data/pxe/ubuntu/vmlinuz` and `data/pxe/ubuntu/initrd`. A MAC you have not selected is sent back to its own disk.
 
 The boot order, and why an ISO is rejected on the greenfield path, is on the [install chapter](genestack-console.md). `baremetal.node.iso_boot` is a different operation. It inserts an ISO into the management-port virtual CD when the network port cannot PXE. It is not the first boot of a reinstall.
 
@@ -126,6 +126,12 @@ A scan for management ports, and a scan that finds servers before you accept the
 `app/services/crypto.py` encrypts with Fernet. The key is the SHA-256 of `secret_key`, not the string itself. Stored values start with `fernet:`. An older plaintext value still reads. Rotating `secret_key` means re-encrypting every stored secret. Back up `config.yaml` and the database together before you rotate it.
 
 The same key covers kubeconfigs, management-port passwords, provider secrets, and notification credentials. User passwords are the exception. They are hashed, not encrypted.
+
+The console database holds the secrets. HashiCorp Vault and OpenBao are not part of this console. 1Password is not the store.
+
+The deploy host has `kubesecrets.yaml` only while a job is running. The push writes that file so the install scripts can read it. The job removes it when the job finishes. Success, failure, and cancel all remove it. The same step removes the backup copy of that file under `.console-backup`, the `.ssh` files that the push wrote under the Genestack config directory, the backup copies of those `.ssh` files, and a kubeconfig file this job created. That kubeconfig includes one `talosctl` wrote on the deploy host. A kubeconfig the job fetched is encrypted onto the environment with the same Fernet helper, then the file is removed. The cleanup does not use `rm -rf`. It does not remove `helm-chart-versions.yaml`, the inventory, the push manifest, backups of those other files, or the deploy host account's `~/.ssh`. A kubeconfig path that was already on the host is left in place. A dry run writes nothing and deletes nothing.
+
+The console also stages a decrypted kubeconfig under its data directory for the length of the job, mode `0600`, and removes that copy when the job ends. A copy left behind by a crash is removed the next time the console starts.
 
 Job logs pass through `app/services/logredact.py` so a secret that showed up in command output is masked before the log is stored.
 
@@ -219,4 +225,4 @@ The worker is `python -m app.worker.runner`, or the `worker` subcommand of the b
 | `scripts/systemd/` | The two unit files. |
 | `pxe/` | A small container, dnsmasq plus a static HTTP server. A container install can add it with `GSC_WITH_PXE=1`. The Linux binary serves DHCP and the boot files in-process and does not start that container. The files are the ones `app/services/pxe.py` writes. |
 
-The account page and the Apple apps are not in this tree. They open the console you installed. The environment and the job log stay on the deploy host.
+The account page and the Apple apps are not in this tree. They open the console you installed. The environment and the job log stay in the console database on the deploy host.

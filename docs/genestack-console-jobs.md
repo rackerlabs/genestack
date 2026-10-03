@@ -95,7 +95,7 @@ These talk to the server and to the boot service. The management port is the BMC
 | `baremetal.bmc_scan` | `app/modules/baremetal/bmc_scan.py` | Scans a range for management ports. |
 | `baremetal.node.power` | `app/modules/baremetal/node_actions.py` | Powers a server on, off, or cycles it. |
 | `baremetal.node.pxe_boot` | `app/modules/baremetal/node_actions.py` | Asks the management port for one network boot. |
-| `baremetal.node.next_boot` | `app/modules/baremetal/node_actions.py` | Sets the next boot to disk, commission, or Talos. |
+| `baremetal.node.next_boot` | `app/modules/baremetal/node_actions.py` | Sets the next boot to disk, commission, Talos, or Ubuntu. |
 | `baremetal.node.provision` | `app/modules/baremetal/node_actions.py` | Commission, then one Talos boot, for one server. |
 | `baremetal.node.iso_boot` | `app/modules/baremetal/node_actions.py` | Puts an ISO in the management-port virtual CD when the network port cannot PXE. This is not the greenfield path. Greenfield rejects an ISO because an ISO does not wipe the disks. |
 

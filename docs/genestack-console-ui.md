@@ -47,7 +47,7 @@ Settings is four more tabs.
 | Access | SSH keys, agents, and the bare-metal cards. `environment_sshkeys.js`, `environment_agents.js`, `environment_baremetal.js`, `environment_pxe.js`. |
 | Expert | The fields that do not have their own card. |
 
-The bare-metal cards are also on the Hardware page. Hardware has three tabs: Inventory, Bare metal, and Providers. Inventory is the servers you have typed in. Bare metal is the boot service and the management ports. Providers is a saved login for OVH, Rackspace, AWS, Azure, or GCP. The secret stays on the deploy host.
+The bare-metal cards are also on the Hardware page. Hardware has three tabs: Inventory, Bare metal, and Providers. Inventory is the servers you have typed in. Bare metal is the boot service and the management ports. The next boot on a bare-metal row is Disk, Commission, Serve Talos, or Install Ubuntu. Providers is a saved login for OVH, Rackspace, AWS, Azure, or GCP. That login is stored in the console database on the deploy host.
 
 Activity has three tabs.
 
@@ -58,6 +58,14 @@ Activity has three tabs.
 | Audit | `audit.js` | Who changed what. |
 
 A notification channel is a Slack, Discord, or Teams webhook, or a Resend or Twilio credential. An admin saves it on the Alerts tab. The secret is encrypted and is not shown again. A rule can send through that channel and through its own webhook URL. This is on `main`. The `v2026.10.03` binary does not have that card.
+
+On `main`, Admin has a Reach card for the deploy host, and Settings → Access has a Reach card for one environment. A WireGuard client config is shown once. A Tailscale auth key and a Cloudflare tunnel token are not shown again. The `v2026.10.03` binary does not have those cards.
+
+On `main`, Admin has a Database card that shows SQLite or Postgres, the URL with the password hidden, and Move. Move copies every table onto an empty target, writes `database_url`, and tells you to restart. The `v2026.10.03` binary does not have that card.
+
+Traces are API-only. An admin reads and posts spans at `/api/v1/traces`. There is no traces screen. This is on `main`. It is not in the `v2026.10.03` binary.
+
+On `main`, Settings → Access has a Hosts card. It prepares an Ubuntu autoinstall seed, queues a MicroK8s install, or records a Kubespray cluster that already exists. Talos stays on its own card. Install Ubuntu on the bare-metal row is the boot that puts Ubuntu on the machine. The `v2026.10.03` binary does not have the Hosts card. Install Ubuntu is on `main` and is not in that binary either.
 
 ## What the other screen files are
 
