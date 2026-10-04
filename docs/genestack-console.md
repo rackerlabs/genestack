@@ -43,7 +43,13 @@ Back up two things together: `/opt/genestack-console/config.yaml`, and the conso
 
 Clone this repository first. [Getting the code](genestack-getting-started.md) is that step. On the deploy host the checkout lives at `/opt/genestack`.
 
-`bootstrap.sh`, in that checkout, creates `/etc/genestack`. That directory is the inventory and the settings the install reads. One file it writes is `/etc/genestack/provider`, which records which Kubernetes installer you are using. Kubespray is the default. It installs Kubernetes onto machines that already have an operating system. Talos is the other choice. Talos is an operating system that boots a machine straight into Kubernetes. The Talos bare-metal steps on this page follow the same order as [Talos Linux](k8s-talos.md): wipe the disks, boot Talos, then send the machine config. Ubuntu is a different next boot. It installs one machine and stops. It is not a value in the provider file.
+`bootstrap.sh`, in that checkout, creates `/etc/genestack`. That directory is the inventory and the settings the install reads. One file it writes is `/etc/genestack/provider`, which records which Kubernetes installer this environment uses. The console reads that file. Talos and Kubespray are the two values. Genestack after Kubernetes is the same work either way.
+
+Talos is the preferred way to provision bare metal. Talos is an operating system that boots a machine straight into Kubernetes. The Talos steps on this page follow [Talos Linux](k8s-talos.md): wipe the disks, boot Talos, then send the machine config. Set the provider file to `talos` for that environment.
+
+Kubespray is the other installer. It adopts machines that already have an operating system, then Genestack continues the same way. `bootstrap.sh` writes `kubespray` into the provider file when that file does not exist yet. That is the file's initial value, not a preference for bare metal you are provisioning.
+
+Ubuntu is a different next boot. It installs one machine and stops. It is not a value in the provider file. A Kubespray environment can adopt that machine afterward.
 
 | Path | What it is |
 | --- | --- |
@@ -73,7 +79,7 @@ People who sign in have one of three roles: viewer, operator, or admin. An API k
 
 ## How a server gets an operating system
 
-Where the deploy host is L2 with the servers, the console answers DHCP and serves the boot file on that network. DHCP is how a machine asks for an IP address. The boot file is the small program the network card downloads when the server is told to start from the network instead of from its disk. Both services run inside the console. This is how a server gets an operating system. Talos and Ubuntu are the two the console installs from the network. You do not install a separate DHCP server, or another program, to boot the machines.
+Where the deploy host is L2 with the servers, the console answers DHCP and serves the boot file on that network. DHCP is how a machine asks for an IP address. The boot file is the small program the network card downloads when the server is told to start from the network instead of from its disk. Both services run inside the console. This is how a server gets an operating system. Talos and Ubuntu are the two the console installs from the network. Talos is the preferred boot. Ubuntu leaves the machine out of the cluster so Kubespray can adopt it. You do not install a separate DHCP server, or another program, to boot the machines.
 
 Each server has two addresses you type in.
 
@@ -97,6 +103,8 @@ For a server you did select:
 4. Talos comes up in maintenance. Maintenance means Talos is running and waiting for its configuration. The job then continues with the [Talos Linux](k8s-talos.md) steps in this manual.
 
 Those four steps are the Talos path. Install Ubuntu is a separate next boot. It writes that machine's seed and can power the machine from the network. It does not run the wipe, and it does not continue into OpenStack.
+
+Kubespray does not use that wipe. The machines already have an operating system, often from the Ubuntu next boot. Set the provider to `kubespray` and run the install. Kubernetes and OpenStack after that are the same.
 
 An ISO image cannot be the first boot of a reinstall. An ISO does not wipe the disks, so the console rejects that choice on this path.
 
