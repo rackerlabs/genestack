@@ -10,12 +10,6 @@ shell workflows under `scripts/`.
 | --- | --- | --- |
 | `find_orphan_amphora.py` | Finds Nova servers that appear to be orphaned Octavia amphorae by comparing Octavia `compute_id` values with the load-balancer management network and, optionally, a dedicated Amphora compute aggregate. | Deletes only candidates that still own a port on the configured management network with `--fix --yes-im-really-sure`. Aggregate-only candidates without management-port evidence remain manual review. |
 
-## Legacy Migration Map
-
-| Legacy script | New script |
-| --- | --- |
-| `scripts/find-orphan-amphora.sh` | `ops-tools/find_orphan_amphora/find_orphan_amphora.py` |
-
 ## Requirements
 
 - Python 3.10 or newer.
