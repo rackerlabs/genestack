@@ -348,7 +348,6 @@ full list):
 | `trove_mysql_version`             | `8.4`                            | MySQL version to build and register                      |
 | `trove_guest_image_os_release`    | `bookworm`                       | Debian release for the guest image                       |
 | `trove_guest_image_name`          | `trove-mysql-8.4-bookworm`       | Glance image name (derived from the two above)           |
-| `trove_openstack_release`         | `2025.2`                         | Trove branch cloned for DIB elements + guest agent       |
 | `trove_datastore_name`            | `mysql`                          | Trove datastore type name                                |
 | `trove_datastore_version_name`    | `8.4`                            | Trove datastore version                                  |
 | `trove_keypair_name`              | `trove-access-keypair`           | Nova keypair for instance access                         |
@@ -356,16 +355,9 @@ full list):
 | `trove_services_secgroup_name`    | `trove-services-secgroup`        | Security group for the services (RabbitMQ/Keystone) VIP  |
 | `trove_mgmt_public_network_name`  | `flat`                           | Public provider network for the mgmt router's gateway    |
 | `trove_mgmt_network_name`         | `trove-mgmt-net`                 | Management overlay network name                          |
-| `trove_mgmt_subnet_cidr`          | `10.0.0.0/20`                    | Management subnet CIDR                                    |
+| `trove_mgmt_subnet_cidr`          | `10.0.0.0/20`                    | Management subnet CIDR                                   |
 | `trove_services_anchor_ip`        | `10.0.0.10`                      | Anchor IP guests use for RabbitMQ/Keystone               |
 | `trove_deploy_swift`              | `true`                           | Deploy Swift for backup/restore support                  |
-
-!!! note "Guest agent and server release must match"
-
-    `trove_openstack_release` (the guest agent branch) must be compatible with the Trove
-    server-side image in `trove-helm-overrides.yaml`. A mismatch across the 23.x/25.x
-    boundary can cause silently dropped RPC heartbeats and guest-agent build timeouts. See
-    the comments in `defaults/main.yml` for the full rationale.
 
 ## Troubleshooting
 
@@ -415,3 +407,59 @@ Key configuration options merged into `trove-helm-overrides.yaml` by the role
 
 For advanced configuration, refer to the
 [OpenStack Trove documentation](https://docs.openstack.org/trove/latest/).
+
+## Database flavor filtering
+
+Trove's `GET /v1.0/{tenant}/flavors` endpoint lists every Nova flavor the tenant can see,
+which includes general-purpose compute flavors. Genestack reserves a dedicated naming
+convention for database flavors (`db.*`, e.g. `db.1.1`, `db.4.4`, created by the
+`trove_enablement_techpreview` role), and ships a WSGI paste filter that keeps non-database
+flavors out of the Trove flavor catalog.
+
+The filter, `dbflavorfilter`, is wired into the Trove API PasteDeploy pipeline via
+`conf.paste` in `base-helm-configs/trove/trove-helm-overrides.yaml`:
+
+``` yaml
+conf:
+  paste:
+    filter:dbflavorfilter:
+      paste.filter_factory: genestack_trove_flavor_filter:DatabaseFlavorFilter.factory
+      database_flavor_prefix: db.
+    pipeline:troveapi:
+      pipeline: http_proxy_to_wsgi faultwrapper authtoken authorization contextwrapper ratelimit extensions dbflavorfilter troveapp
+```
+
+The filter sits just before the `troveapp` application so it can inspect the fully-rendered
+flavor responses on their way back to the client. It drops any flavor whose name does not
+start with `database_flavor_prefix` (default `db.`) from the flavors list, and returns a 404
+for a direct show request against a non-database flavor.
+
+To widen or change which flavors are considered database flavors, adjust
+`database_flavor_prefix`.
+
+### How the middleware is delivered
+
+The stock Trove image does not contain this middleware, so Genestack ships it entirely
+through the Trove kustomize overlay — no custom image build is required:
+
+- `base-kustomize/trove/base/trove-flavor-filter-configmap.yaml` carries the middleware as a
+  top-level Python module, `genestack_trove_flavor_filter.py`, in a ConfigMap. The module is
+  intentionally *not* placed under the `trove.*` namespace so it never shadows the real
+  `trove` package on `sys.path`.
+- `base-kustomize/trove/base/trove-api-flavor-filter-patch.yaml` patches the `trove-api`
+  Deployment to mount that ConfigMap at `/var/lib/openstack-extensions/` and sets
+  `PYTHONPATH=/var/lib/openstack-extensions` so the interpreter can import the module. The
+  `paste.filter_factory` above therefore references the bare module name
+  `genestack_trove_flavor_filter`, not a dotted `trove.common.*` path.
+
+Both resources are applied by the Trove overlay's post-renderer (`bin/install-trove.sh`), so
+they ship with every `helm upgrade --install trove`.
+
+!!! note "Naming convention, not Nova flavor access"
+
+    Trove has no native configuration option to restrict which flavors its API advertises,
+    so `dbflavorfilter` enforces the `db.*` naming convention at the API layer. This hides
+    non-database flavors from the flavor list; it does not stop them from being *used* to
+    launch an instance. To also prevent non-database flavors from being used, restrict them
+    with Nova flavor access (`openstack flavor set --private` plus per-project access grants)
+    rather than relying on this filter alone.

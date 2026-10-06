@@ -75,8 +75,8 @@ skipped. To force a fresh build and re-upload:
 `trove_guest_image_builder.yml` performs the following:
 
 1. Installs `python-troveclient` into the genestack venv and the build-time system packages.
-2. Clones `openstack/trove` at `stable/{{ trove_openstack_release }}` and creates an isolated
-   build virtualenv with `diskimage-builder`.
+2. Clones `openstack/trove` at `stable/<derived branch from helm chart>` and creates an
+   isolated build virtualenv with `diskimage-builder`.
 3. Checks Glance for the target image and decides whether a build is needed.
 4. Pulls `docker.io/library/mysql:8.4` as a docker-archive tarball with `skopeo`, and builds
    `mysql-backup:8.4` from the Trove repo's `backup/` Dockerfile.
@@ -242,13 +242,12 @@ The build is driven by variables in
 `ansible/roles/trove_enablement_techpreview/defaults/main.yml`. The most relevant for image
 building are:
 
-| Variable                       | Default                     | Description                                       |
-|--------------------------------|-----------------------------|---------------------------------------------------|
-| `trove_mysql_version`          | `8.4`                       | MySQL version (datastore container tag)           |
-| `trove_guest_image_os_release` | `bookworm`                  | Debian release for the guest                      |
-| `trove_guest_image_name`       | `trove-mysql-8.4-bookworm`  | Glance image name (derived from the two above)    |
-| `trove_openstack_release`      | `2025.2`                    | Trove branch for DIB elements + guest agent       |
-| `trove_dib_distribution_mirror`| `http://deb.debian.org/debian` | Debian mirror used by debootstrap             |
+| Variable                       | Default                        | Description                                    |
+|--------------------------------|--------------------------------|------------------------------------------------|
+| `trove_mysql_version`          | `8.4`                          | MySQL version (datastore container tag)        |
+| `trove_guest_image_os_release` | `bookworm`                     | Debian release for the guest                   |
+| `trove_guest_image_name`       | `trove-mysql-8.4-bookworm`     | Glance image name (derived from the two above) |
+| `trove_dib_distribution_mirror`| `http://deb.debian.org/debian` | Debian mirror used by debootstrap              |
 
 !!! example "Build for a different MySQL version"
 
@@ -258,14 +257,6 @@ building are:
         -e trove_mysql_version=8.0 \
         -e force_rebuild_image=true
     ```
-
-!!! warning "Guest agent and server release must match"
-
-    `trove_openstack_release` controls the guest agent branch and must be compatible with the
-    Trove server-side image configured in `trove-helm-overrides.yaml`. A mismatch across the
-    23.x/25.x boundary can cause silently dropped RPC heartbeats and guest-agent build
-    timeouts. See the extensive comments in `defaults/main.yml` for the rationale before
-    changing it.
 
 ## Testing the image
 

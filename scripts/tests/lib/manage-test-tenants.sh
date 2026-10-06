@@ -81,6 +81,22 @@ destroy_tenant() {
     $OS database backup delete "$id" 2>/dev/null || true
   done
 
+  # Database Replicas
+  TENANT_DBS=$($OS database instance list --project "$PROJECT_ID" -f json 2>/dev/null \
+    | python3 -c 'import json,sys; [print(s["ID"]) for s in json.load(sys.stdin)]' 2>/dev/null) || true
+  for id in $TENANT_DBS; do
+    if $OS database instance show "$id" -f value -c replica_of 1>/dev/null 2>&1; then
+      echo "    Deleting database replica $id..."
+      $OS database instance delete "$id" --force 2>/dev/null || true
+      # wait for replica to be removed from instance list
+      local elapsed=0
+      $OS database instance list 2>/dev/null
+      while { $OS database instance list 2>/dev/null | grep "$id"; } && (( elapsed < 10 )); do
+          sleep 1; (( elapsed += 1 ))
+      done
+    fi
+  done
+
   # Database Instances
   TENANT_DBS=$($OS database instance list --project "$PROJECT_ID" -f json 2>/dev/null \
     | python3 -c 'import json,sys; [print(s["ID"]) for s in json.load(sys.stdin)]' 2>/dev/null) || true
