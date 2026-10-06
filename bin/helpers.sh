@@ -78,6 +78,9 @@ log_header()   { echo ""; echo "========================================"; echo 
 # ── CLI Parsing ──────────────────────────────────────────────────────────────
 
 parse_cli() {
+    # Forward-looking entrypoint for the unified installer. Today most services
+    # still call helper functions from bin/install-*.sh wrappers directly; keep
+    # this parser in sync with that migration path.
     # Consumes all options, sets:
     #   CL_ROTATE_SECRETS   -- bool
     #   CL_CHECK_SECRETS    -- bool
@@ -1364,8 +1367,9 @@ secret_exists() {
 
 secret_get() {
     local ns="$1" name="$2" key="$3"
-    local raw value
-    raw=$($KUBECTL_BIN get secret "$name" --namespace "$ns" -o jsonpath="{.data.${key}}" 2>/dev/null)
+    local raw jsonpath_key
+    jsonpath_key="${key//./\\.}"
+    raw=$($KUBECTL_BIN get secret "$name" --namespace "$ns" -o "jsonpath={.data['${jsonpath_key}']}" 2>/dev/null)
     if [[ -n "$raw" ]]; then
         decode_base64 "$raw"
     fi
@@ -1373,9 +1377,10 @@ secret_get() {
 
 secret_get_to_file() {
     local ns="$1" name="$2" key="$3" path="$4"
-    local raw flag
+    local raw flag jsonpath_key
 
-    raw=$($KUBECTL_BIN get secret "$name" --namespace "$ns" -o jsonpath="{.data.${key}}" 2>/dev/null)
+    jsonpath_key="${key//./\\.}"
+    raw=$($KUBECTL_BIN get secret "$name" --namespace "$ns" -o "jsonpath={.data['${jsonpath_key}']}" 2>/dev/null)
     if [[ -z "$raw" ]]; then
         return 1
     fi
