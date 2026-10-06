@@ -17,29 +17,12 @@ Label one or more box in the cluster to run the job:
 kubectl label node etcd01.your.domain.tld is-etcd-backup-node=true
 ```
 
-Create the secret:
+Populate the backup secret:
 
 !!! note "Information about the secrets used"
 
-    Manual secret generation is only required if you haven't run the create-secrets.sh script located in /opt/genestack/bin.
-    However, you still need to add data to a couple of empty keys that are region-specific.
-
-    ??? example "Example secret generation"
-
-        ``` shell
-        kubectl --namespace openstack \
-        create secret generic etcd-backup-secrets \
-        --type Opaque \
-        --from-literal=ACCESS_KEY="<SECRET_ACCESS_KEY>" \
-        --from-literal=SECRET_KEY="<SECRET_SECRET_KEY>" \
-        --from-literal=S3_HOST="127.0.0.1" \
-        --from-literal=S3_REGION="<S3_REGION>" \
-        --from-literal=ETCDCTL_API="3" \
-        --from-literal=ETCDCTL_ENDPOINTS="https://127.0.0.1:2379" \
-        --from-literal=ETCDCTL_CACERT="/etc/ssl/etcd/ssl/ca.pem" \
-        --from-literal=ETCDCTL_CERT="/etc/ssl/etcd/ssl/member-etcd01.your.domain.tld.pem" \
-        --from-literal=ETCDCTL_KEY="/etc/ssl/etcd/ssl/member-etcd01.your.domain.tld-key.pem"
-        ```
+    The infrastructure install creates the backup Secret if it is missing and reuses existing values when rerun.
+    However, you still need to add data to the empty keys that are region-specific. `S3_REGION` now defaults to an empty value and should be patched when your S3-compatible endpoint requires a region.
 
 !!! note
 

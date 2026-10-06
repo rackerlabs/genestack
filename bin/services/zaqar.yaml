@@ -1,0 +1,72 @@
+---
+service:
+  name: zaqar
+  version: ~
+
+chart: {}
+
+secrets:
+  - helm_key: "endpoints.identity.auth.admin.password"
+    source_secret: keystone-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.identity.auth.zaqar.password"
+    source_secret: zaqar-admin
+    source_namespace: openstack
+    data_key: password
+    rotate_with_service: true
+    helm_flag: --set
+
+  - helm_key: "endpoints.identity.auth.test.password"
+    source_secret: zaqar-keystone-test-password
+    source_namespace: openstack
+    data_key: password
+    rotate_with_service: true
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_db.auth.admin.password"
+    source_secret: mariadb
+    source_namespace: openstack
+    data_key: root-password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_db.auth.zaqar.password"
+    source_secret: zaqar-db-password
+    source_namespace: openstack
+    data_key: password
+    rotate_with_service: true
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_messaging.auth.admin.password"
+    source_secret: rabbitmq-default-user
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_messaging.auth.zaqar.password"
+    source_secret: zaqar-rabbitmq-password
+    source_namespace: openstack
+    data_key: password
+    rotate_with_service: true
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_cache.auth.memcache_secret_key"
+    source_secret: os-memcached
+    source_namespace: openstack
+    data_key: memcache_secret_key
+    helm_flag: --set
+
+  - helm_key: "conf.zaqar.keystone_authtoken.memcache_secret_key"
+    source_secret: os-memcached
+    source_namespace: openstack
+    data_key: memcache_secret_key
+    helm_flag: --set
+
+  - helm_key: "conf.zaqar.signed_url.secret_key"
+    source_secret: zaqar-signed-url-secret-key
+    source_namespace: openstack
+    data_key: zaqar_signed_url_secret_key
+    rotate_with_service: true
+    helm_flag: --set
