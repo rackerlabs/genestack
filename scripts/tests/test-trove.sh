@@ -14,7 +14,7 @@
 #   --instance              ID of DB instance to use for primary test instance
 #   --datastore DS          Datastore type to test against (default: mysql)
 #   --ds-version VER        Datastore version number     (default: 8.4)
-#   --flavor FLAVOR         Nova flavor for instances    (default: m1.small)
+#   --flavor FLAVOR         Nova flavor for instances    (default: db.2.2)
 #   --resize-flavor FLAVOR  Nova flavor for instance resize    (default: m1.medium)
 #   --volume-size GB        Instance volume size in GB   (default: 10)
 #   --timeout SECS          Max seconds to wait for ACTIVE (default: 600)
@@ -37,14 +37,14 @@ source "${SCRIPT_DIR}/lib/openstack.sh"
 INSTANCE=""
 DATASTORE="mysql"
 DS_VERSION="8.4"
-FLAVOR="m1.small"
+FLAVOR="db.2.2"
 VOL_SIZE="10"
 INSTANCE_TIMEOUT=600
 CLEANUP="skip_net"
 OS_CLOUD="${OS_CLOUD:-acme-corp}"
 CUSTOMER_DIR="/home/ubuntu/customers"
 
-RESIZE_FLAVOR=m1.medium
+RESIZE_FLAVOR=db.4.4
 
 # ── argument parsing ──────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
