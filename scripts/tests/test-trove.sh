@@ -120,8 +120,8 @@ log_msg() {
 db() { cd $CUSTOMER_DIR; openstack --os-cloud "$OS_CLOUD" database "$@" 2>&1; }
 os() { cd $CUSTOMER_DIR; openstack --os-cloud "$OS_CLOUD" "$@" 2>&1; }
 
-instance_status() { db instance show "$1" -f value -c status 2>/dev/null || log_msg "$FAIL" "ERROR"; }
-backup_status()   { db backup show   "$1" -f value -c status 2>/dev/null || log_msg "$FAIL" "ERROR"; }
+instance_status() { db instance show "$1" -f value -c status 2>/dev/null; }
+backup_status()   { db backup show   "$1" -f value -c status 2>/dev/null; }
 
 wait_for_instance() {
     # wait_for_instance <name_or_id> [timeout]
@@ -789,11 +789,21 @@ test_instance_update() {
         --allowed-cidr "1.2.3.4/5" \
         2>&1 \
         || { log_msg "$FAIL" "Updating instance failed."; return 1; }
-    local out; out=$(db instance show "$INST_PRIMARY" -f value -c allowed_cidrs 2>&1)
-    log_msg "$INFO" "Instance details:"
-    log_msg "$INFO" "$out" | head -5 | sed 's/^/  /'
-    echo "$out" | grep -q "1.2.3.4/5" \
-        || { log_msg "$FAIL" "Expected allowed cidr not found for instance."; return 1; }
+    local out
+    local retry_cnt=0
+    while (( retry_cnt < 5 )); do
+          out=$(db instance show "$INST_PRIMARY" -f value -c allowed_cidrs 2>&1)
+          log_msg "$INFO" "Instance details:"
+          log_msg "$INFO" "$out" | head -5 | sed 's/^/  /'
+          if echo "$out" | grep -q "1.2.3.4/5"; then
+              return 0;
+          else
+              retry_cnt+=1
+              sleep 1
+          fi
+    done
+    log_msg "$FAIL" "Expected allowed cidr not found for instance."
+    return 1
 }
 
 test_log_list() {
@@ -1004,9 +1014,9 @@ test_instance_promote_eject() {
     log_msg "$INFO" "Eject test succeeded."
 
     # attempt cleanup, but don't let it sour the test results
-    db instance delete "$replica2_id" || true
-    db instance delete "$replica1_id" || true
     db instance delete "$primary_id" || true
+    db instance delete "$replica1_id" || true
+    db instance delete "$promoted_replica_id" || true
 }
 
 # ── deletion ──────────────────────────────────────────────────────────────────

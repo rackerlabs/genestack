@@ -37,11 +37,8 @@
 # the chroot (/tmp/in_target.d only holds the executable hook scripts), so
 # this matches the repo pattern used by 16-mgmt-dhcp-renew and
 # 17-reap-orphan-dhclients.
-if [ ${DIB_DEBUG_TRACE:-0} -gt 0 ]; then
-    set -x
-fi
-set -eu
-set -o pipefail
+
+set -euo pipefail
 
 echo "===> Installing Trove datastore image loader"
 

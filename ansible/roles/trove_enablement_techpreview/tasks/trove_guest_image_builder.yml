@@ -279,7 +279,7 @@
 
 - name: Clean up stale DIB build directories
   ansible.builtin.shell: |
-    for d in /tmp/dib_build.* /tmp/dib_image.*; do
+    for d in {{ trove_tmp_dir }}/dib_build.* {{ trove_tmp_dir }}/dib_image.*; do
       [ -d "$d" ] || continue
       umount -lR "$d" 2>/dev/null || true
       rm -rf "$d"
@@ -389,6 +389,7 @@
     DEV_MODE: "false"
     SYNC_LOG_TO_CONTROLLER: "False"
     TROVE_SERVICES_VIP_IP: "{{ trove_services_anchor_ip }}"
+    TMP_DIR: "{{ trove_tmp_dir }}"
   when: _trove_do_build | bool
 
 # =========================================================================
@@ -551,7 +552,7 @@
 
 - name: Clean up any remaining diskimage-builder temp directories
   ansible.builtin.shell: |
-    for d in /tmp/dib_build.* /tmp/dib_image.*; do
+    for d in {{ trove_tmp_dir }}/dib_build.* {{ trove_tmp_dir }}/dib_image.*; do
       [ -d "$d" ] || continue
       umount -lR "$d" 2>/dev/null || true
       rm -rf "$d"
