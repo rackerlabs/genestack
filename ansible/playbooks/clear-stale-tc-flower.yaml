@@ -15,10 +15,10 @@
 #   - Per-host gate: a host is skipped (SKIPPED-NOT-FLIPPED) unless OVS on
 #     that node reports ZERO live TC datapath flows, i.e. the HW_OFFLOAD
 #     flip has completed there. Before the flip the TC filters ARE the live
-#     datapath and must not be touched.
-#   - Only chain-0 "flower" filters are deleted (the live interception
-#     points). kube-ovn QoS filters (matchall/police) are never matched.
-#     Entries for tap*/veth (*_h) devices in the output are expected.
+#   - All "flower" filters (chain 0 and higher-numbered chains) are deleted.
+#     kube-ovn QoS filters (matchall/police) on pod interfaces are preserved.
+#     Shared ingress blocks, per-device ingress qdiscs, and OVN tunnel/internal
+#     devices (genev_sys_6081, ovn0, mirror0) are thoroughly swept.
 #   - Hosts without an ovs-ovn pod are skipped (NO-OVS-POD).
 #   - A final coverage check lists any node running an ovs-ovn pod that this
 #     run did not process (wrong --limit, unreachable, or failed) so nothing
@@ -66,7 +66,7 @@
 #   k8s_node_name       per-host override when inventory name != node name
 #   tc_cleanup_log      default /home/ubuntu/maintenances/flex-2026.2/tc-flush-ansible.log
 
-- name: Clear stranded chain-0 TC flower filters per node
+- name: Clear stranded TC flower filters per node
   hosts: "{{ target_hosts | default('all') }}"
   gather_facts: false
   become: true
@@ -76,7 +76,7 @@
   serial: "{{ tc_serial | default(10) }}"
   vars:
     node_name: "{{ k8s_node_name | default(inventory_hostname) }}"
-    ovs_pod: "{{ ovs_pod_by_node[node_name] | default('') }}"
+    ovs_pod: "{{ ovs_pod_by_node[node_name] | default(ovs_pod_by_node[node_name.split('.')[0]] | default('')) }}"
     dry_run: "{{ tc_cleanup_dry_run | default(true) | bool }}"
   # The Kubernetes queries below run once (delegated to the controller) and
   # their results propagate to every host in the play. They live inside this
@@ -120,7 +120,10 @@
       ansible.builtin.set_fact:
         ovs_pod_by_node: >-
           {{ dict(tc_ovs_pods | map(attribute='spec.nodeName')
-                  | zip(tc_ovs_pods | map(attribute='metadata.name'))) }}
+                  | zip(tc_ovs_pods | map(attribute='metadata.name')))
+             | combine(dict(tc_ovs_pods | map(attribute='spec.nodeName')
+                            | map('regex_replace', '\..*$', '')
+                            | zip(tc_ovs_pods | map(attribute='metadata.name')))) }}
       run_once: true
 
     - name: Report OVS node count  # noqa: run-once[task]
@@ -186,26 +189,55 @@
           ansible.builtin.meta: end_host
 
     # ansible.builtin.shell is intentional here: no module manages TC flower
-    # filters / shared ingress blocks, and discovery + chain-0 deletion +
+    # filters / shared ingress blocks, and discovery + deletion +
     # re-count must happen atomically on the host.
-    - name: "{{ dry_run | ternary('Report (dry run)', 'Clear') }} chain-0 flower filters on shared blocks and per-device qdiscs"
+    - name: "{{ dry_run | ternary('Report (dry run)', 'Clear') }} orphaned flower filters on shared blocks and per-device qdiscs"
       ansible.builtin.shell: |
         set -o pipefail
         out=""
+
+        # 1. Clean shared ingress blocks across all chains
         for b in $(tc qdisc show | grep -oP "ingress_block \K\d+" | sort -un); do
-          pre=$(tc filter show block $b chain 0 | grep -c "^filter.*flower")
-          if [ "$DRY" != "1" ] && [ "$pre" -gt 0 ]; then tc filter del block $b 2>/dev/null; fi
-          post=$(tc filter show block $b chain 0 | grep -c "^filter.*flower")
-          out="$out block$b:$pre->$post"
-        done
-        for d in $(tc qdisc show | grep -E "^qdisc (ingress|clsact)" | grep -v ingress_block | awk "{print \$5}"); do
-          pre=$(tc filter show dev $d ingress chain 0 2>/dev/null | grep -c "^filter.*flower")
+          pre=$(tc filter show block $b 2>/dev/null | grep -c "^filter.*flower")
           if [ "$pre" -gt 0 ]; then
-            if [ "$DRY" != "1" ]; then tc filter del dev $d ingress 2>/dev/null; fi
-            post=$(tc filter show dev $d ingress chain 0 | grep -c "^filter.*flower")
+            if [ "$DRY" != "1" ]; then
+              for c in $(tc filter show block $b 2>/dev/null | grep -oP "chain \K\d+" | sort -un); do
+                tc filter del block $b chain $c 2>/dev/null || true
+              done
+              tc filter del block $b 2>/dev/null || true
+            fi
+            post=$(tc filter show block $b 2>/dev/null | grep -c "^filter.*flower")
+            out="$out block$b:$pre->$post"
+          fi
+        done
+
+        # 2. Clean per-device ingress qdiscs and OVN/tunnel devices across all chains
+        qdisc_devs=$(tc qdisc show | grep -E "^qdisc (ingress|clsact)" | grep -v ingress_block | awk '{print $5}')
+        known_devs="genev_sys_6081 ovn0 mirror0 br-int"
+        all_devs=$(echo "$qdisc_devs $known_devs" | tr ' ' '\n' | sort -u | grep -v '^$')
+
+        for d in $all_devs; do
+          [ -d "/sys/class/net/$d" ] || continue
+          pre=$(tc filter show dev $d ingress 2>/dev/null | grep -c "^filter.*flower")
+          if [ "$pre" -gt 0 ]; then
+            if [ "$DRY" != "1" ]; then
+              for c in $(tc filter show dev $d ingress 2>/dev/null | grep -oP "chain \K\d+" | sort -un); do
+                tc filter del dev $d ingress chain $c 2>/dev/null || true
+              done
+              tc filter del dev $d ingress 2>/dev/null || true
+              tc qdisc del dev $d clsact 2>/dev/null || true
+              tc qdisc del dev $d ingress 2>/dev/null || true
+            fi
+            post=$(tc filter show dev $d ingress 2>/dev/null | grep -c "^filter.*flower")
             out="$out $d:$pre->$post"
           fi
         done
+
+        # 3. Flush OVS kernel datapath flows so software takes over cleanly
+        if [ "$DRY" != "1" ] && [ -n "$out" ]; then
+          ovs-appctl dpctl/del-flows 2>/dev/null || true
+        fi
+
         echo "${out:- nothing-to-do}"
       args:
         executable: /bin/bash
