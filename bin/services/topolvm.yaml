@@ -1,0 +1,18 @@
+---
+service:
+  name: topolvm
+  namespace: topolvm
+  version: ~
+  family: ""
+
+chart:
+  repo_name: topolvm
+  repo_url: https://topolvm.github.io/topolvm
+  service_name: topolvm
+  global_overrides: false
+
+kustomize:
+  enabled: true
+  overlay_path: topolvm/base
+
+secrets: []

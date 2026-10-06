@@ -13,11 +13,7 @@ OpenStack Exporter probes OpenStack API endpoints and exposes their availability
 - `kube-prometheus-stack` installed
 - `keystone-auth-openstack-exporter` secret available in the `monitoring` namespace
 
-The supported way to generate the Keystone secret is:
-
-```shell
-/opt/genestack/bin/create-secrets.sh
-```
+The OpenStack exporter installer creates the Keystone auth Secret if it is missing and reuses the existing Secret on subsequent runs.
 
 ## Install
 

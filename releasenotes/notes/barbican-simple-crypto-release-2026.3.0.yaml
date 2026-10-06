@@ -14,12 +14,13 @@ prelude: >
   the Barbican PKCS#11 notes). The KEK requirements below apply regardless.
 features:
   - |
-    `create-secrets.sh` now generates a 44-character Fernet-format KEK from
-    32 random bytes (`generate_fernet_token`) and stores it in the
-    `barbican-simple-crypto-kek` Kubernetes Secret, alongside an
-    initially empty `old_keks` rotation-history data key. New greenfield
-    regions therefore start on a unique, region-specific KEK instead of
-    the publicly documented upstream default.
+    `install-barbican.sh` now generates a 44-character Fernet-format KEK from
+    32 random bytes and stores it in the `barbican-simple-crypto-kek`
+    Kubernetes Secret, alongside an initially empty `old_keks`
+    rotation-history data key, when no override, managed Secret, or
+    deployed `barbican-etc` KEK exists. New greenfield regions therefore
+    start on a unique, region-specific KEK instead of the publicly
+    documented upstream default.
   - |
     `install-barbican.sh` injects the KEK from the
     `barbican-simple-crypto-kek` Secret via `--set-string` (validated as
@@ -34,29 +35,23 @@ features:
     (`conf.barbican.simple_crypto_plugin.kek`) always takes precedence: it
     is deployed as is, nothing is injected and no Secret is written.
     Otherwise, when the `barbican-simple-crypto-kek` Secret exists, it is
-    injected. When neither supplies a KEK, the script counts the
-    simple_crypto project keys in `barbican.kek_data` (read-only, on the
-    MariaDB primary): if any exist (an upgrade of a running Barbican whose
-    KEK is managed nowhere) it refuses to deploy and points at
-    `rotate-barbican-kek.py --adopt` to move the running KEK into the
-    Secret; if none
-    exist (first Barbican install on an existing cluster, or recovery from a
-    first install that crashlooped) it generates a fresh KEK into the
-    Secret, the same as `create-secrets.sh` does on greenfield. When the
-    Secret holds a KEK that differs from the deployed one, the deploy
-    proceeds (with a rotation warning) only if the deployed KEK is listed in
-    the Secret's `old_keks`, which `rotate-barbican-kek.py --stage` always
-    records, or when `barbican.kek_data` holds no simple_crypto project keys
-    yet; otherwise it refuses, since the db-sync rewrap could not succeed.
+    injected. When neither supplies a KEK, the script first adopts any KEK
+    already rendered into the deployed `barbican-etc` Secret, including the
+    well-known upstream default used by older deployments without an
+    explicit `kek` line. If no override, managed Secret, or deployed KEK
+    exists, it generates a fresh KEK into the Secret for a first install.
+    When the Secret holds a KEK that differs from the deployed one, the
+    deploy proceeds (with a rotation warning) only if the deployed KEK is
+    listed in the Secret's `old_keks`, which `rotate-barbican-kek.py
+    --stage` always records; otherwise it refuses, since the db-sync rewrap
+    could not succeed.
     The upstream default is not treated as covered, so a fresh Secret
     applied to a running region cannot rotate its KEK by accident:
     rotations of a Secret-managed KEK happen only through `--stage`. A KEK
     from an override file gets no such check; on that path the chart's
     db-sync rewrap is the only safeguard, and it fails the deploy rather
     than losing data. The Secret in the cluster is authoritative for
-    environments without a KEK override: a stale copy of it in
-    `/etc/genestack/kubesecrets.yaml` that is re-applied later is caught by
-    that same guard on the next deploy. `install-barbican.sh` never calls
+    environments without a KEK override. `install-barbican.sh` never calls
     `rotate-barbican-kek.py`.
   - |
     Added `scripts/rotate-barbican-kek.py`: plans (dry-run,
@@ -73,26 +68,19 @@ upgrade:
     `SimpleCrypto KEK is undefined`. Environments that already set a KEK
     in their Helm overrides need no changes: the override is deployed as
     is. Environments that never set one — previously running implicitly
-    on the well-known default — must put that KEK under Secret management
-    before the upgrade by running
+    on the well-known default — should put that KEK under Secret management
+    from a healthy state by running
     `scripts/rotate-barbican-kek.py --adopt`, which validates the
     currently deployed KEK against the database from inside the
     `barbican-api` pod and stores it in the `barbican-simple-crypto-kek`
-    Secret (no rotation occurs). `install-barbican.sh` refuses to deploy
-    an environment that holds Barbican data while neither supplies a KEK,
-    rather than leaving `barbican-api` crashlooping. Adoption requires a
-    running `barbican-api` pod for database validation: run it from a
-    healthy state. If a Gazpacho deploy has already crashlooped without a
-    KEK on an environment that holds Barbican data, `helm rollback` to the
-    last good revision, adopt, and re-run `install-barbican.sh`; on an
-    environment with no simple_crypto project keys yet (a first install),
-    simply re-run it and a fresh KEK is generated.
-    Do not create the Secret by hand and do not expect `create-secrets.sh`
-    to configure Barbican on an existing environment: on an environment
-    without a KEK override, a Secret whose value is not coordinated with
-    the deployed KEK becomes the KEK on the next deploy, and
-    `install-barbican.sh` will refuse to deploy it unless `old_keks`
-    covers the deployed KEK.
+    Secret (no rotation occurs). If the managed Secret is absent during
+    install, `install-barbican.sh` can also adopt the deployed KEK directly
+    from `barbican-etc`; if no override, Secret, or deployed KEK exists, it
+    generates a fresh KEK for a first install. Do not create the Secret by
+    hand: on an environment without a KEK override, a Secret whose value is
+    not coordinated with the deployed KEK becomes the KEK on the next
+    deploy, and `install-barbican.sh` will refuse to deploy it unless
+    `old_keks` covers the deployed KEK.
   - |
     To rotate an existing environment off the upstream well-known default
     KEK: run `scripts/rotate-barbican-kek.py` (dry run), review,

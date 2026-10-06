@@ -55,6 +55,9 @@ manila_gateway_region_lower: ""
 # =========================================================================
 # Secrets
 # =========================================================================
+# Kept for compatibility with older Manila enablement runs. This now recreates
+# only the Manila service SSH keypair secret; chart-derived passwords are owned
+# by /opt/genestack/bin/services/manila.yaml and the install-script helpers.
 manila_force_recreate_secrets: false
 
 # =========================================================================
@@ -71,14 +74,13 @@ manila_force_recreate_secrets: false
 #   Deletes and re-creates OpenStack keypair from k8s secret.
 #   Then rebuilds and re-uploads the image.
 #
-# force_full_recreation=true  (option 3 — nuclear):
-#   Deletes and regenerates ALL K8s secrets (rabbitmq, db, admin, keypair),
-#   syncs new RabbitMQ and MariaDB passwords to backing services,
-#   then performs all actions of options 1 and 2.
+# force_full_recreation=true  (option 3):
+#   Recreates the Manila service SSH keypair secret, then performs all actions
+#   of options 1 and 2. Chart-derived passwords are not regenerated here.
 #
 # Higher options are supersets of lower ones.
-# manila_force_recreate_secrets=true is equivalent to option 3 for secrets
-# only (no image rebuild unless cascaded via manila_secrets_recreated).
+# manila_force_recreate_secrets=true recreates only the Manila service SSH
+# keypair secret. Use service-specific password rotation tooling for passwords.
 force_rebuild_image: false
 force_recreate_keypair: false
 force_full_recreation: false
