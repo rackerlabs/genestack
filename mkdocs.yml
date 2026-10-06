@@ -82,13 +82,11 @@ extra:
       link: https://blog.rackspacecloud.com/
 
 extra_css:
-  - overrides/stylesheets/adr.css
   - overrides/stylesheets/admonition.css
 
 plugins:
   - search
   - swagger-ui-tag
-  - mkdocs-material-adr/adr
   - glightbox
 
 markdown_extensions:
@@ -186,6 +184,7 @@ nav:
               - infrastructure-overview.md
               - Cert-Manager: infrastructure-cert-manager.md
               - Namespace: infrastructure-namespace.md
+              - Secret Management: secret-management.md
               - MetalLB: infrastructure-metallb.md
               - Gateway API:
                   - Gateway API Overview: infrastructure-gateway-api.md

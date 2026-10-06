@@ -8,6 +8,12 @@ SERVICE_NAMESPACE="monitoring"
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
 GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 
+# Common secret helpers. Missing secrets are generated in Kubernetes and
+# existing secrets are never overwritten.
+# shellcheck source=helpers.sh
+source "${GENESTACK_BASE_DIR}/bin/helpers.sh"
+trap cleanup_tmp EXIT
+
 CHART_DIR="${GENESTACK_BASE_DIR}/base-helm-configs/${CHART_DIR_NAME}"
 SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${CHART_DIR_NAME}"
 GLOBAL_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR}/helm-configs/global_overrides"
@@ -50,7 +56,7 @@ DYNAMIC_PORT=$(find_unused_port)
 DYNAMIC_TAG="sha-7951e2c"
 echo "Using dynamic port: $DYNAMIC_PORT and tag: $DYNAMIC_TAG"
 
-monitoring_apply_secret_from_kubesecrets "keystone-auth-openstack-exporter" "monitoring" "monitoring" || true
+ensure_keystone_auth_openstack_exporter_secret "${SERVICE_NAMESPACE}" "openstack"
 
 overrides_args=()
 

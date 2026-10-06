@@ -119,18 +119,17 @@ trove_gateway_hostname: "trove.cluster.local"
 # force_create_dsv=true:
 #   Forces creation of datastore version and load of configuration parameters.
 #
-# force_full_recreation=true (nuclear):
-#   Deletes and re-creates OpenStack keypair, security group,
-#   rebuilds guest image, re-uploads, re-registers datastore.
+# force_full_recreation=true:
+#   Recreates the techpreview Trove SSH secret, OpenStack keypair, security
+#   group, guest image, and datastore resources. Chart-derived passwords are
+#   owned by /opt/genestack/bin/services/trove.yaml and are not regenerated here.
 force_rebuild_image: false
 force_create_dsv: false
 force_full_recreation: false
 
 # trove_force_recreate_secrets=true:
-#   Deletes and regenerates the four Trove K8s secrets (rabbitmq, db,
-#   admin, ssh) and syncs new RabbitMQ/MariaDB passwords into the
-#   running backing services.  Leave false unless you know you need to
-#   rotate — regeneration can break running clusters.
+#   Deletes and regenerates only the techpreview trove-ssh keypair secret.
+#   Use service-specific password rotation tooling for chart-derived passwords.
 trove_force_recreate_secrets: false
 
 # =========================================================================

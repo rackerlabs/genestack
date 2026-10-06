@@ -17,6 +17,12 @@ HELM_REPO_URL_DEFAULT="https://tarballs.opendev.org/openstack/openstack-helm"
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
 GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 
+# Common secret helpers. Missing secrets are generated in Kubernetes and
+# existing secrets are never overwritten.
+# shellcheck source=helpers.sh
+source "${GENESTACK_BASE_DIR}/bin/helpers.sh"
+trap cleanup_tmp EXIT
+
 # Define service-specific override directories based on the framework
 SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME_DEFAULT}"
 SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME_DEFAULT}"
@@ -65,7 +71,7 @@ if [[ "$HELM_REPO_URL" == oci://* ]]; then
     HELM_CHART_PATH="$HELM_REPO_URL/$HELM_REPO_NAME/$SERVICE_NAME"
 else
     # --- Helm Repository and Execution ---
-    helm repo add "$HELM_REPO_NAME" "$HELM_REPO_URL"
+    helm repo add --force-update "$HELM_REPO_NAME" "$HELM_REPO_URL" 2>/dev/null || true
     helm repo update
     HELM_CHART_PATH="$HELM_REPO_NAME/$SERVICE_NAME"
 fi
@@ -97,28 +103,17 @@ case "$KUBE_OVN_ENABLE_SSL" in
             exit 1
         fi
 
-        if ! KUBE_OVN_TLS_SECRET=$(kubectl --namespace kube-system get secret kube-ovn-tls --output yaml); then
+        if ! secret_exists kube-system kube-ovn-tls; then
             echo "Error: kube-ovn has networking.ENABLE_SSL=true, but kube-system/kube-ovn-tls is unavailable." >&2
             exit 1
         fi
 
-        if ! printf '%s\n' "$KUBE_OVN_TLS_SECRET" \
-            | yq eval -e '.data.cacert != null and .data.cert != null and .data.key != null' - >/dev/null; then
+        if ! secret_has_keys kube-system kube-ovn-tls cacert cert key; then
             echo "Error: kube-system/kube-ovn-tls must contain cacert, cert, and key." >&2
             exit 1
         fi
 
-        if ! OPENSTACK_OVN_TLS_SECRET=$(printf '%s\n' "$KUBE_OVN_TLS_SECRET" | yq eval '
-            .metadata = {
-                "name": "ovn-client-tls",
-                "namespace": "openstack"
-            }
-        ' -); then
-            echo "Error: Unable to prepare the Neutron OVN client TLS secret." >&2
-            exit 1
-        fi
-
-        if ! printf '%s\n' "$OPENSTACK_OVN_TLS_SECRET" | kubectl apply --filename -; then
+        if ! ensure_ovn_client_tls_secret kube-system openstack kube-ovn-tls ovn-client-tls; then
             echo "Error: Unable to synchronize openstack/ovn-client-tls." >&2
             exit 1
         fi
@@ -203,29 +198,17 @@ fi
 # Collect all --set arguments, executing commands and quoting safely
 # NOTE: This array contains OpenStack-specific secret retrievals and MUST be updated
 #       with the necessary --set arguments for your target SERVICE_NAME_DEFAULT.
-set_args=(
-    # Metadata proxy secret
-    --set "conf.metadata_agent.DEFAULT.metadata_proxy_shared_secret=$(kubectl --namespace openstack get secret metadata-shared-secret -o jsonpath='{.data.password}' | base64 -d)"
-    --set "conf.ovn_metadata_agent.DEFAULT.metadata_proxy_shared_secret=$(kubectl --namespace openstack get secret metadata-shared-secret -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.identity.auth.admin.password=$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.identity.auth.neutron.password=$(kubectl --namespace openstack get secret neutron-admin -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.identity.auth.nova.password=$(kubectl --namespace openstack get secret nova-admin -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.identity.auth.placement.password=$(kubectl --namespace openstack get secret placement-admin -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.identity.auth.designate.password=$(kubectl --namespace openstack get secret designate-admin -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.identity.auth.ironic.password=$(kubectl --namespace openstack get secret ironic-admin -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.oslo_db.auth.admin.password=$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)"
-    --set "endpoints.oslo_db.auth.neutron.password=$(kubectl --namespace openstack get secret neutron-db-password -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.oslo_cache.auth.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
-    --set "conf.neutron.keystone_authtoken.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
-    --set "endpoints.oslo_messaging.auth.admin.password=$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.oslo_messaging.auth.neutron.password=$(kubectl --namespace openstack get secret neutron-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)"
+# Collect secret-backed --set arguments from bin/services/${SERVICE_NAME_DEFAULT}.yaml.
+collect_service_secret_set_args "$SERVICE_NAME_DEFAULT"
+set_args=("${SECRET_HELM_SET_ARGS[@]}")
+
+set_args+=(
     --set "conf.neutron.ovn.ovn_nb_connection=$CONNECTION_STRING:$OVN_NB_ENDPOINT"
     --set "conf.neutron.ovn.ovn_sb_connection=$CONNECTION_STRING:$OVN_SB_ENDPOINT"
     --set "conf.plugins.ml2_conf.ovn.ovn_nb_connection=$CONNECTION_STRING:$OVN_NB_ENDPOINT"
     --set "conf.plugins.ml2_conf.ovn.ovn_sb_connection=$CONNECTION_STRING:$OVN_SB_ENDPOINT"
     --set "conf.ovn_metadata_agent.ovn.ovn_nb_connection=$CONNECTION_STRING:$OVN_NB_ENDPOINT"
     --set "conf.ovn_metadata_agent.ovn.ovn_sb_connection=$CONNECTION_STRING:$OVN_SB_ENDPOINT"
-
 )
 
 

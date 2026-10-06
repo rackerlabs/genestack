@@ -8,9 +8,10 @@ hand-build and administer each database. This document describes how Trove is de
 Genestack.
 
 Unlike a plain Helm install, Trove needs a good deal of surrounding scaffolding to actually
-work: pre-created Kubernetes secrets, a dedicated management overlay network, security
-groups, a guest image that carries the Trove guest agent, a datastore registration, and a
-per-chassis bridge that lets guest VMs reach RabbitMQ and Keystone. In Genestack that entire
+work: install-script managed secret prerequisites, a dedicated management overlay network,
+security groups, a guest image that carries the Trove guest agent, a datastore registration,
+and a per-chassis bridge that lets guest VMs reach RabbitMQ and Keystone. In Genestack that
+entire
 lifecycle is driven by the `trove_enablement_techpreview` Ansible role, which wraps the
 `bin/install-trove.sh` Helm deployment.
 
@@ -24,10 +25,9 @@ Reference the full online [OpenStack Trove documentation](https://docs.openstack
 
 The `trove_enablement_techpreview` role performs the end-to-end enablement. At a high level it:
 
-1. **Creates the Kubernetes secrets** — `trove-rabbitmq-password`, `trove-db-password`,
-   `trove-admin`, and `trove-ssh` (an ed25519 keypair). When secrets are (re)generated the
-   role also syncs the new RabbitMQ user/vhost and MariaDB password into the running backing
-   services.
+1. **Ensures secret prerequisites** — chart-derived Trove passwords are owned by
+   `bin/install-trove.sh` and `bin/services/trove.yaml`; the role ensures they exist before
+   pre-install work needs them. The role owns only the `trove-ssh` ed25519 keypair secret.
 2. **Creates the Trove management overlay network** — a geneve network (`trove-mgmt-net`),
    its subnet, and a router with an external gateway to the public provider network.
 3. **Creates the security groups** — `trove-access-secgroup` (ICMP, SSH, 3306 for guests)
@@ -67,48 +67,19 @@ The `trove_enablement_techpreview` role performs the end-to-end enablement. At a
 
 ## Create secrets
 
-The role creates the Trove secrets for you as its first step, so **no manual secret creation
-is normally required**. The block below is only for reference or for a manual/partial
-install.
+The role ensures Trove secrets for you as its first step, so **no manual secret creation
+is normally required**.
 
 !!! note "Information about the secrets used"
 
-    Trove uses four secrets: `trove-rabbitmq-password`, `trove-db-password`, `trove-admin`,
-    and `trove-ssh`. The role's `create_trove_k8s_secrets.sh` generates all four (including a
-    freshly generated ed25519 keypair for `trove-ssh`) and applies them to the `openstack`
-    namespace.
+    Trove chart-derived secrets such as `trove-rabbitmq-password`, `trove-db-password`,
+    and `trove-admin` are managed by `bin/install-trove.sh` through the shared
+    `bin/services/trove.yaml` schema. Existing secret values are reused.
 
-    ??? example "Equivalent manual secret generation"
-
-        ``` shell
-        kubectl --namespace openstack \
-                create secret generic trove-rabbitmq-password \
-                --type Opaque \
-                --from-literal=username="trove" \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-64};echo;)"
-        kubectl --namespace openstack \
-                create secret generic trove-db-password \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        kubectl --namespace openstack \
-                create secret generic trove-admin \
-                --type Opaque \
-                --from-literal=password="$(< /dev/urandom tr -dc _A-Za-z0-9 | head -c${1:-32};echo;)"
-        ssh-keygen -qt ed25519 -N '' -C "trove_ssh" -f trove_ssh_key && \
-        kubectl --namespace openstack \
-                create secret generic trove-ssh \
-                --type Opaque \
-                --from-literal=public-key="$(cat trove_ssh_key.pub)" \
-                --from-literal=private-key="$(cat trove_ssh_key)"
-        rm -f trove_ssh_key trove_ssh_key.pub
-        ```
-
-!!! warning "Regenerating secrets rotates backing-service credentials"
-
-    Re-running secret generation (`trove_force_recreate_secrets=true` or
-    `force_full_recreation=true`) regenerates all four secrets and pushes the new RabbitMQ
-    and MariaDB passwords into the running clusters. Only do this when you intend to rotate,
-    as it can disrupt a running Trove.
+    The techpreview role also manages the `trove-ssh` keypair secret used by the
+    post-install access workflow. `trove_force_recreate_secrets=true` and
+    `force_full_recreation=true` recreate only this SSH keypair secret; they do not
+    rotate Trove database, RabbitMQ, or Keystone service-user passwords.
 
 ## Define policy configuration
 
@@ -164,8 +135,8 @@ piece.
 
 | Tag                       | What runs                                                            |
 |---------------------------|----------------------------------------------------------------------|
-| `trove_pre_install`       | Secrets, mgmt network, security groups, Helm config, gateway/kustomize |
-| `trove_secrets`           | Kubernetes secrets (+ backing-service password sync)                 |
+| `trove_pre_install`       | Install-script managed secrets, mgmt network, security groups, Helm config, gateway/kustomize |
+| `trove_secrets`           | Install-script managed secret prerequisites                          |
 | `trove_mgmt_network`      | Management overlay network, subnet, router                           |
 | `trove_security_groups`   | `trove-access` and `trove-services` security groups                  |
 | `trove_helm_config`       | Deep-merge Helm overrides, mgmt-bridge DaemonSet, guest ConfigMaps   |
@@ -200,10 +171,10 @@ specific work:
 |------------------------------------------|---------------------------------------------------------------------|
 | `-e force_rebuild_image=true`            | Delete and rebuild the guest image, then re-upload to Glance        |
 | `-e force_create_dsv=true`               | Recreate the datastore version and reload configuration parameters  |
-| `-e trove_force_recreate_secrets=true`   | Regenerate the four secrets and re-sync backing-service passwords    |
+| `-e trove_force_recreate_secrets=true`   | Recreate only the `trove-ssh` keypair secret                         |
 | `-e trove_force_recreate_mgmt_network=true` | Delete and recreate the management network/subnet/router         |
 | `-e trove_force_recreate_security_groups=true` | Delete and recreate the security groups                       |
-| `-e force_full_recreation=true`          | Nuclear option — recreate secrets, network, security groups, image and datastore |
+| `-e force_full_recreation=true`          | Nuclear option — recreate SSH keypair, network, security groups, image and datastore |
 
 !!! example "Force a guest image rebuild"
 
