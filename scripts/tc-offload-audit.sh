@@ -32,10 +32,12 @@
 #   ORPHANED-LIVE  hw-offload is false, zero live TC flows, but chain-0
 #                  flower filters remain. Stranded filters still intercept
 #                  traffic. NEEDS CLEANUP.
-#   RESIDUAL-ONLY  hw-offload is false, zero live TC flows, chain 0 is
-#                  clear. Only inert leftovers remain. Acceptable.
-#   CLEAN          hw-offload is false, zero live TC flows, and no ingress
-#                  qdiscs at all. The post-reboot state.
+#   ORPHANED-RESIDUAL hw-offload is false, zero live TC flows, chain 0 is
+#                  clear, but higher-numbered chains still hold flower filters
+#                  (e.g., on genev_sys_6081 or ovn0). Stranded filters still
+#                  intercept/drop tunnel traffic. NEEDS CLEANUP.
+#   CLEAN          hw-offload is false, zero live TC flows, and zero flower
+#                  filters or ingress qdiscs remain.
 #   UNREACHABLE    kubectl exec failed for the node's pod.
 #   REVIEW         any other combination, for example hw-offload true with
 #                  zero TC flows. Investigate.
@@ -51,12 +53,12 @@
 #
 # Exit status:
 #   0  no node needs attention
-#   2  at least one node is UNREACHABLE, ORPHANED-LIVE, or REVIEW
+#   2  at least one node is UNREACHABLE, ORPHANED-LIVE, ORPHANED-RESIDUAL, or REVIEW
 #
 # Intended use: pre/post audit and fleet gate for kube-ovn HW_OFFLOAD=false
 # maintenances. Run before the change to record the source state, and after
-# the per-node TC cleanup to verify no node remains ORPHANED-LIVE before
-# any OpenStack service upgrade proceeds.
+# the per-node TC cleanup to verify no node remains ORPHANED-LIVE or
+# ORPHANED-RESIDUAL before any OpenStack service upgrade proceeds.
 #
 # shellcheck disable=SC2016,SC2086
 set -u
@@ -104,7 +106,11 @@ done
 # Flower filter counts on each per-device ingress qdisc (geneve, taps,
 # pod veths). Devices with no flower filters are omitted.
 devices=""
-for dev in $(tc qdisc show | grep -E "^qdisc (ingress|clsact)" | grep -v ingress_block | awk "{print \$5}"); do
+qdisc_devs=$(tc qdisc show | grep -E "^qdisc (ingress|clsact)" | grep -v ingress_block | awk "{print \$5}")
+known_devs="genev_sys_6081 ovn0 mirror0 br-int"
+all_devs=$(echo "$qdisc_devs $known_devs" | tr " " "\n" | sort -u | grep -v "^$")
+for dev in $all_devs; do
+  [ -d "/sys/class/net/$dev" ] || continue
   total=$(tc filter show dev $dev ingress 2>/dev/null | grep -c "^filter.*flower")
   if [ "$total" -gt 0 ]; then
     chain0=$(tc filter show dev $dev ingress chain 0 2>/dev/null | grep -c "^filter.*flower")
@@ -192,15 +198,20 @@ audit_one_node() {
   local hw live_flows qdisc_count blocks devices uptime_days
   IFS='|' read -r hw live_flows qdisc_count blocks devices uptime_days <<< "$raw"
 
-  # Highest chain-0 flower count seen on any block or device. A value
-  # above zero means live interception points remain.
+  # Highest chain-0 and total flower counts seen on any block or device.
   local chain0_max=0
-  local entry value
+  local total_max=0
+  local entry value c0 tot
   for entry in $blocks $devices; do
+    [ "$entry" = "none" ] && continue
     value="${entry#*=}"      # strip "name=" prefix
-    value="${value%%/*}"     # keep the chain-0 half of chain0/total
-    if [[ "$value" =~ ^[0-9]+$ ]] && [ "$value" -gt "$chain0_max" ]; then
-      chain0_max="$value"
+    c0="${value%%/*}"        # keep the chain-0 half of chain0/total
+    tot="${value##*/}"       # keep the total half of chain0/total
+    if [[ "$c0" =~ ^[0-9]+$ ]] && [ "$c0" -gt "$chain0_max" ]; then
+      chain0_max="$c0"
+    fi
+    if [[ "$tot" =~ ^[0-9]+$ ]] && [ "$tot" -gt "$total_max" ]; then
+      total_max="$tot"
     fi
   done
 
@@ -209,12 +220,14 @@ audit_one_node() {
     verdict="UNREACHABLE"
   elif [ "$hw" = "true" ] && [ "$live_flows" != "0" ]; then
     verdict="SOURCE-STATE"
-  elif [ "$hw" = "false" ] && [ "$live_flows" = "0" ] && [ "$chain0_max" -eq 0 ] && [ "$qdisc_count" = "0" ]; then
+  elif [ "$hw" = "false" ] && [ "$live_flows" = "0" ] && [ "$chain0_max" -eq 0 ] && [ "$total_max" -eq 0 ] && [ "$qdisc_count" = "0" ]; then
     verdict="CLEAN"
   elif [ "$hw" = "false" ] && [ "$live_flows" = "0" ] && [ "$chain0_max" -gt 0 ]; then
     verdict="ORPHANED-LIVE"
+  elif [ "$hw" = "false" ] && [ "$live_flows" = "0" ] && [ "$total_max" -gt 0 ]; then
+    verdict="ORPHANED-RESIDUAL"
   elif [ "$hw" = "false" ] && [ "$live_flows" = "0" ]; then
-    verdict="RESIDUAL-ONLY"
+    verdict="CLEAN"
   else
     verdict="REVIEW"
   fi
@@ -275,12 +288,12 @@ print_summary() {
   echo "kube-ovn env        : $(awk -F'\t' 'NR > 1 { count[$3]++ }
               END { for (v in count) printf "%s=%d ", v, count[v] }' "$OUT")"
 
-  echo "nodes needing attention (UNREACHABLE / ORPHANED-LIVE / REVIEW):"
-  awk -F'\t' 'NR > 1 && $10 ~ /UNREACHABLE|ORPHANED-LIVE|REVIEW/ {
+  echo "nodes needing attention (UNREACHABLE / ORPHANED-LIVE / ORPHANED-RESIDUAL / REVIEW):"
+  awk -F'\t' 'NR > 1 && $10 ~ /UNREACHABLE|ORPHANED-LIVE|ORPHANED-RESIDUAL|REVIEW/ {
                 print "  " $1 "  " $10 "  " $7 "  " $8
               }' "$OUT"
 
-  awk -F'\t' 'NR > 1 && $10 ~ /UNREACHABLE|ORPHANED-LIVE|REVIEW/ { bad = 1 }
+  awk -F'\t' 'NR > 1 && $10 ~ /UNREACHABLE|ORPHANED-LIVE|ORPHANED-RESIDUAL|REVIEW/ { bad = 1 }
               END { exit bad ? 2 : 0 }' "$OUT"
 }
 
