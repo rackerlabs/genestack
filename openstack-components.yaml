@@ -11,6 +11,7 @@ components:
   glance: true
   gnocchi: false
   heat: false
+  horizon: false
   keystone: true
   magnum: false
   manila: false

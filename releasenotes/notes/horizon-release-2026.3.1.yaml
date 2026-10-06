@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Horizon extra panels are now working. The horizon chart was bumped to a
+    newer release and extra_panels was aligned with the dashboard plugins
+    installed in the genestack-images horizon image, so the heat, octavia,
+    cloudkitty, magnum, masakari, and designate dashboards all load.
+  - |
+    added updated Genestack assets for logo,favicon,and logo_splash in base64 format to reduce lines in file.
+    added multidomain support for horizon and dropdown box.

@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue in ``ansible/roles/cinder_volumes`` where ``cinder-backup.service``
+    and ``cinder-volume-usage-audit.service`` did not load the LVM worker configuration
+    override file (``/etc/cinder/lvm-cinder.conf``). As a result, ``cinder-backup``
+    inherited the default ``host = cinder-volume-worker`` setting from base
+    ``cinder.conf`` rather than using the storage node's hostname, causing the per-node
+    ``cinder-backup`` services to appear as ``down`` in ``openstack volume service list``.
