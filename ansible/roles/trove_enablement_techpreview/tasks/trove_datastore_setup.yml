@@ -114,6 +114,23 @@
     HOME: "{{ ubuntu_home }}"
   when: _trove_do_dsv | bool
 
+- name: Assign flavors to '{{ _trove_ds_profile.version_name }}'
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      source {{ genestack_venv }}/bin/activate
+      trove_taskmanager_pod_name=$(kubectl get pods -A | grep trove-task -m 1 | awk '{print $2}')
+      DS_ID=$(openstack datastore show {{ _trove_ds_profile.name }} -f value -c id)
+      DSV_ID=$(openstack datastore version show {{ _trove_ds_profile.version }} --datastore {{ _trove_ds_profile.name }} -f value -c id)
+      CMD_STDOUT=$(kubectl exec -it ${trove_taskmanager_pod_name} -n openstack -- \
+        trove-manage datastore_version_flavor_add "$DS_ID" "$DSV_ID" {{ item }})
+      # echo "CMD_STDOUT: ${CMD_STDOUT}"
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  loop: "{{ trove_flavor_profiles.keys() | list }}"
+  when: _trove_do_dsv | bool
+
 # =========================================================================
 # PART 3: VERIFY AND REPORT
 # =========================================================================

@@ -415,3 +415,59 @@ Key configuration options merged into `trove-helm-overrides.yaml` by the role
 
 For advanced configuration, refer to the
 [OpenStack Trove documentation](https://docs.openstack.org/trove/latest/).
+
+## Database flavor filtering
+
+Trove's `GET /v1.0/{tenant}/flavors` endpoint lists every Nova flavor the tenant can see,
+which includes general-purpose compute flavors. Genestack reserves a dedicated naming
+convention for database flavors (`db.*`, e.g. `db.1.1`, `db.4.4`, created by the
+`trove_enablement_techpreview` role), and ships a WSGI paste filter that keeps non-database
+flavors out of the Trove flavor catalog.
+
+The filter, `dbflavorfilter`, is wired into the Trove API PasteDeploy pipeline via
+`conf.paste` in `base-helm-configs/trove/trove-helm-overrides.yaml`:
+
+``` yaml
+conf:
+  paste:
+    filter:dbflavorfilter:
+      paste.filter_factory: genestack_trove_flavor_filter:DatabaseFlavorFilter.factory
+      database_flavor_prefix: db.
+    pipeline:troveapi:
+      pipeline: http_proxy_to_wsgi faultwrapper authtoken authorization contextwrapper ratelimit extensions dbflavorfilter troveapp
+```
+
+The filter sits just before the `troveapp` application so it can inspect the fully-rendered
+flavor responses on their way back to the client. It drops any flavor whose name does not
+start with `database_flavor_prefix` (default `db.`) from the flavors list, and returns a 404
+for a direct show request against a non-database flavor.
+
+To widen or change which flavors are considered database flavors, adjust
+`database_flavor_prefix`.
+
+### How the middleware is delivered
+
+The stock Trove image does not contain this middleware, so Genestack ships it entirely
+through the Trove kustomize overlay — no custom image build is required:
+
+- `base-kustomize/trove/base/trove-flavor-filter-configmap.yaml` carries the middleware as a
+  top-level Python module, `genestack_trove_flavor_filter.py`, in a ConfigMap. The module is
+  intentionally *not* placed under the `trove.*` namespace so it never shadows the real
+  `trove` package on `sys.path`.
+- `base-kustomize/trove/base/trove-api-flavor-filter-patch.yaml` patches the `trove-api`
+  Deployment to mount that ConfigMap at `/var/lib/openstack-extensions/` and sets
+  `PYTHONPATH=/var/lib/openstack-extensions` so the interpreter can import the module. The
+  `paste.filter_factory` above therefore references the bare module name
+  `genestack_trove_flavor_filter`, not a dotted `trove.common.*` path.
+
+Both resources are applied by the Trove overlay's post-renderer (`bin/install-trove.sh`), so
+they ship with every `helm upgrade --install trove`.
+
+!!! note "Naming convention, not Nova flavor access"
+
+    Trove has no native configuration option to restrict which flavors its API advertises,
+    so `dbflavorfilter` enforces the `db.*` naming convention at the API layer. This hides
+    non-database flavors from the flavor list; it does not stop them from being *used* to
+    launch an instance. To also prevent non-database flavors from being used, restrict them
+    with Nova flavor access (`openstack flavor set --private` plus per-project access grants)
+    rather than relying on this filter alone.

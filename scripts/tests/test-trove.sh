@@ -14,7 +14,7 @@
 #   --instance              ID of DB instance to use for primary test instance
 #   --datastore DS          Datastore type to test against (default: mysql)
 #   --ds-version VER        Datastore version number     (default: 8.4)
-#   --flavor FLAVOR         Nova flavor for instances    (default: m1.small)
+#   --flavor FLAVOR         Nova flavor for instances    (default: db.0.2.2)
 #   --resize-flavor FLAVOR  Nova flavor for instance resize    (default: m1.medium)
 #   --volume-size GB        Instance volume size in GB   (default: 10)
 #   --timeout SECS          Max seconds to wait for ACTIVE (default: 600)
@@ -37,14 +37,14 @@ source "${SCRIPT_DIR}/lib/openstack.sh"
 INSTANCE=""
 DATASTORE="mysql"
 DS_VERSION="8.4"
-FLAVOR="m1.small"
+FLAVOR="db.0.2.2"
 VOL_SIZE="10"
 INSTANCE_TIMEOUT=600
 CLEANUP="skip_net"
 OS_CLOUD="${OS_CLOUD:-acme-corp}"
 CUSTOMER_DIR="/home/ubuntu/customers"
 
-RESIZE_FLAVOR=m1.medium
+RESIZE_FLAVOR=db.0.4.4
 
 # ── argument parsing ──────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
@@ -64,7 +64,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # ── resource naming ───────────────────────────────────────────────────────────
-TS="$(date +%s)"
+TS="$(date +%Y%m%d%H%M)"
 PFX="test-trove-${TS}"
 
 INST_PRIMARY="${PFX}-primary"
@@ -889,9 +889,9 @@ test_detach_instance() {
 test_instance_promote_eject() {
     log_msg "$INFO" "" false
     log_msg "$INFO" "Testing promote ..."
-    local primary_name="test-trove-promote-eject-test-0"
-    local replica1_name="test-trove-promote-eject-test-1"
-    local replica2_name="test-trove-promote-eject-test-2"
+    local primary_name="${PFX}-promote-eject-0"
+    local replica1_name="${PFX}-promote-eject-1"
+    local replica2_name="${PFX}-promote-eject-2"
     db instance create "$primary_name" \
         --flavor "$FLAVOR" \
         --size "$VOL_SIZE" \
@@ -1014,9 +1014,25 @@ test_instance_promote_eject() {
     log_msg "$INFO" "Eject test succeeded."
 
     # attempt cleanup, but don't let it sour the test results
-    db instance delete "$primary_id" || true
-    db instance delete "$replica1_id" || true
-    db instance delete "$promoted_replica_id" || true
+    log_msg "$INFO" "Deleting replica $other_replica_name"
+    db instance delete "$other_replica_id" --force || true
+    while [[ -n $(db instance list 2>/dev/null | grep "$other_replica_id") ]] && (( elapsed < 120 )); do
+        log_msg "$INFO" sleeping ...
+        sleep 5; (( elapsed += 5 ))
+    done
+    log_msg "$INFO" "Deleting promoted replica $promoted_replica_name"
+    db instance delete "$promoted_replica_id" --force || true
+    while [[ -n $(db instance list 2>/dev/null | grep "$promoted_replica_id") ]] && (( elapsed < 120 )); do
+        log_msg "$INFO" sleeping ...
+        sleep 5; (( elapsed += 5 ))
+    done
+    log_msg "$INFO" "Deleting instance $primary_name"
+    db instance delete "$primary_id" --force || true
+    local elapsed=0
+    while [[ -n $(db instance list 2>/dev/null | grep "$primary_id") ]] && (( elapsed < 120 )); do
+        log_msg "$INFO" sleeping ...
+        sleep 5; (( elapsed += 5 ))
+    done
 }
 
 # ── deletion ──────────────────────────────────────────────────────────────────
