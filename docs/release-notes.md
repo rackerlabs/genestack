@@ -4,6 +4,7 @@ This page is the navigation index for versioned Genestack release notes.
 
 ## Available Releases
 
+- [Release 2026.3.1](release-2026.3.1.md)
 - [Release 2026.3.0](release-2026.3.0.md)
 - [Release 2026.2.0](release-2026.2.0.md)
 - [Release 2026.1.0](release-2026.1.0.md)
@@ -16,6 +17,6 @@ Example generation workflow:
 
 ```shell
 pip install -r doc-requirements.txt -r dev-requirements.txt
-python scripts/generate_release_docs.py --release release-2026.3.0
+python scripts/generate_release_docs.py --from-tag release-2026.3.0 --to-tag release-2026.3 --version 2026.3.1
 python scripts/generate_release_docs.py --from-tag release-2026.2.0.2 --to-tag release-2026.3-rc --version 2026.3.0
 ```
