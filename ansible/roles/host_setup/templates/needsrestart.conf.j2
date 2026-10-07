@@ -1,0 +1,442 @@
+#jinja2: trim_blocks: True, lstrip_blocks: False
+{# Renders /etc/needrestart/needrestart.conf for Ubuntu hosts.
+   Per-release blocks reproduce the defaults shipped by the
+   `needrestart` package on Focal (3.4-6ubuntu0.1), Jammy
+   (3.5-5ubuntu2.5) and Noble (3.6-7ubuntu4.5). The
+   needrestart_storage_overrides + needrestart_extra_overrides
+   entries from defaults/main.yml are appended to the
+   $nrconf{override_rc} dict on top of those upstream defaults. #}
+# {{ ansible_managed }}
+{% if ansible_distribution_release == 'focal' %}
+
+# needrestart - Restart daemons after library updates.
+#
+# Authors:
+#   Thomas Liske <thomas@fiasko-nw.net>
+#
+# Copyright Holder:
+#   2013 - 2018 (C) Thomas Liske [http://fiasko-nw.net/~thomas/]
+#
+# License:
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or
+#   (at your option) any later version.
+#
+
+# This is the configuration file of needrestart. This is perl syntax.
+# needrestart uses reasonable default values, you might not need to
+# change anything.
+{% else %}
+# needrestart - Restart daemons after library updates.
+#
+# This is the configuration file of needrestart. This is perl syntax.
+# needrestart uses reasonable default values, you might not need to
+# change anything.
+#
+{% endif %}
+
+# Verbosity:
+#  0 => quiet
+#  1 => normal (default)
+#  2 => verbose
+#$nrconf{verbosity} = 2;
+
+# Path of the package manager hook scripts.
+#$nrconf{hook_d} = '/etc/needrestart/hook.d';
+
+# Path of user notification scripts.
+#$nrconf{notify_d} = '/etc/needrestart/notify.d';
+
+# Path of restart scripts.
+#$nrconf{restart_d} = '/etc/needrestart/restart.d';
+
+# Disable sending notifications to user sessions running obsolete binaries
+# using scripts from $nrconf{notify_d}.
+#$nrconf{sendnotify} = 0;
+
+# If needrestart detects systemd it assumes that you use systemd's pam module.
+# This allows needrestart to easily detect user session. In case you use
+# systemd *without* pam_systemd.so you should set has_pam_systemd to false
+# to enable legacy session detection!
+#$nrconf{has_pam_systemd} = 0;
+
+# Restart mode: (l)ist only, (i)nteractive or (a)utomatically.
+#
+# ATTENTION: If needrestart is configured to run in interactive mode but is run
+# non-interactive (i.e. unattended-upgrades) it will fallback to list only mode.
+#
+{% if ansible_distribution_release == 'noble' %}
+# UBUNTU: the default restart mode when running as part of the APT hook is 'a',
+# unless a specific UI is configured (see below).
+{% endif %}
+#$nrconf{restart} = 'i';
+
+# Use preferred UI package.
+{% if ansible_distribution_release == 'noble' %}
+#
+# UBUNTU: the default UI when running as part of the APT hook is
+# 'Needrestart::UI::Ubuntu'.
+{% endif %}
+#$nrconf{ui} = 'NeedRestart::UI::stdio';
+
+# Change default answer to 'no' in (i)nteractive mode.
+#$nrconf{defno} = 1;
+
+# Set UI mode to (e)asy or (a)dvanced.
+#$nrconf{ui_mode} = 'e';
+
+# Print a combined `systemctl restart` command line for skipped services.
+#$nrconf{systemctl_combine} = 1;
+
+# Blacklist binaries (list of regex).
+$nrconf{blacklist} = [
+    # ignore sudo (not a daemon)
+    qr(^/usr/bin/sudo(\.dpkg-new)?$),
+
+    # ignore DHCP clients
+    qr(^/sbin/(dhclient|dhcpcd5|pump|udhcpc)(\.dpkg-new)?$),
+
+    # ignore apt-get (Debian Bug#784237)
+    qr(^/usr/bin/apt-get(\.dpkg-new)?$),
+];
+
+# Blacklist services (list of regex) - USE WITH CARE.
+{% if ansible_distribution_release == 'focal' %}
+# You should prefere to put services to $nrconf{override_rc} instead.
+# Any service listed in $nrconf{blacklist_rc} we be ignored completely!
+{% else %}
+# You should prefer to put services to $nrconf{override_rc} instead.
+# Any service listed in $nrconf{blacklist_rc} will be ignored completely!
+{% endif %}
+#$nrconf{blacklist_rc} = [
+#];
+
+# Override service default selection (hash of regex).
+$nrconf{override_rc} = {
+{% if ansible_distribution_release == 'focal' %}
+    # DBus
+    qr(^dbus) => 0,
+
+    # display managers
+    qr(^gdm) => 0,
+    qr(^kdm) => 0,
+    qr(^nodm) => 0,
+    qr(^sddm) => 0,
+    qr(^wdm) => 0,
+    qr(^xdm) => 0,
+    qr(^lightdm) => 0,
+    qr(^slim) => 0,
+    qr(^lxdm) => 0,
+
+    # networking stuff
+    qr(^bird) => 0,
+    qr(^networking) => 0,
+    qr(^network-manager) => 0,
+    qr(^NetworkManager) => 0,
+    qr(^ModemManager) => 0,
+    qr(^wpa_supplicant) => 0,
+    qr(^openvpn) => 0,
+    qr(^quagga) => 0,
+    qr(^frr) => 0,
+    qr(^tinc) => 0,
+    qr(^(open|free|libre|strong)swan) => 0,
+
+    # gettys
+    qr(^getty@.+\.service) => 0,
+
+    # systemd --user
+    qr(^user@\d+\.service) => 0,
+
+    # misc
+    qr(^zfs-fuse) => 0,
+    qr(^mythtv-backend) => 0,
+    qr(^xendomains) => 0,
+    qr(^lxcfs) => 0,
+    qr(^libvirt) => 0,
+    qr(^docker) => 0,
+
+    # systemd stuff
+    # (see also Debian Bug#784238 & #784437)
+    qr(^emergency\.service$) => 0,
+    qr(^rescue\.service$) => 0,
+
+    # do not restart oneshot services, see also #862840
+    qr(^apt-daily\.service$) => 0,
+    qr(^apt-daily-upgrade\.service$) => 0,
+    qr(^unattended-upgrades\.service$) => 0,
+    # do not restart oneshot services from systemd-cron, see also #917073
+    qr(^cron-.*\.service$) => 0,
+
+    # ignore rc-local.service, see #852864
+    qr(^rc-local\.service$) => 0,
+
+    # don't restart systemd-logind, see #798097
+    qr(^systemd-logind) => 0,
+{% elif ansible_distribution_release == 'jammy' %}
+    # DBus
+    qr(^dbus) => 0,
+
+    # display managers
+    qr(^gdm) => 0,
+    qr(^kdm) => 0,
+    qr(^nodm) => 0,
+    qr(^sddm) => 0,
+    qr(^wdm) => 0,
+    qr(^xdm) => 0,
+    qr(^lightdm) => 0,
+    qr(^slim) => 0,
+    qr(^lxdm) => 0,
+
+    # networking stuff
+    qr(^bird) => 0,
+    qr(^network) => 0,
+    qr(^NetworkManager) => 0,
+    qr(^ModemManager) => 0,
+    qr(^wpa_supplicant) => 0,
+    qr(^openvpn) => 0,
+    qr(^quagga) => 0,
+    qr(^frr) => 0,
+    qr(^tinc) => 0,
+    qr(^(open|free|libre|strong)swan) => 0,
+    qr(^bluetooth) => 0,
+
+    # gettys
+    qr(^getty@.+\.service) => 0,
+
+    # systemd --user
+    qr(^user@\d+\.service) => 0,
+
+    # misc
+    qr(^zfs-fuse) => 0,
+    qr(^mythtv-backend) => 0,
+    qr(^xendomains) => 0,
+    qr(^lxcfs) => 0,
+    qr(^libvirt) => 0,
+    qr(^virtlogd) => 0,
+    qr(^virtlockd) => 0,
+    qr(^docker) => 0,
+
+    # systemd stuff
+    # (see also Debian Bug#784238 & #784437)
+    qr(^emergency\.service$) => 0,
+    qr(^rescue\.service$) => 0,
+    qr(^elogind) => 0,
+
+    # do not restart oneshot services, see also #862840
+    qr(^apt-daily\.service$) => 0,
+    qr(^apt-daily-upgrade\.service$) => 0,
+    qr(^unattended-upgrades\.service$) => 0,
+    # do not restart oneshot services from systemd-cron, see also #917073
+    qr(^cron-.*\.service$) => 0,
+
+    # ignore rc-local.service, see #852864
+    qr(^rc-local\.service$) => 0,
+
+    # don't restart systemd-logind, see #798097
+    qr(^systemd-logind) => 0,
+{% elif ansible_distribution_release == 'noble' %}
+    # DBus
+    qr(^dbus) => 0,
+
+    # display managers
+    qr(^gdm) => 0,
+    qr(^kdm) => 0,
+    qr(^nodm) => 0,
+    qr(^sddm) => 0,
+    qr(^wdm) => 0,
+    qr(^xdm) => 0,
+    qr(^lightdm) => 0,
+    qr(^slim) => 0,
+    qr(^lxdm) => 0,
+
+    # networking stuff
+    qr(^bird) => 0,
+    qr(^network) => 0,
+    qr(^NetworkManager) => 0,
+    qr(^ModemManager) => 0,
+    qr(^wpa_supplicant) => 0,
+    qr(^openvpn) => 0,
+    qr(^quagga) => 0,
+    qr(^frr) => 0,
+    qr(^tinc) => 0,
+    qr(^(open|free|libre|strong)swan) => 0,
+    qr(^bluetooth) => 0,
+
+    # gettys
+    qr(^getty@.+\.service) => 0,
+    qr(^serial-getty@.+\.service) => 0,
+
+    # systemd --user
+    qr(^user@\d+\.service) => 0,
+
+    # misc
+    qr(^zfs-fuse) => 0,
+    qr(^mythtv-backend) => 0,
+    qr(^xendomains) => 0,
+    qr(^lxcfs) => 0,
+    qr(^libvirt) => 0,
+    qr(^virtlogd) => 0,
+    qr(^virtlockd) => 0,
+    qr(^docker) => 0,
+
+    # LP: #2063442
+    qr(^google-(shutdown|startup)-scripts\.service$) => 0,
+
+    # systemd stuff
+    # (see also Debian Bug#784238 & #784437)
+    qr(^emergency\.service$) => 0,
+    qr(^rescue\.service$) => 0,
+    qr(^elogind) => 0,
+
+    # do not restart oneshot services, see also #862840
+    qr(^apt-daily\.service$) => 0,
+    qr(^apt-daily-upgrade\.service$) => 0,
+    qr(^unattended-upgrades\.service$) => 0,
+    # do not restart cloud-init services which may call apt dist-upgrade
+    # non-interactively. LP: #2059337
+    qr(^cloud-(init-local|init|config|final)\.service$) => 0,
+
+    # do not restart oneshot services from systemd-cron, see also #917073
+    qr(^cron-.*\.service$) => 0,
+
+    # ignore rc-local.service, see #852864
+    qr(^rc-local\.service$) => 0,
+
+    # don't restart systemd-logind, see #798097
+    qr(^systemd-logind) => 0,
+{% endif %}
+
+    # Storage data-plane daemons: never auto-restart, ever (managed by Ansible)
+    # Restart of these is handled manually during a maintenance window because
+    # tgtd in particular drops live iSCSI sessions on restart.
+{% set _all = needrestart_storage_overrides + (needrestart_extra_overrides | default([])) %}
+{% set _max = (_all | map(attribute='pattern') | map('length') | max) if _all | length > 0 else 0 %}
+{% for s in needrestart_storage_overrides %}
+    {{ ('qr(' ~ s.pattern ~ ')').ljust(_max + 4) }} => 0,{{ ('  # ' ~ s.comment) if s.comment is defined else '' }}
+{% endfor %}
+{% if needrestart_extra_overrides | default([]) | length > 0 %}
+
+    # Site-specific extra overrides
+{% for s in needrestart_extra_overrides %}
+    {{ ('qr(' ~ s.pattern ~ ')').ljust(_max + 4) }} => 0,{{ ('  # ' ~ s.comment) if s.comment is defined else '' }}
+{% endfor %}
+{% endif %}
+};
+
+# Override container default selection (hash of regex).
+$nrconf{override_cont} = {
+};
+
+# Disable interpreter scanners.
+#$nrconf{interpscan} = 0;
+
+# Ignore script files matching these regexs:
+$nrconf{blacklist_interp} = [
+    # ignore temporary files
+    qr(^/tmp/),
+    qr(^/var/),
+    qr(^/run/),
+
+];
+
+# Ignore +x mapped files matching one of these regexs:
+$nrconf{blacklist_mappings} = [
+    # special device paths
+    qr(^/(SYSV00000000( \(deleted\))?|drm(\s|$)|dev/)),
+{% if ansible_distribution_release != 'focal' %}
+
+    # ignore memfd mappings
+    qr(^/memfd:),
+{% endif %}
+
+    # aio(7) mapping
+    qr(^/\[aio\]),
+
+    # Oil Runtime Compiler's JIT files
+    qr#/orcexec\.[\w\d]+( \(deleted\))?$#,
+
+    # plasmashell (issue #65)
+    qr(/#\d+( \(deleted\))?$),
+{% if ansible_distribution_release == 'focal' %}
+
+    # Java Native Access
+    qr#/tmp/jna--#,
+
+    # Java Foreign Function Interface
+    qr#^/tmp/jffi#,
+
+    # elasticsearch
+    qr#^/tmp/elasticsearch\.#,
+{% else %}
+
+    # Java Native Access (issues #142 #185)
+    qr#/jna\d+\.tmp( \(deleted\))?$#,
+
+    # temporary stuff
+    qr#^(/var)?/tmp/#,
+    qr#^(/var)?/run/#,
+{% endif %}
+];
+
+{% if ansible_distribution_release == 'focal' %}
+# Verify mapped files in fileystem:
+# 0 : enabled (default)
+# -1: ignore non-existing files, workaround for broken grsecurity kernels
+# 1 : disable check completely, rely on content of maps file only
+$nrconf{skip_mapfiles} = (-d '/proc/sys/kernel/grsecurity' ? -1 : 0);
+{% else %}
+# Verify mapped files in filesystem:
+# 0 : enabled
+# -1: ignore non-existing files, workaround for chroots and broken grsecurity kernels (default)
+# 1 : disable check completely, rely on content of maps file only
+$nrconf{skip_mapfiles} = -1;
+{% endif %}
+
+# Enable/disable hints on pending kernel upgrades:
+#  1: requires the user to acknowledge pending kernels
+#  0: disable kernel checks completely
+# -1: print kernel hints to stderr only
+#$nrconf{kernelhints} = -1;
+{% if ansible_distribution_release != 'focal' %}
+
+# Filter kernel image filenames by regex. This is required on Raspian having
+# multiple kernel image variants installed in parallel.
+#$nrconf{kernelfilter} = qr(kernel7\.img);
+{% endif %}
+
+# Enable/disable CPU microcode update hints:
+#  1: requires the user to acknowledge pending updates
+#  0: disable microcode checks completely
+#$nrconf{ucodehints} = 0;
+
+# Nagios Plugin: configure return code use by nagios
+# as service status[1].
+#
+# [1] https://nagios-plugins.org/doc/guidelines.html#AEN78
+#
+# Default:
+#  'nagios-status' => {
+#     'sessions' => 1,
+#     'services' => 2,
+#     'kernel' => 2,
+#     'ucode' => 2,
+#     'containers' => 1
+#  },
+#
+# Example: to ignore outdated sessions (status OK)
+# $nrconf{'nagios-status'}->{sessions} = 0;
+
+
+# Read additional config snippets.
+if(-d q(/etc/needrestart/conf.d)) {
+      foreach my $fn (sort </etc/needrestart/conf.d/*.conf>) {
+{% if ansible_distribution_release == 'focal' %}
+	      print STDERR "$LOGPREF eval $fn\n" if($nrconf{verbose});
+{% else %}
+	      print STDERR "$LOGPREF eval $fn\n" if($nrconf{verbosity} > 1);
+{% endif %}
+	      eval do { local(@ARGV, $/) = $fn; <>};
+	      die "Error parsing $fn: $@" if($@);
+      }
+}
