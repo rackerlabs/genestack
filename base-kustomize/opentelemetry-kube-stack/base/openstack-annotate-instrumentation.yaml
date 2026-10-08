@@ -288,6 +288,31 @@
 #      annotations:
 #        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
 #
+#---
+## Ironic
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: ironic-api
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
+#---
+#apiVersion: apps/v1
+#kind: StatefulSet
+#metadata:
+#  name: ironic-conductor
+#  namespace: openstack
+#spec:
+#  template:
+#    metadata:
+#      annotations:
+#        instrumentation.opentelemetry.io/inject-python: "openstack/openstack-instrumentation"
+#
 ##---
 ### Manila
 ##apiVersion: apps/v1

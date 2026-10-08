@@ -392,3 +392,13 @@ detach_volume_from_server() {
 
     os_cmd server remove volume "${server}" "${volume}" 2>/dev/null || true
 }
+
+# List Ironic drivers
+list_baremetal_drivers() {
+    os_cmd baremetal driver list --fields name -f value
+}
+
+# List Ironic conductors and their health state
+list_baremetal_conductors() {
+    os_cmd baremetal conductor list -f value -c Hostname -c Alive
+}
