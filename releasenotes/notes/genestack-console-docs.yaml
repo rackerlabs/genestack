@@ -12,6 +12,9 @@ features:
     A server boots from its own disk until you select it. ``https://my.genestack.dev``
     is the account page for the Apple apps that connect to that console.
     The console source is pinned at ``submodules/genestack-console`` from
-    PIndustries/genestack-console tag v2026.10.03. The same chapter
+    PIndustries/genestack-console tag v2026.10.03. The published program
+    named on the page is v2026.10.07.21. That release also has a virtual
+    machine disk and an installer CD. SSH does not start on that image.
+    The page listens on port 8080. The same chapter
     walks through the program, how a job runs, the operations, the
     HTTP API, and the web page.

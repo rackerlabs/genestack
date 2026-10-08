@@ -35,9 +35,22 @@ ssh -L 8080:127.0.0.1:8080 <deploy-host>
 
 Open `http://127.0.0.1:8080/ui`. The first screen is Guided setup. The first admin password is written to `/opt/genestack-console/ADMIN_CREDENTIALS.txt`. The file mode is `0600`.
 
-The build described here is [v2026.10.03](https://github.com/PIndustries/genestack-console/releases/tag/v2026.10.03){:target="_blank"}. The Linux file on that release is `genestack-console-linux-amd64`. [`version.json`](https://github.com/PIndustries/genestack-console/releases/download/v2026.10.03/version.json){:target="_blank"} on the same release names that file. Use those assets when you need this exact version. The `curl` command above follows whatever the latest release is.
+The build described here is [v2026.10.07.21](https://github.com/PIndustries/genestack-console/releases/tag/v2026.10.07.21){:target="_blank"}. The Linux file on that release is `genestack-console-linux-amd64`. [`version.json`](https://github.com/PIndustries/genestack-console/releases/download/v2026.10.07.21/version.json){:target="_blank"} on the same release names that file. Use those assets when you need this exact version. The `curl` command above follows whatever the latest release is. The same release also has the disk and the CD in the next section. The list of files is [genestack.dev/releases](https://genestack.dev/releases){:target="_blank"}.
 
 Back up two things together: `/opt/genestack-console/config.yaml`, and the console database. The database holds the users and the sessions. Passwords stored in it are encrypted with a key from `config.yaml`. A copy of the database without that file cannot be decrypted.
+
+## Boot the console as an appliance
+
+The command above puts the program on a Linux server you already have. The same release ships a boot image for a machine that does not have an operating system yet. The image is Ubuntu 26.04 with the console already on it. SSH is installed and does not start. The page listens on port 8080 on the machine's addresses, so you open `http://<address>:8080/ui` without an SSH forward.
+
+Two files are on the release:
+
+- `genestack-console-appliance-2026.10.07.21-amd64.qcow2.xz` is a virtual machine disk with the console already installed. Decompress it and boot it.
+- `genestack-console-appliance-2026.10.07.21-amd64.iso` is a CD. Boot it and type the disk to install onto. That disk is wiped. The installed system is the same appliance as the virtual machine disk.
+
+The first boot writes the admin password on the machine console, in `/opt/genestack-console/ADMIN_CREDENTIALS.txt`. The resize, the OpenStack import, and the install prompt are in [The appliance](https://github.com/PIndustries/genestack-console/blob/v2026.10.07.21/docs/appliance.md){:target="_blank"}.
+
+This CD is the console itself. The ISO named later on this page is a different file. That one is an image for a server you are installing into the cloud.
 
 ## Where the files go
 
@@ -59,7 +72,7 @@ Ubuntu is a different next boot. It installs one machine and stops. It is not a 
 | `submodules/genestack-console` | The console source, pinned in this repository the same way Kubespray is pinned. A normal clone does not download it. |
 | `127.0.0.1:8080` | The console web page, on the deploy host. |
 
-The pin is [PIndustries/genestack-console](https://github.com/PIndustries/genestack-console){:target="_blank"} at release `v2026.10.03`. The submodule is marked `ignore = all`, so a normal clone skips it. Fetch the source when you want it next to this tree:
+The pin is [PIndustries/genestack-console](https://github.com/PIndustries/genestack-console){:target="_blank"} at release `v2026.10.03`. That pin is the source snapshot in this repository. The program, the disk, and the CD named above are the later release. The submodule is marked `ignore = all`, so a normal clone skips it. Fetch the source when you want it next to this tree:
 
 ``` shell
 git submodule update --init submodules/genestack-console
@@ -106,7 +119,7 @@ Those four steps are the Talos path. Install Ubuntu is a separate next boot. It 
 
 Kubespray does not use that wipe. The machines already have an operating system, often from the Ubuntu next boot. Set the provider to `kubespray` and run the install. Kubernetes and OpenStack after that are the same.
 
-An ISO image cannot be the first boot of a reinstall. An ISO does not wipe the disks, so the console rejects that choice on this path.
+An ISO image cannot be the first boot of a reinstall. An ISO does not wipe the disks, so the console rejects that choice on this path. That image is for the server you are installing. It is not the console appliance CD.
 
 Where the deploy host cannot be L2 with the servers, the console agent does this job. Install it on a computer that is L2 with those servers. DHCP and the boot files for that site run on the agent. The agent connects out to the console, and you still start the job from the console. The agent install is in the console install guide linked below.
 
@@ -163,7 +176,7 @@ The built-in folders live under `app/modules/`. Bare metal is `app/modules/barem
 
 ## The rest of the manual
 
-The first rows are the rest of this chapter. The links after them open the console repository. The binary named on this page is `v2026.10.03`. The source on `main` can be ahead of that tag.
+The first rows are the rest of this chapter. The links after them open the console repository. The binary named on this page is `v2026.10.07.21`. The source on `main` can be ahead of that tag. The source pin in this repository stays `v2026.10.03`.
 
 | You need | Read |
 | --- | --- |
@@ -173,12 +186,13 @@ The first rows are the rest of this chapter. The links after them open the conso
 | The HTTP routes | [The HTTP API](genestack-console-api.md) |
 | The screens | [The web page](genestack-console-ui.md) |
 | Install on Linux, a Mac, or Windows | [Install](https://github.com/PIndustries/genestack-console/blob/main/docs/install.md){:target="_blank"} |
+| Boot the console as an appliance | [The appliance](https://github.com/PIndustries/genestack-console/blob/v2026.10.07.21/docs/appliance.md){:target="_blank"} |
 | A lab with one local virtual machine | [Install AIO](https://github.com/PIndustries/genestack-console/blob/main/docs/install-aio.md){:target="_blank"} |
 | The longer design notes | [Architecture](https://github.com/PIndustries/genestack-console/blob/main/docs/architecture.md){:target="_blank"} |
 | The account page and the Apple apps | [Connect a console to my.genestack.dev](https://github.com/PIndustries/genestack-console/blob/main/docs/hosted-mode.md){:target="_blank"} |
-| Path-by-path HTTP reference | [API reference](https://github.com/PIndustries/genestack-console/blob/v2026.10.03/API_REFERENCE.md){:target="_blank"}, and `/swagger` on a running console |
+| Path-by-path HTTP reference | [API reference](https://github.com/PIndustries/genestack-console/blob/v2026.10.07.21/API_REFERENCE.md){:target="_blank"}, and `/swagger` on a running console |
 | How a release is cut | [Releasing](https://github.com/PIndustries/genestack-console/blob/main/docs/releasing.md){:target="_blank"} |
 
 !!! note
 
-    This site is built from the `main` branch of Genestack. The console program is released on its own tags. If a step on this page and the `v2026.10.03` binary disagree, follow the console repository at that tag.
+    This site is built from the `main` branch of Genestack. The console program is released on its own tags. If a step on this page and the `v2026.10.07.21` binary disagree, follow the console repository at that tag.

@@ -1,6 +1,6 @@
 # The console program
 
-[Genestack Console](genestack-console.md) is the program you install on the deploy host. This page is how that program is put together. The binary named on the install chapter is `v2026.10.03`. These chapters describe the source on `main`, which can be ahead of that tag. When a step and that binary disagree, follow the tag.
+[Genestack Console](genestack-console.md) is the program you install on the deploy host. This page is how that program is put together. The binary named on the install chapter is `v2026.10.07.21`. These chapters describe the source on `main`, which can be ahead of that tag. When a step and that binary disagree, follow the tag.
 
 Genestack is this repository: the scripts, Ansible, and charts that install OpenStack on Kubernetes. The console is a different program. It lives in [PIndustries/genestack-console](https://github.com/PIndustries/genestack-console){:target="_blank"}. The Python package inside that repository is `app`.
 
