@@ -75,6 +75,11 @@ dependencies:
 
 conf:
   logging:
+    loggers:
+      keys:
+        - root
+        - octavia
+        - sqlalchemy
     logger_root:
       handlers:
         - stdout
