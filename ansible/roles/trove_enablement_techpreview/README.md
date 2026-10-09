@@ -71,6 +71,13 @@ ansible-playbook ansible/playbooks/trove-enablement-techpreview.yaml \
   -e force_rebuild_image=true
 ```
 
+### Force Create Flavors
+
+```bash
+ansible-playbook ansible/playbooks/trove-enablement-techpreview.yaml \
+  -e force_create_flavors=true
+```
+
 ### Force Rebuild Datastore Version
 
 ```bash
@@ -87,17 +94,19 @@ ansible-playbook ansible/playbooks/trove-enablement-techpreview.yaml \
 
 ## Variables
 
-| Variable                         | Default                 | Description                                         |
-|----------------------------------|-------------------------|-----------------------------------------------------|
-| `trove_datastore_name`           | `mysql`                 | Datastore to enable: `mysql` or `mariadb`           |
+| Variable                         | Default                 | Description                                                                                                                                                                                                                 |
+|----------------------------------|-------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `trove_datastore_name`           | `mysql`                 | Datastore to enable: `mysql` or `mariadb`                                                                                                                                                                                   |
+| `trove_flavor_profiles`          | see `defaults/main.yml` | Per-flavor settings map. Each flavor carries `name`, `cores` (number of logical cores), `ram` (amount of RAM in gigabytes), and `root_disk` (amount of root partition in gigabytes).                                        |
 | `trove_datastore_profiles`       | see `defaults/main.yml` | Per-datastore settings map. Each profile carries `name`, `version` (engine/docker tag), `version_name` (Trove datastore-version label), `docker_image`, `guest_manager`, backup/replication strategy, and config templates. |
-| `trove_guest_image_name`         | `trove-<name>-<version_name>-<os>` | Glance image name, derived from the selected profile (e.g. `trove-mariadb-11.8-bookworm`) |
-| `trove_keypair_name`             | `trove-access-keypair`  | Nova keypair for instance access                    |
-| `trove_secgroup_name`            | `trove-access-secgroup` | Security group for Trove instances                  |
-| `trove_mgmt_public_network_name` | `flat`                  | Management network name for public provider network |
-| `force_rebuild_image`            | `false`                 | Force rebuild and re-upload guest image             |
-| `force_create_dsv`               | `false`                 | Force rebuild of datastore version                  |
-| `force_full_recreation`          | `false`                 | Recreate techpreview SSH, image, keypair, security group, and datastore resources |
+| `trove_guest_image_name`         | `trove-<name>-<version_name>-<os>` | Glance image name, derived from the selected profile (e.g. `trove-mariadb-11.8-bookworm`)                                                                                                                                   |
+| `trove_keypair_name`             | `trove-access-keypair`  | Nova keypair for instance access                                                                                                                                                                                            |
+| `trove_secgroup_name`            | `trove-access-secgroup` | Security group for Trove instances                                                                                                                                                                                          |
+| `trove_mgmt_public_network_name` | `flat`                  | Management network name for public provider network                                                                                                                                                                         |
+| `force_rebuild_image`            | `false`                 | Force rebuild and re-upload guest image                                                                                                                                                                                     |
+| `force_create_flavors`           | `false`                 | Force rebuild of flavors                                                                                                                                                                                                    |
+| `force_create_dsv`               | `false`                 | Force rebuild of datastore version                                                                                                                                                                                          |
+| `force_full_recreation`          | `false`                 | Nuclear option — rebuild everything                                                                                                                                                                                         |
 
 ## Tags
 

@@ -1,0 +1,30 @@
+---
+# Strategic-merge patch: mount the genestack flavor-filter module into the
+# trove-api pod and put it on PYTHONPATH so the dbflavorfilter paste filter
+# (wired in base-helm-configs/trove/trove-helm-overrides.yaml) can import it
+# without a custom image build.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trove-api
+  namespace: openstack
+spec:
+  template:
+    spec:
+      containers:
+        - name: trove-api
+          env:
+            - name: PYTHONPATH
+              value: /var/lib/openstack-extensions
+          volumeMounts:
+            - name: trove-flavor-filter
+              mountPath: /var/lib/openstack-extensions/genestack_trove_flavor_filter.py
+              subPath: genestack_trove_flavor_filter.py
+              readOnly: true
+      volumes:
+        - name: trove-flavor-filter
+          configMap:
+            name: trove-flavor-filter
+            # 0444 (read-only) expressed as decimal to satisfy yamllint's
+            # octal-values rule; Kubernetes defaultMode is an integer field.
+            defaultMode: 292

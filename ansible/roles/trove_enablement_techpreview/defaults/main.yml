@@ -30,6 +30,43 @@ trove_dib_distribution_mirror: "http://deb.debian.org/debian"
 trove_openstack_release: "2025.2"
 
 # =========================================================================
+# Trove flavors
+# =========================================================================
+trove_flavor_profiles:
+  db.2.2:
+    description: "2GB Instance"
+    cores: 2
+    ram: 2048
+    root_disk: 40
+  db.4.4:
+    description: "4GB Instance"
+    cores: 4
+    ram: 4096
+    root_disk: 80
+  db.4.8:
+    description: "8GB Instance"
+    cores: 4
+    ram: 8192
+    root_disk: 80
+  db.8.16:
+    description: "16GB Instance"
+    cores: 8
+    ram: 16384
+    root_disk: 160
+  db.8.32:
+    description: "32GB Instance"
+    cores: 8
+    ram: 32768
+    root_disk: 160
+  db.16.64:
+    description: "64GB Instance"
+    cores: 16
+    ram: 65536
+    root_disk: 240
+
+trove_flavor_default: db.4.4
+
+# =========================================================================
 # Trove datastore
 # =========================================================================
 trove_datastore_name: mysql
@@ -166,6 +203,9 @@ trove_gateway_hostname: "trove.cluster.local"
 # force_rebuild_image=true:
 #   Deletes existing Glance image, rebuilds, re-uploads.
 #
+# force_create_flavors=true:
+#   Deletes existing flavors, rebuilds.
+#
 # force_create_dsv=true:
 #   Forces creation of datastore version and load of configuration parameters.
 #
@@ -174,6 +214,7 @@ trove_gateway_hostname: "trove.cluster.local"
 #   group, guest image, and datastore resources. Chart-derived passwords are
 #   owned by /opt/genestack/bin/services/trove.yaml and are not regenerated here.
 force_rebuild_image: false
+force_create_flavors: false
 force_create_dsv: false
 force_full_recreation: false
 

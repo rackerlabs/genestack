@@ -2399,33 +2399,44 @@ ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.y
     -e "trove_region_name=${trove_region_name} trove_gateway_hostname=${trove_gateway_hostname}"
 
 echo "Installing Trove via Helm chart"
-sudo /opt/genestack/bin/install-trove.sh
+/opt/genestack/bin/install-trove.sh
 
 # on jump host, may need to run
 # > kubectl get pods -A | grep "trove-api\|trove-cond\|trove-task\|trove-mgmt" | awk '{print$2}' | xargs kubectl delete pod -n openstack
-
-echo "Running playbook for trove_image_build (MySQL 8.4)"
-ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
-    --tags trove_image_build \
-    -e "trove_region_name=${trove_region_name} trove_datastore_name=mysql"
-echo "Running playbook for trove_datastore (MySQL 8.4)"
-ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
-    --tags trove_datastore \
-    -e "trove_region_name=${trove_region_name} trove_datastore_name=mysql"
-
-echo "Running playbook for trove_image_build (MariaDB 11.8)"
-ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
-    --tags trove_image_build \
-    -e "trove_region_name=${trove_region_name} trove_datastore_name=mariadb"
-echo "Running playbook for trove_datastore (MariaDB 11.8)"
-ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
-    --tags trove_datastore \
-    -e "trove_region_name=${trove_region_name} trove_datastore_name=mariadb"
 
 echo "Running playbook for trove_client"
 ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
     --tags trove_client \
     -e "trove_region_name=${trove_region_name}"
+
+echo "Running playbook for database flavors"
+# add force_create_flavors=true when needed
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_flavors \
+    -e "trove_region_name=${trove_region_name}"
+
+echo "Running playbook for trove_image_build (MySQL 8.4)"
+# add force_rebuild_image=true when needed
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_image_build \
+    -e "trove_region_name=${trove_region_name} trove_datastore_name=mysql"
+echo "Running playbook for trove_datastore (MySQL 8.4)"
+# add force_create_dsv=true when needed
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_datastore \
+    -e "trove_region_name=${trove_region_name} trove_datastore_name=mysql"
+
+echo "Running playbook for trove_image_build (MariaDB 11.8)"
+# add force_rebuild_image=true when needed
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_image_build \
+    -e "trove_region_name=${trove_region_name} trove_datastore_name=mariadb"
+echo "Running playbook for trove_datastore (MariaDB 11.8)"
+# add force_create_dsv=true when needed
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_datastore \
+    -e "trove_region_name=${trove_region_name} trove_datastore_name=mariadb"
+
 echo "Running playbook for trove_keypair"
 ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
     --tags trove_keypair \

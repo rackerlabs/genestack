@@ -1,0 +1,129 @@
+---
+# Post-deploy: create the Trove flavors
+#
+# Run with: ansible-playbook ... --tags trove_flavors
+# This requires the Trove API to be running.
+
+# =========================================================================
+# CHECK TROVE API AVAILABILITY
+# =========================================================================
+
+- name: Check if Trove API is reachable
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} flavor list
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_api_check
+  changed_when: false
+  failed_when: false
+
+- name: Skip flavor setup if Trove API is not reachable
+  ansible.builtin.debug:
+    msg: >-
+      Trove API is not reachable (rc={{ _trove_api_check.rc }}).
+      Skipping flavor setup. Run again with --tags trove_flavors
+      after Trove has been deployed and is running.
+  when: _trove_api_check.rc != 0
+
+# =========================================================================
+# CREATE FLAVOR
+# =========================================================================
+
+- name: Check if flavors exist
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      source {{ genestack_venv }}/bin/activate
+      openstack --os-cloud {{ os_cloud }} flavor list --private \
+        -f value -c Name 2>/dev/null | grep "^"{{ trove_flavor_default }}"$"
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_flavor_check
+  changed_when: false
+  failed_when: false
+  when: _trove_api_check.rc == 0
+
+- name: Derive action flags
+  ansible.builtin.set_fact:
+    _trove_flavors_exist: "{{ _trove_flavor_check.rc == 0 and _trove_flavor_check.stdout | trim | length != 0 }}"
+    _trove_do_flavors: >-
+      {{
+        (_trove_flavor_check.rc != 0 or _trove_flavor_check.stdout | trim | length == 0)
+        or (force_create_flavors | bool)
+        or (force_full_recreation | bool)
+      }}
+
+- name: Report action flags
+  ansible.builtin.debug:
+    msg: >-
+      Flavors exist={{ _trove_flavors_exist }},
+      do_flavors={{ _trove_do_flavors }},
+      force_rebuild={{ force_create_flavors }},
+      force_full={{ force_full_recreation }}
+
+- name: Delete existing flavors
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      source {{ genestack_venv }}/bin/activate
+      openstack --os-cloud {{ os_cloud }} flavor delete {{ item }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  loop: "{{ trove_flavor_profiles.keys() | list }}"
+  when:
+    - _trove_do_flavors | bool
+    - _trove_flavors_exist | bool
+
+- name: Create flavors
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      source {{ genestack_venv }}/bin/activate
+      openstack --os-cloud {{ os_cloud }} flavor create \
+        --private \
+        {{ item.key }} \
+        --description "{{ item.value.description }}" \
+        --vcpus {{ item.value.cores }} \
+        --ram "{{ item.value.ram }}" \
+        --disk {{ item.value.root_disk }}
+      openstack flavor set --project admin {{ item.key }}
+      openstack flavor set --project service {{ item.key }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  loop: "{{ trove_flavor_profiles | dict2items }}"
+  when: _trove_do_flavors | bool
+
+# =========================================================================
+# VERIFY AND REPORT
+# =========================================================================
+
+- name: List flavors for verification
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      openstack --os-cloud {{ os_cloud }} flavor list --private
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_flavor_list
+  changed_when: false
+  when: _trove_api_check.rc == 0
+
+- name: Display flavor setup results
+  ansible.builtin.debug:
+    msg: |
+      ================================================================
+        TROVE FLAVOR SETUP — COMPLETE
+      ================================================================
+
+      Flavors:
+      {{ _trove_flavor_list.stdout | default('(not available)') }}
+
+      ================================================================
+  when: _trove_api_check.rc == 0
