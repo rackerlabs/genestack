@@ -54,6 +54,7 @@ name: Running hyperconverged smoke tests
           - "quick"
           - "standard"
           - "full"
+
   pull_request:
     paths:
       - ansible/**
@@ -62,6 +63,20 @@ name: Running hyperconverged smoke tests
       - bin/**
       - scripts/**
       - ".github/workflows/smoke-deploy-lab.yaml"
+
+# Only keep the newest run for a given PR.
+#
+# PR runs:
+#   All commits for PR #123 use the same concurrency group.
+#   A newer commit cancels the older in-progress/pending run.
+#
+# workflow_dispatch runs:
+#   github.event.pull_request.number is undefined, so github.run_id is used.
+#   This prevents manually triggered deploy/test/cleanup runs from
+#   canceling one another.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 env:
   HYPERCONVERGED_DEV: "true"
@@ -74,9 +89,18 @@ env:
 
 jobs:
   smoke-deploy:
+    # Keep the job alive long enough to execute cleanup when an older
+    # PR run is canceled by the concurrency policy.
+    if: ${{ always() }}
+
     runs-on: self-hosted
+
+    # Hard safety limit for the entire job, including cleanup.
+    timeout-minutes: 180
+
     container:
       image: localhost:5000/genestack-ci:latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -85,22 +109,23 @@ jobs:
 
       - name: Dynamically set MY_DATE environment variable
         if: ${{ github.event_name == 'pull_request' }}
-        run: echo "LAB_NAME_PREFIX=smoke-$(date +%s)" >> $GITHUB_ENV
+        run: echo "LAB_NAME_PREFIX=smoke-$(date +%s)" >> "$GITHUB_ENV"
 
       - name: Statically set environment variable
         if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
-          echo "LAB_NAME_PREFIX=$(echo '${{ github.event.inputs.gatewayDomain }}' | tr '.' '-')" >> $GITHUB_ENV
-          echo "GATEWAY_DOMAIN=${{ github.event.inputs.gatewayDomain }}" >> $GITHUB_ENV
-          echo "ACME_EMAIL=${{ github.event.inputs.acmeEmail }}" >> $GITHUB_ENV
-          echo "OS_IMAGE=${{ github.event.inputs.osImage }}" >> $GITHUB_ENV
-          echo "SSH_USERNAME=${{ github.event.inputs.sshUsername }}" >> $GITHUB_ENV
+          echo "LAB_NAME_PREFIX=$(echo '${{ github.event.inputs.gatewayDomain }}' | tr '.' '-')" >> "$GITHUB_ENV"
+          echo "GATEWAY_DOMAIN=${{ github.event.inputs.gatewayDomain }}" >> "$GITHUB_ENV"
+          echo "ACME_EMAIL=${{ github.event.inputs.acmeEmail }}" >> "$GITHUB_ENV"
+          echo "OS_IMAGE=${{ github.event.inputs.osImage }}" >> "$GITHUB_ENV"
+          echo "SSH_USERNAME=${{ github.event.inputs.sshUsername }}" >> "$GITHUB_ENV"
+          echo "TEST_LEVEL=${{ github.event.inputs.test_level }}" >> "$GITHUB_ENV"
 
       - name: Run deployment script
         if: ${{ github.event_name == 'pull_request' || contains(fromJSON('["deploy", "test"]'), github.event.inputs.mode) }}
+        timeout-minutes: 120
         run: |
           eval "$(ssh-agent -s)"
-          export TEST_LEVEL="${{ github.event.inputs.test_level }}"
           scripts/hyperconverged-lab.sh kubespray
 
       - name: Retrieve Keys
@@ -108,7 +133,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ssh-keys
-          if-no-files-found: warn  # 'warn' or 'ignore' are also available, defaults to `warn`
+          if-no-files-found: warn
           path: "/github/home/.ssh/${{ env.LAB_NAME_PREFIX }}-key.pem"
 
       - name: Create output file in markdown format
@@ -123,7 +148,7 @@ jobs:
           if [ -s access-output.txt ]; then
             {
               cat access-output.txt
-            } >> $GITHUB_STEP_SUMMARY
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Upload Test Results
@@ -138,59 +163,60 @@ jobs:
       - name: Publish Test Summary
         if: ${{ always() && (github.event_name == 'pull_request' || (github.event.inputs.run_tests == 'true' && contains(fromJSON('["deploy", "test"]'), github.event.inputs.mode))) }}
         run: |
-          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Test Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
 
           if [ -f test-results/aggregate-results.txt ]; then
-            echo "### Test Suite Summary" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
-            echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+            echo "### Test Suite Summary" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Test Suite | Status |" >> "$GITHUB_STEP_SUMMARY"
+            echo "|------------|--------|" >> "$GITHUB_STEP_SUMMARY"
 
             while IFS=: read -r suite status; do
               status=$(echo "$status" | xargs)
               if [ "$status" = "PASSED" ]; then
-                echo "| $suite | :white_check_mark: PASSED |" >> $GITHUB_STEP_SUMMARY
+                echo "| $suite | :white_check_mark: PASSED |" >> "$GITHUB_STEP_SUMMARY"
               else
-                echo "| $suite | :x: FAILED |" >> $GITHUB_STEP_SUMMARY
+                echo "| $suite | :x: FAILED |" >> "$GITHUB_STEP_SUMMARY"
               fi
             done < test-results/aggregate-results.txt
 
-            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "" >> "$GITHUB_STEP_SUMMARY"
           fi
 
           # Parse XML results if available
           if ls test-results/*.xml >/dev/null 2>&1; then
-            echo "### Detailed Test Results" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Detailed Test Results" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
 
             for xml_file in test-results/*.xml; do
               if [ -f "$xml_file" ]; then
                 suite_name=$(grep -o 'name="[^"]*"' "$xml_file" | head -1 | sed 's/name="//;s/"//')
-                echo "#### $suite_name" >> $GITHUB_STEP_SUMMARY
-                echo "" >> $GITHUB_STEP_SUMMARY
-                echo "| Test | Status |" >> $GITHUB_STEP_SUMMARY
-                echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+                echo "#### $suite_name" >> "$GITHUB_STEP_SUMMARY"
+                echo "" >> "$GITHUB_STEP_SUMMARY"
+                echo "| Test | Status |" >> "$GITHUB_STEP_SUMMARY"
+                echo "|------|--------|" >> "$GITHUB_STEP_SUMMARY"
 
-                grep -o '<testcase name="[^"]*"' "$xml_file" | sed 's/<testcase name="//;s/"$//' | while read test; do
+                grep -o '<testcase name="[^"]*"' "$xml_file" | sed 's/<testcase name="//;s/"$//' | while read -r test; do
                   if grep -q "name=\"${test}\".*<failure" "$xml_file"; then
-                    echo "| $test | :x: Failed |" >> $GITHUB_STEP_SUMMARY
+                    echo "| $test | :x: Failed |" >> "$GITHUB_STEP_SUMMARY"
                   elif grep -q "name=\"${test}\".*<skipped" "$xml_file"; then
-                    echo "| $test | :warning: Skipped |" >> $GITHUB_STEP_SUMMARY
+                    echo "| $test | :warning: Skipped |" >> "$GITHUB_STEP_SUMMARY"
                   else
-                    echo "| $test | :white_check_mark: Passed |" >> $GITHUB_STEP_SUMMARY
+                    echo "| $test | :white_check_mark: Passed |" >> "$GITHUB_STEP_SUMMARY"
                   fi
                 done
 
-                echo "" >> $GITHUB_STEP_SUMMARY
+                echo "" >> "$GITHUB_STEP_SUMMARY"
               fi
             done
           fi
 
           if [ ! -f test-results/aggregate-results.txt ] && ! ls test-results/*.xml >/dev/null 2>&1; then
-            echo "_No test results available_" >> $GITHUB_STEP_SUMMARY
+            echo "_No test results available_" >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Cleanup the lab
         if: ${{ always() && (github.event_name == 'pull_request' || contains(fromJSON('["cleanup", "test"]'), github.event.inputs.mode)) }}
+        timeout-minutes: 30
         run: scripts/hyperconverged-lab-uninstall.sh kubespray
