@@ -6,3 +6,7 @@
 	path = submodules/openstack-exporter
 	url = https://github.com/openstack-exporter/helm-charts
 	ignore = all
+[submodule "submodules/genestack-console"]
+	path = submodules/genestack-console
+	url = https://github.com/PIndustries/genestack-console
+	ignore = all

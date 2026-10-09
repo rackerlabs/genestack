@@ -1,0 +1,20 @@
+---
+features:
+  - |
+    Documented the Genestack Console under Getting Started. The console
+    is a separate program. Install it on its own Linux server, outside
+    the cluster. L2 with the servers is recommended, so that server can
+    hand out addresses and boot files. Where it cannot be L2, an agent
+    at the site does that job, and you still run it from the console.
+    From its web page you save the cloud settings, power the servers,
+    and run the Genestack scripts. The install path is
+    ``/opt/genestack-console``.
+    A server boots from its own disk until you select it. ``https://my.genestack.dev``
+    is the account page for the Apple apps that connect to that console.
+    The console source is pinned at ``submodules/genestack-console`` from
+    PIndustries/genestack-console tag v2026.10.03. The published program
+    named on the page is v2026.10.07.21. That release also has a virtual
+    machine disk and an installer CD. SSH does not start on that image.
+    The page listens on port 8080. The same chapter
+    walks through the program, how a job runs, the operations, the
+    HTTP API, and the web page.
