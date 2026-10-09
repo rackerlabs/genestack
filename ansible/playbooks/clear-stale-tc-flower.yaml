@@ -15,10 +15,17 @@
 #   - Per-host gate: a host is skipped (SKIPPED-NOT-FLIPPED) unless OVS on
 #     that node reports ZERO live TC datapath flows, i.e. the HW_OFFLOAD
 #     flip has completed there. Before the flip the TC filters ARE the live
-#   - All "flower" filters (chain 0 and higher-numbered chains) are deleted.
-#     kube-ovn QoS filters (matchall/police) on pod interfaces are preserved.
-#     Shared ingress blocks, per-device ingress qdiscs, and OVN tunnel/internal
-#     devices (genev_sys_6081, ovn0, mirror0) are thoroughly swept.
+#   - All "flower" filters (chain 0 and higher-numbered chains) are deleted
+#     across BOTH ingress and egress directions on all shared blocks and devices.
+#     Uses protocol-aware and priority-aware deletion syntax (protocol <proto>
+#     pref <prio> handle <hex> flower) and purges the pref 2 offload chain,
+#     preventing the kernel from silently ignoring deletions.
+#   - kube-ovn QoS filters (matchall/police) on pod interfaces are preserved.
+#   - Shared ingress/egress blocks, per-device ingress/egress qdiscs, and OVN
+#     tunnel/internal devices (genev_sys_6081, ovn0, mirror0, br-int) are swept.
+#   - After cleanup, flushes OVS datapath flow caches (dpctl/del-flows) and
+#     clears stuck conntrack entries for port 3306 (MariaDB post-IPVS/SNAT redirection)
+#     to ensure immediate traffic restoration without TCP timeouts.
 #   - Hosts without an ovs-ovn pod are skipped (NO-OVS-POD).
 #   - A final coverage check lists any node running an ovs-ovn pod that this
 #     run did not process (wrong --limit, unreachable, or failed) so nothing
@@ -62,9 +69,11 @@
 #   tc_cleanup_dry_run  default true
 #   tc_serial           default 10
 #   tc_strict           default false
+#   tc_conntrack_ports  list or space-separated TCP ports to clear in conntrack (default: ['3306'])
+#   tc_conntrack_flush  flush conntrack even if no filters found (default: false)
 #   kubeconfig          path to kubeconfig (default: environment/standard)
 #   k8s_node_name       per-host override when inventory name != node name
-#   tc_cleanup_log      default /home/ubuntu/maintenances/flex-2026.2/tc-flush-ansible.log
+#   tc_cleanup_log      path to summary log on overseer (optional, disabled by default)
 
 - name: Clear stranded TC flower filters per node
   hosts: "{{ target_hosts | default('all') }}"
@@ -78,6 +87,8 @@
     node_name: "{{ k8s_node_name | default(inventory_hostname) }}"
     ovs_pod: "{{ ovs_pod_by_node[node_name] | default(ovs_pod_by_node[node_name.split('.')[0]] | default('')) }}"
     dry_run: "{{ tc_cleanup_dry_run | default(true) | bool }}"
+    conntrack_ports: "{{ tc_conntrack_ports | default(['3306']) }}"
+    conntrack_flush: "{{ tc_conntrack_flush | default(false) | bool }}"
   # The Kubernetes queries below run once (delegated to the controller) and
   # their results propagate to every host in the play. They live inside this
   # play, not in a separate localhost play, so that any --limit pattern
@@ -116,6 +127,12 @@
                   | list }}
       run_once: true
 
+    - name: Record list of OVS nodes in the cluster  # noqa: run-once[task]
+      ansible.builtin.set_fact:
+        tc_ovs_nodes: >-
+          {{ tc_ovs_pods | map(attribute='spec.nodeName') | unique | list }}
+      run_once: true
+
     - name: Build the map of node name to ovs-ovn pod name  # noqa: run-once[task]
       ansible.builtin.set_fact:
         ovs_pod_by_node: >-
@@ -124,12 +141,18 @@
              | combine(dict(tc_ovs_pods | map(attribute='spec.nodeName')
                             | map('regex_replace', '\..*$', '')
                             | zip(tc_ovs_pods | map(attribute='metadata.name')))) }}
+        tc_k8s_node_by_name: >-
+          {{ dict(tc_ovs_pods | map(attribute='spec.nodeName')
+                  | zip(tc_ovs_pods | map(attribute='spec.nodeName')))
+             | combine(dict(tc_ovs_pods | map(attribute='spec.nodeName')
+                            | map('regex_replace', '\..*$', '')
+                            | zip(tc_ovs_pods | map(attribute='spec.nodeName')))) }}
       run_once: true
 
     - name: Report OVS node count  # noqa: run-once[task]
       ansible.builtin.debug:
         msg: >-
-          ovs-ovn pods found on {{ ovs_pod_by_node | length }} nodes;
+          ovs-ovn pods found on {{ tc_ovs_nodes | length }} nodes;
           dry_run={{ tc_cleanup_dry_run | default(true) }}
       run_once: true
   tasks:
@@ -196,61 +219,169 @@
         set -o pipefail
         out=""
 
-        # 1. Clean shared ingress blocks across all chains
-        for b in $(tc qdisc show | grep -oP "ingress_block \K\d+" | sort -un); do
-          pre=$(tc filter show block $b 2>/dev/null | grep -c "^filter.*flower")
+        clean_target() {
+          local target="$1"
+          local show_out
+          show_out=$(tc filter show $target 2>/dev/null || true)
+          [ -n "$show_out" ] || return 0
+
+          # 1. Parse and delete specific flower filter handles with protocol & pref
+          while IFS="|" read -r p_proto p_pref p_chain p_handle; do
+            [ -n "$p_handle" ] || continue
+            tc filter del $target ${p_proto:+protocol $p_proto} ${p_pref:+pref $p_pref} ${p_chain:+chain $p_chain} handle "$p_handle" flower >/dev/null 2>&1 || true
+            tc filter del $target ${p_proto:+protocol $p_proto} ${p_pref:+pref $p_pref} handle "$p_handle" flower >/dev/null 2>&1 || true
+            tc filter del $target protocol ip ${p_pref:+pref $p_pref} handle "$p_handle" flower >/dev/null 2>&1 || true
+            tc filter del $target protocol ip pref 2 handle "$p_handle" flower >/dev/null 2>&1 || true
+            tc filter del $target handle "$p_handle" flower >/dev/null 2>&1 || true
+          done < <(echo "$show_out" | awk '
+            /^filter .*flower/ {
+              proto=""; pref=""; chain=""; handle="";
+              for (i = 1; i <= NF; i++) {
+                if ($i == "protocol") proto = $(i+1);
+                if ($i == "pref" || $i == "prio") pref = $(i+1);
+                if ($i == "chain") chain = $(i+1);
+                if ($i == "handle") handle = $(i+1);
+              }
+              if (handle != "") print proto "|" pref "|" chain "|" handle;
+            }
+          ')
+
+          # 2. Purge discovered flower preference chains
+          while IFS="|" read -r p_proto p_pref; do
+            [ -n "$p_pref" ] || continue
+            tc filter del $target ${p_proto:+protocol $p_proto} pref "$p_pref" >/dev/null 2>&1 || true
+            tc filter del $target pref "$p_pref" >/dev/null 2>&1 || true
+          done < <(echo "$show_out" | awk '
+            /^filter .*flower/ {
+              proto=""; pref="";
+              for (i = 1; i <= NF; i++) {
+                if ($i == "protocol") proto = $(i+1);
+                if ($i == "pref" || $i == "prio") pref = $(i+1);
+              }
+              if (pref != "") print proto "|" pref;
+            }
+          ' | sort -u)
+
+          # 3. Explicitly purge pref 2 offload chain (OVS HW_OFFLOAD default)
+          tc filter del $target protocol ip pref 2 >/dev/null 2>&1 || true
+          tc filter del $target protocol ipv6 pref 2 >/dev/null 2>&1 || true
+          tc filter del $target pref 2 >/dev/null 2>&1 || true
+
+          # 4. Purge discovered chains
+          for c in $(echo "$show_out" | awk '
+            /^filter .*flower/ {
+              for (i = 1; i <= NF; i++) {
+                if ($i == "chain") print $(i+1);
+              }
+            }
+          ' | sort -un); do
+            tc filter del $target chain "$c" >/dev/null 2>&1 || true
+            tc filter del $target protocol ip chain "$c" >/dev/null 2>&1 || true
+          done
+
+          # 5. Generic target delete
+          tc filter del $target protocol ip >/dev/null 2>&1 || true
+          tc filter del $target >/dev/null 2>&1 || true
+        }
+
+        # 1. Clean shared blocks (ingress/egress) across all chains
+        blocks=$(tc qdisc show 2>/dev/null | awk '{
+          for (i = 1; i <= NF; i++) {
+            if ($i == "ingress_block" || $i == "egress_block" || $i == "block") {
+              if ((i+1) <= NF && $(i+1) ~ /^[0-9]+$/) print $(i+1);
+            }
+          }
+        }' | sort -un)
+
+        for b in $blocks; do
+          pre=$(tc filter show block $b 2>/dev/null | grep -c "^filter.*flower" || true)
+          pre=${pre:-0}
           if [ "$pre" -gt 0 ]; then
             if [ "$DRY" != "1" ]; then
-              for c in $(tc filter show block $b 2>/dev/null | grep -oP "chain \K\d+" | sort -un); do
-                tc filter del block $b chain $c 2>/dev/null || true
-              done
-              tc filter del block $b 2>/dev/null || true
+              clean_target "block $b"
             fi
-            post=$(tc filter show block $b 2>/dev/null | grep -c "^filter.*flower")
+            post=$(tc filter show block $b 2>/dev/null | grep -c "^filter.*flower" || true)
+            post=${post:-0}
             out="$out block$b:$pre->$post"
           fi
         done
 
-        # 2. Clean per-device ingress qdiscs and OVN/tunnel devices across all chains
-        qdisc_devs=$(tc qdisc show | grep -E "^qdisc (ingress|clsact)" | grep -v ingress_block | awk '{print $5}')
+        # 2. Clean per-device ingress and egress qdiscs across all chains
+        qdisc_devs=$(tc qdisc show 2>/dev/null | awk '/^qdisc (ingress|clsact)/ { for (i=1; i<=NF; i++) if ($i == "dev") print $(i+1) }')
         known_devs="genev_sys_6081 ovn0 mirror0 br-int"
         all_devs=$(echo "$qdisc_devs $known_devs" | tr ' ' '\n' | sort -u | grep -v '^$')
 
         for d in $all_devs; do
           [ -d "/sys/class/net/$d" ] || continue
-          pre=$(tc filter show dev $d ingress 2>/dev/null | grep -c "^filter.*flower")
-          if [ "$pre" -gt 0 ]; then
-            if [ "$DRY" != "1" ]; then
-              for c in $(tc filter show dev $d ingress 2>/dev/null | grep -oP "chain \K\d+" | sort -un); do
-                tc filter del dev $d ingress chain $c 2>/dev/null || true
-              done
-              tc filter del dev $d ingress 2>/dev/null || true
-              tc qdisc del dev $d clsact 2>/dev/null || true
-              tc qdisc del dev $d ingress 2>/dev/null || true
+          for dir in ingress egress; do
+            pre=$(tc filter show dev $d $dir 2>/dev/null | grep -c "^filter.*flower" || true)
+            pre=${pre:-0}
+            if [ "$pre" -gt 0 ]; then
+              if [ "$DRY" != "1" ]; then
+                clean_target "dev $d $dir"
+              fi
+              post=$(tc filter show dev $d $dir 2>/dev/null | grep -c "^filter.*flower" || true)
+              post=${post:-0}
+              if [ "$DRY" != "1" ] && [ "$post" -gt 0 ]; then
+                # If flower filters persist, try deleting qdisc only if no QoS/non-flower filters exist
+                if ! tc filter show dev $d $dir 2>/dev/null | grep -qE "^filter.*(matchall|police|u32)"; then
+                  tc qdisc del dev $d clsact >/dev/null 2>&1 || true
+                  tc qdisc del dev $d ingress >/dev/null 2>&1 || true
+                  post=$(tc filter show dev $d $dir 2>/dev/null | grep -c "^filter.*flower" || true)
+                  post=${post:-0}
+                fi
+              fi
+              out="$out $d/$dir:$pre->$post"
             fi
-            post=$(tc filter show dev $d ingress 2>/dev/null | grep -c "^filter.*flower")
-            out="$out $d:$pre->$post"
-          fi
+          done
         done
 
-        # 3. Flush OVS kernel datapath flows so software takes over cleanly
-        if [ "$DRY" != "1" ] && [ -n "$out" ]; then
-          ovs-appctl dpctl/del-flows 2>/dev/null || true
+        # 3. Flush OVS kernel datapath flows and stale conntrack entries
+        if [ "$DRY" != "1" ]; then
+          if [ -n "$out" ]; then
+            if command -v ovs-appctl >/dev/null 2>&1; then
+              ovs-appctl dpctl/del-flows >/dev/null 2>&1 || true
+            elif command -v crictl >/dev/null 2>&1; then
+              ovs_cid=$(crictl ps --name openvswitch -q 2>/dev/null | head -n1)
+              if [ -n "$ovs_cid" ]; then
+                crictl exec "$ovs_cid" ovs-appctl dpctl/del-flows >/dev/null 2>&1 || true
+              fi
+            fi
+          fi
+          if [ -n "$out" ] || [ "$FLUSH_CONNTRACK" = "1" ]; then
+            if command -v conntrack >/dev/null 2>&1; then
+              for p in $CONNTRACK_PORTS; do
+                conntrack -D -p tcp --dport "$p" >/dev/null 2>&1 || true
+                conntrack -D -p tcp --sport "$p" >/dev/null 2>&1 || true
+              done
+            fi
+          fi
         fi
 
-        echo "${out:- nothing-to-do}"
+        if [ "$FLUSH_CONNTRACK" = "1" ] && [ -z "$out" ]; then
+          out="conntrack-flushed"
+        fi
+
+        out=$(echo "$out" | xargs)
+        echo "${out:-nothing-to-do}"
       args:
         executable: /bin/bash
       environment:
         DRY: "{{ dry_run | ternary('1', '0') }}"
+        CONNTRACK_PORTS: "{{ conntrack_ports | join(' ') if conntrack_ports is iterable and conntrack_ports is not string else conntrack_ports }}"
+        FLUSH_CONNTRACK: "{{ conntrack_flush | ternary('1', '0') }}"
       register: tc_clean
-      changed_when: (not dry_run) and (tc_clean.stdout is search(':[1-9][0-9]*->'))
-      failed_when: (not dry_run) and (tc_clean.stdout is search('->[1-9]'))
+      changed_when: (not dry_run) and ((tc_clean.stdout is search(':[1-9][0-9]*->')) or (tc_clean.stdout is search('conntrack-flushed')))
+      failed_when: false
 
     - name: Record result
       ansible.builtin.set_fact:
-        tc_status: "{{ dry_run | ternary('DRY-RUN', 'CLEANED') }}"
-        tc_result: "{{ tc_clean.stdout | trim }}"
+        tc_status: >-
+          {{ 'CLEANUP-FAILED' if tc_clean.rc != 0
+             else ('STALE-FOUND' if dry_run else 'CLEANUP-FAILED') if (tc_clean.stdout is search('->[1-9]'))
+             else ('STALE-FOUND' if dry_run else 'CLEANED') if ((tc_clean.stdout is search(':[1-9][0-9]*->')) or (tc_clean.stdout is search('conntrack-flushed')))
+             else 'CLEAN' }}
+        tc_result: "{{ tc_clean.stdout | default('') | trim if tc_clean.rc == 0 else tc_clean.stderr | default('command execution failed') | trim }}"
 
     - name: Per-host result
       ansible.builtin.debug:
@@ -262,18 +393,34 @@
   gather_facts: false
   strategy: linear
   vars:
-    log_path: "{{ tc_cleanup_log | default('/home/ubuntu/maintenances/flex-2026.2/tc-flush-ansible.log') }}"
+    dry_run: "{{ tc_cleanup_dry_run | default(true) | bool }}"
+    log_path: "{{ tc_cleanup_log | default('') }}"
   tasks:
     - name: Collect per-host results  # noqa: run-once[task]
+      vars:
+        _node: "{{ hostvars[item].k8s_node_name | default(item) }}"
+        _k8s_node: "{{ tc_k8s_node_by_name[_node] | default(tc_k8s_node_by_name[_node.split('.')[0]] | default(_node)) }}"
+        _status: "{{ hostvars[item].tc_status | default('UNKNOWN') | trim }}"
+        _result: "{{ hostvars[item].tc_result | default('') | trim }}"
       ansible.builtin.set_fact:
         tc_lines: >-
           {{ tc_lines | default([])
-             + [(hostvars[item].k8s_node_name | default(item))
-                ~ ' [' ~ hostvars[item].tc_status ~ ']: '
-                ~ (hostvars[item].tc_result | default(''))] }}
+             + [_node ~ ' [' ~ _status ~ ']: ' ~ _result] }}
         tc_covered: >-
           {{ tc_covered | default([])
-             + [hostvars[item].k8s_node_name | default(item)] }}
+             + [_node, _node.split('.')[0], _k8s_node] }}
+        tc_cleaned_nodes: >-
+          {{ (tc_cleaned_nodes | default([])) + ([_node] if _status == 'CLEANED' else []) }}
+        tc_stale_nodes: >-
+          {{ (tc_stale_nodes | default([])) + ([_node] if _status == 'STALE-FOUND' else []) }}
+        tc_clean_nodes: >-
+          {{ (tc_clean_nodes | default([])) + ([_node] if _status == 'CLEAN' else []) }}
+        tc_failed_nodes: >-
+          {{ (tc_failed_nodes | default([])) + ([_node] if _status == 'CLEANUP-FAILED' else []) }}
+        tc_skipped_nodes: >-
+          {{ (tc_skipped_nodes | default([])) + ([_node] if _status in ['SKIPPED-NOT-FLIPPED', 'GATE-ERROR'] else []) }}
+        tc_no_pod_nodes: >-
+          {{ (tc_no_pod_nodes | default([])) + ([_node] if _status == 'NO-OVS-POD' else []) }}
       loop: "{{ groups['all'] }}"
       when: hostvars[item].tc_status is defined
       loop_control:
@@ -282,14 +429,17 @@
       delegate_to: localhost
       become: false
 
-    - name: Compute uncovered OVS nodes (in cluster, not processed by this run)  # noqa: run-once[task]
+    - name: Ensure summary metrics exist  # noqa: run-once[task]
       ansible.builtin.set_fact:
+        tc_cleaned_nodes: "{{ tc_cleaned_nodes | default([]) }}"
+        tc_stale_nodes: "{{ tc_stale_nodes | default([]) }}"
+        tc_clean_nodes: "{{ tc_clean_nodes | default([]) }}"
+        tc_failed_nodes: "{{ tc_failed_nodes | default([]) }}"
+        tc_skipped_nodes: "{{ tc_skipped_nodes | default([]) }}"
+        tc_no_pod_nodes: "{{ tc_no_pod_nodes | default([]) }}"
         tc_uncovered: >-
-          {{ ovs_pod_by_node | default({}) | list
+          {{ tc_ovs_nodes | default([])
              | difference(tc_covered | default([])) }}
-        tc_skipped: >-
-          {{ tc_lines | default([])
-             | select('search', 'SKIPPED-NOT-FLIPPED|GATE-ERROR') | list }}
       run_once: true
       delegate_to: localhost
       become: false
@@ -299,6 +449,7 @@
         path: "{{ log_path | dirname }}"
         state: directory
         mode: "0755"
+      when: log_path | length > 0
       run_once: true
       delegate_to: localhost
       become: false
@@ -310,14 +461,23 @@
         content: |
           # clear-stale-tc-flower run {{ now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ') }}
           # dry_run={{ tc_cleanup_dry_run | default(true) }}
+          # OVS nodes in cluster: {{ tc_ovs_nodes | default([]) | length }}
+          # clean (no stale filters): {{ tc_clean_nodes | length }}
+          # {{ 'stale filters found: ' if dry_run else 'cleaned (stale filters purged): ' }}{{ (tc_stale_nodes if dry_run else tc_cleaned_nodes) | length }}
+          # cleanup failed: {{ tc_failed_nodes | length }}
+          # skipped (not flipped / gate error): {{ tc_skipped_nodes | length }}
+          # skipped (no ovs-ovn pod): {{ tc_no_pod_nodes | length }}
+          # uncovered OVS nodes: {{ tc_uncovered | length }}
           {% for line in tc_lines | default([]) %}
           {{ line }}
           {% endfor %}
-          # skipped / gate errors: {{ tc_skipped | length }}
+          {% if tc_uncovered | length > 0 %}
           # uncovered OVS nodes ({{ tc_uncovered | length }}):
           {% for n in tc_uncovered %}
           #   {{ n }}
           {% endfor %}
+          {% endif %}
+      when: log_path | length > 0
       run_once: true
       delegate_to: localhost
       become: false
@@ -325,10 +485,15 @@
     - name: Summary  # noqa: run-once[task]
       ansible.builtin.debug:
         msg:
-          - "processed: {{ tc_lines | default([]) | length }}"
-          - "skipped / gate errors: {{ tc_skipped | length }}"
-          - "uncovered OVS nodes: {{ tc_uncovered }}"
-          - "log: {{ log_path }}"
+          - "OVS nodes in cluster: {{ tc_ovs_nodes | default([]) | length }}"
+          - "Inventory hosts processed: {{ tc_lines | default([]) | length }}"
+          - "Clean (no stale filters): {{ tc_clean_nodes | length }}"
+          - "{{ dry_run | ternary('Stale filters found: ', 'Cleaned (stale filters purged): ') }}{{ (tc_stale_nodes if dry_run else tc_cleaned_nodes) | length }}"
+          - "Cleanup failed: {{ tc_failed_nodes | length }}{% if tc_failed_nodes | length > 0 %} {{ tc_failed_nodes }}{% endif %}"
+          - "Skipped (not flipped / gate error): {{ tc_skipped_nodes | length }}{% if tc_skipped_nodes | length > 0 %} {{ tc_skipped_nodes }}{% endif %}"
+          - "Skipped (no ovs-ovn pod): {{ tc_no_pod_nodes | length }}"
+          - "Uncovered OVS nodes: {{ tc_uncovered | length }}{% if tc_uncovered | length > 0 %} {{ tc_uncovered }}{% endif %}"
+          - "Log: {{ log_path if (log_path | length > 0) else 'none (tc_cleanup_log not set)' }}"
       run_once: true
       delegate_to: localhost
       become: false
@@ -336,11 +501,13 @@
     - name: Strict gate (only with -e tc_strict=true)  # noqa: run-once[task]
       ansible.builtin.assert:
         that:
-          - tc_uncovered | length == 0
-          - tc_skipped | length == 0
+          - (tc_uncovered | default([])) | length == 0
+          - (tc_skipped_nodes | default([])) | length == 0
+          - (tc_failed_nodes | default([])) | length == 0
         fail_msg: >-
-          Fleet is NOT fully cleaned: {{ tc_uncovered | length }} uncovered
-          node(s), {{ tc_skipped | length }} skipped or gate-error node(s).
+          Fleet is NOT fully cleaned: {{ (tc_uncovered | default([])) | length }} uncovered
+          node(s), {{ (tc_skipped_nodes | default([])) | length }} skipped / gate-error node(s),
+          {{ (tc_failed_nodes | default([])) | length }} failed cleanup node(s).
           Resolve and re-run (the playbook is idempotent).
       when: tc_strict | default(false) | bool
       run_once: true

@@ -95,27 +95,29 @@ live_flows=$(ovs-appctl dpctl/dump-flows type=tc 2>/dev/null | wc -l | tr -d " "
 
 qdisc_count=$(tc qdisc show | grep -cE "^qdisc (ingress|clsact)")
 
-# Flower filter counts on each shared ingress block (bond slaves).
+# Flower filter counts on each shared block (bond slaves).
 blocks=""
-for block_id in $(tc qdisc show | grep -oP "ingress_block \K\d+" | sort -un); do
+for block_id in $(tc qdisc show | grep -oP "(ingress_block|egress_block|block) \K\d+" | sort -un); do
   chain0=$(tc filter show block $block_id chain 0 2>/dev/null | grep -c "^filter.*flower")
   total=$(tc filter show block $block_id 2>/dev/null | grep -c "^filter.*flower")
   blocks="${blocks:+$blocks }block$block_id=$chain0/$total"
 done
 
-# Flower filter counts on each per-device ingress qdisc (geneve, taps,
-# pod veths). Devices with no flower filters are omitted.
+# Flower filter counts on each per-device ingress and egress qdisc (geneve, taps,
+# pod veths, ovn0). Devices with no flower filters are omitted.
 devices=""
 qdisc_devs=$(tc qdisc show | grep -E "^qdisc (ingress|clsact)" | grep -v ingress_block | awk "{print \$5}")
 known_devs="genev_sys_6081 ovn0 mirror0 br-int"
 all_devs=$(echo "$qdisc_devs $known_devs" | tr " " "\n" | sort -u | grep -v "^$")
 for dev in $all_devs; do
   [ -d "/sys/class/net/$dev" ] || continue
-  total=$(tc filter show dev $dev ingress 2>/dev/null | grep -c "^filter.*flower")
-  if [ "$total" -gt 0 ]; then
-    chain0=$(tc filter show dev $dev ingress chain 0 2>/dev/null | grep -c "^filter.*flower")
-    devices="${devices:+$devices }$dev=$chain0/$total"
-  fi
+  for dir in ingress egress; do
+    total=$(tc filter show dev $dev $dir 2>/dev/null | grep -c "^filter.*flower")
+    if [ "$total" -gt 0 ]; then
+      chain0=$(tc filter show dev $dev $dir chain 0 2>/dev/null | grep -c "^filter.*flower")
+      devices="${devices:+$devices }$dev/$dir=$chain0/$total"
+    fi
+  done
 done
 
 uptime_days=$(awk "{printf \"%dd\", \$1/86400}" /proc/uptime)
