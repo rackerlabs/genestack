@@ -54,18 +54,18 @@ Activity has three tabs.
 | Tab | File | What it shows |
 | --- | --- | --- |
 | Jobs | `jobs.js` | Queued, running, and finished jobs, and the log of the one you open. |
-| Alerts | `alerts.js` | Rules, firing events, and, on `main`, the notification channels. |
+| Alerts | `alerts.js` | Rules, firing events, and the notification channels. |
 | Audit | `audit.js` | Who changed what. |
 
-A notification channel is a Slack, Discord, or Teams webhook, or a Resend or Twilio credential. An admin saves it on the Alerts tab. The secret is encrypted and is not shown again. A rule can send through that channel and through its own webhook URL. This is on `main`. The `v2026.10.03` binary does not have that card.
+A notification channel is a Slack, Discord, or Teams webhook, or a Resend or Twilio credential. An admin saves it on the Alerts tab. The secret is encrypted and is not shown again. A rule can send through that channel and through its own webhook URL.
 
-On `main`, Admin has a Reach card for the deploy host, and Settings → Access has a Reach card for one environment. A WireGuard client config is shown once. A Tailscale auth key and a Cloudflare tunnel token are not shown again. The `v2026.10.03` binary does not have those cards.
+Admin has a Reach card for the deploy host, and Settings → Access has a Reach card for one environment. A WireGuard client config is shown once. A Tailscale auth key and a Cloudflare tunnel token are not shown again.
 
-On `main`, Admin has a Database card that shows SQLite or Postgres, the URL with the password hidden, and Move. Move copies every table onto an empty target, writes `database_url`, and tells you to restart. The `v2026.10.03` binary does not have that card.
+Admin has a Database card that shows SQLite or Postgres, the URL with the password hidden, and Move. Move copies every table onto an empty target, writes `database_url`, and tells you to restart.
 
-Traces are API-only. An admin reads and posts spans at `/api/v1/traces`. There is no traces screen. This is on `main`. It is not in the `v2026.10.03` binary.
+Traces are API-only. An admin reads and posts spans at `/api/v1/traces`. There is no traces screen.
 
-On `main`, Settings → Access has a Hosts card. It prepares an Ubuntu autoinstall seed, queues a MicroK8s install, or records a Kubespray cluster that already exists. Talos stays on its own card. Install Ubuntu on the bare-metal row is the boot that puts Ubuntu on the machine. The `v2026.10.03` binary does not have the Hosts card. Install Ubuntu is on `main` and is not in that binary either.
+Settings → Access has a Hosts card. It prepares an Ubuntu autoinstall seed, queues a MicroK8s install, or records a Kubespray cluster that already exists. Talos stays on its own card. Install Ubuntu on the bare-metal row is the boot that puts Ubuntu on the machine.
 
 ## What the other screen files are
 

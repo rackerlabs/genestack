@@ -1,6 +1,6 @@
 # The console HTTP API
 
-The web page, a script, and the Apple apps all call the same API. It is served by the console on the deploy host, at `/api/v1`. This page is the map of that API. The path-by-path reference is the OpenAPI document on a running console, at `/swagger`, and the [API reference](https://github.com/PIndustries/genestack-console/blob/v2026.10.03/API_REFERENCE.md){:target="_blank"} for the `v2026.10.03` binary. The source on `main` can be ahead of that file.
+The web page, a script, and the Apple apps all call the same API. It is served by the console on the deploy host, at `/api/v1`. This page is the map of that API. The path-by-path reference is the OpenAPI document on a running console, at `/swagger`, and the [API reference](https://github.com/PIndustries/genestack-console/blob/main/API_REFERENCE.md){:target="_blank"} in the console repository.
 
 The install chapter is [Genestack Console](genestack-console.md). The jobs the API queues are [Console jobs](genestack-console-jobs.md). How one of those jobs is claimed and run is [How a job runs](genestack-console-runtime.md).
 
@@ -68,7 +68,7 @@ The boot order, and why the console is the DHCP server, is on the [install chapt
 | `app/routers/livestate.py` | The latest snapshot the collector wrote. |
 | `app/routers/stream.py` | A server-sent stream of job and alert events. The page uses it instead of polling every row. |
 | `app/routers/alerts.py` | Alert rules and the events they fired. |
-| `app/routers/notify.py` | Saved Slack, Discord, Teams, Resend, and Twilio credentials. On `main`. Not in the `v2026.10.03` binary. A viewer can list the name. An admin can save. The secret is not returned. |
+| `app/routers/notify.py` | Saved Slack, Discord, Teams, Resend, and Twilio credentials. A viewer can list the name. An admin can save. The secret is not returned. |
 | `app/routers/metrics.py` | Metric samples the collector stored. |
 
 ### This repository, and providers

@@ -1,6 +1,6 @@
 # The console program
 
-[Genestack Console](genestack-console.md) is the program you install on the deploy host. This page is how that program is put together. The binary named on the install chapter is `v2026.10.07.21`. These chapters describe the source on `main`, which can be ahead of that tag. When a step and that binary disagree, follow the tag.
+[Genestack Console](genestack-console.md) is the program you install on the deploy host. This page is how that program is put together. Getting Started installs the latest release.
 
 Genestack is this repository: the scripts, Ansible, and charts that install OpenStack on Kubernetes. The console is a different program. It lives in [PIndustries/genestack-console](https://github.com/PIndustries/genestack-console){:target="_blank"}. The Python package inside that repository is `app`.
 
@@ -71,7 +71,7 @@ Passwords, kubeconfigs, management-port secrets, and notification credentials ar
 | `agent_credentials`, `agent_commands` | An agent enrolled at a remote site, and a command sent to it. |
 | `cluster_snapshots`, `metric_samples`, `config_drift` | What the collector last saw, a few metric samples, and a difference between saved settings and the cluster. |
 | `alert_rules`, `alert_events` | A rule, and the time it fired. |
-| `notify_channels` | A Slack, Discord, Teams, Resend, or Twilio credential, encrypted. This table is on `main`. It is not in the `v2026.10.03` binary. |
+| `notify_channels` | A Slack, Discord, Teams, Resend, or Twilio credential, encrypted. |
 | `apps` | An application the console can deploy onto a cloud that is already up. |
 
 An older `config.yaml` that still has a `maas` block still loads. The console does not use it. The next save drops the block. Talos is installed by this program, from the network.

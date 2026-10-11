@@ -2,7 +2,7 @@
 
 A job is one operation on one environment. You start it from the web page or from `POST /api/v1/jobs`. The worker on the deploy host runs it. This page is the list of operations that ship with the console, and the shape of one you add.
 
-The install chapter is [Genestack Console](genestack-console.md). How the process is split is [The console program](genestack-console-program.md). How a queued job is claimed and where the command runs is [How a job runs](genestack-console-runtime.md). The binary named on the install chapter is `v2026.10.03`. This list is the source on `main`.
+The install chapter is [Genestack Console](genestack-console.md). How the process is split is [The console program](genestack-console-program.md). How a queued job is claimed and where the command runs is [How a job runs](genestack-console-runtime.md). Getting Started installs the latest release.
 
 ## How a job is found
 
