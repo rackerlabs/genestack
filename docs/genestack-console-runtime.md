@@ -1,6 +1,6 @@
 # How a job runs
 
-[Genestack Console](genestack-console.md) records a job when you click. This page is what happens after that, on the deploy host. The binary named on the install chapter is `v2026.10.03`. These chapters describe the source on `main`, which can be ahead of that tag.
+[Genestack Console](genestack-console.md) records a job when you click. This page is what happens after that, on the deploy host. Getting Started installs the latest release.
 
 How the program is split is [The console program](genestack-console-program.md). The operation names are [Console jobs](genestack-console-jobs.md).
 
