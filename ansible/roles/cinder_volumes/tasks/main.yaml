@@ -76,6 +76,28 @@
         namespace: openstack
       register: _kubernetes_cinder_ks_etc_secret
 
+- name: OpenStack Internal Tenant Lookup block
+  delegate_to: "{{ cinder_openstack_delegate_host | default('localhost') }}"
+  become: false
+  run_once: true
+  when:
+    - cinder_enable_internal_tenant | bool
+    - (cinder_internal_tenant_project_id | default('') | length == 0) or (cinder_internal_tenant_user_id | default('') | length == 0)
+  block:
+    - name: Resolve internal tenant project info from Keystone
+      openstack.cloud.project_info:
+        cloud: "{{ cinder_openstack_cloud | default('default') }}"
+        name: "{{ cinder_internal_project_name }}"
+      register: _internal_project_info
+      failed_when: false
+
+    - name: Resolve internal tenant user info from Keystone
+      openstack.cloud.identity_user_info:
+        cloud: "{{ cinder_openstack_cloud | default('default') }}"
+        name: "{{ cinder_internal_user_name }}"
+      register: _internal_user_info
+      failed_when: false
+
 - name: Install cinder distro packages
   ansible.builtin.package:
     name: "{{ cinder_volume_package_list }}"
@@ -128,11 +150,12 @@
       - pip
       - pymysql
       - "git+https://github.com/openstack/cinder@{{ cinder_release_branch }}"
-      - "git+https://github.com/rackerlabs/cinder-rxt.git"
+      - "git+{{ cinder_rxt_git_repo }}@{{ cinder_rxt_release_branch }}"
     state: present
     virtualenv: "{{ cinder_virtualenv_path }}"
     virtualenv_command: python3 -m venv
     extra_args: "-c https://releases.openstack.org/constraints/upper/{{ cinder_release_branch | regex_replace('^(stable|unmaintained)/', '') }}"
+
 
 - name: "Get Python site-packages path from virtualenv"
   command: "{{ cinder_virtualenv_path }}/bin/python -c 'import site; print(site.getsitepackages()[0])'"
@@ -174,6 +197,8 @@
     system: true
     createhome: true
     home: /var/lib/cinder
+    groups: disk
+    append: true
 
 - name: Create the cinder system group
   ansible.builtin.group:
@@ -193,6 +218,15 @@
     - /var/lib/cinder/volumes
     - /var/lib/cinder/conversion
     - /var/lock/cinder
+
+- name: Create systemd-tmpfiles configuration for cinder lock_path
+  ansible.builtin.copy:
+    content: |
+      d /run/lock/cinder 0755 cinder cinder -
+    dest: /etc/tmpfiles.d/cinder.conf
+    owner: root
+    group: root
+    mode: "0644"
 
 - name: Create the cinder configuration directories
   ansible.builtin.file:
@@ -234,6 +268,59 @@
   loop: "{{ (_kubernetes_cinder_ks_etc_secret.resources[0].data | default({})) | dict2items }}"
   when:
     - _kubernetes_cinder_ks_etc_secret.resources | default([]) | length > 0
+  notify:
+    - "restart cinder services"
+
+- name: Configure cinder lock_path
+  ansible.builtin.copy:
+    content: |
+      [oslo_concurrency]
+      lock_path = /var/lock/cinder
+
+      [os_brick]
+      lock_path = /var/lock/cinder
+    dest: /etc/cinder/cinder.conf.d/lock_path.conf
+    owner: root
+    group: cinder
+    mode: "0640"
+  notify:
+    - "restart cinder services"
+
+- name: Set internal tenant facts
+  ansible.builtin.set_fact:
+    cinder_internal_tenant_project_id: >-
+      {{
+        cinder_internal_tenant_project_id
+        if (cinder_internal_tenant_project_id | default('') | length > 0)
+        else (((_internal_project_info | default({})).openstack_projects | default((_internal_project_info | default({})).projects | default([])))[0].id | default(''))
+      }}
+    cinder_internal_tenant_user_id: >-
+      {{
+        cinder_internal_tenant_user_id
+        if (cinder_internal_tenant_user_id | default('') | length > 0)
+        else (((_internal_user_info | default({})).openstack_users | default((_internal_user_info | default({})).users | default([])))[0].id | default(''))
+      }}
+  when:
+    - cinder_enable_internal_tenant | bool
+
+
+- name: Configure cinder internal tenant and image-volume cache
+  ansible.builtin.copy:
+    content: |
+      [DEFAULT]
+      cinder_internal_tenant_project_id = {{ cinder_internal_tenant_project_id }}
+      cinder_internal_tenant_user_id = {{ cinder_internal_tenant_user_id }}
+      image_volume_cache_enabled = {{ cinder_image_volume_cache_enabled | bool }}
+      image_volume_cache_max_size_gb = {{ cinder_image_volume_cache_max_size_gb }}
+      image_volume_cache_max_count = {{ cinder_image_volume_cache_max_count }}
+    dest: /etc/cinder/cinder.conf.d/internal_tenant.conf
+    owner: root
+    group: cinder
+    mode: "0640"
+  when:
+    - cinder_enable_internal_tenant | bool
+    - cinder_internal_tenant_project_id | default('') | length > 0
+    - cinder_internal_tenant_user_id | default('') | length > 0
   notify:
     - "restart cinder services"
 
