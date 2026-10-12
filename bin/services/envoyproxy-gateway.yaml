@@ -1,13 +1,14 @@
 ---
 service:
-  name: envoy-gateway
+  name: envoyproxy-gateway
   namespace: envoyproxy-gateway-system
   version: ~
+  family: ""
 
 chart:
   repo_name: envoyproxy-gateway
   repo_url: oci://docker.io/envoyproxy/gateway-helm
-  service_name: envoy-gateway
+  service_name: envoyproxy-gateway
   global_overrides: false
 
 kustomize:

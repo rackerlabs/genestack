@@ -9,10 +9,6 @@
 SERVICE_NAME_DEFAULT="octavia"
 SERVICE_NAMESPACE="openstack"
 
-# Helm
-HELM_REPO_NAME_DEFAULT="openstack-helm"
-HELM_REPO_URL_DEFAULT="https://tarballs.opendev.org/openstack/openstack-helm"
-
 # Base directories provided by the environment
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
 GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
@@ -23,63 +19,19 @@ GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 source "${GENESTACK_BASE_DIR}/bin/helpers.sh"
 trap cleanup_tmp EXIT
 
-# Define service-specific override directories based on the framework
-SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME_DEFAULT}"
-SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME_DEFAULT}"
+# Load the service configuration once for this installer.
+service_config=$(load_service_config "$SERVICE_NAME_DEFAULT" --log-sources) || exit 1
 
-# Define the Global Overrides directory used in the original script
-GLOBAL_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR}/helm-configs/global_overrides"
+# Resolve the chart version from the service config or chart versions file.
+SERVICE_VERSION=$(resolve_chart_version "$SERVICE_NAME_DEFAULT" "$service_config") || exit 1
 
-# Read the desired chart version from VERSION_FILE
-VERSION_FILE="${GENESTACK_OVERRIDES_DIR}/helm-chart-versions.yaml"
-
-if [ ! -f "$VERSION_FILE" ]; then
-    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE" >&2
+if [[ -z "$SERVICE_VERSION" ]]; then
+    log_error "No chart version found for '$SERVICE_NAME_DEFAULT'."
     exit 1
 fi
 
-# Extract version dynamically using the SERVICE_NAME_DEFAULT variable
-SERVICE_VERSION=$(grep "^[[:space:]]*${SERVICE_NAME_DEFAULT}:" "$VERSION_FILE" | sed "s/.*${SERVICE_NAME_DEFAULT}: *//")
-
-if [ -z "$SERVICE_VERSION" ]; then
-    echo "Error: Could not extract version for '$SERVICE_NAME_DEFAULT' from $VERSION_FILE" >&2
-    exit 1
-fi
-
-echo "Found version for $SERVICE_NAME_DEFAULT: $SERVICE_VERSION"
-
-# Load chart metadata from custom override YAML if defined
-for yaml_file in "${SERVICE_CUSTOM_OVERRIDES}"/*.yaml; do
-    if [ -f "$yaml_file" ]; then
-        HELM_REPO_URL=$(yq eval '.chart.repo_url // ""' "$yaml_file")
-        HELM_REPO_NAME=$(yq eval '.chart.repo_name // ""' "$yaml_file")
-        SERVICE_NAME=$(yq eval '.chart.service_name // ""' "$yaml_file")
-        break  # use the first match and stop
-    fi
-done
-
-# Fallback to defaults if variables not set
-: "${HELM_REPO_URL:=$HELM_REPO_URL_DEFAULT}"
-: "${HELM_REPO_NAME:=$HELM_REPO_NAME_DEFAULT}"
-: "${SERVICE_NAME:=$SERVICE_NAME_DEFAULT}"
-
-
-# Determine Helm chart path
-if [[ "$HELM_REPO_URL" == oci://* ]]; then
-    # OCI registry path
-    HELM_CHART_PATH="$HELM_REPO_URL/$HELM_REPO_NAME/$SERVICE_NAME"
-else
-    # --- Helm Repository and Execution ---
-    helm repo add --force-update "$HELM_REPO_NAME" "$HELM_REPO_URL" 2>/dev/null || true
-    helm repo update
-    HELM_CHART_PATH="$HELM_REPO_NAME/$SERVICE_NAME"
-fi
-
-# Debug output
-echo "[DEBUG] HELM_REPO_URL=$HELM_REPO_URL"
-echo "[DEBUG] HELM_REPO_NAME=$HELM_REPO_NAME"
-echo "[DEBUG] SERVICE_NAME=$SERVICE_NAME"
-echo "[DEBUG] HELM_CHART_PATH=$HELM_CHART_PATH"
+# Resolve the chart location from the service configuration.
+resolve_service_chart "$SERVICE_NAME_DEFAULT" "$service_config" || exit 1
 
 # Resolve Kube-OVN's effective TLS setting, including chart defaults.
 source "${GENESTACK_BASE_DIR}/scripts/lib/functions.sh"
@@ -91,7 +43,7 @@ if ! KUBE_OVN_VALUES=$(helm --namespace kube-system get values kube-ovn --all --
 fi
 
 KUBE_OVN_ENABLE_SSL=$(printf '%s\n' "$KUBE_OVN_VALUES" | yq eval -r '.networking.ENABLE_SSL // false' -)
-OVN_TLS_OVERRIDES="${SERVICE_BASE_OVERRIDES}/ssl/octavia-ovn-tls-overrides.yaml"
+OVN_TLS_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME_DEFAULT}/ssl/octavia-ovn-tls-overrides.yaml"
 
 case "$KUBE_OVN_ENABLE_SSL" in
     true)
@@ -128,59 +80,11 @@ esac
 
 echo "Using ${CONNECTION_STRING} connections for the OVN northbound and southbound databases."
 
-# Prepare an array to collect -f arguments
-overrides_args=()
-
-# Include all YAML files from the BASE configuration directory
-# NOTE: Files in this directory are included first.
-if [[ -d "$SERVICE_BASE_OVERRIDES" ]]; then
-    echo "Including base overrides from directory: $SERVICE_BASE_OVERRIDES"
-    for file in "$SERVICE_BASE_OVERRIDES"/*.yaml; do
-        # Check that there is at least one match
-        if [[ -e "$file" ]]; then
-            echo " - $file"
-            overrides_args+=("-f" "$file")
-        fi
-    done
-else
-    echo "Warning: Base override directory not found: $SERVICE_BASE_OVERRIDES"
-fi
-
-# TLS mounts and client settings must only be rendered when Kube-OVN uses SSL.
 if [[ "$KUBE_OVN_ENABLE_SSL" == "true" ]]; then
-    echo "Including Kube-OVN TLS overrides: $OVN_TLS_OVERRIDES"
-    overrides_args+=("-f" "$OVN_TLS_OVERRIDES")
-fi
-
-# Include all YAML files from the GLOBAL configuration directory
-# NOTE: Files here override base settings and are applied before service-specific ones.
-if [[ -d "$GLOBAL_OVERRIDES_DIR" ]]; then
-    echo "Including global overrides from directory: $GLOBAL_OVERRIDES_DIR"
-    for file in "$GLOBAL_OVERRIDES_DIR"/*.yaml; do
-        if [[ -e "$file" ]]; then
-            echo " - $file"
-            overrides_args+=("-f" "$file")
-        fi
-    done
+    build_helm_args "$SERVICE_NAME_DEFAULT" "$OVN_TLS_OVERRIDES" || exit 1
 else
-    echo "Warning: Global override directory not found: $GLOBAL_OVERRIDES_DIR"
+    build_helm_args "$SERVICE_NAME_DEFAULT" || exit 1
 fi
-
-# Include all YAML files from the custom SERVICE configuration directory
-# NOTE: Files here have the highest precedence.
-if [[ -d "$SERVICE_CUSTOM_OVERRIDES" ]]; then
-    echo "Including overrides from service config directory:"
-    for file in "$SERVICE_CUSTOM_OVERRIDES"/*.yaml; do
-        if [[ -e "$file" ]]; then
-            echo " - $file"
-            overrides_args+=("-f" "$file")
-        fi
-    done
-else
-    echo "Warning: Service config directory not found: $SERVICE_CUSTOM_OVERRIDES"
-fi
-
-echo
 
 if ! OVN_NB_ENDPOINT=$(kubectl --namespace kube-system get service ovn-nb -o jsonpath='{.spec.clusterIP}:{.spec.ports[0].port}') \
     || [[ -z "$OVN_NB_ENDPOINT" ]]; then

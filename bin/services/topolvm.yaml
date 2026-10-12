@@ -1,7 +1,7 @@
 ---
 service:
   name: topolvm
-  namespace: topolvm
+  namespace: topolvm-system
   version: ~
   family: ""
 
