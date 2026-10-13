@@ -20,7 +20,6 @@ if [ "${HYPERCONVERGED:-false}" = "true" ]; then
                            openstack-compute-node=enabled \
                            openstack-network-node=enabled \
                            openstack-storage-node=enabled \
-                           swift-storage-node=enabled \
                            node-role.kubernetes.io/worker=worker
 else
   LABEL_FAIL=0
