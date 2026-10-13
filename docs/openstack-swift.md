@@ -178,9 +178,8 @@ endpoints:
 The base overrides enable `s3api`/`s3token` (S3 compatible API using Keystone EC2 credentials) and `keystonemiddleware`
 authentication.
 
-The ceilometer middleware is installed in the image and its `filter:ceilometer` section is configured, but it is not in
-the pipeline by default. To enable Swift telemetry once Ceilometer is deployed, add `ceilometer` before `proxy-server`
-in the pipeline and provide the notification transport in your swift overrides:
+The ceilometer middleware is installed in the image but is not configured or in the pipeline by default. To enable Swift telemetry once Ceilometer is deployed, add `ceilometer` before `proxy-server`
+in the pipeline and add a `filter:ceilometer` section in your swift overrides:
 
 ``` yaml
 conf:
@@ -188,6 +187,12 @@ conf:
     "pipeline:main":
       pipeline: catch_errors gatekeeper healthcheck proxy-logging cache listing_formats container_sync bulk ratelimit s3api s3token authtoken keystoneauth copy container-quotas account-quotas slo dlo versioned_writes symlink proxy-logging ceilometer proxy-server
     "filter:ceilometer":
+      paste.filter_factory: ceilometermiddleware.swift:filter_factory
+      control_exchange: swift
+      driver: messagingv2
+      topic: notifications
+      ignore_projects: service
+      nonblocking_notify: "True"
       url: rabbit://<user>:<password>@rabbitmq.openstack.svc.cluster.local:5672/ceilometer
 ```
 
