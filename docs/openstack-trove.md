@@ -348,7 +348,6 @@ full list):
 | `trove_mysql_version`             | `8.4`                            | MySQL version to build and register                      |
 | `trove_guest_image_os_release`    | `bookworm`                       | Debian release for the guest image                       |
 | `trove_guest_image_name`          | `trove-mysql-8.4-bookworm`       | Glance image name (derived from the two above)           |
-| `trove_openstack_release`         | `2025.2`                         | Trove branch cloned for DIB elements + guest agent       |
 | `trove_datastore_name`            | `mysql`                          | Trove datastore type name                                |
 | `trove_datastore_version_name`    | `8.4`                            | Trove datastore version                                  |
 | `trove_keypair_name`              | `trove-access-keypair`           | Nova keypair for instance access                         |
@@ -356,16 +355,9 @@ full list):
 | `trove_services_secgroup_name`    | `trove-services-secgroup`        | Security group for the services (RabbitMQ/Keystone) VIP  |
 | `trove_mgmt_public_network_name`  | `flat`                           | Public provider network for the mgmt router's gateway    |
 | `trove_mgmt_network_name`         | `trove-mgmt-net`                 | Management overlay network name                          |
-| `trove_mgmt_subnet_cidr`          | `10.0.0.0/20`                    | Management subnet CIDR                                    |
+| `trove_mgmt_subnet_cidr`          | `10.0.0.0/20`                    | Management subnet CIDR                                   |
 | `trove_services_anchor_ip`        | `10.0.0.10`                      | Anchor IP guests use for RabbitMQ/Keystone               |
 | `trove_deploy_swift`              | `true`                           | Deploy Swift for backup/restore support                  |
-
-!!! note "Guest agent and server release must match"
-
-    `trove_openstack_release` (the guest agent branch) must be compatible with the Trove
-    server-side image in `trove-helm-overrides.yaml`. A mismatch across the 23.x/25.x
-    boundary can cause silently dropped RPC heartbeats and guest-agent build timeouts. See
-    the comments in `defaults/main.yml` for the full rationale.
 
 ## Troubleshooting
 

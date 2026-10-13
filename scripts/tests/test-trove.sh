@@ -177,7 +177,7 @@ cleanup() {
     for inst in "$INST_RESTORE" "$INST_REPLICA" "$INST_PRIMARY"; do
         if [[ -n "$(instance_id "$inst")" ]]; then
             log_msg "$INFO" "  Deleting instance $inst ..."
-            db instance delete "$inst" 2>&1 || true
+            db instance delete "$inst" --force 2>&1 || true
         fi
     done
 
