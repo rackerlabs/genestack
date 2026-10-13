@@ -1,0 +1,124 @@
+---
+# Genestack base overrides for the openstack-helm swift chart.
+#
+# Storage devices and ring settings are operator supplied. Before deploying,
+# mount the Swift data devices on every storage node under /srv/node/<device>
+# and describe them in /etc/genestack/helm-configs/swift/ (see
+# docs/openstack-swift.md).
+
+images:
+  tags:
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/swift:2026.1-latest"
+    test: "ghcr.io/rackerlabs/genestack-images/swift:2026.1-latest"
+    dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
+    swift_proxy: "ghcr.io/rackerlabs/genestack-images/swift:2026.1-latest"
+    swift_account: "ghcr.io/rackerlabs/genestack-images/swift:2026.1-latest"
+    swift_container: "ghcr.io/rackerlabs/genestack-images/swift:2026.1-latest"
+    swift_object: "ghcr.io/rackerlabs/genestack-images/swift:2026.1-latest"
+    swift_storage: "ghcr.io/rackerlabs/genestack-images/swift:2026.1-latest"
+    swift_storage_init: "ghcr.io/rackerlabs/genestack-images/swift:2026.1-latest"
+    swift_ring_builder: "ghcr.io/rackerlabs/genestack-images/swift:2026.1-latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2026.1-latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2026.1-latest"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2026.1-latest"
+    image_repo_sync: null
+  pull_policy: IfNotPresent
+
+labels:
+  api:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  storage:
+    node_selector_key: openstack-storage-node
+    node_selector_value: enabled
+  job:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+  test:
+    node_selector_key: openstack-control-plane
+    node_selector_value: enabled
+
+# Ring settings are operator supplied. The defaults below are production
+# leaning values; devices MUST be provided in the service overrides.
+ring:
+  partition_power: 14
+  replicas: 3
+  min_part_hours: 24
+  devices: []
+  shared_storage:
+    name: swift-shared-storage
+    storageClassName: general-multi-attach
+    size: 1Gi
+    mount_path: "/etc/swift-rings"
+
+endpoints:
+  identity:
+    hosts:
+      default: keystone
+      internal: keystone-api
+    host_fqdn_override:
+      default: keystone-api.openstack.svc.cluster.local
+  object_store:
+    name: swift
+    hosts:
+      default: swift-proxy
+      public: swift
+    port:
+      api:
+        default: 8080
+        public: 80
+  oslo_cache:
+    hosts:
+      default: memcached
+    host_fqdn_override:
+      default: memcached.openstack.svc.cluster.local
+    statefulset:
+      name: memcached-memcached
+      replicas: 3
+
+conf:
+  proxy_server:
+    DEFAULT:
+      workers: 4
+    "pipeline:main":
+      pipeline: catch_errors gatekeeper healthcheck proxy-logging cache listing_formats container_sync bulk ratelimit s3api s3token authtoken keystoneauth copy container-quotas account-quotas slo dlo versioned_writes symlink proxy-logging ceilometer proxy-server
+    "filter:authtoken":
+      service_token_roles: service
+      service_token_roles_required: "true"
+    "filter:s3api":
+      use: egg:swift#s3api
+      auth_pipeline_check: "False"
+    "filter:s3token":
+      use: egg:swift#s3token
+      reseller_prefix: AUTH_
+      delay_auth_decision: "False"
+      auth_uri: http://keystone-api.openstack.svc.cluster.local:5000/v3
+    "filter:ceilometer":
+      paste.filter_factory: ceilometermiddleware.swift:filter_factory
+      control_exchange: swift
+      driver: noop
+      topic: notifications
+      ignore_projects: service
+      nonblocking_notify: "True"
+
+pod:
+  replicas:
+    proxy: 3
+  resources:
+    enabled: false
+  tolerations:
+    swift:
+      enabled: false
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+
+manifests:
+  certificates: false
+  job_image_repo_sync: false
+  network_policy: false
+  pod_test: false

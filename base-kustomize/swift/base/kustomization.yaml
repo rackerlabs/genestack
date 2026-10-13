@@ -1,0 +1,5 @@
+sortOptions:
+  order: fifo
+resources:
+  - hpa-swift-proxy.yaml
+  - all.yaml

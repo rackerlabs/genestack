@@ -1,0 +1,41 @@
+---
+service:
+  name: swift
+  version: ~
+
+chart: {}
+
+secrets:
+  - helm_key: "endpoints.identity.auth.admin.password"
+    source_secret: keystone-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.identity.auth.swift.password"
+    source_secret: swift-admin
+    source_namespace: openstack
+    data_key: password
+    rotate_with_service: true
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_cache.auth.memcache_secret_key"
+    source_secret: os-memcached
+    source_namespace: openstack
+    data_key: memcache_secret_key
+    helm_flag: --set
+
+  # NOTE: The swift hash path prefix/suffix MUST NEVER change once data has
+  # been written to the cluster, so they are generated once, kept in their
+  # own secrets (one key each) and are not rotated with the service.
+  - helm_key: "conf.swift.swift_hash_path_prefix"
+    source_secret: swift-hash-path-prefix
+    source_namespace: openstack
+    data_key: swift_hash_path_prefix
+    helm_flag: --set
+
+  - helm_key: "conf.swift.swift_hash_path_suffix"
+    source_secret: swift-hash-path-suffix
+    source_namespace: openstack
+    data_key: swift_hash_path_suffix
+    helm_flag: --set
