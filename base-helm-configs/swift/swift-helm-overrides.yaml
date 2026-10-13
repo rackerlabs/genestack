@@ -2,9 +2,17 @@
 # Genestack base overrides for the openstack-helm swift chart.
 #
 # Storage devices and ring settings are operator supplied. Before deploying,
-# mount the Swift data devices on every storage node under /srv/node/<device>
-# and describe them in /etc/genestack/helm-configs/swift/ (see
-# docs/openstack-swift.md).
+# mount the Swift data devices on every storage node under /srv/node/<device>,
+# label those nodes swift-storage-node=enabled and describe the devices in
+# /etc/genestack/helm-configs/swift/ (see docs/openstack-swift.md).
+#
+# Genestack specific behaviour (see base-kustomize/swift/base):
+#   * swift-etc (swift.conf, proxy/account/container/object-server.conf,
+#     rsyncd.conf) is rendered as a Secret instead of a ConfigMap.
+#   * Rings are built by the swift-ring-builder job defined in extraObjects
+#     below and stored in the swift-rings secret (builders in
+#     swift-ring-builders). The chart's own ring builder job, the shared ring
+#     PVC and the hostPath /etc/swift ring sharing are disabled.
 
 images:
   tags:
@@ -18,6 +26,8 @@ images:
     swift_storage: "ghcr.io/rackerlabs/genestack-images/swift:2026.1-latest"
     swift_storage_init: "ghcr.io/rackerlabs/genestack-images/swift:2026.1-latest"
     swift_ring_builder: "ghcr.io/rackerlabs/genestack-images/swift:2026.1-latest"
+    # Used by the genestack swift-ring-builder job to read/write ring secrets.
+    swift_ring_publish: "ghcr.io/rackerlabs/genestack-images/kubectl:latest"
     ks_user: "ghcr.io/rackerlabs/genestack-images/heat:2026.1-latest"
     ks_service: "ghcr.io/rackerlabs/genestack-images/heat:2026.1-latest"
     ks_endpoints: "ghcr.io/rackerlabs/genestack-images/heat:2026.1-latest"
@@ -29,7 +39,7 @@ labels:
     node_selector_key: openstack-control-plane
     node_selector_value: enabled
   storage:
-    node_selector_key: openstack-storage-node
+    node_selector_key: swift-storage-node
     node_selector_value: enabled
   job:
     node_selector_key: openstack-control-plane
@@ -40,16 +50,22 @@ labels:
 
 # Ring settings are operator supplied. The defaults below are production
 # leaning values; devices MUST be provided in the service overrides.
+#
+# Each device entry:
+#   - name: sdb          # mountpoint under /srv/node on the storage node
+#     ip: 172.16.0.11    # storage node IP the account/container/object
+#                        # servers listen on (storage pods use hostNetwork)
+#     region: 1          # optional, default 1
+#     zone: 1            # optional, default 1
+#     weight: 100        # optional, default 100
+#
+# partition_power cannot be changed once the rings exist. Keep it at 15 or
+# lower: the builders are stored in a Kubernetes secret (1 MiB limit).
 ring:
   partition_power: 14
   replicas: 3
   min_part_hours: 24
   devices: []
-  shared_storage:
-    name: swift-shared-storage
-    storageClassName: general-multi-attach
-    size: 1Gi
-    mount_path: "/etc/swift-rings"
 
 endpoints:
   identity:
@@ -80,8 +96,11 @@ conf:
   proxy_server:
     DEFAULT:
       workers: 4
+    # ceilometer is not in the pipeline by default. To enable telemetry add
+    # "ceilometer" before "proxy-server" in this pipeline and configure the
+    # "filter:ceilometer" section below (see docs/openstack-swift.md).
     "pipeline:main":
-      pipeline: catch_errors gatekeeper healthcheck proxy-logging cache listing_formats container_sync bulk ratelimit s3api s3token authtoken keystoneauth copy container-quotas account-quotas slo dlo versioned_writes symlink proxy-logging ceilometer proxy-server
+      pipeline: catch_errors gatekeeper healthcheck proxy-logging cache listing_formats container_sync bulk ratelimit s3api s3token authtoken keystoneauth copy container-quotas account-quotas slo dlo versioned_writes symlink proxy-logging proxy-server
     "filter:authtoken":
       service_token_roles: service
       service_token_roles_required: "true"
@@ -96,7 +115,7 @@ conf:
     "filter:ceilometer":
       paste.filter_factory: ceilometermiddleware.swift:filter_factory
       control_exchange: swift
-      driver: noop
+      driver: messagingv2
       topic: notifications
       ignore_projects: service
       nonblocking_notify: "True"
@@ -120,5 +139,344 @@ pod:
 manifests:
   certificates: false
   job_image_repo_sync: false
+  # Rings are built by the genestack swift-ring-builder job (extraObjects)
+  # and shared through the swift-rings secret instead of a RWX PVC.
+  job_ring_builder: false
   network_policy: false
   pod_test: false
+  pvc: false
+
+# Genestack ring management. These objects are rendered with the chart
+# (helm tpl) so they follow ring.* and images.* values.
+extraObjects:
+  swift_ring_config: |
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: swift-ring-config
+      labels:
+        application: swift
+        component: ring-builder
+    type: Opaque
+    stringData:
+      ring.env: |
+        PARTITION_POWER={{ .Values.ring.partition_power }}
+        REPLICAS={{ .Values.ring.replicas }}
+        MIN_PART_HOURS={{ .Values.ring.min_part_hours }}
+        ACCOUNT_PORT={{ .Values.conf.account_server.DEFAULT.bind_port }}
+        CONTAINER_PORT={{ .Values.conf.container_server.DEFAULT.bind_port }}
+        OBJECT_PORT={{ .Values.conf.object_server.DEFAULT.bind_port }}
+      devices.txt: |
+        # region zone ip device weight
+    {{- range .Values.ring.devices }}
+        {{ .region | default 1 }} {{ .zone | default 1 }} {{ required "ring.devices[].ip is required" .ip }} {{ required "ring.devices[].name is required" .name }} {{ .weight | default 100 }}
+    {{- end }}
+      fetch-builders.sh: |
+        #!/bin/bash
+        # Fetch the existing ring builders so partition assignments are preserved.
+        set -euo pipefail
+        NS="${POD_NAMESPACE}"
+        mkdir -p /work/in /work/out
+        chmod 0777 /work/in /work/out
+        if kubectl -n "${NS}" get secret swift-ring-builders >/dev/null 2>&1; then
+          for ring in account container object; do
+            kubectl -n "${NS}" get secret swift-ring-builders \
+              -o jsonpath="{.data.${ring}\.builder}" | base64 -d > "/work/in/${ring}.builder"
+            [ -s "/work/in/${ring}.builder" ] || rm -f "/work/in/${ring}.builder"
+          done
+          echo "Loaded existing builders:"; ls -l /work/in
+        elif kubectl -n "${NS}" get secret swift-rings >/dev/null 2>&1; then
+          echo "ERROR: secret swift-rings exists but swift-ring-builders does not." >&2
+          echo "Refusing to build new rings, which would reassign every partition." >&2
+          echo "Restore the swift-ring-builders secret from backup and re-run the job." >&2
+          exit 1
+        else
+          echo "No existing builders found; new rings will be created."
+        fi
+      build-rings.py: |
+        #!/var/lib/openstack/bin/python
+        """Build or update Swift rings from the operator supplied device list.
+
+        Existing builder files (from the swift-ring-builders secret) are loaded from
+        IN_DIR so partition assignments are preserved; new rings and builders are
+        written to OUT_DIR for the publish step.
+        """
+        import os
+        import shutil
+        import sys
+
+        from swift.common.ring import RingBuilder
+
+        IN_DIR = os.environ.get("IN_DIR", "/work/in")
+        OUT_DIR = os.environ.get("OUT_DIR", "/work/out")
+        CONF_DIR = os.environ.get("CONF_DIR", "/ring-config")
+
+
+        def read_env(path):
+            env = {}
+            with open(path) as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        k, v = line.split("=", 1)
+                        env[k.strip()] = v.strip()
+            return env
+
+
+        def read_devices(path):
+            devices = []
+            with open(path) as f:
+                for n, line in enumerate(f, 1):
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    parts = line.split()
+                    if len(parts) != 5:
+                        sys.exit("devices.txt line %d: expected 'region zone ip device weight', got %r" % (n, line))
+                    region, zone, ip, device, weight = parts
+                    devices.append({"region": int(region), "zone": int(zone), "ip": ip,
+                                    "device": device, "weight": float(weight)})
+            return devices
+
+
+        def main():
+            env = read_env(os.path.join(CONF_DIR, "ring.env"))
+            devices = read_devices(os.path.join(CONF_DIR, "devices.txt"))
+            part_power = int(env["PARTITION_POWER"])
+            replicas = float(env["REPLICAS"])
+            min_part_hours = int(env["MIN_PART_HOURS"])
+            ports = {"account": int(env["ACCOUNT_PORT"]),
+                     "container": int(env["CONTAINER_PORT"]),
+                     "object": int(env["OBJECT_PORT"])}
+            os.makedirs(OUT_DIR, exist_ok=True)
+
+            if not devices:
+                print("No devices defined in ring.devices; nothing to build.")
+                return 0
+
+            for ring, port in ports.items():
+                src = os.path.join(IN_DIR, ring + ".builder")
+                dst = os.path.join(OUT_DIR, ring + ".builder")
+                if os.path.exists(src):
+                    shutil.copy(src, dst)
+                    builder = RingBuilder.load(dst)
+                    print("[%s] loaded existing builder (part_power=%d)" % (ring, builder.part_power))
+                    if builder.part_power != part_power:
+                        print("[%s] WARNING: ring.partition_power=%d ignored, existing ring uses %d"
+                              % (ring, part_power, builder.part_power))
+                    if builder.replicas != replicas:
+                        print("[%s] replicas %s -> %s" % (ring, builder.replicas, replicas))
+                        builder.set_replicas(replicas)
+                    if builder.min_part_hours != min_part_hours:
+                        builder.change_min_part_hours(min_part_hours)
+                else:
+                    print("[%s] creating new builder part_power=%d replicas=%s min_part_hours=%d"
+                          % (ring, part_power, replicas, min_part_hours))
+                    builder = RingBuilder(part_power, replicas, min_part_hours)
+
+                wanted = set()
+                for d in devices:
+                    key = (d["ip"], port, d["device"])
+                    wanted.add(key)
+                    existing = [x for x in builder.devs if x is not None and
+                                (x["ip"], x["port"], x["device"]) == key]
+                    if existing:
+                        dev = existing[0]
+                        if dev["weight"] != d["weight"]:
+                            print("[%s] set weight %s:%d/%s %s -> %s" % (ring, d["ip"], port, d["device"],
+                                                                         dev["weight"], d["weight"]))
+                            builder.set_dev_weight(dev["id"], d["weight"])
+                        if (dev["region"], dev["zone"]) != (d["region"], d["zone"]):
+                            print("[%s] WARNING: %s:%d/%s is r%dz%d in the ring but r%dz%d in values; "
+                                  "region/zone changes need a remove and re-add"
+                                  % (ring, d["ip"], port, d["device"], dev["region"], dev["zone"],
+                                     d["region"], d["zone"]))
+                    else:
+                        print("[%s] add r%dz%d-%s:%d/%s weight %s" % (ring, d["region"], d["zone"], d["ip"],
+                                                                      port, d["device"], d["weight"]))
+                        builder.add_dev({"region": d["region"], "zone": d["zone"], "ip": d["ip"],
+                                         "port": port, "replication_ip": d["ip"],
+                                         "replication_port": port, "device": d["device"],
+                                         "weight": d["weight"], "meta": ""})
+                for dev in builder.devs:
+                    if dev is not None and (dev["ip"], dev["port"], dev["device"]) not in wanted:
+                        print("[%s] WARNING: %s:%d/%s is in the ring but not in ring.devices; "
+                              "set its weight to 0 to drain it, then remove it with swift-ring-builder"
+                              % (ring, dev["ip"], dev["port"], dev["device"]))
+
+                parts, balance, removed = builder.rebalance()
+                builder.validate()
+                builder.save(dst)
+                builder.get_ring().save(os.path.join(OUT_DIR, ring + ".ring.gz"))
+                print("[%s] rebalanced: %d partitions moved, balance %.2f, %d devices removed"
+                      % (ring, parts, balance, removed))
+            return 0
+
+
+        if __name__ == "__main__":
+            sys.exit(main())
+      publish-rings.sh: |
+        #!/bin/bash
+        # Publish rings and builders produced by the build step as Kubernetes secrets
+        # and restart Swift pods when the rings changed.
+        set -euo pipefail
+        NS="${POD_NAMESPACE}"
+        cd /work/out
+        if ! ls ./*.ring.gz >/dev/null 2>&1; then
+          echo "No rings were built (ring.devices is empty); nothing to publish."
+          exit 0
+        fi
+
+        old_sum=$(kubectl -n "${NS}" get secret swift-rings -o jsonpath='{.data}' 2>/dev/null | sha256sum || true)
+
+        publish_secret() {
+          local name="$1"; shift
+          kubectl -n "${NS}" create secret generic "${name}" "$@" \
+            --dry-run=client -o yaml > "/tmp/${name}.yaml"
+          kubectl label --local -f "/tmp/${name}.yaml" -o yaml \
+            application=swift component=rings > "/tmp/${name}-labeled.yaml"
+          # replace/create (not apply) so the large binary data is not copied into
+          # the last-applied-configuration annotation.
+          if kubectl -n "${NS}" get secret "${name}" >/dev/null 2>&1; then
+            kubectl -n "${NS}" replace -f "/tmp/${name}-labeled.yaml"
+          else
+            kubectl -n "${NS}" create -f "/tmp/${name}-labeled.yaml"
+          fi
+        }
+
+        publish_secret swift-ring-builders \
+          --from-file=account.builder --from-file=container.builder --from-file=object.builder
+        publish_secret swift-rings \
+          --from-file=account.ring.gz --from-file=container.ring.gz --from-file=object.ring.gz
+
+        new_sum=$(kubectl -n "${NS}" get secret swift-rings -o jsonpath='{.data}' | sha256sum)
+        if [ "${old_sum}" != "${new_sum}" ]; then
+          echo "Rings changed; restarting Swift pods so they load the new rings."
+          for obj in deployment/swift-proxy daemonset/swift-storage; do
+            if kubectl -n "${NS}" get "${obj}" >/dev/null 2>&1; then
+              kubectl -n "${NS}" rollout restart "${obj}"
+            fi
+          done
+        else
+          echo "Rings unchanged."
+        fi
+  swift_ring_builder_sa: |
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: swift-ring-builder
+      labels:
+        application: swift
+        component: ring-builder
+  swift_ring_builder_role: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: swift-ring-builder
+      labels:
+        application: swift
+        component: ring-builder
+    rules:
+      - apiGroups: [""]
+        resources: ["secrets"]
+        verbs: ["create"]
+      - apiGroups: [""]
+        resources: ["secrets"]
+        resourceNames: ["swift-rings", "swift-ring-builders"]
+        verbs: ["get", "update", "patch"]
+      - apiGroups: ["apps"]
+        resources: ["deployments"]
+        resourceNames: ["swift-proxy"]
+        verbs: ["get", "patch"]
+      - apiGroups: ["apps"]
+        resources: ["daemonsets"]
+        resourceNames: ["swift-storage"]
+        verbs: ["get", "patch"]
+  swift_ring_builder_rolebinding: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: swift-ring-builder
+      labels:
+        application: swift
+        component: ring-builder
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: swift-ring-builder
+    subjects:
+      - kind: ServiceAccount
+        name: swift-ring-builder
+        namespace: {{ .Release.Namespace }}
+  swift_ring_builder_job: |
+    apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: swift-ring-builder
+      labels:
+        application: swift
+        component: ring-builder
+    spec:
+      backoffLimit: 3
+      template:
+        metadata:
+          labels:
+            application: swift
+            component: ring-builder
+        spec:
+          serviceAccountName: swift-ring-builder
+          restartPolicy: OnFailure
+          nodeSelector:
+            {{ .Values.labels.job.node_selector_key }}: {{ .Values.labels.job.node_selector_value | quote }}
+          initContainers:
+            - name: fetch-builders
+              image: {{ .Values.images.tags.swift_ring_publish }}
+              imagePullPolicy: {{ .Values.images.pull_policy }}
+              command: ["/bin/bash", "/ring-config/fetch-builders.sh"]
+              env:
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+              volumeMounts:
+                - name: work
+                  mountPath: /work
+                - name: ring-config
+                  mountPath: /ring-config
+                  readOnly: true
+            - name: build-rings
+              image: {{ .Values.images.tags.swift_ring_builder }}
+              imagePullPolicy: {{ .Values.images.pull_policy }}
+              command: ["/var/lib/openstack/bin/python", "/ring-config/build-rings.py"]
+              env:
+                - name: HOME
+                  value: /tmp
+              volumeMounts:
+                - name: work
+                  mountPath: /work
+                - name: ring-config
+                  mountPath: /ring-config
+                  readOnly: true
+          containers:
+            - name: publish-rings
+              image: {{ .Values.images.tags.swift_ring_publish }}
+              imagePullPolicy: {{ .Values.images.pull_policy }}
+              command: ["/bin/bash", "/ring-config/publish-rings.sh"]
+              env:
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+              volumeMounts:
+                - name: work
+                  mountPath: /work
+                - name: ring-config
+                  mountPath: /ring-config
+                  readOnly: true
+          volumes:
+            - name: work
+              emptyDir: {}
+            - name: ring-config
+              secret:
+                secretName: swift-ring-config
+                defaultMode: 0555

@@ -10,17 +10,27 @@ reaper and expirer, as well as `swift-ring-builder` and the `rsync` replication 
 For background on Swift itself see [Swift Object Storage](openstack-object-storage-swift.md) and the
 [Swift Operators Guide](openstack-swift-operators-guide.md).
 
+## Node placement
+
+| Component | Kind | Node label |
+|:--|:--|:--|
+| `swift-proxy` | Deployment | `openstack-control-plane=enabled` (same as the other OpenStack APIs) |
+| `swift-storage` (account, container and object servers, replicators, auditors, updaters, rsync) | DaemonSet, `hostNetwork` | `swift-storage-node=enabled` |
+| `swift-ring-builder` and keystone jobs | Job | `openstack-control-plane=enabled` |
+
+``` shell
+kubectl label node <storage-node> swift-storage-node=enabled
+```
+
+When nodes are labeled by the Genestack ansible role, put the Swift storage hosts in the `swift_storage_nodes`
+inventory group.
+
 ## Operator supplied storage and ring settings
 
 Genestack does not choose disks or ring layouts for you. Before deploying Swift you must:
 
-1. Label the nodes that will run the Swift storage DaemonSet.
-
-    ``` shell
-    kubectl label node <node-name> openstack-storage-node=enabled
-    ```
-
-2. Format and mount every data device on each storage node under `/srv/node/<device>` (XFS is recommended).
+1. Format and mount every data device on each storage node under `/srv/node/<device>` (XFS is recommended). The
+   storage pods use host networking, so each device is reached on the node's IP.
 
     ``` shell
     mkfs.xfs -L sdb /dev/sdb
@@ -28,32 +38,98 @@ Genestack does not choose disks or ring layouts for you. Before deploying Swift 
     mount -o noatime LABEL=sdb /srv/node/sdb
     ```
 
-3. Describe the devices and ring parameters in `/etc/genestack/helm-configs/swift/swift-helm-overrides.yaml`.
+2. Describe every device in `/etc/genestack/helm-configs/swift/swift-helm-overrides.yaml`.
 
     ``` yaml
     ring:
-      partition_power: 14   # 2^14 partitions; size this for the cluster's final disk count
+      partition_power: 14   # 2^14 partitions, cannot be changed later; keep <= 15 (see below)
       replicas: 3
       min_part_hours: 24
       devices:
-        - name: sdb         # must match the mountpoint under /srv/node/
-          weight: 100
-        - name: sdc
-          weight: 100
-      shared_storage:
-        storageClassName: general-multi-attach   # any ReadWriteMany storage class
+        - name: sdb          # mountpoint under /srv/node on that node
+          ip: 172.16.0.11    # the storage node's IP
+          region: 1          # optional, default 1
+          zone: 1            # optional, default 1
+          weight: 100        # optional, default 100
+        - name: sdb
+          ip: 172.16.0.12
+          zone: 2
+        - name: sdb
+          ip: 172.16.0.13
+          zone: 3
     ```
 
-!!! warning "Ring and hash path settings"
+!!! warning "Hash path secrets"
 
-    `partition_power` cannot be changed after the rings are built, and the swift hash path prefix/suffix (stored in the
-    `swift-hash-path-prefix` and `swift-hash-path-suffix` secrets) must never change once data has been written. Back
-    these secrets and the ring builder files up.
+    The swift hash path prefix/suffix (stored in the `swift-hash-path-prefix` and `swift-hash-path-suffix` secrets)
+    must never change once data has been written. Back these secrets up.
 
-!!! note "Ring builder scope"
+## Configuration and ring storage
 
-    The upstream chart's ring builder job adds the listed devices for the IP of the node the job runs on, in region 1,
-    zone 1. Multi-node, multi-zone or multi-region rings need to be built by the operator and supplied to the cluster.
+All Swift configuration and rings live in Kubernetes secrets in the `openstack` namespace:
+
+| Secret | Contents | Managed by |
+|:--|:--|:--|
+| `swift-etc` | `swift.conf`, `proxy-server.conf`, `account/container/object-server.conf`, `rsyncd.conf`, `container-sync-realms.conf` | helm (the chart's ConfigMap is converted to a Secret by `base-kustomize/swift/base`) |
+| `swift-ring-config` | ring parameters and the device list rendered from `ring.*`, plus the ring job scripts | helm |
+| `swift-rings` | `account.ring.gz`, `container.ring.gz`, `object.ring.gz` | `swift-ring-builder` job |
+| `swift-ring-builders` | `account.builder`, `container.builder`, `object.builder` | `swift-ring-builder` job |
+
+`swift-rings` and `swift-ring-builders` are not part of the helm release, so they survive an uninstall. The proxy and
+every storage container mount the ring files from `swift-rings`; there is no shared PVC and no hostPath `/etc/swift`.
+
+!!! danger "Back up the ring builders"
+
+    The builder files are the source of truth for partition placement. Losing `swift-ring-builders` means the rings
+    cannot be safely changed again. The ring job refuses to build new rings if `swift-rings` exists without
+    `swift-ring-builders`. Back up both secrets after every ring change:
+
+    ``` shell
+    kubectl -n openstack get secret swift-rings swift-ring-builders -o yaml > swift-rings-backup-$(date +%F).yaml
+    ```
+
+Because the builders are kept in a secret (1 MiB limit), keep `ring.partition_power` at 15 or lower.
+
+### How the ring builder job works
+
+The `swift-ring-builder` job runs on a control plane node:
+
+1. `fetch-builders` loads the existing builders from `swift-ring-builders`, if present.
+2. `build-rings` creates the builders on first run, then makes the builders match `ring.devices`: it adds new devices
+   and updates weights and replicas, then rebalances. `min_part_hours` is honored, so a single run moves at most one
+   replica of any partition.
+3. `publish-rings` writes `swift-rings` and `swift-ring-builders`. If the rings changed, it runs
+   `kubectl rollout restart` on `deployment/swift-proxy` and `daemonset/swift-storage` so every pod loads the new rings.
+
+Devices that are in the ring but no longer in `ring.devices` are not removed automatically; the job logs a warning.
+
+### Updating or rebalancing the rings
+
+1. Edit `ring.devices` (add devices or nodes, change weights) in your swift overrides.
+2. Delete the completed job, then rerun the installer so helm recreates it with the new device list:
+
+    ``` shell
+    kubectl -n openstack delete job swift-ring-builder
+    /opt/genestack/bin/install-swift.sh
+    kubectl -n openstack logs job/swift-ring-builder -c build-rings
+    kubectl -n openstack logs job/swift-ring-builder -c publish-rings
+    ```
+
+3. The proxy and storage pods are restarted automatically when the rings change. Watch the rollout and replication:
+
+    ``` shell
+    kubectl -n openstack rollout status daemonset/swift-storage
+    kubectl -n openstack rollout status deployment/swift-proxy
+    kubectl -n openstack exec ds/swift-storage -c swift-object -- swift-recon -r
+    ```
+
+4. To add capacity gradually, increase the weight in steps and repeat after each `min_part_hours` window. To
+   rebalance without device changes (for example after `min_part_hours` has passed), just delete the job and rerun the
+   installer.
+
+To remove a device, set its `weight` to `0` and rerun until it holds no partitions. Then remove it from the builders
+with `swift-ring-builder` (run in a pod with the builders from `swift-ring-builders`), update the secrets, and drop it
+from `ring.devices`.
 
 ## Create secrets
 
@@ -99,9 +175,21 @@ endpoints:
 
 ## Middleware
 
-The base overrides enable `s3api`/`s3token` (S3 compatible API using Keystone EC2 credentials), `keystonemiddleware`
-authentication and `ceilometermiddleware`. The ceilometer middleware uses the `noop` driver by default; set
-`conf.proxy_server."filter:ceilometer".driver` to `messagingv2` and provide a transport URL when Ceilometer is enabled.
+The base overrides enable `s3api`/`s3token` (S3 compatible API using Keystone EC2 credentials) and `keystonemiddleware`
+authentication.
+
+The ceilometer middleware is installed in the image and its `filter:ceilometer` section is configured, but it is not in
+the pipeline by default. To enable Swift telemetry once Ceilometer is deployed, add `ceilometer` before `proxy-server`
+in the pipeline and provide the notification transport in your swift overrides:
+
+``` yaml
+conf:
+  proxy_server:
+    "pipeline:main":
+      pipeline: catch_errors gatekeeper healthcheck proxy-logging cache listing_formats container_sync bulk ratelimit s3api s3token authtoken keystoneauth copy container-quotas account-quotas slo dlo versioned_writes symlink proxy-logging ceilometer proxy-server
+    "filter:ceilometer":
+      url: rabbit://<user>:<password>@rabbitmq.openstack.svc.cluster.local:5672/ceilometer
+```
 
 ## Validate functionality
 

@@ -3,3 +3,28 @@ sortOptions:
 resources:
   - hpa-swift-proxy.yaml
   - all.yaml
+patches:
+  # Render swift-etc (swift.conf, *-server.conf, rsyncd.conf) as a Secret.
+  - path: patch-swift-etc-secret.yaml
+    target:
+      version: v1
+      kind: ConfigMap
+      name: swift-etc
+  # Node agnostic storage-init: validates whatever devices are mounted under
+  # /srv/node on the node instead of every device in ring.devices.
+  - path: patch-swift-bin.yaml
+  # Proxy: swift-etc and rings come from secrets.
+  - path: patch-swift-proxy.yaml
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: swift-proxy
+  # Storage: swift-etc and rings come from secrets instead of the hostPath
+  # /etc/swift ring sharing (manifests.pvc=false drops the ring-copy init).
+  - path: patch-swift-storage.yaml
+    target:
+      group: apps
+      version: v1
+      kind: DaemonSet
+      name: swift-storage
