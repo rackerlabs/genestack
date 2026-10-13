@@ -185,7 +185,7 @@ in the pipeline and add a `filter:ceilometer` section in your swift overrides:
 conf:
   proxy_server:
     "pipeline:main":
-      pipeline: catch_errors gatekeeper healthcheck proxy-logging cache listing_formats container_sync bulk ratelimit s3api s3token authtoken keystoneauth copy container-quotas account-quotas slo dlo versioned_writes symlink proxy-logging ceilometer proxy-server
+      pipeline: catch_errors gatekeeper healthcheck proxy-logging cache listing_formats container_sync bulk ratelimit authtoken s3api s3token keystoneauth copy container-quotas account-quotas slo dlo versioned_writes symlink proxy-logging ceilometer proxy-server
     "filter:ceilometer":
       paste.filter_factory: ceilometermiddleware.swift:filter_factory
       control_exchange: swift

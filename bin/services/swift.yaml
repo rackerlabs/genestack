@@ -19,6 +19,12 @@ secrets:
     rotate_with_service: true
     helm_flag: --set
 
+  - helm_key: "conf.proxy_server.filter:s3token.password"
+    source_secret: swift-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
   - helm_key: "endpoints.oslo_cache.auth.memcache_secret_key"
     source_secret: os-memcached
     source_namespace: openstack

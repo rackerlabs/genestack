@@ -56,7 +56,7 @@ endpoints:
 conf:
   proxy_server:
     "pipeline:main":
-      pipeline: catch_errors gatekeeper healthcheck proxy-logging cache listing_formats container_sync bulk ratelimit s3api s3token authtoken keystoneauth copy container-quotas account-quotas slo dlo versioned_writes symlink proxy-logging proxy-server
+      pipeline: catch_errors gatekeeper healthcheck proxy-logging cache listing_formats container_sync bulk ratelimit authtoken s3api s3token keystoneauth copy container-quotas account-quotas slo dlo versioned_writes symlink proxy-logging proxy-server
     "filter:authtoken":
       service_token_roles: service
       service_token_roles_required: "true"
@@ -68,6 +68,14 @@ conf:
       reseller_prefix: AUTH_
       delay_auth_decision: "False"
       auth_uri: http://keystone-api.openstack.svc.cluster.local:5000/v3
+      # Keystone requires service auth for the s3tokens API; the password is
+      # injected from the swift-admin secret by bin/install-swift.sh.
+      auth_type: password
+      auth_url: http://keystone-api.openstack.svc.cluster.local:5000/v3
+      username: swift
+      project_name: service
+      user_domain_name: default
+      project_domain_name: default
 
 pod:
   resources:
