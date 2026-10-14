@@ -15,4 +15,6 @@ features:
     The latest release also has a virtual machine disk and an installer
     CD. SSH does not start on that image. The page listens on port 8080.
     The same chapter walks through the program, how a job runs, the
-    operations, the HTTP API, and the web page.
+    operations, the HTTP API, and the web page. Those pages follow the
+    latest console release. The web page chapter includes the machine
+    list, the rack, and opening Horizon from the console.
