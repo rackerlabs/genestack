@@ -78,6 +78,9 @@ conf:
       project_domain_name: default
 
 pod:
+  # Fixed proxy replica count; swift does not use an HPA.
+  replicas:
+    proxy: 3
   resources:
     enabled: false
 

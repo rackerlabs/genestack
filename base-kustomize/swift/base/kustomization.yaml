@@ -1,7 +1,6 @@
 sortOptions:
   order: fifo
 resources:
-  - hpa-swift-proxy.yaml
   - all.yaml
 patches:
   # Render swift-etc (swift.conf, *-server.conf, rsyncd.conf) as a Secret.
