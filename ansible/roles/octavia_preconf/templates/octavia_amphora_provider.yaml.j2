@@ -123,7 +123,9 @@ conf:
       ca_private_key_passphrase: {{ cert_passwd }}
     controller_worker:
       client_ca: /etc/octavia/certs/client_ca.cert.pem
+{% if _amphora_image_info | length > 0 %}
       amp_image_owner_id: {{ _amphora_image_info.images[0].owner }}
+{% endif %}
       amp_secgroup_list: {{ _amphora_sec_group_info.security_groups[0].id }}
       amp_flavor_id: {{ _amphora_flavor_info.flavors[0].id }}
       amp_boot_network_list: {{ _amphora_lb_net_info.networks[0].id }}

@@ -6,6 +6,7 @@
   tags:
     - always
     - post_deploy
+    - admin_quota
 
 - name: import tasks to create lb-mgmt-net for amphora
   import_tasks: octavia_lb_net_setup.yml
@@ -24,6 +25,12 @@
 
 - name: import tasks to create worker ports
   import_tasks: octavia_worker_ports.yml
+  tags:
+    - always
+
+- name: Default amphora image info when image creation is skipped
+  ansible.builtin.set_fact:
+    _amphora_image_info: []
   tags:
     - always
 
