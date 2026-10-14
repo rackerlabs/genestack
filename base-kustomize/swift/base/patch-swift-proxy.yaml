@@ -8,7 +8,7 @@
     name: swift-etc
     secret:
       secretName: swift-etc
-      defaultMode: 0444
+      defaultMode: 292
 - op: test
   path: /spec/template/spec/volumes/3/name
   value: swift-rings
@@ -18,4 +18,4 @@
     name: swift-rings
     secret:
       secretName: swift-rings
-      defaultMode: 0444
+      defaultMode: 292
