@@ -27,6 +27,10 @@ curl -fsSL https://get.genestack.dev/console.sh | bash
 
 That address redirects to the current installer attached to a GitHub Release. The script installs the program under `/opt/genestack-console` and starts a web page at `127.0.0.1:8080`. The page listens only on the deploy host until you change `server.host`.
 
+Run the same install command again and it moves the binary to the latest release. `genestack-console update` does only that replace. Neither one changes `config.yaml`, the database, or `/opt/genestack`. A published tag stays available: `curl -fsSL https://get.genestack.dev/console.sh | bash -s -- --version 2026.10.04.3`.
+
+A production deploy host runs that published binary. A git checkout is for changing the console and testing that change. Running the checkout in production is possible. The install we support is the binary.
+
 From a laptop, forward that port:
 
 ``` shell
@@ -35,7 +39,7 @@ ssh -L 8080:127.0.0.1:8080 <deploy-host>
 
 Open `http://127.0.0.1:8080/ui`. The first screen is Guided setup. The first admin password is written to `/opt/genestack-console/ADMIN_CREDENTIALS.txt`. The file mode is `0600`.
 
-That command always installs the latest release. The Linux file is `genestack-console-linux-amd64`. [`version.json`](https://github.com/PIndustries/genestack-console/releases/latest/download/version.json){:target="_blank"} on that release names the file. The same release has the disk and the CD in the next section. The list of files is [genestack.dev/releases](https://genestack.dev/releases){:target="_blank"}. A published build can still be installed by name, for example `--version 2026.10.04.3`. Getting Started follows the latest release.
+That command always installs the latest release. The Linux file is `genestack-console-linux-amd64`. [`version.json`](https://github.com/PIndustries/genestack-console/releases/latest/download/version.json){:target="_blank"} on that release names the file. Released files are listed at [genestack.dev/releases](https://genestack.dev/releases){:target="_blank"}.
 
 Back up two things together: `/opt/genestack-console/config.yaml`, and the console database. The database holds the users and the sessions. Passwords stored in it are encrypted with a key from `config.yaml`. A copy of the database without that file cannot be decrypted.
 
@@ -50,19 +54,13 @@ Two files are on the [latest release](https://github.com/PIndustries/genestack-c
 
 The first boot writes the admin password on the machine console, in `/opt/genestack-console/ADMIN_CREDENTIALS.txt`. The resize, the OpenStack import, and the install prompt are in [The appliance](https://github.com/PIndustries/genestack-console/blob/main/docs/appliance.md){:target="_blank"}.
 
-This CD is the console itself. The ISO named later on this page is a different file. That one is an image for a server you are installing into the cloud.
+This CD is the console itself. A server ISO you boot yourself is a different file. That one installs a machine into the cloud.
 
 ## Where the files go
 
 Clone this repository first. [Getting the code](genestack-getting-started.md) is that step. On the deploy host the checkout lives at `/opt/genestack`.
 
-`bootstrap.sh`, in that checkout, creates `/etc/genestack`. That directory is the inventory and the settings the install reads. One file it writes is `/etc/genestack/provider`, which records which Kubernetes installer this environment uses. The console reads that file. Talos and Kubespray are the two values. Genestack after Kubernetes is the same work either way.
-
-Talos is the preferred way to provision bare metal. Talos is an operating system that boots a machine straight into Kubernetes. The Talos steps on this page follow [Talos Linux](k8s-talos.md): wipe the disks, boot Talos, then send the machine config. Set the provider file to `talos` for that environment.
-
-Kubespray is the other installer. It adopts machines that already have an operating system, then Genestack continues the same way. `bootstrap.sh` writes `kubespray` into the provider file when that file does not exist yet. That is the file's initial value, not a preference for bare metal you are provisioning.
-
-Ubuntu is a different next boot. It installs one machine and stops. It is not a value in the provider file. A Kubespray environment can adopt that machine afterward.
+`bootstrap.sh`, in that checkout, creates `/etc/genestack`. That directory is the inventory and the settings the install reads. One file it writes is `/etc/genestack/provider`, which records which Kubernetes installer you are using. Kubespray is the default. It installs Kubernetes onto machines that already have an operating system. Talos is the other choice. Talos is an operating system that boots a machine straight into Kubernetes. The Talos bare-metal steps on this page follow the same order as [Talos Linux](k8s-talos.md): wipe the disks, boot Talos, then send the machine config. Ubuntu is a different next boot. It installs one machine and stops. It is not a value in the provider file.
 
 | Path | What it is |
 | --- | --- |
@@ -75,21 +73,23 @@ The console source is [PIndustries/genestack-console](https://github.com/PIndust
 
 ## What you do in the console
 
-An environment is one cloud: a lab, one rack, or one region. A tenant is the group of people allowed to use that cloud. Jobs and passwords for the cloud stay inside the environment.
+An environment is one cloud: a lab, one rack, or one region. A second cloud is a second environment. The servers in one environment stay in that environment. A tenant is the group of people allowed to use that cloud. Jobs and passwords for the cloud stay inside the environment.
 
 Point the environment at `/opt/genestack` and at the `/etc/genestack` directory `bootstrap.sh` already created. Saving settings in the console does not change those directories by itself. A job copies the saved settings onto the deploy host, then runs the install scripts from this tree. The log of that job stays on the environment.
 
 The console database on the deploy host holds the passwords, the kubeconfig, and the management-port passwords. A job writes `kubesecrets.yaml` so the install scripts can read it, and removes that file when the job finishes, including when the job fails or is cancelled. A kubeconfig the job created is stored in that database and then removed from the deploy host. A kubeconfig path that was already on the host stays. [How a job runs](genestack-console-runtime.md) is the longer account of that cleanup.
 
-When the install has finished, the same environment is where you look at Kubernetes, act on namespaces, nodes, and pods, run the OpenStack service steps, and download two credential files. The kubeconfig is how you talk to Kubernetes. The talosconfig is how you talk to Talos. Skyline is the OpenStack web page for people using the cloud day to day. The console is the page for the people who build the cloud.
+When the install has finished, the same environment is where you look at Kubernetes, act on namespaces, nodes, and pods, run the OpenStack service steps, and download two credential files. The kubeconfig is how you talk to Kubernetes. The talosconfig is how you talk to Talos. Both are saved in that environment's vault. Download grabs the vault copy. An admin can view, edit, and delete a record in that vault. Regenerate asks the cluster for a new client certificate, valid for one year, and replaces the vault copy. Skyline is the OpenStack web page for people using the cloud day to day. Open Horizon, on the OpenStack tab, opens the Horizon dashboard in the console window. New tab opens that same page. The login uses the cloud admin account. The console is the page for the people who build the cloud.
 
 People who sign in have one of three roles: viewer, operator, or admin. An API key in `config.yaml` is the emergency login, for when the user accounts cannot be used.
 
 ## How a server gets an operating system
 
-Where the deploy host is L2 with the servers, the console answers DHCP and serves the boot file on that network. DHCP is how a machine asks for an IP address. The boot file is the small program the network card downloads when the server is told to start from the network instead of from its disk. Both services run inside the console. This is how a server gets an operating system. Talos and Ubuntu are the two the console installs from the network. Talos is the preferred boot. Ubuntu leaves the machine out of the cluster so Kubespray can adopt it. You do not install a separate DHCP server, or another program, to boot the machines.
+Where the deploy host is L2 with the servers, the console answers DHCP and serves the boot file on that network. DHCP is how a machine asks for an IP address. The boot file is the small program the network card downloads when the server is told to start from the network instead of from its disk. Both services run inside the console. This is how the console installs an operating system. Talos and Ubuntu are the two it installs from the network. You do not install a separate DHCP server, or another program, to boot the machines.
 
-Each server has two addresses you type in.
+A management port is part of that install. You can start without one. A lab is the console plus the machines you have: a Mac with one local virtual machine, one Ubuntu machine, one dedicated server, or three machines in one environment. The cloud machine can be physical or a virtual machine on the hypervisor you already run. [Your first cluster](https://github.com/PIndustries/genestack-console/blob/main/docs/first-cluster.md){:target="_blank"} has those starts, the Talos ISO, the guest size, and the switch that makes the environment apply. If Talos is already running from an ISO, including a virtual machine, add the host by name and address and choose Talos is already installed. The console applies the config to every saved address. A machine that already has Talos installed is not rebooted until you confirm that machine by name. Confirming replaces the running install. A management port can do that reboot after the confirm. If this console cannot reboot it, the job names the one step left and waits until the installer is up. If Ubuntu is already installed on a group of servers, add those hosts and choose Already have an OS. That records them for Kubespray. It does not reboot them. [Your first cluster](https://github.com/PIndustries/genestack-console/blob/main/docs/first-cluster.md){:target="_blank"} is the walkthrough. The management port is still how you power a machine, network-boot it, and open its console when the hardware has one.
+
+Each server has two addresses you type in on the network-boot path.
 
 - The management port. Vendors call it the BMC, iLO, or iDRAC. It is a small controller inside the server that stays on when the main computer is off. The console uses it to power the server, and to ask the server to boot from the network one time.
 - The port on the L2 network. The console, or the agent at a remote site, matches that port by its MAC address. A MAC address is the hardware address of the network card.
@@ -110,11 +110,9 @@ For a server you did select:
 3. The console switches that server to Talos and network-boots it once.
 4. Talos comes up in maintenance. Maintenance means Talos is running and waiting for its configuration. The job then continues with the [Talos Linux](k8s-talos.md) steps in this manual.
 
-Those four steps are the Talos path. Install Ubuntu is a separate next boot. It writes that machine's seed and can power the machine from the network. It does not run the wipe, and it does not continue into OpenStack.
+Those four steps are the Talos path. Install Ubuntu is a separate next boot. It writes that machine's seed and can power the machine from the network. It does not run the wipe, and it does not continue into OpenStack. A Machines row queues that boot and waits until the machine answers.
 
-Kubespray does not use that wipe. The machines already have an operating system, often from the Ubuntu next boot. Set the provider to `kubespray` and run the install. Kubernetes and OpenStack after that are the same.
-
-An ISO image cannot be the first boot of a reinstall. An ISO does not wipe the disks, so the console rejects that choice on this path. That image is for the server you are installing. It is not the console appliance CD.
+An ISO image cannot be the first boot of a reinstall. An ISO does not wipe the disks, so the console rejects that choice on this path. An ISO you boot yourself, on a guest that has no management port, is a different start. The console does not insert that ISO. You boot it, then point the console at the machine.
 
 Where the deploy host cannot be L2 with the servers, the console agent does this job. Install it on a computer that is L2 with those servers. DHCP and the boot files for that site run on the agent. The agent connects out to the console, and you still start the job from the console. The agent install is in the console install guide linked below.
 
@@ -175,6 +173,7 @@ The first rows are the rest of this chapter. The links after them open the conso
 
 | You need | Read |
 | --- | --- |
+| The console is installed and you want a cluster | [Your first cluster](https://github.com/PIndustries/genestack-console/blob/main/docs/first-cluster.md){:target="_blank"} |
 | The two processes and the database | [The program](genestack-console-program.md) |
 | How a click becomes a command | [How a job runs](genestack-console-runtime.md) |
 | Every operation, and how to add one | [Jobs](genestack-console-jobs.md) |

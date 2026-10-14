@@ -19,7 +19,7 @@ The API process does not run the install. It writes a row and returns. A long de
 
 ## What the API does with a click
 
-1. The route checks the login. A session is a Bearer token from `POST /api/v1/auth/login`. An API key is the `X-API-Key` header. Passwords are stored as a PBKDF2-SHA256 hash. They are not encrypted with `secret_key`. The session life is `auth.session_ttl_hours`, 12 hours unless you change it.
+1. The route checks the login. A session is an OAuth 2 access token from `POST /api/v1/oauth/token`, sent as a Bearer token. `POST /api/v1/auth/login` issues the same session. An API key is the `X-API-Key` header. Passwords are stored as a PBKDF2-SHA256 hash. They are not encrypted with `secret_key`. The access token lasts `auth.session_ttl_hours`, 12 hours unless you change it. Each login is its own session. `grant_type=refresh_token` replaces that session's access token and its refresh token. The other login stays. The refresh token lasts `auth.refresh_ttl_hours`, 168 hours unless you change it.
 2. A route that names an environment checks your membership in that environment's tenant. A person from another tenant is refused.
 3. A read returns JSON from the database, or from the last snapshot the collector wrote.
 4. A change calls `execute_operation` in `app/services/job_runner.py`. That inserts a job row with status `queued` and returns the job id. The default is not to run the job inside the request.
@@ -29,7 +29,7 @@ A job that changes an environment is marked mutating in the catalog. A second mu
 
 The worker has a second check. If a queued mutating job's environment already has a running mutating job, the worker leaves it queued and tries again on a later pass. That is the backstop. The API has already refused a second submission.
 
-A dry run logs the command and does not apply it. `dry_run` in `config.yaml` is the default. An environment can override it. A job can ask for it. A fresh config starts with dry run on, so the first deploy you did not mean to run is a log.
+A dry run logs the command and does not apply it. `dry_run` in `config.yaml` is the console-wide default. Each environment has its own switch on the bar above its tabs: Apply on this environment, or Look around only. That switch does not edit the file and does not restart a service. A job can still ask for a dry run. A fresh config starts with dry run on, so the first deploy you did not mean to run is a log.
 
 Secret parameters are not written in the job row in the clear. The catalog marks them. The stored params show `***`. The real value is Fernet-encrypted in `secret_params` and merged back only in the worker, in memory, while the function runs.
 
@@ -149,7 +149,7 @@ The event bus in `app/services/events.py` is inside one process. The worker is a
 
 The browser cannot put an `Authorization` header on that stream, or on the terminal socket. It trades the session for a one-use ticket at `POST /api/v1/auth/ticket` and connects with `?ticket=`. The ticket is kept in memory for that API process. It is not written to the database.
 
-Alert rules watch the snapshot. The conditions are a node that is not Ready, a pod in a crash loop, a failed probe, and a service that is down. A rule fires when the condition starts. It does not send a second message when the condition clears. On `main`, a rule can name a saved Slack, Discord, Teams, Resend, or Twilio channel. A missing or disabled channel is skipped. A webhook URL on the rule is checked again before it is called, so a saved URL cannot be pointed at a local address later.
+Alert rules watch the snapshot. The conditions are a node that is not Ready, a pod in a crash loop, a failed probe, and a service that is down. A rule fires when the condition starts. It does not send a second message when the condition clears. A rule can name a saved Slack, Discord, Teams, Resend, or Twilio channel. A missing or disabled channel is skipped. A webhook URL on the rule is checked again before it is called, so a saved URL cannot be pointed at a local address later.
 
 Once a day, and once when the worker starts, `app/services/retention.py` prunes. The defaults are 30 days of jobs, 90 days of audit rows, 7 days of agent commands, 30 days of alert events, and 50 saved config versions per environment.
 
@@ -167,6 +167,8 @@ The agent also reports what it sees. `GSC_PXE_LEASES` is an optional path to a d
 
 `hub.advertise_url` in `config.yaml` is the address the agent is told to use when the console's own bind address is loopback. The agent has to be able to open that address. The console does not open an inbound path to the site.
 
+WireGuard, Tailscale, and Cloudflare Tunnel are separate. They are how this deploy host reaches a site that is not L2 with it. They are off until you turn them on in Admin → Reach, or in `config.yaml`, and then apply. Apply does not run when the process starts. The console generates the WireGuard keys, assigns `10.67.67.1` to itself and the next free address to a peer, and writes a `wg-quick` file. The peer's client config is shown once. A Tailscale auth key and a Cloudflare tunnel token are stored encrypted and are not shown again. `tailscale up` is a short command. `cloudflared tunnel run` is a process the console starts and can stop. A missing `wg-quick`, `tailscale`, or `cloudflared` is reported. The file is still written. The agent program is unchanged: it still dials out with `GSC_HUB_URL` and `GSC_AGENT_TOKEN`.
+
 ## config.yaml
 
 One file. `python -m app.cli make-config` prints a new one, with a generated `secret_key` and generated API keys. The keys that change how the program behaves:
@@ -176,9 +178,10 @@ One file. `python -m app.cli make-config` prints a new one, with a generated `se
 | `server.host`, `server.port` | `127.0.0.1`, `8080` in the installed unit | Where the page listens. The code default, if the file omits the host, is every interface, and startup refuses that while the secrets are still the examples. |
 | `secret_key` | a public example string | Fernet key for secrets in the database. Replace it. |
 | `auth.api_keys` | example keys | Break-glass platform admins, sent as `X-API-Key`. Replace them. |
-| `auth.session_ttl_hours` | 12 | Session life. |
+| `auth.session_ttl_hours` | 12 | Bearer token life for one login. |
+| `auth.refresh_ttl_hours` | 168 | How long that login's refresh token can mint a new bearer. A second login has its own. |
 | `auth.dev_auto_login` | false | Every request is a platform admin, with no password. Leave it off on a machine that is not your laptop. |
-| `dry_run` | true | Jobs log commands and do not apply them. |
+| `dry_run` | true | Console-wide default. Jobs log commands and do not apply them until that environment applies from its own bar. |
 | `database_url` | `sqlite:///./data/console.db` | Postgres when you set a Postgres URL. |
 | `data_dir` | `./data` | Database, PXE files, and the backup live under here. |
 | `genestack.root` | empty, then auto-detect | The checkout. `/opt/genestack` when you followed the install chapter. |
@@ -187,8 +190,11 @@ One file. `python -m app.cli make-config` prints a new one, with a generated `se
 | `collector.*` | on, every 60 seconds | Snapshots. Set `collector.enabled` false to stop them. |
 | `retention.*` | see the section above | How long rows are kept. |
 | `oidc` | off | Company login. `https://my.genestack.dev` is one issuer you can point this at. People on the deploy host can still use a local user. |
-| `update.url` | the GitHub Release `version.json` | Where the console looks for a newer build. `config.yaml.example` still names `https://genestack.dev/releases/version.json`. The value in the file you installed is the one that is checked. `update.auto` applies a downloaded build only when you turn it on. |
+| `update.url` | the GitHub Release `version.json` | Where the console looks for a newer build. The example and a fresh install both use `https://github.com/PIndustries/genestack-console/releases/latest/download/version.json`. The value in the file you installed is the one that is checked. The running console checks that file on its own. A newer build is installed when no job is queued or running, then the page reloads and shows that release's notes until they are acknowledged. `update.watch: false` leaves the install to the update button. `update.auto` is only the daily timer from the installer `--auto-update` flag. |
 | `hub.advertise_url` | empty | The address agents dial. |
+| `wireguard` | off | This deploy host is the WireGuard server. Default interface `wg-gsc`, network `10.67.67.0/24`, UDP port `51820`. Set `endpoint` to the address peers dial. |
+| `tailscale` | off | `tailscale up` on this deploy host. `hostname` defaults to `genestack-console`. `auth_key` is a bootstrap secret. |
+| `cloudflare` | off | `cloudflared tunnel run` on this deploy host. `tunnel_token` is the connector secret. |
 | `ovh` | empty | The application key for listing OVH dedicated servers. The per-environment consumer key is created in the console and is not stored in this file. |
 | `seed_demo` | false | A labeled sample tenant so the page has something to click. The machines in it are not real. The installer can turn this on for a first run. |
 
