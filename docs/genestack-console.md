@@ -67,9 +67,16 @@ Clone this repository first. [Getting the code](genestack-getting-started.md) is
 | `/opt/genestack` | This repository, on the deploy host. The console runs the scripts from here. |
 | `/etc/genestack` | Inventory and settings. `bootstrap.sh` creates the directory. You still edit the files the way the rest of this manual describes. |
 | `/opt/genestack-console` | The console program. It is installed beside this checkout. It is not a folder inside it. |
+| `submodules/genestack-console` | The console source. This repository tracks the `main` branch of that repository. |
 | `127.0.0.1:8080` | The console web page, on the deploy host. |
 
-The console source is [PIndustries/genestack-console](https://github.com/PIndustries/genestack-console){:target="_blank"}. It is not pinned in this repository. The install command above is how you get the program.
+The console source is [PIndustries/genestack-console](https://github.com/PIndustries/genestack-console){:target="_blank"}, on the `main` branch. Fetch that checkout when you want it next to this tree:
+
+``` shell
+git submodule update --init --remote submodules/genestack-console
+```
+
+The install command above is how you get the program. That program follows the latest release. This folder is the source.
 
 ## What you do in the console
 

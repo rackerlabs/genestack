@@ -9,7 +9,8 @@ features:
     From its web page you save the cloud settings, power the servers,
     and run the Genestack scripts. The install path is
     ``/opt/genestack-console``. The install command follows the latest
-    console release. The console source is not pinned in this repository.
+    console release. The console source checkout tracks the ``main`` branch
+    of PIndustries/genestack-console.
     A server boots from its own disk until you select it. ``https://my.genestack.dev``
     is the account page for the Apple apps that connect to that console.
     The latest release also has a virtual machine disk and an installer
