@@ -1,0 +1,20 @@
+---
+fixes:
+  - |
+    Fixed a race condition in the Keystone fernet and credential key
+    synchronization sidecar where Keystone's key loader could observe
+    a half-written key file before the sidecar completed the
+    `chown` and `chmod` steps, causing `PermissionError` on
+    `POST /v3/auth/tokens` (500) during authentication.
+
+    The sidecar's `sync_dir` function now stages key files in a
+    `.staging/` subdirectory inside the same emptyDir, where Keystone's
+    `fernet_utils._get_key_files` (`os.listdir` + `os.path.isfile`)
+    skips them. The atomic `mv` from `.staging/` into the key
+    directory is a rename on the same filesystem, so Keystone either
+    sees the old key or the new one — never a temp file.
+upgrade:
+  - |
+    No operator action required. The init container and sidecar in the
+    `keystone-api` Deployment are updated automatically when the
+    kustomize base is re-applied.
