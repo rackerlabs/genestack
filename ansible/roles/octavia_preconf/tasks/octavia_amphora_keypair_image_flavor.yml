@@ -40,6 +40,8 @@
   delay: 5
 
 - name: Get the image for amphora
+  tags:
+    - amphora_image
   get_url:
     url: "{{ amphora_image_url }}"
     dest: "{{ octavia_tmp_dir }}/test-only-amphora-x64-haproxy-ubuntu-{{ amphora_image_version }}.qcow2"
@@ -49,6 +51,8 @@
   delay: 5
 
 - name: push the amphora image
+  tags:
+    - amphora_image
   openstack.cloud.image:
     name: "{{ amphora_image_name }}"
     state: present
