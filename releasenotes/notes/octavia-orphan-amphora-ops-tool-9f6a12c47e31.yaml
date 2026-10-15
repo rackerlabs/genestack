@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    Adds ``ops-tools/find_orphan_amphora/find_orphan_amphora.py``. The tool
+    compares Octavia amphora ``compute_id`` values with Nova servers attached
+    to the configured load-balancer management network and can optionally scan
+    a dedicated Amphora compute aggregate to find servers that no longer have
+    a management-network port.
+
+    The scanner is read-only by default, supports ``--format text|json``,
+    ``--quiet``, bounded OpenStack CLI calls with ``--command-timeout``, and
+    the standard ops-tool exit codes. It also retains the timestamped audit
+    bundle with per-server and per-port details, ``orphans.tsv``, and
+    commented cleanup commands for manual review.
+
+    Confirmed candidates that still own a port on the configured management
+    network can be removed with ``--fix --yes-im-really-sure``. The tool
+    re-checks Octavia immediately before deletion and refuses automatic
+    deletion when the management-port evidence has changed. Aggregate-only
+    candidates without a management-network port remain manual-review
+    findings and are never automatically deleted.
