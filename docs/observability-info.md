@@ -3,6 +3,15 @@
 Genestack is made up of a vast array of components working away to provide a Kubernetes and OpenStack cloud infrastructure
 to serve our needs. Here we'll discuss in a bit more detail about how we observe and visualize our Genestack operations.
 
+!!! info "Deployment workflow"
+
+    The observability implementation is maintained in the separate
+    `rackerlabs/genestack-observability` repository. Bootstrap it with
+    `/opt/genestack/bin/bootstrap-observability.sh` and reconcile enabled
+    components with `/opt/genestack/bin/install-observability.sh`. See
+    [Observability Deployment](monitoring-observability-deployment.md).
+
+
 ## Overview
 
 In this document we'll dive a bit deeper into Genestack observability by exploring the tooling deployed as part of the Genestack workflow that helps us monitor, alert, log and visualize metrics of our Genestack environment.
