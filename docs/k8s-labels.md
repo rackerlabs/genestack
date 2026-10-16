@@ -16,6 +16,7 @@ To use the K8S environment for OpenStack all of the nodes MUST be labeled. The f
 | **openstack-network-node** | str|`enabled` | Defines which nodes will run OpenStack Networking |
 | **openstack-ovn-vpn-agent** | str|`enabled` | Defines which OVN gateway nodes will run the Neutron OVN VPN agent |
 | **openstack-storage-node** | str|`enabled` | Defines which nodes will run OpenStack Storage |
+| **swift-storage-node** | str|`enabled` | Defines which nodes will run the Swift account, container and object servers |
 | **longhorn.io/storage-node** | str|`enabled` | Defines which nodes will run Longhorn storage components and host Longhorn replicas |
 | **node-role.kubernetes.io/worker** |str| `worker` | Defines which nodes are designated kubernetes workers |
 
@@ -38,6 +39,9 @@ To use the K8S environment for OpenStack all of the nodes MUST be labeled. The f
 
     # Label the openstack storage nodes
     kubectl label node $(kubectl get nodes | awk '/storage/ {print $1}') openstack-storage-node=enabled
+
+    # Label the Swift storage nodes (only when deploying Swift)
+    kubectl label node $(kubectl get nodes | awk '/swift/ {print $1}') swift-storage-node=enabled
 
     # Label the Longhorn storage nodes
     kubectl label node $(kubectl get nodes | awk '/controller|storage/ {print $1}') longhorn.io/storage-node=enabled
