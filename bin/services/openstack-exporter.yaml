@@ -3,13 +3,13 @@ service:
   name: openstack-exporter
   namespace: monitoring
   version: ~
-
   family: ""
 
 chart:
   repo_name: ~
   repo_url: ~
-  service_name: openstack-api-exporter
+  # Local charts use the directory name under base-helm-configs.
+  service_name: openstack-api-exporter-chart
   global_overrides: false
 
 secrets: []

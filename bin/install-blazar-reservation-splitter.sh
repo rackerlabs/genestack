@@ -6,12 +6,9 @@
 # shellcheck disable=SC2124,SC2145,SC2294
 
 # Service
-SERVICE_NAME="blazar-reservation-splitter"
+# The service name is used for both the release name and the chart name.
+SERVICE_NAME_DEFAULT="blazar-reservation-splitter"
 SERVICE_NAMESPACE="openstack"
-
-# Helm
-HELM_REPO_NAME="genestack-blazar-reservation-splitter-helm-chart"
-HELM_REPO_URL="https://rackerlabs.github.io/genestack-blazar-reservation-splitter-helm-chart"
 
 # Base directories provided by the environment
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
@@ -23,87 +20,30 @@ GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 source "${GENESTACK_BASE_DIR}/bin/helpers.sh"
 trap cleanup_tmp EXIT
 
-# Define service-specific override directories based on the framework
-SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME}"
-SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME}"
+# Load the service configuration once for this installer.
+service_config=$(load_service_config "$SERVICE_NAME_DEFAULT" --log-sources) || exit 1
 
-# Define the Global Overrides directory used in the original script
-GLOBAL_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/global_overrides"
+# Resolve the chart version from the service config or chart versions file.
+SERVICE_VERSION=$(resolve_chart_version "$SERVICE_NAME_DEFAULT" "$service_config") || exit 1
 
-# Read the desired chart version from VERSION_FILE
-VERSION_FILE="${GENESTACK_OVERRIDES_DIR}/helm-chart-versions.yaml"
-
-if [ ! -f "$VERSION_FILE" ]; then
-    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE" >&2
+if [[ -z "$SERVICE_VERSION" ]]; then
+    log_error "No chart version found for '$SERVICE_NAME_DEFAULT'."
     exit 1
 fi
 
-# Extract version dynamically.
-SERVICE_VERSION=$(grep "^[[:space:]]*${SERVICE_NAME}:" "$VERSION_FILE" | sed "s/.*${SERVICE_NAME}: *//")
+# Resolve the chart location from the service configuration.
+resolve_service_chart "$SERVICE_NAME_DEFAULT" "$service_config" || exit 1
 
-if [ -z "$SERVICE_VERSION" ]; then
-    echo "Error: Could not extract version for '$SERVICE_NAME' from $VERSION_FILE" >&2
-#    exit 1
-fi
-
-echo "Found version for $SERVICE_NAME: $SERVICE_VERSION"
-
-# Prepare an array to collect -f arguments
-overrides_args=()
-
-# Base Override Files: Check the standard base directory.
-if [[ -d "$SERVICE_BASE_OVERRIDES" ]]; then
-    echo "Including base overrides from directory: $SERVICE_BASE_OVERRIDES"
-    for file in "$SERVICE_BASE_OVERRIDES"/*.yaml; do
-        # Check that there is at least one match
-        if [[ -e "$file" ]]; then
-            echo " - $file"
-            overrides_args+=("-f" "$file")
-        fi
-    done
-else
-    echo "Warning: Base override directory not found: $SERVICE_BASE_OVERRIDES"
-fi
-
-# Include Global Overrides
-if [[ -d "$GLOBAL_OVERRIDES" ]]; then
-    echo "Including global overrides from directory: $GLOBAL_OVERRIDES"
-    for file in "$GLOBAL_OVERRIDES"/*.yaml; do
-        if [[ -e "$file" ]]; then
-            echo " - $file"
-            overrides_args+=("-f" "$file")
-        fi
-    done
-else
-    echo "Warning: Global override directory not found: $GLOBAL_OVERRIDES"
-fi
-
-# Include all YAML files from the custom SERVICE configuration directory
-if [[ -d "$SERVICE_CUSTOM_OVERRIDES" ]]; then
-    echo "Including overrides from config directory:"
-    for file in "$SERVICE_CUSTOM_OVERRIDES"/*.yaml; do
-        if [[ -e "$file" ]]; then
-            echo " - $file"
-            overrides_args+=("-f" "$file")
-        fi
-    done
-else
-    echo "Warning: Config directory not found: $SERVICE_CUSTOM_OVERRIDES"
-fi
-
-echo
-
-# --- Helm Repository and Execution ---
-helm repo add --force-update "$HELM_REPO_NAME" "$HELM_REPO_URL" 2>/dev/null || true
-helm repo update
+# Collect Helm values files in override order.
+build_helm_args "$SERVICE_NAME_DEFAULT" || exit 1
 
 # Collect all --set arguments, executing commands and quoting safely
-# Collect secret-backed --set arguments from bin/services/${SERVICE_NAME}.yaml.
-collect_service_secret_set_args "$SERVICE_NAME"
+# Collect secret-backed --set arguments from bin/services/${SERVICE_NAME_DEFAULT}.yaml.
+collect_service_secret_set_args "$SERVICE_NAME_DEFAULT"
 set_args=("${SECRET_HELM_SET_ARGS[@]}")
 
 helm_command=(
-    helm upgrade --install "$SERVICE_NAME" "$HELM_REPO_NAME/$SERVICE_NAME"
+    helm upgrade --install "$SERVICE_NAME_DEFAULT" "$HELM_CHART_PATH"
     --version "${SERVICE_VERSION}"
     --namespace="$SERVICE_NAMESPACE"
     --timeout 120m
@@ -114,7 +54,8 @@ helm_command=(
 
     # Post-renderer configuration
     --post-renderer "$GENESTACK_OVERRIDES_DIR/kustomize/kustomize.sh"
-    --post-renderer-args "$SERVICE_NAME/overlay"
+    --post-renderer-args "$SERVICE_NAME_DEFAULT/overlay"
+
     "$@"
 )
 

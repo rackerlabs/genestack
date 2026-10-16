@@ -1,34 +1,66 @@
 #!/bin/bash
+# Description: Fetches the version for SERVICE_NAME_DEFAULT from the specified
+# YAML file and executes a helm upgrade/install command with dynamic values files.
 
-# Default parameter value
-TARGET=${1:-base}
+# Disable SC2124 (unused array), SC2145 (array expansion issue), SC2294 (eval)
+# shellcheck disable=SC2124,SC2145,SC2294
 
-# Directory to check for YAML files
-CONFIG_DIR="/etc/genestack/helm-configs/topolvm"
+# Service
+SERVICE_NAME_DEFAULT="topolvm"
+SERVICE_NAMESPACE="topolvm-system"
 
-# Add the topolvm helm repository
-helm repo add topolvm https://topolvm.github.io/topolvm
-helm repo update
+# Base directories provided by the environment
+GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
+GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 
-# Helm command setup
-HELM_CMD="helm upgrade --install topolvm topolvm/topolvm \
-    --create-namespace --namespace=topolvm-system \
-    --timeout 120m \
-    --post-renderer /etc/genestack/kustomize/kustomize.sh \
-    --post-renderer-args topolvm/${TARGET} \
-    -f /opt/genestack/base-helm-configs/topolvm/helm-topolvm-overrides.yaml"
+# Common secret helpers. Missing secrets are generated in Kubernetes and
+# existing secrets are never overwritten.
+# shellcheck source=helpers.sh
+source "${GENESTACK_BASE_DIR}/bin/helpers.sh"
+trap cleanup_tmp EXIT
 
-# Check if YAML files exist in the specified directory
-if compgen -G "${CONFIG_DIR}/*.yaml" > /dev/null; then
-    # Add all YAML files from the directory to the helm command
-    for yaml_file in "${CONFIG_DIR}"/*.yaml; do
-        HELM_CMD+=" -f ${yaml_file}"
-    done
+# Load the service configuration once for this installer.
+service_config=$(load_service_config "$SERVICE_NAME_DEFAULT" --log-sources) || exit 1
+
+# Resolve the chart version from the service config or chart versions file.
+SERVICE_VERSION=$(resolve_chart_version "$SERVICE_NAME_DEFAULT" "$service_config") || exit 1
+
+if [[ -z "$SERVICE_VERSION" ]]; then
+    log_error "No chart version found for '$SERVICE_NAME_DEFAULT'."
+    exit 1
 fi
 
-HELM_CMD+=" $@"
+# Resolve the chart location from the service configuration.
+resolve_service_chart "$SERVICE_NAME_DEFAULT" "$service_config" || exit 1
 
-# Run the helm command
-echo "Executing Helm command:"
-echo "${HELM_CMD}"
-eval "${HELM_CMD}"
+# Collect Helm values files in override order.
+build_helm_args "$SERVICE_NAME_DEFAULT" || exit 1
+
+# Collect secret-backed --set arguments from bin/services/${SERVICE_NAME_DEFAULT}.yaml.
+collect_service_secret_set_args "$SERVICE_NAME_DEFAULT"
+set_args=("${SECRET_HELM_SET_ARGS[@]}")
+
+
+helm_command=(
+    helm upgrade --install "$SERVICE_NAME_DEFAULT" "$HELM_CHART_PATH"
+    --version "${SERVICE_VERSION}"
+    --namespace="$SERVICE_NAMESPACE"
+    --timeout 120m
+    --create-namespace
+
+    "${overrides_args[@]}"
+    "${set_args[@]}"
+
+    # Post-renderer configuration
+    --post-renderer "$GENESTACK_OVERRIDES_DIR/kustomize/kustomize.sh"
+    --post-renderer-args "$SERVICE_NAME_DEFAULT/overlay"
+
+    "$@"
+)
+
+echo "Executing Helm command (arguments are quoted safely):"
+printf '%q ' "${helm_command[@]}"
+echo
+
+# Execute the command directly from the array
+"${helm_command[@]}"
