@@ -2,6 +2,7 @@
 service:
   name: kube-ovn
   version: ~
+  family: ""
 
 chart:
   service_name: kube-ovn

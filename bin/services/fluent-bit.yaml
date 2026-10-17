@@ -3,6 +3,7 @@ service:
   name: fluent-bit
   namespace: fluentbit
   version: ~
+  family: ""
 
 chart:
   repo_name: fluent

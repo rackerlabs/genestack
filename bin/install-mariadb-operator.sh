@@ -10,10 +10,6 @@ SERVICE_NAME_DEFAULT="mariadb-operator"
 CRDS_NAME_DEFAULT="mariadb-operator-crds"
 SERVICE_NAMESPACE="mariadb-system"
 
-# Helm
-HELM_REPO_NAME_DEFAULT="mariadb-operator"
-HELM_REPO_URL_DEFAULT="https://helm.mariadb.com/mariadb-operator"
-
 # Base directories provided by the environment
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
 GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
@@ -24,30 +20,19 @@ GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 source "${GENESTACK_BASE_DIR}/bin/helpers.sh"
 trap cleanup_tmp EXIT
 
-# Define service-specific override directories based on the framework
-SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME_DEFAULT}"
+# Custom values directory is used for generated clusterName overrides.
 SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME_DEFAULT}"
 
-# Define the Global Overrides directory used in the original script
-GLOBAL_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR}/helm-configs/global_overrides"
+# Load the service configuration once for this installer.
+service_config=$(load_service_config "$SERVICE_NAME_DEFAULT" --log-sources) || exit 1
 
-# Read the desired chart version from VERSION_FILE
-VERSION_FILE="${GENESTACK_OVERRIDES_DIR}/helm-chart-versions.yaml"
+# Resolve the chart version from the service config or chart versions file.
+SERVICE_VERSION=$(resolve_chart_version "$SERVICE_NAME_DEFAULT" "$service_config") || exit 1
 
-if [ ! -f "$VERSION_FILE" ]; then
-    echo "Error: helm-chart-versions.yaml not found at $VERSION_FILE" >&2
+if [[ -z "$SERVICE_VERSION" ]]; then
+    log_error "No chart version found for '$SERVICE_NAME_DEFAULT'."
     exit 1
 fi
-
-# Extract version dynamically using the SERVICE_NAME_DEFAULT variable
-SERVICE_VERSION=$(grep "^[[:space:]]*${SERVICE_NAME_DEFAULT}:" "$VERSION_FILE" | sed "s/.*${SERVICE_NAME_DEFAULT}: *//")
-
-if [ -z "$SERVICE_VERSION" ]; then
-    echo "Error: Could not extract version for '$SERVICE_NAME_DEFAULT' from $VERSION_FILE" >&2
-    exit 1
-fi
-
-echo "Found version for $SERVICE_NAME_DEFAULT: $SERVICE_VERSION"
 
 # Default parameter value
 export CLUSTER_NAME=${CLUSTER_NAME:-cluster.local}
@@ -69,78 +54,29 @@ if [ "${CLUSTER_NAME}" != "cluster.local" ]; then
     fi
 fi
 
-# Load chart metadata from custom override YAML if defined
-for yaml_file in "${SERVICE_CUSTOM_OVERRIDES}"/*.yaml; do
-    if [ -f "$yaml_file" ]; then
-        HELM_REPO_URL=$(yq eval '.chart.repo_url // ""' "$yaml_file")
-        HELM_REPO_NAME=$(yq eval '.chart.repo_name // ""' "$yaml_file")
-        SERVICE_NAME=$(yq eval '.chart.service_name // ""' "$yaml_file")
-        CRDS_NAME=$(yq eval '.chart.service_crds // ""' "$yaml_file")
-        break  # use the first match and stop
-    fi
-done
-
-# Fallback to defaults if variables not set
-: "${HELM_REPO_URL:=$HELM_REPO_URL_DEFAULT}"
-: "${HELM_REPO_NAME:=$HELM_REPO_NAME_DEFAULT}"
-: "${SERVICE_NAME:=$SERVICE_NAME_DEFAULT}"
-: "${CRDS_NAME:=$CRDS_NAME_DEFAULT}"
-
-
-# Determine Helm chart path
-if [[ "$HELM_REPO_URL" == oci://* ]]; then
-    # OCI registry path
-    CRDS_CHART_PATH="$HELM_REPO_URL/$HELM_REPO_NAME/$CRDS_NAME"
-    HELM_CHART_PATH="$HELM_REPO_URL/$HELM_REPO_NAME/$SERVICE_NAME"
-else
-    # --- Helm Repository and Execution ---
-    helm repo add --force-update "$HELM_REPO_NAME" "$HELM_REPO_URL" 2>/dev/null || true
-    helm repo update
-    CRDS_CHART_PATH="$HELM_REPO_NAME/$CRDS_NAME"
-    HELM_CHART_PATH="$HELM_REPO_NAME/$SERVICE_NAME"
+# The CRD chart is a sibling of the operator chart in the same repository.
+CRDS_NAME=$(yq e '.chart.service_crds // .crd_chart // ""' - <<< "$service_config") || exit 1
+if [[ -z "$CRDS_NAME" ]]; then
+    echo "Error: Missing CRD chart name for $SERVICE_NAME_DEFAULT" >&2
+    exit 1
 fi
 
-# Debug output
-echo "[DEBUG] HELM_REPO_URL=$HELM_REPO_URL"
-echo "[DEBUG] HELM_REPO_NAME=$HELM_REPO_NAME"
-echo "[DEBUG] SERVICE_NAME=$SERVICE_NAME"
-echo "[DEBUG] CRDS_NAME=$CRDS_NAME"
-echo "[DEBUG] HELM_CHART_PATH=$HELM_CHART_PATH"
-echo "[DEBUG] CRDS_CHART_PATH=$CRDS_CHART_PATH"
+# Resolve the chart location from the service configuration.
+resolve_service_chart "$SERVICE_NAME_DEFAULT" "$service_config" || exit 1
 
-# Prepare an array to collect -f arguments
-overrides_args=()
+# Point at the CRD chart next to the operator chart by replacing the last
+# path segment, e.g. mariadb-operator/mariadb-operator -> mariadb-operator/mariadb-operator-crds.
+CRDS_CHART_PATH="${HELM_CHART_PATH%/*}/${CRDS_NAME}"
 
-# Include all YAML files from the BASE configuration directory
-# NOTE: Files in this directory are included first.
-if [[ -d "$SERVICE_BASE_OVERRIDES" ]]; then
-    echo "Including base overrides from directory: $SERVICE_BASE_OVERRIDES"
-    for file in "$SERVICE_BASE_OVERRIDES"/*.yaml; do
-        # Check that there is at least one match
-        if [[ -e "$file" ]]; then
-            echo " - $file"
-            overrides_args+=("-f" "$file")
-        fi
-    done
-else
-    echo "Warning: Base override directory not found: $SERVICE_BASE_OVERRIDES"
+# A path starting with "/" means a local chart on disk; fail early if it is
+# missing. Repo and OCI charts are not folders, so Helm checks those itself.
+if [[ "$CRDS_CHART_PATH" == /* && ! -d "$CRDS_CHART_PATH" ]]; then
+    echo "Error: Local CRD chart not found at $CRDS_CHART_PATH" >&2
+    exit 1
 fi
 
-# Include all YAML files from the custom SERVICE configuration directory
-# NOTE: Files here have the highest precedence.
-if [[ -d "$SERVICE_CUSTOM_OVERRIDES" ]]; then
-    echo "Including overrides from service config directory: $SERVICE_CUSTOM_OVERRIDES"
-    for file in "$SERVICE_CUSTOM_OVERRIDES"/*.yaml; do
-        if [[ -e "$file" ]]; then
-            echo " - $file"
-            overrides_args+=("-f" "$file")
-        fi
-    done
-else
-    echo "Warning: Service overrides directory not found: $SERVICE_CUSTOM_OVERRIDES"
-fi
-
-echo
+# Collect Helm values files in override order.
+build_helm_args "$SERVICE_NAME_DEFAULT" || exit 1
 
 # Collect all --set arguments, executing commands and quoting safely
 # Collect secret-backed --set arguments from bin/services/${SERVICE_NAME_DEFAULT}.yaml.

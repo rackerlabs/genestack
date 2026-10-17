@@ -20,6 +20,12 @@ GLOBAL_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR}/helm-configs/global_overrides"
 
 source "$(dirname "$0")/monitoring-common.sh"
 
+# Load the service configuration once for this installer.
+service_config=$(load_service_config "$SERVICE_NAME_DEFAULT" --log-sources) || exit 1
+
+# Resolve the chart location from the service configuration.
+resolve_service_chart "$SERVICE_NAME_DEFAULT" "$service_config" || exit 1
+
 # Check if chart directory exists
 if [ ! -d "${CHART_DIR}" ]; then
     echo "Chart directory ${CHART_DIR} does not exist!"
@@ -59,6 +65,7 @@ echo "Using dynamic port: $DYNAMIC_PORT and tag: $DYNAMIC_TAG"
 ensure_keystone_auth_openstack_exporter_secret "${SERVICE_NAMESPACE}" "openstack"
 
 overrides_args=()
+GLOBAL_OVERRIDES=$(yq e '.chart.global_overrides' - <<< "$service_config") || exit 1
 
 for base_file in "${CHART_DIR}/values.yaml" "${CHART_DIR}/probe_target.yaml"; do
     if [[ -f "${base_file}" ]]; then
@@ -67,7 +74,7 @@ for base_file in "${CHART_DIR}/values.yaml" "${CHART_DIR}/probe_target.yaml"; do
     fi
 done
 
-if [[ -d "${GLOBAL_OVERRIDES_DIR}" ]]; then
+if [[ "$GLOBAL_OVERRIDES" != "false" && -d "${GLOBAL_OVERRIDES_DIR}" ]]; then
     echo "Including global overrides from directory: ${GLOBAL_OVERRIDES_DIR}"
     for file in "${GLOBAL_OVERRIDES_DIR}"/*.yaml; do
         if [[ -e "${file}" ]]; then
@@ -88,7 +95,7 @@ if [[ -d "${SERVICE_CUSTOM_OVERRIDES}" ]]; then
 fi
 
 helm_command=(
-    helm upgrade --install "${SERVICE_NAME_DEFAULT}" "${CHART_DIR}"
+    helm upgrade --install "${SERVICE_NAME_DEFAULT}" "${HELM_CHART_PATH}"
     --namespace "${SERVICE_NAMESPACE}"
     --create-namespace
     --timeout 15m
