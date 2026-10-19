@@ -11,6 +11,9 @@
 #                               all      - cleanup DB resources and network setup
 #                               skip_net - cleanup only DB resources (default)
 #                               none     - do not cleanup any DB resources or network setup
+#   --cleanup-only          Delete all leftover test-trove-* resources (instances,
+#                           backups, configuration groups), network setup and exit
+#                           without running any tests.
 #   --instance              ID of DB instance to use for primary test instance
 #   --datastore DS          Datastore type to test against (default: mysql)
 #   --ds-version VER        Datastore version number     (default: 8.4)
@@ -41,6 +44,7 @@ FLAVOR="db.0.2.2"
 VOL_SIZE="10"
 INSTANCE_TIMEOUT=600
 CLEANUP="skip_net"
+CLEANUP_ONLY=0
 OS_CLOUD="${OS_CLOUD:-acme-corp}"
 CUSTOMER_DIR="/home/ubuntu/customers"
 
@@ -52,6 +56,7 @@ while [[ $# -gt 0 ]]; do
         -h|--help)        sed -n '/^# USAGE:/,/^# EXIT CODES:/p' "$0" | sed 's/^# \?//'; exit 0 ;;
         --os-cloud)       OS_CLOUD="${2:?}"; shift 2 ;;
         --cleanup)        CLEANUP="${2:?}"; shift 2 ;;
+        --cleanup-only)   CLEANUP_ONLY=1; shift ;;
         --instance)       INSTANCE="${2:?}"; shift 2 ;;
         --datastore)      DATASTORE="${2:?}"; shift 2 ;;
         --ds-version)     DS_VERSION="${2:?}"; shift 2 ;;
@@ -166,6 +171,13 @@ instance_id() { db instance show "$1" -f value -c id 2>/dev/null || true; }
 backup_id()   { db backup show   "$1" -f value -c id 2>/dev/null || true; }
 config_id()   { db configuration show "$1" -f value -c id 2>/dev/null || true; }
 
+# is_replica <name>  — true if the instance is a replica (has a replica_of parent).
+# A primary has no replica_of attribute, so `instance show` exits non-zero for it.
+is_replica() { db instance show "$1" -f value -c replica_of >/dev/null 2>&1; }
+
+# is_incremental_backup <name> — true if the backup has a parent (incremental).
+is_incremental_backup() { [[ -n "$(db backup show "$1" -f value -c parent_id 2>/dev/null)" ]]; }
+
 # ── cleanup ───────────────────────────────────────────────────────────────────
 cleanup() {
     # dump test results if they haven't been dumped already
@@ -201,6 +213,101 @@ cleanup() {
 
     log_msg "$SUCCESS" "  Cleanup complete."
     CLEANUP_DONE=1
+}
+
+# cleanup_only — delete every leftover test-trove-* resource, regardless of which
+# run created it. Resource names are randomized per run (test-trove-<timestamp>-*),
+# so this matches by the shared "test-trove-" prefix instead of the current run's
+# names. Runs independently of the test suite and never touches non-test resources.
+cleanup_only() {
+    # Disable the EXIT trap's run-oriented cleanup; this path does its own.
+    CLEANUP_DONE=1
+    local prefix="test-trove-"
+
+    if ! source_credentials; then
+        echo -e "$FAIL ERROR: Failed to source OpenStack credentials $ENDC"
+        exit 1
+    fi
+
+    log_msg "$HEADER" "══ Cleanup-only: removing all ${prefix}* resources ══"
+
+    # ── instances
+    # Replicas must be deleted before their primaries (Trove refuses to delete a
+    # primary that still has an attached replica), so sweep replicas first, then
+    # delete the remaining primaries once the replicas have drained.
+    local instances inst elapsed
+    instances=$(db instance list -f value -c Name 2>/dev/null | grep "^${prefix}" || true)
+    if [[ -n "$instances" ]]; then
+        for inst in $instances; do
+            is_replica "$inst" || continue
+            log_msg "$INFO" "  Deleting replica instance $inst ..."
+            db instance force delete "$inst" 2>&1 || db instance delete "$inst" 2>&1 || true
+        done
+
+        # Delete remaining (primary) instances as replicas drain, then wait for
+        # everything to disappear so dependent backups can be removed.
+        elapsed=0
+        while (( elapsed < 300 )); do
+            instances=$(db instance list -f value -c Name 2>/dev/null | grep "^${prefix}" || true)
+            [[ -z "$instances" ]] && break
+            for inst in $instances; do
+                is_replica "$inst" && continue
+                log_msg "$INFO" "  Deleting primary instance $inst ..."
+                db instance force delete "$inst" 2>&1 || db instance delete "$inst" 2>&1 || true
+            done
+            sleep 5; (( elapsed += 5 ))
+        done
+    else
+        log_msg "$INFO" "  No ${prefix}* instances found."
+    fi
+
+    # ── backups
+    # Incremental (child) backups must be deleted before their parent, so sweep
+    # incrementals first, then delete the remaining full backups once they drain.
+    local backups bk
+    backups=$(db backup list -f value -c Name 2>/dev/null | grep "^${prefix}" || true)
+    if [[ -n "$backups" ]]; then
+        for bk in $backups; do
+            is_incremental_backup "$bk" || continue
+            log_msg "$INFO" "  Deleting incremental backup $bk ..."
+            db backup delete "$bk" 2>&1 || true
+        done
+
+        elapsed=0
+        while (( elapsed < 300 )); do
+            backups=$(db backup list -f value -c Name 2>/dev/null | grep "^${prefix}" || true)
+            [[ -z "$backups" ]] && break
+            for bk in $backups; do
+                is_incremental_backup "$bk" && continue
+                log_msg "$INFO" "  Deleting backup $bk ..."
+                db backup delete "$bk" 2>&1 || true
+            done
+            sleep 5; (( elapsed += 5 ))
+        done
+    else
+        log_msg "$INFO" "  No ${prefix}* backups found."
+    fi
+
+    # ── configuration groups
+    local configs cfg
+    configs=$(db configuration list -f value -c Name 2>/dev/null | grep "^${prefix}" || true)
+    if [[ -n "$configs" ]]; then
+        for cfg in $configs; do
+            log_msg "$INFO" "  Deleting configuration group $cfg ..."
+            db configuration delete "$cfg" 2>&1 || true
+        done
+    else
+        log_msg "$INFO" "  No ${prefix}* configuration groups found."
+    fi
+
+    # ── tenant / network teardown
+    # cleanup-only always tears down the test tenant and its network after the
+    # resource sweep. Resolve the helper next to this script so it works from a
+    # repo checkout and from the installed /opt/genestack location.
+    log_msg "$INFO" "  Tearing down test tenant and network ..."
+    "${SCRIPT_DIR}/lib/manage-test-tenants.sh" destroy || true
+
+    log_msg "$SUCCESS" "  Cleanup-only complete."
 }
 
 trap cleanup EXIT
@@ -1264,6 +1371,10 @@ main() {
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    if [[ "$CLEANUP_ONLY" -eq 1 ]]; then
+        cleanup_only
+        exit $?
+    fi
     main
     exit $?
 fi
