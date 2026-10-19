@@ -11,6 +11,10 @@
 #                               all      - cleanup DB resources and network setup
 #                               skip_net - cleanup only DB resources (default)
 #                               none     - do not cleanup any DB resources or network setup
+#   --cleanup-only          Delete all leftover test-trove-* resources (instances,
+#                           backups, configuration groups) and exit without running
+#                           any tests. Honors --cleanup all to also tear down the
+#                           test network. Useful for cleaning up after a crashed run.
 #   --instance              ID of DB instance to use for primary test instance
 #   --datastore DS          Datastore type to test against (default: mysql)
 #   --ds-version VER        Datastore version number     (default: 8.4)
@@ -41,6 +45,7 @@ FLAVOR="db.0.2.2"
 VOL_SIZE="10"
 INSTANCE_TIMEOUT=600
 CLEANUP="skip_net"
+CLEANUP_ONLY=0
 OS_CLOUD="${OS_CLOUD:-acme-corp}"
 CUSTOMER_DIR="/home/ubuntu/customers"
 
@@ -52,6 +57,7 @@ while [[ $# -gt 0 ]]; do
         -h|--help)        sed -n '/^# USAGE:/,/^# EXIT CODES:/p' "$0" | sed 's/^# \?//'; exit 0 ;;
         --os-cloud)       OS_CLOUD="${2:?}"; shift 2 ;;
         --cleanup)        CLEANUP="${2:?}"; shift 2 ;;
+        --cleanup-only)   CLEANUP_ONLY=1; shift ;;
         --instance)       INSTANCE="${2:?}"; shift 2 ;;
         --datastore)      DATASTORE="${2:?}"; shift 2 ;;
         --ds-version)     DS_VERSION="${2:?}"; shift 2 ;;
@@ -201,6 +207,81 @@ cleanup() {
 
     log_msg "$SUCCESS" "  Cleanup complete."
     CLEANUP_DONE=1
+}
+
+# cleanup_only — delete every leftover test-trove-* resource, regardless of which
+# run created it. Resource names are randomized per run (test-trove-<timestamp>-*),
+# so this matches by the shared "test-trove-" prefix instead of the current run's
+# names. Runs independently of the test suite and never touches non-test resources.
+cleanup_only() {
+    # Disable the EXIT trap's run-oriented cleanup; this path does its own.
+    CLEANUP_DONE=1
+    local prefix="test-trove-"
+
+    if ! source_credentials; then
+        echo -e "$FAIL ERROR: Failed to source OpenStack credentials $ENDC"
+        exit 1
+    fi
+
+    log_msg "$HEADER" "══ Cleanup-only: removing all ${prefix}* resources ══"
+
+    # ── instances
+    local instances
+    instances=$(db instance list -f value -c Name 2>/dev/null | grep "^${prefix}" || true)
+    if [[ -n "$instances" ]]; then
+        while IFS= read -r inst; do
+            [[ -z "$inst" ]] && continue
+            log_msg "$INFO" "  Deleting instance $inst ..."
+            # force delete handles instances stuck in BUILD/ERROR/SHUTDOWN
+            db instance force delete "$inst" 2>&1 || db instance delete "$inst" 2>&1 || true
+        done <<< "$instances"
+
+        # wait for them to disappear so dependent backups can be removed
+        log_msg "$INFO" "  Waiting for instances to be deleted ..."
+        local elapsed=0
+        while (( elapsed < 300 )); do
+            local remaining
+            remaining=$(db instance list -f value -c Name 2>/dev/null | grep -c "^${prefix}" || true)
+            [[ "$remaining" -eq 0 ]] && break
+            sleep 5; (( elapsed += 5 ))
+        done
+    else
+        log_msg "$INFO" "  No ${prefix}* instances found."
+    fi
+
+    # ── backups
+    local backups
+    backups=$(db backup list -f value -c Name 2>/dev/null | grep "^${prefix}" || true)
+    if [[ -n "$backups" ]]; then
+        while IFS= read -r bk; do
+            [[ -z "$bk" ]] && continue
+            log_msg "$INFO" "  Deleting backup $bk ..."
+            db backup delete "$bk" 2>&1 || true
+        done <<< "$backups"
+    else
+        log_msg "$INFO" "  No ${prefix}* backups found."
+    fi
+
+    # ── configuration groups
+    local configs
+    configs=$(db configuration list -f value -c Name 2>/dev/null | grep "^${prefix}" || true)
+    if [[ -n "$configs" ]]; then
+        while IFS= read -r cfg; do
+            [[ -z "$cfg" ]] && continue
+            log_msg "$INFO" "  Deleting configuration group $cfg ..."
+            db configuration delete "$cfg" 2>&1 || true
+        done <<< "$configs"
+    else
+        log_msg "$INFO" "  No ${prefix}* configuration groups found."
+    fi
+
+    # ── optional network teardown (only with --cleanup all)
+    if [[ "$CLEANUP" == "all" ]]; then
+        log_msg "$INFO" "  Tearing down test network ..."
+        /opt/genestack/scripts/tests/lib/manage-test-tenants.sh destroy || true
+    fi
+
+    log_msg "$SUCCESS" "  Cleanup-only complete."
 }
 
 trap cleanup EXIT
@@ -1264,6 +1345,10 @@ main() {
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    if [[ "$CLEANUP_ONLY" -eq 1 ]]; then
+        cleanup_only
+        exit $?
+    fi
     main
     exit $?
 fi
