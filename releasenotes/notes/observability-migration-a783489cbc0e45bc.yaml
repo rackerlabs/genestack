@@ -1,0 +1,18 @@
+---
+prelude: >
+    Migrating all observability components to a stand-alone repository.
+features:
+  - |
+    Removes all observability related services and components in favor of a
+    stand-alone `genestack-observability` repo.
+
+    Adds two new installation scripts to help enable the observability stack
+    in Genestack. `bootstrap-observability.sh` and `install-observability.sh`
+    are the entry points into all things Genestack Observability.
+upgrade:
+  - |
+    To upgrade; follow the documentation at `docs/monitoring-getting-started.md`.
+    The Genestack repo will have removed all observability and monitoring related
+    components and you must run `bootstrap-observability.sh` or follow the manual
+    instructions to setup the new `genestack-observability` repo within
+    your deployment.
