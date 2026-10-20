@@ -136,6 +136,76 @@ echo
 collect_service_secret_set_args "$SERVICE_NAME_DEFAULT"
 set_args=("${SECRET_HELM_SET_ARGS[@]}")
 
+# Blazar runtime identity safety check start
+# blazar/templates/configmap-etc.yaml fills every EMPTY conf.blazar.DEFAULT.os_admin_*
+# key from endpoints.identity.auth.admin.*. If os_admin_password is missing or
+# empty, the chart silently writes the shared Keystone admin password into
+# blazar.conf. Refuse to deploy in that case. Secret values are never printed.
+#
+# helpers.sh already fails if a listed Secret/key is empty. This check also covers:
+#   - the entry being dropped from bin/services/blazar.yaml or replaced by a
+#     service-configs override (yq '*' replaces the whole secrets list)
+#   - a later "$@" argument overriding the key with an empty value (last --set wins)
+#   - the value being the shared keystone-admin password
+OS_ADMIN_PW_KEY="conf.blazar.DEFAULT.os_admin_password"
+
+verify_blazar_os_admin_password() {
+    local found=0 value="" prev="" arg admin_pw
+
+    # Helm applies --set arguments left to right, so the last occurrence wins.
+    # helpers.sh emits the flag and "key=value" as separate tokens; also accept
+    # the "--set=key=value" form for anything passed through "$@".
+    for arg in "${set_args[@]}" "$@"; do
+        case "$arg" in
+            "--set=${OS_ADMIN_PW_KEY}="*|"--set-string=${OS_ADMIN_PW_KEY}="*)
+                found=1
+                value="${arg#*"${OS_ADMIN_PW_KEY}="}"
+                ;;
+            "--set-file=${OS_ADMIN_PW_KEY}="*)
+                found=1
+                value="$(cat "${arg#*"${OS_ADMIN_PW_KEY}="}" 2>/dev/null)"
+                ;;
+            "${OS_ADMIN_PW_KEY}="*)
+                case "$prev" in
+                    --set|--set-string)
+                        found=1
+                        value="${arg#"${OS_ADMIN_PW_KEY}="}"
+                        ;;
+                    --set-file)
+                        found=1
+                        value="$(cat "${arg#"${OS_ADMIN_PW_KEY}="}" 2>/dev/null)"
+                        ;;
+                esac
+                ;;
+        esac
+        prev="$arg"
+    done
+
+    if [[ "$found" -ne 1 ]]; then
+        log_error "${OS_ADMIN_PW_KEY} is not set. Add it to bin/services/blazar.yaml (source_secret: blazar-admin)."
+        log_error "Refusing to deploy: the chart would fall back to the shared Keystone admin password."
+        return 1
+    fi
+
+    if [[ -z "$value" ]]; then
+        log_error "${OS_ADMIN_PW_KEY} resolved to an empty value."
+        log_error "Refusing to deploy: the chart would fall back to the shared Keystone admin password."
+        return 1
+    fi
+
+    admin_pw="$(secret_get "$SERVICE_NAMESPACE" keystone-admin password)"
+    if [[ -n "$admin_pw" && "$value" == "$admin_pw" ]]; then
+        log_error "${OS_ADMIN_PW_KEY} matches the shared keystone-admin password."
+        log_error "Refusing to deploy: Blazar must use the 'blazar' service user (Secret blazar-admin)."
+        return 1
+    fi
+
+    log_info "${OS_ADMIN_PW_KEY} is set from the Blazar service user (value not shown)."
+    return 0
+}
+
+verify_blazar_os_admin_password "$@" || exit 1
+# Blazar runtime identity safety check end
 
 helm_command=(
     helm upgrade --install "$SERVICE_NAME_DEFAULT" "$HELM_CHART_PATH"

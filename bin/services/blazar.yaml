@@ -76,3 +76,9 @@ secrets:
     source_namespace: openstack
     data_key: password
     helm_flag: --set
+
+  - helm_key: "conf.blazar.DEFAULT.os_admin_password"
+    source_secret: blazar-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
