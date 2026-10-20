@@ -11,7 +11,7 @@ SERVICE_NAMESPACE="kube-system" # Note: kube-ovn uses the kube-system namespace
 
 # Helm
 HELM_REPO_NAME_DEFAULT="kubeovn"
-HELM_REPO_URL_DEFAULT="https://kubeovn.github.io/kube-ovn"
+HELM_REPO_URL_DEFAULT="oci://ghcr.io/kubeovn/charts/kube-ovn"
 
 # Base directories provided by the environment
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
@@ -109,7 +109,7 @@ done
 # Determine Helm chart path
 if [[ "$HELM_REPO_URL" == oci://* ]]; then
     # OCI registry path
-    HELM_CHART_PATH="$HELM_REPO_URL/$HELM_REPO_NAME/$SERVICE_NAME"
+    HELM_CHART_PATH="${HELM_REPO_URL%/}"
 else
     # --- Helm Repository and Execution ---
     helm repo add --force-update "$HELM_REPO_NAME" "$HELM_REPO_URL" 2>/dev/null || true
