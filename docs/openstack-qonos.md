@@ -18,7 +18,7 @@ Each schedule references an execution profile with Keystone trust delegation so 
 
 !!! note
 
-    QonoS can be enabled during `bin/setup-openstack.sh` (component prompt **Qonos (Scheduled Actions)**) or installed later with `/opt/genestack/bin/install-qonos.sh`.
+    QonoS can be enabled during `bin/setup-openstack.sh` (component prompt **Qonos (Scheduled Actions)**) or installed later with `/opt/genestack/ops-tools/qonos/install-qonos.sh`.
 
 ## Create secrets
 
@@ -41,10 +41,10 @@ The install script renders `qonos.conf` into the `qonos-etc` secret. It prefers 
 
 ## Run the package deployment
 
-!!! example "Run the Qonos deployment Script `/opt/genestack/bin/install-qonos.sh`"
+!!! example "Run the Qonos deployment Script `/opt/genestack/ops-tools/qonos/install-qonos.sh`"
 
     ``` shell
-    --8<-- "bin/install-qonos.sh"
+    --8<-- "ops-tools/qonos/install-qonos.sh"
     ```
 
 ## Enable Skyline integration

@@ -1030,19 +1030,13 @@ rotation_sort_services() {
 rotation_execute_service_reinstall() {
     local service_name="$1"
     local target_service="$2"
-    local installer
     local cmd=()
 
-    if [[ -n "${GENESTACK_INSTALL_BIN:-}" && -x "$GENESTACK_INSTALL_BIN" ]]; then
-        cmd=("$GENESTACK_INSTALL_BIN" --service "$service_name")
-    else
-        installer="${GENESTACK_HELPERS_DIR}/install-${service_name}.sh"
-        if [[ ! -x "$installer" ]]; then
-            log_error "No installer found for service '${service_name}': ${installer}"
-            return 1
-        fi
-        cmd=("$installer")
+    if [[ ! -x "${GENESTACK_INSTALL_BIN:-}" ]]; then
+        log_error "Unified installer not found or not executable: ${GENESTACK_INSTALL_BIN:-unset}"
+        return 1
     fi
+    cmd=("$GENESTACK_INSTALL_BIN" --service "$service_name")
 
     if [[ "$service_name" == "$target_service" && -n "$CL_OVERRIDE_VERSION" ]]; then
         cmd+=(--version "$CL_OVERRIDE_VERSION")

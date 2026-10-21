@@ -35,7 +35,7 @@ operational mutations rather than chart-derived service passwords.
 | `bin/setup-monitoring-rgw-storage.sh` | RGW monitoring object-storage credentials. | These values come from the monitoring storage setup, not an OpenStack service chart. |
 | `scripts/import-external-cluster.sh` | Imported Rook/Ceph, CSI, and RGW admin integration secrets. | These values are imported from an external Ceph environment and must reflect that cluster. |
 | `bin/install-keystone.sh` | `keystone-shibd-etc`, sourced from `/etc/genestack/keystone-sp/shibboleth/`. | This is file-backed Shibboleth configuration that the Keystone installer syncs when federation is enabled. |
-| `bin/install-qonos.sh` | `qonos-etc`, sourced from a rendered `qonos.conf`. | This is file-backed service configuration derived from managed secret values. |
+| `ops-tools/qonos/install-qonos.sh` | `qonos-etc`, sourced from a rendered `qonos.conf`. | This is file-backed service configuration derived from managed secret values. |
 | `bin/install-kube-ovn.sh` | `kube-ovn-tls`. | This is infrastructure TLS material for Kube-OVN, not an OpenStack service password. |
 | `ansible/roles/manila_enablement_techpreview/tasks/manila_k8s_secrets.yml` | Manila tech preview secrets and SSH key material. | The role calls the shared service secret helper, then performs explicit tech preview key handling for that workflow. |
 | `ansible/roles/trove_enablement_techpreview/tasks/trove_k8s_secrets.yml` | Trove tech preview secrets and SSH key material. | The role calls the shared service secret helper, then performs explicit tech preview key handling for that workflow. |

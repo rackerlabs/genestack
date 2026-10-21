@@ -109,7 +109,7 @@ conf:
       enable_proxy_headers_parsing: true
 
     # PKCS#11 Crypto Plugin (SoftHSM2). login (HSM PIN) is injected at
-    # deploy time by install-barbican.sh — not stored here.
+    # deploy time by install.sh --service barbican — not stored here.
     # enabled_crypto_plugins is an oslo MultiStrOpt; a YAML list is rendered
     # as one comma-separated name and no plugin loads.
     p11_crypto_plugin:
