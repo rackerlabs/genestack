@@ -33,10 +33,10 @@ Freezer-Scheduler using Genestack.
 
 ### :material-play-circle: Run the package deployment
 
-!!! example "Run the Freezer deployment Script `/opt/genestack/bin/install-freezer.sh`"
+!!! example "Run the Freezer deployment: `/opt/genestack/bin/install.sh --service freezer`"
 
     ```bash
-    --8<-- "bin/install-freezer.sh"
+    /opt/genestack/bin/install.sh --service freezer
     ```
 
 ### :material-check-circle: Validate Install Success

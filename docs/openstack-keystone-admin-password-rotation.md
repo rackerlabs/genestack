@@ -750,7 +750,7 @@
 
     ```
     cd /opt/genestack
-    bin/install-octavia.sh
+    bin/install.sh --service octavia
     ```
 
 1. Post-check _Octavia_ to ensure all pods running, etc.
@@ -798,7 +798,7 @@
 
     ```
     cd /opt/genestack
-    bin/install-blazar.sh
+    bin/install.sh --service blazar
     ```
 
 1. Post-check _Blazar_ to ensure all pods running, etc.

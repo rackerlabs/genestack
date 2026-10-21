@@ -18,7 +18,7 @@ The OpenStack exporter installer creates the Keystone auth Secret if it is missi
 ## Install
 
 ```shell
-/opt/genestack/bin/install-openstack-exporter.sh
+/opt/genestack/bin/install.sh --service openstack-exporter
 ```
 
 ## Verify

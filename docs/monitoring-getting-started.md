@@ -86,7 +86,7 @@ The monitoring install scripts also apply these labels automatically when the pr
 Prometheus, Alertmanager, node-exporter, and kube-state-metrics are installed first:
 
 ```shell
-/opt/genestack/bin/install-kube-prometheus-stack.sh
+/opt/genestack/bin/install.sh --service kube-prometheus-stack
 ```
 
 Verify the deployment:
@@ -122,7 +122,7 @@ You can override the defaults with environment variables such as `ROOK_NAMESPACE
 Install Loki:
 
 ```shell
-/opt/genestack/bin/install-loki.sh
+/opt/genestack/bin/install.sh --service loki
 ```
 
 If your cluster DNS service is not named `coredns`, add a Loki override file that sets `global.dnsService` before installing. The Loki gateway uses this value to generate its NGINX resolver configuration.
@@ -147,7 +147,7 @@ Available examples:
 Install Tempo:
 
 ```shell
-/opt/genestack/bin/install-tempo.sh
+/opt/genestack/bin/install.sh --service tempo
 ```
 
 Verify Tempo:
@@ -167,7 +167,7 @@ The Grafana installer ensures the `grafana-db` secret exists in `monitoring` bef
 Install Grafana:
 
 ```shell
-/opt/genestack/bin/install-grafana.sh
+/opt/genestack/bin/install.sh --service grafana
 ```
 
 Verify Grafana:
@@ -198,7 +198,7 @@ If you run PostgreSQL and want OpenTelemetry to scrape it, add a service overrid
 Install OpenTelemetry:
 
 ```shell
-/opt/genestack/bin/install-opentelemetry-kube-stack.sh
+/opt/genestack/bin/install.sh --service opentelemetry-kube-stack
 ```
 
 Verify OpenTelemetry:

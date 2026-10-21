@@ -20,10 +20,10 @@ OpenStack components can use Zaqar to inform events to end users and communicati
 
 ## Run the package deployment
 
-!!! example "Run the Zaqar deployment Script `/opt/genestack/bin/install-zaqar.sh`"
+!!! example "Run the Zaqar deployment: `/opt/genestack/bin/install.sh --service zaqar`"
 
     ``` shell
-    --8<-- "bin/install-zaqar.sh"
+    /opt/genestack/bin/install.sh --service zaqar
     ```
 
 !!! tip

@@ -201,7 +201,7 @@ Please note the upstream container images are required for Ceph support at this 
 Apply the configuration to the Nova Helm chart.
 
 ``` bash
-/opt/genestack/bin/install-nova.sh
+/opt/genestack/bin/install.sh --service nova
 ```
 
 Once the configuration has been applied, Nova will be configured to use an external Ceph deployment for image storage. Instances deployed from image (not boot-from-volume) should automatically use the external Ceph RBD backend.

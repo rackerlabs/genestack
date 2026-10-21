@@ -53,7 +53,7 @@ Example file:
 ## Install
 
 ```shell
-/opt/genestack/bin/install-loki.sh
+/opt/genestack/bin/install.sh --service loki
 ```
 
 ## Verify

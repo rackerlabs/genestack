@@ -161,7 +161,7 @@ If migrating from the `pvc` storage type, be sure to remove or comment out any `
 Apply the configuration to the Glance Helm chart.
 
 ``` bash
-/opt/genestack/bin/install-glance.sh
+/opt/genestack/bin/install.sh --service glance
 ```
 
 Once the configuration has been applied, Glance will be configured to use an external Ceph deployment for image storage. You can now store images in Ceph using Glance.

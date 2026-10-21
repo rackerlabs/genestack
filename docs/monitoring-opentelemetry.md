@@ -68,7 +68,7 @@ The OpenTelemetry installer creates missing monitoring secrets it owns and reuse
 ## Install
 
 ```shell
-/opt/genestack/bin/install-opentelemetry-kube-stack.sh
+/opt/genestack/bin/install.sh --service opentelemetry-kube-stack
 ```
 
 ## Verify

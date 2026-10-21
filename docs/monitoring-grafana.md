@@ -37,7 +37,7 @@ Then add your Azure overrides in:
 ## Install
 
 ```shell
-/opt/genestack/bin/install-grafana.sh
+/opt/genestack/bin/install.sh --service grafana
 ```
 
 ## Verify

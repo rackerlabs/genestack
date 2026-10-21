@@ -50,10 +50,10 @@ This document outlines the deployment of OpenStack Blazar using Genestack.
       
 ## Run the package deployment
 
-!!! example "Run the Blazar deployment Script `/opt/genestack/bin/install-blazar.sh`"
+!!! example "Run the Blazar deployment: `/opt/genestack/bin/install.sh --service blazar`"
 
     ``` shell
-    --8<-- "bin/install-blazar.sh"
+    /opt/genestack/bin/install.sh --service blazar
     ```
 
 !!! tip

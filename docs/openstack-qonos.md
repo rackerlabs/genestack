@@ -68,7 +68,7 @@ kubectl --namespace openstack exec -ti openstack-admin-client -- \
   openstack user show qonos --domain service -f value -c id
 ```
 
-Set `qonos_endpoint` to the same public hostname used on the QonoS Gateway HTTPRoute, then re-run `/opt/genestack/bin/install-skyline.sh` so the override is applied.
+Set `qonos_endpoint` to the same public hostname used on the QonoS Gateway HTTPRoute, then re-run `/opt/genestack/bin/install.sh --service skyline` so the override is applied.
 
 !!! note
 

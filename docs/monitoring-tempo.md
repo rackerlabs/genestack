@@ -32,7 +32,7 @@ This helper uses `mc` (the MinIO Client) for bucket creation. If `mc` is not ins
 ## Install
 
 ```shell
-/opt/genestack/bin/install-tempo.sh
+/opt/genestack/bin/install.sh --service tempo
 ```
 
 ## Verify
