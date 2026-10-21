@@ -6,6 +6,7 @@ metadata:
   annotations:
     metallb.universe.tf/address-pool: pool1
 spec:
+  image: rabbitmq:4.0.9-management@sha256:c26e8e1071671aeeba318d17416d4bc57da68d82b07d226fbbdee8a1c87114b7
   replicas: 3
   resources:
     requests:
