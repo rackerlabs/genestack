@@ -9,7 +9,7 @@ charts:
   cinder: 2026.1.9+a2a343968
   cloudkitty: 2026.1.30+11919f713
   designate: 2026.1.8+a659ab8a2
-  envoyproxy-gateway: v1.7.0
+  envoy-gateway: v1.7.0
   freezer: 2026.1.8+d03dd061a
   glance: 2026.1.9+7cce5ac45
   gnocchi: 2026.1.9+50c697fc3
@@ -31,6 +31,7 @@ charts:
   metallb: v0.15.2
   neutron: 2026.1.9+a2a343968
   nova: 2026.1.8+a2a343968
+  openstack-api-exporter: 0.1.0
   opentelemetry-kube-stack: 0.13.1
   placement: 2026.1.8+50c697fc3
   octavia: 2026.1.8+d03dd061a
@@ -41,6 +42,7 @@ charts:
   redis-sentinel: 0.16.12
   sealed-secrets: 2.17.4
   skyline: 2025.2.9+c665eedfa
+  tempest: 2026.1.2+a2a343968
   tempo: 1.24.4
   topolvm: 16.1.1
   trove: 2026.1.7+789d868ff

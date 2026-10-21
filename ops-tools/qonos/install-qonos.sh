@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+# -----------------------------------------------
+#                             _             _
+#                            | |           | |
+#   __ _  ___ _ __   ___  ___| |_ __ _  ___| | __
+#  / _` |/ _ \ '_ \ / _ \/ __| __/ _` |/ __| |/ /
+# | (_| |  __/ | | |  __/\__ \ || (_| | (__|   <
+#  \__, |\___|_| |_|\___||___/\__\__,_|\___|_|\_\
+#   __/ |            ops tools
+#  |___/         install_qonos
+# -----------------------------------------------
+#
+# Installs QonoS (Scheduled Actions) for Genestack.
+#
+# QonoS is deployed from kustomize manifests rather than a Helm chart, so it
+# is not installed through bin/install.sh. This tool renders qonos.conf with
+# the qonos-owned Kubernetes secrets into the qonos-etc secret, applies the
+# base-kustomize/qonos manifests, and waits for jobs and deployments.
+#
+# Usage:
+#   ./install-qonos.sh
+#
+# Env overrides:
+#   GENESTACK_BASE_DIR=/opt/genestack, GENESTACK_OVERRIDES_DIR=/etc/genestack
+set -euo pipefail
+
+SERVICE_NAME="qonos"
+SERVICE_NAMESPACE="openstack"
+
+GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
+GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
+
+# Common secret helpers. Missing qonos-owned secrets are generated in Kubernetes
+# and existing secrets are never overwritten.
+# shellcheck source=helpers.sh
+source "${GENESTACK_BASE_DIR}/bin/helpers.sh"
+trap cleanup_tmp EXIT
+
+KUSTOMIZE_PATH="${GENESTACK_BASE_DIR}/base-kustomize/${SERVICE_NAME}/base"
+QONOS_CONF_DEFAULT="${KUSTOMIZE_PATH}/qonos.conf"
+QONOS_CONF_OVERRIDE="${GENESTACK_OVERRIDES_DIR}/kustomize/qonos/base/qonos.conf"
+
+resolve_qonos_conf() {
+    if [ -f "${QONOS_CONF_OVERRIDE}" ]; then
+        echo "${QONOS_CONF_OVERRIDE}"
+        return 0
+    fi
+
+    if [ -f "${QONOS_CONF_DEFAULT}" ]; then
+        echo "${QONOS_CONF_DEFAULT}"
+        return 0
+    fi
+
+    echo "Error: qonos.conf not found. Looked for:" >&2
+    echo "  ${QONOS_CONF_OVERRIDE}" >&2
+    echo "  ${QONOS_CONF_DEFAULT}" >&2
+    exit 1
+}
+
+require_secret() {
+    local secret_name="$1"
+
+    if ! secret_exists "${SERVICE_NAMESPACE}" "${secret_name}"; then
+        echo "Error: secret ${secret_name} not found in namespace ${SERVICE_NAMESPACE}" >&2
+        exit 1
+    fi
+}
+
+get_secret_password() {
+    local secret_name="$1"
+    local value
+
+    value="$(secret_get "${SERVICE_NAMESPACE}" "${secret_name}" "password")"
+    if [[ -z "$value" ]]; then
+        echo "Error: secret ${SERVICE_NAMESPACE}/${secret_name} is missing key password" >&2
+        exit 1
+    fi
+
+    printf '%s' "$value"
+}
+
+apply_qonos_etc_secret() {
+    local conf_template="$1"
+    local rendered_conf
+    local qonos_db_password
+    local qonos_rabbitmq_password
+    local qonos_admin_password
+
+    qonos_db_password="$(get_secret_password qonos-db-password)"
+    qonos_rabbitmq_password="$(get_secret_password qonos-rabbitmq-password)"
+    qonos_admin_password="$(get_secret_password qonos-admin)"
+
+    rendered_conf="$(mk_tmp_file)"
+
+    sed \
+        -e "s|__QONOS_DB_PASSWORD__|${qonos_db_password}|g" \
+        -e "s|__QONOS_RABBITMQ_PASSWORD__|${qonos_rabbitmq_password}|g" \
+        -e "s|__QONOS_ADMIN_PASSWORD__|${qonos_admin_password}|g" \
+        "${conf_template}" > "${rendered_conf}"
+
+    secret_sync_from_file "${SERVICE_NAMESPACE}" "qonos-etc" "qonos.conf" "${rendered_conf}"
+}
+
+if [ ! -f "${KUSTOMIZE_PATH}/kustomization.yaml" ]; then
+    echo "Error: qonos kustomization not found at ${KUSTOMIZE_PATH}" >&2
+    exit 1
+fi
+
+QONOS_CONF_PATH="$(resolve_qonos_conf)"
+
+echo "Installing qonos from ${KUSTOMIZE_PATH}"
+echo "Rendering qonos.conf from ${QONOS_CONF_PATH}"
+
+require_secret "keystone-keystone-admin"
+
+QONOS_SERVICE_CONFIG="$(load_service_config "${SERVICE_NAME}")"
+secret_ensure_service "${QONOS_SERVICE_CONFIG}" "${SERVICE_NAME}"
+
+apply_qonos_etc_secret "${QONOS_CONF_PATH}"
+
+kubectl --namespace "${SERVICE_NAMESPACE}" delete job qonos-ks-user qonos-db-sync --ignore-not-found=true
+
+kubectl kustomize "${KUSTOMIZE_PATH}" | kubectl apply -f -
+
+kubectl --namespace "${SERVICE_NAMESPACE}" wait \
+    --for=condition=complete "job/qonos-ks-user" \
+    --timeout=15m
+
+kubectl --namespace "${SERVICE_NAMESPACE}" wait \
+    --for=condition=complete "job/qonos-db-sync" \
+    --timeout=15m
+
+for deployment in qonos-api qonos-scheduler qonos-worker; do
+    kubectl --namespace "${SERVICE_NAMESPACE}" rollout status "deployment/${deployment}" --timeout=15m
+done
+
+echo "qonos installed successfully"
