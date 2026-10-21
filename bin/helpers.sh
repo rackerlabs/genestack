@@ -13,7 +13,7 @@ GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
 GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 GENESTACK_HELPERS_DIR="${GENESTACK_HELPERS_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 GENESTACK_SERVICES_DIR="${GENESTACK_SERVICES_DIR:-${GENESTACK_HELPERS_DIR}/services}"
-GENESTACK_INSTALL_BIN="${GENESTACK_INSTALL_BIN:-}"
+GENESTACK_INSTALL_BIN="${GENESTACK_INSTALL_BIN:-${GENESTACK_HELPERS_DIR}/install.sh}"
 GENESTACK_COMPONENTS_FILE="${GENESTACK_COMPONENTS_FILE:-${GENESTACK_OVERRIDES_DIR}/openstack-components.yaml}"
 GENESTACK_SERVICE_CONFIG_OVERRIDES_DIR="${GENESTACK_SERVICE_CONFIG_OVERRIDES_DIR:-${GENESTACK_OVERRIDES_DIR}/service-configs}"
 GENESTACK_OPS_TOOLS_DIR="${GENESTACK_OPS_TOOLS_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/ops-tools}"
@@ -78,9 +78,7 @@ log_header()   { echo ""; echo "========================================"; echo 
 # ── CLI Parsing ──────────────────────────────────────────────────────────────
 
 parse_cli() {
-    # Forward-looking entrypoint for the unified installer. Today most services
-    # still call helper functions from bin/install-*.sh wrappers directly; keep
-    # this parser in sync with that migration path.
+    # Unified installer entrypoint parser, used by bin/install.sh.
     # Consumes all options, sets:
     #   CL_ROTATE_SECRETS   -- bool
     #   CL_CHECK_SECRETS    -- bool
@@ -88,12 +86,14 @@ parse_cli() {
     #   CL_SERVICE          -- service name (via --service)
     #   CL_EXTRA_HELM_ARGS  -- array of leftover --* args for helm
     #   CL_OVERRIDE_VERSION -- explicit version override
+    #   CL_GATEWAY_CONFIG   -- gateway config file (via --config)
     CL_ROTATE_SECRETS=0
     CL_CHECK_SECRETS=0
     CL_FORCE_YES=0
     CL_SERVICE=""
     CL_EXTRA_HELM_ARGS=()
     CL_OVERRIDE_VERSION=""
+    CL_GATEWAY_CONFIG=""
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -107,6 +107,14 @@ parse_cli() {
                 shift; CL_OVERRIDE_VERSION="$1"; shift ;;
             --service)
                 shift; CL_SERVICE="$1"; shift ;;
+            --config|--gateway-config)
+                if [[ $# -lt 2 ]]; then
+                    log_error "$1 requires a configuration file"
+                    exit 1
+                fi
+                shift; CL_GATEWAY_CONFIG="$1"; shift ;;
+            --config=*|--gateway-config=*)
+                CL_GATEWAY_CONFIG="${1#*=}"; shift ;;
             --help|-h|help)
                 _cli_help; exit 0 ;;
             *)
@@ -130,7 +138,8 @@ parse_cli() {
 _cli_help() {
     cat <<'EOF'
 Usage:
-  install.sh --service <name> [--rotate-secrets] [--check-secrets] [--yes-i-really-want-to] [HELM_FLAGS...]
+  install.sh --service <name> [--rotate-secrets] [--check-secrets] [--yes-i-really-want-to]
+             [--config <file>] [HELM_FLAGS...]
 
 Options:
   --rotate-secrets              Rotate service-owned secrets and reinstall impacted services
@@ -138,6 +147,8 @@ Options:
   --yes-i-really-want-to        Auto-approve all installer confirmation prompts
   --version <ver>               Override chart version
   --service <name>              (required) service name
+  --config, --gateway-config    Gateway config file applied after a successful
+                                envoy-gateway install
   --help, -h                    Show this help
 
 Remaining --* flags after the service name are passed through to helm upgrade --install.
@@ -163,6 +174,9 @@ Examples:
 
   # check what secrets will be used (fails if any are missing)
   install.sh --check-secrets --service nova
+
+  # install envoy-gateway with a gateway config
+  install.sh --service envoy-gateway --config /etc/genestack/gateway-config.yaml
 EOF
 }
 
@@ -1252,6 +1266,15 @@ resolve_chart_version() {
 
     local version
     version=$(yq e ".charts.\"${service_name}\" // \"\"" "$CHART_VERSIONS_FILE")
+
+    # Fall back to the chart name when the manifest keys by chart rather
+    # than service name (e.g. openstack-exporter → openstack-api-exporter).
+    local chart_name
+    chart_name=$(echo "$svc_yaml_content" | yq e '.chart.service_name // ""' -)
+    if [[ -z "$version" && -n "$chart_name" && "$chart_name" != "$service_name" ]]; then
+        version=$(yq e ".charts.\"${chart_name}\" // \"\"" "$CHART_VERSIONS_FILE")
+    fi
+
     if [[ -z "$version" ]]; then
         log_warn "No version found for '${service_name}' in ${CHART_VERSIONS_FILE}, installing with latest."
     else
