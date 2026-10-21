@@ -172,7 +172,11 @@ main() {
     fi
 
     # Non-blocking guardrail for clusters with inherited chart defaults.
-    secret_warn_default_chart_passwords "$service_name"
+    # Skipped when the default-password scan is disabled or a dry-run is
+    # requested (helm show values would hit the network/registry).
+    if ! printf "%s\n" "${CL_EXTRA_HELM_ARGS[@]:-}" | grep -qx -- "--dry-run"; then
+        secret_warn_default_chart_passwords "$service_name"
+    fi
 
     # ── Build --set args from secrets ─────────────────────────────────────
 

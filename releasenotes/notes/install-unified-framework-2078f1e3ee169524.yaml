@@ -1,0 +1,68 @@
+---
+prelude: >
+  Replace the per-service bin/install-*.sh bootstrap scripts with a
+  single install.sh entry point driven by the per-service YAML configs
+  in bin/services/. Secrets remain managed in Kubernetes, as introduced
+  by the per-service secret bootstrapping work.
+features:
+  - |
+    A new unified installer replaces the 50 individual install-*.sh
+    scripts. The entry point is bin/install.sh with shared library code
+    in bin/helpers.sh and per-service configuration in
+    bin/services/*.yaml. The service YAMLs already on the cluster
+    (introduced with per-service secret bootstrapping) are now the
+    single source of truth for install-time chart selection, secret
+    wiring, kustomize post-rendering, and Helm timeouts.
+upgrade:
+  - |
+    All bin/install-*.sh bootstrap scripts have been removed. Use
+    install.sh with --service to install any component:
+
+    install.sh --service nova
+    install.sh --service nova --wait --timeout 30m
+    install.sh --rotate-secrets --service nova
+
+    --service is the only required flag; every other --* flag after
+    the service name is passed through directly to helm upgrade
+    --install. --config <file> is forwarded to the envoy-gateway
+    post-install hook (setup-envoy-gateway.sh).
+  - |
+    The helm overrides chain is now explicit:
+
+    1. Upstream chart values (defaults from the chart)
+    2. -f base-helm-configs/<svc>/*.yaml (genestack default values)
+    3. -f /etc/genestack/helm-configs/global_overrides/*.yaml
+       (cluster-wide overrides)
+    4. -f /etc/genestack/helm-configs/<svc>/*.yaml (per-cluster overrides)
+    5. -f /etc/genestack/service-configs/<svc>.yaml (air-gap service
+       overrides; merged over the service YAML at load time)
+    6. --set (injected secrets)
+    7. User-passed flags
+
+    Later files override earlier ones for the same key.
+  - |
+    Chart version resolution is now service-name based. helm-chart-versions.yaml
+    entries keyed by the service name win over entries keyed by the
+    chart's release name, with the release-name key kept as a fallback.
+    Two keys were renamed to match their service name:
+    envoyproxy-gateway -> envoy-gateway and the openstack-exporter
+    entry (previously matched by chart.service_name
+    openstack-api-exporter) is now keyed by openstack-exporter.
+  - |
+    qonos is a kustomize-based deployment and no longer ships as a
+    bin/install-*.sh script. Its installer moved to
+    ops-tools/qonos/install-qonos.sh and is invoked from
+    setup-openstack.sh like the other ops-tool-managed components.
+deprecations:
+  - |
+    All binary/install-*.sh bootstrap scripts are removed. Use
+    install.sh --service <name> instead. Rotation workflows that
+    previously fanned out to install-*.sh now invoke install.sh
+    directly.
+critical:
+  - |
+    All services must have a corresponding bin/services/<name>.yaml
+    file. New services should be created from
+    bin/services/example-service.yaml. The unified-installer-regression
+    test (tests/test_unified_installer.sh) validates every service YAML
+    and the install.sh flows.
