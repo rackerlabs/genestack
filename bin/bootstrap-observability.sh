@@ -68,7 +68,9 @@ Lab-only service configuration seeding:
   Kustomize source:  /opt/genestack-observability/kustomize
   Kustomize target:  /etc/genestack/kustomize/observability
 
-Existing site service directories are never overwritten or merged.
+Existing site service directories are preserved. Legacy observability Kustomize
+service directories are moved under the observability directory when safe, and
+service base links are reconciled to genestack-observability.
 EOF
 }
 
@@ -113,7 +115,7 @@ do
     fi
 done
 
-GENESTACK_OBSERVABILITY_OWNER="${GENESTACK_OBSERVABILITY_OWNER:-${SUDO_USER:-$(id -un)}}"
+GENESTACK_OBSERVABILITY_OWNER="${GENESTACK_OBSERVABILITY_OWNER:-${SUDO_USER:-ubuntu}}"
 
 if ! id "${GENESTACK_OBSERVABILITY_OWNER}" >/dev/null 2>&1; then
     echo "ERROR: Repository owner does not exist: ${GENESTACK_OBSERVABILITY_OWNER}"
@@ -134,6 +136,29 @@ run_privileged() {
     fi
 
     sudo "$@"
+}
+
+ensure_site_directory_owner() {
+    local path="$1"
+
+    [[ -d "${path}" && ! -L "${path}" ]] || return 0
+
+    # Only change the directory entry itself, not the contents of an existing
+    # site-owned tree. This keeps newly-created bootstrap directories writable
+    # by Ubuntu without recursively changing operator-managed files.
+    run_privileged chown \
+        "${GENESTACK_OBSERVABILITY_OWNER}:${GENESTACK_OBSERVABILITY_GROUP}" \
+        "${path}"
+}
+
+ensure_site_file_owner() {
+    local path="$1"
+
+    [[ -f "${path}" && ! -L "${path}" ]] || return 0
+
+    run_privileged chown \
+        "${GENESTACK_OBSERVABILITY_OWNER}:${GENESTACK_OBSERVABILITY_GROUP}" \
+        "${path}"
 }
 
 run_as_repo_owner() {
@@ -263,7 +288,7 @@ ensure_symlink() {
     local target="$2"
 
     if [[ -L "${target}" ]]; then
-        ln -sfn "${source}" "${target}"
+        ln -sfnT "${source}" "${target}"
         echo "Updated symlink: ${target} -> ${source}"
         return
     fi
@@ -275,7 +300,7 @@ ensure_symlink() {
         exit 1
     fi
 
-    ln -s "${source}" "${target}"
+    ln -sT "${source}" "${target}"
     echo "Created symlink: ${target} -> ${source}"
 }
 
@@ -283,6 +308,41 @@ ensure_symlink "${HELM_SOURCE}" "${HELM_TARGET}"
 ensure_symlink "${KUSTOMIZE_SOURCE}" "${KUSTOMIZE_TARGET}"
 
 mkdir -p "${GENESTACK_CONFIG_DIR}"
+
+seed_helm_chart_versions() {
+    local source_file="${GENESTACK_DIR}/helm-chart-versions.yaml"
+    local target_file="${GENESTACK_CONFIG_DIR}/helm-chart-versions.yaml"
+
+    if [[ -L "${target_file}" && ! -e "${target_file}" ]]; then
+        echo "ERROR: Helm chart versions path is a dangling symlink:"
+        echo "  ${target_file}"
+        echo "Refusing to replace it automatically."
+        exit 1
+    fi
+
+    if [[ -e "${target_file}" || -L "${target_file}" ]]; then
+        if [[ ! -f "${target_file}" ]]; then
+            echo "ERROR: Helm chart versions target exists but is not a regular file:"
+            echo "  ${target_file}"
+            exit 1
+        fi
+
+        echo "Keeping existing Helm chart versions file: ${target_file}"
+        return 0
+    fi
+
+    if [[ ! -f "${source_file}" ]]; then
+        echo "ERROR: Helm chart versions source file is missing:"
+        echo "  ${source_file}"
+        exit 1
+    fi
+
+    cp -p -- "${source_file}" "${target_file}"
+    ensure_site_file_owner "${target_file}"
+    echo "Created Helm chart versions file: ${target_file}"
+}
+
+seed_helm_chart_versions
 
 seed_helm_service_configs() {
     local source_dir
@@ -293,6 +353,7 @@ seed_helm_service_configs() {
     local kept=0
 
     mkdir -p "${HELM_SITE_DIR}"
+    ensure_site_directory_owner "${HELM_SITE_DIR}"
 
     shopt -s nullglob
     for source_dir in "${HELM_SOURCE}"/*; do
@@ -311,10 +372,12 @@ seed_helm_service_configs() {
         fi
 
         cp -a -- "${source_dir}" "${target_dir}"
+        ensure_site_directory_owner "${target_dir}"
         echo "Created Helm service configuration: ${target_dir}"
         created=$((created + 1))
     done
     shopt -u nullglob
+
 
     if [[ "${found}" -eq 0 ]]; then
         echo "No observability Helm service directories found under:"
@@ -326,6 +389,7 @@ seed_helm_service_configs() {
 
 ensure_kustomize_renderer() {
     mkdir -p "${KUSTOMIZE_SITE_ROOT}" "${KUSTOMIZE_SITE_DIR}"
+    ensure_site_directory_owner "${KUSTOMIZE_SITE_DIR}"
 
     # The Genestack post-renderer itself remains core-owned. If a site copy or
     # link already exists, do not touch it.
@@ -345,6 +409,50 @@ ensure_kustomize_renderer() {
     echo "  ${KUSTOMIZE_RENDERER_TARGET} -> ${KUSTOMIZE_RENDERER_SOURCE}"
 }
 
+migrate_legacy_kustomize_service_dir() {
+    local service_name="$1"
+    local target_dir="$2"
+    local legacy_dir="${KUSTOMIZE_SITE_ROOT}/${service_name}"
+    local entry
+    local entry_name
+
+    # Only consider legacy directories that correspond to a service in the
+    # observability repository. Core Kustomize service directories are untouched.
+    [[ "${legacy_dir}" != "${target_dir}" ]] || return 0
+    [[ -e "${legacy_dir}" || -L "${legacy_dir}" ]] || return 0
+
+    if [[ ! -e "${target_dir}" && ! -L "${target_dir}" ]]; then
+        mv -- "${legacy_dir}" "${target_dir}"
+        ensure_site_directory_owner "${target_dir}"
+        echo "Migrated legacy Kustomize service directory:"
+        echo "  ${legacy_dir} -> ${target_dir}"
+        return 0
+    fi
+
+    if [[ ! -d "${target_dir}" || -L "${target_dir}" ]]; then
+        echo "WARNING: Cannot migrate legacy Kustomize service directory because the destination is not a real directory:"
+        echo "  ${target_dir}"
+        return 0
+    fi
+
+    # If the destination already exists, preserve it. Move only legacy entries
+    # for which no destination exists, so operator overlays are not overwritten.
+    while IFS= read -r -d '' entry; do
+        entry_name="$(basename "${entry}")"
+        if [[ ! -e "${target_dir}/${entry_name}" && ! -L "${target_dir}/${entry_name}" ]]; then
+            mv -- "${entry}" "${target_dir}/${entry_name}"
+            if [[ -d "${target_dir}/${entry_name}" && ! -L "${target_dir}/${entry_name}" ]]; then
+                ensure_site_directory_owner "${target_dir}/${entry_name}"
+            fi
+            echo "Migrated legacy Kustomize entry: ${entry} -> ${target_dir}/${entry_name}"
+        elif [[ "${entry_name}" != "base" ]]; then
+            echo "Keeping both existing Kustomize entries; not overwriting destination:"
+            echo "  legacy: ${entry}"
+            echo "  target: ${target_dir}/${entry_name}"
+        fi
+    done < <(find "${legacy_dir}" -mindepth 1 -maxdepth 1 -print0)
+}
+
 seed_kustomize_service_configs() {
     local source_dir
     local service_name
@@ -352,13 +460,18 @@ seed_kustomize_service_configs() {
     local source_base
     local target_base
     local target_overlay
+    local legacy_dir
+    local backup_path
     local found=0
     local created_services=0
     local created_bases=0
+    local updated_bases=0
+    local backed_up_bases=0
     local created_overlays=0
 
     ensure_kustomize_renderer
     mkdir -p "${KUSTOMIZE_SITE_DIR}"
+    ensure_site_directory_owner "${KUSTOMIZE_SITE_DIR}"
 
     shopt -s nullglob
     for source_dir in "${KUSTOMIZE_SOURCE}"/*; do
@@ -370,40 +483,73 @@ seed_kustomize_service_configs() {
         source_base="${source_dir}/base"
         target_base="${target_dir}/base"
         target_overlay="${target_dir}/overlay"
+        legacy_dir="${KUSTOMIZE_SITE_ROOT}/${service_name}"
+
+        # Move matching legacy service directories out of /etc/genestack/kustomize
+        # and into /etc/genestack/kustomize/observability. Existing destinations
+        # win; non-conflicting entries (especially overlays) are migrated safely.
+        migrate_legacy_kustomize_service_dir "${service_name}" "${target_dir}"
 
         if [[ ! -e "${target_dir}" && ! -L "${target_dir}" ]]; then
             mkdir "${target_dir}"
+            ensure_site_directory_owner "${target_dir}"
             echo "Created Kustomize service directory: ${target_dir}"
             created_services=$((created_services + 1))
-        elif [[ ! -d "${target_dir}" ]]; then
-            echo "WARNING: Existing Kustomize service path is not a directory; leaving it untouched:"
+        elif [[ ! -d "${target_dir}" || -L "${target_dir}" ]]; then
+            echo "WARNING: Existing Kustomize service path is not a real directory; leaving it untouched:"
             echo "  ${target_dir}"
             continue
         fi
+        ensure_site_directory_owner "${target_dir}"
 
-        # The observability repository owns the base. Seed it only when the
-        # site path does not already exist. Never merge into or replace an
-        # existing /etc/genestack base.
-        if [[ -d "${source_base}" ]]; then
-            if [[ -e "${target_base}" || -L "${target_base}" ]]; then
-                echo "Keeping existing Kustomize base: ${target_base}"
-            else
-                cp -a -- "${source_base}" "${target_base}"
-                echo "Created Kustomize base: ${target_base}"
-                created_bases=$((created_bases + 1))
-            fi
-        else
-            echo "Info: Observability Kustomize source has no base directory for ${service_name}:"
+        if [[ ! -d "${source_base}" ]]; then
+            echo "WARNING: Observability Kustomize source has no base directory for ${service_name}:"
             echo "  ${source_base}"
+            continue
         fi
 
-        # The overlay is site-owned and intentionally does not exist in the
-        # observability repository. For a fresh lab build, create the minimal
-        # overlay expected by the shared Genestack post-renderer.
+        # Canonical base is a direct link to genestack-observability, not the
+        # former Genestack service path. Repoint any existing symlink. If a prior
+        # bootstrap copied the base into /etc, preserve that copy as a backup
+        # before replacing it with the canonical link.
+        if [[ -L "${target_base}" ]]; then
+            if [[ "$(readlink "${target_base}")" != "${source_base}" ]]; then
+                ln -sfnT "${source_base}" "${target_base}"
+                echo "Updated Kustomize base link: ${target_base} -> ${source_base}"
+                updated_bases=$((updated_bases + 1))
+            else
+                echo "Kustomize base link already correct: ${target_base}"
+            fi
+        elif [[ -e "${target_base}" ]]; then
+            backup_path="${target_base}.bootstrap-backup-$(date +%Y%m%d%H%M%S)"
+            if [[ -e "${backup_path}" || -L "${backup_path}" ]]; then
+                echo "ERROR: Base backup path already exists; refusing to replace it: ${backup_path}"
+                return 1
+            fi
+            mv -- "${target_base}" "${backup_path}"
+            ln -sT "${source_base}" "${target_base}"
+            echo "Backed up existing Kustomize base: ${target_base} -> ${backup_path}"
+            echo "Created canonical Kustomize base link: ${target_base} -> ${source_base}"
+            backed_up_bases=$((backed_up_bases + 1))
+            created_bases=$((created_bases + 1))
+        else
+            ln -sT "${source_base}" "${target_base}"
+            echo "Created canonical Kustomize base link: ${target_base} -> ${source_base}"
+            created_bases=$((created_bases + 1))
+        fi
+
+        # The script may itself have been invoked with sudo, so explicitly set
+        # ownership on the symlink inode (not its target) to the site owner.
+        run_privileged chown -h \
+            "${GENESTACK_OBSERVABILITY_OWNER}:${GENESTACK_OBSERVABILITY_GROUP}" \
+            "${target_base}"
+
+        # Site overlays remain operator-owned; create only when absent.
         if [[ -e "${target_overlay}" || -L "${target_overlay}" ]]; then
             echo "Keeping existing Kustomize overlay: ${target_overlay}"
         else
             mkdir "${target_overlay}"
+            ensure_site_directory_owner "${target_overlay}"
             cat > "${target_overlay}/kustomization.yaml" <<'EOF'
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -422,7 +568,9 @@ EOF
     else
         echo "Kustomize service configuration:"
         echo "  created service dirs=${created_services}"
-        echo "  created base dirs=${created_bases}"
+        echo "  created base links=${created_bases}"
+        echo "  updated base links=${updated_bases}"
+        echo "  backed up copied bases=${backed_up_bases}"
         echo "  created overlays=${created_overlays}"
     fi
 }
@@ -434,6 +582,54 @@ seed_helm_service_configs
 echo
 echo "Seeding missing observability Kustomize service configuration..."
 seed_kustomize_service_configs
+
+cleanup_legacy_kustomize_base_links() {
+    local source_dir
+    local service_name
+    local source_base
+    local target_base
+    local legacy_dir
+
+    # Run after all destination bases have been created/reconciled. The old
+    # links are untracked local bootstrap artifacts, so git pull will not remove
+    # them when the override repo moves service overlays under observability/.
+    # Only clean a legacy path when the canonical observability base link exists.
+    shopt -s nullglob
+    for source_dir in "${KUSTOMIZE_SOURCE}"/*; do
+        [[ -d "${source_dir}" ]] || continue
+
+        service_name="$(basename "${source_dir}")"
+        source_base="${source_dir}/base"
+        target_base="${KUSTOMIZE_SITE_DIR}/${service_name}/base"
+        legacy_dir="${KUSTOMIZE_SITE_ROOT}/${service_name}"
+
+        [[ -d "${source_base}" ]] || continue
+        [[ -L "${target_base}" ]] || continue
+        if [[ "$(readlink "${target_base}")" != "${source_base}" ]]; then
+            continue
+        fi
+
+        # Set ownership on the symlink inode itself; do not chown its target.
+        run_privileged chown -h \
+            "${GENESTACK_OBSERVABILITY_OWNER}:${GENESTACK_OBSERVABILITY_GROUP}" \
+            "${target_base}"
+
+        if [[ -L "${legacy_dir}/base" ]]; then
+            echo "Removing obsolete legacy Kustomize base symlink: ${legacy_dir}/base"
+            rm -- "${legacy_dir}/base"
+        fi
+
+        # Remove only an empty old directory. Any other local content is kept.
+        if [[ -d "${legacy_dir}" && ! -L "${legacy_dir}" ]]; then
+            if rmdir -- "${legacy_dir}" 2>/dev/null; then
+                echo "Removed empty legacy Kustomize service directory: ${legacy_dir}"
+            fi
+        fi
+    done
+    shopt -u nullglob
+}
+
+cleanup_legacy_kustomize_base_links
 
 resolve_gateway_domain() {
     local domain=""
@@ -576,6 +772,7 @@ seed_listener_template() {
     [[ -n "${source_file}" ]] || return 0
 
     mkdir -p "${GATEWAY_LISTENER_TARGET_DIR}"
+    ensure_site_directory_owner "${GATEWAY_LISTENER_TARGET_DIR}"
     target_file="${GATEWAY_LISTENER_TARGET_DIR}/$(basename "${source_file}")"
 
     if [[ -e "${target_file}" ]]; then
@@ -627,6 +824,7 @@ seed_observability_routes() {
     fi
 
     mkdir -p "${GATEWAY_ROUTE_TARGET_DIR}"
+    ensure_site_directory_owner "${GATEWAY_ROUTE_TARGET_DIR}"
     gateway_domain="$(resolve_gateway_domain || true)"
 
     while IFS= read -r -d '' route_template; do
@@ -981,14 +1179,35 @@ echo "  ${KUSTOMIZE_TARGET} -> $(readlink "${KUSTOMIZE_TARGET}")"
 echo
 
 if [[ "${RUN_INSTALL}" == "true" ]]; then
-    INSTALL_SCRIPT="${GENESTACK_OBSERVABILITY_DIR}/bin/install-observability.sh"
+    GENESTACK_INSTALL_SCRIPT="${GENESTACK_DIR}/bin/install-observability.sh"
+    OBSERVABILITY_INSTALL_SCRIPT="${GENESTACK_OBSERVABILITY_DIR}/bin/install-observability.sh"
+
+    # Prefer the installer shipped with Genestack. The observability-repository
+    # copy is a fallback for deployments where the core repository does not
+    # provide an installer yet.
+    if [[ -e "${GENESTACK_INSTALL_SCRIPT}" || -L "${GENESTACK_INSTALL_SCRIPT}" ]]; then
+        INSTALL_SCRIPT="${GENESTACK_INSTALL_SCRIPT}"
+        echo "Using Genestack observability installer: ${INSTALL_SCRIPT}"
+    else
+        INSTALL_SCRIPT="${OBSERVABILITY_INSTALL_SCRIPT}"
+        echo "Genestack installer not found; using observability repository fallback:"
+        echo "  ${INSTALL_SCRIPT}"
+    fi
 
     if [[ ! -x "${INSTALL_SCRIPT}" ]]; then
-        echo "ERROR: Unified observability installer is missing or not executable:"
+        echo "ERROR: Selected observability installer is missing or not executable:"
         echo "  ${INSTALL_SCRIPT}"
+        if [[ "${INSTALL_SCRIPT}" == "${GENESTACK_INSTALL_SCRIPT}" ]]; then
+            echo "The Genestack installer exists but is not executable; refusing to silently use the fallback."
+        fi
         exit 1
     fi
 
+    # The selected unified installer handles optional loki-rules failures itself:
+    # a Loki Ruler/port-forward/rules-directory failure should be logged and
+    # skipped while the installer continues through remaining enabled components.
+    # Do not swallow a failed installer process here, because that could make
+    # bootstrap appear successful even if later components were never installed.
     "${INSTALL_SCRIPT}"
 
     if [[ "${MANAGE_ROUTES}" == "true" ]]; then
