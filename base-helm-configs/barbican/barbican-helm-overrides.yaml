@@ -72,7 +72,7 @@ conf:
       host_href: http://barbican-api.openstack.svc.cluster.local:9311
     database:
       connection_debug: 0
-      connection_recycle_time: 600
+      connection_recycle_time: 1800
       connection_trace: true
       mysql_sql_mode: {}
       use_db_reconnect: true

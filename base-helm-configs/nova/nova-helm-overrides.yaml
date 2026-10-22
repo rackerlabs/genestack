@@ -124,7 +124,7 @@ conf:
       vendordata_jsonfile_path: /etc/nova/vendor_data.json
     api_database:
       connection_debug: 0
-      connection_recycle_time: 600
+      connection_recycle_time: 1800
       connection_trace: true
       mysql_sql_mode: {}
       use_db_reconnect: true
@@ -132,7 +132,7 @@ conf:
       max_retries: -1
     cell0_database:
       connection_debug: 0
-      connection_recycle_time: 600
+      connection_recycle_time: 1800
       connection_trace: true
       mysql_sql_mode: {}
       use_db_reconnect: true
@@ -144,7 +144,7 @@ conf:
       workers: 2
     database:
       connection_debug: 0
-      connection_recycle_time: 600
+      connection_recycle_time: 1800
       connection_trace: true
       mysql_sql_mode: {}
       use_db_reconnect: true
