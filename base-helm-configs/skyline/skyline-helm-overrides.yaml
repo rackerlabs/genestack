@@ -139,6 +139,12 @@ conf:
       shared_file_systems_servers: true
       shared_file_systems_instances: true
       shared_file_systems_backends: true
+      rating: false
+      rating_summary: true
+      rating_reporting: true
+      rating_modules: true
+      rating_hashmap: true
+      rating_pyscripts: true
 
 manifests:
   certificates: false
