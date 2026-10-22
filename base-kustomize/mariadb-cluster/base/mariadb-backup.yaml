@@ -30,6 +30,8 @@ spec:
     limits:
       cpu: 300m
       memory: 512Mi
+  nodeSelector:
+    openstack-control-plane: enabled
   affinity:
     podAntiAffinity:
       preferredDuringSchedulingIgnoredDuringExecution:
