@@ -13,6 +13,10 @@ HELM_SITE_ROOT="${GENESTACK_CONFIG_DIR}/helm-configs/observability"
 KUSTOMIZE_SITE_ROOT="${GENESTACK_CONFIG_DIR}/kustomize/observability"
 KUSTOMIZE_RENDERER_SOURCE="${GENESTACK_DIR}/base-kustomize/kustomize.sh"
 KUSTOMIZE_RENDERER_TARGET="${GENESTACK_CONFIG_DIR}/kustomize/kustomize.sh"
+OBSERVABILITY_BACKUP_DIR="${OBSERVABILITY_BACKUP_DIR:-/var/backups/genestack-observability}"
+
+# Site config copying/overlay generation is opt-in for fresh lab builds only.
+OBSERVABILITY_LAB_ONLY="${OBSERVABILITY_LAB_ONLY:-false}"
 
 # Directories created for site configuration should be writable by Ubuntu by
 # default. Override these values when running in a different environment.
@@ -37,6 +41,55 @@ ensure_site_directory_owner() {
         echo "ERROR: Cannot set owner ${owner_group} on site directory: ${path}" >&2
         return 1
     fi
+}
+
+run_privileged() {
+    if [[ "${EUID}" -eq 0 ]]; then
+        "$@"
+    elif command -v sudo >/dev/null 2>&1; then
+        sudo "$@"
+    else
+        echo "ERROR: sudo is required to run: $*" >&2
+        return 1
+    fi
+}
+
+ensure_kustomize_base_link() {
+    local service_name="$1"
+    local source_base="$2"
+    local target_base="$3"
+    local backup_path
+
+    [[ -d "${source_base}" ]] || {
+        echo "WARNING: Canonical Kustomize base does not exist; cannot create symlink: ${source_base}" >&2
+        return 0
+    }
+
+    if [[ -L "${target_base}" ]]; then
+        if [[ "$(readlink "${target_base}")" != "${source_base}" ]]; then
+            ln -sfnT "${source_base}" "${target_base}"
+            echo "Updated Kustomize base link: ${target_base} -> ${source_base}"
+        fi
+    elif [[ -e "${target_base}" ]]; then
+        backup_path="${OBSERVABILITY_BACKUP_DIR}/kustomize/${service_name}/base-$(date +%Y%m%d%H%M%S%N)"
+        if [[ -e "${backup_path}" || -L "${backup_path}" ]]; then
+            echo "ERROR: Base backup path already exists; refusing to replace it: ${backup_path}" >&2
+            return 1
+        fi
+        run_privileged mkdir -p "$(dirname "${backup_path}")"
+        run_privileged mv -- "${target_base}" "${backup_path}"
+        ln -sT "${source_base}" "${target_base}"
+        echo "Backed up existing Kustomize base outside the Git working tree: ${target_base} -> ${backup_path}"
+        echo "Created canonical Kustomize base link: ${target_base} -> ${source_base}"
+    else
+        ln -sT "${source_base}" "${target_base}"
+        echo "Created canonical Kustomize base link: ${target_base} -> ${source_base}"
+    fi
+
+    # Set ownership on the symlink inode itself, never on the canonical target.
+    run_privileged chown -h \
+        "${OBSERVABILITY_SITE_OWNER}:${OBSERVABILITY_SITE_GROUP}" \
+        "${target_base}"
 }
 
 if [[ -n "${OBSERVABILITY_COMPONENTS_FILE:-}" ]]; then
@@ -84,6 +137,10 @@ Environment:
 
   OBSERVABILITY_COMPONENTS_FILE
     Optional explicit component configuration file.
+
+  OBSERVABILITY_LAB_ONLY
+    Set to true only for lab builds that need missing site configs/overlays
+    copied/generated under /etc/genestack. Defaults to false.
 EOF
 }
 
@@ -246,6 +303,24 @@ ensure_component_site_config() {
     kustomize_base_target="${kustomize_target}/base"
     kustomize_overlay_target="${kustomize_target}/overlay"
 
+    if [[ "${OBSERVABILITY_LAB_ONLY}" != "true" ]]; then
+        # Normal/production mode must not copy canonical Helm configs, copy
+        # Kustomize bases, create service directories, or invent overlays in
+        # the operator's /etc/genestack Git working tree. Bootstrap has already
+        # reconciled the base links for service overlays that exist in the site
+        # override repo. When this installer is run directly, repair only an
+        # absent/stale base link inside an already-existing real service dir.
+        if [[ -d "${kustomize_target}" && ! -L "${kustomize_target}" && -d "${kustomize_base_source}" ]]; then
+            ensure_kustomize_base_link "${config_name}" "${kustomize_base_source}" "${kustomize_base_target}"
+        else
+            echo "Normal deployment mode: not seeding site config for ${component}."
+        fi
+
+        ensure_kustomize_renderer
+        return 0
+    fi
+
+    # Lab-only mode retains the original behavior for fresh disposable labs.
     mkdir -p "${HELM_SITE_ROOT}" "${KUSTOMIZE_SITE_ROOT}"
     ensure_site_directory_owner "${HELM_SITE_ROOT}"
     ensure_site_directory_owner "${KUSTOMIZE_SITE_ROOT}"
@@ -272,14 +347,11 @@ ensure_component_site_config() {
             return 0
         fi
 
+        # Kustomize bases are never copied into /etc/genestack, including in
+        # lab-only mode. The canonical source lives under /opt/genestack-observability
+        # and the site tree contains only a symlink to that source.
         if [[ -d "${kustomize_base_source}" ]]; then
-            if [[ -e "${kustomize_base_target}" || -L "${kustomize_base_target}" ]]; then
-                echo "Keeping existing Kustomize base: ${kustomize_base_target}"
-            else
-                cp -a -- "${kustomize_base_source}" "${kustomize_base_target}"
-                ensure_site_directory_owner "${kustomize_base_target}"
-                echo "Created Kustomize base: ${kustomize_base_target}"
-            fi
+            ensure_kustomize_base_link "${config_name}" "${kustomize_base_source}" "${kustomize_base_target}"
         fi
 
         if [[ -e "${kustomize_overlay_target}" || -L "${kustomize_overlay_target}" ]]; then
@@ -402,6 +474,11 @@ fi
 echo "Genestack Observability"
 echo "  Repository: ${GENESTACK_OBSERVABILITY_DIR}"
 echo "  Components: ${COMPONENTS_FILE}"
+if [[ "${OBSERVABILITY_LAB_ONLY}" == "true" ]]; then
+    echo "  Site config seeding: enabled (lab-only)"
+else
+    echo "  Site config seeding: disabled (normal mode)"
+fi
 echo "  Loki rules policy: optional/non-fatal for lab environments"
 echo "  Installer build: loki-rules-nonfatal-2026-10-21"
 echo

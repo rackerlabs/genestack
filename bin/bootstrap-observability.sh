@@ -6,7 +6,7 @@ GENESTACK_DIR="${GENESTACK_DIR:-/opt/genestack}"
 GENESTACK_OBSERVABILITY_DIR="${GENESTACK_OBSERVABILITY_DIR:-/opt/genestack-observability}"
 GENESTACK_CONFIG_DIR="${GENESTACK_CONFIG_DIR:-/etc/genestack}"
 
-GENESTACK_OBSERVABILITY_REPO="${GENESTACK_OBSERVABILITY_REPO:-git@github.com:rackerlabs/genestack-observability.git}"
+GENESTACK_OBSERVABILITY_REPO="${GENESTACK_OBSERVABILITY_REPO:-https://github.com/rackerlabs/genestack-observability.git}"
 
 HELM_SOURCE="${GENESTACK_OBSERVABILITY_DIR}/helm-configs"
 HELM_TARGET="${GENESTACK_DIR}/base-helm-configs/observability"
@@ -28,6 +28,8 @@ GATEWAY_LISTENER_TARGET_DIR="${GENESTACK_CONFIG_DIR}/gateway-api/listeners"
 RUN_INSTALL=true
 UPDATE_REPO=true
 MANAGE_ROUTES=true
+LAB_ONLY=false
+OBSERVABILITY_BACKUP_DIR="${OBSERVABILITY_BACKUP_DIR:-/var/backups/genestack-observability}"
 
 usage() {
     cat <<EOF
@@ -38,15 +40,18 @@ Bootstrap genestack-observability on a Genestack overseer.
 Options:
   --no-install    Configure the repository and links but do not install services.
   --no-update     Do not git pull when the repository already exists.
+  --repo URL      Clone URL for genestack-observability (overrides the env var).
   --no-routes     Do not seed or apply observability Gateway API routes.
+  --lab-only      Seed missing Helm service configs and Kustomize service
+                  directories/overlays for a fresh lab build.
   -h, --help      Show this help.
 
 Environment:
   GENESTACK_DIR                  Default: /opt/genestack
   GENESTACK_OBSERVABILITY_DIR    Default: /opt/genestack-observability
   GENESTACK_CONFIG_DIR           Default: /etc/genestack
-  GENESTACK_OBSERVABILITY_REPO   Default:
-                                 git@github.com:rackerlabs/genestack-observability.git
+  GENESTACK_OBSERVABILITY_REPO   Clone URL. Default:
+                                 https://github.com/rackerlabs/genestack-observability.git
   GENESTACK_OBSERVABILITY_OWNER  Repository owner. Defaults to SUDO_USER when
                                  available, otherwise the invoking user.
   GENESTACK_OBSERVABILITY_GROUP  Repository group. Defaults to the owner's
@@ -84,8 +89,21 @@ while [[ $# -gt 0 ]]; do
             UPDATE_REPO=false
             shift
             ;;
+        --repo|--observability-repo)
+            if [[ $# -lt 2 || -z "${2}" || "${2}" == --* ]]; then
+                echo "ERROR: $1 requires a non-empty repository URL." >&2
+                usage
+                exit 1
+            fi
+            GENESTACK_OBSERVABILITY_REPO="$2"
+            shift 2
+            ;;
         --no-routes)
             MANAGE_ROUTES=false
+            shift
+            ;;
+        --lab-only)
+            LAB_ONLY=true
             shift
             ;;
         -h|--help)
@@ -250,6 +268,7 @@ if [[ ! -d "${GENESTACK_OBSERVABILITY_DIR}/.git" ]]; then
     fi
 
     echo "Cloning genestack-observability as ${GENESTACK_OBSERVABILITY_OWNER}..."
+    echo "  Repository: ${GENESTACK_OBSERVABILITY_REPO}"
     run_as_repo_owner git clone \
         --recurse-submodules \
         "${GENESTACK_OBSERVABILITY_REPO}" \
@@ -307,7 +326,69 @@ ensure_symlink() {
 ensure_symlink "${HELM_SOURCE}" "${HELM_TARGET}"
 ensure_symlink "${KUSTOMIZE_SOURCE}" "${KUSTOMIZE_TARGET}"
 
+cleanup_legacy_genestack_component_dirs() {
+    local source_root="$1"
+    local legacy_root="$2"
+    local relative_root="$3"
+    local source_dir
+    local service_name
+    local legacy_dir
+    local relative_path
+
+    # Components moved to genestack-observability can leave untracked files in
+    # the old Genestack checkout. A git pull cannot remove untracked leftovers.
+    # Clean only paths whose names are present in the new observability repo and
+    # which are no longer tracked by Genestack. If Git says the path is tracked,
+    # leave it alone rather than deleting core-owned content.
+    if ! git -C "${GENESTACK_DIR}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        echo "WARNING: Cannot verify Genestack Git state; skipping legacy component cleanup under ${legacy_root}."
+        return 0
+    fi
+
+    shopt -s nullglob
+    for source_dir in "${source_root}"/*; do
+        [[ -d "${source_dir}" ]] || continue
+
+        service_name="$(basename "${source_dir}")"
+        [[ "${service_name}" != "observability" ]] || continue
+        legacy_dir="${legacy_root}/${service_name}"
+        relative_path="${relative_root}/${service_name}"
+
+        [[ -e "${legacy_dir}" || -L "${legacy_dir}" ]] || continue
+
+        if git -C "${GENESTACK_DIR}" ls-files --error-unmatch -- "${relative_path}" >/dev/null 2>&1; then
+            echo "Keeping legacy-looking path because it is still tracked by Genestack: ${legacy_dir}"
+            continue
+        fi
+
+        echo "Removing stale, untracked Genestack component path moved to genestack-observability:"
+        echo "  ${legacy_dir}"
+        rm -rf -- "${legacy_dir}"
+    done
+    shopt -u nullglob
+}
+
+# The consolidated observability links above must exist before deleting stale
+# service paths. Restrict cleanup to service names present in the new repo and
+# paths no longer tracked by Genestack; unrelated core services are untouched.
+echo
+echo "Cleaning stale observability component paths from the Genestack checkout..."
+cleanup_legacy_genestack_component_dirs \
+    "${KUSTOMIZE_SOURCE}" \
+    "${GENESTACK_DIR}/base-kustomize" \
+    "base-kustomize"
+cleanup_legacy_genestack_component_dirs \
+    "${HELM_SOURCE}" \
+    "${GENESTACK_DIR}/base-helm-configs" \
+    "base-helm-configs"
+
 mkdir -p "${GENESTACK_CONFIG_DIR}"
+
+if [[ "${LAB_ONLY}" == "true" ]]; then
+    echo "Bootstrap mode: LAB ONLY (missing service configs/overlays may be seeded)."
+else
+    echo "Bootstrap mode: normal deployment (no Helm service config copies or automatic Kustomize overlays)."
+fi
 
 seed_helm_chart_versions() {
     local source_file="${GENESTACK_DIR}/helm-chart-versions.yaml"
@@ -343,6 +424,76 @@ seed_helm_chart_versions() {
 }
 
 seed_helm_chart_versions
+
+cleanup_lab_seeded_helm_configs() {
+    local source_dir
+    local service_name
+    local target_dir
+    local relative_target
+
+    # Earlier --lab-only runs may have left copied Helm charts in the override
+    # repository. In normal mode, remove only untracked copies that are still
+    # byte-for-byte/content-identical to the canonical observability source.
+    # If an operator changed a copy, retain it and report the difference.
+    [[ "${LAB_ONLY}" == "true" ]] && return 0
+    [[ -d "${HELM_SITE_DIR}" && ! -L "${HELM_SITE_DIR}" ]] || return 0
+    git -C "${GENESTACK_CONFIG_DIR}" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
+
+    shopt -s nullglob
+    for source_dir in "${HELM_SOURCE}"/*; do
+        [[ -d "${source_dir}" && ! -L "${source_dir}" ]] || continue
+        service_name="$(basename "${source_dir}")"
+        target_dir="${HELM_SITE_DIR}/${service_name}"
+        relative_target="helm-configs/observability/${service_name}"
+
+        [[ -d "${target_dir}" && ! -L "${target_dir}" ]] || continue
+
+        if git -C "${GENESTACK_CONFIG_DIR}" ls-files --error-unmatch --             "${relative_target}/" >/dev/null 2>&1; then
+            continue
+        fi
+
+        if diff -qr -- "${source_dir}" "${target_dir}" >/dev/null 2>&1; then
+            echo "Removing stale lab-seeded Helm copy from normal deployment mode: ${target_dir}"
+            rm -rf -- "${target_dir}"
+        else
+            echo "WARNING: Keeping existing Helm configuration because it differs from the canonical source:"
+            echo "  ${target_dir}"
+        fi
+    done
+    shopt -u nullglob
+
+    # Remove the now-empty generated parent only if it is empty; it may be
+    # tracked or contain other operator-managed configuration.
+    rmdir -- "${HELM_SITE_DIR}" 2>/dev/null || true
+}
+
+ignore_generated_kustomize_base_links_in_git() {
+    local repo_root
+    local exclude_file
+    local pattern='/kustomize/observability/*/base'
+    local temp_file
+
+    # These base paths are intentionally local symlinks to the canonical
+    # genestack-observability repository. Keep them out of `git status` without
+    # changing the shared override repo's tracked .gitignore.
+    repo_root="$(git -C "${GENESTACK_CONFIG_DIR}" rev-parse --show-toplevel 2>/dev/null)" || return 0
+    exclude_file="$(git -C "${GENESTACK_CONFIG_DIR}" rev-parse --git-path info/exclude 2>/dev/null)" || return 0
+    [[ "${exclude_file}" = /* ]] || exclude_file="${repo_root}/${exclude_file}"
+    mkdir -p "$(dirname "${exclude_file}")"
+    touch "${exclude_file}"
+
+    if ! grep -Fqx -- "${pattern}" "${exclude_file}"; then
+        temp_file="$(mktemp)"
+        printf '%s\n' '# Generated observability base symlinks (created by bootstrap)' "${pattern}" > "${temp_file}"
+        if [[ -w "${exclude_file}" ]]; then
+            cat "${temp_file}" >> "${exclude_file}"
+        else
+            run_privileged sh -c 'cat "$1" >> "$2"' _ "${temp_file}" "${exclude_file}"
+        fi
+        rm -f -- "${temp_file}"
+        echo "Added local Git exclude for generated observability base symlinks."
+    fi
+}
 
 seed_helm_service_configs() {
     local source_dir
@@ -388,8 +539,13 @@ seed_helm_service_configs() {
 }
 
 ensure_kustomize_renderer() {
-    mkdir -p "${KUSTOMIZE_SITE_ROOT}" "${KUSTOMIZE_SITE_DIR}"
-    ensure_site_directory_owner "${KUSTOMIZE_SITE_DIR}"
+    mkdir -p "${KUSTOMIZE_SITE_ROOT}"
+    if [[ "${LAB_ONLY}" == "true" ]]; then
+        mkdir -p "${KUSTOMIZE_SITE_DIR}"
+    fi
+    if [[ -d "${KUSTOMIZE_SITE_DIR}" && ! -L "${KUSTOMIZE_SITE_DIR}" ]]; then
+        ensure_site_directory_owner "${KUSTOMIZE_SITE_DIR}"
+    fi
 
     # The Genestack post-renderer itself remains core-owned. If a site copy or
     # link already exists, do not touch it.
@@ -470,8 +626,14 @@ seed_kustomize_service_configs() {
     local created_overlays=0
 
     ensure_kustomize_renderer
-    mkdir -p "${KUSTOMIZE_SITE_DIR}"
-    ensure_site_directory_owner "${KUSTOMIZE_SITE_DIR}"
+    if [[ "${LAB_ONLY}" == "true" ]]; then
+        mkdir -p "${KUSTOMIZE_SITE_DIR}"
+        ensure_site_directory_owner "${KUSTOMIZE_SITE_DIR}"
+    elif [[ -d "${KUSTOMIZE_SITE_DIR}" && ! -L "${KUSTOMIZE_SITE_DIR}" ]]; then
+        ensure_site_directory_owner "${KUSTOMIZE_SITE_DIR}"
+    else
+        echo "Normal deployment mode: will not create ${KUSTOMIZE_SITE_DIR}; only reconciling existing site overrides."
+    fi
 
     shopt -s nullglob
     for source_dir in "${KUSTOMIZE_SOURCE}"/*; do
@@ -491,6 +653,10 @@ seed_kustomize_service_configs() {
         migrate_legacy_kustomize_service_dir "${service_name}" "${target_dir}"
 
         if [[ ! -e "${target_dir}" && ! -L "${target_dir}" ]]; then
+            if [[ "${LAB_ONLY}" != "true" ]]; then
+                echo "Skipping missing site Kustomize service directory in normal deployment mode: ${target_dir}"
+                continue
+            fi
             mkdir "${target_dir}"
             ensure_site_directory_owner "${target_dir}"
             echo "Created Kustomize service directory: ${target_dir}"
@@ -521,14 +687,15 @@ seed_kustomize_service_configs() {
                 echo "Kustomize base link already correct: ${target_base}"
             fi
         elif [[ -e "${target_base}" ]]; then
-            backup_path="${target_base}.bootstrap-backup-$(date +%Y%m%d%H%M%S)"
+            backup_path="${OBSERVABILITY_BACKUP_DIR}/kustomize/${service_name}/base-$(date +%Y%m%d%H%M%S%N)"
             if [[ -e "${backup_path}" || -L "${backup_path}" ]]; then
                 echo "ERROR: Base backup path already exists; refusing to replace it: ${backup_path}"
                 return 1
             fi
-            mv -- "${target_base}" "${backup_path}"
+            run_privileged mkdir -p "$(dirname "${backup_path}")"
+            run_privileged mv -- "${target_base}" "${backup_path}"
             ln -sT "${source_base}" "${target_base}"
-            echo "Backed up existing Kustomize base: ${target_base} -> ${backup_path}"
+            echo "Backed up existing Kustomize base outside the Git working tree: ${target_base} -> ${backup_path}"
             echo "Created canonical Kustomize base link: ${target_base} -> ${source_base}"
             backed_up_bases=$((backed_up_bases + 1))
             created_bases=$((created_bases + 1))
@@ -544,10 +711,11 @@ seed_kustomize_service_configs() {
             "${GENESTACK_OBSERVABILITY_OWNER}:${GENESTACK_OBSERVABILITY_GROUP}" \
             "${target_base}"
 
-        # Site overlays remain operator-owned; create only when absent.
+        # Site overlays remain operator-owned. Only create a minimal overlay for
+        # lab-only builds; production overlays should come from the site override repo.
         if [[ -e "${target_overlay}" || -L "${target_overlay}" ]]; then
             echo "Keeping existing Kustomize overlay: ${target_overlay}"
-        else
+        elif [[ "${LAB_ONLY}" == "true" ]]; then
             mkdir "${target_overlay}"
             ensure_site_directory_owner "${target_overlay}"
             cat > "${target_overlay}/kustomization.yaml" <<'EOF'
@@ -575,12 +743,20 @@ EOF
     fi
 }
 
-echo
-echo "Seeding missing observability Helm service configuration..."
-seed_helm_service_configs
+if [[ "${LAB_ONLY}" == "true" ]]; then
+    echo
+    echo "Lab-only mode enabled: seeding missing observability Helm service configuration..."
+    seed_helm_service_configs
+else
+    echo
+    echo "Normal deployment mode: not copying observability Helm service configs into /etc/genestack."
+    cleanup_lab_seeded_helm_configs
+fi
+
+ignore_generated_kustomize_base_links_in_git
 
 echo
-echo "Seeding missing observability Kustomize service configuration..."
+echo "Reconciling Kustomize base links for existing site service directories..."
 seed_kustomize_service_configs
 
 cleanup_legacy_kustomize_base_links() {
@@ -1208,7 +1384,10 @@ if [[ "${RUN_INSTALL}" == "true" ]]; then
     # skipped while the installer continues through remaining enabled components.
     # Do not swallow a failed installer process here, because that could make
     # bootstrap appear successful even if later components were never installed.
-    "${INSTALL_SCRIPT}"
+    # Pass lab-only mode into the selected installer too; otherwise the
+    # installer in /opt/genestack could independently copy Helm/Kustomize
+    # configs even when bootstrap itself is running in normal mode.
+    OBSERVABILITY_LAB_ONLY="${LAB_ONLY}" "${INSTALL_SCRIPT}"
 
     if [[ "${MANAGE_ROUTES}" == "true" ]]; then
         echo
