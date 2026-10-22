@@ -14,6 +14,31 @@ KUSTOMIZE_SITE_ROOT="${GENESTACK_CONFIG_DIR}/kustomize/observability"
 KUSTOMIZE_RENDERER_SOURCE="${GENESTACK_DIR}/base-kustomize/kustomize.sh"
 KUSTOMIZE_RENDERER_TARGET="${GENESTACK_CONFIG_DIR}/kustomize/kustomize.sh"
 
+# Directories created for site configuration should be writable by Ubuntu by
+# default. Override these values when running in a different environment.
+OBSERVABILITY_SITE_OWNER="${GENESTACK_OBSERVABILITY_OWNER:-${SUDO_USER:-ubuntu}}"
+OBSERVABILITY_SITE_GROUP="${GENESTACK_OBSERVABILITY_GROUP:-$(id -gn "${OBSERVABILITY_SITE_OWNER}" 2>/dev/null || id -gn ubuntu)}"
+
+ensure_site_directory_owner() {
+    local path="$1"
+    local owner_group="${OBSERVABILITY_SITE_OWNER}:${OBSERVABILITY_SITE_GROUP}"
+
+    [[ -d "${path}" && ! -L "${path}" ]] || return 0
+
+    if [[ "$(stat -c '%U:%G' "${path}")" == "${owner_group}" ]]; then
+        return 0
+    fi
+
+    if [[ "${EUID}" -eq 0 ]]; then
+        chown "${owner_group}" "${path}"
+    elif command -v sudo >/dev/null 2>&1; then
+        sudo chown "${owner_group}" "${path}"
+    else
+        echo "ERROR: Cannot set owner ${owner_group} on site directory: ${path}" >&2
+        return 1
+    fi
+}
+
 if [[ -n "${OBSERVABILITY_COMPONENTS_FILE:-}" ]]; then
     COMPONENTS_FILE="${OBSERVABILITY_COMPONENTS_FILE}"
 elif [[ -f "${SITE_COMPONENTS_FILE}" ]]; then
@@ -222,12 +247,15 @@ ensure_component_site_config() {
     kustomize_overlay_target="${kustomize_target}/overlay"
 
     mkdir -p "${HELM_SITE_ROOT}" "${KUSTOMIZE_SITE_ROOT}"
+    ensure_site_directory_owner "${HELM_SITE_ROOT}"
+    ensure_site_directory_owner "${KUSTOMIZE_SITE_ROOT}"
 
     if [[ -d "${helm_source}" ]]; then
         if [[ -e "${helm_target}" || -L "${helm_target}" ]]; then
             echo "Keeping existing Helm service configuration: ${helm_target}"
         else
             cp -a -- "${helm_source}" "${helm_target}"
+            ensure_site_directory_owner "${helm_target}"
             echo "Created Helm service configuration: ${helm_target}"
         fi
     fi
@@ -235,6 +263,7 @@ ensure_component_site_config() {
     if [[ -d "${kustomize_source}" ]]; then
         if [[ ! -e "${kustomize_target}" && ! -L "${kustomize_target}" ]]; then
             mkdir "${kustomize_target}"
+            ensure_site_directory_owner "${kustomize_target}"
             echo "Created Kustomize service directory: ${kustomize_target}"
         elif [[ ! -d "${kustomize_target}" ]]; then
             echo "WARNING: Existing Kustomize service path is not a directory; leaving it untouched:"
@@ -248,6 +277,7 @@ ensure_component_site_config() {
                 echo "Keeping existing Kustomize base: ${kustomize_base_target}"
             else
                 cp -a -- "${kustomize_base_source}" "${kustomize_base_target}"
+                ensure_site_directory_owner "${kustomize_base_target}"
                 echo "Created Kustomize base: ${kustomize_base_target}"
             fi
         fi
@@ -256,6 +286,7 @@ ensure_component_site_config() {
             echo "Keeping existing Kustomize overlay: ${kustomize_overlay_target}"
         else
             mkdir "${kustomize_overlay_target}"
+            ensure_site_directory_owner "${kustomize_overlay_target}"
             cat > "${kustomize_overlay_target}/kustomization.yaml" <<'EOF'
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -292,6 +323,7 @@ install_component() {
     local script
     local config_name
     local kustomize_post_renderer_args
+    local component_status
 
     if ! component_exists "${component}"; then
         echo "ERROR: Unknown observability component: ${component}"
@@ -322,8 +354,26 @@ install_component() {
     echo "============================================================"
     echo
 
-    KUSTOMIZE_POST_RENDERER_ARGS="${kustomize_post_renderer_args}" \
-        "${script}"
+    # Loki rules are optional in lab environments where Loki/Swift is not
+    # available, the Ruler endpoint cannot be reached, or the Ruler rules
+    # directory is not configured. Put the command itself in an `if` condition:
+    # with `set -e`, this explicitly makes a nonzero status recoverable. The
+    # rules script is an external process, so its `exit` cannot exit this shell.
+    # All other component failures remain fatal.
+    if [[ "${component}" == "loki-rules" ]]; then
+        echo "Running optional Loki rules synchronization; failures will be skipped in lab environments."
+        if KUSTOMIZE_POST_RENDERER_ARGS="${kustomize_post_renderer_args}" \
+            "${script}"; then
+            echo "Loki rules synchronization completed."
+        else
+            component_status=$?
+            echo "WARNING: Loki rules synchronization failed (exit ${component_status})." >&2
+            echo "Skipping loki-rules and continuing with the remaining observability components." >&2
+        fi
+    else
+        KUSTOMIZE_POST_RENDERER_ARGS="${kustomize_post_renderer_args}" \
+            "${script}"
+    fi
 }
 
 if [[ $# -gt 0 ]]; then
@@ -352,6 +402,8 @@ fi
 echo "Genestack Observability"
 echo "  Repository: ${GENESTACK_OBSERVABILITY_DIR}"
 echo "  Components: ${COMPONENTS_FILE}"
+echo "  Loki rules policy: optional/non-fatal for lab environments"
+echo "  Installer build: loki-rules-nonfatal-2026-10-21"
 echo
 
 if [[ $# -gt 0 ]]; then
