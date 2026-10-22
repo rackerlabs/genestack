@@ -17,6 +17,12 @@ Modify `/etc/genestack/helm-configs/openstack-metrics-exporter/clouds-yaml` with
 
     See the [documentation](openstack-clouds.md) on generating your own `clouds.yaml` file which can be used to populate the monitoring configuration file.
 
+!!! tip
+
+    Collecting all metrics typically requires the admin role, but you may make another user with the admin role, perhaps named `os-metrics`. This decouples this running service from the `admin` user of the installation, which can facilitate ease of changing the `admin` password
+
+    [Keystone Admin Password Rotation](openstack-keystone-admin-password-rotation.md) shows how to do this with an user named `breakglass`, which can use the same project and domain as the `admin` user for the installation
+
 From your generated `clouds.yaml` file, create a new manifest for your cloud config:
 
 ``` shell
