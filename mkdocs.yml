@@ -249,6 +249,7 @@ nav:
                   - Freezer: openstack-freezer.md
                   - Masakari: openstack-masakari.md
                   - Qonos: openstack-qonos.md
+                  - Swift: openstack-swift.md
                   - Zaqar: openstack-zaqar.md
                   - Trove:
                       - Deployment: openstack-trove.md

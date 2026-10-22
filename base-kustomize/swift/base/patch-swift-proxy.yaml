@@ -1,0 +1,21 @@
+# The test operations make the patch fail loudly if the chart layout changes.
+- op: test
+  path: /spec/template/spec/volumes/2/name
+  value: swift-etc
+- op: replace
+  path: /spec/template/spec/volumes/2
+  value:
+    name: swift-etc
+    secret:
+      secretName: swift-etc
+      defaultMode: 292
+- op: test
+  path: /spec/template/spec/volumes/3/name
+  value: swift-rings
+- op: replace
+  path: /spec/template/spec/volumes/3
+  value:
+    name: swift-rings
+    secret:
+      secretName: swift-rings
+      defaultMode: 292
