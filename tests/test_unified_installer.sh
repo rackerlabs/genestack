@@ -1002,6 +1002,7 @@ test_value_from_secret_data_happy_path() {
     fakebin="$(mktemp -d)"
     create_fake_installer_binaries "$fakebin"
     PATH="${fakebin}:$PATH" KUBECTL_BIN=kubectl GENESTACK_SERVICES_DIR="${GENESTACK_SERVICES_DIR}" \
+        GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
         "${REPO_ROOT}/bin/install.sh" --check-secrets --service gnocchi >/dev/null
 }
 
@@ -1090,12 +1091,16 @@ test_check_secrets_smoke() {
     create_fake_installer_binaries "$fakebin"
 
     PATH="${fakebin}:$PATH" KUBECTL_BIN=kubectl GENESTACK_SERVICES_DIR="${GENESTACK_SERVICES_DIR}" \
+        GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
         "${REPO_ROOT}/bin/install.sh" --check-secrets --service nova >/dev/null
     PATH="${fakebin}:$PATH" KUBECTL_BIN=kubectl GENESTACK_SERVICES_DIR="${GENESTACK_SERVICES_DIR}" \
+        GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
         "${REPO_ROOT}/bin/install.sh" --check-secrets --service manila >/dev/null
     PATH="${fakebin}:$PATH" KUBECTL_BIN=kubectl GENESTACK_SERVICES_DIR="${GENESTACK_SERVICES_DIR}" \
+        GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
         "${REPO_ROOT}/bin/install.sh" --check-secrets --service neutron >/dev/null
     PATH="${fakebin}:$PATH" KUBECTL_BIN=kubectl GENESTACK_SERVICES_DIR="${GENESTACK_SERVICES_DIR}" \
+        GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
         "${REPO_ROOT}/bin/install.sh" --check-secrets --service openstack-exporter >/dev/null
 }
 
@@ -1106,12 +1111,14 @@ test_check_secrets_failures() {
 
     if PATH="${fakebin}:$PATH" KUBECTL_BIN=kubectl MISSING_SECRET_REFS="openstack/nova-admin" \
         GENESTACK_SERVICES_DIR="${GENESTACK_SERVICES_DIR}" \
+        GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
         "${REPO_ROOT}/bin/install.sh" --check-secrets --service nova >/dev/null 2>&1; then
         fail "--check-secrets should fail when a required secret object is missing"
     fi
 
     if PATH="${fakebin}:$PATH" KUBECTL_BIN=kubectl EMPTY_SECRET_DATA_REFS="openstack/nova-admin:password" \
         GENESTACK_SERVICES_DIR="${GENESTACK_SERVICES_DIR}" \
+        GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
         "${REPO_ROOT}/bin/install.sh" --check-secrets --service nova >/dev/null 2>&1; then
         fail "--check-secrets should fail when a required secret data key is empty"
     fi
@@ -1145,6 +1152,7 @@ EOF
         GENESTACK_BASE_DIR="$tmp_base" \
         GENESTACK_OVERRIDES_DIR="$tmp_overrides" \
         GENESTACK_SERVICES_DIR="${GENESTACK_SERVICES_DIR}" \
+        GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
         "${REPO_ROOT}/bin/install.sh" --service nova --dry-run >/dev/null
 
     cmd_log="$(sed -n '3p' "$log_file")"
@@ -1186,6 +1194,7 @@ EOF
         GENESTACK_BASE_DIR="$tmp_base" \
         GENESTACK_OVERRIDES_DIR="$tmp_overrides" \
         GENESTACK_SERVICES_DIR="${GENESTACK_SERVICES_DIR}" \
+        GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
         "${REPO_ROOT}/bin/install.sh" --service mariadb-operator --dry-run >/dev/null
 
     main_cmd="$(grep -F "upgrade --install mariadb-operator mariadb-operator/mariadb-operator" "$log_file" | tail -n1)"
@@ -1216,6 +1225,7 @@ test_post_install_skipped_on_helm_failure() {
             KUBECTL_LOG_FILE="$kubectl_log" \
             HELM_FAIL_UPGRADE=1 \
             GENESTACK_SERVICES_DIR="${GENESTACK_SERVICES_DIR}" \
+        GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
             "${REPO_ROOT}/bin/install.sh" --service longhorn 2>&1 || true
     )"
 

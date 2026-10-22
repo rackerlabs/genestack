@@ -8,8 +8,6 @@
 
 - If testing in a hyperconverged lab, install _Octavia_ or build the
   hyperconverged lab with `-x`
-- Install Blazar as this component embeds the admin password in its
-  config
 - Install _prometheus-openstack-exporter_ / `os-metrics` as per
   [Openstack Exporter](https://docs.rackspacecloud.com/prometheus-openstack-metrics-exporter/)
 
@@ -78,14 +76,13 @@
     `keystone-admin` in the name, so read and assess the complete match
     list before approving either a dry run or a live run.
 
-    If you see paths like `.data["blazar.conf"]` (or
-    `".data[\"blazar.conf\"]` from the JSON-escaped output), indicating
+    If you see paths like `.data["octavia.conf"]` (or
+    `".data[\"octavia.conf\"]` from the JSON-escaped output), indicating
     the password embedded in a configuration file, for any services
-    besides _Blazar_ or _Octavia_, stop and assess how to deal with
+    besides _Octavia_, stop and assess how to deal with
     this. At the time of writing of this procedure, this only affected
-    _Blazar_ and _Octavia_, so the steps below only account for the
-    admin password occurring in the configuration file for those two
-    services.
+    _Octavia_, so the steps below only account for the
+    admin password occurring in the configuration file for that service.
 
     If Secrets `openstack-config` and `clouds-yaml-secret` show up, the
     later `os-metrics` / _prometheus-openstack-exporter_ steps take care
@@ -771,54 +768,6 @@
     You should see all pods in state `Running` or `Completed`, no
     crash loop backoff, etc.
 
-#### Reinstall Blazar
-
-1. Pre-check _Blazar_ to ensure all pods running, etc.
-    - Perform any steps you would like to pre-check Blazar
-    - Preferably, you see  all pods running normally before proceeding
-
-    **command**:
-
-    ```
-    kubectl -n openstack get pod | grep -i blazar
-    ```
-
-    **expected output**:
-
-    ```
-    OMITTED, LONG
-    ```
-
-    You should see all pods in state `Running` or `Completed`, no
-    crash loop backoff, etc.
-
-1. Reinstall _Blazar_ if installed
-    - Unfortunately, _Blazar_ embeds the admin password in its
-      configuration files
-
-    ```
-    cd /opt/genestack
-    bin/install.sh --service blazar
-    ```
-
-1. Post-check _Blazar_ to ensure all pods running, etc.
-    - Perform any steps you would like to post-check Blazar
-
-    **command**:
-
-    ```
-    kubectl -n openstack get pod | grep -i blazar
-    ```
-
-    **expected output**:
-
-    ```
-    OMITTED, LONG
-    ```
-
-    You should see all pods in state `Running` or `Completed`, no
-    crash loop backoff, etc.
-
 #### os-metrics / `prometheus-openstack-exporter` Chart Reinstallation
 
 1. Check if you need steps in this `Execute -> os-metrics related` subsection
@@ -1028,9 +977,9 @@
             ]
           },
           {
-            "name": "blazar-etc",
+            "name": "octavia-etc",
             "list_of_paths_containing_the_string": [
-              ".data[\"blazar.conf\"]"
+              ".data[\"octavia.conf\"]"
             ]
           }
         ]
@@ -1105,12 +1054,6 @@
     "name": "barbican-keystone-admin",
     "list_of_paths_containing_the_string": [
       ".data.OS_PASSWORD"
-    ]
-  },
-  {
-    "name": "blazar-etc",
-    "list_of_paths_containing_the_string": [
-      ".data[\"blazar.conf\"]"
     ]
   },
   {

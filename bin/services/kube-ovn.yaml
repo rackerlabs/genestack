@@ -6,7 +6,7 @@ service:
 chart:
   service_name: kube-ovn
   repo_name: kubeovn
-  repo_url: https://kubeovn.github.io/kube-ovn
+  repo_url: oci://ghcr.io/kubeovn/charts/kube-ovn
 
 pre_install_actions:
   - type: kube_ovn_master_discovery

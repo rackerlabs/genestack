@@ -1,11 +1,14 @@
 # Designate Prometheus and Alerting Rules (DEPRECATED as of 2026.2.0)
 
-Add additional alerting rules in /etc/genestack/helm-configs/kube-prometheus-stack/rules/designate_prometheus_rules.yaml
- 
+Genestack Prometheus alerting rules are now maintained in the observability repository under `/opt/genestack-observability/alerts/prometheus-alerts/` and deployed with:
+
+```shell
+/opt/genestack/bin/install-observability.sh prometheus-rules
+```
 
 ## Add extra rules for prometheus to scrape metrics
 
-```bash
+```yaml
 additionalPrometheusRulesMap:
   openstack-resource-alerts:
     groups:
@@ -18,7 +21,7 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "Designate zone is in ERROR state"
               description: |
-                The dns zone `{{`{{$labels.id}}`}}` is in ERROR state.
+                The dns zone `{{ $labels.id }}` is in ERROR state.
           - alert: RecordInError
             expr: openstack_designate_recordsets_status{status=~"ERROR"}
             labels:
@@ -26,7 +29,7 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "Designate record in in ERROR state"
               description: |
-                The recordset `{{`{{$labels.id}}`}}` in zone `{{`{{$labels.zone_id}}`}}` is in ERROR state
+                The recordset `{{ $labels.id }}` in zone `{{ $labels.zone_id }}` is in ERROR state
           - alert: DesignateDown
             expr: openstack_designate_up != 1
             labels:
@@ -43,7 +46,7 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "Designate zone has been in PENDING state for over 5 mins"
               description: |
-                The dns zone `{{`{{$labels.id}}`}}` has been in PENDING state for over 5 mins
+                The dns zone `{{ $labels.id }}` has been in PENDING state for over 5 mins
           - alert: RecordInPending
             expr: openstack_designate_recordsets_status{status=~"PENDING"}
             for: 5m
@@ -52,5 +55,5 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "Designate record has been in PENDING state for over 5 mins"
               description: |
-                The dns zone `{{`{{$labels.id}}`}}` has been in PENDING state for over 5 mins
+                The dns zone `{{ $labels.id }}` has been in PENDING state for over 5 mins
 ```

@@ -172,9 +172,7 @@ main() {
     fi
 
     # Non-blocking guardrail for clusters with inherited chart defaults.
-    # Skipped when the default-password scan is disabled or a dry-run is
-    # requested (helm show values would hit the network/registry).
-    if ! printf "%s\n" "${CL_EXTRA_HELM_ARGS[@]:-}" | grep -qx -- "--dry-run"; then
+    if [[ "${GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN:-0}" != "1" ]]; then
         secret_warn_default_chart_passwords "$service_name"
     fi
 
@@ -184,6 +182,13 @@ main() {
     if ! set_args_raw=$(secret_prepare_for_service "$svc_yaml_content" "$CL_SERVICE" 0); then
         log_error "Failed to prepare secret-backed Helm arguments for '${CL_SERVICE}'. Refusing to run Helm with chart defaults."
         exit 1
+    fi
+
+    # Pre-flight safety checks that inspect the fully-assembled Helm argument
+    # set (service-specific guards; they never print secret values).
+    if [[ "$service_name" == "blazar" ]]; then
+        # The guard also inspects user-passed flags (last --set wins).
+        verify_blazar_os_admin_password "$set_args_raw" "$(printf '%s\n' "${CL_EXTRA_HELM_ARGS[@]:-}")" || exit 1
     fi
 
     # ── Prepare kustomize post-renderer args ──────────────────────────────
@@ -228,6 +233,7 @@ main() {
         "$set_args_raw" \
         "$post_renderer_args" \
         "${CL_EXTRA_HELM_ARGS[@]}")
+
 
     log_header "Executing helm for ${service_name}"
     printf '%q ' "${helm_cmd[@]}"
