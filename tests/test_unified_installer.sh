@@ -276,6 +276,10 @@ if [[ "${1:-}" == "-n" ]]; then
     shift 2
 fi
 
+if [[ "${1:-}" == "wait" && "${KUBECTL_FAIL_WAIT:-0}" == "1" ]]; then
+    exit 1
+fi
+
 if [[ "${1:-}" == "get" && "${2:-}" == "deploy" ]]; then
     echo "false"
     exit 0
@@ -719,6 +723,101 @@ EOF
         "post-renderer args should be emitted as structured tokens"
 }
 
+# --config selects kustomize.gateway_config_overlay_path when a service defines
+# it; every other case keeps kustomize.overlay_path.
+test_gateway_config_overlay_selection() {
+    local tmp_root with_alt without_alt envoy_cfg args
+    local HELM_KUSTOMIZE_CMD GENESTACK_SERVICE_CONFIG_OVERRIDES_DIR
+    tmp_root="$(mktemp -d)"
+    HELM_KUSTOMIZE_CMD="${tmp_root}/kustomize.sh"
+    GENESTACK_SERVICE_CONFIG_OVERRIDES_DIR="${tmp_root}/no-site-configs"
+    printf '#!/bin/bash\nexit 0\n' > "$HELM_KUSTOMIZE_CMD"
+    chmod +x "$HELM_KUSTOMIZE_CMD"
+
+    with_alt="$(cat <<'EOF'
+service:
+  name: gateway-service
+kustomize:
+  enabled: true
+  overlay_path: ${service_name}/overlay
+  gateway_config_overlay_path: ${service_name}/config-mode
+EOF
+)"
+    without_alt="$(cat <<'EOF'
+service:
+  name: plain-service
+kustomize:
+  enabled: true
+  overlay_path: ${service_name}/overlay
+EOF
+)"
+
+    assert_eq "gateway-service/overlay" \
+        "$(resolve_kustomize_overlay_path "$with_alt" gateway-service)" \
+        "without a mode the normal overlay_path must be used"
+    assert_eq "gateway-service/config-mode" \
+        "$(resolve_kustomize_overlay_path "$with_alt" gateway-service gateway-config)" \
+        "gateway-config mode must use gateway_config_overlay_path with \${service_name} expanded"
+    assert_eq "plain-service/overlay" \
+        "$(resolve_kustomize_overlay_path "$without_alt" plain-service gateway-config)" \
+        "a service without gateway_config_overlay_path must keep its normal overlay in gateway-config mode"
+
+    args="$(build_post_renderer_args "$with_alt" gateway-service)"
+    assert_eq $'--post-renderer\n'"$HELM_KUSTOMIZE_CMD"$'\n--post-renderer-args\ngateway-service/overlay' "$args" \
+        "post-renderer args must use the normal overlay without a mode"
+    args="$(build_post_renderer_args "$with_alt" gateway-service gateway-config)"
+    assert_eq $'--post-renderer\n'"$HELM_KUSTOMIZE_CMD"$'\n--post-renderer-args\ngateway-service/config-mode' "$args" \
+        "post-renderer args must use the gateway config overlay in gateway-config mode"
+    args="$(build_post_renderer_args "$without_alt" plain-service gateway-config)"
+    assert_eq $'--post-renderer\n'"$HELM_KUSTOMIZE_CMD"$'\n--post-renderer-args\nplain-service/overlay' "$args" \
+        "post-renderer args must keep the normal overlay when the service has no gateway overlay"
+
+    # The shipped Envoy service definition selects config-mode with --config.
+    envoy_cfg="$(load_service_config envoyproxy-gateway)"
+    assert_eq "envoyproxy-gateway/overlay" \
+        "$(resolve_kustomize_overlay_path "$envoy_cfg" envoyproxy-gateway)" \
+        "envoyproxy-gateway must use its normal overlay by default"
+    assert_eq "envoyproxy-gateway/config-mode" \
+        "$(resolve_kustomize_overlay_path "$envoy_cfg" envoyproxy-gateway gateway-config)" \
+        "envoyproxy-gateway must use the config-mode overlay with --config"
+}
+
+test_ensure_kustomize_overlay_path() {
+    local tmp_root site_dir base_dir output rc
+    local GENESTACK_OVERRIDES_DIR GENESTACK_BASE_DIR
+    tmp_root="$(mktemp -d)"
+    GENESTACK_OVERRIDES_DIR="${tmp_root}/overrides"
+    GENESTACK_BASE_DIR="${tmp_root}/base"
+    site_dir="${GENESTACK_OVERRIDES_DIR}/kustomize"
+    base_dir="${GENESTACK_BASE_DIR}/base-kustomize"
+
+    # Already present in the site tree: nothing to do.
+    mkdir -p "${site_dir}/present-svc/config-mode" "${base_dir}/present-svc/config-mode"
+    rc=0
+    output="$(ensure_kustomize_overlay_path present-svc/config-mode 2>&1)" || rc=$?
+    assert_eq "0" "$rc" "an existing overlay must be accepted"
+    assert_not_contains "$output" "Linked kustomize overlay" "an existing overlay must not be relinked"
+    [[ -d "${site_dir}/present-svc/config-mode" && ! -L "${site_dir}/present-svc/config-mode" ]] ||
+        fail "an existing overlay directory must be left untouched"
+
+    # Missing from the site tree but shipped in base-kustomize: link it.
+    mkdir -p "${base_dir}/linked-svc/config-mode"
+    rc=0
+    output="$(ensure_kustomize_overlay_path linked-svc/config-mode 2>&1)" || rc=$?
+    assert_eq "0" "$rc" "an overlay shipped in base-kustomize must be linked successfully"
+    [[ -L "${site_dir}/linked-svc/config-mode" ]] || fail "a missing overlay must be linked from base-kustomize"
+    assert_eq "${base_dir}/linked-svc/config-mode" "$(readlink "${site_dir}/linked-svc/config-mode")" \
+        "the linked overlay must point at base-kustomize"
+    assert_contains "$output" "Linked kustomize overlay" "linking an overlay must be logged"
+
+    # Missing everywhere: fail with a clear error and create nothing.
+    rc=0
+    output="$(ensure_kustomize_overlay_path missing-svc/config-mode 2>&1)" || rc=$?
+    assert_eq "1" "$rc" "an overlay missing from both trees must fail"
+    assert_contains "$output" "Kustomize overlay not found" "a missing overlay must produce a clear error"
+    [[ ! -e "${site_dir}/missing-svc" ]] || fail "a missing overlay must not create site directories"
+}
+
 test_helm_set_args_isolation() {
     local cmd
 
@@ -814,12 +913,12 @@ test_manifest_invariants() {
         for f in "${GENESTACK_SERVICES_DIR}"/*.yaml; do
             svc="$(basename "$f" .yaml)"
             [[ "$svc" == "example-service" ]] && continue
-            yq e '.secrets[] | select(.rotate_with_service == true) | ((.source_namespace // .service.namespace // "openstack") + "/" + .source_secret + "\t" + "'"$svc"'")' "$f" 2>/dev/null || true
+            yq e '.secrets[] | select(.rotate_with_service == true) | ((.source_namespace // .service.namespace // "openstack") + "/" + .source_secret + "|" + "'"$svc"'")' "$f" 2>/dev/null || true
         done
     )"
     owner_entries="$(printf '%s\n' "$owner_entries" | sed '/^$/d' | sort -u)"
 
-    owner_refs="$(printf '%s\n' "$owner_entries" | cut -f1 | sed '/^$/d' | sort)"
+    owner_refs="$(printf '%s\n' "$owner_entries" | cut -d'|' -f1 | sed '/^$/d' | sort)"
     duplicates="$(printf '%s\n' "$owner_refs" | uniq -d)"
     [[ -z "$duplicates" ]] || fail "each rotate_with_service secret must have exactly one owner: ${duplicates}"
 
@@ -853,7 +952,7 @@ test_manifest_invariants() {
     [[ -z "$legacy_hook_usage" ]] || fail "legacy free-form hook fields are still present: ${legacy_hook_usage}"
 
     shared_secret_failures=""
-    while IFS=$'\t' read -r ref owner; do
+    while IFS='|' read -r ref owner; do
         [[ -z "$ref" ]] && continue
         case "$ref" in
             openstack/keystone-admin)
@@ -868,7 +967,7 @@ test_manifest_invariants() {
     [[ -z "$shared_secret_failures" ]] || fail "shared platform secrets have invalid owners: ${shared_secret_failures}"
 
     fanout_failures=""
-    while IFS=$'\t' read -r ref owner; do
+    while IFS='|' read -r ref owner; do
         [[ -z "$ref" || -z "$owner" ]] && continue
         consumers=""
         for f in "${GENESTACK_SERVICES_DIR}"/*.yaml; do
@@ -888,7 +987,7 @@ test_manifest_invariants() {
         impacted="$(rotation_collect_impacted_services "$owner" "$ref" | sort -u)"
         while IFS= read -r consumer; do
             [[ -z "$consumer" ]] && continue
-            if [[ " $impacted " != *" $consumer "* ]]; then
+            if ! printf '%s\n' "$impacted" | grep -Fx "$consumer" >/dev/null; then
                 fanout_failures+="${owner}:${ref}:${consumer}"$'\n'
             fi
         done <<< "$(printf '%s\n' "$consumers" | sort -u)"
@@ -1052,9 +1151,13 @@ EOF
     chmod +x "${fakebin}/helm"
 
     PATH="${fakebin}:$PATH" HELM_LOG_FILE="$log_file" helm_install_crds \
-        "synthetic" "synthetic-crds" "1.2.3" "synthetic-repo" "https://example.invalid/charts" "37m"
+        "synthetic" "synthetic-crds" "1.2.3" "synthetic-repo/synthetic" "testing" "37m"
 
-    assert_contains "$(sed -n '3p' "$log_file")" "--timeout 37m" \
+    assert_contains "$(cat "$log_file")" "synthetic-repo/synthetic-crds" \
+        "CRDs should resolve beside the operator chart"
+    assert_contains "$(cat "$log_file")" "--namespace testing" \
+        "CRDs should use the service namespace"
+    assert_contains "$(cat "$log_file")" "--timeout 37m" \
         "CRD installs should honor the resolved Helm timeout"
 }
 
@@ -1226,7 +1329,7 @@ test_post_install_skipped_on_helm_failure() {
             HELM_FAIL_UPGRADE=1 \
             GENESTACK_SERVICES_DIR="${GENESTACK_SERVICES_DIR}" \
         GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
-            "${REPO_ROOT}/bin/install.sh" --service longhorn 2>&1 || true
+            "${REPO_ROOT}/bin/install.sh" --service longhorn --version 1.0.0 2>&1 || true
     )"
 
     assert_contains "$install_output" "Skipping post-install hook for 'longhorn' due to Helm failure." \
@@ -1234,6 +1337,363 @@ test_post_install_skipped_on_helm_failure() {
     assert_not_contains "$(cat "$kubectl_log")" "get svc --namespace longhorn-system" \
         "post-install diagnostics should not run after a failed Helm install"
 }
+
+# Runs a copy of bin/ with setup-envoy-gateway.sh stubbed, so the Envoy install
+# flow can be observed without touching a cluster. Callers set the fixture
+# variables below as locals; this helper reads them through dynamic scope.
+#   envoy_fail_wait  1 makes the fake "kubectl wait" fail
+run_envoy_install_fixture() {
+    : > "$kubectl_log"
+    : > "$helm_log"
+    envoy_rc=0
+    envoy_output="$(
+        PATH="${fakebin}:$PATH" \
+            KUBECTL_BIN=kubectl \
+            KUBECTL_LOG_FILE="$kubectl_log" \
+            KUBECTL_FAIL_WAIT="${envoy_fail_wait:-0}" \
+            HELM_LOG_FILE="$helm_log" \
+            GENESTACK_BASE_DIR="$tmp_base" \
+            GENESTACK_OVERRIDES_DIR="$tmp_overrides" \
+            GENESTACK_SERVICES_DIR="${tmp_bin}/services" \
+            GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
+            "${tmp_bin}/install.sh" "$@" 2>&1
+    )" || envoy_rc=$?
+}
+
+# install.sh --service envoyproxy-gateway --config <file> must render the
+# config-mode overlay, wait for the controller, and only then apply the config.
+test_install_gateway_config_mode() {
+    local fakebin tmp_root tmp_bin tmp_base tmp_overrides kubectl_log helm_log gateway_file
+    local envoy_rc envoy_output envoy_fail_wait wait_line setup_line helm_cmd
+    fakebin="$(mktemp -d)"
+    tmp_root="$(mktemp -d)"
+    tmp_bin="${tmp_root}/bin"
+    tmp_base="${tmp_root}/base"
+    tmp_overrides="${tmp_root}/overrides"
+    kubectl_log="${tmp_root}/kubectl.log"
+    helm_log="${tmp_root}/helm.log"
+    gateway_file="${tmp_root}/envoy-gateways.yaml"
+
+    mkdir -p "$tmp_bin" "${tmp_base}/base-helm-configs/envoyproxy-gateway" \
+        "${tmp_base}/base-kustomize/envoyproxy-gateway/config-mode" "${tmp_overrides}/kustomize"
+    cp -R "${REPO_ROOT}/bin/." "${tmp_bin}/"
+    printf 'domain: example.com\n' > "$gateway_file"
+    cat > "${tmp_bin}/setup-envoy-gateway.sh" <<'EOF'
+#!/bin/bash
+printf 'SETUP %s\n' "$*" >> "${KUBECTL_LOG_FILE}"
+EOF
+    chmod +x "${tmp_bin}/setup-envoy-gateway.sh"
+    printf '#!/bin/bash\nexit 0\n' > "${tmp_overrides}/kustomize/kustomize.sh"
+    chmod +x "${tmp_overrides}/kustomize/kustomize.sh"
+    cat > "${tmp_overrides}/helm-chart-versions.yaml" <<'EOF'
+charts:
+  envoyproxy-gateway: v1.7.0
+EOF
+    create_fake_installer_binaries "$fakebin"
+
+    # --config: config-mode overlay, wait, then setup, in that order.
+    run_envoy_install_fixture --service envoyproxy-gateway --config "$gateway_file"
+    assert_eq "0" "$envoy_rc" "a config-mode install must succeed"
+    helm_cmd="$(grep '^upgrade --install' "$helm_log")"
+    assert_contains "$helm_cmd" "upgrade --install envoyproxy-gateway oci://docker.io/envoyproxy/gateway-helm" \
+        "the Envoy release must keep the envoyproxy-gateway name and chart"
+    assert_contains "$helm_cmd" "--version=v1.7.0" "the Envoy chart version must come from helm-chart-versions.yaml"
+    assert_contains "$helm_cmd" \
+        "--post-renderer ${tmp_overrides}/kustomize/kustomize.sh --post-renderer-args envoyproxy-gateway/config-mode" \
+        "--config must render the config-mode overlay"
+    [[ -L "${tmp_overrides}/kustomize/envoyproxy-gateway/config-mode" ]] ||
+        fail "the config-mode overlay must be linked from base-kustomize when missing"
+    wait_line="$(grep -n 'wait --timeout=5m deployments.apps/envoy-gateway --for=condition=available' "$kubectl_log" | head -1 | cut -d: -f1)"
+    setup_line="$(grep -n "^SETUP --config ${gateway_file}\$" "$kubectl_log" | head -1 | cut -d: -f1)"
+    [[ -n "$wait_line" ]] || fail "the installer must wait for the Envoy controller before applying the config"
+    [[ -n "$setup_line" ]] || fail "the installer must apply the gateway config with --config <file>"
+    (( wait_line < setup_line )) || fail "the controller wait must happen before the gateway config is applied"
+    assert_contains "$(sed -n "${wait_line}p" "$kubectl_log")" "-n envoyproxy-gateway-system" \
+        "the wait must target the Envoy namespace"
+
+    # A controller that never becomes available: no config applied, install fails.
+    envoy_fail_wait=1
+    run_envoy_install_fixture --service envoyproxy-gateway --config "$gateway_file"
+    [[ "$envoy_rc" -ne 0 ]] || fail "a failed controller wait must fail the install"
+    assert_contains "$envoy_output" "did not become available" "a failed wait must be reported"
+    assert_not_contains "$(cat "$kubectl_log")" "SETUP" "the gateway config must not be applied after a failed wait"
+
+    # Without --config: normal overlay, no wait, no setup.
+    envoy_fail_wait=0
+    run_envoy_install_fixture --service envoyproxy-gateway
+    assert_eq "0" "$envoy_rc" "a normal Envoy install must succeed"
+    assert_contains "$(grep '^upgrade --install' "$helm_log")" "--post-renderer-args envoyproxy-gateway/overlay" \
+        "without --config the normal overlay must be used"
+    assert_not_contains "$(cat "$kubectl_log")" " wait " "without --config the installer must not wait for the controller"
+    assert_not_contains "$(cat "$kubectl_log")" "SETUP" "without --config no gateway config may be applied"
+}
+
+# Callers must name services that exist, and the Envoy service must resolve
+# the same release, values directory and chart version everything else expects.
+test_service_references_and_envoy_resolution() {
+    local references name missing="" envoy_cfg version
+    local CHART_VERSIONS_FILE GENESTACK_SERVICE_CONFIG_OVERRIDES_DIR
+    CHART_VERSIONS_FILE="${REPO_ROOT}/helm-chart-versions.yaml"
+    GENESTACK_SERVICE_CONFIG_OVERRIDES_DIR="$(mktemp -d)/no-site-configs"
+
+    references="$(
+        {
+            grep -ohE 'install\.sh[[:space:]]+--service[[:space:]]+[A-Za-z0-9][A-Za-z0-9._-]*' \
+                "${REPO_ROOT}"/bin/*.sh "${REPO_ROOT}"/docs/*.md 2>/dev/null || true
+            find "${REPO_ROOT}/scripts" -name '*.sh' -print0 2>/dev/null |
+                xargs -0 grep -ohE 'install\.sh[[:space:]]+--service[[:space:]]+[A-Za-z0-9][A-Za-z0-9._-]*' 2>/dev/null || true
+        } | awk '{print $NF}' | sort -u
+    )"
+    [[ -n "$references" ]] || fail "no install.sh --service references were found to validate"
+    while IFS= read -r name; do
+        [[ -f "${GENESTACK_SERVICES_DIR}/${name}.yaml" ]] || missing+="${name} "
+    done <<< "$references"
+    assert_eq "" "$missing" "every install.sh --service reference must have a bin/services/<name>.yaml"
+
+    envoy_cfg="$(load_service_config envoyproxy-gateway)"
+    assert_eq "envoyproxy-gateway" \
+        "$(printf '%s\n' "$envoy_cfg" | yq e '.service.release_name // .service.name' -)" \
+        "the Envoy Helm release must be named envoyproxy-gateway"
+    [[ -d "${REPO_ROOT}/base-helm-configs/$(printf '%s\n' "$envoy_cfg" | yq e '.chart.service_name // .service.name' -)" ]] ||
+        fail "the Envoy values directory must exist under base-helm-configs"
+    version="$(resolve_chart_version envoyproxy-gateway "$envoy_cfg" 2>/dev/null)" ||
+        fail "envoyproxy-gateway must resolve a chart version from helm-chart-versions.yaml"
+    assert_matches_regex "$version" '^v?[0-9]+\.[0-9]+' "the resolved Envoy chart version must look like a version"
+}
+
+# Isolate configuration fixtures and resolver mocks from the secret tests.
+test_config_layer_precedence() (
+    local root merged sources
+    root="$(mktemp -d)"
+    GENESTACK_SERVICES_DIR="$root/services"
+    GENESTACK_SERVICE_CONFIG_OVERRIDES_DIR="$root/site"
+    mkdir -p "$root/services" "$root/site"
+    cat > "$root/services/openstack-common.yaml" <<'EOF'
+service:
+  namespace: family-default
+chart:
+  repo_url: https://public.example/charts
+  repo_name: public
+  global_overrides: true
+EOF
+    cat > "$root/services/demo.yaml" <<'EOF'
+service:
+  name: demo
+  namespace: service-default
+chart:
+  repo_name: service-default
+  service_name: demo
+EOF
+    cat > "$root/site/openstack-common.yaml" <<'EOF'
+service:
+  namespace: site-family
+chart:
+  repo_name: site-family
+  repo_url: https://internal.example/charts
+  global_overrides: false
+EOF
+    cat > "$root/site/demo.yaml" <<'EOF'
+chart:
+  repo_name: site-service
+EOF
+    merged="$(load_service_config demo --log-sources 2> "$root/sources")"
+    assert_eq site-family "$(printf '%s\n' "$merged" | yq '.service.namespace')" \
+        "site family must override repository service defaults"
+    assert_eq site-service "$(printf '%s\n' "$merged" | yq '.chart.repo_name')" \
+        "site service must override site family"
+    assert_eq false "$(printf '%s\n' "$merged" | yq '.chart.global_overrides')" \
+        "false must survive the configuration merge"
+    sources="$(sed -n 's/^ - //p' "$root/sources")"
+    assert_eq "$(printf '%s\n' "$root/services/openstack-common.yaml" "$root/services/demo.yaml" "$root/site/openstack-common.yaml" "$root/site/demo.yaml")" \
+        "$sources" "configuration sources must be reported in merge order"
+
+    printf 'service:\n  family: ""\n  name: standalone\n' > "$root/services/standalone.yaml"
+    printf 'chart: {repo_url: accidental}\n' > "$root/site/.yaml"
+    merged="$(load_service_config standalone)"
+    assert_eq null "$(printf '%s\n' "$merged" | yq '.chart.repo_url')" \
+        "explicit empty family must skip all family files"
+)
+
+test_values_precedence_and_chart_rename() (
+    local root config actual expected file diagnostics
+    root="$(mktemp -d)"
+    GENESTACK_BASE_DIR="$root/base"
+    GENESTACK_OVERRIDES_DIR="$root/site"
+    mkdir -p "$root/base/base-helm-configs/renamed-chart" \
+        "$root/site/helm-configs/global_overrides" "$root/site/helm-configs/renamed-chart" \
+        "$root/site/service-configs"
+    local files=(
+        "$root/base/base-helm-configs/renamed-chart/10-base.yaml"
+        "$root/base/base-helm-configs/renamed-chart/20-storage settings.yaml"
+        "$root/site/helm-configs/global_overrides/global.yaml"
+        "$root/site/helm-configs/renamed-chart/service.yaml"
+    )
+    for file in "${files[@]}"; do printf '{}\n' > "$file"; done
+    printf 'chart: {repo_url: https://metadata.example}\n' > "$root/site/service-configs/demo.yaml"
+    config='service:
+  name: demo
+chart:
+  service_name: renamed-chart
+  global_overrides: true'
+    actual="$(build_helm_args "$config" 2> "$root/values.log")"
+    expected="$(printf '%s\n' "${files[@]}" | while IFS= read -r file; do printf '%s\n' '-f' "$file"; done)"
+    assert_eq "$expected" "$actual" "values must retain chart-name directories, base/global/service order, and spaces"
+    diagnostics="$(cat "$root/values.log")"
+    expected="$(printf '%s\n' \
+        "[INFO]  Including base overrides from directory: $root/base/base-helm-configs/renamed-chart" \
+        " - ${files[0]}" " - ${files[1]}" \
+        "[INFO]  Including global overrides from directory: $root/site/helm-configs/global_overrides" \
+        " - ${files[2]}" \
+        "[INFO]  Including overrides from service config directory: $root/site/helm-configs/renamed-chart" \
+        " - ${files[3]}")"
+    assert_eq "$expected" "$diagnostics" "values diagnostics must match loading order on stderr without changing Helm arguments"
+    actual="$(build_helm_args "$(printf '%s\n' "$config" | yq '.chart.global_overrides = false')" 2> "$root/values.log")"
+    assert_not_contains "$actual" global_overrides "false must exclude global values"
+    assert_not_contains "$(cat "$root/values.log")" global_overrides "disabled global values must not be logged as included"
+    assert_contains "$actual" "$root/site/helm-configs/renamed-chart/service.yaml" "service values must still apply"
+    assert_not_contains "$actual" service-configs "chart metadata must never become Helm values"
+
+    # Explicit nested files are inserted before site values, in caller order.
+    local additional_base_values=(
+        "$root/base/base-helm-configs/renamed-chart/ssl/20-tls settings.yaml"
+        "$root/base/base-helm-configs/renamed-chart/rules/10-rules.yaml"
+    )
+    mkdir -p "${additional_base_values[0]%/*}" "${additional_base_values[1]%/*}"
+    for file in "${additional_base_values[@]}"; do printf '{}\n' > "$file"; done
+    actual="$(build_helm_args "$config" "${additional_base_values[@]}" 2> "$root/values.log")"
+    expected="$(printf '%s\n' "${files[0]}" "${files[1]}" "${additional_base_values[@]}" "${files[2]}" "${files[3]}" |
+        while IFS= read -r file; do printf '%s\n' '-f' "$file"; done)"
+    assert_eq "$expected" "$actual" "additional base files must preserve caller order, spaces, and site override precedence"
+    diagnostics="$(sed -n 's/^ - //p' "$root/values.log")"
+    assert_eq "$(printf '%s\n' "${files[0]}" "${files[1]}" "${additional_base_values[@]}" "${files[2]}" "${files[3]}")" \
+        "$diagnostics" "additional values diagnostics must match argument order"
+    assert_contains "$(cat "$root/values.log")" 'Including additional base overrides:' "additional values must have a log heading"
+
+    actual="$(build_helm_args "$(printf '%s\n' "$config" | yq '.chart.global_overrides = false')" "${additional_base_values[@]}" 2> "$root/values.log")"
+    expected="$(printf '%s\n' "${files[0]}" "${files[1]}" "${additional_base_values[@]}" "${files[3]}" |
+        while IFS= read -r file; do printf '%s\n' '-f' "$file"; done)"
+    assert_eq "$expected" "$actual" "disabled globals must preserve additional base files and service overrides"
+    assert_not_contains "$(cat "$root/values.log")" global_overrides "disabled global values must not be logged with additional files"
+
+    additional_base_values=()
+    actual="$(build_helm_args "$config" "${additional_base_values[@]}" 2> "$root/values.log")"
+    expected="$(printf '%s\n' "${files[@]}" | while IFS= read -r file; do printf '%s\n' '-f' "$file"; done)"
+    assert_eq "$expected" "$actual" "empty additional file lists must retain existing behavior and skip nested files"
+    assert_not_contains "$(cat "$root/values.log")" 'additional base overrides' "empty additional file lists must not print an inclusion heading"
+
+    if actual="$(build_helm_args "$config" "${files[0]}" "$root/missing.yaml" 2> "$root/values.log")"; then
+        fail "an explicitly selected missing file must stop values collection"
+    fi
+    assert_eq '' "$actual" "missing explicit files must fail before emitting partial Helm arguments"
+    assert_contains "$(cat "$root/values.log")" "$root/missing.yaml" "missing-file errors must identify the selected path"
+)
+
+test_site_chart_sources_and_versions() (
+    local root source chart command
+    root="$(mktemp -d)"
+    export GENESTACK_BASE_DIR="$root/base" GENESTACK_OVERRIDES_DIR="$root/site"
+    export GENESTACK_SERVICES_DIR="$root/services"
+    export GENESTACK_SERVICE_CONFIG_OVERRIDES_DIR="$root/site/service-configs"
+    export HELM_LOG_FILE="$root/helm.log" KUBECTL_LOG_FILE="$root/kubectl.log"
+    export GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 KUBECTL_BIN=kubectl
+    mkdir -p "$root/bin" "$root/services" "$root/site/service-configs" \
+        "$root/base/base-helm-configs/demo" "$root/base/base-helm-configs/renamed" \
+        "$root/base/base-helm-configs/demo-crds" "$root/site/helm-configs/renamed" \
+        "$root/site/helm-configs/global_overrides"
+    create_fake_installer_binaries "$root/bin"
+    export PATH="$root/bin:$PATH"
+    printf '{}\n' > "$root/base/base-helm-configs/renamed/base.yaml"
+    printf '{}\n' > "$root/site/helm-configs/renamed/site.yaml"
+    printf '{}\n' > "$root/site/helm-configs/global_overrides/global.yaml"
+    cat > "$root/services/demo.yaml" <<'EOF'
+service:
+  name: demo
+  namespace: testing
+  family: ""
+chart:
+  repo_url: https://public.example/charts
+  repo_name: public
+  service_name: demo
+  global_overrides: true
+crd_chart: demo-crds
+secrets: []
+EOF
+    printf 'charts: {demo: 1.0.0, renamed: 0.9.0}\n' > "$root/site/helm-chart-versions.yaml"
+    for source in http oci local; do
+        case "$source" in
+            http) chart=internal/renamed
+                printf 'chart:\n  repo_url: https://internal.example/charts\n  repo_name: internal\n' > "$root/site/service-configs/demo.yaml" ;;
+            oci) chart=oci://registry.example/charts/renamed
+                printf 'chart:\n  repo_url: oci://registry.example/charts/renamed\n' > "$root/site/service-configs/demo.yaml" ;;
+            local) chart="$root/base/base-helm-configs/renamed"
+                printf 'chart:\n  repo_url: null\n  repo_name: null\n' > "$root/site/service-configs/demo.yaml" ;;
+        esac
+        printf '  service_name: renamed\n  global_overrides: false\nservice:\n  version: 2.0.0\n' >> "$root/site/service-configs/demo.yaml"
+        : > "$HELM_LOG_FILE"
+        "${REPO_ROOT}/bin/install.sh" --service demo --dry-run > "$root/output" 2>&1 \
+            || fail "$source chart install failed: $(cat "$root/output")"
+        command="$(grep '^upgrade --install demo ' "$HELM_LOG_FILE")"
+        assert_contains "$command" "demo $chart --version=2.0.0" "$source must use the site chart and version"
+        assert_contains "$command" "-f $root/base/base-helm-configs/renamed/base.yaml -f $root/site/helm-configs/renamed/site.yaml" \
+            "$source must retain existing chart-name values paths"
+        assert_not_contains "$command" global_overrides "$source must honor disabled global overrides"
+        assert_not_contains "$command" service-configs "$source metadata must not be passed with -f"
+        assert_contains "$(cat "$HELM_LOG_FILE")" "upgrade --install demo-crds ${chart%/*}/demo-crds" \
+            "$source CRD chart must follow the selected source"
+        if [[ "$source" == http ]]; then
+            assert_contains "$(cat "$HELM_LOG_FILE")" 'repo add --force-update internal https://internal.example/charts' \
+                "HTTP must register the internal repository"
+        else
+            assert_not_contains "$(cat "$HELM_LOG_FILE")" 'repo ' "$source must not use HTTP repository setup"
+        fi
+    done
+    : > "$HELM_LOG_FILE"
+    "${REPO_ROOT}/bin/install.sh" --service demo --version 3.0.0 --dry-run > "$root/output" 2>&1
+    assert_contains "$(cat "$HELM_LOG_FILE")" --version=3.0.0 "CLI version must win over the site pin"
+
+    # Remove the site pin to exercise manifest lookup and strict failures.
+    yq -i 'del(.service.version)' "$root/site/service-configs/demo.yaml"
+    "${REPO_ROOT}/bin/install.sh" --service demo --dry-run > "$root/output" 2>&1
+    assert_contains "$(tail -n1 "$HELM_LOG_FILE")" --version=1.0.0 "manifest service key must win over the chart key"
+    printf 'charts: {renamed: 0.9.0}\n' > "$root/site/helm-chart-versions.yaml"
+    "${REPO_ROOT}/bin/install.sh" --service demo --dry-run > "$root/output" 2>&1
+    assert_contains "$(tail -n1 "$HELM_LOG_FILE")" --version=0.9.0 "manifest chart-name fallback must still work"
+
+    for source in missing-entry missing-file; do
+        if [[ "$source" == missing-entry ]]; then
+            printf 'charts: {}\n' > "$root/site/helm-chart-versions.yaml"
+        else
+            mv "$root/site/helm-chart-versions.yaml" "$root/saved-versions.yaml"
+        fi
+        : > "$HELM_LOG_FILE"
+        : > "$KUBECTL_LOG_FILE"
+        if "${REPO_ROOT}/bin/install.sh" --service demo > "$root/output" 2>&1; then
+            fail "$source must stop installation"
+        fi
+        assert_eq '' "$(cat "$HELM_LOG_FILE" "$KUBECTL_LOG_FILE")" \
+            "$source must fail before Helm or cluster changes"
+    done
+)
+
+test_chart_resolution_failures() (
+    local root
+    root="$(mktemp -d)"
+    GENESTACK_BASE_DIR="$root"
+    if resolve_helm_repo '' '' absent >/dev/null 2>&1; then
+        fail "missing local chart must stop resolution"
+    fi
+    assert_eq '' "$HELM_CHART_PATH" "failed resolution must clear stale chart paths"
+    if resolve_helm_repo https://internal.example/charts '' demo >/dev/null 2>&1; then
+        fail "HTTP chart metadata must include a repository alias"
+    fi
+    helm() { return 1; }
+    if resolve_helm_repo https://internal.example/charts internal demo >/dev/null 2>&1; then
+        fail "repository registration failures must propagate"
+    fi
+    if helm_install_crds demo demo-crds 1.0.0 "$root/demo" testing 5m >/dev/null 2>&1; then
+        fail "missing local CRD chart must fail"
+    fi
+)
 
 main() {
     local tmp_root
@@ -1245,7 +1705,13 @@ main() {
     test_secret_arg_token_parser
     test_base64_encode_helper
     test_service_config_repo_url_overrides
+    test_config_layer_precedence
+    test_values_precedence_and_chart_rename
+    test_site_chart_sources_and_versions
+    test_chart_resolution_failures
     test_build_post_renderer_args_tokenization
+    test_gateway_config_overlay_selection
+    test_ensure_kustomize_overlay_path
     test_final_helm_command_construction
     test_multi_chart_install_reuses_secret_pipeline
     test_helm_set_args_isolation
@@ -1262,6 +1728,8 @@ main() {
     test_install_command_path_real_service
     test_install_command_path_name_keys_real_service
     test_post_install_skipped_on_helm_failure
+    test_install_gateway_config_mode
+    test_service_references_and_envoy_resolution
     echo "PASS: unified installer regression checks"
 }
 

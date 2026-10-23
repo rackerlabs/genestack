@@ -11,15 +11,15 @@ API gateways using a declarative configuration model.
 
 ## Installation
 
-Run the helm command to install Envoy Gateway.
+Run the install script to deploy Envoy Gateway.
 
-??? example "Run the Envoy Gateway deployment: `/opt/genestack/bin/install.sh --service envoy-gateway`"
+??? example "Run the Envoy Gateway deployment: `/opt/genestack/bin/install.sh --service envoyproxy-gateway`"
 
     ``` shell
-    /opt/genestack/bin/install.sh --service envoy-gateway
+    /opt/genestack/bin/install.sh --service envoyproxy-gateway
     ```
 
-The install script will deploy Envoy Gateway to the `envoy-gateway-system` namespace via Helm.
+The install script will deploy Envoy Gateway to the `envoyproxy-gateway-system` namespace via Helm.
 
 For deployments that need separate internal and external gateways, see
 [Envoy Gateway Internal and External Gateway Runbooks](infrastructure-envoy-gateway-multi-gateway.md).
@@ -34,8 +34,8 @@ For deployments that need separate internal and external gateways, see
 
 The setup script will ask the following questions:
 
-* Enter a valid email address for use with ACME, press enter to skip"
-* Enter the domain name for the gateway"
+* Enter an email address for ACME, or press enter to skip ACME setup.
+* Enter the domain name for the gateway, or press enter to use `cluster.local`.
 
 These values will be used to generate a certificate for the gateway and set the routes used within the flex-gateway,
 typically for OpenStack. This script can also be fully automated by providing the required values as arguments.

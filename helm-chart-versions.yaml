@@ -9,7 +9,7 @@ charts:
   cinder: 2026.1.9+a2a343968
   cloudkitty: 2026.1.30+11919f713
   designate: 2026.1.8+a659ab8a2
-  envoy-gateway: v1.7.0
+  envoyproxy-gateway: v1.7.0
   freezer: 2026.1.8+d03dd061a
   glance: 2026.1.9+7cce5ac45
   gnocchi: 2026.1.9+50c697fc3

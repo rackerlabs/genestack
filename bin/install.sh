@@ -12,7 +12,7 @@
 #   --version <ver>               Override chart version
 #   --service <name>              (required) service to install
 #   --config, --gateway-config    Gateway config file applied after a successful
-#                                 envoy-gateway install
+#                                 envoyproxy-gateway install
 #
 # Remaining --* flags after the service name are passed through to helm upgrade --install.
 #
@@ -35,8 +35,8 @@
 #   # check what secrets will be used (fails if any are missing)
 #   install.sh --check-secrets --service nova
 #
-#   # install envoy-gateway with a gateway config
-#   install.sh --service envoy-gateway --config /etc/genestack/gateway-config.yaml
+#   # install envoyproxy-gateway with a gateway config
+#   install.sh --service envoyproxy-gateway --config /etc/genestack/gateway-config.yaml
 
 # ── Sourcing ─────────────────────────────────────────────────────────────────
 
@@ -77,24 +77,13 @@ main() {
     log_header "Loading service config: ${CL_SERVICE}"
 
     local svc_yaml_content
-    svc_yaml_content=$(load_service_config "$CL_SERVICE")
+    svc_yaml_content=$(load_service_config "$CL_SERVICE" --log-sources) || return 1
 
     # Extract core fields from merged config
     local service_name service_namespace service_release
     service_name=$(echo "$svc_yaml_content" | yq e '.service.name' -)
     service_release=$(echo "$svc_yaml_content" | yq e '.service.release_name // .service.name' -)
     service_namespace=$(echo "$svc_yaml_content" | yq e '.service.namespace // "openstack"' -)
-    local repo_url repo_name
-    repo_url=$(echo "$svc_yaml_content" | yq e '.chart.repo_url // ""' -)
-    repo_name=$(echo "$svc_yaml_content" | yq e '.chart.repo_name // ""' -)
-    : "${repo_url:=https://tarballs.opendev.org/openstack/openstack-helm}"
-    : "${repo_name:=openstack-helm}"
-
-    # Resolve chart name from config or derive from service name
-    local chart_name
-    chart_name=$(echo "$svc_yaml_content" | yq e '.chart.service_name // .service.name' -)
-    : "${chart_name:=$service_name}"
-
     # ── Rotation mode ─────────────────────────────────────────────────────
 
     if [[ "${CL_ROTATE_SECRETS}" -eq 1 ]]; then
@@ -115,19 +104,24 @@ main() {
         exit 0
     fi
 
-    # Resolve chart version
+    # Resolve chart version before running hooks or changing cluster resources.
+    local service_version
     if [[ -n "$CL_OVERRIDE_VERSION" ]]; then
         service_version="$CL_OVERRIDE_VERSION"
         log_info "Version override from CLI: ${service_version}"
     else
-        service_version=$(resolve_chart_version "$service_name" "$svc_yaml_content")
+        service_version=$(resolve_chart_version "$CL_SERVICE" "$svc_yaml_content") || return 1
+    fi
+    if [[ -z "$service_version" ]]; then
+        log_error "No chart version resolved for '${CL_SERVICE}'."
+        return 1
     fi
 
     log_header "Installing service: ${service_name} (release: ${service_release}, namespace: ${service_namespace})"
-    [[ -n "$service_version" ]] && log_info "Version: ${service_version}"
-    log_info "Chart repo: ${repo_name} / ${repo_url}"
 
     helm_set_args=()
+    # Service actions can append conditional values before arguments are built.
+    local additional_base_values=()
 
     # ── Pre-install hooks ─────────────────────────────────────────────────
 
@@ -155,12 +149,12 @@ main() {
 
     # ── Resolve helm chart path ───────────────────────────────────────────
 
-    resolve_helm_repo "$repo_url" "$repo_name" "$chart_name"
+    resolve_service_chart "$CL_SERVICE" "$svc_yaml_content" || return 1
 
     # ── Build helm -f override args ───────────────────────────────────────
 
     local override_lines
-    override_lines=$(build_helm_args "$svc_yaml_content")
+    override_lines=$(build_helm_args "$svc_yaml_content" "${additional_base_values[@]}") || return 1
     local helm_timeout
     helm_timeout=$(resolve_helm_timeout "$svc_yaml_content")
 
@@ -193,8 +187,18 @@ main() {
 
     # ── Prepare kustomize post-renderer args ──────────────────────────────
 
+    # With --config the service may select a different overlay (for example the
+    # Envoy config-mode overlay that omits the legacy flex-gateway resources).
+    local renderer_mode=""
+    [[ -n "$CL_GATEWAY_CONFIG" ]] && renderer_mode="gateway-config"
+
     local post_renderer_args=""
-    post_renderer_args=$(build_post_renderer_args "$svc_yaml_content" "$service_name")
+    post_renderer_args=$(build_post_renderer_args "$svc_yaml_content" "$service_name" "$renderer_mode")
+
+    if [[ -n "$renderer_mode" && -n "$post_renderer_args" ]]; then
+        ensure_kustomize_overlay_path \
+            "$(resolve_kustomize_overlay_path "$svc_yaml_content" "$service_name" "$renderer_mode")" || return 1
+    fi
 
     # ── Multi-chart install check ─────────────────────────────────────────
 
@@ -210,11 +214,10 @@ main() {
     # ── CRD-first install check (mariadb-operator) ────────────────────────
 
     local crd_name
-    crd_name=$(echo "$svc_yaml_content" | yq e '.crd_chart // ""' -)
+    crd_name=$(echo "$svc_yaml_content" | yq e '.chart.service_crds // .crd_chart // ""' -)
     if [[ -n "$crd_name" && "$crd_name" != '""' ]]; then
         # For mariadb-operator, install CRDs first, then main chart
-        local crd_repo_name="${repo_name}-crds"
-        helm_install_crds "$service_name" "$crd_name" "$service_version" "$crd_repo_name" "$repo_url" "$helm_timeout"
+        helm_install_crds "$service_name" "$crd_name" "$service_version" "$HELM_CHART_PATH" "$service_namespace" "$helm_timeout" || return 1
     fi
 
     # ── Assemble final helm command ───────────────────────────────────────
@@ -245,9 +248,16 @@ main() {
     # ── Post-install hooks ────────────────────────────────────────────────
 
     if [[ "$helm_status" -eq 0 && -n "$CL_GATEWAY_CONFIG" ]]; then
-        log_header "Applying gateway config: ${CL_GATEWAY_CONFIG}"
-        "${SCRIPT_DIR}/setup-envoy-gateway.sh" --config "$CL_GATEWAY_CONFIG" ||
-            log_error "Failed to apply gateway config for '${service_name}'."
+        log_header "Waiting for ${service_name} to be available"
+        if "$KUBECTL_BIN" -n "$service_namespace" wait --timeout=5m \
+            deployments.apps/envoy-gateway --for=condition=available; then
+            log_header "Applying gateway config: ${CL_GATEWAY_CONFIG}"
+            "${SCRIPT_DIR}/setup-envoy-gateway.sh" --config "$CL_GATEWAY_CONFIG" ||
+                log_error "Failed to apply gateway config for '${service_name}'."
+        else
+            log_error "'${service_name}' did not become available; gateway config was not applied."
+            helm_status=1
+        fi
     fi
 
     if [[ "$(echo "$svc_yaml_content" | yq e '.post_install_actions | length // 0' -)" -gt 0 ]]; then

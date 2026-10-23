@@ -1882,6 +1882,7 @@ function configureGenestackRemote() {
         declare -f writeEndpointsConfig
         declare -f writeOpenstackComponentsConfig
         declare -f detectPlatform
+        declare -f ensureTool
         declare -f ensureYq
         declare -f installYq
 
@@ -1929,6 +1930,7 @@ function runGenestackSetupRemote() {
     {
         declare -f runGenestackSetup
         declare -f detectPlatform
+        declare -f ensureTool
         declare -f ensureYq
         declare -f installYq
 
@@ -2075,6 +2077,7 @@ function createPostSetupResourcesRemote() {
     {
         declare -f createPostSetupResources
         declare -f detectPlatform
+        declare -f ensureTool
         declare -f ensureYq
         declare -f installYq
 

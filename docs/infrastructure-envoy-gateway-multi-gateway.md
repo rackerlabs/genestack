@@ -24,7 +24,7 @@ The generated configuration file is normally:
 /etc/genestack/envoy-gateways.yaml
 ```
 
-When using config mode, use `install.sh --service envoy-gateway --config`
+When using config mode, use `install.sh --service envoyproxy-gateway --config`
 instead of calling only `setup-envoy-gateway.sh --config`. The installer
 updates the Envoy Helm release and then applies the configured gateways and
 routes as a post-install hook.
@@ -315,7 +315,7 @@ Confirm:
 Run the install script with the config file:
 
 ``` shell
-sudo /opt/genestack/bin/install.sh --service envoy-gateway \
+sudo /opt/genestack/bin/install.sh --service envoyproxy-gateway \
   --config /etc/genestack/envoy-gateways.yaml
 ```
 
@@ -498,7 +498,7 @@ Schedule a maintenance window if the current gateway serves production traffic.
 Then run:
 
 ``` shell
-sudo /opt/genestack/bin/install.sh --service envoy-gateway \
+sudo /opt/genestack/bin/install.sh --service envoyproxy-gateway \
   --config /etc/genestack/envoy-gateways.yaml
 ```
 
@@ -579,7 +579,7 @@ requires reinstalling Envoy without `--config` and rerunning the original setup
 flow for the deployment domain:
 
 ``` shell
-sudo /opt/genestack/bin/install.sh --service envoy-gateway
+sudo /opt/genestack/bin/install.sh --service envoyproxy-gateway
 sudo /opt/genestack/bin/setup-envoy-gateway.sh \
   --domain example.com
 ```

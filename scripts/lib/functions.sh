@@ -164,7 +164,7 @@ function installYq() {
 # Override these environment variables for air-gapped or internal artifactory environments.
 function installHelm() {
     echo "Installing helm..."
-    local version="${HELM_VERSION:-v3.17.3}"
+    local version="${HELM_VERSION:-v3.22.1}"
     local download_base_url="${HELM_DOWNLOAD_BASE_URL:-https://get.helm.sh}"
     local archive download_url extract_dir
 
@@ -188,22 +188,18 @@ function installHelm() {
     ${SUDO_CMD} chmod +x /usr/local/bin/helm
 }
 
-# Ensure yq is installed, install if missing
+# Ensure yq is installed, honoring an explicit YQ_VERSION.
 # Usage: ensureYq
 function ensureYq() {
-    if ! yq --version &> /dev/null; then
-        echo "yq is not installed. Attempting to install yq"
-        installYq
-    fi
+    ensureTool yq installYq "${YQ_VERSION:-}" \
+        yq --version
 }
 
-# Ensure helm is installed, install if missing
+# Ensure helm is installed, honoring an explicit HELM_VERSION.
 # Usage: ensureHelm
 function ensureHelm() {
-    if ! helm version --short &> /dev/null; then
-        echo "helm is not installed. Attempting to install helm"
-        installHelm
-    fi
+    ensureTool helm installHelm "${HELM_VERSION:-}" \
+        helm version --short
 }
 
 function installCmctl() {
@@ -245,9 +241,48 @@ function installCmctl() {
     ${SUDO_CMD} install -o root -g root -m 0755 "${tmpdir}/cmctl" /usr/local/bin/cmctl
 }
 
-function ensureCmctl() {
-    if ! command -v cmctl >/dev/null 2>&1; then
-        echo "cmctl is not installed. Attempting to install cmctl"
-        installCmctl
+# Ensure a tool is installed, honoring an explicit requested version.
+# Usage: ensureTool NAME INSTALL_FUNCTION REQUESTED_VERSION VERSION_COMMAND...
+function ensureTool() {
+    local name="$1"
+    local installer="$2"
+    local requested_version="$3"
+    shift 3
+
+    local version_output installed_version
+    local version_pattern='v?([0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?)'
+
+    if ! version_output="$("$@" 2>/dev/null)"; then
+        echo "${name} is unavailable. Installing..."
+        "$installer"
+        return $?
     fi
+
+    # Preserve existing installations unless a version is explicitly requested.
+    if [[ -z "$requested_version" ]]; then
+        return 0
+    fi
+
+    # Extract the version, preserving prereleases and ignoring build metadata.
+    if [[ "$version_output" =~ $version_pattern ]]; then
+        installed_version="${BASH_REMATCH[1]}"
+    else
+        echo "Error: Cannot determine installed ${name} version." >&2
+        return 1
+    fi
+
+    if [[ "$installed_version" != "${requested_version#v}" ]]; then
+        echo "Changing ${name} from v${installed_version} to ${requested_version}..."
+        "$installer"
+        return $?
+    fi
+
+    return 0
+}
+
+# Ensure cmctl is installed, honoring an explicit CMCTL_VERSION.
+# Usage: ensureCmctl
+function ensureCmctl() {
+    ensureTool cmctl installCmctl "${CMCTL_VERSION:-}" \
+        cmctl version --client
 }

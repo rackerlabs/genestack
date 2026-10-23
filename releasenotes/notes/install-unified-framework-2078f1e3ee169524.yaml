@@ -13,6 +13,17 @@ features:
     (introduced with per-service secret bootstrapping) are now the
     single source of truth for install-time chart selection, secret
     wiring, kustomize post-rendering, and Helm timeouts.
+  - |
+    Chart sources and versions resolve from merged service configuration.
+    Configuration precedence is repository family defaults, repository service
+    defaults, site family overrides, then site service overrides. Site files
+    live in /etc/genestack/service-configs/; bootstrap creates this directory.
+    Explicit service.family: "" skips family files.
+  - |
+    HTTP(S) Helm repositories, full OCI chart URLs, and local charts share the
+    same resolver. An empty chart.repo_url selects
+    base-helm-configs/<chart.service_name> under GENESTACK_BASE_DIR. MariaDB
+    CRD charts follow the operator's repository, registry, or local directory.
 upgrade:
   - |
     All bin/install-*.sh bootstrap scripts have been removed. Use
@@ -24,30 +35,63 @@ upgrade:
 
     --service is the only required flag; every other --* flag after
     the service name is passed through directly to helm upgrade
-    --install. --config <file> is forwarded to the envoy-gateway
-    post-install hook (setup-envoy-gateway.sh).
+    --install.
+  - |
+    install.sh --service envoyproxy-gateway --config <file> (or
+    --gateway-config) deploys Envoy Gateway in config mode, as
+    install-envoy-gateway.sh did. A service may define
+    kustomize.gateway_config_overlay_path; when --config is passed that
+    overlay replaces kustomize.overlay_path. envoyproxy-gateway uses
+    envoyproxy-gateway/config-mode, which omits the legacy flex-gateway
+    resources. If the overlay is missing under /etc/genestack/kustomize it
+    is linked from base-kustomize, otherwise the install stops before running
+    Helm. After a successful Helm install, the installer waits up to 5 minutes
+    for deployments.apps/envoy-gateway to become available, then runs
+    setup-envoy-gateway.sh --config <file>. If the deployment does not become
+    available, the gateway configuration is not applied and install.sh exits
+    with an error. Services without gateway_config_overlay_path keep
+    their normal overlay.
   - |
     The helm overrides chain is now explicit:
 
     1. Upstream chart values (defaults from the chart)
     2. -f base-helm-configs/<svc>/*.yaml (genestack default values)
     3. -f /etc/genestack/helm-configs/global_overrides/*.yaml
-       (cluster-wide overrides)
+       (cluster-wide overrides; skipped when chart.global_overrides is false)
     4. -f /etc/genestack/helm-configs/<svc>/*.yaml (per-cluster overrides)
-    5. -f /etc/genestack/service-configs/<svc>.yaml (air-gap service
-       overrides; merged over the service YAML at load time)
-    6. --set (injected secrets)
-    7. User-passed flags
+    5. --set (injected secrets)
+    6. User-passed flags
 
-    Later files override earlier ones for the same key.
+    Later files override earlier ones for the same key. Directory files are
+    loaded alphabetically. Service-configs contain installer metadata and
+    are never passed to Helm as values files. Values directory names retain
+    chart.service_name, falling back to service.name when unset.
   - |
-    Chart version resolution is now service-name based. helm-chart-versions.yaml
-    entries keyed by the service name win over entries keyed by the
-    chart's release name, with the release-name key kept as a fallback.
-    Two keys were renamed to match their service name:
-    envoyproxy-gateway -> envoy-gateway and the openstack-exporter
-    entry (previously matched by chart.service_name
-    openstack-api-exporter) is now keyed by openstack-exporter.
+    Version precedence is CLI --version, merged service.version, then the
+    charts.<service> entry in /etc/genestack/helm-chart-versions.yaml, with
+    chart.service_name kept as a fallback key. Installation stops if no
+    version resolves. Set service.version in a site service file to pin one
+    service. A version set in a site family file applies to all services
+    inheriting that family, unless overridden by a site service file.
+    No existing helm-chart-versions.yaml keys were renamed;
+    envoyproxy-gateway keeps its key. The openstack-exporter service resolves
+    through its chart.service_name, so helm-chart-versions.yaml now includes an
+    openstack-api-exporter entry. A tempest entry was also added. Add both to
+    an existing /etc/genestack/helm-chart-versions.yaml, or set
+    service.version in a site service file, before installing those services.
+  - |
+    Move chart.repo_url, chart.repo_name, and chart.service_name from
+    /etc/genestack/helm-configs/<service>/*.yaml to
+    /etc/genestack/service-configs/<service>.yaml. The helm-configs files remain
+    Helm values only. OCI chart.repo_url must be the complete chart path, for
+    example oci://registry.example.com/charts/nova. HTTP(S) URLs require
+    chart.repo_name.
+  - |
+    Standalone Fluent Bit, Kube-OVN, Longhorn, MetalLB, Postgres Operator,
+    Pushgateway, Redis Sentinel, and Envoy Gateway now skip common families.
+    Put their chart settings in service-specific site files. Set
+    chart.global_overrides: true explicitly to include shared global Helm
+    values for services whose defaults disable them.
   - |
     qonos is a kustomize-based deployment and no longer ships as a
     bin/install-*.sh script. Its installer moved to
