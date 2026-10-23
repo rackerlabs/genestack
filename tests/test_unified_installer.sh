@@ -281,7 +281,7 @@ if [[ "${1:-}" == "wait" && "${KUBECTL_FAIL_WAIT:-0}" == "1" ]]; then
 fi
 
 if [[ "${1:-}" == "get" && "${2:-}" == "deploy" ]]; then
-    echo "false"
+    echo "${KUBECTL_ENABLE_SSL:-false}"
     exit 0
 fi
 
@@ -332,6 +332,11 @@ set -euo pipefail
 
 if [[ -n "${HELM_LOG_FILE:-}" ]]; then
     printf '%s\n' "$*" >> "${HELM_LOG_FILE}"
+fi
+
+# Record what a post-renderer started by helm would inherit.
+if [[ -n "${HELM_ENV_LOG_FILE:-}" && "${1:-}" == "upgrade" ]]; then
+    printf 'SSL=%s\n' "${GENESTACK_KUBE_OVN_ENABLE_SSL:-unset}" >> "${HELM_ENV_LOG_FILE}"
 fi
 
 if [[ "${1:-}" == "upgrade" && "${2:-}" == "--install" && "${HELM_FAIL_UPGRADE:-0}" == "1" ]]; then
@@ -387,6 +392,10 @@ validate_action_schemas() {
                         [[ -n "$resource" ]] || failures+="${svc}:${action_path}:${type}:resource-required"$'\n'
                         ;;
                     namespace_resource_dump_if_pods_present)
+                        ;;
+                    ovn_tls_values)
+                        [[ -n "$(yq e "${action_path}[]? | select(.type == \"${type}\") | .file // \"\"" "$f" 2>/dev/null | sed '/^$/d;/^null$/d')" ]] ||
+                            failures+="${svc}:${action_path}:${type}:file-required"$'\n'
                         ;;
                     *)
                         failures+="${svc}:${action_path}:${type}:unsupported-action-type"$'\n'
@@ -1461,6 +1470,238 @@ test_service_references_and_envoy_resolution() {
     assert_matches_regex "$version" '^v?[0-9]+\.[0-9]+' "the resolved Envoy chart version must look like a version"
 }
 
+# ovn_tls_values appends its values file to additional_base_values only when
+# Kube-OVN uses SSL (CONNECTION_STRING=ssl), and fails on bad input.
+test_ovn_tls_values_action() {
+    local tmp_root svc_yaml no_file_yaml expected rc output
+    local GENESTACK_BASE_DIR CONNECTION_STRING
+    local additional_base_values=()
+    tmp_root="$(mktemp -d)"
+    GENESTACK_BASE_DIR="${tmp_root}/base"
+    expected="${GENESTACK_BASE_DIR}/base-helm-configs/tls-demo/ssl/demo-ovn-tls-overrides.yaml"
+    mkdir -p "${expected%/*}"
+    printf '{}\n' > "$expected"
+    svc_yaml="$(cat <<'EOF'
+service:
+  name: tls-demo
+pre_install_check_actions:
+  - type: ovn_tls_values
+    file: ssl/demo-ovn-tls-overrides.yaml
+EOF
+)"
+    no_file_yaml="$(cat <<'EOF'
+service:
+  name: tls-demo
+pre_install_check_actions:
+  - type: ovn_tls_values
+EOF
+)"
+
+    CONNECTION_STRING=ssl
+    additional_base_values=()
+    run_service_actions "$svc_yaml" '.pre_install_check_actions' tls-demo 2>/dev/null ||
+        fail "ovn_tls_values must succeed when the TLS file exists"
+    assert_eq "$expected" "${additional_base_values[*]:-}" "ssl must add the TLS values file"
+
+    for CONNECTION_STRING in tcp ""; do
+        additional_base_values=()
+        run_service_actions "$svc_yaml" '.pre_install_check_actions' tls-demo 2>/dev/null ||
+            fail "ovn_tls_values must succeed without SSL"
+        assert_eq "" "${additional_base_values[*]:-}" "the TLS file must not be added without SSL (CONNECTION_STRING='${CONNECTION_STRING}')"
+    done
+
+    for CONNECTION_STRING in ssl tcp; do
+        rc=0
+        output="$(run_service_actions "$no_file_yaml" '.pre_install_check_actions' tls-demo 2>&1)" || rc=$?
+        assert_eq "1" "$rc" "ovn_tls_values without a file must fail (CONNECTION_STRING=${CONNECTION_STRING})"
+        assert_contains "$output" "Missing file for ovn_tls_values" "a missing file field must be reported"
+    done
+
+    CONNECTION_STRING=ssl
+    rm -f "$expected"
+    rc=0
+    output="$(run_service_actions "$svc_yaml" '.pre_install_check_actions' tls-demo 2>&1)" || rc=$?
+    assert_eq "1" "$rc" "ssl with a missing TLS file must fail instead of installing without certificates"
+    assert_contains "$output" "Kube-OVN TLS values file not found" "a missing TLS file must be reported"
+}
+
+# install.sh --service neutron|octavia must pass the OVN TLS values file to
+# Helm only when Kube-OVN uses SSL, after the base values and before the
+# global and site overrides.
+test_install_ovn_tls_values() {
+    local service ssl fakebin tmp_root tmp_base tmp_overrides helm_log cmd tls_file before after
+    fakebin="$(mktemp -d)"
+    create_fake_installer_binaries "$fakebin"
+
+    for service in neutron octavia; do
+        for ssl in true false; do
+            tmp_root="$(mktemp -d)"
+            tmp_base="${tmp_root}/base"
+            tmp_overrides="${tmp_root}/overrides"
+            helm_log="${tmp_root}/helm.log"
+            tls_file="${tmp_base}/base-helm-configs/${service}/ssl/${service}-ovn-tls-overrides.yaml"
+            mkdir -p "${tmp_base}/base-helm-configs" "${tmp_overrides}/kustomize" \
+                "${tmp_overrides}/helm-configs/global_overrides" "${tmp_overrides}/helm-configs/${service}"
+            cp -R "${REPO_ROOT}/base-helm-configs/${service}" "${tmp_base}/base-helm-configs/"
+            mkdir -p "${tmp_base}/base-kustomize"
+            [[ ! -d "${REPO_ROOT}/base-kustomize/${service}" ]] || cp -R "${REPO_ROOT}/base-kustomize/${service}" "${tmp_base}/base-kustomize/"
+            : > "${tmp_overrides}/helm-configs/global_overrides/global.yaml"
+            : > "${tmp_overrides}/helm-configs/${service}/site.yaml"
+            printf '#!/bin/bash\nexit 0\n' > "${tmp_overrides}/kustomize/kustomize.sh"
+            chmod +x "${tmp_overrides}/kustomize/kustomize.sh"
+            printf 'charts:\n  %s: 1.0.0\n' "$service" > "${tmp_overrides}/helm-chart-versions.yaml"
+
+            PATH="${fakebin}:$PATH" \
+                KUBECTL_BIN=kubectl \
+                KUBECTL_ENABLE_SSL="$ssl" \
+                HELM_LOG_FILE="$helm_log" \
+                HELM_ENV_LOG_FILE="${tmp_root}/helm-env.log" \
+                GENESTACK_BASE_DIR="$tmp_base" \
+                GENESTACK_OVERRIDES_DIR="$tmp_overrides" \
+                GENESTACK_SERVICES_DIR="${REPO_ROOT}/bin/services" \
+                GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
+                "${REPO_ROOT}/bin/install.sh" --service "$service" --dry-run >/dev/null 2>&1 ||
+                fail "install.sh --service ${service} must succeed (ENABLE_SSL=${ssl})"
+            cmd="$(grep '^upgrade --install' "$helm_log")"
+
+            # Octavia runs its own post-renderer, which needs to know whether
+            # Kube-OVN uses SSL; Neutron keeps the generic kustomize post-renderer.
+            assert_contains "$(cat "${tmp_root}/helm-env.log")" "SSL=${ssl}" \
+                "helm must inherit GENESTACK_KUBE_OVN_ENABLE_SSL=${ssl} for ${service}"
+            if [[ "$service" == "octavia" ]]; then
+                assert_contains "$cmd" \
+                    "--post-renderer ${tmp_base}/base-kustomize/octavia/post-renderer.sh --post-renderer-args octavia/overlay" \
+                    "octavia must use its own post-renderer script"
+            else
+                assert_contains "$cmd" \
+                    "--post-renderer ${tmp_overrides}/kustomize/kustomize.sh --post-renderer-args ${service}/overlay" \
+                    "${service} must keep the generic kustomize post-renderer"
+            fi
+
+            if [[ "$ssl" == "true" ]]; then
+                assert_contains "$cmd" "ssl:" "${service} must use ssl OVN connections when Kube-OVN uses SSL"
+                assert_contains "$cmd" "-f ${tls_file}" "${service} must pass its OVN TLS values file when Kube-OVN uses SSL"
+                before="${cmd%%-f ${tls_file}*}"
+                after="${cmd#*-f ${tls_file}}"
+                assert_contains "$before" "${service}-helm-overrides.yaml" "the TLS values must come after the base values"
+                assert_contains "$after" "global_overrides/global.yaml" "the TLS values must come before the global overrides"
+                assert_contains "$after" "helm-configs/${service}/site.yaml" "the TLS values must come before the site overrides"
+            else
+                assert_not_contains "$cmd" "ssl/${service}-ovn-tls-overrides.yaml" \
+                    "${service} must not pass the OVN TLS values file when Kube-OVN does not use SSL"
+            fi
+        done
+    done
+}
+
+# kustomize.post_renderer swaps the post-renderer script (relative to
+# GENESTACK_BASE_DIR) and rejects missing, non-executable and unsafe paths.
+test_custom_post_renderer() {
+    local tmp_root svc_yaml args rc output
+    local HELM_KUSTOMIZE_CMD GENESTACK_BASE_DIR
+    tmp_root="$(mktemp -d)"
+    GENESTACK_BASE_DIR="${tmp_root}/base"
+    HELM_KUSTOMIZE_CMD="${tmp_root}/kustomize.sh"
+    mkdir -p "${GENESTACK_BASE_DIR}/base-kustomize/demo"
+    printf '#!/bin/bash\nexit 0\n' > "$HELM_KUSTOMIZE_CMD"
+    printf '#!/bin/bash\nexit 0\n' > "${GENESTACK_BASE_DIR}/base-kustomize/demo/post-renderer.sh"
+    chmod +x "$HELM_KUSTOMIZE_CMD" "${GENESTACK_BASE_DIR}/base-kustomize/demo/post-renderer.sh"
+
+    svc_yaml="$(cat <<'EOF'
+service:
+  name: demo
+kustomize:
+  enabled: true
+  overlay_path: ${service_name}/overlay
+  post_renderer: base-kustomize/demo/post-renderer.sh
+EOF
+)"
+    args="$(build_post_renderer_args "$svc_yaml" demo)"
+    assert_eq $'--post-renderer\n'"${GENESTACK_BASE_DIR}/base-kustomize/demo/post-renderer.sh"$'\n--post-renderer-args\ndemo/overlay' "$args" \
+        "a service post_renderer must replace kustomize.sh and keep the overlay argument"
+
+    chmod -x "${GENESTACK_BASE_DIR}/base-kustomize/demo/post-renderer.sh"
+    rc=0
+    output="$(build_post_renderer_args "$svc_yaml" demo 2>&1)" || rc=$?
+    assert_eq "1" "$rc" "a non-executable post-renderer must fail"
+    assert_contains "$output" "not found or not executable" "a non-executable post-renderer must be reported"
+
+    rm -f "${GENESTACK_BASE_DIR}/base-kustomize/demo/post-renderer.sh"
+    rc=0
+    output="$(build_post_renderer_args "$svc_yaml" demo 2>&1)" || rc=$?
+    assert_eq "1" "$rc" "a missing post-renderer must fail instead of falling back to kustomize.sh"
+
+    for unsafe in /usr/bin/helm ../outside.sh; do
+        rc=0
+        output="$(build_post_renderer_args "$(printf '%s\n' "$svc_yaml" | yq ".kustomize.post_renderer = \"${unsafe}\"")" demo 2>&1)" || rc=$?
+        assert_eq "1" "$rc" "post_renderer '${unsafe}' must be rejected"
+        assert_contains "$output" "must be a path relative to" "an unsafe post_renderer path must be reported"
+    done
+}
+
+# Run the real Octavia post-renderer against a sample manifest: with SSL it
+# adds the ovn-tls mount to the octavia-agent sidecar (which only exists after
+# kustomize), without SSL it removes every ovn-tls volume and mount.
+test_octavia_post_renderer_ssl_wiring() {
+    local tmp_root overrides script out rc output sidecar_mounts total_mounts volumes
+    tmp_root="$(mktemp -d)"
+    overrides="${tmp_root}/overrides"
+    script="${REPO_ROOT}/base-kustomize/octavia/post-renderer.sh"
+    mkdir -p "${overrides}/kustomize"
+    cat > "${tmp_root}/rendered.yaml" <<'EOF'
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: octavia-api
+spec:
+  template:
+    spec:
+      containers:
+        - name: octavia-api
+          volumeMounts:
+            - name: ovn-tls
+              mountPath: /etc/octavia/ovn
+        - name: octavia-agent
+          volumeMounts:
+            - name: pod-run-octavia
+              mountPath: /var/run/octavia
+      volumes:
+        - name: ovn-tls
+          secret:
+            secretName: ovn-client-tls
+EOF
+    printf '#!/bin/bash\ncat "%s/rendered.yaml"\n' "$tmp_root" > "${overrides}/kustomize/kustomize.sh"
+    chmod +x "${overrides}/kustomize/kustomize.sh"
+
+    out="${tmp_root}/out.yaml"
+    GENESTACK_OVERRIDES_DIR="$overrides" GENESTACK_KUBE_OVN_ENABLE_SSL=true "$script" octavia/overlay > "$out" ||
+        fail "the octavia post-renderer must succeed with SSL"
+    sidecar_mounts="$(yq e '.spec.template.spec.containers[] | select(.name == "octavia-agent") | .volumeMounts[] | select(.name == "ovn-tls") | .mountPath' "$out")"
+    assert_eq "/etc/octavia/ovn" "$sidecar_mounts" "with SSL the octavia-agent sidecar must get the ovn-tls mount"
+    volumes="$(yq e '[.spec.template.spec.volumes[] | select(.name == "ovn-tls")] | length' "$out")"
+    assert_eq "1" "$volumes" "with SSL the ovn-tls volume must be kept"
+
+    for state in false unset; do
+        if [[ "$state" == unset ]]; then
+            GENESTACK_OVERRIDES_DIR="$overrides" env -u GENESTACK_KUBE_OVN_ENABLE_SSL "$script" octavia/overlay > "$out" ||
+                fail "the octavia post-renderer must succeed without the SSL variable"
+        else
+            GENESTACK_OVERRIDES_DIR="$overrides" GENESTACK_KUBE_OVN_ENABLE_SSL=false "$script" octavia/overlay > "$out" ||
+                fail "the octavia post-renderer must succeed without SSL"
+        fi
+        total_mounts="$(yq e '[.spec.template.spec.containers[].volumeMounts[]? | select(.name == "ovn-tls")] | length' "$out")"
+        volumes="$(yq e '[.spec.template.spec.volumes[]? | select(.name == "ovn-tls")] | length' "$out")"
+        assert_eq "0/0" "${total_mounts}/${volumes}" "without SSL (${state}) every ovn-tls mount and volume must be removed"
+    done
+
+    # With SSL the sidecar must exist; a missing one is a hard error.
+    yq -i 'del(.spec.template.spec.containers[] | select(.name == "octavia-agent"))' "${tmp_root}/rendered.yaml"
+    rc=0
+    output="$(GENESTACK_OVERRIDES_DIR="$overrides" GENESTACK_KUBE_OVN_ENABLE_SSL=true "$script" octavia/overlay 2>&1)" || rc=$?
+    [[ "$rc" -ne 0 ]] || fail "with SSL a missing octavia-agent sidecar must fail the post-renderer"
+    assert_contains "$output" "Unable to find the Octavia OVN driver-agent sidecar" "a missing sidecar must be reported"
+}
+
 # Isolate configuration fixtures and resolver mocks from the secret tests.
 test_config_layer_precedence() (
     local root merged sources
@@ -1730,6 +1971,10 @@ main() {
     test_post_install_skipped_on_helm_failure
     test_install_gateway_config_mode
     test_service_references_and_envoy_resolution
+    test_ovn_tls_values_action
+    test_install_ovn_tls_values
+    test_custom_post_renderer
+    test_octavia_post_renderer_ssl_wiring
     echo "PASS: unified installer regression checks"
 }
 

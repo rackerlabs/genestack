@@ -87,6 +87,22 @@ upgrade:
     example oci://registry.example.com/charts/nova. HTTP(S) URLs require
     chart.repo_name.
   - |
+    Neutron and Octavia pass their OVN TLS values file
+    (base-helm-configs/<service>/ssl/<service>-ovn-tls-overrides.yaml) to Helm
+    when Kube-OVN has networking.ENABLE_SSL=true, as the old installers did.
+    The file is placed after the base values and before the global and site
+    overrides. This is done by the new ovn_tls_values pre_install_check action
+    in bin/services/neutron.yaml and octavia.yaml. If SSL is enabled and the
+    file is missing, the install fails.
+  - |
+    A service can name its own Helm post-renderer with kustomize.post_renderer
+    (a path relative to the Genestack checkout). Octavia uses
+    base-kustomize/octavia/post-renderer.sh, as the old install-octavia.sh did,
+    so the OVN TLS mount is added to the octavia-agent sidecar when Kube-OVN
+    uses SSL. The ovn_tls detection now exports
+    GENESTACK_KUBE_OVN_ENABLE_SSL for post-renderers. A missing or
+    non-executable script fails the install.
+  - |
     Standalone Fluent Bit, Kube-OVN, Longhorn, MetalLB, Postgres Operator,
     Pushgateway, Redis Sentinel, and Envoy Gateway now skip common families.
     Put their chart settings in service-specific site files. Set

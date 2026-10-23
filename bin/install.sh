@@ -193,7 +193,10 @@ main() {
     [[ -n "$CL_GATEWAY_CONFIG" ]] && renderer_mode="gateway-config"
 
     local post_renderer_args=""
-    post_renderer_args=$(build_post_renderer_args "$svc_yaml_content" "$service_name" "$renderer_mode")
+    post_renderer_args=$(build_post_renderer_args "$svc_yaml_content" "$service_name" "$renderer_mode") || return 1
+    # Post-renderer scripts started by helm read the overrides directory from
+    # the environment.
+    export GENESTACK_OVERRIDES_DIR
 
     if [[ -n "$renderer_mode" && -n "$post_renderer_args" ]]; then
         ensure_kustomize_overlay_path \

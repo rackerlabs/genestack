@@ -137,6 +137,18 @@ kustomize:
   #   characters in the overlay path.
   overlay_path: example-service/overlay
 
+  # -- post_renderer (optional)
+  # Path, relative to $GENESTACK_BASE_DIR, of a script to use as the Helm
+  # post-renderer instead of kustomize.sh. The script receives the same
+  # arguments (the overlay path) and is expected to run
+  # $GENESTACK_OVERRIDES_DIR/kustomize/kustomize.sh itself before making any
+  # further changes. It must exist and be executable; the install fails
+  # otherwise. Absolute paths and ".." are rejected.
+  # Example: octavia uses base-kustomize/octavia/post-renderer.sh, which adds
+  # the OVN TLS mount to the octavia-agent sidecar when
+  # GENESTACK_KUBE_OVN_ENABLE_SSL=true (exported by detect_kube_ovn_tls).
+  post_renderer: ~
+
   # -- gateway_config_overlay_path (optional)
   # Alternate overlay used instead of overlay_path when install.sh is run with
   # --config (or --gateway-config). Same format as overlay_path: relative to
@@ -200,7 +212,14 @@ pre_install_actions: []
 # Supported pre_install_check action types:
 #   - detect_kube_ovn_tls
 #   - ensure_ovn_client_tls_secret
+#   - ovn_tls_values
 #   - ovn_connection_set_args
+#
+# ovn_tls_values adds the values file named by `file` (relative to
+# base-helm-configs/<chart>/) to the Helm -f list, after the base values and
+# before the global and site overrides, but only when Kube-OVN uses SSL. It
+# must come after detect_kube_ovn_tls. The install fails if the file is
+# missing while SSL is enabled.
 #
 # Example (used by neutron.yaml and octavia.yaml):
 # pre_install_check_actions:
@@ -211,6 +230,8 @@ pre_install_actions: []
 #     target_namespace: openstack
 #     source_secret: kube-ovn-tls
 #     target_secret: ovn-client-tls
+#   - type: ovn_tls_values
+#     file: ssl/example-ovn-tls-overrides.yaml
 #   - type: ovn_connection_set_args
 #     entries:
 #       - helm_key: conf.example.ovn.ovn_nb_connection

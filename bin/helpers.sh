@@ -376,9 +376,26 @@ build_post_renderer_args() {
     overlay_path=$(resolve_kustomize_overlay_path "$svc_yaml_content" "$service_name" "$mode")
 
     if [[ "$kustomize_enabled" == "true" && -f "$HELM_KUSTOMIZE_CMD" ]]; then
+        # A service may name its own post-renderer script (path relative to
+        # GENESTACK_BASE_DIR), for example to adjust the rendered manifests
+        # after kustomize. That script runs kustomize.sh itself and receives
+        # the same arguments, so the overlay path is unchanged.
+        local renderer="$HELM_KUSTOMIZE_CMD" custom_renderer
+        custom_renderer=$(echo "$svc_yaml_content" | yq e '.kustomize.post_renderer // ""' -)
+        if [[ -n "$custom_renderer" && "$custom_renderer" != "null" ]]; then
+            if [[ "$custom_renderer" == /* || "$custom_renderer" == *..* ]]; then
+                log_error "kustomize.post_renderer must be a path relative to ${GENESTACK_BASE_DIR}: ${custom_renderer}"
+                return 1
+            fi
+            renderer="${GENESTACK_BASE_DIR}/${custom_renderer}"
+            if [[ ! -x "$renderer" ]]; then
+                log_error "Post-renderer script not found or not executable: ${renderer}"
+                return 1
+            fi
+        fi
         printf '%s\n%s\n%s\n%s\n' \
             "--post-renderer" \
-            "${HELM_KUSTOMIZE_CMD}" \
+            "${renderer}" \
             "--post-renderer-args" \
             "${overlay_path}"
     fi
@@ -692,6 +709,30 @@ run_service_action() {
                         $KUBECTL_BIN get "$resource_name" --namespace "$namespace"
                     done
                 fi
+            fi
+            ;;
+        ovn_tls_values)
+            # Adds a values file (relative to base-helm-configs/<chart>/) only
+            # when Kube-OVN uses SSL, so the TLS mounts and client settings are
+            # rendered only then. detect_kube_ovn_tls must run first; it sets
+            # CONNECTION_STRING. The file is appended to additional_base_values
+            # in the caller (install.sh); build_helm_args places it after the
+            # base values and before the global and site overrides.
+            local tls_values_file tls_values_chart tls_values_path
+            tls_values_file=$(echo "$svc_yaml_content" | yq e "${actions_path}[${action_index}].file // \"\"" -)
+            if [[ -z "$tls_values_file" ]]; then
+                log_error "Missing file for ovn_tls_values action in '${service_name}'."
+                return 1
+            fi
+            if [[ "${CONNECTION_STRING:-}" == "ssl" ]]; then
+                tls_values_chart=$(echo "$svc_yaml_content" | yq e '.chart.service_name // .service.name' -)
+                tls_values_path="${GENESTACK_BASE_DIR}/base-helm-configs/${tls_values_chart}/${tls_values_file}"
+                if [[ ! -f "$tls_values_path" ]]; then
+                    log_error "Kube-OVN TLS values file not found: ${tls_values_path}"
+                    return 1
+                fi
+                log_info "Including Kube-OVN TLS values: ${tls_values_path}"
+                additional_base_values+=("$tls_values_path")
             fi
             ;;
         "")
@@ -2660,6 +2701,10 @@ detect_kube_ovn_tls() {
         kube_ovn_tls="true"
     fi
 
+    # Exported for Helm post-renderers (for example Octavia's), which run as
+    # child processes of helm and decide whether to wire in the OVN TLS mounts.
+    GENESTACK_KUBE_OVN_ENABLE_SSL="$kube_ovn_tls"
+    export GENESTACK_KUBE_OVN_ENABLE_SSL
     if [[ "$kube_ovn_tls" == "true" ]]; then
         CONNECTION_STRING="ssl"
     else
