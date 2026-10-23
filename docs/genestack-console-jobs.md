@@ -2,7 +2,7 @@
 
 A job is one operation on one environment. You start it from the web page or from `POST /api/v1/jobs`. The worker on the deploy host runs it. This page is the list of operations that ship with the console, and the shape of one you add.
 
-The install chapter is [Genestack Console](genestack-console.md). How the process is split is [The console program](genestack-console-program.md). How a queued job is claimed and where the command runs is [How a job runs](genestack-console-runtime.md). The binary named on the install chapter is `v2026.10.03`. This list is the source on `main`.
+The install chapter is [Genestack Console](genestack-console.md). How the process is split is [The console program](genestack-console-program.md). How a queued job is claimed and where the command runs is [How a job runs](genestack-console-runtime.md). Getting Started installs the latest release.
 
 ## How a job is found
 
@@ -39,13 +39,15 @@ These run on the console computer. They are not a cloud install.
 
 These drive the checkout at `/opt/genestack`. A push writes the saved settings into `/etc/genestack`. A deploy then runs the pipeline. The pipeline is the ordered list of install scripts in `app/services/service_registry.py`.
 
+Deploy over SSH from the next action passes `parallelism` 2. Keystone still finishes first. Placement and Glance then run together. Every other stage stays one script at a time. The job log ends with a `[timing] scoreboard` of seconds per stage, plus how many items waited and how many ran beside another. A release runs the build matrix before it compiles, and publishes `build-report.json` with one row per intake. Those rows record the jobs and mark the hardware as not run.
+
 | Id | File | What it does |
 | --- | --- | --- |
 | `genestack.config.push` | `app/modules/genestack/config_push.py` | Writes the saved settings onto the deploy host. |
 | `genestack.deploy` | `app/modules/genestack/deploy.py` | Pushes the settings, then runs the pipeline. Admin. Required stages stop the job on failure. Optional stages warn and continue. Tempest is not in this job. |
 | `genestack.pipeline.run` | `app/modules/genestack/pipeline_run.py` | Runs one stage of that pipeline. |
 | `genestack.greenfield` | `app/modules/genestack/greenfield.py` | Destructive. Wipes the selected servers, boots Talos, then deploys OpenStack. An ISO is rejected here because it does not wipe the disks. Admin. |
-| `genestack.talos.bootstrap` | `app/modules/genestack/talos_bootstrap.py` | Bootstraps a Talos cluster that is already in maintenance. |
+| `genestack.talos.bootstrap` | `app/modules/genestack/talos_bootstrap.py` | Points the console at Talos that is already waiting, such as an ISO install on a physical machine or a virtual machine. It applies a config to every saved address, bootstraps etcd once, and fetches the kubeconfig. A machine whose certificate does not match the saved config is not rebooted until you confirm that machine by name. Confirming replaces the running install. A management port can do that reboot after the confirm. If this console cannot reboot it, the job names the one step left and waits until the installer is up. Admin. |
 | `genestack.host_prepare` | `app/modules/genestack/host_prepare.py` | Prepares the deploy host. |
 | `genestack.host_setup` | `app/modules/genestack/host_setup.py` | Runs `ansible/playbooks/host-setup.yml`. That is the same role `bin/setup-hosts.sh` uses. |
 | `genestack.components.desired` | `app/modules/genestack/components_desired.py` | Reads which OpenStack services the settings ask for. |
@@ -63,8 +65,8 @@ These drive the checkout at `/opt/genestack`. A push writes the saved settings i
 | `genestack.k8s_upgrade` | `app/modules/genestack/k8s_upgrade.py` | Upgrades Kubernetes through Kubespray. |
 | `genestack.backup_mariadb` | `app/modules/genestack/backup_mariadb.py` | Backs up MariaDB. |
 | `genestack.hyperconverged_lab` | `app/modules/genestack/hyperconverged_lab.py` | Deploys the single-machine lab. |
-| `genestack.state.export` | `app/modules/genestack/state_export.py` | Writes rendered state back into a checkout of this repository. |
-| `registry.mirror` | `app/modules/genestack/registry_mirror.py` | Pulls container images into the cluster cache. |
+| `genestack.state.export` | `app/modules/genestack/state_export.py` | Writes rendered state back into a Genestack checkout. |
+| `registry.mirror` | `app/modules/genestack/registry_mirror.py` | Starts the pull-through registries and pulls every image the live cluster runs. Image cache is the button. `start_only` starts the proxies and does not pull. A full run pulls Genestack's images, images added on the environment, and images the cluster is running. OCI Helm charts land in that same cache. |
 
 The pipeline stages, in order, are:
 
@@ -101,6 +103,17 @@ These talk to the server and to the boot service. The management port is the BMC
 
 `node_actions.py` is one file because those five jobs share one body. Everything else is one operation per file.
 
+## Hosts
+
+These install an operating system, or record a cluster that is already there. Talos stays on the bare-metal jobs above.
+
+| Id | File | What it does |
+| --- | --- | --- |
+| `hosts.ubuntu.prepare` | `app/modules/hosts/ubuntu.py` | Writes one machine's Ubuntu autoinstall seed. It does not boot the machine. |
+| `hosts.ubuntu.bringup` | `app/modules/hosts/ubuntu.py` | Brings the named hosts up as Ubuntu and waits until they answer. A host that already answers stays on disk. A host that does not answer reboots into the installer. A host still on Talos is left alone unless it is named to leave. This does not install OpenStack or Kubernetes. |
+| `hosts.microk8s.install` | `app/modules/hosts/microk8s.py` | Installs the MicroK8s snap over SSH when the job is not a dry run. |
+| `hosts.kubespray.adopt` | `app/modules/hosts/kubespray.py` | Records a Kubernetes cluster that already exists. It does not run Ansible. |
+
 ## Ansible, OpenStack, and the platform
 
 | Id | File | What it does |
@@ -136,6 +149,7 @@ The platform jobs are day-2. The server is already in the cluster. They are not 
 | `hostvm.start` | `app/modules/hostvm/power.py` | Starts one. |
 | `hostvm.stop` | `app/modules/hostvm/power.py` | Stops one. |
 | `hostvm.restart` | `app/modules/hostvm/power.py` | Restarts one. |
+| `hostvm.lab` | `app/modules/hostvm/lab.py` | Starts a 3 to 5 node lab on this console host. The default is 3. Pass confirm to start the guests. Without confirm, the job writes the plan. The environment stays rehearsed until you Apply. |
 | `agent.status` | `app/modules/agents/status.py` | Reports whether the agent at a site is connected. |
 | `agent.install` | `app/modules/agents/install.py` | Installs the agent. |
 | `agent.command` | `app/modules/agents/command.py` | Runs one allow-listed command on a connected agent. |

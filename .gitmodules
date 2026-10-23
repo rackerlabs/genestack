@@ -5,4 +5,5 @@
 [submodule "submodules/genestack-console"]
 	path = submodules/genestack-console
 	url = https://github.com/PIndustries/genestack-console
+	branch = main
 	ignore = all
