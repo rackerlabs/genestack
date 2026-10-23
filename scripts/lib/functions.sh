@@ -286,3 +286,41 @@ function ensureCmctl() {
     ensureTool cmctl installCmctl "${CMCTL_VERSION:-}" \
         cmctl version --client
 }
+
+# Install egctl (Envoy Gateway CLI).
+# Supports Linux (amd64/arm64) and macOS (Intel/Apple Silicon)
+# Usage: installEgctl
+# Override these environment variables for air-gapped or internal artifactory environments.
+function installEgctl() {
+    echo "Installing egctl..."
+    local version="${EGCTL_VERSION:-v1.7.0}"
+    local github_mirror_url="${GITHUB_MIRROR_URL:-https://github.com}"
+    local download_base_url="${EGCTL_DOWNLOAD_BASE_URL:-${github_mirror_url}/envoyproxy/gateway/releases/download}"
+    local archive download_url extract_dir
+
+    detectPlatform || return 1
+
+    archive="egctl_${version}_${os}_${arch}.tar.gz"
+    download_url="${EGCTL_DOWNLOAD_URL:-${download_base_url}/${version}/${archive}}"
+    extract_dir="$(mktemp -d)"
+    trap 'rm -rf "${extract_dir}"' RETURN
+
+    echo "Detected platform: ${os}/${arch}"
+    echo "Downloading egctl from: ${download_url}"
+
+    export SUDO_CMD=""
+    if sudo -l 2>/dev/null | grep -q NOPASSWD; then
+        SUDO_CMD="/usr/bin/sudo -n "
+    fi
+
+    wget "${download_url}" -q -O - | tar xz -C "${extract_dir}"
+    ${SUDO_CMD} mv "${extract_dir}/bin/${os}/${arch}/egctl" /usr/local/bin/egctl
+    ${SUDO_CMD} chmod +x /usr/local/bin/egctl
+}
+
+# Ensure egctl is installed, honoring an explicit EGCTL_VERSION.
+# Usage: ensureEgctl
+function ensureEgctl() {
+    ensureTool egctl installEgctl "${EGCTL_VERSION:-}" \
+        egctl version --remote=false
+}

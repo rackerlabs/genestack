@@ -111,6 +111,7 @@ set -e
 ensureYq
 ensureHelm
 ensureCmctl
+ensureEgctl
 
 # Install project dependencies
 success "Configuring genestack directory and overrides directory structure:"
