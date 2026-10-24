@@ -191,6 +191,14 @@ helm:
 # Supported pre_install action types:
 #   - monitoring_grafana_db_secret_bootstrap
 #   - kube_ovn_master_discovery
+#   - cluster_name_site_value
+#
+# cluster_name_site_value records the cluster DNS domain in the service's
+# site values file, /etc/genestack/helm-configs/<chart>/<chart>-helm-overrides.yaml,
+# when CLUSTER_NAME is set to something other than cluster.local. helm_key is
+# the (dotted) chart value to set, for example clusterName. Existing settings
+# in the file are kept and the key is replaced or added. With CLUSTER_NAME
+# unset or cluster.local nothing is written.
 pre_install_actions: []
 #
 # Example (used by kube-ovn.yaml):

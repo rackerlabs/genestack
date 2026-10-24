@@ -103,6 +103,15 @@ upgrade:
     GENESTACK_KUBE_OVN_ENABLE_SSL for post-renderers. A missing or
     non-executable script fails the install.
   - |
+    install.sh --service mariadb-operator honors CLUSTER_NAME again, as
+    install-mariadb-operator.sh did. When CLUSTER_NAME is set to something
+    other than cluster.local, the new cluster_name_site_value pre-install
+    action sets clusterName in
+    /etc/genestack/helm-configs/mariadb-operator/mariadb-operator-helm-overrides.yaml,
+    keeping other settings in that file. Without CLUSTER_NAME nothing is
+    written. Other services take the cluster domain from their own values
+    files; the Redis operator uses redisOperator.serviceDNSDomain.
+  - |
     Standalone Fluent Bit, Kube-OVN, Longhorn, MetalLB, Postgres Operator,
     Pushgateway, Redis Sentinel, and Envoy Gateway now skip common families.
     Put their chart settings in service-specific site files. Set

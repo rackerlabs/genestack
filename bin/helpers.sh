@@ -735,6 +735,39 @@ run_service_action() {
                 additional_base_values+=("$tls_values_path")
             fi
             ;;
+        cluster_name_site_value)
+            # Records the cluster DNS domain in the service's site values file,
+            # as the old install-mariadb-operator.sh did. When CLUSTER_NAME is
+            # unset or cluster.local nothing is written; the chart default
+            # applies. The file is read like any other site values file, so
+            # later site files and --set flags still take precedence over the
+            # base values. helm_key is the (dotted) values key to set.
+            local cn_key cn_value cn_chart cn_dir cn_file
+            cn_key=$(echo "$svc_yaml_content" | yq e "${actions_path}[${action_index}].helm_key // \"\"" -)
+            if [[ ! "$cn_key" =~ ^[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)*$ ]]; then
+                log_error "Missing or invalid helm_key for cluster_name_site_value action in '${service_name}'."
+                return 1
+            fi
+            cn_value="${CLUSTER_NAME:-cluster.local}"
+            if [[ "$cn_value" != "cluster.local" ]]; then
+                if [[ ! "$cn_value" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ ]]; then
+                    log_error "CLUSTER_NAME '${cn_value}' is not a valid DNS domain."
+                    return 1
+                fi
+                cn_chart=$(echo "$svc_yaml_content" | yq e '.chart.service_name // .service.name' -)
+                cn_dir="${GENESTACK_OVERRIDES_DIR}/helm-configs/${cn_chart}"
+                cn_file="${cn_dir}/${cn_chart}-helm-overrides.yaml"
+                mkdir -p "$cn_dir" && touch "$cn_file" || {
+                    log_error "Unable to write ${cn_file}."
+                    return 1
+                }
+                if ! CN_VALUE="$cn_value" yq -i ".${cn_key} = strenv(CN_VALUE)" "$cn_file"; then
+                    log_error "Unable to set ${cn_key} in ${cn_file}."
+                    return 1
+                fi
+                log_info "Set ${cn_key}=${cn_value} in ${cn_file}"
+            fi
+            ;;
         "")
             return 0
             ;;

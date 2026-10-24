@@ -397,6 +397,10 @@ validate_action_schemas() {
                         [[ -n "$(yq e "${action_path}[]? | select(.type == \"${type}\") | .file // \"\"" "$f" 2>/dev/null | sed '/^$/d;/^null$/d')" ]] ||
                             failures+="${svc}:${action_path}:${type}:file-required"$'\n'
                         ;;
+                    cluster_name_site_value)
+                        [[ -n "$(yq e "${action_path}[]? | select(.type == \"${type}\") | .helm_key // \"\"" "$f" 2>/dev/null | sed '/^$/d;/^null$/d')" ]] ||
+                            failures+="${svc}:${action_path}:${type}:helm_key-required"$'\n'
+                        ;;
                     *)
                         failures+="${svc}:${action_path}:${type}:unsupported-action-type"$'\n'
                         ;;
@@ -1702,6 +1706,190 @@ EOF
     assert_contains "$output" "Unable to find the Octavia OVN driver-agent sidecar" "a missing sidecar must be reported"
 }
 
+# cluster_name_site_value mirrors the old install-mariadb-operator.sh: with a
+# custom CLUSTER_NAME it records the domain in the service's site values file;
+# with the default it leaves the site files alone.
+test_cluster_name_site_value() {
+    local tmp_root svc_yaml nested_yaml site_file nested_file rc output
+    local GENESTACK_OVERRIDES_DIR CLUSTER_NAME
+    tmp_root="$(mktemp -d)"
+    GENESTACK_OVERRIDES_DIR="${tmp_root}/overrides"
+    site_file="${GENESTACK_OVERRIDES_DIR}/helm-configs/cn-demo/cn-demo-helm-overrides.yaml"
+    nested_file="${GENESTACK_OVERRIDES_DIR}/helm-configs/cn-nested/cn-nested-helm-overrides.yaml"
+    svc_yaml="$(cat <<'EOF'
+service:
+  name: cn-demo
+pre_install_actions:
+  - type: cluster_name_site_value
+    helm_key: clusterName
+EOF
+)"
+    nested_yaml="$(cat <<'EOF'
+service:
+  name: cn-nested
+pre_install_actions:
+  - type: cluster_name_site_value
+    helm_key: redisOperator.serviceDNSDomain
+EOF
+)"
+
+    # Default or unset: nothing is written.
+    for CLUSTER_NAME in "" cluster.local; do
+        run_service_actions "$svc_yaml" '.pre_install_actions' cn-demo 2>/dev/null ||
+            fail "the action must succeed for CLUSTER_NAME='${CLUSTER_NAME}'"
+        [[ ! -e "$site_file" ]] || fail "CLUSTER_NAME='${CLUSTER_NAME}' must not create a site file"
+    done
+
+    # Custom domain, no site file yet: the file is created.
+    CLUSTER_NAME=my.cluster.domain
+    run_service_actions "$svc_yaml" '.pre_install_actions' cn-demo 2>/dev/null ||
+        fail "the action must succeed for a custom CLUSTER_NAME"
+    assert_eq "my.cluster.domain" "$(yq e '.clusterName' "$site_file")" "a custom CLUSTER_NAME must be written to the site file"
+
+    # Existing site file: other settings and comments are kept, the key is replaced.
+    printf '# site tuning\nreplicas: 3\nclusterName: old.domain\n' > "$site_file"
+    run_service_actions "$svc_yaml" '.pre_install_actions' cn-demo 2>/dev/null ||
+        fail "the action must succeed for an existing site file"
+    assert_eq "my.cluster.domain" "$(yq e '.clusterName' "$site_file")" "an existing clusterName must be replaced"
+    assert_eq "3" "$(yq e '.replicas' "$site_file")" "other site settings must be kept"
+    assert_contains "$(cat "$site_file")" "# site tuning" "site file comments must be kept"
+
+    # Existing site file without the key: it is added.
+    printf 'replicas: 3\n' > "$site_file"
+    run_service_actions "$svc_yaml" '.pre_install_actions' cn-demo 2>/dev/null ||
+        fail "the action must succeed when the key is missing"
+    assert_eq "my.cluster.domain/3" "$(yq e '.clusterName' "$site_file")/$(yq e '.replicas' "$site_file")" \
+        "a missing clusterName must be added next to the existing settings"
+
+    # Running again changes nothing.
+    cp "$site_file" "${site_file}.before"
+    run_service_actions "$svc_yaml" '.pre_install_actions' cn-demo 2>/dev/null
+    cmp -s "$site_file" "${site_file}.before" || fail "rerunning the action must not change the site file"
+
+    # A dotted key is set at its nested position.
+    run_service_actions "$nested_yaml" '.pre_install_actions' cn-nested 2>/dev/null ||
+        fail "a dotted helm_key must be accepted"
+    assert_eq "my.cluster.domain" "$(yq e '.redisOperator.serviceDNSDomain' "$nested_file")" "a dotted helm_key must be written nested"
+
+    # Bad input fails instead of writing anything.
+    CLUSTER_NAME='bad domain; rm -rf /'
+    rc=0
+    output="$(run_service_actions "$svc_yaml" '.pre_install_actions' cn-demo 2>&1)" || rc=$?
+    assert_eq "1" "$rc" "an invalid CLUSTER_NAME must fail"
+    assert_contains "$output" "not a valid DNS domain" "an invalid CLUSTER_NAME must be reported"
+    CLUSTER_NAME=my.cluster.domain
+    rc=0
+    output="$(run_service_actions "$(printf '%s\n' "$svc_yaml" | yq '.pre_install_actions[0].helm_key = "a b"')" '.pre_install_actions' cn-demo 2>&1)" || rc=$?
+    assert_eq "1" "$rc" "an invalid helm_key must fail"
+    rc=0
+    output="$(run_service_actions "$(printf '%s\n' "$svc_yaml" | yq 'del(.pre_install_actions[0].helm_key)')" '.pre_install_actions' cn-demo 2>&1)" || rc=$?
+    assert_eq "1" "$rc" "a missing helm_key must fail"
+
+    # A domain set by hand in an existing site file is left byte-identical when
+    # CLUSTER_NAME is unset or the default, for plain and dotted keys.
+    printf '# site tuning\nreplicas: 3\nclusterName: site.domain\n' > "$site_file"
+    printf '# site tuning\nreplicas: 3\nredisOperator:\n  serviceDNSDomain: site.domain\n' > "$nested_file"
+    cp "$site_file" "${site_file}.before"
+    cp "$nested_file" "${nested_file}.before"
+    for CLUSTER_NAME in "" cluster.local; do
+        run_service_actions "$svc_yaml" '.pre_install_actions' cn-demo 2>/dev/null ||
+            fail "the action must succeed with a hand-written domain (CLUSTER_NAME='${CLUSTER_NAME}')"
+        run_service_actions "$nested_yaml" '.pre_install_actions' cn-nested 2>/dev/null ||
+            fail "the action must succeed with a hand-written dotted domain (CLUSTER_NAME='${CLUSTER_NAME}')"
+        cmp -s "$site_file" "${site_file}.before" ||
+            fail "CLUSTER_NAME='${CLUSTER_NAME}' must leave a hand-written clusterName untouched"
+        cmp -s "$nested_file" "${nested_file}.before" ||
+            fail "CLUSTER_NAME='${CLUSTER_NAME}' must leave a hand-written dotted domain untouched"
+    done
+    assert_eq "site.domain" "$(yq e '.clusterName' "$site_file")" "the hand-written clusterName must survive"
+    assert_eq "site.domain" "$(yq e '.redisOperator.serviceDNSDomain' "$nested_file")" "the hand-written dotted domain must survive"
+}
+
+# install.sh --service mariadb-operator passes the site file written for
+# CLUSTER_NAME to Helm, after the base values.
+test_install_mariadb_cluster_name() {
+    local fakebin tmp_root tmp_base tmp_overrides helm_log cmd site_file custom
+    fakebin="$(mktemp -d)"
+    create_fake_installer_binaries "$fakebin"
+
+    for custom in my.cluster.domain ""; do
+        tmp_root="$(mktemp -d)"
+        tmp_base="${tmp_root}/base"
+        tmp_overrides="${tmp_root}/overrides"
+        helm_log="${tmp_root}/helm.log"
+        site_file="${tmp_overrides}/helm-configs/mariadb-operator/mariadb-operator-helm-overrides.yaml"
+        mkdir -p "${tmp_base}/base-helm-configs" "${tmp_overrides}/kustomize"
+        cp -R "${REPO_ROOT}/base-helm-configs/mariadb-operator" "${tmp_base}/base-helm-configs/"
+        printf '#!/bin/bash\nexit 0\n' > "${tmp_overrides}/kustomize/kustomize.sh"
+        chmod +x "${tmp_overrides}/kustomize/kustomize.sh"
+        printf 'charts:\n  mariadb-operator: 1.0.0\n' > "${tmp_overrides}/helm-chart-versions.yaml"
+
+        PATH="${fakebin}:$PATH" \
+            KUBECTL_BIN=kubectl \
+            CLUSTER_NAME="$custom" \
+            HELM_LOG_FILE="$helm_log" \
+            GENESTACK_BASE_DIR="$tmp_base" \
+            GENESTACK_OVERRIDES_DIR="$tmp_overrides" \
+            GENESTACK_SERVICES_DIR="${REPO_ROOT}/bin/services" \
+            GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
+            "${REPO_ROOT}/bin/install.sh" --service mariadb-operator --dry-run >/dev/null 2>&1 ||
+            fail "install.sh --service mariadb-operator must succeed (CLUSTER_NAME='${custom}')"
+        cmd="$(grep '^upgrade --install mariadb-operator ' "$helm_log")"
+
+        if [[ -n "$custom" ]]; then
+            assert_eq "$custom" "$(yq e '.clusterName' "$site_file")" "the site file must carry CLUSTER_NAME"
+            assert_contains "$cmd" "-f ${site_file}" "Helm must load the site file written for CLUSTER_NAME"
+            assert_contains "${cmd#*overrides.yaml}" "${site_file}" "the site file must come after the base values"
+        else
+            [[ ! -e "$site_file" ]] || fail "without CLUSTER_NAME no site file may be written"
+            assert_not_contains "$cmd" "${tmp_overrides}/helm-configs/mariadb-operator" "without CLUSTER_NAME no site values file may be passed"
+        fi
+    done
+}
+
+# install.sh --service redis-operator records CLUSTER_NAME as
+# redisOperator.serviceDNSDomain in the site values file; the chart passes it
+# to the operator as SERVICE_DNS_DOMAIN.
+test_install_redis_operator_cluster_name() {
+    local fakebin tmp_root tmp_base tmp_overrides helm_log cmd site_file custom
+    fakebin="$(mktemp -d)"
+    create_fake_installer_binaries "$fakebin"
+
+    for custom in my.cluster.domain ""; do
+        tmp_root="$(mktemp -d)"
+        tmp_base="${tmp_root}/base"
+        tmp_overrides="${tmp_root}/overrides"
+        helm_log="${tmp_root}/helm.log"
+        site_file="${tmp_overrides}/helm-configs/redis-operator/redis-operator-helm-overrides.yaml"
+        mkdir -p "${tmp_base}/base-helm-configs" "${tmp_overrides}/kustomize"
+        cp -R "${REPO_ROOT}/base-helm-configs/redis-operator" "${tmp_base}/base-helm-configs/"
+        printf '#!/bin/bash\nexit 0\n' > "${tmp_overrides}/kustomize/kustomize.sh"
+        chmod +x "${tmp_overrides}/kustomize/kustomize.sh"
+        printf 'charts:\n  redis-operator: 1.0.0\n' > "${tmp_overrides}/helm-chart-versions.yaml"
+
+        PATH="${fakebin}:$PATH" \
+            KUBECTL_BIN=kubectl \
+            CLUSTER_NAME="$custom" \
+            HELM_LOG_FILE="$helm_log" \
+            GENESTACK_BASE_DIR="$tmp_base" \
+            GENESTACK_OVERRIDES_DIR="$tmp_overrides" \
+            GENESTACK_SERVICES_DIR="${REPO_ROOT}/bin/services" \
+            GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
+            "${REPO_ROOT}/bin/install.sh" --service redis-operator --dry-run >/dev/null 2>&1 ||
+            fail "install.sh --service redis-operator must succeed (CLUSTER_NAME='${custom}')"
+        cmd="$(grep '^upgrade --install redis-operator ' "$helm_log")"
+
+        if [[ -n "$custom" ]]; then
+            assert_eq "$custom" "$(yq e '.redisOperator.serviceDNSDomain' "$site_file")" \
+                "the site file must carry CLUSTER_NAME as redisOperator.serviceDNSDomain"
+            assert_contains "$cmd" "-f ${site_file}" "Helm must load the site file written for CLUSTER_NAME"
+        else
+            [[ ! -e "$site_file" ]] || fail "without CLUSTER_NAME no site file may be written"
+            assert_not_contains "$cmd" "${tmp_overrides}/helm-configs/redis-operator" "without CLUSTER_NAME no site values file may be passed"
+        fi
+    done
+}
+
 # Isolate configuration fixtures and resolver mocks from the secret tests.
 test_config_layer_precedence() (
     local root merged sources
@@ -1975,6 +2163,9 @@ main() {
     test_install_ovn_tls_values
     test_custom_post_renderer
     test_octavia_post_renderer_ssl_wiring
+    test_cluster_name_site_value
+    test_install_mariadb_cluster_name
+    test_install_redis_operator_cluster_name
     echo "PASS: unified installer regression checks"
 }
 

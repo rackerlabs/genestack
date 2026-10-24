@@ -17,7 +17,7 @@ echo $CLUSTER_NAME
 
 If `cluster_name` was anything other than `cluster.local` you should pass that as a parameter to the installer
 
-!!! example "Run the redis-operator deployment: `/opt/genestack/bin/install.sh --service redis-operator` You can include cluster_name paramater from the output of $CLUSTER_NAME. If no paramaters are provided, the system will deploy with `cluster.local` as the cluster name."
+!!! example "Run the redis-operator deployment: `/opt/genestack/bin/install.sh --service redis-operator`. For a custom cluster domain add `--set redisOperator.serviceDNSDomain=$CLUSTER_NAME`. If you do not set it, the system will deploy with `cluster.local` as the cluster name."
 
     ``` shell
     /opt/genestack/bin/install.sh --service redis-operator
