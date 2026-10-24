@@ -2,12 +2,12 @@
 """Stage, adopt or validate the Barbican simple_crypto master KEK.
 
 The KEK lives in the Kubernetes Secret barbican-simple-crypto-kek (data key
-kek, plus old_keks: a comma-separated history). install-barbican.sh injects
+kek, plus old_keks: a comma-separated history). install.sh --service barbican injects
 both into the chart on every deploy, unless an override file sets the kek,
 which always takes precedence. This tool only ever writes that Secret; the
-rotation itself happens on the NEXT install-barbican.sh run, when the chart's
+rotation itself happens on the NEXT install.sh --service barbican run, when the chart's
 db-sync job rewraps every simple_crypto project KEK from old_keks onto the new
-kek (one-way). install-barbican.sh never calls this tool.
+kek (one-way). install.sh --service barbican never calls this tool.
 
 Modes (the default is the read-only plan):
   (no flags)     plan: resolve the deployed kek, prove it unwraps every
@@ -17,7 +17,7 @@ Modes (the default is the read-only plan):
   --adopt        write the CURRENTLY DEPLOYED kek to the Secret; no new key,
                  so the next deploy's rewrap is a no-op. For environments that
                  ran on an override-file kek or the upstream default:
-                 install-barbican.sh refuses to deploy one that holds barbican
+                 install.sh --service barbican refuses to deploy one that holds barbican
                  data while neither an override file nor the Secret supplies
                  a kek, and this puts the running kek under Secret management.
   --adopt -      the same for a kek read from stdin: it must unwrap every
@@ -32,7 +32,7 @@ Rotation runbook:
   1. rotate-barbican-kek.py                     review the plan
   2. rotate-barbican-kek.py --stage             stage the new kek
   3. back up the barbican database
-  4. install-barbican.sh                        db-sync rewraps (one-way)
+  4. install.sh --service barbican                        db-sync rewraps (one-way)
   5. rotate-barbican-kek.py --validate deployed
 
 Validation runs inside a barbican-api pod, which has the database
@@ -306,7 +306,7 @@ def gate(ns):
     if staged and staged not in (deployed, WELL_KNOWN_KEK):
         die(
             f"{SECRET_NAME} already holds a kek (fp={fp(staged)}) that is not deployed: a staged "
-            "rotation is pending. Deploy it with install-barbican.sh, or delete the Secret "
+            "rotation is pending. Deploy it with install.sh --service barbican, or delete the Secret "
             "deliberately, then re-run.",
             rc=4,
         )
@@ -331,7 +331,7 @@ def cmd_plan(ns, stage):
     new = generate_kek()
     write_secret(ns, new, history)
     info(
-        f"staged new kek fp={fp(new)}. Back up the barbican database, then run install-barbican.sh: "
+        f"staged new kek fp={fp(new)}. Back up the barbican database, then run install.sh --service barbican: "
         "its db-sync job rewraps every project KEK (one-way). Afterwards '--validate deployed' "
         "must pass and the db-sync logs must show zero failures."
     )
@@ -355,7 +355,7 @@ def cmd_adopt(ns, what):
         if staged and staged not in (kek, deployed, WELL_KNOWN_KEK):
             die(
                 f"{SECRET_NAME} already holds a kek (fp={fp(staged)}) that is not deployed: a staged "
-                "rotation is pending. Deploy it with install-barbican.sh, or delete the Secret "
+                "rotation is pending. Deploy it with install.sh --service barbican, or delete the Secret "
                 "deliberately, then re-run.",
                 rc=4,
             )
@@ -375,7 +375,7 @@ def cmd_adopt(ns, what):
     info(
         f"adopted: {SECRET_NAME} now holds kek fp={fp(kek)} and {len(history)} old kek(s). "
         "Remove any kek line from your override files (an override always takes "
-        "precedence over the Secret); the next install-barbican.sh then injects it "
+        "precedence over the Secret); the next install.sh --service barbican then injects it "
         "(rewrap no-op)."
     )
     return 0

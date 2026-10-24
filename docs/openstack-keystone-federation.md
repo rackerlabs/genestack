@@ -386,7 +386,7 @@ openssl req -x509 -newkey rsa:2048 -keyout sp-key.pem -out sp-cert.pem -days 182
 
 The `keystone-shibd-etc` secret holds every file under `/etc/genestack/keystone-sp/shibboleth/` and is mounted at `/etc/shibboleth/` inside the keystone pod.
 
-`install-keystone.sh` manages this secret automatically. When the script renders the chart it inspects the post-rendered manifests for `keystone-shibd-etc`; if the federation overlay is in use, the script re-creates the secret from the shibboleth directory on every run using the shared Genestack secret sync helper. The helper renders a dry-run secret manifest, applies it, and cleans up temporary files after the run. That means updating any file under `/etc/genestack/keystone-sp/shibboleth/` and re-running the installer is sufficient to roll the change out.
+`install.sh --service keystone` manages this secret automatically. When the script renders the chart it inspects the post-rendered manifests for `keystone-shibd-etc`; if the federation overlay is in use, the installer re-creates the secret from the shibboleth directory on every run using the shared Genestack secret sync helper. The helper renders a dry-run secret manifest, applies it, and cleans up temporary files after the run. That means updating any file under `/etc/genestack/keystone-sp/shibboleth/` and re-running the installer is sufficient to roll the change out.
 
 !!! note "Required files"
 
@@ -523,7 +523,7 @@ resources:
 Now run the helm deployment to update keystone to use the new federation setup.
 
 ``` shell
-/opt/genestack/bin/install-keystone.sh
+/opt/genestack/bin/install.sh --service keystone
 ```
 
 ### Redeploy the Skyline UI with SSO Enabled
@@ -546,7 +546,7 @@ the Keystone API.
 Rerun the helm deployment to update the Skyline UI with SSO support.
 
 ``` shell
-/opt/genestack/bin/install-skyline.sh
+/opt/genestack/bin/install.sh --service skyline
 ```
 
 !!! genestack "Using the API with WebSSO and Federation"

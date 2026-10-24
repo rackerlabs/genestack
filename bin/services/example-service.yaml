@@ -16,6 +16,10 @@
 # Inheritance order:
 #   openstack-common.yaml  (or monitoring-common.yaml)
 #     → THIS YAML file (overrides common defaults on top)
+#     → /etc/genestack/service-configs/<family>.yaml
+#     → /etc/genestack/service-configs/<service>.yaml (highest precedence)
+# Site configuration controls chart selection and installer settings; it is
+# never passed to Helm as a values file. Keep Helm values in helm-configs/.
 #
 # Common files:
 #   - services/openstack-common.yaml  → default namespace, helm repo, kustomize
@@ -39,15 +43,16 @@ service:
   # CHART VERSION RESOLUTION — this is where you pin which Helm chart version
   # gets installed. Two options:
   #
-  # Option A: Omit or set to ~ → read from helm-chart-versions.yaml at the
-  #         repo root. This is the common case for most services.
+  # Option A: Omit or set to ~ → read from helm-chart-versions.yaml under
+  #         /etc/genestack. This is the common case for most services.
   #         Example: nova.yaml does NOT set version, so install.sh reads
   #         "nova: 2025.1.19+ed2d3e25c" from helm-chart-versions.yaml.
   #
   # Option B: Set explicitly to a version string → use this exact version,
   #         bypassing helm-chart-versions.yaml entirely. Useful for testing
   #         a specific chart version or when the chart is not in the central
-  #         version manifest.
+  #         version manifest. Installation fails if no version is resolved.
+  #         CLI --version takes precedence over service.version.
   #
   # helm-chart-versions.yaml format:
   #   charts:
@@ -73,12 +78,12 @@ chart:
 
   # -- repo_url (optional)
   # Helm repository URL or OCI registry path.
-  # Two formats supported:
+  # Remote formats supported:
   #
   #   Helm repo: https://tarballs.opendev.org/openstack/openstack-helm
-  #   OCI registry: oci://quay.io/jetstack
+  #   OCI chart: oci://quay.io/jetstack/charts/cert-manager
   #
-  # When using OCI, the --version flag is used differently during install.
+  # OCI URLs must include the complete chart path; repo_name is not required.
   repo_url: https://tarballs.opendev.org/openstack/openstack-helm
 
   # -- service_name (optional)
@@ -97,13 +102,13 @@ chart:
   # -- local_chart overrides (advanced)
   # If the chart is NOT in a remote repo but lives on disk:
   #
-  #   repo_url: ~        # omit or null
-  #   repo_name: ~       # omit or null
+  #   repo_url: ~        # explicitly clear any inherited remote URL
+  #   repo_name: ~
   #
   # Then install.sh will look for the chart at:
-  #   $GENESTACK_BASE_DIR/base-helm-configs/<service-name>/
-  # Example: openstack-exporter uses this with the
-  #          base-helm-configs/openstack-api-exporter-chart/ directory.
+  #   $GENESTACK_BASE_DIR/base-helm-configs/<chart.service_name>/
+  # Values directories use chart.service_name, falling back to service.name.
+  # Additional values files can be placed alongside existing *.yaml files.
 
 
 # ── kustomize ────────────────────────────────────────────────────────────────
@@ -132,6 +137,30 @@ kustomize:
   #   characters in the overlay path.
   overlay_path: example-service/overlay
 
+  # -- post_renderer (optional)
+  # Path, relative to $GENESTACK_BASE_DIR, of a script to use as the Helm
+  # post-renderer instead of kustomize.sh. The script receives the same
+  # arguments (the overlay path) and is expected to run
+  # $GENESTACK_OVERRIDES_DIR/kustomize/kustomize.sh itself before making any
+  # further changes. It must exist and be executable; the install fails
+  # otherwise. Absolute paths and ".." are rejected.
+  # Example: octavia uses base-kustomize/octavia/post-renderer.sh, which adds
+  # the OVN TLS mount to the octavia-agent sidecar when
+  # GENESTACK_KUBE_OVN_ENABLE_SSL=true (exported by detect_kube_ovn_tls).
+  post_renderer: ~
+
+  # -- gateway_config_overlay_path (optional)
+  # Alternate overlay used instead of overlay_path when install.sh is run with
+  # --config (or --gateway-config). Same format as overlay_path: relative to
+  # $GENESTACK_OVERRIDES_DIR/kustomize/. Services that do not set it keep
+  # using overlay_path, even when --config is passed.
+  # If the path is missing under /etc/genestack/kustomize, install.sh links it
+  # from base-kustomize when that directory exists; otherwise it stops before
+  # running Helm.
+  # Example: envoyproxy-gateway uses envoyproxy-gateway/config-mode, which
+  # leaves out the legacy flex-gateway resources.
+  gateway_config_overlay_path: example-service/config-mode
+
 
 # ── helm ─────────────────────────────────────────────────────────────────────
 # Helm execution settings.
@@ -144,7 +173,8 @@ helm:
 
   # Override files are also passed to Helm as exact argv tokens:
   #   -f <base override file>
-  #   -f <global override file>
+  #   -f <extra base values file>
+  #   -f <global override file> (unless chart.global_overrides is false)
   #   -f <custom override file>
   # The installer does not shell-split these paths, so filenames with spaces
   # or shell-significant characters remain intact.
@@ -161,6 +191,14 @@ helm:
 # Supported pre_install action types:
 #   - monitoring_grafana_db_secret_bootstrap
 #   - kube_ovn_master_discovery
+#   - cluster_name_site_value
+#
+# cluster_name_site_value records the cluster DNS domain in the service's
+# site values file, /etc/genestack/helm-configs/<chart>/<chart>-helm-overrides.yaml,
+# when CLUSTER_NAME is set to something other than cluster.local. helm_key is
+# the (dotted) chart value to set, for example clusterName. Existing settings
+# in the file are kept and the key is replaced or added. With CLUSTER_NAME
+# unset or cluster.local nothing is written.
 pre_install_actions: []
 #
 # Example (used by kube-ovn.yaml):
@@ -182,7 +220,14 @@ pre_install_actions: []
 # Supported pre_install_check action types:
 #   - detect_kube_ovn_tls
 #   - ensure_ovn_client_tls_secret
+#   - ovn_tls_values
 #   - ovn_connection_set_args
+#
+# ovn_tls_values adds the values file named by `file` (relative to
+# base-helm-configs/<chart>/) to the Helm -f list, after the base values and
+# before the global and site overrides, but only when Kube-OVN uses SSL. It
+# must come after detect_kube_ovn_tls. The install fails if the file is
+# missing while SSL is enabled.
 #
 # Example (used by neutron.yaml and octavia.yaml):
 # pre_install_check_actions:
@@ -193,6 +238,8 @@ pre_install_actions: []
 #     target_namespace: openstack
 #     source_secret: kube-ovn-tls
 #     target_secret: ovn-client-tls
+#   - type: ovn_tls_values
+#     file: ssl/example-ovn-tls-overrides.yaml
 #   - type: ovn_connection_set_args
 #     entries:
 #       - helm_key: conf.example.ovn.ovn_nb_connection

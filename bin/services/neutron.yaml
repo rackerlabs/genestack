@@ -13,6 +13,8 @@ pre_install_check_actions:
     target_namespace: openstack
     source_secret: kube-ovn-tls
     target_secret: ovn-client-tls
+  - type: ovn_tls_values
+    file: ssl/neutron-ovn-tls-overrides.yaml
   - type: ovn_connection_set_args
     entries:
       - helm_key: conf.neutron.ovn.ovn_nb_connection

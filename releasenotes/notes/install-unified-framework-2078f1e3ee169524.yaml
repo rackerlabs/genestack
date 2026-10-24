@@ -1,0 +1,137 @@
+---
+prelude: >
+  Replace the per-service bin/install-*.sh bootstrap scripts with a
+  single install.sh entry point driven by the per-service YAML configs
+  in bin/services/. Secrets remain managed in Kubernetes, as introduced
+  by the per-service secret bootstrapping work.
+features:
+  - |
+    A new unified installer replaces the 50 individual install-*.sh
+    scripts. The entry point is bin/install.sh with shared library code
+    in bin/helpers.sh and per-service configuration in
+    bin/services/*.yaml. The service YAMLs already on the cluster
+    (introduced with per-service secret bootstrapping) are now the
+    single source of truth for install-time chart selection, secret
+    wiring, kustomize post-rendering, and Helm timeouts.
+  - |
+    Chart sources and versions resolve from merged service configuration.
+    Configuration precedence is repository family defaults, repository service
+    defaults, site family overrides, then site service overrides. Site files
+    live in /etc/genestack/service-configs/; bootstrap creates this directory.
+    Explicit service.family: "" skips family files.
+  - |
+    HTTP(S) Helm repositories, full OCI chart URLs, and local charts share the
+    same resolver. An empty chart.repo_url selects
+    base-helm-configs/<chart.service_name> under GENESTACK_BASE_DIR. MariaDB
+    CRD charts follow the operator's repository, registry, or local directory.
+upgrade:
+  - |
+    All bin/install-*.sh bootstrap scripts have been removed. Use
+    install.sh with --service to install any component:
+
+    install.sh --service nova
+    install.sh --service nova --wait --timeout 30m
+    install.sh --rotate-secrets --service nova
+
+    --service is the only required flag; every other --* flag after
+    the service name is passed through directly to helm upgrade
+    --install.
+  - |
+    install.sh --service envoyproxy-gateway --config <file> (or
+    --gateway-config) deploys Envoy Gateway in config mode, as
+    install-envoy-gateway.sh did. A service may define
+    kustomize.gateway_config_overlay_path; when --config is passed that
+    overlay replaces kustomize.overlay_path. envoyproxy-gateway uses
+    envoyproxy-gateway/config-mode, which omits the legacy flex-gateway
+    resources. If the overlay is missing under /etc/genestack/kustomize it
+    is linked from base-kustomize, otherwise the install stops before running
+    Helm. After a successful Helm install, the installer waits up to 5 minutes
+    for deployments.apps/envoy-gateway to become available, then runs
+    setup-envoy-gateway.sh --config <file>. If the deployment does not become
+    available, the gateway configuration is not applied and install.sh exits
+    with an error. Services without gateway_config_overlay_path keep
+    their normal overlay.
+  - |
+    The helm overrides chain is now explicit:
+
+    1. Upstream chart values (defaults from the chart)
+    2. -f base-helm-configs/<svc>/*.yaml (genestack default values)
+    3. -f /etc/genestack/helm-configs/global_overrides/*.yaml
+       (cluster-wide overrides; skipped when chart.global_overrides is false)
+    4. -f /etc/genestack/helm-configs/<svc>/*.yaml (per-cluster overrides)
+    5. --set (injected secrets)
+    6. User-passed flags
+
+    Later files override earlier ones for the same key. Directory files are
+    loaded alphabetically. Service-configs contain installer metadata and
+    are never passed to Helm as values files. Values directory names retain
+    chart.service_name, falling back to service.name when unset.
+  - |
+    Version precedence is CLI --version, merged service.version, then the
+    charts.<service> entry in /etc/genestack/helm-chart-versions.yaml, with
+    chart.service_name kept as a fallback key. Installation stops if no
+    version resolves. Set service.version in a site service file to pin one
+    service. A version set in a site family file applies to all services
+    inheriting that family, unless overridden by a site service file.
+    No existing helm-chart-versions.yaml keys were renamed;
+    envoyproxy-gateway keeps its key. The openstack-exporter service resolves
+    through its chart.service_name, so helm-chart-versions.yaml now includes an
+    openstack-api-exporter entry. A tempest entry was also added. Add both to
+    an existing /etc/genestack/helm-chart-versions.yaml, or set
+    service.version in a site service file, before installing those services.
+  - |
+    Move chart.repo_url, chart.repo_name, and chart.service_name from
+    /etc/genestack/helm-configs/<service>/*.yaml to
+    /etc/genestack/service-configs/<service>.yaml. The helm-configs files remain
+    Helm values only. OCI chart.repo_url must be the complete chart path, for
+    example oci://registry.example.com/charts/nova. HTTP(S) URLs require
+    chart.repo_name.
+  - |
+    Neutron and Octavia pass their OVN TLS values file
+    (base-helm-configs/<service>/ssl/<service>-ovn-tls-overrides.yaml) to Helm
+    when Kube-OVN has networking.ENABLE_SSL=true, as the old installers did.
+    The file is placed after the base values and before the global and site
+    overrides. This is done by the new ovn_tls_values pre_install_check action
+    in bin/services/neutron.yaml and octavia.yaml. If SSL is enabled and the
+    file is missing, the install fails.
+  - |
+    A service can name its own Helm post-renderer with kustomize.post_renderer
+    (a path relative to the Genestack checkout). Octavia uses
+    base-kustomize/octavia/post-renderer.sh, as the old install-octavia.sh did,
+    so the OVN TLS mount is added to the octavia-agent sidecar when Kube-OVN
+    uses SSL. The ovn_tls detection now exports
+    GENESTACK_KUBE_OVN_ENABLE_SSL for post-renderers. A missing or
+    non-executable script fails the install.
+  - |
+    install.sh --service mariadb-operator honors CLUSTER_NAME again, as
+    install-mariadb-operator.sh did. When CLUSTER_NAME is set to something
+    other than cluster.local, the new cluster_name_site_value pre-install
+    action sets clusterName in
+    /etc/genestack/helm-configs/mariadb-operator/mariadb-operator-helm-overrides.yaml,
+    keeping other settings in that file. Without CLUSTER_NAME nothing is
+    written. Other services take the cluster domain from their own values
+    files; the Redis operator uses redisOperator.serviceDNSDomain.
+  - |
+    Standalone Fluent Bit, Kube-OVN, Longhorn, MetalLB, Postgres Operator,
+    Pushgateway, Redis Sentinel, and Envoy Gateway now skip common families.
+    Put their chart settings in service-specific site files. Set
+    chart.global_overrides: true explicitly to include shared global Helm
+    values for services whose defaults disable them.
+  - |
+    qonos is a kustomize-based deployment and no longer ships as a
+    bin/install-*.sh script. Its installer moved to
+    ops-tools/qonos/install-qonos.sh and is invoked from
+    setup-openstack.sh like the other ops-tool-managed components.
+deprecations:
+  - |
+    All binary/install-*.sh bootstrap scripts are removed. Use
+    install.sh --service <name> instead. Rotation workflows that
+    previously fanned out to install-*.sh now invoke install.sh
+    directly.
+critical:
+  - |
+    All services must have a corresponding bin/services/<name>.yaml
+    file. New services should be created from
+    bin/services/example-service.yaml. The unified-installer-regression
+    test (tests/test_unified_installer.sh) validates every service YAML
+    and the install.sh flows.

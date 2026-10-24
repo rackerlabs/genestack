@@ -111,6 +111,7 @@ set -e
 ensureYq
 ensureHelm
 ensureCmctl
+ensureEgctl
 
 # Install project dependencies
 success "Configuring genestack directory and overrides directory structure:"
@@ -149,6 +150,14 @@ message "Deploy Mulinode: ${OSH_DEPLOY_MULTINODE}"
 
 # Ensure /etc/genestack exists
 mkdir -p /etc/genestack
+
+# Create the directory for site-specific service configuration overrides.
+if [ ! -d "/etc/genestack/service-configs" ]; then
+  mkdir -p /etc/genestack/service-configs
+  success "Created /etc/genestack/service-configs."
+else
+  message "/etc/genestack/service-configs already exists, skipping creation."
+fi
 
 # Ensure each service from /opt/genestack/base-kustomize
 # exists in /etc/genestack/kustomize and symlink

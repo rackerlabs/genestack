@@ -16,7 +16,41 @@ This directory stores Helm configuration overrides for individual services and g
 - **Structure**:
   - `/etc/genestack/helm-configs/global_overrides`: Contains YAML files with global Helm configuration overrides applied to all services. These settings are typically used to enforce consistent configurations across the deployment.
   - `/etc/genestack/helm-configs/<service_name>`: Each service (e.g., `keystone`, `nova`, `grafana`) has its own subdirectory containing service-specific override YAML files, such as `<service_name>-helm-overrides.yaml`. These files customize Helm chart settings for the respective service.
-- **Usage**: The installation scripts (e.g., `install-<service_name>.sh`) reference these YAML files using the `-f` flag in Helm commands to customize deployments.
+- **Usage**: `bin/install.sh --service <service_name>` passes these YAML files to Helm with `-f`. Values are applied in this order, with later files winning:
+
+  1. `/opt/genestack/base-helm-configs/<chart_name>/*.yaml`
+  2. Additional base values explicitly supplied by the caller, in caller order
+  3. `/etc/genestack/helm-configs/global_overrides/*.yaml`, unless `chart.global_overrides: false`
+  4. `/etc/genestack/helm-configs/<chart_name>/*.yaml`
+
+  Files within each directory are loaded alphabetically. Directory names retain the existing behavior: `chart.service_name`, falling back to `service.name` when unset. Ordinary additional values belong in these directories as `*.yaml` files; subdirectories and `*.yml` files are not scanned. Internal callers can explicitly select conditional files using `build_helm_args "$svc_yaml_content" "${additional_base_values[@]}"`. Explicit paths are used as supplied, must exist, and are logged in loading order. This helper interface does not decide which files to include; a service action must supply them. The `ovn_tls_values` action does this for Neutron and Octavia: when Kube-OVN uses SSL it adds `ssl/<service>-ovn-tls-overrides.yaml` from the chart's base directory. Site installer configuration remains keyed by the requested service name.
+
+#### `/etc/genestack/service-configs`
+
+These files configure the unified installer: chart sources, versions, and other settings from `bin/services/`. Bootstrap creates this directory. Configuration is merged in this order, with later files winning:
+
+1. Repository family defaults, such as `bin/services/openstack-common.yaml`
+2. Repository service defaults, such as `bin/services/nova.yaml`
+3. Site family overrides, such as `/etc/genestack/service-configs/openstack-common.yaml`
+4. Site service overrides, such as `/etc/genestack/service-configs/nova.yaml`
+
+The repository service file selects the family. `service.family: ""` skips family configuration. A site family override can replace settings for every service inheriting that family, including repository service settings.
+
+For example, `/etc/genestack/service-configs/nova.yaml` can select an internal repository and pin a chart version:
+
+```yaml
+service:
+  version: "2025.1.19"
+chart:
+  repo_name: internal-openstack
+  repo_url: https://helm.example.com/openstack
+  service_name: nova
+  global_overrides: false
+```
+
+For OCI, set `chart.repo_url` to the complete chart path, such as `oci://registry.example.com/charts/nova`; `repo_name` is unnecessary. To select a local chart, explicitly set `chart.repo_url: null` to clear any inherited URL. The chart must exist under `/opt/genestack/base-helm-configs/<chart.service_name>/` (or the equivalent path under `GENESTACK_BASE_DIR`). A configured CRD chart follows the main chart into the same repository, OCI registry directory, or local parent directory.
+
+**Migration:** Move installer metadata such as `chart.repo_url`, `chart.repo_name`, `chart.service_name`, `chart.global_overrides`, and `service.version` from `/etc/genestack/helm-configs/<service_name>/*.yaml` into `/etc/genestack/service-configs/<service_name>.yaml`. Keep chart values in `helm-configs/`. Files in `service-configs/` are merged as installer configuration and are never passed to Helm with `-f`.
 
 #### `/etc/genestack/kustomize`
 
@@ -65,7 +99,7 @@ The `helm-chart-versions.yaml` file, located at `/etc/genestack/helm-chart-versi
     prometheus: 70.4.2
     redis-operator: 0.21.0
   ```
-- **Usage**: Installation scripts (e.g., `install-<service_name>.sh`) read this file to determine the correct Helm chart version for each service. The `ye(Yaml Editor)` script also uses this file to fetch the appropriate `values.yaml` file for a given service version when editing configurations.
+- **Usage**: `bin/install.sh --service <service_name>` resolves versions in this order: CLI `--version`, merged `service.version`, then `charts.<service_name>` in this file. The chart name is used as a fallback manifest key when it differs from the service name. Installation stops if no version resolves. The `ye(Yaml Editor)` script also uses this file to fetch the appropriate `values.yaml` file for a given service version when editing configurations.
 
 ## Additional Notes
 

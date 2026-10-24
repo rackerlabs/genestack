@@ -7,7 +7,7 @@ service:
   family: ""
 
 chart:
-  repo_name: kube-prometheus-stack
+  repo_name: prometheus-community
   repo_url: https://prometheus-community.github.io/helm-charts
   global_overrides: false
 

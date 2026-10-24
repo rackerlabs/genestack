@@ -43,7 +43,7 @@ kubectl get secret -n openstack neutron-admin -o jsonpath='{.data.password}' | b
 ## Re-Deploy Neutron
 
 ```bash
-/opt/genestack/bin/install-neutron.sh
+/opt/genestack/bin/install.sh --service neutron
 ```
 
 ## Validation

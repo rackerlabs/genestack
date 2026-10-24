@@ -29,10 +29,10 @@ kubectl create secret generic --namespace  openstack rndc-key-secret --from-file
 
 ## Run the package deployment
 
-!!! example "Run the Designate deployment Script `/opt/genestack/bin/install-designate.sh`"
+!!! example "Run the Designate deployment: `/opt/genestack/bin/install.sh --service designate`"
 
     ``` shell
-    --8<-- "bin/install-designate.sh"
+    /opt/genestack/bin/install.sh --service designate
     ```
 
 !!! tip

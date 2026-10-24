@@ -3,7 +3,6 @@ service:
   name: loki
   namespace: monitoring
   version: ~
-
   family: ""
 
 chart:

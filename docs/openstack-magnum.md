@@ -1225,8 +1225,8 @@ Confirm the file is in place and referenced by the install script:
 # Check the file exists
 ls -la /etc/genestack/helm-configs/magnum/magnum-helm-overrides-capi.yaml
 
-# Verify install-magnum.sh references it
-grep "capi" /opt/genestack/bin/install-magnum.sh
+# Verify the installer picks up the override
+/opt/genestack/bin/install.sh --service magnum --dry-run | grep "magnum-helm-overrides-capi"
 ```
 
 The install script should include a `-f` flag pointing to this file:
@@ -1247,12 +1247,12 @@ This part should be followed on fresh/new installs only.
 
     You have already followed [Getting the Genestack Repository](genestack-getting-started.md) to fetch the code in `/opt/genestack`
 
-!!! example "Run the Magnum deployment Script `/opt/genestack/bin/install-magnum.sh`"
+!!! example "Run the Magnum deployment"
 
 From genestack control-plane node :
 
     ``` shell
-    --8<-- "bin/install-magnum.sh"
+    /opt/genestack/bin/install.sh --service magnum
     ```
 
 ## (Optional) Upgrading Magnum with CAPI Support
@@ -1262,26 +1262,18 @@ From genestack control-plane node :
 
 !!! warning "Disclaimer"
     - Upgrade part is only applicable if you are running on an older version of magnum helm chart (2024.X.X) deployed in your openstack cluster.
-    - By default newer version of magnum will be installed on running the `install-magnum.sh` script.
+    - By default newer version of magnum will be installed on running the unified installer.
 
-### :material-file-edit: Modify Installation Script
+### :material-file-edit: Pin the chart version
 
-From genestack control-plane node: Modify the Magnum Helm chart version to enable CAPI support.
+From genestack control-plane node: pin the Magnum Helm chart version in
+`/etc/genestack/helm-chart-versions.yaml` to enable (or hold back) CAPI
+support.
 
-=== "View Changes"
-
-    ```bash
-    cd /opt/genestack/bin
-
-    diff -s install-magnum.sh install-magnum.sh.bak
-    ```
-    
-    ```diff
-    7c7
-    < HELM_CMD="helm upgrade --install magnum openstack-helm/magnum --version 2025.1.4+4d4d4e25c \
-    ---
-    > HELM_CMD="helm upgrade --install magnum openstack-helm/magnum --version 2024.2.157+13651f45-628a320c \
-    ```
+```yaml
+charts:
+  magnum: 2025.1.4+4d4d4e25c
+```
 
 === "Version Comparison"
 
@@ -1304,14 +1296,12 @@ From genestack control-plane node: Modify the Magnum Helm chart version to enabl
 
 ### :material-rocket: Execute Magnum Upgrade
 
-Run the updated installation script `/opt/genestack/bin/install-magnum.sh` to upgrade Magnum.
+Run the unified installer to upgrade Magnum:
 
 === "Command"
 
     ``` shell
-    cd /opt/genestack/bin/
-
-    ./install-magnum.sh
+    /opt/genestack/bin/install.sh --service magnum
     ```
 
 === "Helm Command Details"

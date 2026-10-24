@@ -75,7 +75,7 @@ Refer to additional information for Cinder API:
 ```shell
 openstack --os-cloud default volume type create lvm-ssd --property volume_backend_name=lvm-ssd
 
-/opt/genestack/bin/install-cinder.sh
+/opt/genestack/bin/install.sh --service cinder
 ```
 
 ## Install cinder-volume on bare metal node
