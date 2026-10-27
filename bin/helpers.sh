@@ -652,7 +652,74 @@ run_service_action() {
             dst_ns=$(echo "$svc_yaml_content" | yq e "${actions_path}[${action_index}].target_namespace // .service.namespace // \"openstack\"" -)
             src_name=$(echo "$svc_yaml_content" | yq e "${actions_path}[${action_index}].source_secret // \"kube-ovn-tls\"" -)
             dst_name=$(echo "$svc_yaml_content" | yq e "${actions_path}[${action_index}].target_secret // \"ovn-client-tls\"" -)
-            ensure_ovn_client_tls_secret "$src_ns" "$dst_ns" "$src_name" "$dst_name"
+            # The client copy is only needed for ssl: connections, so a tcp
+            # cluster does not get a copy of the Kube-OVN private key.
+            # detect_kube_ovn_tls must run first; it sets CONNECTION_STRING.
+            if [[ "${CONNECTION_STRING:-}" == "ssl" ]]; then
+                ensure_ovn_client_tls_secret "$src_ns" "$dst_ns" "$src_name" "$dst_name" || return 1
+            else
+                log_info "Kube-OVN does not use SSL; not syncing ${dst_ns}/${dst_name}."
+            fi
+            ;;
+        kube_ovn_tls_secret)
+            # Pre-generates the Kube-OVN TLS secret with DNS SANs, as the old
+            # install-kube-ovn.sh did, so OVN clients can verify the server by
+            # service name. The chart's own certificate has no SANs. An
+            # existing secret is never touched. The secret is annotated and
+            # labelled so the chart adopts it instead of failing on ownership.
+            local tls_ns tls_name tls_release tls_days tls_dns_raw tls_dns=() tls_dns_name tls_regen_env tls_regen_raw tls_regen_src tls_regenerate=false
+            tls_ns=$(echo "$svc_yaml_content" | yq e "${actions_path}[${action_index}].namespace // .service.namespace // \"kube-system\"" -)
+            tls_name=$(echo "$svc_yaml_content" | yq e "${actions_path}[${action_index}].secret_name // \"kube-ovn-tls\"" -)
+            tls_release=$(echo "$svc_yaml_content" | yq e ".service.release_name // .service.name // \"\"" -)
+            tls_days=$(echo "$svc_yaml_content" | yq e "${actions_path}[${action_index}].days // 3650" -)
+            tls_dns_raw=$(echo "$svc_yaml_content" | yq e "${actions_path}[${action_index}].dns_names[]? // \"\"" - | sed '/^$/d;/^null$/d')
+            while IFS= read -r tls_dns_name; do
+                [[ -n "$tls_dns_name" ]] && tls_dns+=("$tls_dns_name")
+            done <<< "$tls_dns_raw"
+            if [[ ${#tls_dns[@]} -eq 0 ]]; then
+                log_error "Missing dns_names for kube_ovn_tls_secret action in '${service_name}'."
+                return 1
+            fi
+            if [[ ! "$tls_ns" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ || ! "$tls_name" =~ ^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$ ||
+                  ! "$tls_release" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ || ! "$tls_days" =~ ^[1-9][0-9]*$ ]]; then
+                log_error "Invalid namespace, secret_name, release name or days for kube_ovn_tls_secret action in '${service_name}'."
+                return 1
+            fi
+            # regenerate_certs is a service-level switch (so a file in
+            # service-configs can flip it; lists are replaced when merged).
+            # true replaces an existing secret with a new CA and certificate;
+            # false, the default, keeps it. The environment variable named by
+            # regenerate_certs_env, when set, wins over the YAML value so a
+            # single install can opt in without editing any file.
+            tls_regen_src="regenerate_certs"
+            tls_regen_raw=$(echo "$svc_yaml_content" | yq e '.regenerate_certs // false' -)
+            tls_regen_env=$(echo "$svc_yaml_content" | yq e "${actions_path}[${action_index}].regenerate_certs_env // \"\"" -)
+            if [[ -n "$tls_regen_env" ]]; then
+                if [[ ! "$tls_regen_env" =~ ^[A-Z_][A-Z0-9_]*$ ]]; then
+                    log_error "Invalid regenerate_certs_env '${tls_regen_env}' for kube_ovn_tls_secret action in '${service_name}'."
+                    return 1
+                fi
+                if [[ -n "${!tls_regen_env:-}" ]]; then
+                    tls_regen_raw="${!tls_regen_env}"
+                    tls_regen_src="$tls_regen_env"
+                fi
+            fi
+            case "$tls_regen_raw" in
+                true) tls_regenerate=true ;;
+                false) tls_regenerate=false ;;
+                *)
+                    log_error "${tls_regen_src} must be true or false, not '${tls_regen_raw}' (service '${service_name}')."
+                    return 1
+                    ;;
+            esac
+            for tls_dns_name in "${tls_dns[@]}"; do
+                if [[ ! "$tls_dns_name" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ ]]; then
+                    log_error "Invalid DNS name '${tls_dns_name}' for kube_ovn_tls_secret action in '${service_name}'."
+                    return 1
+                fi
+            done
+            ensure_kube_ovn_tls_secret "$tls_ns" "$tls_name" "$tls_release" "$tls_days" "$tls_regenerate" "${tls_regen_env:-}" "${tls_dns[@]}" ||
+                return 1
             ;;
         ovn_connection_set_args)
             local entry_count j helm_key env_name env_value
@@ -2702,6 +2769,165 @@ copy_secret_between_namespaces() {
     echo "$yaml" | $KUBECTL_BIN apply --namespace "$dst_ns" -f -
 }
 
+# Prints "present", "absent" (kubectl reported NotFound) or "error: <message>"
+# for any other failure, such as an API outage or missing permissions. Callers
+# that create objects must not treat "error" as "absent".
+secret_state() {
+    local ns="$1" name="$2" out rc
+    # "&& rc=0 || rc=$?" keeps this safe if a caller runs with errexit.
+    out=$($KUBECTL_BIN get secret "$name" --namespace "$ns" -o name 2>&1) && rc=0 || rc=$?
+    if [[ "$rc" -eq 0 ]]; then
+        echo "present"
+    elif [[ "$out" == *"(NotFound)"* || "$out" == *"not found"* ]]; then
+        echo "absent"
+    else
+        echo "error: ${out}"
+    fi
+}
+
+# Logs the validity of the certificate in an existing TLS secret so an operator
+# can decide whether to regenerate it. Only the certificate is read, never the
+# key. Problems reading it are reported as warnings and never stop the install.
+report_tls_cert_validity() {
+    local ns="$1" name="$2" service="$3" regen_env="$4"
+    local cert subject not_before not_after end_epoch now days_left left_note="" sans status
+
+    command -v openssl >/dev/null 2>&1 || return 0
+    cert="$(secret_get "$ns" "$name" cert 2>/dev/null)"
+    if [[ -z "$cert" ]] || ! printf '%s\n' "$cert" | openssl x509 -noout >/dev/null 2>&1; then
+        log_warn "Could not read a certificate from ${ns}/${name}; its validity is unknown."
+        return 0
+    fi
+
+    subject="$(printf '%s\n' "$cert" | openssl x509 -noout -subject 2>/dev/null)"
+    not_before="$(printf '%s\n' "$cert" | openssl x509 -noout -startdate 2>/dev/null)"
+    not_after="$(printf '%s\n' "$cert" | openssl x509 -noout -enddate 2>/dev/null)"
+    sans="$(printf '%s\n' "$cert" | openssl x509 -noout -text 2>/dev/null |
+        { grep -A1 'Subject Alternative Name' || true; } | tail -n 1 | sed 's/^[[:space:]]*//')"
+
+    status="valid"
+    days_left=""
+    end_epoch="$(date -d "${not_after#notAfter=}" +%s 2>/dev/null || true)"
+    now="$(date +%s)"
+    if [[ -n "$end_epoch" ]]; then
+        days_left=$(( (end_epoch - now) / 86400 ))
+        if [[ "$days_left" -lt 0 ]]; then
+            left_note=" (expired $(( -days_left )) days ago)"
+        else
+            left_note=" (${days_left} days left)"
+        fi
+    fi
+    if ! printf '%s\n' "$cert" | openssl x509 -noout -checkend 0 >/dev/null 2>&1; then
+        status="has EXPIRED"
+    elif ! printf '%s\n' "$cert" | openssl x509 -noout -checkend 2592000 >/dev/null 2>&1; then
+        status="expires within 30 days"
+    fi
+
+    log_info "Existing ${ns}/${name} certificate: ${subject#subject=}"
+    log_info "  valid from ${not_before#notBefore=} until ${not_after#notAfter=}${left_note}"
+    log_info "  DNS names: ${sans:-none}"
+    if [[ "$status" == "valid" ]]; then
+        log_info "  The certificate is kept. To replace it, rerun with ${regen_env:-the regenerate variable}=true or set regenerate_certs: true in ${GENESTACK_SERVICE_CONFIG_OVERRIDES_DIR}/${service}.yaml."
+    else
+        log_warn "  The certificate ${status}. To replace it, rerun with ${regen_env:-the regenerate variable}=true or set regenerate_certs: true in ${GENESTACK_SERVICE_CONFIG_OVERRIDES_DIR}/${service}.yaml."
+    fi
+}
+
+# Creates the Kube-OVN TLS secret when it does not exist. An existing secret is
+# left alone unless regenerate is "true", and it is never deleted.
+ensure_kube_ovn_tls_secret() {
+    local namespace="$1" secret_name="$2" release_name="$3" days="$4" regenerate="$5" regen_env="$6"
+    shift 6
+    local dns_names=("$@")
+    local tls_dir san dns_name gen_output state
+
+    state="$(secret_state "$namespace" "$secret_name")"
+    case "$state" in
+        present)
+            if [[ "$regenerate" != "true" ]]; then
+                log_info "Secret ${namespace}/${secret_name} already exists in k8s."
+                report_tls_cert_validity "$namespace" "$secret_name" "$release_name" "$regen_env"
+                return 0
+            fi
+            log_warn "Regenerating ${namespace}/${secret_name}: a new CA and certificate replace the existing ones."
+            ;;
+        absent)
+            ;;
+        *)
+            # Not NotFound: the secret may well exist, so never generate over it.
+            log_error "Cannot tell whether ${namespace}/${secret_name} exists; not generating it."
+            log_error "  ${state#error: }"
+            return 1
+            ;;
+    esac
+
+    if ! command -v openssl >/dev/null 2>&1; then
+        log_error "openssl is required to generate ${namespace}/${secret_name}."
+        return 1
+    fi
+
+    log_info "Generating ${namespace}/${secret_name} with DNS SANs: ${dns_names[*]}"
+    tls_dir="$(mk_tmp_dir)"
+    # mk_tmp_dir ran in a subshell, so register the directory here as well.
+    TMP_DIRS+=("$tls_dir")
+
+    san=""
+    for dns_name in "${dns_names[@]}"; do
+        san+="${san:+,}DNS:${dns_name}"
+    done
+    printf 'subjectAltName=%s\n' "$san" > "${tls_dir}/san.cnf"
+
+    # A private CA and a server certificate signed by it, as the old installer
+    # made. umask keeps the generated keys private to this user.
+    if ! gen_output=$(
+        {
+            # errexit is ignored inside an if condition, so chain the steps.
+            umask 077 &&
+            openssl genrsa -out "${tls_dir}/ovn-ca-key.pem" 2048 &&
+            openssl req -x509 -new -key "${tls_dir}/ovn-ca-key.pem" -out "${tls_dir}/ovn-ca.pem" \
+                -days "$days" -subj "/CN=ovn-ca" &&
+            openssl genrsa -out "${tls_dir}/ovn-key.pem" 2048 &&
+            openssl req -new -key "${tls_dir}/ovn-key.pem" -out "${tls_dir}/ovn.csr" -subj "/CN=ovn" &&
+            openssl x509 -req -in "${tls_dir}/ovn.csr" -CA "${tls_dir}/ovn-ca.pem" \
+                -CAkey "${tls_dir}/ovn-ca-key.pem" -CAcreateserial \
+                -out "${tls_dir}/ovn-cert.pem" -days "$days" -extfile "${tls_dir}/san.cnf"
+        } 2>&1
+    ); then
+        log_error "Failed to generate the certificate for ${namespace}/${secret_name}."
+        [[ -n "$gen_output" ]] && log_error "  ${gen_output}"
+        return 1
+    fi
+
+    if ! secret_sync_from_files "$namespace" "$secret_name" \
+        "cacert=${tls_dir}/ovn-ca.pem" \
+        "cert=${tls_dir}/ovn-cert.pem" \
+        "key=${tls_dir}/ovn-key.pem"; then
+        log_error "Failed to create ${namespace}/${secret_name}."
+        return 1
+    fi
+
+    # Helm adopts a pre-existing object only when it carries these markers. The
+    # secret is not deleted if they cannot be set (the old installer did not
+    # either), so the operator can mark it by hand and rerun.
+    if ! $KUBECTL_BIN --namespace "$namespace" annotate secret "$secret_name" --overwrite \
+            "meta.helm.sh/release-name=${release_name}" \
+            "meta.helm.sh/release-namespace=${namespace}" ||
+       ! $KUBECTL_BIN --namespace "$namespace" label secret "$secret_name" --overwrite \
+            "app.kubernetes.io/managed-by=Helm"; then
+        log_error "Created ${namespace}/${secret_name} but could not mark it for Helm ownership."
+        log_error "  Fix it with: kubectl --namespace ${namespace} annotate secret ${secret_name} --overwrite meta.helm.sh/release-name=${release_name} meta.helm.sh/release-namespace=${namespace}"
+        log_error "  and: kubectl --namespace ${namespace} label secret ${secret_name} --overwrite app.kubernetes.io/managed-by=Helm"
+        return 1
+    fi
+
+    if [[ "$state" == "present" ]]; then
+        log_warn "${namespace}/${secret_name} was regenerated. Restart the Kube-OVN and OVN components"
+        log_warn "  (for example ovn-central, ovs-ovn, kube-ovn-controller and kube-ovn-cni) so they load it,"
+        log_warn "  then rerun the neutron and octavia installs to refresh the copied ovn-client-tls secret."
+        log_warn "  Set regenerate_certs back to false (and unset ${regen_env:-the regenerate variable}) so later installs keep this certificate."
+    fi
+}
+
 ensure_ovn_client_tls_secret() {
     local src_ns="${1:-kube-system}"
     local dst_ns="${2:-openstack}"
@@ -2709,8 +2935,8 @@ ensure_ovn_client_tls_secret() {
     local dst_name="${4:-ovn-client-tls}"
 
     if ! secret_exists "$src_ns" "$src_name"; then
-        log_warn "OVN TLS source secret ${src_ns}/${src_name} not found; skipping ${dst_ns}/${dst_name} sync."
-        return 0
+        log_error "Kube-OVN uses SSL but ${src_ns}/${src_name} was not found; cannot create ${dst_ns}/${dst_name}."
+        return 1
     fi
 
     if ! secret_has_keys "$src_ns" "$src_name" cacert cert key; then

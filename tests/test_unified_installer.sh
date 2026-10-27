@@ -161,6 +161,13 @@ lookup_secret() {
         openstack/nova-ssh:public-key) printf '%s' "ssh-ed25519 AAAANOVA" ;;
         openstack/nova-ssh:private-key) printf '%s' "NOVA_PRIVATE_KEY" ;;
         testing/synthetic-multi-keypair:private-key) printf '%s' "MULTI_PRIVATE_KEY" ;;
+        kube-system/kube-ovn-tls:cert)
+            if [[ -n "${KUBECTL_TLS_CERT_FILE:-}" ]]; then
+                cat "$KUBECTL_TLS_CERT_FILE"
+            else
+                printf '%s' "${secret_name}-${data_key}-value"
+            fi
+            ;;
         *) printf '%s' "${secret_name}-${data_key}-value" ;;
     esac
 }
@@ -202,7 +209,13 @@ if [[ "${1:-}" == "get" && "${2:-}" == "secret" ]]; then
         esac
     done
 
+    if [[ "${KUBECTL_SECRET_GET_ERROR:-0}" == "1" ]]; then
+        echo "Unable to connect to the server: dial tcp 10.0.0.1:6443: connect: connection refused" >&2
+        exit 1
+    fi
+
     if secret_is_missing "$namespace" "$secret_name"; then
+        echo "Error from server (NotFound): secrets \"${secret_name}\" not found" >&2
         exit 1
     fi
 
@@ -227,6 +240,7 @@ if [[ "${1:-}" == "get" && "${2:-}" == "secret" ]]; then
             _sk_out+="\"${_sk_key}\":\"$(_sk_b64 "$_sk_key")\","
         done
         _sk_out="${_sk_out%,}}"
+        if [[ "${KUBECTL_SECRET_JSON_EMPTY:-0}" == "1" ]]; then _sk_out="{}"; fi
         printf '{"data":%s}\n' "$_sk_out"
         exit 0
     fi
@@ -268,6 +282,29 @@ if [[ "${1:-}" == "label" && "${2:-}" == "namespace" ]]; then
     exit 0
 fi
 
+if [[ "${1:-}" == "create" && "${2:-}" == "secret" && -n "${KUBECTL_CAPTURE_DIR:-}" ]]; then
+    # Keep the files a secret is built from; the installer deletes its own copies.
+    for _arg in "$@"; do
+        if [[ "$_arg" == --from-file=* ]]; then
+            _kv="${_arg#--from-file=}"
+            cp "${_kv#*=}" "${KUBECTL_CAPTURE_DIR}/${_kv%%=*}"
+        fi
+    done
+    exit 0
+fi
+
+if [[ "${1:-}" == "apply" && -n "${KUBECTL_CAPTURE_DIR:-}" ]]; then
+    # Like the real kubectl, report what was applied.
+    echo "secret/applied"
+    exit 0
+fi
+
+if [[ "${KUBECTL_FAIL_ANNOTATE:-0}" == "1" ]]; then
+    for _arg in "$@"; do
+        [[ "$_arg" == "annotate" ]] && exit 1
+    done
+fi
+
 if [[ "${1:-}" == "patch" && "${2:-}" == "secret" ]]; then
     exit 0
 fi
@@ -281,8 +318,20 @@ if [[ "${1:-}" == "wait" && "${KUBECTL_FAIL_WAIT:-0}" == "1" ]]; then
 fi
 
 if [[ "${1:-}" == "get" && "${2:-}" == "deploy" ]]; then
+    if [[ "${KUBECTL_DEPLOY_GET_ERROR:-0}" == "1" ]]; then
+        echo "Unable to connect to the server: dial tcp 10.0.0.1:6443: connect: connection refused" >&2
+        exit 1
+    fi
+    if [[ "${KUBECTL_DEPLOY_NOT_FOUND:-0}" == "1" ]]; then
+        echo 'Error from server (NotFound): deployments.apps "ovn-central" not found' >&2
+        exit 1
+    fi
     echo "${KUBECTL_ENABLE_SSL:-false}"
     exit 0
+fi
+
+if [[ "${1:-}" == "get" && "${2:-}" == "service" && "${KUBECTL_NO_OVN_SERVICES:-0}" == "1" ]]; then
+    exit 1
 fi
 
 if [[ "${1:-}" == "get" && "${2:-}" == "service" ]]; then
@@ -305,7 +354,7 @@ if [[ "${1:-}" == "get" && "${2:-}" == "service" ]]; then
 fi
 
 if [[ "${1:-}" == "get" && "${2:-}" == "nodes" ]]; then
-    printf '10.0.0.21\n10.0.0.22\n'
+    [[ "${KUBECTL_NO_NODES:-0}" == "1" ]] || printf '10.0.0.21\n10.0.0.22\n'
     exit 0
 fi
 
@@ -400,6 +449,10 @@ validate_action_schemas() {
                     cluster_name_site_value)
                         [[ -n "$(yq e "${action_path}[]? | select(.type == \"${type}\") | .helm_key // \"\"" "$f" 2>/dev/null | sed '/^$/d;/^null$/d')" ]] ||
                             failures+="${svc}:${action_path}:${type}:helm_key-required"$'\n'
+                        ;;
+                    kube_ovn_tls_secret)
+                        [[ -n "$(yq e "${action_path}[]? | select(.type == \"${type}\") | .dns_names[]? // \"\"" "$f" 2>/dev/null | sed '/^$/d;/^null$/d')" ]] ||
+                            failures+="${svc}:${action_path}:${type}:dns_names-required"$'\n'
                         ;;
                     *)
                         failures+="${svc}:${action_path}:${type}:unsupported-action-type"$'\n'
@@ -1533,7 +1586,7 @@ EOF
 # Helm only when Kube-OVN uses SSL, after the base values and before the
 # global and site overrides.
 test_install_ovn_tls_values() {
-    local service ssl fakebin tmp_root tmp_base tmp_overrides helm_log cmd tls_file before after
+    local service ssl fakebin tmp_root tmp_base tmp_overrides helm_log kubectl_log cmd tls_file before after
     fakebin="$(mktemp -d)"
     create_fake_installer_binaries "$fakebin"
 
@@ -1543,6 +1596,7 @@ test_install_ovn_tls_values() {
             tmp_base="${tmp_root}/base"
             tmp_overrides="${tmp_root}/overrides"
             helm_log="${tmp_root}/helm.log"
+            kubectl_log="${tmp_root}/kubectl.log"
             tls_file="${tmp_base}/base-helm-configs/${service}/ssl/${service}-ovn-tls-overrides.yaml"
             mkdir -p "${tmp_base}/base-helm-configs" "${tmp_overrides}/kustomize" \
                 "${tmp_overrides}/helm-configs/global_overrides" "${tmp_overrides}/helm-configs/${service}"
@@ -1558,6 +1612,7 @@ test_install_ovn_tls_values() {
             PATH="${fakebin}:$PATH" \
                 KUBECTL_BIN=kubectl \
                 KUBECTL_ENABLE_SSL="$ssl" \
+                KUBECTL_LOG_FILE="$kubectl_log" \
                 HELM_LOG_FILE="$helm_log" \
                 HELM_ENV_LOG_FILE="${tmp_root}/helm-env.log" \
                 GENESTACK_BASE_DIR="$tmp_base" \
@@ -1582,6 +1637,21 @@ test_install_ovn_tls_values() {
                     "${service} must keep the generic kustomize post-renderer"
             fi
 
+            # Neutron's metadata agent has its own OVN connection settings.
+            if [[ "$service" == "neutron" ]]; then
+                assert_contains "$cmd" "conf.ovn_metadata_agent.ovn.ovn_nb_connection=" \
+                    "neutron must set the metadata agent northbound connection"
+                assert_contains "$cmd" "conf.ovn_metadata_agent.ovn.ovn_sb_connection=" \
+                    "neutron must set the metadata agent southbound connection"
+            fi
+            # The client copy of the Kube-OVN secret exists only for ssl: connections.
+            if [[ "$ssl" == "true" ]]; then
+                assert_contains "$(cat "$kubectl_log")" "apply --namespace openstack" \
+                    "${service} must sync openstack/ovn-client-tls when Kube-OVN uses SSL"
+            else
+                assert_not_contains "$(cat "$kubectl_log")" "apply --namespace openstack" \
+                    "${service} must not copy the Kube-OVN private key when Kube-OVN does not use SSL"
+            fi
             if [[ "$ssl" == "true" ]]; then
                 assert_contains "$cmd" "ssl:" "${service} must use ssl OVN connections when Kube-OVN uses SSL"
                 assert_contains "$cmd" "-f ${tls_file}" "${service} must pass its OVN TLS values file when Kube-OVN uses SSL"
@@ -1890,6 +1960,377 @@ test_install_redis_operator_cluster_name() {
     done
 }
 
+# kube_ovn_tls_secret mirrors the old install-kube-ovn.sh: a missing
+# kube-system/kube-ovn-tls is created with a private CA and a certificate that
+# carries the OVN service DNS names, then annotated and labelled for Helm. An
+# existing secret is left alone.
+test_kube_ovn_tls_secret() (
+    local fakebin tmp_root capture log svc_yaml regen_yaml cert name rc output
+    # The suite stubs secret_exists and secret_get; this test needs the real
+    # ones, and runs in a subshell so the stubs stay in place for other tests.
+    # shellcheck source=../bin/helpers.sh
+    source "${REPO_ROOT}/bin/helpers.sh"
+    fakebin="$(mktemp -d)"
+    create_fake_installer_binaries "$fakebin"
+    tmp_root="$(mktemp -d)"
+    capture="${tmp_root}/capture"
+    log="${tmp_root}/kubectl.log"
+    mkdir -p "$capture"
+    PATH="${fakebin}:$PATH"
+    KUBECTL_BIN=kubectl
+    export PATH KUBECTL_BIN KUBECTL_LOG_FILE="$log" KUBECTL_CAPTURE_DIR="$capture"
+    # Use the action exactly as kube-ovn.yaml ships it.
+    svc_yaml="$(yq e '{"service": .service, "pre_install_actions": [.pre_install_actions[] | select(.type == "kube_ovn_tls_secret")]}' \
+        "${REPO_ROOT}/bin/services/kube-ovn.yaml")"
+    [[ "$(yq e '.pre_install_actions | length' - <<< "$svc_yaml")" == "1" ]] ||
+        fail "kube-ovn.yaml must carry one kube_ovn_tls_secret action"
+
+    # Existing secret: nothing is generated or changed.
+    export MISSING_SECRET_REFS=""
+    : > "$log"
+    run_service_actions "$svc_yaml" '.pre_install_actions' kube-ovn 2>/dev/null ||
+        fail "the action must succeed when the secret exists"
+    [[ -z "$(ls -A "$capture")" ]] || fail "an existing kube-ovn-tls must not be regenerated"
+    assert_not_contains "$(cat "$log")" "create secret" "an existing kube-ovn-tls must not be recreated"
+    assert_not_contains "$(cat "$log")" "annotate" "an existing kube-ovn-tls must not be annotated"
+
+    # Missing secret: created with the DNS names, signed by its own CA.
+    export MISSING_SECRET_REFS="kube-system/kube-ovn-tls"
+    : > "$log"
+    run_service_actions "$svc_yaml" '.pre_install_actions' kube-ovn 2>/dev/null ||
+        fail "the action must succeed when the secret is missing"
+    for name in cacert cert key; do
+        [[ -s "${capture}/${name}" ]] || fail "kube-ovn-tls must carry ${name}"
+    done
+    # The SAN entries, as ",DNS:a,DNS:b,...," so each name matches as a whole.
+    cert=",$(openssl x509 -in "${capture}/cert" -noout -text | { grep -A1 'Subject Alternative Name' || true; } | tail -n 1 | tr -d ' '),"
+    for name in ovn ovn-nb ovn-nb.kube-system.svc ovn-sb ovn-sb.kube-system.svc ovn-northd ovn-northd.kube-system.svc; do
+        assert_contains "$cert" ",DNS:${name}," "the certificate must list DNS:${name}"
+    done
+    openssl verify -CAfile "${capture}/cacert" "${capture}/cert" >/dev/null 2>&1 ||
+        fail "the certificate must verify against the cacert in the secret"
+    [[ "$(openssl x509 -in "${capture}/cert" -noout -pubkey)" == "$(openssl pkey -in "${capture}/key" -pubout)" ]] ||
+        fail "the key in the secret must match the certificate"
+    openssl x509 -in "${capture}/cert" -noout -checkend $((3649 * 86400)) >/dev/null ||
+        fail "the certificate must be valid for about 3650 days"
+    ! openssl x509 -in "${capture}/cert" -noout -checkend $((3651 * 86400)) >/dev/null ||
+        fail "the certificate must not outlive 3650 days"
+    assert_contains "$(cat "$log")" "create secret generic kube-ovn-tls --namespace kube-system" \
+        "the secret must be created in kube-system"
+    assert_contains "$(cat "$log")" \
+        "annotate secret kube-ovn-tls --overwrite meta.helm.sh/release-name=kube-ovn meta.helm.sh/release-namespace=kube-system" \
+        "the secret must carry the Helm release annotations"
+    assert_contains "$(cat "$log")" "label secret kube-ovn-tls --overwrite app.kubernetes.io/managed-by=Helm" \
+        "the secret must carry the Helm managed-by label"
+
+    # A kept secret reports the validity of its certificate so the operator can
+    # decide whether to regenerate.
+    cp "${capture}/cert" "${tmp_root}/existing-cert.pem"
+    export MISSING_SECRET_REFS=""
+    export KUBECTL_TLS_CERT_FILE="${tmp_root}/existing-cert.pem"
+    : > "$log"
+    output="$(run_service_actions "$svc_yaml" '.pre_install_actions' kube-ovn 2>&1)" ||
+        fail "the action must succeed for an existing secret"
+    assert_contains "$output" "Existing kube-system/kube-ovn-tls certificate" "a kept secret must report its certificate"
+    assert_contains "$output" "valid from" "the report must show the validity period"
+    assert_contains "$output" "days left" "the report must show the days left"
+    assert_contains "$output" "DNS:ovn-nb.kube-system.svc" "the report must list the DNS names"
+    assert_contains "$output" "KUBE_OVN_REGENERATE_CERTS=true" "the report must say how to regenerate"
+    assert_contains "$output" "service-configs/kube-ovn.yaml" "the report must name the service-configs file"
+    assert_not_contains "$output" "PRIVATE KEY" "the report must never print key material"
+    assert_not_contains "$(cat "$log")" "create secret" "reporting must not write anything"
+
+    # A short-lived certificate without DNS names is flagged.
+    openssl req -x509 -newkey rsa:2048 -nodes -keyout "${tmp_root}/short.key" -out "${tmp_root}/short.pem" \
+        -days 5 -subj "/CN=ovn" >/dev/null 2>&1
+    export KUBECTL_TLS_CERT_FILE="${tmp_root}/short.pem"
+    output="$(run_service_actions "$svc_yaml" '.pre_install_actions' kube-ovn 2>&1)" ||
+        fail "the action must succeed for a short-lived certificate"
+    assert_contains "$output" "certificate expires within 30 days" "a certificate close to expiry must be flagged"
+    assert_contains "$output" "DNS names: none" "a certificate without DNS names must be reported as such"
+
+    # An unreadable certificate is a warning, not a failure.
+    printf 'not a certificate\n' > "${tmp_root}/bad.pem"
+    export KUBECTL_TLS_CERT_FILE="${tmp_root}/bad.pem"
+    output="$(run_service_actions "$svc_yaml" '.pre_install_actions' kube-ovn 2>&1)" ||
+        fail "an unreadable certificate must not fail the action"
+    assert_contains "$output" "Could not read a certificate" "an unreadable certificate must be reported"
+    unset KUBECTL_TLS_CERT_FILE
+    export MISSING_SECRET_REFS="kube-system/kube-ovn-tls"
+    rm -f "${capture}"/*
+    : > "$log"
+
+    # Marking it for Helm fails: the secret is kept (never deleted) and the
+    # error says how to mark it by hand.
+    rm -f "${capture}"/*
+    : > "$log"
+    export KUBECTL_FAIL_ANNOTATE=1
+    rc=0
+    output="$(run_service_actions "$svc_yaml" '.pre_install_actions' kube-ovn 2>&1)" || rc=$?
+    unset KUBECTL_FAIL_ANNOTATE
+    assert_eq "1" "$rc" "a failed annotate must fail the action"
+    assert_not_contains "$(cat "$log")" "delete secret" "the secret must not be deleted when it cannot be marked for Helm"
+    assert_contains "$output" "annotate secret kube-ovn-tls --overwrite" "the error must say how to mark the secret by hand"
+
+    # kubectl cannot say whether the secret exists (not NotFound): nothing is
+    # generated or written, so a live secret can never be overwritten.
+    rm -f "${capture}"/*
+    : > "$log"
+    export KUBECTL_SECRET_GET_ERROR=1
+    rc=0
+    output="$(run_service_actions "$svc_yaml" '.pre_install_actions' kube-ovn 2>&1)" || rc=$?
+    unset KUBECTL_SECRET_GET_ERROR
+    assert_eq "1" "$rc" "an API error while looking up the secret must fail the action"
+    assert_contains "$output" "Cannot tell whether kube-system/kube-ovn-tls exists" "the lookup error must be reported"
+    assert_contains "$output" "connection refused" "the kubectl error must be shown"
+    [[ -z "$(ls -A "$capture")" ]] || fail "nothing may be generated when the lookup fails"
+    assert_not_contains "$(cat "$log")" "create secret" "nothing may be created when the lookup fails"
+    assert_not_contains "$(cat "$log")" "delete secret" "nothing may be deleted when the lookup fails"
+
+    # regenerate_certs is false by default, so existing environments keep
+    # their secret on every reinstall and upgrade.
+    assert_eq "false" "$(yq e '.regenerate_certs' "${REPO_ROOT}/bin/services/kube-ovn.yaml")" \
+        "kube-ovn.yaml must ship regenerate_certs: false"
+    export MISSING_SECRET_REFS=""
+    for name in unset false; do
+        : > "$log"
+        regen_yaml="$svc_yaml"
+        [[ "$name" == "unset" ]] || regen_yaml="$(yq e '.regenerate_certs = false' - <<< "$svc_yaml")"
+        run_service_actions "$regen_yaml" '.pre_install_actions' kube-ovn >/dev/null 2>&1 ||
+            fail "the action must succeed with regenerate_certs ${name}"
+        assert_not_contains "$(cat "$log")" "create secret" "regenerate_certs ${name} must keep the existing secret"
+    done
+
+    # regenerate_certs: true replaces the existing secret, never deletes it,
+    # and tells the operator what to restart.
+    rm -f "${capture}"/*
+    : > "$log"
+    regen_yaml="$(yq e '.regenerate_certs = true' - <<< "$svc_yaml")"
+    output="$(run_service_actions "$regen_yaml" '.pre_install_actions' kube-ovn 2>&1)" ||
+        fail "the action must succeed with regenerate_certs: true"
+    assert_contains "$(cat "$log")" "create secret generic kube-ovn-tls" "regenerate_certs: true must write a new secret"
+    assert_contains "$(cat "$log")" "annotate secret kube-ovn-tls --overwrite" "a regenerated secret must be re-marked for Helm"
+    assert_not_contains "$(cat "$log")" "delete secret" "a regenerated secret must not be deleted"
+    for name in cacert cert key; do
+        [[ -s "${capture}/${name}" ]] || fail "the regenerated secret must carry ${name}"
+    done
+    assert_contains "$output" "Regenerating kube-system/kube-ovn-tls" "regeneration must be announced"
+    assert_contains "$output" "Restart the Kube-OVN and OVN components" "regeneration must say what to restart"
+    assert_contains "$output" "Set regenerate_certs back to false" "regeneration must remind the operator to switch it off"
+
+    # The environment variable opts in for one run without editing any file,
+    # and wins over the YAML value in both directions.
+    rm -f "${capture}"/*
+    : > "$log"
+    output="$(KUBE_OVN_REGENERATE_CERTS=true run_service_actions "$svc_yaml" '.pre_install_actions' kube-ovn 2>&1)" ||
+        fail "the action must succeed with KUBE_OVN_REGENERATE_CERTS=true"
+    assert_contains "$(cat "$log")" "create secret generic kube-ovn-tls" "KUBE_OVN_REGENERATE_CERTS=true must replace the secret"
+    assert_contains "$output" "Set regenerate_certs back to false (and unset KUBE_OVN_REGENERATE_CERTS)" \
+        "regeneration must remind the operator to unset the variable"
+    : > "$log"
+    KUBE_OVN_REGENERATE_CERTS=false run_service_actions "$regen_yaml" '.pre_install_actions' kube-ovn >/dev/null 2>&1 ||
+        fail "the action must succeed with KUBE_OVN_REGENERATE_CERTS=false"
+    assert_not_contains "$(cat "$log")" "create secret" "KUBE_OVN_REGENERATE_CERTS=false must win over regenerate_certs: true"
+    : > "$log"
+    rc=0
+    output="$(KUBE_OVN_REGENERATE_CERTS=maybe run_service_actions "$svc_yaml" '.pre_install_actions' kube-ovn 2>&1)" || rc=$?
+    assert_eq "1" "$rc" "an invalid KUBE_OVN_REGENERATE_CERTS must fail"
+    assert_contains "$output" "KUBE_OVN_REGENERATE_CERTS must be true or false" "an invalid variable must be reported"
+    assert_not_contains "$(cat "$log")" "create secret" "an invalid variable must not create a secret"
+
+    # A value other than true or false is rejected before anything happens.
+    : > "$log"
+    rc=0
+    output="$(run_service_actions "$(yq e '.regenerate_certs = "maybe"' - <<< "$svc_yaml")" '.pre_install_actions' kube-ovn 2>&1)" || rc=$?
+    assert_eq "1" "$rc" "an invalid regenerate_certs must fail"
+    assert_contains "$output" "regenerate_certs must be true or false" "an invalid switch must be reported"
+    assert_not_contains "$(cat "$log")" "create secret" "an invalid switch must not create a secret"
+
+    # A missing secret is still generated without the switch.
+    export MISSING_SECRET_REFS="kube-system/kube-ovn-tls"
+    rm -f "${capture}"/*
+    : > "$log"
+
+    # Bad input fails before anything is created.
+    : > "$log"
+    rc=0
+    output="$(run_service_actions "$(yq e 'del(.pre_install_actions[0].dns_names)' - <<< "$svc_yaml")" '.pre_install_actions' kube-ovn 2>&1)" || rc=$?
+    assert_eq "1" "$rc" "missing dns_names must fail"
+    assert_contains "$output" "Missing dns_names" "missing dns_names must be reported"
+    rc=0
+    output="$(run_service_actions "$(yq e '.pre_install_actions[0].dns_names[0] = "bad name;x"' - <<< "$svc_yaml")" '.pre_install_actions' kube-ovn 2>&1)" || rc=$?
+    assert_eq "1" "$rc" "an invalid DNS name must fail"
+    assert_contains "$output" "Invalid DNS name" "an invalid DNS name must be reported"
+    rc=0
+    output="$(run_service_actions "$(yq e '.pre_install_actions[0].days = "abc"' - <<< "$svc_yaml")" '.pre_install_actions' kube-ovn 2>&1)" || rc=$?
+    assert_eq "1" "$rc" "invalid days must fail"
+    assert_not_contains "$(cat "$log")" "create secret" "invalid input must not create a secret"
+    rm -rf "$tmp_root" "$fakebin"
+)
+
+# install.sh --service kube-ovn creates the TLS secret before Helm runs.
+test_install_kube_ovn_tls_secret() {
+    local fakebin tmp_root tmp_base tmp_overrides helm_log kubectl_log install_out ns_line secret_line regen rc
+    fakebin="$(mktemp -d)"
+    create_fake_installer_binaries "$fakebin"
+    tmp_root="$(mktemp -d)"
+    tmp_base="${tmp_root}/base"
+    tmp_overrides="${tmp_root}/overrides"
+    helm_log="${tmp_root}/helm.log"
+    kubectl_log="${tmp_root}/kubectl.log"
+    mkdir -p "${tmp_base}/base-helm-configs" "${tmp_overrides}/kustomize" "${tmp_root}/capture"
+    [[ ! -d "${REPO_ROOT}/base-helm-configs/kube-ovn" ]] || cp -R "${REPO_ROOT}/base-helm-configs/kube-ovn" "${tmp_base}/base-helm-configs/"
+    printf '#!/bin/bash\nexit 0\n' > "${tmp_overrides}/kustomize/kustomize.sh"
+    chmod +x "${tmp_overrides}/kustomize/kustomize.sh"
+    printf 'charts:\n  kube-ovn: 1.0.0\n' > "${tmp_overrides}/helm-chart-versions.yaml"
+
+    PATH="${fakebin}:$PATH" \
+        KUBECTL_BIN=kubectl \
+        KUBECTL_LOG_FILE="$kubectl_log" \
+        KUBECTL_CAPTURE_DIR="${tmp_root}/capture" \
+        MISSING_SECRET_REFS="kube-system/kube-ovn-tls" \
+        HELM_LOG_FILE="$helm_log" \
+        GENESTACK_BASE_DIR="$tmp_base" \
+        GENESTACK_OVERRIDES_DIR="$tmp_overrides" \
+        GENESTACK_SERVICES_DIR="${REPO_ROOT}/bin/services" \
+        GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
+        "${REPO_ROOT}/bin/install.sh" --service kube-ovn --dry-run >"${tmp_root}/install.out" 2>&1 ||
+        fail "install.sh --service kube-ovn must succeed"
+    install_out="$(cat "${tmp_root}/install.out")"
+    # The namespace is ensured before the pre-install hooks create the secret.
+    ns_line="$(grep -n '^get namespace kube-system' "$kubectl_log" | head -n 1 | cut -d: -f1)"
+    secret_line="$(grep -n '^create secret generic kube-ovn-tls' "$kubectl_log" | head -n 1 | cut -d: -f1)"
+    [[ -n "$ns_line" && -n "$secret_line" && "$ns_line" -lt "$secret_line" ]] ||
+        fail "the namespace must be ensured before kube-ovn-tls is created (namespace line '${ns_line}', secret line '${secret_line}')"
+    assert_contains "$install_out" "Namespace 'kube-system' already exists." "install.sh must report the namespace"
+    [[ "${install_out%%Namespace \'kube-system\' already exists.*}" != *"Running pre-install hook"* ]] ||
+        fail "the namespace message must come before the pre-install hook header"
+    assert_contains "$(cat "$kubectl_log")" "create secret generic kube-ovn-tls" "install.sh must create kube-ovn-tls"
+    assert_contains "$(cat "$kubectl_log")" "annotate secret kube-ovn-tls" "install.sh must annotate kube-ovn-tls for Helm"
+    assert_contains "$(openssl x509 -in "${tmp_root}/capture/cert" -noout -text)" "DNS:ovn-nb.kube-system.svc" \
+        "install.sh must generate the certificate with the OVN DNS names"
+    grep -q '^upgrade --install kube-ovn ' "$helm_log" || fail "Helm must run for kube-ovn"
+
+    # Reinstall or upgrade with the secret in place: kept by default, and only
+    # replaced when a service-configs override turns regenerate_certs on.
+    for regen in default override env; do
+        : > "$kubectl_log"
+        rm -f "${tmp_root}/capture"/*
+        mkdir -p "${tmp_overrides}/service-configs"
+        rm -f "${tmp_overrides}/service-configs/kube-ovn.yaml"
+        [[ "$regen" != "override" ]] || printf 'regenerate_certs: true\n' > "${tmp_overrides}/service-configs/kube-ovn.yaml"
+        PATH="${fakebin}:$PATH" \
+            KUBECTL_BIN=kubectl \
+            KUBECTL_LOG_FILE="$kubectl_log" \
+            KUBECTL_CAPTURE_DIR="${tmp_root}/capture" \
+            MISSING_SECRET_REFS="" \
+            KUBE_OVN_REGENERATE_CERTS="$([[ "$regen" == env ]] && echo true || true)" \
+            HELM_LOG_FILE="$helm_log" \
+            GENESTACK_BASE_DIR="$tmp_base" \
+            GENESTACK_OVERRIDES_DIR="$tmp_overrides" \
+            GENESTACK_SERVICES_DIR="${REPO_ROOT}/bin/services" \
+            GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
+            "${REPO_ROOT}/bin/install.sh" --service kube-ovn --dry-run >"${tmp_root}/install.out" 2>&1 ||
+            fail "install.sh --service kube-ovn must succeed on a reinstall (${regen})"
+        if [[ "$regen" == "default" ]]; then
+            assert_not_contains "$(cat "$kubectl_log")" "create secret" "a reinstall must keep the existing kube-ovn-tls"
+            assert_contains "$(cat "${tmp_root}/install.out")" "Secret kube-system/kube-ovn-tls already exists" \
+                "a reinstall must report the existing kube-ovn-tls"
+        else
+            assert_contains "$(cat "$kubectl_log")" "create secret generic kube-ovn-tls" \
+                "regenerate_certs (service-configs or KUBE_OVN_REGENERATE_CERTS) must replace the existing kube-ovn-tls"
+            assert_not_contains "$(cat "$kubectl_log")" "delete secret" "regeneration must not delete the secret"
+        fi
+    done
+        # The TLS action can stop the install: when kubectl cannot say whether the
+    # secret exists, install.sh must fail and must not run Helm.
+    : > "$kubectl_log"
+    : > "$helm_log"
+    rm -f "${tmp_overrides}/service-configs/kube-ovn.yaml"
+    rc=0
+    PATH="${fakebin}:$PATH" \
+        KUBECTL_BIN=kubectl \
+        KUBECTL_LOG_FILE="$kubectl_log" \
+        KUBECTL_CAPTURE_DIR="${tmp_root}/capture" \
+        KUBECTL_SECRET_GET_ERROR=1 \
+        HELM_LOG_FILE="$helm_log" \
+        GENESTACK_BASE_DIR="$tmp_base" \
+        GENESTACK_OVERRIDES_DIR="$tmp_overrides" \
+        GENESTACK_SERVICES_DIR="${REPO_ROOT}/bin/services" \
+        GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
+        "${REPO_ROOT}/bin/install.sh" --service kube-ovn --dry-run >"${tmp_root}/install.out" 2>&1 || rc=$?
+    [[ "$rc" -ne 0 ]] || fail "install.sh --service kube-ovn must fail when the secret lookup fails"
+    assert_contains "$(cat "${tmp_root}/install.out")" "Cannot tell whether kube-system/kube-ovn-tls exists" \
+        "the lookup failure must be reported"
+    assert_contains "$(cat "${tmp_root}/install.out")" "not running Helm" "the install must say Helm was not run"
+    assert_not_contains "$(cat "$helm_log")" "upgrade --install" "Helm must not run after a failed TLS hook"
+    assert_not_contains "$(cat "$kubectl_log")" "create secret" "nothing may be created after a failed lookup"
+    rm -rf "$tmp_root" "$fakebin"
+}
+
+# Runs install.sh for a service with a deliberately broken pre-install hook and
+# checks that it fails, says why, and never reaches Helm.
+#   $1 service, $2 text the output must contain, $3 file (relative to the base
+#   directory) to delete first, or "" for none; the rest are env assignments.
+run_install_expect_hook_failure() {
+    local svc="$1" expect="$2" break_file="$3"
+    shift 3
+    local fakebin tmp_root tmp_base tmp_overrides helm_log out rc=0
+    fakebin="$(mktemp -d)"
+    create_fake_installer_binaries "$fakebin"
+    tmp_root="$(mktemp -d)"
+    tmp_base="${tmp_root}/base"
+    tmp_overrides="${tmp_root}/overrides"
+    helm_log="${tmp_root}/helm.log"
+    mkdir -p "${tmp_base}/base-helm-configs" "${tmp_base}/base-kustomize" "${tmp_overrides}/kustomize"
+    cp -R "${REPO_ROOT}/base-helm-configs/${svc}" "${tmp_base}/base-helm-configs/"
+    [[ ! -d "${REPO_ROOT}/base-kustomize/${svc}" ]] || cp -R "${REPO_ROOT}/base-kustomize/${svc}" "${tmp_base}/base-kustomize/"
+    printf '#!/bin/bash\nexit 0\n' > "${tmp_overrides}/kustomize/kustomize.sh"
+    chmod +x "${tmp_overrides}/kustomize/kustomize.sh"
+    printf 'charts:\n  %s: 1.0.0\n' "$svc" > "${tmp_overrides}/helm-chart-versions.yaml"
+    [[ -z "$break_file" ]] || rm -f "${tmp_base}/${break_file}"
+    : > "$helm_log"
+
+    out="$(env PATH="${fakebin}:$PATH" \
+        KUBECTL_BIN=kubectl \
+        HELM_LOG_FILE="$helm_log" \
+        GENESTACK_BASE_DIR="$tmp_base" \
+        GENESTACK_OVERRIDES_DIR="$tmp_overrides" \
+        GENESTACK_SERVICES_DIR="${REPO_ROOT}/bin/services" \
+        GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
+        "$@" \
+        "${REPO_ROOT}/bin/install.sh" --service "$svc" --dry-run 2>&1)" || rc=$?
+    [[ "$rc" -ne 0 ]] || fail "install.sh --service ${svc} must fail (${expect})"
+    assert_contains "$out" "$expect" "install.sh --service ${svc} must report: ${expect}"
+    assert_contains "$out" "not running Helm" "install.sh --service ${svc} must say Helm was not run"
+    assert_not_contains "$(cat "$helm_log")" "upgrade --install" "install.sh --service ${svc} must not run Helm after a failed hook"
+    rm -rf "$tmp_root" "$fakebin"
+}
+
+# Any failing pre_install_actions or pre_install_check_actions entry stops the
+# install before Helm runs.
+test_install_hook_failures_stop_install() {
+    # pre_install_actions
+    run_install_expect_hook_failure mariadb-operator "is not a valid DNS domain" "" CLUSTER_NAME="bad domain"
+    run_install_expect_hook_failure redis-operator "is not a valid DNS domain" "" CLUSTER_NAME="bad;domain"
+    run_install_expect_hook_failure kube-ovn "No nodes found labeled" "" KUBECTL_NO_NODES=1
+    run_install_expect_hook_failure kube-ovn "must be true or false" "" KUBE_OVN_REGENERATE_CERTS=maybe
+
+    # pre_install_check_actions
+    local svc
+    run_install_expect_hook_failure nova "Cannot read the kube-system/ovn-central deployment" "" KUBECTL_DEPLOY_GET_ERROR=1
+    for svc in neutron octavia; do
+        run_install_expect_hook_failure "$svc" "must contain cacert, cert, and key" "" KUBECTL_SECRET_JSON_EMPTY=1 KUBECTL_ENABLE_SSL=true
+        run_install_expect_hook_failure "$svc" "Pre-install checks for '${svc}' failed" "" KUBECTL_SECRET_JSON_EMPTY=1 KUBECTL_ENABLE_SSL=true
+        run_install_expect_hook_failure "$svc" "Kube-OVN TLS values file not found" \
+            "base-helm-configs/${svc}/ssl/${svc}-ovn-tls-overrides.yaml" KUBECTL_ENABLE_SSL=true
+        run_install_expect_hook_failure "$svc" "Cannot read the kube-system/ovn-central deployment" "" KUBECTL_DEPLOY_GET_ERROR=1
+        run_install_expect_hook_failure "$svc" "ovn-nb and ovn-sb services could not be resolved" "" KUBECTL_NO_OVN_SERVICES=1
+        run_install_expect_hook_failure "$svc" "Kube-OVN uses SSL but kube-system/kube-ovn-tls was not found" "" \
+            KUBECTL_ENABLE_SSL=true MISSING_SECRET_REFS=kube-system/kube-ovn-tls
+    done
+}
+
 # Isolate configuration fixtures and resolver mocks from the secret tests.
 test_config_layer_precedence() (
     local root merged sources
@@ -2166,6 +2607,9 @@ main() {
     test_cluster_name_site_value
     test_install_mariadb_cluster_name
     test_install_redis_operator_cluster_name
+    test_kube_ovn_tls_secret
+    test_install_kube_ovn_tls_secret
+    test_install_hook_failures_stop_install
     echo "PASS: unified installer regression checks"
 }
 

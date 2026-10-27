@@ -191,7 +191,29 @@ helm:
 # Supported pre_install action types:
 #   - monitoring_grafana_db_secret_bootstrap
 #   - kube_ovn_master_discovery
+#   - kube_ovn_tls_secret
 #   - cluster_name_site_value
+#
+# kube_ovn_tls_secret creates the Kube-OVN TLS secret (cacert, cert and key) with
+# a private CA and a server certificate that lists dns_names as subject
+# alternative names, so OVN clients can verify the server by service name. The
+# chart's own certificate has none. An existing secret is never touched. A new
+# one is annotated and labelled for Helm so the chart adopts it. The secret is
+# never deleted. If kubectl cannot say whether it exists (anything other than
+# NotFound), the install stops instead of generating over it. Fields:
+# secret_name (default kube-ovn-tls), namespace (default service.namespace or
+# kube-system), days (default 3650), dns_names (required) and
+# regenerate_certs_env.
+# regenerate_certs is a top-level switch of the service file, false by
+# default, so reinstalls and upgrades keep the secret. Set it to true, for
+# example in /etc/genestack/service-configs/<service>.yaml, to replace an
+# existing secret with a new CA and certificate on the next install, then set
+# it back to false. regenerate_certs_env names an environment variable, for
+# example KUBE_OVN_REGENERATE_CERTS, that overrides the YAML value for one
+# run. When the secret is kept, the installer logs the validity of its
+# certificate (subject, dates, days left, DNS names) so the operator can
+# decide whether to regenerate. After a regeneration restart the OVN
+# components and rerun the neutron and octavia installs.
 #
 # cluster_name_site_value records the cluster DNS domain in the service's
 # site values file, /etc/genestack/helm-configs/<chart>/<chart>-helm-overrides.yaml,
@@ -199,6 +221,7 @@ helm:
 # the (dotted) chart value to set, for example clusterName. Existing settings
 # in the file are kept and the key is replaced or added. With CLUSTER_NAME
 # unset or cluster.local nothing is written.
+# A failing pre-install action stops the install before Helm runs.
 pre_install_actions: []
 #
 # Example (used by kube-ovn.yaml):
@@ -247,6 +270,7 @@ pre_install_actions: []
 #       - helm_key: conf.example.ovn.ovn_sb_connection
 #         env: OVN_SB_CONNECTION
 
+# A failing check action stops the install before Helm runs.
 pre_install_check_actions: []
 
 

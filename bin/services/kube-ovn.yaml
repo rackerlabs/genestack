@@ -10,7 +10,21 @@ chart:
   repo_name: kubeovn
   repo_url: oci://ghcr.io/kubeovn/charts/kube-ovn
 
+regenerate_certs: false
+
 pre_install_actions:
+  - type: kube_ovn_tls_secret
+    secret_name: kube-ovn-tls
+    days: 3650
+    regenerate_certs_env: KUBE_OVN_REGENERATE_CERTS
+    dns_names:
+      - ovn
+      - ovn-nb
+      - ovn-nb.kube-system.svc
+      - ovn-sb
+      - ovn-sb.kube-system.svc
+      - ovn-northd
+      - ovn-northd.kube-system.svc
   - type: kube_ovn_master_discovery
     node_label: kube-ovn/role=master
     master_nodes_helm_key: MASTER_NODES

@@ -112,6 +112,48 @@ upgrade:
     written. Other services take the cluster domain from their own values
     files; the Redis operator uses redisOperator.serviceDNSDomain.
   - |
+    install.sh --service kube-ovn pre-generates the kube-system/kube-ovn-tls
+    secret again, as install-kube-ovn.sh did. The new kube_ovn_tls_secret
+    pre-install action creates a private CA and a 3650-day server certificate
+    with the DNS names ovn, ovn-nb, ovn-sb and ovn-northd (plain and
+    .kube-system.svc), then annotates and labels the secret so the chart
+    adopts it. The chart's own certificate has no subject alternative names.
+    An existing kube-ovn-tls secret is never changed or deleted, and the
+    install stops if kubectl cannot tell whether it exists, so a live secret
+    is never generated over. The names are set in bin/services/kube-ovn.yaml.
+    When the secret is kept, the installer logs the certificate's subject,
+    validity dates, days left and DNS names so operators can decide
+    whether to replace it. To replace it on purpose, run the install once
+    with KUBE_OVN_REGENERATE_CERTS=true, or set regenerate_certs: true in
+    /etc/genestack/service-configs/kube-ovn.yaml (false by default). Then
+    restart the OVN components and rerun the neutron and octavia installs.
+  - |
+    install.sh now ensures and reports the service namespace before the
+    pre-install hooks run, so hooks can create secrets in it.
+  - |
+    bin/services/neutron.yaml now sets the OVN connections for the Neutron
+    metadata agent again, as install-neutron.sh did. Two entries were added to
+    its ovn_connection_set_args action:
+    conf.ovn_metadata_agent.ovn.ovn_nb_connection (from OVN_NB_CONNECTION) and
+    conf.ovn_metadata_agent.ovn.ovn_sb_connection (from OVN_SB_CONNECTION).
+    Without them the metadata agent kept the chart's default OVN connection
+    instead of the cluster's ssl: or tcp: endpoints.
+  - |
+    Neutron and Octavia copy the Kube-OVN client secret to the openstack
+    namespace only when Kube-OVN uses SSL, so a tcp cluster no longer gets a
+    copy of the Kube-OVN private key. With SSL on they stop if
+    kube-system/kube-ovn-tls is missing, and they stop when the ovn-nb or
+    ovn-sb service or the ovn-central deployment cannot be read, instead of
+    falling back to tcp or chart-default connections.
+  - |
+    A failing pre_install_actions or pre_install_check_actions entry now
+    stops install.sh before Helm runs and exits non-zero. Before, install.sh
+    logged the error and ran Helm anyway. This restores the legacy
+    installers' behavior for a Neutron or Octavia OVN TLS secret that lacks
+    cacert, cert or key, and for a missing OVN TLS values file. Kube-OVN now
+    also stops when no node carries the kube-ovn/role=master label, as the
+    old install-kube-ovn.sh did, instead of installing with zero replicas.
+  - |
     Standalone Fluent Bit, Kube-OVN, Longhorn, MetalLB, Postgres Operator,
     Pushgateway, Redis Sentinel, and Envoy Gateway now skip common families.
     Put their chart settings in service-specific site files. Set

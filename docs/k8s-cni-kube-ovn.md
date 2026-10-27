@@ -74,6 +74,30 @@ To run the Kube-OVN deployment, run the following command commands or script.
     /opt/genestack/bin/install.sh --service kube-ovn
     ```
 
+### OVN TLS certificate
+
+!!! note "Kube-OVN TLS secret and regenerating its certificate"
+
+    The installer creates the `kube-system/kube-ovn-tls` secret on the first run, with a private CA and a 3650-day
+    certificate that lists these DNS names: `ovn`, `ovn-nb`, `ovn-sb` and `ovn-northd`, each also as
+    `<name>.kube-system.svc`. An existing secret is never changed or deleted. On a reinstall or upgrade the installer
+    prints the subject, validity dates, days left and DNS names of the certificate it keeps, and warns when it expires
+    within 30 days or has already expired.
+
+    To replace the certificate on purpose, either set the environment variable for a single run:
+
+    ``` shell
+    KUBE_OVN_REGENERATE_CERTS=true /opt/genestack/bin/install.sh --service kube-ovn
+    ```
+
+    or set `regenerate_certs: true` in `/etc/genestack/service-configs/kube-ovn.yaml`, run the install once and set it
+    back to `false` (the default). The environment variable wins over the file, so `KUBE_OVN_REGENERATE_CERTS=false`
+    keeps the secret even when the file says `true`.
+
+    A new CA and certificate replace the old ones and the previous certificate is not kept. Afterwards restart the OVN
+    components (for example `ovn-central`, `ovs-ovn`, `kube-ovn-controller` and `kube-ovn-cni`) so they load it, and
+    rerun the Neutron and Octavia installs so the copied `openstack/ovn-client-tls` secret is refreshed.
+
 ### Deployment Verification
 
 Once the script has completed, you can verify that the Kube-OVN pods are running by running the following command
