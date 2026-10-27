@@ -123,29 +123,38 @@ main() {
     # Service actions can append conditional values before arguments are built.
     local additional_base_values=()
 
+    # ── Namespace ─────────────────────────────────────────────────────────
+    # Pre-install hooks may create secrets in the service namespace, so it must
+    # exist, and be reported, before they run.
+    ensure_namespace "$service_namespace"
+    # Check if namespace label is needed (talos detection)
+    label_namespace_for_talos "$service_namespace"
+
     # ── Pre-install hooks ─────────────────────────────────────────────────
 
     if [[ "$(echo "$svc_yaml_content" | yq e '.pre_install_actions | length // 0' -)" -gt 0 ]]; then
         log_header "Running pre-install hook for '${service_name}'"
-        run_service_actions "$svc_yaml_content" '.pre_install_actions' "$service_name"
+        # A failing hook stops the install before Helm runs.
+        if ! run_service_actions "$svc_yaml_content" '.pre_install_actions' "$service_name"; then
+            log_error "Pre-install hook for '${service_name}' failed; not running Helm."
+            return 1
+        fi
     fi
 
     # ── Kube-OVN TLS auto-detection (for neutron/octavia) ────────────────
 
     if [[ "$(echo "$svc_yaml_content" | yq e '.pre_install_check_actions | length // 0' -)" -gt 0 ]]; then
         log_header "Running pre-install checks for '${service_name}'"
-        run_service_actions "$svc_yaml_content" '.pre_install_check_actions' "$service_name"
+        if ! run_service_actions "$svc_yaml_content" '.pre_install_check_actions' "$service_name"; then
+            log_error "Pre-install checks for '${service_name}' failed; not running Helm."
+            return 1
+        fi
     fi
 
     if [[ "${CONNECTION_STRING:-}" == "ssl" || "${CONNECTION_STRING:-}" == "tcp" ]]; then
         log_info "OVN TLS enabled (${CONNECTION_STRING})"
     fi
 
-    # ── Namespace ─────────────────────────────────────────────────────────
-
-    ensure_namespace "$service_namespace"
-    # Check if namespace label is needed (talos detection)
-    label_namespace_for_talos "$service_namespace"
 
     # ── Resolve helm chart path ───────────────────────────────────────────
 

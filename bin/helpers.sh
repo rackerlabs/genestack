@@ -629,7 +629,11 @@ run_service_action() {
             MASTER_NODE_COUNT=$(printf '%s\n' "$master_nodes_raw" | sed '/^$/d' | wc -l | tr -d ' ')
             MASTER_NODES=$(printf '%s\n' "$master_nodes_raw" | sed '/^$/d' | paste -sd, - | sed 's/,/\\,/g')
             export MASTER_NODE_COUNT MASTER_NODES
-
+            if [[ "$MASTER_NODE_COUNT" -eq 0 ]]; then
+                log_error "No nodes found labeled with '${node_label}'."
+                log_error "  Label your master nodes with '${node_label}' before installing '${service_name}'."
+                return 1
+            fi
             if [[ -n "$master_nodes_helm_key" && -n "$MASTER_NODES" ]]; then
                 append_helm_set_arg "$master_nodes_helm_key" "$MASTER_NODES"
             fi
