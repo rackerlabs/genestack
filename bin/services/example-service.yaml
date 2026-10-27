@@ -193,6 +193,7 @@ helm:
 #   - kube_ovn_master_discovery
 #   - kube_ovn_tls_secret
 #   - cluster_name_site_value
+#   - secret_sync_directory
 #
 # kube_ovn_tls_secret creates the Kube-OVN TLS secret (cacert, cert and key) with
 # a private CA and a server certificate that lists dns_names as subject
@@ -214,6 +215,17 @@ helm:
 # certificate (subject, dates, days left, DNS names) so the operator can
 # decide whether to regenerate. After a regeneration restart the OVN
 # components and rerun the neutron and octavia installs.
+#
+# secret_sync_directory creates or updates a Kubernetes secret from every file in
+# a directory on the host, on each run. Fields: secret_name and directory (a path
+# relative to /etc/genestack) are required; namespace defaults to the service
+# namespace; directory_env names an environment variable that replaces the
+# directory; skip_env names an environment variable that skips the sync when it
+# is 1; required_files lists files that must exist, otherwise the install stops;
+# when_overlay_includes syncs only when the service's kustomize overlay lists a
+# resource containing that text (used for the Keystone federation overlay). A
+# --dry-run among the extra Helm arguments also skips the sync. Used by
+# keystone.yaml for the keystone-shibd-etc secret.
 #
 # cluster_name_site_value records the cluster DNS domain in the service's
 # site values file, /etc/genestack/helm-configs/<chart>/<chart>-helm-overrides.yaml,

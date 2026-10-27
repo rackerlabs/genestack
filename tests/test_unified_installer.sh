@@ -293,7 +293,7 @@ if [[ "${1:-}" == "create" && "${2:-}" == "secret" && -n "${KUBECTL_CAPTURE_DIR:
     exit 0
 fi
 
-if [[ "${1:-}" == "apply" && -n "${KUBECTL_CAPTURE_DIR:-}" ]]; then
+if [[ "${1:-}" == "apply" ]]; then
     # Like the real kubectl, report what was applied.
     echo "secret/applied"
     exit 0
@@ -445,6 +445,12 @@ validate_action_schemas() {
                     ovn_tls_values)
                         [[ -n "$(yq e "${action_path}[]? | select(.type == \"${type}\") | .file // \"\"" "$f" 2>/dev/null | sed '/^$/d;/^null$/d')" ]] ||
                             failures+="${svc}:${action_path}:${type}:file-required"$'\n'
+                        ;;
+                    secret_sync_directory)
+                        [[ -n "$(yq e "${action_path}[]? | select(.type == \"${type}\") | (.secret_name // \"\") + (.directory // \"\")" "$f" 2>/dev/null | sed '/^$/d;/^null$/d')" &&
+                           -n "$(yq e "${action_path}[]? | select(.type == \"${type}\") | .secret_name // \"\"" "$f" 2>/dev/null | sed '/^$/d;/^null$/d')" &&
+                           -n "$(yq e "${action_path}[]? | select(.type == \"${type}\") | .directory // \"\"" "$f" 2>/dev/null | sed '/^$/d;/^null$/d')" ]] ||
+                            failures+="${svc}:${action_path}:${type}:secret_name-and-directory-required"$'\n'
                         ;;
                     cluster_name_site_value)
                         [[ -n "$(yq e "${action_path}[]? | select(.type == \"${type}\") | .helm_key // \"\"" "$f" 2>/dev/null | sed '/^$/d;/^null$/d')" ]] ||
@@ -2331,6 +2337,167 @@ test_install_hook_failures_stop_install() {
     done
 }
 
+# secret_sync_directory mirrors the old install-keystone.sh: with the federation
+# base in the Keystone overlay it syncs the Shibboleth directory into
+# keystone-shibd-etc, and it stops the install when files are missing.
+test_secret_sync_directory() (
+    local fakebin tmp_root svc_yaml log output rc name overlay shib other
+    local GENESTACK_OVERRIDES_DIR GENESTACK_BASE_DIR
+    # shellcheck source=../bin/helpers.sh
+    source "${REPO_ROOT}/bin/helpers.sh"
+    fakebin="$(mktemp -d)"
+    create_fake_installer_binaries "$fakebin"
+    tmp_root="$(mktemp -d)"
+    GENESTACK_OVERRIDES_DIR="${tmp_root}/etc"
+    GENESTACK_BASE_DIR="$REPO_ROOT"
+    # Earlier tests leave extra Helm arguments (such as --dry-run) behind.
+    CL_EXTRA_HELM_ARGS=()
+    log="${tmp_root}/kubectl.log"
+    overlay="${GENESTACK_OVERRIDES_DIR}/kustomize/keystone/overlay"
+    shib="${GENESTACK_OVERRIDES_DIR}/keystone-sp/shibboleth"
+    other="${tmp_root}/other-shibboleth"
+    mkdir -p "$overlay" "$shib" "$other"
+    PATH="${fakebin}:$PATH"
+    export PATH KUBECTL_BIN=kubectl KUBECTL_LOG_FILE="$log"
+    svc_yaml="$(yq e '{"service": .service, "pre_install_actions": .pre_install_actions}' "${REPO_ROOT}/bin/services/keystone.yaml")"
+    [[ "$(yq e '.pre_install_actions[0].type' - <<< "$svc_yaml")" == "secret_sync_directory" ]] ||
+        fail "keystone.yaml must carry the secret_sync_directory action"
+
+    # No federation base in the overlay: nothing is synced, even without files.
+    printf 'kind: Kustomization\nresources:\n  - ../base\n' > "${overlay}/kustomization.yaml"
+    : > "$log"
+    output="$(run_service_actions "$svc_yaml" '.pre_install_actions' keystone 2>&1)" ||
+        fail "the action must succeed without the federation base"
+    assert_contains "$output" "does not include 'federation'" "the skip must be reported"
+    assert_not_contains "$(cat "$log")" "create secret" "no secret may be synced without federation"
+
+    # Federation base but no directory: the install stops.
+    printf 'kind: Kustomization\nresources:\n  - ../federation\n' > "${overlay}/kustomization.yaml"
+    rm -rf "$shib"
+    rc=0
+    output="$(run_service_actions "$svc_yaml" '.pre_install_actions' keystone 2>&1)" || rc=$?
+    assert_eq "1" "$rc" "a missing Shibboleth directory must fail"
+    assert_contains "$output" "Directory for secret openstack/keystone-shibd-etc not found" "the missing directory must be reported"
+
+    # Directory without the required files: each missing file is listed.
+    mkdir -p "$shib"
+    printf 'x' > "${shib}/shibboleth2.xml"
+    printf 'x' > "${shib}/sp-cert.pem"
+    rc=0
+    output="$(run_service_actions "$svc_yaml" '.pre_install_actions' keystone 2>&1)" || rc=$?
+    assert_eq "1" "$rc" "missing required files must fail"
+    assert_contains "$output" "  - sp-key.pem" "sp-key.pem must be listed as missing"
+    assert_contains "$output" "  - idp-metadata.xml" "idp-metadata.xml must be listed as missing"
+    assert_not_contains "$output" "  - shibboleth2.xml" "a present file must not be listed"
+    assert_not_contains "$(cat "$log")" "create secret" "nothing may be synced when files are missing"
+
+    # Everything present: the directory is synced on every run.
+    printf 'x' > "${shib}/sp-key.pem"
+    printf 'x' > "${shib}/idp-metadata.xml"
+    for name in first second; do
+        : > "$log"
+        output="$(run_service_actions "$svc_yaml" '.pre_install_actions' keystone 2>&1)" ||
+            fail "the action must succeed with all files present (${name} run)"
+        assert_contains "$output" "Syncing secret openstack/keystone-shibd-etc from ${shib}" "the sync must be announced (${name} run)"
+        assert_contains "$(cat "$log")" "create secret generic keystone-shibd-etc --namespace openstack --from-file=${shib}" \
+            "the directory must be synced into keystone-shibd-etc (${name} run)"
+        assert_contains "$(cat "$log")" "apply --namespace openstack" "the secret must be applied (${name} run)"
+    done
+
+    # KEYSTONE_SHIBBOLETH_DIR replaces the directory.
+    for name in shibboleth2.xml sp-cert.pem sp-key.pem idp-metadata.xml; do printf 'y' > "${other}/${name}"; done
+    : > "$log"
+    output="$(KEYSTONE_SHIBBOLETH_DIR="$other" run_service_actions "$svc_yaml" '.pre_install_actions' keystone 2>&1)" ||
+        fail "the action must succeed with KEYSTONE_SHIBBOLETH_DIR"
+    assert_contains "$(cat "$log")" "--from-file=${other}" "KEYSTONE_SHIBBOLETH_DIR must replace the directory"
+
+    # SKIP_SHIBBOLETH_SECRET=1 and --dry-run skip the sync.
+    : > "$log"
+    output="$(SKIP_SHIBBOLETH_SECRET=1 run_service_actions "$svc_yaml" '.pre_install_actions' keystone 2>&1)" ||
+        fail "the action must succeed with SKIP_SHIBBOLETH_SECRET=1"
+    assert_contains "$output" "SKIP_SHIBBOLETH_SECRET=1 is set" "the skip must be reported"
+    CL_EXTRA_HELM_ARGS=(--dry-run)
+    output="$(run_service_actions "$svc_yaml" '.pre_install_actions' keystone 2>&1)" ||
+        fail "the action must succeed with --dry-run"
+    assert_contains "$output" "--dry-run is set" "the --dry-run skip must be reported"
+    CL_EXTRA_HELM_ARGS=()
+    assert_not_contains "$(cat "$log")" "create secret" "a skipped sync must not touch the secret"
+
+    # Bad configuration is rejected.
+    rc=0
+    output="$(run_service_actions "$(yq e '.pre_install_actions[0].directory = "../etc"' - <<< "$svc_yaml")" '.pre_install_actions' keystone 2>&1)" || rc=$?
+    assert_eq "1" "$rc" "a directory outside the overrides directory must be rejected"
+    rc=0
+    output="$(run_service_actions "$(yq e 'del(.pre_install_actions[0].secret_name)' - <<< "$svc_yaml")" '.pre_install_actions' keystone 2>&1)" || rc=$?
+    assert_eq "1" "$rc" "a missing secret_name must be rejected"
+    rm -rf "$tmp_root" "$fakebin"
+)
+
+# install.sh --service keystone syncs the Shibboleth secret before Helm when the
+# overlay includes the federation base, and stops before Helm when it cannot.
+test_install_keystone_shibboleth_secret() {
+    local fakebin tmp_root tmp_base tmp_overrides helm_log kubectl_log overlay shib mode rc out name
+    fakebin="$(mktemp -d)"
+    create_fake_installer_binaries "$fakebin"
+    for mode in plain federation federation-missing skip; do
+        tmp_root="$(mktemp -d)"
+        tmp_base="${tmp_root}/base"
+        tmp_overrides="${tmp_root}/overrides"
+        helm_log="${tmp_root}/helm.log"
+        kubectl_log="${tmp_root}/kubectl.log"
+        overlay="${tmp_overrides}/kustomize/keystone/overlay"
+        shib="${tmp_overrides}/keystone-sp/shibboleth"
+        mkdir -p "${tmp_base}/base-helm-configs" "${tmp_base}/base-kustomize" "$overlay" "$shib"
+        cp -R "${REPO_ROOT}/base-helm-configs/keystone" "${tmp_base}/base-helm-configs/"
+        printf '#!/bin/bash\nexit 0\n' > "${tmp_overrides}/kustomize/kustomize.sh"
+        chmod +x "${tmp_overrides}/kustomize/kustomize.sh"
+        printf 'charts:\n  keystone: 1.0.0\n' > "${tmp_overrides}/helm-chart-versions.yaml"
+        : > "$helm_log"
+        : > "$kubectl_log"
+        if [[ "$mode" == plain ]]; then
+            printf 'kind: Kustomization\nresources:\n  - ../base\n' > "${overlay}/kustomization.yaml"
+        else
+            printf 'kind: Kustomization\nresources:\n  - ../federation\n' > "${overlay}/kustomization.yaml"
+        fi
+        if [[ "$mode" != federation-missing ]]; then
+            for name in shibboleth2.xml sp-cert.pem sp-key.pem idp-metadata.xml; do printf 'x' > "${shib}/${name}"; done
+        fi
+        rc=0
+        out="$(env PATH="${fakebin}:$PATH" \
+            KUBECTL_BIN=kubectl \
+            KUBECTL_LOG_FILE="$kubectl_log" \
+            HELM_LOG_FILE="$helm_log" \
+            GENESTACK_BASE_DIR="$tmp_base" \
+            GENESTACK_OVERRIDES_DIR="$tmp_overrides" \
+            GENESTACK_SERVICES_DIR="${REPO_ROOT}/bin/services" \
+            GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
+            SKIP_SHIBBOLETH_SECRET="$([[ "$mode" == skip ]] && echo 1 || true)" \
+            "${REPO_ROOT}/bin/install.sh" --service keystone 2>&1)" || rc=$?
+        case "$mode" in
+            plain|skip)
+                assert_eq "0" "$rc" "keystone install must succeed (${mode})"
+                assert_not_contains "$(cat "$kubectl_log")" "create secret generic keystone-shibd-etc" \
+                    "keystone-shibd-etc must not be synced (${mode})"
+                grep -q '^upgrade --install keystone ' "$helm_log" || fail "Helm must run for keystone (${mode})"
+                ;;
+            federation)
+                assert_eq "0" "$rc" "keystone install must succeed (federation)"
+                assert_contains "$(cat "$kubectl_log")" "create secret generic keystone-shibd-etc --namespace openstack --from-file=${shib}" \
+                    "keystone-shibd-etc must be synced from the Shibboleth directory"
+                grep -q '^upgrade --install keystone ' "$helm_log" || fail "Helm must run for keystone (federation)"
+                ;;
+            federation-missing)
+                [[ "$rc" -ne 0 ]] || fail "keystone install must fail when Shibboleth files are missing"
+                assert_contains "$out" "these required files are missing" "the missing files must be reported"
+                assert_contains "$out" "not running Helm" "the install must say Helm was not run"
+                assert_not_contains "$(cat "$helm_log")" "upgrade --install" "Helm must not run without the Shibboleth files"
+                ;;
+        esac
+        rm -rf "$tmp_root"
+    done
+    rm -rf "$fakebin"
+}
+
 # Isolate configuration fixtures and resolver mocks from the secret tests.
 test_config_layer_precedence() (
     local root merged sources
@@ -2610,6 +2777,8 @@ main() {
     test_kube_ovn_tls_secret
     test_install_kube_ovn_tls_secret
     test_install_hook_failures_stop_install
+    test_secret_sync_directory
+    test_install_keystone_shibboleth_secret
     echo "PASS: unified installer regression checks"
 }
 

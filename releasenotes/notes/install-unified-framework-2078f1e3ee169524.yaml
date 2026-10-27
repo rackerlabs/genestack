@@ -131,6 +131,25 @@ upgrade:
     install.sh now ensures and reports the service namespace before the
     pre-install hooks run, so hooks can create secrets in it.
   - |
+    install.sh --service keystone syncs the keystone-shibd-etc secret from
+    /etc/genestack/keystone-sp/shibboleth/ again, as install-keystone.sh
+    did, using the new secret_sync_directory pre-install action. It runs
+    when the Keystone overlay
+    (/etc/genestack/kustomize/keystone/overlay/kustomization.yaml) lists the
+    federation base. It stops the install when the directory or one of
+    shibboleth2.xml, sp-cert.pem, sp-key.pem or idp-metadata.xml is
+    missing. KEYSTONE_SHIBBOLETH_DIR points it at another directory,
+    and SKIP_SHIBBOLETH_SECRET=1 or --dry-run skips the sync. Federation is
+    detected from the overlay file, not from a rendered chart as before, so
+    a federation base wired in another way is not detected.
+    Upgrade impact: an existing deployment that uses federation now needs the
+    directory and all four files (shibboleth2.xml, sp-cert.pem, sp-key.pem and
+    idp-metadata.xml) present on every install.sh --service keystone run, or
+    the install stops before Helm. If the keystone-shibd-etc secret was
+    created by hand from a different file layout, check the directory before
+    you rerun the installer, or set SKIP_SHIBBOLETH_SECRET=1 to leave the
+    secret alone. Deployments without the federation base are not affected.
+  - |
     bin/services/neutron.yaml now sets the OVN connections for the Neutron
     metadata agent again, as install-neutron.sh did. Two entries were added to
     its ovn_connection_set_args action:

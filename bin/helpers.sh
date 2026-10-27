@@ -807,6 +807,101 @@ run_service_action() {
                 additional_base_values+=("$tls_values_path")
             fi
             ;;
+        secret_sync_directory)
+            # Syncs every file of a directory into a Kubernetes secret, for
+            # example the Shibboleth files that Keystone federation mounts.
+            # The old install-keystone.sh did this on every run. Fields:
+            #   secret_name, directory (relative to GENESTACK_OVERRIDES_DIR),
+            #   namespace (default: the service namespace), directory_env (an
+            #   environment variable that replaces the directory), skip_env (an
+            #   environment variable that skips the sync when set to 1),
+            #   required_files, and when_overlay_includes (sync only when the
+            #   service's kustomize overlay lists a resource containing it).
+            # --dry-run among the extra Helm arguments also skips the sync.
+            local sd_ns sd_name sd_rel sd_dir_env sd_skip_env sd_needle sd_dir sd_arg sd_file sd_overlay sd_overlay_file
+            local sd_required=() sd_missing=() sd_required_raw
+            sd_ns=$(echo "$svc_yaml_content" | yq e "${actions_path}[${action_index}].namespace // .service.namespace // \"openstack\"" -)
+            sd_name=$(echo "$svc_yaml_content" | yq e "${actions_path}[${action_index}].secret_name // \"\"" -)
+            sd_rel=$(echo "$svc_yaml_content" | yq e "${actions_path}[${action_index}].directory // \"\"" -)
+            sd_dir_env=$(echo "$svc_yaml_content" | yq e "${actions_path}[${action_index}].directory_env // \"\"" -)
+            sd_skip_env=$(echo "$svc_yaml_content" | yq e "${actions_path}[${action_index}].skip_env // \"\"" -)
+            sd_needle=$(echo "$svc_yaml_content" | yq e "${actions_path}[${action_index}].when_overlay_includes // \"\"" -)
+            sd_required_raw=$(echo "$svc_yaml_content" | yq e "${actions_path}[${action_index}].required_files[]? // \"\"" - | sed '/^$/d;/^null$/d')
+            while IFS= read -r sd_file; do
+                [[ -n "$sd_file" ]] && sd_required+=("$sd_file")
+            done <<< "$sd_required_raw"
+
+            if [[ ! "$sd_ns" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ || ! "$sd_name" =~ ^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$ ]]; then
+                log_error "Invalid namespace or secret_name for secret_sync_directory action in '${service_name}'."
+                return 1
+            fi
+            if [[ -z "$sd_rel" || "$sd_rel" == /* || "$sd_rel" == *..* ]]; then
+                log_error "directory for secret_sync_directory in '${service_name}' must be a path relative to ${GENESTACK_OVERRIDES_DIR}."
+                return 1
+            fi
+            for sd_arg in "$sd_dir_env" "$sd_skip_env"; do
+                if [[ -n "$sd_arg" && ! "$sd_arg" =~ ^[A-Z_][A-Z0-9_]*$ ]]; then
+                    log_error "Invalid environment variable name '${sd_arg}' for secret_sync_directory in '${service_name}'."
+                    return 1
+                fi
+            done
+            for sd_file in "${sd_required[@]}"; do
+                if [[ ! "$sd_file" =~ ^[A-Za-z0-9._-]+$ ]]; then
+                    log_error "Invalid required file name '${sd_file}' for secret_sync_directory in '${service_name}'."
+                    return 1
+                fi
+            done
+
+            if [[ -n "$sd_skip_env" && "${!sd_skip_env:-}" == "1" ]]; then
+                log_info "${sd_skip_env}=1 is set; not syncing secret ${sd_ns}/${sd_name}."
+                return 0
+            fi
+            if declare -p CL_EXTRA_HELM_ARGS >/dev/null 2>&1; then
+                for sd_arg in "${CL_EXTRA_HELM_ARGS[@]:-}"; do
+                    if [[ "$sd_arg" == "--dry-run" || "$sd_arg" == --dry-run=* ]]; then
+                        log_info "--dry-run is set; not syncing secret ${sd_ns}/${sd_name}."
+                        return 0
+                    fi
+                done
+            fi
+
+            if [[ -n "$sd_needle" ]]; then
+                sd_overlay=$(resolve_kustomize_overlay_path "$svc_yaml_content" "$service_name")
+                sd_overlay_file="${GENESTACK_OVERRIDES_DIR}/kustomize/${sd_overlay}/kustomization.yaml"
+                if [[ ! -f "$sd_overlay_file" ]] ||
+                   ! yq e '.resources[]?' "$sd_overlay_file" 2>/dev/null | grep -qF -- "$sd_needle"; then
+                    log_info "${sd_overlay_file} does not include '${sd_needle}'; not syncing secret ${sd_ns}/${sd_name}."
+                    return 0
+                fi
+            fi
+
+            if [[ -n "$sd_dir_env" && -n "${!sd_dir_env:-}" ]]; then
+                sd_dir="${!sd_dir_env}"
+            else
+                sd_dir="${GENESTACK_OVERRIDES_DIR}/${sd_rel}"
+            fi
+            if [[ ! -d "$sd_dir" ]]; then
+                log_error "Directory for secret ${sd_ns}/${sd_name} not found: ${sd_dir}"
+                log_error "  See the documentation for how to populate it."
+                return 1
+            fi
+            for sd_file in "${sd_required[@]}"; do
+                [[ -f "${sd_dir}/${sd_file}" ]] || sd_missing+=("$sd_file")
+            done
+            if [[ ${#sd_missing[@]} -gt 0 ]]; then
+                log_error "Cannot sync ${sd_ns}/${sd_name}: these required files are missing under ${sd_dir}:"
+                for sd_file in "${sd_missing[@]}"; do
+                    log_error "  - ${sd_file}"
+                done
+                return 1
+            fi
+
+            log_info "Syncing secret ${sd_ns}/${sd_name} from ${sd_dir}"
+            if ! secret_sync_from_directory "$sd_ns" "$sd_name" "$sd_dir"; then
+                log_error "Failed to sync secret ${sd_ns}/${sd_name} from ${sd_dir}."
+                return 1
+            fi
+            ;;
         cluster_name_site_value)
             # Records the cluster DNS domain in the service's site values file,
             # as the old install-mariadb-operator.sh did. When CLUSTER_NAME is
