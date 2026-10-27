@@ -25,6 +25,10 @@ pre_install_check_actions:
         env: OVN_NB_CONNECTION
       - helm_key: conf.plugins.ml2_conf.ovn.ovn_sb_connection
         env: OVN_SB_CONNECTION
+      - helm_key: conf.ovn_metadata_agent.ovn.ovn_nb_connection
+        env: OVN_NB_CONNECTION
+      - helm_key: conf.ovn_metadata_agent.ovn.ovn_sb_connection
+        env: OVN_SB_CONNECTION
 
 secrets:
   - helm_key: "conf.metadata_agent.DEFAULT.metadata_proxy_shared_secret"

@@ -731,8 +731,9 @@ run_service_action() {
                 [[ -z "$helm_key" || -z "$env_name" ]] && continue
                 env_value="${!env_name:-}"
                 if [[ -z "$env_value" ]]; then
-                    log_warn "Skipping OVN Helm arg '${helm_key}' for '${service_name}' because ${env_name} is empty."
-                    continue
+                    log_error "Cannot set '${helm_key}' for '${service_name}': ${env_name} is empty."
+                    log_error "  The kube-system ovn-nb and ovn-sb services could not be resolved."
+                    return 1
                 fi
                 append_helm_set_arg "$helm_key" "$env_value"
             done
@@ -2956,9 +2957,21 @@ detect_kube_ovn_tls() {
     # Checks if kube-ovn has TLS enabled. Returns "ssl" or "tcp".
     # Also sets $OVN_NB_IP, $OVN_NB_PORT, $OVN_SB_IP, $OVN_SB_PORT.
     local kube_ovn_tls="false"
-    local enable_ssl
+    local enable_ssl deploy_rc
+    # A missing ovn-central deployment means no SSL. Any other failure (API
+    # outage, no permission) must not silently turn into tcp connections.
     enable_ssl=$($KUBECTL_BIN -n kube-system get deploy ovn-central \
-        -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="ENABLE_SSL")].value}' 2>/dev/null || true)
+        -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="ENABLE_SSL")].value}' 2>&1) && deploy_rc=0 || deploy_rc=$?
+    if [[ "$deploy_rc" -ne 0 ]]; then
+        if [[ "$enable_ssl" == *"(NotFound)"* || "$enable_ssl" == *"not found"* ]]; then
+            log_warn "Deployment kube-system/ovn-central not found; assuming Kube-OVN does not use SSL."
+            enable_ssl=""
+        else
+            log_error "Cannot read the kube-system/ovn-central deployment to tell whether Kube-OVN uses SSL."
+            log_error "  ${enable_ssl}"
+            return 1
+        fi
+    fi
 
     if [[ "$enable_ssl" == "true" || "$enable_ssl" == "True" ]]; then
         kube_ovn_tls="true"
