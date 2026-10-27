@@ -143,3 +143,7 @@ site/
 AGENTS.md
 .mcp*
 .claude
+
+# Observability 
+base-helm-configs/observability
+base-kustomize/observability
