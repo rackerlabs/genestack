@@ -122,8 +122,9 @@ log_msg() {
 }
 
 # ── helpers ───────────────────────────────────────────────────────────────────
-db() { cd $CUSTOMER_DIR; openstack --os-cloud "$OS_CLOUD" database "$@" 2>&1; }
-os() { cd $CUSTOMER_DIR; openstack --os-cloud "$OS_CLOUD" "$@" 2>&1; }
+db() { cd $CUSTOMER_DIR; openstack --os-cloud "$OS_CLOUD-member" database "$@" 2>&1; }
+db_admin() { cd $CUSTOMER_DIR; openstack --os-cloud "$OS_CLOUD-admin" database "$@" 2>&1; }
+os() { cd $CUSTOMER_DIR; openstack --os-cloud "$OS_CLOUD-member" "$@" 2>&1; }
 
 instance_status() { db instance show "$1" -f value -c status 2>/dev/null; }
 backup_status()   { db backup show   "$1" -f value -c status 2>/dev/null; }
@@ -241,7 +242,7 @@ cleanup_only() {
         for inst in $instances; do
             is_replica "$inst" || continue
             log_msg "$INFO" "  Deleting replica instance $inst ..."
-            db instance force delete "$inst" 2>&1 || db instance delete "$inst" 2>&1 || true
+            db_admin instance force delete "$inst" 2>&1 || db instance delete "$inst" 2>&1 || true
         done
 
         # Delete remaining (primary) instances as replicas drain, then wait for
@@ -253,7 +254,7 @@ cleanup_only() {
             for inst in $instances; do
                 is_replica "$inst" && continue
                 log_msg "$INFO" "  Deleting primary instance $inst ..."
-                db instance force delete "$inst" 2>&1 || db instance delete "$inst" 2>&1 || true
+                db_admin instance force delete "$inst" 2>&1 || db instance delete "$inst" 2>&1 || true
             done
             sleep 5; (( elapsed += 5 ))
         done
@@ -384,7 +385,7 @@ test_quota_show() {
 
 test_quota_update() {
     log_msg "$INFO" "" false
-    local out; out=$(db quota update ${OS_CLOUD} instances 20 2>&1)
+    local out; out=$(db_admin quota update ${OS_CLOUD} instances 20 2>&1)
     log_msg "$INFO" "Quota details:"
     log_msg "$INFO" "$out" | sed 's/^/  /'
     echo "$out" | grep -q "instance.*20" \
@@ -844,7 +845,7 @@ test_instance_rebuild() {
         tag_args+=" --tag $tag"
     done
     local image_id=$(openstack image list $tag_args -f value -c ID)
-    db instance rebuild $(instance_id "$INST_PRIMARY") "$image_id" 2>&1 \
+    db_admin instance rebuild $(instance_id "$INST_PRIMARY") "$image_id" 2>&1 \
         || { log_msg "$FAIL" "Rebuild command returned non-zero."; return 1; }
     wait_for_instance "$INST_PRIMARY" || return 1
     log_msg "$INFO" "Instance $INST_PRIMARY rebuilt successfully."
@@ -864,7 +865,7 @@ test_instance_reboot() {
     log_msg "$INFO" "" false
     log_msg "$INFO" "Rebooting instance $INST_PRIMARY ..."
     local primary_id; primary_id=$(instance_id "$INST_PRIMARY")
-    db instance reboot "$primary_id" 2>&1 \
+    db_admin instance reboot "$primary_id" 2>&1 \
         || { log_msg "$FAIL" "Instance reboot failed."; return 1; }
     wait_for_instance "$INST_PRIMARY" || return 1
     log_msg "$INFO" "Instance $INST_PRIMARY rebooted successfully."
@@ -882,7 +883,7 @@ test_instance_restart() {
 test_instance_reset_status() {
     log_msg "$INFO" "" false
     log_msg "$INFO" "Resetting instance $INST_PRIMARY status ..."
-    db instance reset status "$INST_PRIMARY" 2>&1 \
+    db_admin instance reset status "$INST_PRIMARY" 2>&1 \
         || { log_msg "$FAIL" "Resetting instance status failed."; return 1; }
     wait_for_instance "$INST_PRIMARY" || return 1
     log_msg "$INFO" "Instance $INST_PRIMARY status reset successfully."
@@ -1060,7 +1061,7 @@ test_instance_promote_eject() {
     log_msg "$INFO" "Checking other replica $replica1_name is still a replica but attached to promoted replica ..."
     { db instance show "$replica1_name" -f value -c replica_of | grep -q "$replica2_id"; } || { log_msg "$FAIL" "Promote test failed; unpromoted replica not showing as replica of promoted replica"; return 1; }
 
-    log_msg "$INFO" "Promote test succeeded."
+    log_msg "$SUCCESS" "Promote test succeeded."
 
     log_msg "$INFO" "Testing eject ..."
     # After promote, replica2 is the new primary and the old primary is now a replica.
@@ -1118,23 +1119,24 @@ test_instance_promote_eject() {
     log_msg "$INFO" "Checking other replica $other_replica_name is still replica but attached to promoted replica ..."
     { db instance show "$other_replica_name" -f value -c replica_of | grep -q "$promoted_replica_id"; } || { log_msg "$FAIL" "Eject test failed; unpromoted replica not showing as replica of promoted replica"; return 1; }
 
-    log_msg "$INFO" "Eject test succeeded."
+    log_msg "$SUCCESS" "Eject test succeeded."
 
     # attempt cleanup, but don't let it sour the test results
+    local elapsed=0
     log_msg "$INFO" "Deleting replica $other_replica_name"
-    db instance delete "$other_replica_id" --force || true
+    db_admin instance delete "$other_replica_id" --force || true
     while [[ -n $(db instance list 2>/dev/null | grep "$other_replica_id") ]] && (( elapsed < 120 )); do
         log_msg "$INFO" sleeping ...
         sleep 5; (( elapsed += 5 ))
     done
     log_msg "$INFO" "Deleting promoted replica $promoted_replica_name"
-    db instance delete "$promoted_replica_id" --force || true
+    db_admin instance delete "$promoted_replica_id" --force || true
     while [[ -n $(db instance list 2>/dev/null | grep "$promoted_replica_id") ]] && (( elapsed < 120 )); do
         log_msg "$INFO" sleeping ...
         sleep 5; (( elapsed += 5 ))
     done
     log_msg "$INFO" "Deleting instance $primary_name"
-    db instance delete "$primary_id" --force || true
+    db_admin instance delete "$primary_id" --force || true
     local elapsed=0
     while [[ -n $(db instance list 2>/dev/null | grep "$primary_id") ]] && (( elapsed < 120 )); do
         log_msg "$INFO" sleeping ...
@@ -1204,7 +1206,7 @@ test_force_delete_primary_instance() {
     [[ -n $(db instance list 2>/dev/null | grep $INST_PRIMARY) ]] \
         || { log_msg "$FAIL" "$INST_PRIMARY not found, skipping."; return 0; }
     log_msg "$INFO" "Deleting primary instance $INST_PRIMARY ..."
-    db instance force delete "$INST_PRIMARY" 2>&1 \
+    db_admin instance force delete "$INST_PRIMARY" 2>&1 \
         || { log_msg "$FAIL" "Failed to delete $INST_PRIMARY."; return 1; }
     local elapsed=0
     while [[ -n $(db instance list 2>/dev/null | grep $INST_PRIMARY) ]] && (( elapsed < 180 )); do
