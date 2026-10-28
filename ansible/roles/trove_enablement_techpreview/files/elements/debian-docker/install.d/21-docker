@@ -1,10 +1,7 @@
 #!/bin/bash
 # Install Docker CE from Docker's official Debian repository.
-if [ ${DIB_DEBUG_TRACE:-0} -gt 0 ]; then
-    set -x
-fi
-set -eu
-set -o pipefail
+
+set -euo pipefail
 
 GUEST_USERNAME=${GUEST_USERNAME:-"debian"}
 

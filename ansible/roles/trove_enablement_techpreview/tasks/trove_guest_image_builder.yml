@@ -8,94 +8,6 @@
 # files/elements/ directory.
 
 # =========================================================================
-# BOOTSTRAP
-# Always runs. Installs tooling, clones the trove repo, prepares the
-# build virtualenv.
-# =========================================================================
-
-- name: Install python-troveclient into genestack virtualenv
-  ansible.builtin.pip:
-    virtualenv: "{{ genestack_venv }}"
-    name: python-troveclient
-    state: present
-
-- name: Create build directory
-  ansible.builtin.file:
-    path: "{{ trove_build_dir }}"
-    state: directory
-    mode: "0755"
-
-- name: Delete old trove repo directory if it exists
-  ansible.builtin.file:
-    path: "{{ trove_build_dir }}/trove"
-    state: absent
-  become: true
-  become_user: root
-
-- name: Clone trove repository (stable/{{ trove_openstack_release }})
-  ansible.builtin.git:
-    repo: https://opendev.org/openstack/trove.git
-    dest: "{{ trove_build_dir }}/trove"
-    version: "stable/{{ trove_openstack_release }}"
-    update: true
-    force: false
-
-# qemu-utils provides qemu-img; debootstrap and kpartx are required by
-# diskimage-builder for base image creation and partition handling.
-- name: Install QEMU and image-build system dependencies
-  ansible.builtin.apt:
-    name:
-      - qemu-system
-      - qemu-system-x86
-      - qemu-utils
-      - debootstrap
-      - kpartx
-    state: present
-    update_cache: true
-  become: true
-  become_user: root
-  environment:
-    DEBIAN_FRONTEND: noninteractive
-
-- name: Create Trove build virtualenv
-  ansible.builtin.pip:
-    virtualenv: "{{ trove_venv_dir }}"
-    virtualenv_command: python3 -m venv
-    name: pip
-    state: present
-
-- name: Install diskimage-builder into build virtualenv
-  ansible.builtin.pip:
-    virtualenv: "{{ trove_venv_dir }}"
-    name:
-      - diskimage-builder
-      - setuptools
-      - wheel
-    state: present
-
-# =========================================================================
-# ENSURE clouds.yaml EXISTS
-# =========================================================================
-
-- name: Check if clouds.yaml already exists
-  ansible.builtin.stat:
-    path: "{{ ubuntu_home }}/.config/openstack/clouds.yaml"
-  register: _trove_clouds_yaml_stat
-
-- name: Generate clouds.yaml via setup-openstack-rc.sh (safety net)
-  ansible.builtin.shell:
-    cmd: |
-      source {{ genestack_venv }}/bin/activate
-      set -a
-      source {{ genestack_rc }}
-      set +a
-      bash /opt/genestack/bin/setup-openstack-rc.sh
-    executable: /bin/bash
-  environment:
-    HOME: "{{ ubuntu_home }}"
-  when: not _trove_clouds_yaml_stat.stat.exists
-
-# =========================================================================
 # STATE DETECTION
 # =========================================================================
 
@@ -130,6 +42,129 @@
       do_build={{ _trove_do_build }},
       force_rebuild={{ force_rebuild_image }},
       force_full={{ force_full_recreation }}
+
+# =========================================================================
+# BOOTSTRAP
+# Installs tooling, clones the trove repo, prepares the build virtualenv.
+# =========================================================================
+
+- name: Install python-troveclient into genestack virtualenv
+  ansible.builtin.pip:
+    virtualenv: "{{ genestack_venv }}"
+    name: python-troveclient
+    state: present
+  when: _trove_do_build | bool
+
+- name: Create build directory
+  ansible.builtin.file:
+    path: "{{ trove_build_dir }}"
+    state: directory
+    mode: "0755"
+  when: _trove_do_build | bool
+
+- name: Delete old trove repo directory if it exists
+  ansible.builtin.file:
+    path: "{{ trove_build_dir }}/trove"
+    state: absent
+  become: true
+  become_user: root
+  when: _trove_do_build | bool
+
+# Derive the trove release branch to clone for DIB elements + guest-agent which
+# must match the trove server-side image (api/taskmanager/conductor).
+# Use the chart version actually being installed on the control plane;
+# /etc/genestack/helm-chart-versions.yaml is what install-trove.sh uses to deploy.
+# example derivation: 2026.1.9+abc (chart) -> stable/2026.1 (branch).
+- name: Derive trove release branch
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      source {{ genestack_venv }}/bin/activate
+      TROVE_RELEASE_BRANCH="stable/$(yq '.charts.trove' /etc/genestack/helm-chart-versions.yaml | cut -d. -f1,2)"
+      if [ "${TROVE_RELEASE_BRANCH}" = "stable/" ] || [ "${TROVE_RELEASE_BRANCH}" = "stable/null" ]; then
+          echo "ERROR: could not derive trove release branch from /etc/genestack/helm-chart-versions.yaml" >&2
+          exit 1
+      fi
+      echo "${TROVE_RELEASE_BRANCH}"
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_release_branch
+  changed_when: false
+  failed_when: false
+  when: _trove_do_build | bool
+
+- name: Clone trove repository ({{ _trove_release_branch.stdout }})
+  ansible.builtin.git:
+    repo: https://opendev.org/openstack/trove.git
+    dest: "{{ trove_build_dir }}/trove"
+    version: "{{ _trove_release_branch.stdout }}"
+    update: true
+    force: false
+  when:
+    - _trove_do_build | bool
+    - _trove_release_branch.rc == 0 or _trove_release_branch.stdout | trim | length != 0
+
+# qemu-utils provides qemu-img; debootstrap and kpartx are required by
+# diskimage-builder for base image creation and partition handling.
+- name: Install QEMU and image-build system dependencies
+  ansible.builtin.apt:
+    name:
+      - qemu-system
+      - qemu-system-x86
+      - qemu-utils
+      - debootstrap
+      - kpartx
+    state: present
+    update_cache: true
+  become: true
+  become_user: root
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  when: _trove_do_build | bool
+
+- name: Create Trove build virtualenv
+  ansible.builtin.pip:
+    virtualenv: "{{ trove_venv_dir }}"
+    virtualenv_command: python3 -m venv
+    name: pip
+    state: present
+  when: _trove_do_build | bool
+
+- name: Install diskimage-builder into build virtualenv
+  ansible.builtin.pip:
+    virtualenv: "{{ trove_venv_dir }}"
+    name:
+      - diskimage-builder
+      - setuptools
+      - wheel
+    state: present
+  when: _trove_do_build | bool
+
+# =========================================================================
+# ENSURE clouds.yaml EXISTS
+# =========================================================================
+
+- name: Check if clouds.yaml already exists
+  ansible.builtin.stat:
+    path: "{{ ubuntu_home }}/.config/openstack/clouds.yaml"
+  register: _trove_clouds_yaml_stat
+  when: _trove_do_build | bool
+
+- name: Generate clouds.yaml via setup-openstack-rc.sh (safety net)
+  ansible.builtin.shell:
+    cmd: |
+      source {{ genestack_venv }}/bin/activate
+      set -a
+      source {{ genestack_rc }}
+      set +a
+      bash /opt/genestack/bin/setup-openstack-rc.sh
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when:
+    - _trove_do_build | bool
+    - not _trove_clouds_yaml_stat.stat.exists
 
 # =========================================================================
 # PULL DATASTORE IMAGE
@@ -226,7 +261,9 @@
   register: _trove_memcache_secret_key
   changed_when: false
   no_log: true
-  when: _trove_memcache_secret is not defined or _trove_memcache_secret.stdout is not defined
+  when:
+    - _trove_do_build | bool
+    - _trove_memcache_secret is not defined or _trove_memcache_secret.stdout is not defined
 
 - name: Get trove admin password from K8s secret (if not already set)
   ansible.builtin.shell:
@@ -238,7 +275,9 @@
   register: _trove_admin_password_helm
   changed_when: false
   no_log: true
-  when: _trove_admin_password is not defined or _trove_admin_password.stdout is not defined
+  when:
+    - _trove_do_build | bool
+    - _trove_admin_password is not defined or _trove_admin_password.stdout is not defined
 
 - name: Get trove rabbitmq password from K8s secret (if not already set)
   ansible.builtin.shell:
@@ -250,7 +289,9 @@
   register: _trove_rabbitmq_password
   changed_when: false
   no_log: true
-  when: _trove_rabbitmq_password is not defined or _trove_rabbitmq_password.stdout is not defined
+  when:
+    - _trove_do_build | bool
+    - _trove_rabbitmq_password is not defined or _trove_rabbitmq_password.stdout is not defined
 
 - name: Template Trove guest agent conf file
   ansible.builtin.template:
@@ -261,6 +302,7 @@
     memcache_secret_key: "{{ _trove_memcache_secret_key.stdout }}"
     trove_admin_password: "{{ _trove_admin_password_helm.stdout }}"
     trove_rabbitmq_password: "{{ _trove_rabbitmq_password.stdout }}"
+  when: _trove_do_build | bool
 
 # =========================================================================
 # BUILD GUEST IMAGE WITH DISKIMAGE-BUILDER
@@ -276,7 +318,7 @@
 
 - name: Clean up stale DIB build directories
   ansible.builtin.shell: |
-    for d in /tmp/dib_build.* /tmp/dib_image.*; do
+    for d in {{ trove_tmp_dir }}/dib_build.* {{ trove_tmp_dir }}/dib_image.*; do
       [ -d "$d" ] || continue
       umount -lR "$d" 2>/dev/null || true
       rm -rf "$d"
@@ -386,6 +428,7 @@
     DEV_MODE: "false"
     SYNC_LOG_TO_CONTROLLER: "False"
     TROVE_SERVICES_VIP_IP: "{{ trove_services_anchor_ip }}"
+    TMP_DIR: "{{ trove_tmp_dir }}"
   when: _trove_do_build | bool
 
 # =========================================================================
@@ -413,10 +456,10 @@
     executable: /bin/bash
   environment:
     HOME: "{{ ubuntu_home }}"
+  failed_when: false
   when:
     - _trove_do_build | bool
     - _trove_image_exists | bool
-  failed_when: false
 
 - name: Upload Trove guest image to Glance
   ansible.builtin.shell:
@@ -497,8 +540,8 @@
   loop:
     - "{{ _trove_service_project_id.stdout | trim }}"
     - "{{ _trove_admin_project_id.stdout | trim }}"
-  when: _trove_do_build | bool
   failed_when: false
+  when: _trove_do_build | bool
 
 - name: Accept image membership for service and admin projects
   ansible.builtin.shell:
@@ -519,8 +562,8 @@
   loop:
     - "{{ _trove_service_project_id.stdout | trim }}"
     - "{{ _trove_admin_project_id.stdout | trim }}"
-  when: _trove_do_build | bool
   failed_when: false
+  when: _trove_do_build | bool
 
 - name: Report image upload result
   ansible.builtin.debug:
@@ -548,7 +591,7 @@
 
 - name: Clean up any remaining diskimage-builder temp directories
   ansible.builtin.shell: |
-    for d in /tmp/dib_build.* /tmp/dib_image.*; do
+    for d in {{ trove_tmp_dir }}/dib_build.* {{ trove_tmp_dir }}/dib_image.*; do
       [ -d "$d" ] || continue
       umount -lR "$d" 2>/dev/null || true
       rm -rf "$d"

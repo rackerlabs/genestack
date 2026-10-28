@@ -5,18 +5,19 @@
 #   test-trove.sh [OPTIONS]
 #
 # OPTIONS:
-#   -h, --help            Show this help
-#   --os-cloud            Cloud config name (default: acme-corp)
-#   --cleanup             Cleanup test resources after the run
-#                             all      - cleanup DB resources and network setup
-#                             skip_net - cleanup only DB resources (default)
-#                             none     - do not cleanup any DB resources or network setup
-#   --instance            ID of DB instance to use for primary test instance
-#   --datastore DS        Datastore type to test against (default: mysql)
-#   --ds-version VER      Datastore version number     (default: 8.4)
-#   --flavor FLAVOR       Nova flavor for instances    (default: m1.small)
-#   --volume-size GB      Instance volume size in GB   (default: 10)
-#   --timeout SECS        Max seconds to wait for ACTIVE (default: 1200)
+#   -h, --help              Show this help
+#   --os-cloud              Cloud config name (default: acme-corp)
+#   --cleanup               Cleanup test resources after the run
+#                               all      - cleanup DB resources and network setup
+#                               skip_net - cleanup only DB resources (default)
+#                               none     - do not cleanup any DB resources or network setup
+#   --instance              ID of DB instance to use for primary test instance
+#   --datastore DS          Datastore type to test against (default: mysql)
+#   --ds-version VER        Datastore version number     (default: 8.4)
+#   --flavor FLAVOR         Nova flavor for instances    (default: db.0.2.2)
+#   --resize-flavor FLAVOR  Nova flavor for instance resize    (default: m1.medium)
+#   --volume-size GB        Instance volume size in GB   (default: 10)
+#   --timeout SECS          Max seconds to wait for ACTIVE (default: 600)
 #
 # ENV:
 #   OS_CLOUD              os-cloud name (default: default)
@@ -36,14 +37,14 @@ source "${SCRIPT_DIR}/lib/openstack.sh"
 INSTANCE=""
 DATASTORE="mysql"
 DS_VERSION="8.4"
-FLAVOR="m1.small"
+FLAVOR="db.0.2.2"
 VOL_SIZE="10"
 INSTANCE_TIMEOUT=1200
 CLEANUP="skip_net"
 OS_CLOUD="${OS_CLOUD:-acme-corp}"
 CUSTOMER_DIR="/home/ubuntu/customers"
 
-RESIZE_FLAVOR=m1.medium
+RESIZE_FLAVOR=db.0.4.4
 
 # ── argument parsing ──────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
@@ -63,7 +64,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # ── resource naming ───────────────────────────────────────────────────────────
-TS="$(date +%s)"
+TS="$(date +%Y%m%d%H%M)"
 PFX="test-trove-${TS}"
 
 INST_PRIMARY="${PFX}-primary"
@@ -85,8 +86,8 @@ CLEANUP_DONE=0
 db() { cd $CUSTOMER_DIR; openstack --os-cloud "$OS_CLOUD" database "$@" 2>&1; }
 os() { cd $CUSTOMER_DIR; openstack --os-cloud "$OS_CLOUD" "$@" 2>&1; }
 
-instance_status() { db instance show "$1" -f value -c status 2>/dev/null || echo "ERROR"; }
-backup_status()   { db backup show   "$1" -f value -c status 2>/dev/null || echo "ERROR"; }
+instance_status() { db instance show "$1" -f value -c status 2>/dev/null; }
+backup_status()   { db backup show   "$1" -f value -c status 2>/dev/null; }
 
 wait_for_instance() {
     # wait_for_instance <name_or_id> [timeout]
@@ -140,7 +141,7 @@ cleanup() {
     for inst in "$INST_RESTORE" "$INST_REPLICA" "$INST_PRIMARY"; do
         if [[ -n "$(instance_id "$inst")" ]]; then
             echo "  Deleting instance $inst ..."
-            db instance delete "$inst" 2>&1 || true
+            db instance delete "$inst" --force 2>&1 || true
         fi
     done
 
@@ -641,11 +642,21 @@ test_instance_update() {
         --allowed-cidr "1.2.3.4/5" \
         2>&1 \
         || { echo "Updating instance failed."; return 1; }
-    local out; out=$(db instance show "$INST_PRIMARY" -f value -c allowed_cidrs 2>&1)
-    echo "$out" | grep -q "1.2.3.4/5" \
-        || { echo "Expected allowed cidr not found for instance."; return 1; }
-    echo "Instance details:"
-    echo "$out" | head -5 | sed 's/^/  /'
+    local out
+    local retry_cnt=0
+    while (( retry_cnt < 5 )); do
+          out=$(db instance show "$INST_PRIMARY" -f value -c allowed_cidrs 2>&1)
+          echo "Instance details:"
+          echo "$out" | head -5 | sed 's/^/  /'
+          if echo "$out" | grep -q "1.2.3.4/5"; then
+              return 0;
+          else
+              retry_cnt+=1
+              sleep 1
+          fi
+    done
+    echo "Expected allowed cidr not found for instance."
+    return 1
 }
 
 test_log_list() {
@@ -681,8 +692,157 @@ test_detach_instance() {
     echo "Detaching replica $INST_REPLICA from primary ..."
     db instance detach "$INST_REPLICA" 2>&1 \
         || { echo "Detach instance failed."; return 1; }
-    wait_for_instance "$INST_REPLICA"
+    wait_for_instance "$INST_REPLICA" || return 1
     echo "Replica $INST_REPLICA detached."
+}
+
+test_instance_promote_eject() {
+    echo "" false
+    echo "Testing promote ..."
+    local primary_name="${PFX}-promote-eject-0"
+    local replica1_name="${PFX}-promote-eject-1"
+    local replica2_name="${PFX}-promote-eject-2"
+    db instance create "$primary_name" \
+        --flavor "$FLAVOR" \
+        --size "$VOL_SIZE" \
+        --volume-type Standard \
+        --datastore "$DATASTORE" \
+        --datastore-version-number "$DS_VERSION" \
+        --databases "$DB_NAME" \
+        --users "${USER_NAME}:${USER_PASS}" \
+        --nic net-id="${NET_ID}" \
+        --allowed-cidr "${ALLOWED_CIDR}" \
+        || { echo "Failed to issue create command for $primary_name"; return 1; }
+    echo "Waiting for $primary_name to be ready ..."
+    wait_for_instance "$primary_name" || return 1
+    echo "Instance $primary_name is ready."
+
+    local primary_id; primary_id=$(instance_id "$primary_name")
+    db instance create "$replica1_name" \
+        --replica-of "$primary_id" \
+        --nic net-id="${NET_ID}" \
+        --allowed-cidr "${ALLOWED_CIDR}" \
+        || { echo "Replica 1 create command failed."; return 1; }
+    echo "Waiting for $replica1_name to be ready ..."
+    wait_for_instance "$replica1_name" || return 1
+    echo "Instance $replica1_name is ready."
+
+    local replica1_id; replica1_id=$(instance_id "$replica1_name")
+    db instance create "$replica2_name" \
+        --replica-of "$primary_id" \
+        --nic net-id="${NET_ID}" \
+        --allowed-cidr "${ALLOWED_CIDR}" \
+        || { echo "Replica 2 create command failed."; return 1; }
+    echo "Waiting for $replica2_name to be ready ..."
+    wait_for_instance "$replica2_name" || return 1
+    echo "Instance $replica2_name is ready."
+
+    echo "Promoting replica $replica2_name ..."
+    local replica2_id; replica2_id=$(instance_id "$replica2_name")
+    db instance promote "$replica2_id" \
+        || { echo "Failed to promote $replica2_name."; return 1; }
+
+    # wait for promote process to complete on all instances
+    echo "Waiting for $primary_name to be ready ..."
+    wait_for_instance "$primary_name" || return 1
+    echo "Waiting for $replica1_name to be ready ..."
+    wait_for_instance "$replica1_name" || return 1
+    echo "Waiting for $replica2_name to be ready ..."
+    wait_for_instance "$replica2_name" || return 1
+
+    # check original primary doesn't show replicas and is now a replica (this is expected because the original primary was ACTIVE/HEALTHY)
+    echo "Checking primary $primary_name doesn't show replicas and is now a replica ..."
+    db instance show "$primary_name" -f value -c replicas 1>/dev/null 2>&1 && { echo "Promote test failed; primary still showing replicas"; return 1; }
+    { db instance show "$primary_name" -f value -c replica_of | grep -q "$replica2_id"; } || { echo "Promote test failed; original primary not showing as replica of promoted replica"; return 1; }
+    # check promoted replica doesn't show as replica and has the other replicas attached
+    echo "Checking promoted replica $replica2_name doesn't show as a replica and has other replicas attached ..."
+    db instance show "$replica2_name" -f value -c replica_of 1>/dev/null 2>&1 && { echo "Promote test failed; promoted replica still showing as replica"; return 1; }
+    { db instance show "$replica2_name" -f value -c replicas | grep -q "$primary_id"; } || { echo "Promote test failed; promoted replica does not show original primary attached as replica"; return 1; }
+    { db instance show "$replica2_name" -f value -c replicas | grep -q "$replica1_id"; } || { echo "Promote test failed; promoted replica does not show other replica attached as replica"; return 1; }
+    # check other replica is still replica but attached to promoted replica
+    echo "Checking other replica $replica1_name is still a replica but attached to promoted replica ..."
+    { db instance show "$replica1_name" -f value -c replica_of | grep -q "$replica2_id"; } || { echo "Promote test failed; unpromoted replica not showing as replica of promoted replica"; return 1; }
+
+    echo "Promote test succeeded."
+
+    echo "Testing eject ..."
+    # After promote, replica2 is the new primary and the old primary is now a replica.
+    # Swap the labels so the variables match the current topology:
+    #   primary_*  now refers to the promoted replica2 (current primary)
+    #   replica2_* now refers to the old primary (now a replica)
+    local temp_id="$primary_id"
+    local temp_name="$primary_name"
+    primary_id="$replica2_id"
+    primary_name="$replica2_name"
+    replica2_id="$temp_id"
+    replica2_name="$temp_name"
+
+    # stop the guest agent on the primary instance to simulate a 'bad' primary
+    echo "Stopping the guest agent on the primary instance to simulate a 'bad' primary"
+    /opt/genestack/scripts/trove-guest-ssh.sh "$primary_id" "sudo systemctl stop guest-agent"
+    sleep 90
+
+    echo "Ejecting primary $primary_name ..."
+    db instance eject "$primary_name" \
+        || { echo "Failed to eject $primary_name."; return 1; }
+
+    # wait for promotion of replica to complete
+    echo "Waiting for $replica1_name to be ready ..."
+    wait_for_instance "$replica1_name" || return 1
+    echo "Waiting for $replica2_name to be ready ..."
+    wait_for_instance "$replica2_name" || return 1
+
+    # check original primary doesn't have replicas and is not a replica
+    echo "Checking original primary $primary_name doesn't have replicas and is not a replica ..."
+    db instance show "$primary_name" -f value -c replicas 1>/dev/null 2>&1 && { echo "Eject test failed; original primary still showing replicas"; return 1; }
+    db instance show "$primary_name" -f value -c replica_of 1>/dev/null 2>&1 && { echo "Eject test failed; original primary showing as replica"; return 1; }
+    # find promoted replica
+    local promoted_replica_name;
+    local promoted_replica_id;
+    local other_replica_name;
+    local other_replica_id;
+    for replica_name in "$replica1_name" "$replica2_name"; do
+        if db instance show "$replica_name" -f value -c replicas 1>/dev/null 2>&1; then
+            promoted_replica_name="$replica_name"
+            promoted_replica_id=$(instance_id "$promoted_replica_name")
+        else
+            other_replica_name="$replica_name"
+            other_replica_id=$(instance_id "$other_replica_name")
+        fi
+    done
+    if [ -z "$promoted_replica_name" ] || [ -z "$other_replica_name" ]; then
+        echo "Eject test failed; could not determine promoted replica"; return 1
+    fi
+    # check promoted replica doesn't show as replica and has the other replica attached
+    echo "Checking promoted replica $promoted_replica_name doesn't show as replica and has the other replica attached ..."
+    db instance show "$promoted_replica_name" -f value -c replica_of 1>/dev/null 2>&1 && { echo "Eject test failed; promoted replica still showing as replica"; return 1; }
+    { db instance show "$promoted_replica_name" -f value -c replicas | grep -q "$other_replica_id"; } || { echo "Eject test failed; promoted replica does not show other replica attached as replica"; return 1; }
+    # check other replica is still replica but attached to promoted replica
+    echo "Checking other replica $other_replica_name is still replica but attached to promoted replica ..."
+    { db instance show "$other_replica_name" -f value -c replica_of | grep -q "$promoted_replica_id"; } || { echo "Eject test failed; unpromoted replica not showing as replica of promoted replica"; return 1; }
+
+    echo "Eject test succeeded."
+
+    # attempt cleanup, but don't let it sour the test results
+    echo "Deleting replica $other_replica_name"
+    db instance delete "$other_replica_id" --force || true
+    while [[ -n $(db instance list 2>/dev/null | grep "$other_replica_id") ]] && (( elapsed < 120 )); do
+        echo sleeping ...
+        sleep 5; (( elapsed += 5 ))
+    done
+    echo "Deleting promoted replica $promoted_replica_name"
+    db instance delete "$promoted_replica_id" --force || true
+    while [[ -n $(db instance list 2>/dev/null | grep "$promoted_replica_id") ]] && (( elapsed < 120 )); do
+        echo sleeping ...
+        sleep 5; (( elapsed += 5 ))
+    done
+    echo "Deleting instance $primary_name"
+    db instance delete "$primary_id" --force || true
+    local elapsed=0
+    while [[ -n $(db instance list 2>/dev/null | grep "$primary_id") ]] && (( elapsed < 120 )); do
+        echo sleeping ...
+        sleep 5; (( elapsed += 5 ))
+    done
 }
 
 # ── deletion ──────────────────────────────────────────────────────────────────
