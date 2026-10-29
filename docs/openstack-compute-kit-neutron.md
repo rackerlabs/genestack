@@ -14,6 +14,37 @@
 
     The above command derives the OVN north/south bound database from our K8S environment. The insert `set` is making the assumption we're using **tcp** to connect.
 
+## Enable VPNaaS
+
+The Genestack Neutron base configuration includes the `ovn-vpnaas` service
+plugin, the OVN StrongSwan service provider, and the OVN VPN agent DaemonSet.
+VPNaaS also requires the Neutron RPC server and a dedicated node selector so
+VPN work is handled only by OVN gateway chassis.
+
+Before installing Neutron, label the intended OVN gateway nodes and create a
+dedicated per-cluster override such as
+`/etc/genestack/helm-configs/neutron/neutron-vpnaas-overrides.yaml` with the
+following values:
+
+``` yaml
+labels:
+  agent:
+    ovn_vpn:
+      node_selector_key: openstack-ovn-vpn-agent
+      node_selector_value: enabled
+
+manifests:
+  deployment_rpc_server: true
+```
+
+Do not add the VPN-agent label to ordinary compute nodes, even when they carry
+`openstack-network-node=enabled`. Do not duplicate RabbitMQ credentials or OVN
+database connection strings under `conf.ovn_vpn_agent`; the chart supplies
+those settings through the configuration files loaded by the agent.
+
+See [VPNaaS with OVN](openstack-vpnaas.md) for labeling, deployment validation,
+and troubleshooting details.
+
 ## Neutron MTU settings / Jumbo frames / overlay networks on instances
 
 !!! warning You will likely need to increase the MTU as described here if you want to support creating L3 overlay networks (via any software that creates nested networks, such as _Genestack_ itself, VPN, etc.) on your nova instances. Your physical L2 network will need jumbo frames to support this. You will likely end up with an MTU of 1280 for overlay networks on instances if you don't, and the abnormally small MTU can cause various problems, perhaps even reaching a size too small for the software to support).

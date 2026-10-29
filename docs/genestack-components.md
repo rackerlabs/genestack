@@ -30,7 +30,7 @@ and largely deployed with Helm+Kustomize against the K8s API (v1.28 and up).
 | OpenStack  | Nova (Helm)           | Included |
 | OpenStack  | Neutron (Helm)        | Included |
 | OpenStack  | Placement (Helm)      | Included |
-| OpenStack  | Horizon (Helm)        | Included |
+| OpenStack  | Horizon (Helm)        | Optional |
 | OpenStack  | Skyline (Helm)        | Optional |
 | OpenStack  | Heat (Helm)           | Included |
 | OpenStack  | Designate (Helm)      | Optional |

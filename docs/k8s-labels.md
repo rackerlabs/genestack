@@ -14,6 +14,7 @@ To use the K8S environment for OpenStack all of the nodes MUST be labeled. The f
 | **openstack-control-plane** | str| `enabled` | Defines which nodes will run the OpenStack Control Plane |
 | **openstack-compute-node** | str|`enabled` | Defines which nodes will run OpenStack Compute |
 | **openstack-network-node** | str|`enabled` | Defines which nodes will run OpenStack Networking |
+| **openstack-ovn-vpn-agent** | str|`enabled` | Defines which OVN gateway nodes will run the Neutron OVN VPN agent |
 | **openstack-storage-node** | str|`enabled` | Defines which nodes will run OpenStack Storage |
 | **longhorn.io/storage-node** | str|`enabled` | Defines which nodes will run Longhorn storage components and host Longhorn replicas |
 | **node-role.kubernetes.io/worker** |str| `worker` | Defines which nodes are designated kubernetes workers |
@@ -32,6 +33,9 @@ To use the K8S environment for OpenStack all of the nodes MUST be labeled. The f
     # Label the openstack network nodes
     kubectl label node $(kubectl get nodes | awk '/network/ {print $1}') openstack-network-node=enabled
 
+    # Label only OVN gateway nodes that should run the Neutron OVN VPN agent
+    kubectl label node $(kubectl get nodes | awk '/network/ {print $1}') openstack-ovn-vpn-agent=enabled
+
     # Label the openstack storage nodes
     kubectl label node $(kubectl get nodes | awk '/storage/ {print $1}') openstack-storage-node=enabled
 
@@ -47,6 +51,14 @@ To use the K8S environment for OpenStack all of the nodes MUST be labeled. The f
     # Label all etcd nodes - Required when deploying Opentelemetry metrics collection and related monitoring systems
     kubectl label node $(kubectl get nodes | awk '/etcd/ {print $1}')  node-role.kubernetes.io/etcd=etcd
     ```
+
+!!! warning "VPNaaS placement"
+
+    Do not apply `openstack-ovn-vpn-agent=enabled` to ordinary compute nodes.
+    The OVN VPN agents share an RPC queue, so an agent on a non-gateway node can
+    consume a VPN update and attempt to create the VPN namespace on a host that
+    cannot provide external network connectivity. Label only nodes configured as
+    OVN gateway chassis.
 
 ### Validate node labels
 

@@ -6,6 +6,13 @@ SERVICE_NAMESPACE="openstack"
 
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
 GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
+
+# Common secret helpers. Missing qonos-owned secrets are generated in Kubernetes
+# and existing secrets are never overwritten.
+# shellcheck source=helpers.sh
+source "${GENESTACK_BASE_DIR}/bin/helpers.sh"
+trap cleanup_tmp EXIT
+
 KUSTOMIZE_PATH="${GENESTACK_BASE_DIR}/base-kustomize/${SERVICE_NAME}/base"
 QONOS_CONF_DEFAULT="${KUSTOMIZE_PATH}/qonos.conf"
 QONOS_CONF_OVERRIDE="${GENESTACK_OVERRIDES_DIR}/kustomize/qonos/base/qonos.conf"
@@ -30,18 +37,23 @@ resolve_qonos_conf() {
 require_secret() {
     local secret_name="$1"
 
-    if ! kubectl --namespace "${SERVICE_NAMESPACE}" get secret "${secret_name}" >/dev/null 2>&1; then
+    if ! secret_exists "${SERVICE_NAMESPACE}" "${secret_name}"; then
         echo "Error: secret ${secret_name} not found in namespace ${SERVICE_NAMESPACE}" >&2
-        echo "Run bin/create-secrets.sh and apply /etc/genestack/kubesecrets.yaml first." >&2
         exit 1
     fi
 }
 
 get_secret_password() {
     local secret_name="$1"
+    local value
 
-    kubectl --namespace "${SERVICE_NAMESPACE}" get secret "${secret_name}" \
-        -o jsonpath='{.data.password}' | base64 -d
+    value="$(secret_get "${SERVICE_NAMESPACE}" "${secret_name}" "password")"
+    if [[ -z "$value" ]]; then
+        echo "Error: secret ${SERVICE_NAMESPACE}/${secret_name} is missing key password" >&2
+        exit 1
+    fi
+
+    printf '%s' "$value"
 }
 
 apply_qonos_etc_secret() {
@@ -55,8 +67,7 @@ apply_qonos_etc_secret() {
     qonos_rabbitmq_password="$(get_secret_password qonos-rabbitmq-password)"
     qonos_admin_password="$(get_secret_password qonos-admin)"
 
-    rendered_conf="$(mktemp)"
-    trap 'rm -f "${rendered_conf}"' RETURN
+    rendered_conf="$(mk_tmp_file)"
 
     sed \
         -e "s|__QONOS_DB_PASSWORD__|${qonos_db_password}|g" \
@@ -64,10 +75,7 @@ apply_qonos_etc_secret() {
         -e "s|__QONOS_ADMIN_PASSWORD__|${qonos_admin_password}|g" \
         "${conf_template}" > "${rendered_conf}"
 
-    kubectl create secret generic qonos-etc \
-        --namespace "${SERVICE_NAMESPACE}" \
-        --from-file=qonos.conf="${rendered_conf}" \
-        --dry-run=client -o yaml | kubectl apply -f -
+    secret_sync_from_file "${SERVICE_NAMESPACE}" "qonos-etc" "qonos.conf" "${rendered_conf}"
 }
 
 if [ ! -f "${KUSTOMIZE_PATH}/kustomization.yaml" ]; then
@@ -81,9 +89,9 @@ echo "Installing qonos from ${KUSTOMIZE_PATH}"
 echo "Rendering qonos.conf from ${QONOS_CONF_PATH}"
 
 require_secret "keystone-keystone-admin"
-require_secret "qonos-db-password"
-require_secret "qonos-rabbitmq-password"
-require_secret "qonos-admin"
+
+QONOS_SERVICE_CONFIG="$(load_service_config "${SERVICE_NAME}")"
+secret_ensure_service "${QONOS_SERVICE_CONFIG}" "${SERVICE_NAME}"
 
 apply_qonos_etc_secret "${QONOS_CONF_PATH}"
 

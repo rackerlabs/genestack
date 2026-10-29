@@ -1,0 +1,49 @@
+---
+service:
+  name: mariadb-operator
+  namespace: mariadb-system
+  version: ~
+  family: ""
+
+chart:
+  repo_name: mariadb-operator
+  repo_url: https://helm.mariadb.com/mariadb-operator
+  service_name: mariadb-operator
+  global_overrides: false
+
+kustomize:
+  enabled: false
+
+crd_chart: mariadb-operator-crds
+
+secrets:
+  - name: mariadb
+    namespace: openstack
+    type: Opaque
+    keys:
+      root-password: generate
+      password: generate
+
+  - name: mariadb-backup-secrets
+    namespace: openstack
+    type: Opaque
+    keys:
+      access-key-id: ""
+      secret-access-key: ""
+      S3_ENDPOINT: ""
+      S3_REGION: ""
+      S3_BUCKET: "mariadb-backups"
+
+  - name: etcd-backup-secrets
+    namespace: openstack
+    type: Opaque
+    keys:
+      ACCESS_KEY: ""
+      SECRET_KEY: ""
+      S3_HOST: ""
+      S3_REGION: ""
+      ETCDCTL_API: "3"
+      ETCDCTL_ENDPOINTS: "https://127.0.0.1:2379"
+      ETCDCTL_CACERT: "/etc/ssl/etcd/ssl/ca.pem"
+      ETCDCTL_CERT: ""
+      ETCDCTL_KEY: ""

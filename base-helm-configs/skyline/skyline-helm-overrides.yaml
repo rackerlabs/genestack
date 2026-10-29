@@ -13,9 +13,9 @@ images:
     skyline_db_sync: ghcr.io/rackerlabs/genestack-images/skyline:2025.1-latest
     skyline: ghcr.io/rackerlabs/genestack-images/skyline:2025.1-latest
     skyline_nginx: ghcr.io/rackerlabs/genestack-images/skyline:2025.1-latest
-    db_init: ghcr.io/rackerlabs/genestack-images/openstack-client:latest
+    db_init: ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest
     dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
-    ks_user: ghcr.io/rackerlabs/genestack-images/openstack-client:latest
+    ks_user: ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest
 
 endpoints:
   fluentd:
@@ -139,6 +139,12 @@ conf:
       shared_file_systems_servers: true
       shared_file_systems_instances: true
       shared_file_systems_backends: true
+      rating: false
+      rating_summary: true
+      rating_reporting: true
+      rating_modules: true
+      rating_hashmap: true
+      rating_pyscripts: true
 
 manifests:
   certificates: false

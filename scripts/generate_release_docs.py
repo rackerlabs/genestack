@@ -216,10 +216,20 @@ def parse_args():
         "--to-tag",
         help="End of a git diff range, for example: release-2026.2.0",
     )
+    parser.add_argument(
+        "--version",
+        help=(
+            "Output version override for range mode, for example: 2026.3.0 "
+            "when --to-tag is an rc branch."
+        ),
+    )
     args = parser.parse_args()
 
     if args.release and (args.from_tag or args.to_tag):
         parser.error("Use either --release or --from-tag/--to-tag, not both.")
+
+    if args.version and args.release:
+        parser.error("--version is only valid with --from-tag/--to-tag range mode.")
 
     if args.release:
         return args
@@ -903,11 +913,11 @@ def generate_range_release_notes(repo_dir, from_tag, to_tag, version):
 
     dist_dir = repo_dir / "dist"
     dist_dir.mkdir(exist_ok=True)
-    github_doc = dist_dir / f"release-notes-{to_tag}.md"
+    github_doc = dist_dir / f"release-notes-release-{version}.md"
     github_doc.write_text(
         "\n".join(
             [
-                f"# Genestack {to_tag}",
+                f"# Genestack release-{version}",
                 "",
                 f"Release notes generated from the exact git diff `{from_tag}..{to_tag}`.",
                 "",
@@ -984,6 +994,7 @@ def update_release_index(repo_dir, version):
             "```shell",
             "pip install -r doc-requirements.txt -r dev-requirements.txt",
             f"python scripts/generate_release_docs.py --release release-{version}",
+            "python scripts/generate_release_docs.py --from-tag release-2026.2.0.2 --to-tag release-2026.3-rc --version 2026.3.0",
             "```",
             "",
         ]
@@ -1009,7 +1020,7 @@ def main():
         from_tag = args.from_tag
         to_tag = args.to_tag
         parse_release_tag(from_tag)
-        version = parse_release_tag(to_tag)
+        version = args.version or parse_release_tag(to_tag)
         release_tag = to_tag
         release_doc, github_doc, reno_version = generate_range_release_notes(
             root, from_tag, to_tag, version

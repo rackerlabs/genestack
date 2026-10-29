@@ -20,6 +20,12 @@ JUNIT_XML=""
 
 FAILED_TESTS=""
 
+HEADER='\033[95m'
+GREEN='\033[92m'
+YELLOW='\033[93m'
+RED='\033[31m'
+ENDC='\033[0m'
+
 # Initialize test framework
 # Creates results directory and starts JUnit XML output
 init_tests() {
@@ -50,7 +56,7 @@ run_test() {
 
     ((TOTAL_TESTS += 1))
 
-    echo -n "Running test: ${test_name}... "
+    echo -e -n "$HEADER Running test:$ENDC ${test_name}... "
 
     # Execute test and capture output
     if output=$($test_func); then
@@ -64,11 +70,11 @@ run_test() {
 
     # Record result
     if [ ${exit_code} -eq 0 ]; then
-        echo "PASSED"
+        echo -e "$GREEN PASSED $ENDC"
         ((TESTS_PASSED += 1))
         record_test_result "${test_name}" "passed" "" "${output}" "${duration}"
     else
-        echo "FAILED"
+        echo -e "$RED FAILED $ENDC"
         ((TESTS_FAILED += 1))
         FAILED_TESTS+="* ${test_name}\n"
         record_test_result "${test_name}" "failed" "${output}" "" "${duration}"
@@ -87,7 +93,8 @@ skip_test() {
     ((TOTAL_TESTS += 1))
     ((TESTS_SKIPPED += 1))
 
-    echo "Skipping test: ${test_name} - ${skip_reason}"
+    echo -e "$YELLOW Skipping test:$ENDC ${test_name} - ${skip_reason}"
+    SKIPPED_TESTS+="* ${test_name}\n"
     record_test_result "${test_name}" "skipped" "${skip_reason}" "" "0"
 }
 
@@ -124,6 +131,7 @@ record_test_result() {
 # Finalize tests and write results
 # Exits with non-zero code if any tests failed
 finalize_tests() {
+
     # Close JUnit XML
     JUNIT_XML+="</testsuite>\n"
 
@@ -143,13 +151,18 @@ finalize_tests() {
     echo "Results saved to: ${results_file}"
     echo "=========================================="
 
+    if [ ${TESTS_SKIPPED} -gt 0 ]; then
+        echo -e "$YELLOW Skipped tests: $ENDC"
+        echo -e "$YELLOW ${SKIPPED_TESTS} $ENDC"
+    fi
+
     # Exit with appropriate code
     if [ ${TESTS_FAILED} -gt 0 ]; then
-        echo "FAILURE: Some tests failed"
-        echo -e "${FAILED_TESTS}"
+        echo -e "$RED FAILURE: Some tests failed $ENDC"
+        echo -e "$RED ${FAILED_TESTS} $ENDC"
         return 1
     else
-        echo "SUCCESS: All tests passed"
+        echo -e "$GREEN SUCCESS: All tests passed $ENDC"
         return 0
     fi
 }

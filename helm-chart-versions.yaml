@@ -7,7 +7,7 @@ charts:
   ceilometer: 2026.1.3+a659ab8a2
   cert-manager: v1.19.5
   cinder: 2026.1.9+a2a343968
-  cloudkitty: 2026.1.3+a659ab8a2
+  cloudkitty: 2026.1.30+11919f713
   designate: 2026.1.8+a659ab8a2
   envoyproxy-gateway: v1.7.0
   freezer: 2026.1.8+d03dd061a
@@ -15,19 +15,19 @@ charts:
   gnocchi: 2026.1.9+50c697fc3
   grafana: 10.1.0
   heat: 2026.1.9+50c697fc3
-  horizon: 2026.1.9+50c697fc3
+  horizon: 2026.1.31+0ee5adeff
   ironic: 2026.1.8+db238e7c3
   keystone: 2026.1.8+db238e7c3
   kube-ovn: v1.15.4
   kube-prometheus-stack: 78.3.0
   loki: 6.52.0
   longhorn: 1.11.1
-  libvirt: 2025.1.4+ed289c1cd
+  libvirt: 2026.1.29+a34a2f9b9
   magnum: 2026.1.5+a659ab8a2
   mariadb-operator: 26.3.0
   masakari: 2026.1.4+c0d71bdbf
   manila: 2026.1.9+a2a343968
-  memcached: 2025.2.2+c31cd6c96
+  memcached: 2026.1.23+0ee5adeff
   metallb: v0.15.2
   neutron: 2026.1.9+a2a343968
   nova: 2026.1.8+a2a343968

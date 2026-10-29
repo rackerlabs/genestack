@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    Added Neutron VPNaaS with OVN deployment documentation covering gateway
+    node selection, Neutron RPC server enablement, deployment validation, and
+    troubleshooting. The node-label reference now includes the dedicated
+    ``openstack-ovn-vpn-agent=enabled`` label.
+upgrade:
+  - |
+    Environments enabling VPNaaS must apply
+    ``openstack-ovn-vpn-agent=enabled`` only to OVN gateway chassis, configure
+    the OVN VPN agent node selector to use that label, and enable the
+    ``neutron-rpc-server`` deployment. The VPN agent must not use the broader
+    ``openstack-network-node`` label because ordinary compute nodes can carry
+    that label without being OVN gateway chassis.

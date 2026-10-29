@@ -2,7 +2,7 @@
 images:
   tags:
     libvirt: ghcr.io/rackerlabs/genestack-images/libvirt:latest
-    libvirt_exporter: ghcr.io/inovex/prometheus-libvirt-exporter:2.2.0
+    libvirt_exporter: ghcr.io/inovex/prometheus-libvirt-exporter:2.3.0
     ceph_config_helper: docker.io/openstackhelm/ceph-config-helper:ubuntu_jammy_19.2.3-1-20250815
     dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
 network:
@@ -15,6 +15,38 @@ conf:
     listen_addr: "0.0.0.0"
   init_modules:
     enabled: true
+libvirt:
+  extraContainers:
+    - name: libvirt-exporter
+      image: "{{ .Values.images.tags.libvirt_exporter }}"
+      imagePullPolicy: IfNotPresent
+      args:
+        - --libvirt.uri=/run/libvirt/libvirt-sock-ro
+        - --web.listen-address=:9474
+      ports:
+        - name: metrics
+          protocol: TCP
+          containerPort: 9474
+      livenessProbe:
+        httpGet:
+          path: /metrics
+          port: metrics
+        initialDelaySeconds: 30
+        periodSeconds: 60
+        timeoutSeconds: 5
+      readinessProbe:
+        httpGet:
+          path: /metrics
+          port: metrics
+        initialDelaySeconds: 15
+        periodSeconds: 60
+        timeoutSeconds: 5
+      securityContext:
+        privileged: true
+      volumeMounts:
+        - name: run
+          mountPath: /run
+          mountPropagation: Bidirectional
 dependencies:
   dynamic:
     targeted:
@@ -22,9 +54,6 @@ dependencies:
         libvirt:
           pod: []  # In a hybrid deployment, we don't want to run ovn-controller on the same node as libvirt
 pod:
-  sidecars:
-    libvirt_exporter:
-      enabled: true
   lifecycle:
     upgrades:
       daemonsets:

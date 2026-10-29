@@ -1,0 +1,118 @@
+---
+service:
+  name: ceilometer
+  version: ~
+
+chart: {}
+
+secrets:
+  - helm_key: "endpoints.identity.auth.admin.password"
+    source_secret: keystone-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.identity.auth.ceilometer.password"
+    source_secret: ceilometer-keystone-admin-password
+    source_namespace: openstack
+    data_key: password
+    rotate_with_service: true
+    helm_flag: --set
+
+  - helm_key: "endpoints.identity.auth.test.password"
+    source_secret: ceilometer-keystone-test-password
+    source_namespace: openstack
+    data_key: password
+    rotate_with_service: true
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_messaging.auth.admin.username"
+    source_secret: rabbitmq-default-user
+    source_namespace: openstack
+    data_key: username
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_messaging.auth.admin.password"
+    source_secret: rabbitmq-default-user
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_messaging.auth.ceilometer.password"
+    source_secret: ceilometer-rabbitmq-password
+    source_namespace: openstack
+    data_key: password
+    rotate_with_service: true
+    helm_flag: --set
+
+  - helm_key: "endpoints.oslo_cache.auth.memcache_secret_key"
+    source_secret: os-memcached
+    source_namespace: openstack
+    data_key: memcache_secret_key
+    helm_flag: --set
+
+  - helm_key: "conf.ceilometer.keystone_authtoken.memcache_secret_key"
+    source_secret: os-memcached
+    source_namespace: openstack
+    data_key: memcache_secret_key
+    helm_flag: --set
+
+  - helm_key: "conf.ceilometer.oslo_messaging.transport_url"
+    value: "rabbit://ceilometer:${CEILOMETER_RABBITMQ_PASS}@rabbitmq.openstack.svc.cluster.local:5672/ceilometer"
+    replace:
+      - key: CEILOMETER_RABBITMQ_PASS
+        secret: ceilometer-rabbitmq-password
+        namespace: openstack
+        data_key: password
+
+  - helm_key: "conf.ceilometer.notification.messaging_urls.values"
+    value: "{rabbit://ceilometer:${CEILOMETER_RABBITMQ_PASS}@rabbitmq.openstack.svc.cluster.local:5672/ceilometer,rabbit://keystone:${KEYSTONE_RABBITMQ_PASS}@rabbitmq.openstack.svc.cluster.local:5672/keystone,rabbit://glance:${GLANCE_RABBITMQ_PASS}@rabbitmq.openstack.svc.cluster.local:5672/glance,rabbit://nova:${NOVA_RABBITMQ_PASS}@rabbitmq.openstack.svc.cluster.local:5672/nova,rabbit://neutron:${NEUTRON_RABBITMQ_PASS}@rabbitmq.openstack.svc.cluster.local:5672/neutron,rabbit://cinder:${CINDER_RABBITMQ_PASS}@rabbitmq.openstack.svc.cluster.local:5672/cinder,rabbit://heat:${HEAT_RABBITMQ_PASS}@rabbitmq.openstack.svc.cluster.local:5672/heat,rabbit://octavia:${OCTAVIA_RABBITMQ_PASS}@rabbitmq.openstack.svc.cluster.local:5672/octavia,rabbit://blazar:${BLAZAR_RABBITMQ_PASS}@rabbitmq.openstack.svc.cluster.local:5672/blazar,rabbit://magnum:${MAGNUM_RABBITMQ_PASS}@rabbitmq.openstack.svc.cluster.local:5672/magnum,rabbit://trove:${TROVE_RABBITMQ_PASS}@rabbitmq.openstack.svc.cluster.local:5672/trove,rabbit://swift:${SWIFT_RABBITMQ_PASS}@rabbitmq.openstack.svc.cluster.local:5672/swift}"
+    replace:
+      - key: CEILOMETER_RABBITMQ_PASS
+        secret: ceilometer-rabbitmq-password
+        namespace: openstack
+        data_key: password
+      - key: KEYSTONE_RABBITMQ_PASS
+        secret: keystone-rabbitmq-password
+        namespace: openstack
+        data_key: password
+      - key: GLANCE_RABBITMQ_PASS
+        secret: glance-rabbitmq-password
+        namespace: openstack
+        data_key: password
+      - key: NOVA_RABBITMQ_PASS
+        secret: nova-rabbitmq-password
+        namespace: openstack
+        data_key: password
+      - key: NEUTRON_RABBITMQ_PASS
+        secret: neutron-rabbitmq-password
+        namespace: openstack
+        data_key: password
+      - key: CINDER_RABBITMQ_PASS
+        secret: cinder-rabbitmq-password
+        namespace: openstack
+        data_key: password
+      - key: HEAT_RABBITMQ_PASS
+        secret: heat-rabbitmq-password
+        namespace: openstack
+        data_key: password
+      - key: OCTAVIA_RABBITMQ_PASS
+        secret: octavia-rabbitmq-password
+        namespace: openstack
+        data_key: password
+      - key: BLAZAR_RABBITMQ_PASS
+        secret: blazar-rabbitmq-password
+        namespace: openstack
+        data_key: password
+      - key: MAGNUM_RABBITMQ_PASS
+        secret: magnum-rabbitmq-password
+        namespace: openstack
+        data_key: password
+      - key: TROVE_RABBITMQ_PASS
+        secret: trove-rabbitmq-password
+        namespace: openstack
+        data_key: password
+      - key: SWIFT_RABBITMQ_PASS
+        secret: swift-rabbitmq-password
+        namespace: openstack
+        data_key: password

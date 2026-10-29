@@ -18,6 +18,12 @@ HELM_REPO_URL_DEFAULT="https://tarballs.opendev.org/openstack/openstack-helm"
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
 GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
 
+# Common secret helpers. Missing secrets are generated in Kubernetes and
+# existing secrets are never overwritten.
+# shellcheck source=helpers.sh
+source "${GENESTACK_BASE_DIR}/bin/helpers.sh"
+trap cleanup_tmp EXIT
+
 # Define service-specific override directories based on the framework
 SERVICE_BASE_OVERRIDES="${GENESTACK_BASE_DIR}/base-helm-configs/${SERVICE_NAME_DEFAULT}"
 SERVICE_CUSTOM_OVERRIDES="${GENESTACK_OVERRIDES_DIR}/helm-configs/${SERVICE_NAME_DEFAULT}"
@@ -65,7 +71,7 @@ if [[ "$HELM_REPO_URL" == oci://* ]]; then
     HELM_CHART_PATH="$HELM_REPO_URL/$HELM_REPO_NAME/$SERVICE_NAME"
 else
     # --- Helm Repository and Execution ---
-    helm repo add "$HELM_REPO_NAME" "$HELM_REPO_URL"
+    helm repo add --force-update "$HELM_REPO_NAME" "$HELM_REPO_URL" 2>/dev/null || true
     helm repo update
     HELM_CHART_PATH="$HELM_REPO_NAME/$SERVICE_NAME"
 fi
@@ -126,18 +132,9 @@ fi
 echo
 
 # Collect all --set arguments, executing commands and quoting safely
-set_args=(
-    --set "endpoints.identity.auth.admin.password=$(kubectl --namespace openstack get secret keystone-admin -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.identity.auth.zaqar.password=$(kubectl --namespace openstack get secret zaqar-admin -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.identity.auth.test.password=$(kubectl --namespace openstack get secret zaqar-keystone-test-password -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.oslo_db.auth.admin.password=$(kubectl --namespace openstack get secret mariadb -o jsonpath='{.data.root-password}' | base64 -d)"
-    --set "endpoints.oslo_db.auth.zaqar.password=$(kubectl --namespace openstack get secret zaqar-db-password -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.oslo_messaging.auth.admin.password=$(kubectl --namespace openstack get secret rabbitmq-default-user -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.oslo_messaging.auth.zaqar.password=$(kubectl --namespace openstack get secret zaqar-rabbitmq-password -o jsonpath='{.data.password}' | base64 -d)"
-    --set "endpoints.oslo_cache.auth.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
-    --set "conf.zaqar.keystone_authtoken.memcache_secret_key=$(kubectl --namespace openstack get secret os-memcached -o jsonpath='{.data.memcache_secret_key}' | base64 -d)"
-    --set "conf.zaqar.signed_url.secret_key=$(kubectl --namespace openstack get secret zaqar-signed-url-secret-key -o jsonpath='{.data.zaqar_signed_url_secret_key}' | base64 -d)"
-)
+# Collect secret-backed --set arguments from bin/services/${SERVICE_NAME_DEFAULT}.yaml.
+collect_service_secret_set_args "$SERVICE_NAME_DEFAULT"
+set_args=("${SECRET_HELM_SET_ARGS[@]}")
 
 
 helm_command=(

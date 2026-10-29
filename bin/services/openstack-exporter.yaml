@@ -1,0 +1,22 @@
+---
+service:
+  name: openstack-exporter
+  namespace: monitoring
+  version: ~
+
+  family: ""
+
+chart:
+  repo_name: ~
+  repo_url: ~
+  service_name: openstack-api-exporter
+  global_overrides: false
+
+secrets: []
+
+post_install_actions:
+  - type: get_by_label_optional
+    namespace: monitoring
+    resource: pods
+    selector: app=openstack-exporter
+    not_found_message: openstack-exporter not ready yet

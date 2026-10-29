@@ -23,6 +23,8 @@ spec:
       backoffLimit: 5
       template:
         spec:
+          nodeSelector:
+            kube-ovn/role: master
           serviceAccount: "ovn"
           serviceAccountName: "ovn"
           restartPolicy: "Never"

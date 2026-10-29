@@ -1,0 +1,80 @@
+---
+prelude: >
+  Barbican in Genestack now supports SoftHSM2-backed PKCS#11 (`p11_crypto`)
+  as the primary crypto backend for encrypting all new secrets, while retaining
+  `simple_crypto` as a secondary read-only backend to ensure existing legacy
+  secrets remain accessible.
+
+  Additionally, deployments with Barbican Gazpacho (2026.1 / OpenStack-Helm 2026.1.x)
+  feature fully automated SoftHSM2 PIN generation. The `simple_crypto` master KEK,
+  which Gazpacho no longer defaults, is managed through the `barbican-simple-crypto-kek`
+  Kubernetes Secret; see the Barbican KEK notes in this release and the "Simple crypto
+  master KEK" section of `docs/openstack-barbican.md`.
+features:
+  - |
+    **SoftHSM2 PKCS#11 Crypto Backend Support:**
+    Integrated SoftHSM2 as a PKCS#11 HSM crypto plugin (`p11_crypto`). All new
+    secrets created in Barbican are encrypted using SoftHSM2 PKCS#11, while
+    existing secrets previously encrypted via `simple_crypto` remain readable
+    via dual-plugin operation (`p11_crypto` + `simple_crypto`).
+  - |
+    **SoftHSM2 Token Persistence & Pod Configuration:**
+    Added `barbican-softhsm-config` ConfigMap and `barbican-softhsm-tokens` PVC
+    (`ReadWriteMany`) to `base-kustomize/barbican/base/kustomization.yaml`,
+    ensuring SoftHSM2 configuration (`/etc/softhsm/softhsm2.conf`) and token
+    storage (`/var/lib/softhsm/tokens`) persist across pod restarts and
+    multi-replica deployments.
+  - |
+    **Cluster Bootstrap Secret Provisioning (bin/create-secrets.sh):**
+    Updated `bin/create-secrets.sh` to auto-generate and persist all required
+    Barbican credentials in Kubernetes Secrets at cluster bootstrap:
+    - `barbican_hsm_pin`: 32-character auto-generated PIN stored in the
+      `barbican-hsm-credentials` Kubernetes Secret for SoftHSM2 PKCS#11 token login.
+    - `barbican_simple_crypto_kek`: 32 random bytes as urlsafe base64 (44
+      characters), the Fernet master KEK, stored in the
+      `barbican-simple-crypto-kek` Kubernetes Secret alongside
+      an initially empty `old_keks` rotation history, for greenfield and fresh
+      lab builds.
+  - |
+    **Updated Install Script (bin/install-barbican.sh):**
+    `install-barbican.sh` handles SoftHSM2 configuration checks, creation of the
+    `barbican-hsm-credentials` Secret on brownfield clusters, dynamic PIN injection
+    from that Secret, post-install token/key initialization, and injection of the
+    `simple_crypto` master KEK from the `barbican-simple-crypto-kek` Secret.
+  - |
+    **Default dual-plugin enablement:**
+    `base-helm-configs/barbican/barbican-helm-overrides.yaml` now enables
+    `p11_crypto` then `simple_crypto` (oslo MultiStrOpt), SoftHSM2 library
+    path, token label, volume mounts, and `runAsUser`/`fsGroup` 42424.
+    Regional overrides no longer need to turn p11 on; they only need to
+    keep `simple_crypto` loaded until legacy secrets are converted.
+upgrade:
+  - |
+    **Gazpacho KEK handling:**
+    Gazpacho Barbican removes the upstream built-in default KEK for
+    `simple_crypto`. A KEK set in an override file always takes precedence
+    and is deployed as is. Otherwise `install-barbican.sh` injects the KEK
+    from the `barbican-simple-crypto-kek` Secret on every deploy. On
+    brownfield clusters that hold `simple_crypto` data but have no KEK
+    configured anywhere, it refuses to deploy and points at
+    `scripts/rotate-barbican-kek.py --adopt` to move the running KEK into
+    the Secret; on clusters without Barbican
+    data it generates one, so fresh deployments create Trove instances and
+    encrypted Cinder volumes without manual steps. A deploy that would leave
+    Barbican unable to start, or that would arm a db-sync rewrap of a
+    Secret-managed KEK that cannot succeed, is refused with guidance instead.
+    Rotation is handled by `scripts/rotate-barbican-kek.py`, which
+    `install-barbican.sh` never calls; see the Barbican KEK notes in this
+    release.
+security:
+  - |
+    **Dynamic Key & PIN Injection:**
+    Neither the SoftHSM2 PIN nor the `simple_crypto` Master KEK is stored
+    in version-controlled override files. All credentials are created and
+    persisted in Kubernetes Secrets (`barbican-hsm-credentials`,
+    `barbican-simple-crypto-kek`) and injected dynamically at deploy time.
+  - |
+    **Pod Security Context:**
+    Enforced non-root execution (`runAsUser: 42424`) and group ownership
+    (`fsGroup: 42424`) under `pod.securityContext` to ensure secure, correct
+    filesystem permissions for SoftHSM2 token storage mounted inside pods.

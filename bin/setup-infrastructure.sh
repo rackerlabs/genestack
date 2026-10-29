@@ -152,9 +152,6 @@ sed -i 's/numberOfReplicas.*/numberOfReplicas: "'"${LONGHORN_STORAGE_REPLICAS:-2
        /etc/genestack/manifests/longhorn/longhorn-general-storageclass.yaml
 kubectl apply -f /etc/genestack/manifests/longhorn/longhorn-general-storageclass.yaml
 
-# Deploy prometheus
-/opt/genestack/bin/install-kube-prometheus-stack.sh
-
 # Deploy cert-manager
 /opt/genestack/bin/install-cert-manager.sh
 
@@ -209,13 +206,8 @@ fi
 echo "Waiting for the cert-manager to be available"
 kubectl -n cert-manager wait --timeout=5m deployments.apps/cert-manager --for=condition=available
 
-# Deploy the Genestack secrets
-if [ -f /etc/genestack/kubesecrets.yaml ]; then
-  echo "Reusing existing /etc/genestack/kubesecrets.yaml"
-else
-  /opt/genestack/bin/create-secrets.sh
-fi
-kubectl apply -f /etc/genestack/kubesecrets.yaml
+# Deploy service secrets
+echo "Skipping legacy secret bootstrap; service installers manage secrets idempotently."
 
 # Deploy mariadb
 /opt/genestack/bin/install-mariadb-operator.sh

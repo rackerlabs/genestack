@@ -1,5 +1,5 @@
 ---
-name: Helm GitHub Actions for horizon
+name: Helm GitHub Actions for Horizon
 
 on:
   pull_request:

@@ -1,0 +1,11 @@
+[mysqld]
+log_bin = /var/lib/mysql/data/mariadb-bin.log
+binlog_format = MIXED
+relay_log = /var/lib/mysql/data/mariadb-relay-bin.log
+relay_log_recovery = 1
+relay_log_purge = 1
+log_slave_updates = ON
+# MariaDB uses its own GTID implementation; it does not accept the
+# MySQL-only relay_log_info_repository / enforce_gtid_consistency /
+# gtid_mode options, so they are intentionally omitted here.
+read_only = true

@@ -1,8 +1,0 @@
-sortOptions:
-  order: fifo
-resources:
-  - mariadb-monitoring-user-create.yaml
-  - mariadb-monitoring-user-grant.yaml
-  - rabbitmq-monitoring-user-create.yaml
-  - rabbitmq-monitoring-user-grant.yaml
-  - all.yaml

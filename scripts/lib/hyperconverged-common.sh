@@ -148,8 +148,8 @@ function parseCommonArgs() {
 
     # Resolve the 'manila-share' pseudo service. 'manila' refers to the
     # control-plane chart only; 'manila-share' covers the full enablement
-    # (secrets, service image build, pre/post deploy incl. share type). It can
-    # be enabled with '-i manila-share' or the legacy
+    # (secret prerequisites, service image build, pre/post deploy incl. share
+    # type). It can be enabled with '-i manila-share' or the legacy
     # HYPERCONVERGED_MANILA_SHARE=true environment variable, and disabled with
     # '-e manila-share' (which wins over both). Like cinder-volume, the
     # implied control plane is installed by the enablement step (deployManila
@@ -165,7 +165,7 @@ function parseCommonArgs() {
     fi
     export MANILA_SHARE_ENABLED
     if [ "${MANILA_SHARE_ENABLED}" = "true" ]; then
-        echo "manila-share enabled: manila control plane + share enablement (secrets, service image build, share type)"
+        echo "manila-share enabled: manila control plane + share enablement (secret prerequisites, service image build, share type)"
     fi
 
     # Resolve barbican-hsm pseudo service. It can be enabled with '-i barbican-hsm'
@@ -1132,8 +1132,30 @@ pod:
 conf:
   magnum_api_uwsgi:
     uwsgi:
+      # Magnum 22.0.0 no longer installs the magnum-api-wsgi script.
+      module: magnum.wsgi.api:application
       processes: 1
       threads: 1
+      wsgi-file: null
+  paste:
+    composite:main:
+      paste.composite_factory: magnum.api:root_app_factory
+      /: api
+      /healthcheck: healthcheck
+    pipeline:api:
+      pipeline: cors http_proxy_to_wsgi request_id osprofiler authtoken api_v1
+    app:healthcheck:
+      paste.app_factory: oslo_middleware:Healthcheck.app_factory
+      backends: disable_by_file
+      disable_by_file_path: /etc/magnum/healthcheck_disable
+    filter:http_proxy_to_wsgi:
+      paste.filter_factory: oslo_middleware.http_proxy_to_wsgi:HTTPProxyToWSGI.factory
+      oslo_config_project: magnum
+    filter:osprofiler:
+      paste.filter_factory: magnum.common.profiler:WsgiMiddleware.factory
+    # Remove the chart's obsolete filter-based PasteDeploy topology.
+    pipeline:main: null
+    filter:healthcheck: null
 EOF
     fi
 
@@ -2298,7 +2320,7 @@ JUMP_HOST_EOF
 
 function deployManila() {
     # Run the Manila enablement flow on the jump host:
-    #   secrets → image_build → pre_deploy → helm install → post_deploy
+    #   secret prerequisites → image_build → pre_deploy → helm install → post_deploy
     # (tag sequence documented in ansible/roles/manila_enablement_techpreview)
     # The playbook is self-sufficient: it reads the keystone-admin password
     # from the K8s secret and authenticates via its own OS_* environment.
@@ -2313,7 +2335,7 @@ set -e
 # activate environment for openstack commands
 source /opt/genestack/scripts/genestack.rc
 
-echo "Running playbook for manila secrets"
+echo "Running playbook for Manila secret prerequisites"
 ansible-playbook /opt/genestack/ansible/playbooks/manila-enablement-techpreview.yaml \
     --tags secrets
 
@@ -2355,7 +2377,7 @@ set -e
 # activate environment for openstack commands
 source /opt/genestack/scripts/genestack.rc
 
-echo "Running playbook for trove_secrets"
+echo "Running playbook for Trove secret prerequisites"
 ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
     --tags trove_secrets \
     -e "trove_region_name=${trove_region_name}"
@@ -2377,23 +2399,44 @@ ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.y
     -e "trove_region_name=${trove_region_name} trove_gateway_hostname=${trove_gateway_hostname}"
 
 echo "Installing Trove via Helm chart"
-sudo /opt/genestack/bin/install-trove.sh
+/opt/genestack/bin/install-trove.sh
 
 # on jump host, may need to run
 # > kubectl get pods -A | grep "trove-api\|trove-cond\|trove-task\|trove-mgmt" | awk '{print$2}' | xargs kubectl delete pod -n openstack
 
-echo "Running playbook for trove_image_build"
-ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
-    --tags trove_image_build \
-    -e "trove_region_name=${trove_region_name}"
-echo "Running playbook for trove_datastore"
-ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
-    --tags trove_datastore \
-    -e "trove_region_name=${trove_region_name}"
 echo "Running playbook for trove_client"
 ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
     --tags trove_client \
     -e "trove_region_name=${trove_region_name}"
+
+echo "Running playbook for database flavors"
+# add force_create_flavors=true when needed
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_flavors \
+    -e "trove_region_name=${trove_region_name} trove_os_endpoint_type=${trove_os_endpoint_type}"
+
+echo "Running playbook for trove_image_build (MySQL 8.4)"
+# add force_rebuild_image=true when needed
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_image_build \
+    -e "trove_region_name=${trove_region_name} trove_datastore_name=mysql"
+echo "Running playbook for trove_datastore (MySQL 8.4)"
+# add force_create_dsv=true when needed
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_datastore \
+    -e "trove_region_name=${trove_region_name} trove_datastore_name=mysql"
+
+echo "Running playbook for trove_image_build (MariaDB 11.8)"
+# add force_rebuild_image=true when needed
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_image_build \
+    -e "trove_region_name=${trove_region_name} trove_datastore_name=mariadb"
+echo "Running playbook for trove_datastore (MariaDB 11.8)"
+# add force_create_dsv=true when needed
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_datastore \
+    -e "trove_region_name=${trove_region_name} trove_datastore_name=mariadb"
+
 echo "Running playbook for trove_keypair"
 ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
     --tags trove_keypair \

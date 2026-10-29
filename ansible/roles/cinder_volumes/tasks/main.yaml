@@ -69,6 +69,13 @@
         namespace: openstack
       register: _kubernetes_cinder_etc_secret
 
+    - name: Read cinder-ks-etc secrets
+      kubernetes.core.k8s_info:
+        kind: Secret
+        name: cinder-ks-etc
+        namespace: openstack
+      register: _kubernetes_cinder_ks_etc_secret
+
 - name: Install cinder distro packages
   ansible.builtin.package:
     name: "{{ cinder_volume_package_list }}"
@@ -184,6 +191,20 @@
     - /var/lib/cinder/backup
     - /var/lib/cinder/tmp
     - /var/lib/cinder/volumes
+    - /var/lib/cinder/conversion
+    - /var/lock/cinder
+
+- name: Create the cinder configuration directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default('cinder') }}"
+    group: "{{ item.group | default('cinder') }}"
+    mode: "{{ item.mode | default('0750') }}"
+  loop:
+    - { path: "/opt/cinder/etc/cinder", mode: "0750" }
+    - { path: "/opt/cinder/etc/cinder/cinder.conf.d", mode: "0750" }
+    - { path: "/opt/cinder/etc/cinder/rootwrap.d", mode: "0755", owner: "root", group: "root" }
 
 - name: Create symlink for the etc directory
   ansible.builtin.file:
@@ -192,6 +213,29 @@
     state: link
     owner: cinder
     group: cinder
+
+- name: Create the base cinder-volume configuration
+  ansible.builtin.copy:
+    content: "{{ _kubernetes_cinder_etc_secret.resources[0].data['cinder.conf'] | b64decode }}"
+    dest: /etc/cinder/cinder.conf
+    owner: root
+    group: cinder
+    mode: "0640"
+  notify:
+    - "restart cinder services"
+
+- name: Deploy modular snippets from cinder-ks-etc into cinder.conf.d
+  ansible.builtin.copy:
+    content: "{{ item.value | b64decode }}"
+    dest: "/etc/cinder/cinder.conf.d/{{ item.key }}"
+    owner: root
+    group: cinder
+    mode: "0640"
+  loop: "{{ (_kubernetes_cinder_ks_etc_secret.resources[0].data | default({})) | dict2items }}"
+  when:
+    - _kubernetes_cinder_ks_etc_secret.resources | default([]) | length > 0
+  notify:
+    - "restart cinder services"
 
 - name: Create the cinder-volume filters and logging configuration
   ansible.builtin.copy:
@@ -204,34 +248,9 @@
     - src: "logging.conf"
       dest: /etc/cinder/logging.conf
     - src: "volume.filters"
-      dest: /etc/cinder/volume.filters
-
-- name: Copy cinder-volume filters to rootwrap.d
-  ansible.builtin.copy:
-    src: "/etc/cinder/volume.filters"
-    dest: "/etc/cinder/rootwrap.d/volume.filters"
-    owner: root
-    group: root
-    mode: "0644"
-    remote_src: true
-
-- name: "Create the cinder-volume configuration stage file"
-  changed_when: false
-  ansible.builtin.copy:
-    content: "{{ _kubernetes_cinder_etc_secret.resources[0].data['cinder.conf'] | b64decode }}"
-    dest: "/etc/cinder/cinder.conf.stage"
-    owner: root
-    group: root
-    mode: "0644"
-
-- name: Replace the host in the cinder.conf.stage with the current Ansible FQDN in the stage file
-  changed_when: false
-  community.general.ini_file:
-    path: "/etc/cinder/cinder.conf.stage"
-    section: DEFAULT
-    option: host
-    value: "{{ inventory_hostname }}"
-    create: true
+      dest: /etc/cinder/rootwrap.d/volume.filters
+    - src: "rootwrap.conf"
+      dest: /etc/cinder/rootwrap.conf
 
 - name: Replace exec path in rootwrap
   community.general.ini_file:
@@ -242,7 +261,7 @@
     create: true
   loop:
     - key: "exec_dirs"
-      value: "/opt/cinder/bin,/sbin,/usr/sbin,/bin,/usr/bin,/usr/local/bin,/usr/local/sbin,/usr/lpp/mmfs/bin"
+      value: "{{ cinder_virtualenv_path }}/bin,/sbin,/usr/sbin,/bin,/usr/bin,/usr/local/bin,/usr/local/sbin,/usr/lpp/mmfs/bin"
     - key: "filters_path"
       value: "/etc/cinder/rootwrap.d"
 

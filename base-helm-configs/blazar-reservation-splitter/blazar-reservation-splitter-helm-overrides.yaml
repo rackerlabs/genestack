@@ -21,7 +21,7 @@ endpoints:
   oslo_messaging:
     auth:
       user: blazar-reservation-splitter
-      # Password will be read from the secret created by bin/create-secrets.sh
+      # Password will be read from the secret created by bin/install-blazar-reservation-splitter.sh
       # The Helm chart will construct the RABBITMQ_CONNECTION URL using this
     statefulset: null
     hosts:

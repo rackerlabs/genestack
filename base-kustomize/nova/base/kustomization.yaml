@@ -8,3 +8,4 @@ resources:
   - hpa-nova-api-osapi.yaml
   - policies.yaml
   - static-vendordata-configmap.yaml
+  - nova-backendtrafficpolicy.yaml

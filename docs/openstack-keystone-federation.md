@@ -386,7 +386,7 @@ openssl req -x509 -newkey rsa:2048 -keyout sp-key.pem -out sp-cert.pem -days 182
 
 The `keystone-shibd-etc` secret holds every file under `/etc/genestack/keystone-sp/shibboleth/` and is mounted at `/etc/shibboleth/` inside the keystone pod.
 
-`install-keystone.sh` manages this secret automatically. When the script renders the chart it inspects the post-rendered manifests for `keystone-shibd-etc`; if the federation overlay is in use, the script re-creates the secret from the shibboleth directory on every run using `kubectl create ... --dry-run=client -o yaml | kubectl apply -f -`. That means updating any file under `/etc/genestack/keystone-sp/shibboleth/` and re-running the installer is sufficient to roll the change out.
+`install-keystone.sh` manages this secret automatically. When the script renders the chart it inspects the post-rendered manifests for `keystone-shibd-etc`; if the federation overlay is in use, the script re-creates the secret from the shibboleth directory on every run using the shared Genestack secret sync helper. The helper renders a dry-run secret manifest, applies it, and cleans up temporary files after the run. That means updating any file under `/etc/genestack/keystone-sp/shibboleth/` and re-running the installer is sufficient to roll the change out.
 
 !!! note "Required files"
 
@@ -406,12 +406,12 @@ The `keystone-shibd-etc` secret holds every file under `/etc/genestack/keystone-
 
 ??? example "Manual fallback"
 
-    If you need to sync the secret without running the installer (air-gapped debugging, out-of-band patching, etc.), the equivalent command is:
+    If you need to sync the secret without running the installer (air-gapped debugging, out-of-band patching, etc.), use the shared Genestack helper instead of maintaining a separate `kubectl create secret` command:
 
     ``` shell
-    kubectl -n openstack create secret generic keystone-shibd-etc \
-        --from-file=/etc/genestack/keystone-sp/shibboleth/ \
-        --dry-run=client -o yaml | kubectl apply -f -
+    source /opt/genestack/bin/helpers.sh
+    _setup_cleanup_trap
+    secret_sync_from_directory openstack keystone-shibd-etc /etc/genestack/keystone-sp/shibboleth/
     ```
 
 ### Create the SAML identity provider

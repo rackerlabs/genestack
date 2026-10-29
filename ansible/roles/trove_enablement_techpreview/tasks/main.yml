@@ -2,7 +2,7 @@
 # Trove — full lifecycle
 # =========================================================================
 
-- name: Create Trove K8s secrets
+- name: Ensure Trove K8s secrets
   import_tasks: trove_k8s_secrets.yml
   become: true
   become_user: ubuntu
@@ -58,6 +58,14 @@
     - trove_datastore
     - trove_post_install
 
+- name: Create Trove flavors
+  import_tasks: trove_flavor_setup.yml
+  become: true
+  become_user: ubuntu
+  tags:
+    - trove_flavors
+    - trove_post_install
+
 - name: Install python-troveclient
   import_tasks: trove_client_install.yml
   become: true
@@ -81,12 +89,3 @@
   tags:
     - trove_ssh_key_distribute
     - trove_post_install
-
-- name: Deploy Swift for Trove backup/restore support
-  ansible.builtin.include_role:
-    name: swift_all_in_one
-  vars:
-    swift_region_name: "{{ trove_region_name }}"
-  when: trove_deploy_swift | default(true)
-  tags:
-    - deploy_swift

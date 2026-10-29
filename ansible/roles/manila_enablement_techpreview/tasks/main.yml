@@ -2,13 +2,13 @@
 # tasks file for manila_enablement_techpreview
 #
 # Tag strategy:
-#   --tags secrets       → K8s secrets only (keypair, passwords, RabbitMQ/MariaDB sync)
+#   --tags secrets       → Ensure install-script managed secret prerequisites exist
 #   --tags image_build   → service image build/upload (requires secrets to exist)
 #   --tags pre_deploy    → gateway, kustomize, endpoints, helm config (requires image in Glance)
 #   --tags post_deploy   → share type creation (requires Manila API running)
 #   (no tags)            → runs everything in order
 
-- name: Import tasks to create Manila K8s secrets
+- name: Import tasks to ensure Manila K8s secrets
   import_tasks: manila_k8s_secrets.yml
   tags:
     - secrets

@@ -22,7 +22,7 @@ images:
     cloudkitty_db_sync: ghcr.io/rackerlabs/genestack-images/cloudkitty:2026.1-latest
     cloudkitty_processor: ghcr.io/rackerlabs/genestack-images/cloudkitty:2026.1-latest
     cloudkitty_storage_init: ghcr.io/rackerlabs/genestack-images/cloudkitty:2026.1-latest
-    rabbit_init: docker.io/rabbitmq:3.13-management
+    rabbit_init: null
     dep_check: ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest
   pull_policy: "IfNotPresent"
 
@@ -42,9 +42,6 @@ endpoints:
       default: memcached
     host_fqdn_override:
       default: memcached.openstack.svc.cluster.local
-    statefulset:
-      name: memcached-memcached
-      replicas: 3
 
 dependencies:
   static:
@@ -98,7 +95,6 @@ conf:
       threads: 1
 
 manifests:
-  ingress_api: false
   job_bootstrap: false
   job_db_init: false
   job_rabbit_init: false

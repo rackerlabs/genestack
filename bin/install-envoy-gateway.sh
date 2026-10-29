@@ -22,6 +22,12 @@ POST_RENDERER_KUSTOMIZE="${SERVICE_NAME_DEFAULT}/overlay"
 # Base directories provided by the environment
 GENESTACK_BASE_DIR="${GENESTACK_BASE_DIR:-/opt/genestack}"
 GENESTACK_OVERRIDES_DIR="${GENESTACK_OVERRIDES_DIR:-/etc/genestack}"
+
+# Common secret helpers. Missing secrets are generated in Kubernetes and
+# existing secrets are never overwritten.
+# shellcheck source=helpers.sh
+source "${GENESTACK_BASE_DIR}/bin/helpers.sh"
+trap cleanup_tmp EXIT
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 while [[ $# -gt 0 ]]; do
@@ -119,7 +125,7 @@ if [[ "$HELM_REPO_URL" == oci://* ]]; then
     HELM_CHART_PATH="$HELM_REPO_URL/$HELM_REPO_NAME"
 else
     # --- Helm Repository and Execution ---
-    helm repo add "$HELM_REPO_NAME" "$HELM_REPO_URL"
+    helm repo add --force-update "$HELM_REPO_NAME" "$HELM_REPO_URL" 2>/dev/null || true
     helm repo update
     HELM_CHART_PATH="$HELM_REPO_NAME/$SERVICE_NAME"
 fi
@@ -167,7 +173,9 @@ fi
 echo
 
 # Collect all --set arguments, executing commands and quoting safely
-set_args=()
+# Collect secret-backed --set arguments from bin/services/${SERVICE_NAME_DEFAULT}.yaml.
+collect_service_secret_set_args "$SERVICE_NAME_DEFAULT"
+set_args=("${SECRET_HELM_SET_ARGS[@]}")
 
 
 helm_command=(
@@ -201,14 +209,15 @@ GITHUB_MIRROR_URL="${GITHUB_MIRROR_URL:-https://github.com}"
 # Install egctl
 if [ ! -f "/usr/local/bin/egctl" ]; then
     echo "Installing egctl CLI..."
+    EGCTL_COMPLETION_FILE="$(mk_tmp_file)"
     sudo mkdir -p /opt/egctl-install
     pushd /opt/egctl-install || exit 1
         # Use the extracted version for wget
         sudo wget "${GITHUB_MIRROR_URL}/envoyproxy/gateway/releases/download/${SERVICE_VERSION}/egctl_${SERVICE_VERSION}_linux_amd64.tar.gz" -O egctl.tar.gz
         sudo tar -xvf egctl.tar.gz
         sudo install -o root -g root -m 0755 bin/linux/amd64/egctl /usr/local/bin/egctl
-        /usr/local/bin/egctl completion bash > /tmp/egctl.bash
-        sudo mv /tmp/egctl.bash /etc/bash_completion.d/egctl
+        /usr/local/bin/egctl completion bash > "${EGCTL_COMPLETION_FILE}"
+        sudo install -o root -g root -m 0644 "${EGCTL_COMPLETION_FILE}" /etc/bash_completion.d/egctl
     popd || exit 1
 fi
 

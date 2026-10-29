@@ -4,14 +4,14 @@ Prometheus Pushgateway is useful for short-lived jobs, such as Kubernetes `CronJ
 
 ## Paths
 
-- Base Helm values: `/opt/genestack/base-helm-configs/prometheus-pushgateway/`
-- Service overrides: `/etc/genestack/helm-configs/prometheus-pushgateway/`
-- Kustomize overlay: `/etc/genestack/kustomize/prometheus-pushgateway/overlay/`
+* Base Helm values: `/opt/genestack-observability/helm-configs/prometheus-pushgateway/`
+* Service overrides: `/etc/genestack/helm-configs/prometheus-pushgateway/`
+* Kustomize overlay: `/etc/genestack/kustomize/prometheus-pushgateway/overlay/`
 
 ## Install
 
 ```shell
-/opt/genestack/bin/install-prometheus-pushgateway.sh
+/opt/genestack/bin/install-observability.sh prometheus-pushgateway
 ```
 
 ## Verify

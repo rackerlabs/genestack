@@ -1,5 +1,7 @@
 ---
-- set_fact:
+
+- name: Set LVM backend fact
+  ansible.builtin.set_fact:
     cinder_backend: |
       {% set rendered_backend = {} %}
       {% for backend in cinder_backend_name.split(',') %}
@@ -19,50 +21,21 @@
     content: "{{ cinder_backend | community.general.to_ini }}"
     dest: "/etc/cinder/backends.conf"
     owner: root
-    group: root
-    mode: "0644"
+    group: cinder
+    mode: "0640"
   notify:
     - Restart cinder-volume and cinder-backup systemd services
 
-- name: Ensure the backend configuration is set to our expected value
-  changed_when: false
-  community.general.ini_file:
-    path: "/etc/cinder/cinder.conf.stage"
-    section: DEFAULT
-    option: enabled_backends
-    value: "{{ cinder_backend_name }}"
-    create: true
-
-- name: Create the cinder-volume configuration
+- name: Create the LVM worker configuration override
   ansible.builtin.copy:
-    src: "/etc/cinder/cinder.conf.stage"
-    dest: "/etc/cinder/cinder.conf"
+    content: |
+      [DEFAULT]
+      host = {{ inventory_hostname }}
+      enabled_backends = {{ cinder_backend_name }}
+    dest: "/etc/cinder/lvm-cinder.conf"
     owner: root
-    group: root
-    mode: "0644"
-    remote_src: true
-  notify:
-    - Restart cinder-volume and cinder-backup systemd services
-
-- name: "Create the cinder-volume-{{ cinder_worker_name }} systemd service units"
-  ansible.builtin.copy:
-    src: "{{ item.src }}"
-    dest: "{{ item.dest }}"
-    owner: root
-    group: root
-    mode: "{{ item.mode | default('0644') }}"
-  loop:
-    - src: "../templates/cinder-volume-usage-audit.timer"
-      dest: "/etc/systemd/system/cinder-volume-usage-audit.timer"
-    - src: "../templates/cinder-volume-usage-audit.service"
-      dest: "/etc/systemd/system/cinder-volume-usage-audit.service"
-    - src: "../templates/cinder-volume.service"
-      dest: "/etc/systemd/system/cinder-volume.service"
-    - src: "../templates/cinder-backup.service"
-      dest: "/etc/systemd/system/cinder-backup.service"
-    - src: "../templates/sudoers"
-      dest: "/etc/sudoers.d/cinder-volume"
-      mode: "0440"
+    group: cinder
+    mode: "0640"
   notify:
     - Restart cinder-volume and cinder-backup systemd services
 
@@ -78,15 +51,21 @@
     - Reload cinder-volume-tgt systemd service
 
 - name: "Create the cinder-volume systemd service units"
-  ansible.builtin.copy:
+  ansible.builtin.template:
     src: "{{ item.src }}"
     dest: "{{ item.dest }}"
     owner: root
     group: root
     mode: "{{ item.mode | default('0644') }}"
   loop:
+    - src: "../templates/cinder-volume-usage-audit.timer"
+      dest: "/etc/systemd/system/cinder-volume-usage-audit.timer"
+    - src: "../templates/cinder-volume-usage-audit.service"
+      dest: "/etc/systemd/system/cinder-volume-usage-audit.service"
     - src: "../templates/cinder-volume.service"
       dest: "/etc/systemd/system/cinder-volume.service"
+    - src: "../templates/cinder-backup.service"
+      dest: "/etc/systemd/system/cinder-backup.service"
     - src: "../templates/sudoers"
       dest: /etc/sudoers.d/cinder-volume
       mode: "0440"

@@ -1,14 +1,14 @@
 ---
 images:
   tags:
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
     image_repo_sync: null
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
     magnum_api: "ghcr.io/rackerlabs/genestack-images/magnum:2026.1-latest"
     magnum_conductor: "ghcr.io/rackerlabs/genestack-images/magnum:2026.1-latest"
     magnum_db_sync: "ghcr.io/rackerlabs/genestack-images/magnum:2026.1-latest"
@@ -129,8 +129,30 @@ conf:
       trustee_keystone_interface: public
   magnum_api_uwsgi:
     uwsgi:
+      # Magnum 22.0.0 no longer installs the magnum-api-wsgi script.
+      module: magnum.wsgi.api:application
       processes: 4
       threads: 1
+      wsgi-file: null
+  paste:
+    composite:main:
+      paste.composite_factory: magnum.api:root_app_factory
+      /: api
+      /healthcheck: healthcheck
+    pipeline:api:
+      pipeline: cors http_proxy_to_wsgi request_id osprofiler authtoken api_v1
+    app:healthcheck:
+      paste.app_factory: oslo_middleware:Healthcheck.app_factory
+      backends: disable_by_file
+      disable_by_file_path: /etc/magnum/healthcheck_disable
+    filter:http_proxy_to_wsgi:
+      paste.filter_factory: oslo_middleware.http_proxy_to_wsgi:HTTPProxyToWSGI.factory
+      oslo_config_project: magnum
+    filter:osprofiler:
+      paste.filter_factory: magnum.common.profiler:WsgiMiddleware.factory
+    # Remove the chart's obsolete filter-based PasteDeploy topology.
+    pipeline:main: null
+    filter:healthcheck: null
 
 dependencies:
   static:

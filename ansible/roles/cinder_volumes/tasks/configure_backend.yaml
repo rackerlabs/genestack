@@ -1,7 +1,7 @@
 ---
 
 - name: Set enabled backend fact
-  set_fact:
+  ansible.builtin.set_fact:
     cinder_backend: |
       {% set rendered_backend = {} %}
       {% for backend in cinder_backend_name.split(',') %}
@@ -15,44 +15,21 @@
     content: "{{ cinder_backend | community.general.to_ini }}"
     dest: "/etc/cinder/{{ cinder_worker_name }}-backends.conf"
     owner: root
-    group: root
-    mode: "0644"
+    group: cinder
+    mode: "0640"
+  notify:
+    - "Restart cinder-volume-backend systemd services"
 
-- name: "Create the cinder-volume-{{ cinder_worker_name }} configuration stage file"
+- name: "Create the cinder-volume-{{ cinder_worker_name }} worker configuration override"
   ansible.builtin.copy:
-    src: "/etc/cinder/cinder.conf.stage"
-    dest: "/etc/cinder/{{ cinder_worker_name }}-cinder.conf.stage"
-    owner: root
-    group: root
-    mode: "0644"
-    remote_src: true
-
-- name: Ensure the backend configuration is set to our expected value
-  changed_when: false
-  community.general.ini_file:
-    path: "/etc/cinder/{{ cinder_worker_name }}-cinder.conf.stage"
-    section: DEFAULT
-    option: enabled_backends
-    value: "{{ cinder_backend_name }}"
-    create: true
-
-- name: "Override host value in {{ cinder_worker_name }}-cinder.conf.stage"
-  community.general.ini_file:
-    path: "/etc/cinder/{{ cinder_worker_name }}-cinder.conf.stage"
-    section: DEFAULT
-    option: host
-    value: cinder-volume-{{ cinder_worker_name }}-worker
-    mode: '0644'
-    state: present
-
-- name: "Create the cinder-volume-{{ cinder_worker_name }} configuration"
-  ansible.builtin.copy:
-    src: "/etc/cinder/{{ cinder_worker_name }}-cinder.conf.stage"
+    content: |
+      [DEFAULT]
+      host = cinder-volume-{{ cinder_worker_name }}-worker
+      enabled_backends = {{ cinder_backend_name }}
     dest: "/etc/cinder/{{ cinder_worker_name }}-cinder.conf"
     owner: root
-    group: root
-    mode: "0644"
-    remote_src: true
+    group: cinder
+    mode: "0640"
   notify:
     - "Restart cinder-volume-backend systemd services"
 

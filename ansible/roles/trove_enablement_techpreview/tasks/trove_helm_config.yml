@@ -104,6 +104,97 @@
     state: directory
     mode: "0755"
 
+- name: Compute datastores needing a config-template override
+  ansible.builtin.set_fact:
+    _trove_override_datastores: >-
+      {{ trove_datastore_profiles
+         | dict2items
+         | selectattr('value.needs_config_template_override', 'defined')
+         | selectattr('value.needs_config_template_override')
+         | map(attribute='key')
+         | list }}
+
+# One cloud-init volumeMount per ENABLED datastore, accumulated into a list.
+- name: Build per-datastore guest cloud-init volumeMounts
+  ansible.builtin.set_fact:
+    _trove_cloudinit_mounts: >-
+      {{ (_trove_cloudinit_mounts | default([])) + [{
+           'name': 'trove-guest-files',
+           'mountPath': '/etc/trove/cloudinit/' ~ item ~ '.cloudinit',
+           'subPath': item ~ '.cloudinit',
+           'readOnly': true }] }}
+  loop: "{{ trove_datastore_profiles.keys() | list }}"
+
+# Per-override-datastore config-template mounts (config + replica) and the
+# configMap volume, accumulated into datastore-keyed maps.
+- name: Build per-datastore config-template mount/volume maps
+  ansible.builtin.set_fact:
+    _trove_cfgtmpl_mounts_by_ds: >-
+      {{ (_trove_cfgtmpl_mounts_by_ds | default({})) | combine({
+           item: [
+             {'name': 'trove-' ~ item ~ '-config-templates',
+              'mountPath': _trove_ds_tmpl_root ~ '/' ~ item ~ '/config.template',
+              'subPath': 'config.template', 'readOnly': true},
+             {'name': 'trove-' ~ item ~ '-config-templates',
+              'mountPath': _trove_ds_tmpl_root ~ '/' ~ item ~ '/replica.config.template',
+              'subPath': 'replica.config.template', 'readOnly': true}
+           ]
+         }) }}
+    _trove_cfgtmpl_volume_by_ds: >-
+      {{ (_trove_cfgtmpl_volume_by_ds | default({})) | combine({
+           item: {'name': 'trove-' ~ item ~ '-config-templates',
+                  'configMap': {'name': 'trove-' ~ item ~ '-config-templates-override'}}
+         }) }}
+  loop: "{{ _trove_override_datastores }}"
+  vars:
+    _trove_ds_tmpl_root: /var/lib/openstack/lib/python3.12/site-packages/trove/templates
+
+# conf.trove.<datastore> option group, accumulated one per enabled datastore.
+- name: Build per-datastore conf option groups
+  ansible.builtin.set_fact:
+    _trove_ds_conf_groups: >-
+      {{ (_trove_ds_conf_groups | default({})) | combine({
+           item: {'volume_support': true,
+                  'guest_log_exposed_logs': 'general,slow_query'} }) }}
+  loop: "{{ trove_datastore_profiles.keys() | list }}"
+
+- name: Assemble the helm config blocks from the per-datastore maps
+  ansible.builtin.set_fact:
+    # trove_taskmanager.volumeMounts: cloud-init mounts + shared
+    # guestagent.conf mount + config-template mounts per override datastore.
+    _trove_tm_volume_mounts: >-
+      {{ _trove_cloudinit_mounts
+         + [_guestagent_conf_mount]
+         + (_trove_override_datastores
+            | map('extract', _trove_cfgtmpl_mounts_by_ds) | flatten | list) }}
+    # trove_taskmanager.volumes: shared guest-files configMap + one
+    # config-templates configMap volume per override datastore.
+    _trove_tm_volumes: >-
+      {{ [_guest_files_volume]
+         + (_trove_override_datastores
+            | map('extract', _trove_cfgtmpl_volume_by_ds) | list) }}
+    # trove_conductor.volumeMounts: config.template only (first of each
+    # datastore's mount pair) per override datastore.
+    _trove_cond_volume_mounts: >-
+      {{ _trove_override_datastores
+         | map('extract', _trove_cfgtmpl_mounts_by_ds)
+         | map('first') | list }}
+    # trove_conductor.volumes: one config-templates configMap volume per
+    # override datastore.
+    _trove_cond_volumes: >-
+      {{ _trove_override_datastores
+         | map('extract', _trove_cfgtmpl_volume_by_ds) | list }}
+  vars:
+    _guestagent_conf_mount:
+      name: trove-guest-files
+      mountPath: /etc/trove/trove-guestagent.conf
+      subPath: trove-guestagent.conf
+      readOnly: true
+    _guest_files_volume:
+      name: trove-guest-files
+      configMap:
+        name: trove-guest-files
+
 - name: Template Trove helm config fragment
   ansible.builtin.template:
     src: "{{ trove_helm_config_template }}"
@@ -281,11 +372,12 @@
 
 # --- Step 4: Cloud-init ConfigMap pointing trove guests at the anchor IP ---
 
-- name: Template Trove guest cloud-init file
+- name: Template Trove guest cloud-init file for every datastore
   ansible.builtin.template:
     src: trove-mysql-cloudinit.j2
-    dest: /tmp/mysql.cloudinit
+    dest: "/tmp/{{ item }}.cloudinit"
     mode: "0644"
+  loop: "{{ trove_datastore_profiles.keys() | list }}"
   vars:
     trove_services_vip_ip: "{{ trove_services_anchor_ip }}"
 
@@ -299,23 +391,24 @@
     memcache_secret_key: "{{ _trove_memcache_secret_key.stdout }}"
     trove_admin_password: "{{ _trove_admin_password_helm.stdout }}"
 
-- name: Create or update Trove guest files ConfigMap
+- name: Create or update Trove guest files ConfigMap (all datastores)
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
       kubectl create configmap trove-guest-files \
         --namespace openstack \
-        --from-file=mysql.cloudinit=/tmp/mysql.cloudinit \
-        --from-file=trove-guestagent.conf=/tmp/trove-guestagent.conf \
+        {% for _ds in trove_datastore_profiles.keys() %}--from-file={{ _ds }}.cloudinit=/tmp/{{ _ds }}.cloudinit \
+        {% endfor %}--from-file=trove-guestagent.conf=/tmp/trove-guestagent.conf \
         --dry-run=client -o yaml | kubectl apply -f -
     executable: /bin/bash
   register: _guest_files_cm_result
   changed_when: "'configured' in _guest_files_cm_result.stdout or 'created' in _guest_files_cm_result.stdout"
 
-- name: Remove temporary cloud-init file
+- name: Remove temporary cloud-init files
   ansible.builtin.file:
-    path: /tmp/mysql.cloudinit
+    path: "/tmp/{{ item }}.cloudinit"
     state: absent
+  loop: "{{ trove_datastore_profiles.keys() | list }}"
 
 - name: Remove temporary guest agent conf file
   ansible.builtin.file:
@@ -323,28 +416,30 @@
     state: absent
 
 # =========================================================================
-# PART 5: MYSQL CONFIG TEMPLATE OVERRIDE
+# PART 5: DATASTORE CONFIG TEMPLATE OVERRIDE
 # =========================================================================
-# The trove-taskmanager pod renders the mysql my.cnf server-side from
-# trove/templates/mysql/config.template and ships it to the guest agent
-# over the prepare RPC. The genestack-images trove:2025.1-latest image
-# carries an outdated template that emits an unconditional
-# `default_authentication_plugin = mysql_native_password`, which mysqld
-# 8.4 rejects with "unknown variable" on startup. Newer upstream
-# templates gate that line behind a semantic_version check, so we mount
-# the patched template (from trove stable/2026.1) over the in-pod path.
-# Remove this override once a trove image carrying the fixed template
-# is available at ghcr.io/rackerlabs/genestack-images.
-# A similar issue exists for the replication configuration where
-# `relay_log_info_repository = TABLE` is rendered unconditionally
+# The trove-taskmanager pod renders the datastore's my.cnf server-side
+# from trove/templates/<datastore>/config.template and ships it to the
+# guest agent over the prepare RPC.
+# The configmap is named per-datastore (trove-<datastore>-config-
+# templates-override) and the helm config mounts it accordingly.
 
-- name: Apply trove-mysql-config-templates-override ConfigMap
+# Create the config-template override configmap for EVERY datastore that
+# needs one. The helm config mounts all of them into the taskmanager /
+# conductor pods, so every configmap must exist or the pod fails to mount
+# and never starts. Creating them all in one run removes any dependency on
+# which datastore playbook was invoked.
+- name: Apply per-datastore config-templates-override ConfigMaps
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
-      kubectl -n openstack create configmap trove-mysql-config-templates-override \
-        --from-file=config.template={{ role_path }}/files/trove-mysql-config-template \
-        --from-file=replica.config.template={{ role_path }}/files/trove-mysql-replica-config-template \
+      kubectl -n openstack create configmap trove-{{ item.key }}-config-templates-override \
+        --from-file=config.template={{ role_path }}/files/{{ item.value.config_template_file }} \
+        --from-file=replica.config.template={{ role_path }}/files/{{ item.value.replica_config_template_file }} \
         --dry-run=client -o yaml | kubectl apply -f -
     executable: /bin/bash
+  loop: "{{ trove_datastore_profiles | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when: item.value.needs_config_template_override | default(false) | bool
   changed_when: true

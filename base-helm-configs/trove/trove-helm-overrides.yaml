@@ -9,18 +9,18 @@ labels:
 
 images:
   tags:
-    bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    bootstrap: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
     trove_api: "ghcr.io/rackerlabs/genestack-images/trove:2026.1-latest"
     trove_conductor: "ghcr.io/rackerlabs/genestack-images/trove:2026.1-latest"
     trove_taskmanager: "ghcr.io/rackerlabs/genestack-images/trove:2026.1-latest"
     trove_db_sync: "ghcr.io/rackerlabs/genestack-images/trove:2026.1-latest"
-    db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    db_drop: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
+    db_init: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
     dep_check: "ghcr.io/rackerlabs/genestack-images/kubernetes-entrypoint:latest"
     image_repo_sync: null
-    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_endpoints: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
     rabbit_init: null
     test: null
 
@@ -149,6 +149,22 @@ conf:
       kombu_reconnect_delay: 0.5
     oslo_messaging_notifications:
       driver: noop
+  # api-paste.ini (PasteDeploy) overrides. Only the keys below are deep-merged
+  # into the chart's default paste pipeline; everything else is inherited.
+  #
+  # dbflavorfilter is a Genestack WSGI middleware that filters the Trove
+  # /flavors responses so only flavors intended for database instances are
+  # returned (those whose name matches `database_flavor_prefix`, default
+  # `db.`). This keeps general-purpose compute flavors from leaking into the
+  # database flavor catalog surfaced by the Trove API.
+  paste:
+    filter:dbflavorfilter:
+      paste.filter_factory: genestack_trove_flavor_filter:DatabaseFlavorFilter.factory
+      database_flavor_prefix: db.
+    # Insert dbflavorfilter immediately before the troveapp application so it
+    # sees the fully-rendered flavor responses on their way back out.
+    pipeline:troveapi:
+      pipeline: http_proxy_to_wsgi faultwrapper authtoken authorization contextwrapper ratelimit extensions dbflavorfilter troveapp
   trove_api_uwsgi:
     uwsgi:
       processes: 2

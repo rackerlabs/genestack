@@ -24,8 +24,8 @@ images:
     test: null
     ceilometer_db_sync: "ghcr.io/rackerlabs/genestack-images/ceilometer:2026.1-latest"
     rabbit_init: null
-    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
-    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:latest"
+    ks_user: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
+    ks_service: "ghcr.io/rackerlabs/genestack-images/openstack-client:2026.1-latest"
     ceilometer_central: "ghcr.io/rackerlabs/genestack-images/ceilometer:2026.1-latest"
     ceilometer_compute: "ghcr.io/rackerlabs/genestack-images/ceilometer:2026.1-latest"
     ceilometer_ipmi: "ghcr.io/rackerlabs/genestack-images/ceilometer:2026.1-latest"

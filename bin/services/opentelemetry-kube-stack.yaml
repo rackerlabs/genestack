@@ -1,0 +1,21 @@
+---
+service:
+  name: opentelemetry-kube-stack
+  namespace: monitoring
+  version: ~
+
+  family: ""
+
+chart:
+  repo_name: open-telemetry
+  repo_url: https://open-telemetry.github.io/opentelemetry-helm-charts
+  service_name: opentelemetry-kube-stack
+  global_overrides: false
+
+secrets: []
+
+post_install_actions:
+  - type: rollout_status
+    namespace: monitoring
+    workload: deployment/opentelemetry-kube-stack
+    timeout: 300s

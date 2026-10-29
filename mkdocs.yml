@@ -82,13 +82,11 @@ extra:
       link: https://blog.rackspacecloud.com/
 
 extra_css:
-  - overrides/stylesheets/adr.css
   - overrides/stylesheets/admonition.css
 
 plugins:
   - search
   - swagger-ui-tag
-  - mkdocs-material-adr/adr
   - glightbox
 
 markdown_extensions:
@@ -135,9 +133,13 @@ nav:
       - Release Notes: release-notes.md
       - Release 2026.1.0: release-2026.1.0.md
       - Release 2026.2.0: release-2026.2.0.md
+      - Release 2026.3.0: release-2026.3.0.md
+      - Release 2026.3.1: release-2026.3.1.md
       - Product Matrix: product-matrix.md
       - Product Matrix 2026.1.0: product-matrix-2026.1.0.md
       - Product Matrix 2026.2.0: product-matrix-2026.2.0.md
+      - Product Matrix 2026.3.0: product-matrix-2026.3.0.md
+      - Product Matrix 2026.3.1: product-matrix-2026.3.1.md
   - Design Guide:
       - Introduction: openstack-cloud-design-intro.md
       - SDLC: sdlc.md
@@ -158,6 +160,13 @@ nav:
       - Getting Started:
           - Building Virtual Environments: build-test-envs.md
           - Getting the code: genestack-getting-started.md
+          - Genestack Console:
+              - Overview: genestack-console.md
+              - The program: genestack-console-program.md
+              - How a job runs: genestack-console-runtime.md
+              - Jobs: genestack-console-jobs.md
+              - The HTTP API: genestack-console-api.md
+              - The web page: genestack-console-ui.md
       - Open Infrastructure:
           - Kubernetes:
               - k8s-overview.md
@@ -184,6 +193,7 @@ nav:
               - infrastructure-overview.md
               - Cert-Manager: infrastructure-cert-manager.md
               - Namespace: infrastructure-namespace.md
+              - Secret Management: secret-management.md
               - MetalLB: infrastructure-metallb.md
               - Gateway API:
                   - Gateway API Overview: infrastructure-gateway-api.md
@@ -243,9 +253,12 @@ nav:
                   - Trove:
                       - Deployment: openstack-trove.md
                       - MySQL Images: openstack-trove-mysql-images.md
+                      - Guest VM Access: trove-guest-vm-access.md
           - Monitoring and Observability:
               - Monitoring and Observability Overview: monitoring-observability-overview.md
               - Getting Started: monitoring-getting-started.md
+              - Deployment and Repository Workflow: monitoring-observability-deployment.md
+              - Alert and Rule Management: monitoring-alerting-rules.md
               - OpenTelemetry: monitoring-opentelemetry.md
               - Prometheus: monitoring-prometheus.md
               - Loki: monitoring-loki.md
@@ -331,6 +344,7 @@ nav:
               - Keystone Admin Password Rotation: openstack-keystone-admin-password-rotation.md
           - Networking:
               - Creating Networks: openstack-neutron-networks.md
+              - VPNaaS with OVN: openstack-vpnaas.md
           - Containers:
               - Creating Kubernetes Clusters (CAPI): openstack-magnum.md
               - Creating Kubernetes Clusters (Legacy): magnum-kubernetes-cluster-setup-guide.md
@@ -356,6 +370,7 @@ nav:
               - Trove:
                   - Deployment: openstack-trove.md
                   - MySQL Images: openstack-trove-mysql-images.md
+                  - Guest VM Access: trove-guest-vm-access.md
 
       - Working locally With Docs: mkdocs-howto.md
   - Cloud Onboarding:

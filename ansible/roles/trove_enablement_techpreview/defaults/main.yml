@@ -12,29 +12,115 @@
 # state-detection step looks up the image by name, sees it doesn't
 # exist, and runs disk-image-create.
 trove_guest_image_os_release: bookworm
-trove_mysql_version: "8.4"
-trove_guest_image_name: "trove-mysql-{{ trove_mysql_version }}-{{ trove_guest_image_os_release }}"
+trove_guest_image_name: "trove-{{ _trove_ds_profile.name }}-{{ _trove_ds_profile.version_name }}-{{ trove_guest_image_os_release }}"
 trove_dib_distribution_mirror: "http://deb.debian.org/debian"
-# OpenStack release branch to clone for DIB elements + guest-agent.
-# Must match the trove server-side image (api/taskmanager/conductor)
-# in trove-helm-overrides.yaml: a 2026.1 guest agent talking to a
-# 2025.1 conductor produces silently-dropped RPC heartbeats — the
-# encrypted-RPC implementation changed between 23.x and 25.x, so the
-# conductor cannot decrypt the agent's messages, the periodic status
-# update never lands in the DB, and the taskmanager polling
-# `_service_is_active` times out at 30 min with `Build error:
-# guestagent timeout` even though prepare succeeded and mysqld is
-# healthy. The my.cnf "unknown variable default_authentication_plugin"
-# panic that motivated the original bump is rendered server-side, so
-# the configmap-overlay (trove-mysql-config-template-override) fixes
-# it without the guest needing 2026.1.
-trove_openstack_release: "2025.2"
+
+# =========================================================================
+# Trove flavors
+# =========================================================================
+trove_flavor_profiles:
+  db.0.2.2:
+    description: "Database 2GB Instance"
+    cores: 2
+    ram: 2048
+    root_disk: 40
+    extra_specs:
+      ":category": "database"
+  db.0.4.4:
+    description: "Database 4GB Instance"
+    cores: 4
+    ram: 4096
+    root_disk: 80
+    extra_specs:
+      ":category": "database"
+  db.0.4.8:
+    description: "Database 8GB Instance"
+    cores: 4
+    ram: 8192
+    root_disk: 80
+    extra_specs:
+      ":category": "database"
+  db.0.8.16:
+    description: "Database 16GB Instance"
+    cores: 8
+    ram: 16384
+    root_disk: 160
+    extra_specs:
+      ":category": "database"
+  db.0.8.32:
+    description: "Database 32GB Instance"
+    cores: 8
+    ram: 32768
+    root_disk: 160
+    extra_specs:
+      ":category": "database"
+  db.0.16.64:
+    description: "Database 64GB Instance"
+    cores: 16
+    ram: 65536
+    root_disk: 240
+    extra_specs:
+      ":category": "database"
+
+trove_flavor_default: db.0.4.4
+trove_flavor_overrides_file: "/etc/genestack/ansible-ext-vars/trove-flavor-overrides.yml"
 
 # =========================================================================
 # Trove datastore
 # =========================================================================
 trove_datastore_name: mysql
-trove_datastore_version_name: "8.4"
+# Per-datastore settings. Keyed by trove_datastore_name. Add a new key
+# here to teach the role about another datastore.
+trove_datastore_profiles:
+  mysql:
+    name: mysql
+    # version must match something that actually exists on Docker Hub, in the build - you can't invent it.
+    version: "8.4"
+    # version_name is the label you chose to call this datastore version inside Trove. Trove lets it be an arbitrary string.
+    version_name: "8.4"
+    # Guest-agent manager (datastore_registry_ext / taskmanager mapping).
+    guest_manager: trove.guestagent.datastore.mysql.manager.Manager
+    # Unique notification event id (must match trove.common.cfg
+    # notification_service_id[<datastore>]).
+    notification_service_id: 2f3ff068-2bfb-4f70-9a9d-a6bb65bc084b
+    # Replication strategy + namespace.
+    replication_strategy: MysqlGTIDReplication
+    replication_namespace: trove.guestagent.strategies.replication.mysql_gtid
+    # Backup strategy (guest-agent [<datastore>] section).
+    backup_strategy: InnoBackupEx
+    backup_incremental_strategy: InnoBackupExIncremental
+    # Docker image name pulled from docker.io/library/<docker_image>:<version>
+    # and re-tagged into the guest's local registry.
+    docker_image: mysql
+    # my.cnf config templates shipped to the trove-taskmanager pod as an
+    # overlay (see trove_helm_config.yml PART 5). MySQL 8.4 needs the
+    # patched template to avoid the default_authentication_plugin panic.
+    needs_config_template_override: true
+    config_template_file: trove-mysql-config-template
+    replica_config_template_file: trove-mysql-replica-config-template
+  mariadb:
+    name: mariadb
+    version: "11.8"
+    version_name: "11.8"
+    guest_manager: trove.guestagent.datastore.mariadb.manager.Manager
+    notification_service_id: 7a4f82cc-10d2-4bc6-aadc-d9aacc2a3cb5
+    replication_strategy: MariaDBGTIDReplication
+    replication_namespace: trove.guestagent.strategies.replication.mariadb_gtid
+    backup_strategy: mariabackup
+    backup_incremental_strategy: mariabackup
+    docker_image: mariadb
+    # MariaDB renders a valid my.cnf on its own (no
+    # default_authentication_plugin issue), so no taskmanager overlay is
+    # strictly needed. We still ship a lab-tuned template
+    # (innodb_use_native_aio OFF) mounted the same way, so keep this true;
+    # the files are mariadb-specific.
+    needs_config_template_override: true
+    config_template_file: trove-mariadb-config-template
+    replica_config_template_file: trove-mariadb-replica-config-template
+
+# Resolved active profile for trove_datastore_name. Referenced throughout
+# the role so datastore-specific values come from one place.
+_trove_ds_profile: "{{ trove_datastore_profiles[trove_datastore_name] }}"
 
 # =========================================================================
 # Trove RabbitMQ
@@ -83,7 +169,7 @@ trove_mgmt_anchor_base_offset: 10
 
 # Build paths and environment
 # =========================================================================
-trove_tmp_dir: /tmp
+trove_tmp_dir: /home/ubuntu/tmp
 trove_build_dir: "{{ trove_tmp_dir }}/trove-image-build"
 trove_venv_dir: "{{ trove_tmp_dir }}/trove-image-build/trove-dib-build"
 genestack_rc: /opt/genestack/scripts/genestack.rc
@@ -116,26 +202,22 @@ trove_gateway_hostname: "trove.cluster.local"
 # force_rebuild_image=true:
 #   Deletes existing Glance image, rebuilds, re-uploads.
 #
+# force_create_flavors=true:
+#   Deletes existing flavors, rebuilds.
+#
 # force_create_dsv=true:
 #   Forces creation of datastore version and load of configuration parameters.
 #
-# force_full_recreation=true (nuclear):
-#   Deletes and re-creates OpenStack keypair, security group,
-#   rebuilds guest image, re-uploads, re-registers datastore.
+# force_full_recreation=true:
+#   Recreates the techpreview Trove SSH secret, OpenStack keypair, security
+#   group, guest image, and datastore resources. Chart-derived passwords are
+#   owned by /opt/genestack/bin/services/trove.yaml and are not regenerated here.
 force_rebuild_image: false
+force_create_flavors: false
 force_create_dsv: false
 force_full_recreation: false
 
 # trove_force_recreate_secrets=true:
-#   Deletes and regenerates the four Trove K8s secrets (rabbitmq, db,
-#   admin, ssh) and syncs new RabbitMQ/MariaDB passwords into the
-#   running backing services.  Leave false unless you know you need to
-#   rotate — regeneration can break running clusters.
+#   Deletes and regenerates only the techpreview trove-ssh keypair secret.
+#   Use service-specific password rotation tooling for chart-derived passwords.
 trove_force_recreate_secrets: false
-
-# =========================================================================
-# Swift (object-store) for backup/restore
-# =========================================================================
-# Set to false to skip Swift deployment when installing Trove.
-# Backups will not work without an object-store backend.
-trove_deploy_swift: true

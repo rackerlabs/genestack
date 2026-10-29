@@ -60,7 +60,8 @@ print_banner() {
 run_test_script() {
     local script_name="$1"
     local script_path="${SCRIPT_DIR}/${script_name}"
-    local test_name=$(basename "${script_name}" .sh)
+    local test_name
+    test_name=$(basename "${script_name}" .sh)
 
     if [ ! -f "${script_path}" ]; then
         echo -e "${RED}ERROR: Test script not found: ${script_path}${NC}"
@@ -99,12 +100,13 @@ aggregate_results() {
 
     if [ -f "${AGGREGATE_RESULTS}" ]; then
         while IFS=: read -r suite status; do
-            ((total_suites++))
+            ((++total_suites))
+
             if [ "${status}" = " PASSED" ]; then
-                ((passed_suites++))
+                ((++passed_suites))
                 echo -e "${GREEN}✓${NC} ${suite}: PASSED"
             else
-                ((failed_suites++))
+                ((++failed_suites))
                 echo -e "${RED}✗${NC} ${suite}: FAILED"
             fi
         done < "${AGGREGATE_RESULTS}"
@@ -123,7 +125,7 @@ aggregate_results() {
         echo "Individual test results available in: ${TEST_RESULTS_DIR}"
     fi
 
-    return ${failed_suites}
+    return "${failed_suites}"
 }
 
 # Main execution
@@ -170,12 +172,18 @@ main() {
 
     # Display aggregate results
     echo ""
-    aggregate_results
-    local aggregate_result=$?
+
+    local aggregate_result=0
+    if aggregate_results; then
+        aggregate_result=0
+    else
+        aggregate_result=$?
+    fi
 
     # Final status
     echo ""
-    if [ ${aggregate_result} -eq 0 ]; then
+
+    if [ "${aggregate_result}" -eq 0 ]; then
         echo -e "${GREEN}=========================================="
         echo -e "  ALL TESTS PASSED ✓"
         echo -e "==========================================${NC}"
