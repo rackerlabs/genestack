@@ -11,10 +11,13 @@
 #                               all      - cleanup DB resources and network setup
 #                               skip_net - cleanup only DB resources (default)
 #                               none     - do not cleanup any DB resources or network setup
+#   --cleanup-only          Delete all leftover test-trove-* resources (instances,
+#                           backups, configuration groups), network setup and exit
+#                           without running any tests.
 #   --instance              ID of DB instance to use for primary test instance
 #   --datastore DS          Datastore type to test against (default: mysql)
 #   --ds-version VER        Datastore version number     (default: 8.4)
-#   --flavor FLAVOR         Nova flavor for instances    (default: m1.small)
+#   --flavor FLAVOR         Nova flavor for instances    (default: db.0.2.2)
 #   --resize-flavor FLAVOR  Nova flavor for instance resize    (default: m1.medium)
 #   --volume-size GB        Instance volume size in GB   (default: 10)
 #   --timeout SECS          Max seconds to wait for ACTIVE (default: 600)
@@ -37,14 +40,15 @@ source "${SCRIPT_DIR}/lib/openstack.sh"
 INSTANCE=""
 DATASTORE="mysql"
 DS_VERSION="8.4"
-FLAVOR="m1.small"
+FLAVOR="db.0.2.2"
 VOL_SIZE="10"
 INSTANCE_TIMEOUT=600
 CLEANUP="skip_net"
+CLEANUP_ONLY=0
 OS_CLOUD="${OS_CLOUD:-acme-corp}"
 CUSTOMER_DIR="/home/ubuntu/customers"
 
-RESIZE_FLAVOR=m1.medium
+RESIZE_FLAVOR=db.0.4.4
 
 # ── argument parsing ──────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
@@ -52,6 +56,7 @@ while [[ $# -gt 0 ]]; do
         -h|--help)        sed -n '/^# USAGE:/,/^# EXIT CODES:/p' "$0" | sed 's/^# \?//'; exit 0 ;;
         --os-cloud)       OS_CLOUD="${2:?}"; shift 2 ;;
         --cleanup)        CLEANUP="${2:?}"; shift 2 ;;
+        --cleanup-only)   CLEANUP_ONLY=1; shift ;;
         --instance)       INSTANCE="${2:?}"; shift 2 ;;
         --datastore)      DATASTORE="${2:?}"; shift 2 ;;
         --ds-version)     DS_VERSION="${2:?}"; shift 2 ;;
@@ -64,7 +69,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # ── resource naming ───────────────────────────────────────────────────────────
-TS="$(date +%s)"
+TS="$(date +%Y%m%d%H%M)"
 PFX="test-trove-${TS}"
 
 INST_PRIMARY="${PFX}-primary"
@@ -117,8 +122,9 @@ log_msg() {
 }
 
 # ── helpers ───────────────────────────────────────────────────────────────────
-db() { cd $CUSTOMER_DIR; openstack --os-cloud "$OS_CLOUD" database "$@" 2>&1; }
-os() { cd $CUSTOMER_DIR; openstack --os-cloud "$OS_CLOUD" "$@" 2>&1; }
+db() { cd $CUSTOMER_DIR; openstack --os-cloud "$OS_CLOUD-member" database "$@" 2>&1; }
+db_admin() { cd $CUSTOMER_DIR; openstack --os-cloud "$OS_CLOUD-admin" database "$@" 2>&1; }
+os() { cd $CUSTOMER_DIR; openstack --os-cloud "$OS_CLOUD-member" "$@" 2>&1; }
 
 instance_status() { db instance show "$1" -f value -c status 2>/dev/null; }
 backup_status()   { db backup show   "$1" -f value -c status 2>/dev/null; }
@@ -166,6 +172,13 @@ instance_id() { db instance show "$1" -f value -c id 2>/dev/null || true; }
 backup_id()   { db backup show   "$1" -f value -c id 2>/dev/null || true; }
 config_id()   { db configuration show "$1" -f value -c id 2>/dev/null || true; }
 
+# is_replica <name>  — true if the instance is a replica (has a replica_of parent).
+# A primary has no replica_of attribute, so `instance show` exits non-zero for it.
+is_replica() { db instance show "$1" -f value -c replica_of >/dev/null 2>&1; }
+
+# is_incremental_backup <name> — true if the backup has a parent (incremental).
+is_incremental_backup() { [[ -n "$(db backup show "$1" -f value -c parent_id 2>/dev/null)" ]]; }
+
 # ── cleanup ───────────────────────────────────────────────────────────────────
 cleanup() {
     # dump test results if they haven't been dumped already
@@ -177,7 +190,7 @@ cleanup() {
     for inst in "$INST_RESTORE" "$INST_REPLICA" "$INST_PRIMARY"; do
         if [[ -n "$(instance_id "$inst")" ]]; then
             log_msg "$INFO" "  Deleting instance $inst ..."
-            db instance delete "$inst" 2>&1 || true
+            db instance delete "$inst" --force 2>&1 || true
         fi
     done
 
@@ -201,6 +214,101 @@ cleanup() {
 
     log_msg "$SUCCESS" "  Cleanup complete."
     CLEANUP_DONE=1
+}
+
+# cleanup_only — delete every leftover test-trove-* resource, regardless of which
+# run created it. Resource names are randomized per run (test-trove-<timestamp>-*),
+# so this matches by the shared "test-trove-" prefix instead of the current run's
+# names. Runs independently of the test suite and never touches non-test resources.
+cleanup_only() {
+    # Disable the EXIT trap's run-oriented cleanup; this path does its own.
+    CLEANUP_DONE=1
+    local prefix="test-trove-"
+
+    if ! source_credentials; then
+        echo -e "$FAIL ERROR: Failed to source OpenStack credentials $ENDC"
+        exit 1
+    fi
+
+    log_msg "$HEADER" "══ Cleanup-only: removing all ${prefix}* resources ══"
+
+    # ── instances
+    # Replicas must be deleted before their primaries (Trove refuses to delete a
+    # primary that still has an attached replica), so sweep replicas first, then
+    # delete the remaining primaries once the replicas have drained.
+    local instances inst elapsed
+    instances=$(db instance list -f value -c Name 2>/dev/null | grep "^${prefix}" || true)
+    if [[ -n "$instances" ]]; then
+        for inst in $instances; do
+            is_replica "$inst" || continue
+            log_msg "$INFO" "  Deleting replica instance $inst ..."
+            db_admin instance force delete "$inst" 2>&1 || db instance delete "$inst" 2>&1 || true
+        done
+
+        # Delete remaining (primary) instances as replicas drain, then wait for
+        # everything to disappear so dependent backups can be removed.
+        elapsed=0
+        while (( elapsed < 300 )); do
+            instances=$(db instance list -f value -c Name 2>/dev/null | grep "^${prefix}" || true)
+            [[ -z "$instances" ]] && break
+            for inst in $instances; do
+                is_replica "$inst" && continue
+                log_msg "$INFO" "  Deleting primary instance $inst ..."
+                db_admin instance force delete "$inst" 2>&1 || db instance delete "$inst" 2>&1 || true
+            done
+            sleep 5; (( elapsed += 5 ))
+        done
+    else
+        log_msg "$INFO" "  No ${prefix}* instances found."
+    fi
+
+    # ── backups
+    # Incremental (child) backups must be deleted before their parent, so sweep
+    # incrementals first, then delete the remaining full backups once they drain.
+    local backups bk
+    backups=$(db backup list -f value -c Name 2>/dev/null | grep "^${prefix}" || true)
+    if [[ -n "$backups" ]]; then
+        for bk in $backups; do
+            is_incremental_backup "$bk" || continue
+            log_msg "$INFO" "  Deleting incremental backup $bk ..."
+            db backup delete "$bk" 2>&1 || true
+        done
+
+        elapsed=0
+        while (( elapsed < 300 )); do
+            backups=$(db backup list -f value -c Name 2>/dev/null | grep "^${prefix}" || true)
+            [[ -z "$backups" ]] && break
+            for bk in $backups; do
+                is_incremental_backup "$bk" && continue
+                log_msg "$INFO" "  Deleting backup $bk ..."
+                db backup delete "$bk" 2>&1 || true
+            done
+            sleep 5; (( elapsed += 5 ))
+        done
+    else
+        log_msg "$INFO" "  No ${prefix}* backups found."
+    fi
+
+    # ── configuration groups
+    local configs cfg
+    configs=$(db configuration list -f value -c Name 2>/dev/null | grep "^${prefix}" || true)
+    if [[ -n "$configs" ]]; then
+        for cfg in $configs; do
+            log_msg "$INFO" "  Deleting configuration group $cfg ..."
+            db configuration delete "$cfg" 2>&1 || true
+        done
+    else
+        log_msg "$INFO" "  No ${prefix}* configuration groups found."
+    fi
+
+    # ── tenant / network teardown
+    # cleanup-only always tears down the test tenant and its network after the
+    # resource sweep. Resolve the helper next to this script so it works from a
+    # repo checkout and from the installed /opt/genestack location.
+    log_msg "$INFO" "  Tearing down test tenant and network ..."
+    "${SCRIPT_DIR}/lib/manage-test-tenants.sh" destroy || true
+
+    log_msg "$SUCCESS" "  Cleanup-only complete."
 }
 
 trap cleanup EXIT
@@ -277,7 +385,7 @@ test_quota_show() {
 
 test_quota_update() {
     log_msg "$INFO" "" false
-    local out; out=$(db quota update ${OS_CLOUD} instances 20 2>&1)
+    local out; out=$(db_admin quota update ${OS_CLOUD} instances 20 2>&1)
     log_msg "$INFO" "Quota details:"
     log_msg "$INFO" "$out" | sed 's/^/  /'
     echo "$out" | grep -q "instance.*20" \
@@ -737,7 +845,7 @@ test_instance_rebuild() {
         tag_args+=" --tag $tag"
     done
     local image_id=$(openstack image list $tag_args -f value -c ID)
-    db instance rebuild $(instance_id "$INST_PRIMARY") "$image_id" 2>&1 \
+    db_admin instance rebuild $(instance_id "$INST_PRIMARY") "$image_id" 2>&1 \
         || { log_msg "$FAIL" "Rebuild command returned non-zero."; return 1; }
     wait_for_instance "$INST_PRIMARY" || return 1
     log_msg "$INFO" "Instance $INST_PRIMARY rebuilt successfully."
@@ -757,7 +865,7 @@ test_instance_reboot() {
     log_msg "$INFO" "" false
     log_msg "$INFO" "Rebooting instance $INST_PRIMARY ..."
     local primary_id; primary_id=$(instance_id "$INST_PRIMARY")
-    db instance reboot "$primary_id" 2>&1 \
+    db_admin instance reboot "$primary_id" 2>&1 \
         || { log_msg "$FAIL" "Instance reboot failed."; return 1; }
     wait_for_instance "$INST_PRIMARY" || return 1
     log_msg "$INFO" "Instance $INST_PRIMARY rebooted successfully."
@@ -775,7 +883,7 @@ test_instance_restart() {
 test_instance_reset_status() {
     log_msg "$INFO" "" false
     log_msg "$INFO" "Resetting instance $INST_PRIMARY status ..."
-    db instance reset status "$INST_PRIMARY" 2>&1 \
+    db_admin instance reset status "$INST_PRIMARY" 2>&1 \
         || { log_msg "$FAIL" "Resetting instance status failed."; return 1; }
     wait_for_instance "$INST_PRIMARY" || return 1
     log_msg "$INFO" "Instance $INST_PRIMARY status reset successfully."
@@ -889,9 +997,9 @@ test_detach_instance() {
 test_instance_promote_eject() {
     log_msg "$INFO" "" false
     log_msg "$INFO" "Testing promote ..."
-    local primary_name="test-trove-promote-eject-test-0"
-    local replica1_name="test-trove-promote-eject-test-1"
-    local replica2_name="test-trove-promote-eject-test-2"
+    local primary_name="${PFX}-promote-eject-0"
+    local replica1_name="${PFX}-promote-eject-1"
+    local replica2_name="${PFX}-promote-eject-2"
     db instance create "$primary_name" \
         --flavor "$FLAVOR" \
         --size "$VOL_SIZE" \
@@ -953,7 +1061,7 @@ test_instance_promote_eject() {
     log_msg "$INFO" "Checking other replica $replica1_name is still a replica but attached to promoted replica ..."
     { db instance show "$replica1_name" -f value -c replica_of | grep -q "$replica2_id"; } || { log_msg "$FAIL" "Promote test failed; unpromoted replica not showing as replica of promoted replica"; return 1; }
 
-    log_msg "$INFO" "Promote test succeeded."
+    log_msg "$SUCCESS" "Promote test succeeded."
 
     log_msg "$INFO" "Testing eject ..."
     # After promote, replica2 is the new primary and the old primary is now a replica.
@@ -1011,12 +1119,29 @@ test_instance_promote_eject() {
     log_msg "$INFO" "Checking other replica $other_replica_name is still replica but attached to promoted replica ..."
     { db instance show "$other_replica_name" -f value -c replica_of | grep -q "$promoted_replica_id"; } || { log_msg "$FAIL" "Eject test failed; unpromoted replica not showing as replica of promoted replica"; return 1; }
 
-    log_msg "$INFO" "Eject test succeeded."
+    log_msg "$SUCCESS" "Eject test succeeded."
 
     # attempt cleanup, but don't let it sour the test results
-    db instance delete "$primary_id" || true
-    db instance delete "$replica1_id" || true
-    db instance delete "$promoted_replica_id" || true
+    local elapsed=0
+    log_msg "$INFO" "Deleting replica $other_replica_name"
+    db_admin instance delete "$other_replica_id" --force || true
+    while [[ -n $(db instance list 2>/dev/null | grep "$other_replica_id") ]] && (( elapsed < 120 )); do
+        log_msg "$INFO" sleeping ...
+        sleep 5; (( elapsed += 5 ))
+    done
+    log_msg "$INFO" "Deleting promoted replica $promoted_replica_name"
+    db_admin instance delete "$promoted_replica_id" --force || true
+    while [[ -n $(db instance list 2>/dev/null | grep "$promoted_replica_id") ]] && (( elapsed < 120 )); do
+        log_msg "$INFO" sleeping ...
+        sleep 5; (( elapsed += 5 ))
+    done
+    log_msg "$INFO" "Deleting instance $primary_name"
+    db_admin instance delete "$primary_id" --force || true
+    local elapsed=0
+    while [[ -n $(db instance list 2>/dev/null | grep "$primary_id") ]] && (( elapsed < 120 )); do
+        log_msg "$INFO" sleeping ...
+        sleep 5; (( elapsed += 5 ))
+    done
 }
 
 # ── deletion ──────────────────────────────────────────────────────────────────
@@ -1081,7 +1206,7 @@ test_force_delete_primary_instance() {
     [[ -n $(db instance list 2>/dev/null | grep $INST_PRIMARY) ]] \
         || { log_msg "$FAIL" "$INST_PRIMARY not found, skipping."; return 0; }
     log_msg "$INFO" "Deleting primary instance $INST_PRIMARY ..."
-    db instance force delete "$INST_PRIMARY" 2>&1 \
+    db_admin instance force delete "$INST_PRIMARY" 2>&1 \
         || { log_msg "$FAIL" "Failed to delete $INST_PRIMARY."; return 1; }
     local elapsed=0
     while [[ -n $(db instance list 2>/dev/null | grep $INST_PRIMARY) ]] && (( elapsed < 180 )); do
@@ -1248,6 +1373,10 @@ main() {
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    if [[ "$CLEANUP_ONLY" -eq 1 ]]; then
+        cleanup_only
+        exit $?
+    fi
     main
     exit $?
 fi

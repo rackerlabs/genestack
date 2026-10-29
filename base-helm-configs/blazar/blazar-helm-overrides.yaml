@@ -60,6 +60,13 @@ conf:
       host_href: "http://blazar-api.openstack.svc.cluster.local:1234"
       enable_notification_events: true
       notification_format: versioned
+      # Run Blazar as the 'blazar' service user instead of the shared
+      # Keystone admin. Must match endpoints.identity.auth.blazar. The password
+      # comes from the blazar-admin Secret (see bin/services/blazar.yaml).
+      os_admin_username: "blazar"
+      os_admin_project_name: "service"
+      os_admin_user_domain_name: "service"
+      os_admin_project_domain_name: "service"
     database:
       connection_debug: 0
       connection_recycle_time: 600

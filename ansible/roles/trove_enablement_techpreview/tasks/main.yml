@@ -58,6 +58,14 @@
     - trove_datastore
     - trove_post_install
 
+- name: Create Trove flavors
+  import_tasks: trove_flavor_setup.yml
+  become: true
+  become_user: ubuntu
+  tags:
+    - trove_flavors
+    - trove_post_install
+
 - name: Install python-troveclient
   import_tasks: trove_client_install.yml
   become: true

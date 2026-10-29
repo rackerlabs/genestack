@@ -57,70 +57,6 @@ destroy_tenant() {
 
   echo "  Cleaning up ${tenant} (${PROJECT_ID})..."
 
-  # Database configurations have to be deleted as the tenant since the configuration delete
-  #  command does not allow for --project like other database commands
-  export OS_CLIENT_CONFIG_FILE="${HOME}/.config/openstack/clouds.yaml"
-
-  # Database Configurations
-  TENANT_CONFIGS=$($OS database configuration list -f json 2>/dev/null \
-    | python3 -c 'import json,sys; [print(s["ID"]) for s in json.load(sys.stdin)]' 2>/dev/null) || true
-  for id in $TENANT_CONFIGS; do
-    echo "    Deleting database configuration $id..."
-    $OS database configuration delete "$id" 2>/dev/null || true
-  done
-
-  # Setup for admin power to eliminate tenant resources; this allows for stuck backup, builds, etc
-  #  to be deleted
-  export OS_CLIENT_CONFIG_FILE="${HOME}/.config/openstack/clouds.yaml"
-
-  # Database Backups
-  TENANT_BACKUPS=$($OS database backup list --project "$PROJECT_ID" -f json 2>/dev/null \
-    | python3 -c 'import json,sys; [print(s["ID"]) for s in json.load(sys.stdin)]' 2>/dev/null) || true
-  for id in $TENANT_BACKUPS; do
-    echo "    Deleting database backup $id..."
-    $OS database backup delete "$id" 2>/dev/null || true
-  done
-
-  # Database Replicas
-  TENANT_DBS=$($OS database instance list --project "$PROJECT_ID" -f json 2>/dev/null \
-    | python3 -c 'import json,sys; [print(s["ID"]) for s in json.load(sys.stdin)]' 2>/dev/null) || true
-  for id in $TENANT_DBS; do
-    if $OS database instance show "$id" -f value -c replica_of 1>/dev/null 2>&1; then
-      echo "    Deleting database replica $id..."
-      $OS database instance delete "$id" --force 2>/dev/null || true
-      # wait for replica to be removed from instance list
-      local elapsed=0
-      $OS database instance list 2>/dev/null
-      while { $OS database instance list 2>/dev/null | grep "$id"; } && (( elapsed < 10 )); do
-          sleep 1; (( elapsed += 1 ))
-      done
-    fi
-  done
-
-  # Database Instances
-  TENANT_DBS=$($OS database instance list --project "$PROJECT_ID" -f json 2>/dev/null \
-    | python3 -c 'import json,sys; [print(s["ID"]) for s in json.load(sys.stdin)]' 2>/dev/null) || true
-  for id in $TENANT_DBS; do
-    echo "    Deleting database instance $id..."
-    $OS database instance delete "$id" --force 2>/dev/null || true
-  done
-
-  # Servers
-  TENANT_SERVERS=$($OS server list --project "$PROJECT_ID" -f json 2>/dev/null \
-    | python3 -c 'import json,sys; [print(s["ID"]) for s in json.load(sys.stdin)]' 2>/dev/null) || true
-  for id in $TENANT_SERVERS; do
-    echo "    Deleting server $id..."
-    $OS server delete "$id" --force --wait 2>/dev/null || true
-  done
-
-  # Floating IPs
-  TENANT_FIPS=$($OS floating ip list --project "$PROJECT_ID" -f json 2>/dev/null \
-    | python3 -c 'import json,sys; [print(f["ID"]) for f in json.load(sys.stdin)]' 2>/dev/null) || true
-  for id in $TENANT_FIPS; do
-    echo "    Deleting floating IP $id..."
-    $OS floating ip delete "$id" 2>/dev/null || true
-  done
-
   # Routers (remove interfaces and gateway first)
   TENANT_ROUTERS=$($OS router list --project "$PROJECT_ID" -f json 2>/dev/null \
     | python3 -c 'import json,sys; [print(r["ID"]) for r in json.load(sys.stdin)]' 2>/dev/null) || true
@@ -193,6 +129,8 @@ for sg in json.load(sys.stdin):
   done
 
   # User
+  echo "    Deleting user ${tenant}-member..."
+  $OS user delete "${tenant}-member" 2>/dev/null || true
   echo "    Deleting user ${tenant}-admin..."
   $OS user delete "${tenant}-admin" 2>/dev/null || true
 
@@ -237,8 +175,9 @@ clouds:
 HEADER
 
   for tenant in "${TENANTS[@]}"; do
-    USERNAME="${tenant}-admin"
-    PASSWORD="${USERNAME}-pwd"
+    USERNAME_MEMBER="${tenant}-member"
+    USERNAME_ADMIN="${tenant}-admin"
+    PASSWORD="${tenant}-pwd"
 
     echo ""
     echo ">>> Creating project: ${tenant}"
@@ -246,31 +185,51 @@ HEADER
     $OS project create "$tenant" \
       --domain default \
       --description "Test tenant: ${tenant}" \
-      2>/dev/null || echo "  ===> project already exists"
+      2>/dev/null || echo "  ===> project $tenant already exists"
 
-    $OS user create "$USERNAME" \
+    $OS user create "$USERNAME_MEMBER" \
+      --domain default \
+      --project "$tenant" \
+      --password "$PASSWORD" \
+      --description "Member user for ${tenant}" \
+      2>/dev/null || echo "  ===> user $USERNAME_MEMBER already exists, resetting password"
+
+    $OS user create "$USERNAME_ADMIN" \
       --domain default \
       --project "$tenant" \
       --password "$PASSWORD" \
       --description "Admin user for ${tenant}" \
-      2>/dev/null || echo "  ===> user already exists, resetting password"
+      2>/dev/null || echo "  ===> user $USERNAME_ADMIN already exists, resetting password"
 
-    $OS user set "$USERNAME" --password "$PASSWORD" 2>/dev/null || true
+    $OS user set "$USERNAME_MEMBER" --password "$PASSWORD" 2>/dev/null || true
+    $OS user set "$USERNAME_ADMIN" --password "$PASSWORD" 2>/dev/null || true
 
-    $OS role add --project "$tenant" --user "$USERNAME" member 2>/dev/null || true
-    $OS role add --project "$tenant" --user "$USERNAME" admin 2>/dev/null || true
+    $OS role add --project "$tenant" --user "$USERNAME_MEMBER" member 2>/dev/null || true
+    $OS role add --project "$tenant" --user "$USERNAME_ADMIN" admin 2>/dev/null || true
 
     unset OS_CLIENT_CONFIG_FILE
 
-    echo "  Project: ${tenant}  User: ${USERNAME}  Roles: member, admin"
+    echo "  Project: ${tenant}  User: ${USERNAME_MEMBER}  Roles: member"
+    echo "  Project: ${tenant}  User: ${USERNAME_ADMIN}  Roles: admin"
 
     cat >> "${CUSTOMER_DIR}/clouds.yaml" << CLOUDS_YAML_EOF
-  ${tenant}:
+  ${USERNAME_MEMBER}:
     auth:
       auth_url: ${AUTH_URL}
       project_name: ${tenant}
       project_domain_name: Default
-      username: ${USERNAME}
+      username: ${USERNAME_MEMBER}
+      user_domain_name: Default
+      password: ${PASSWORD}
+    region_name: RegionOne
+    interface: internal
+    identity_api_version: 3
+  ${USERNAME_ADMIN}:
+    auth:
+      auth_url: ${AUTH_URL}
+      project_name: ${tenant}
+      project_domain_name: Default
+      username: ${USERNAME_ADMIN}
       user_domain_name: Default
       password: ${PASSWORD}
     region_name: RegionOne
@@ -296,51 +255,51 @@ CLOUDS_YAML_EOF
   echo "  CREATING TENANT NETWORKS AND SUBNETS"
   echo "============================================================"
 
-  for tenant in $(yq '.clouds | keys | .[]' "${CUSTOMER_DIR}/clouds.yaml"); do
+  for tenant in "${TENANTS[@]}"; do
+
+    local tenant_cloud="${tenant}-member"
+    echo "tenant_cloud: ${tenant_cloud}"
+
     echo ""
     echo ">>> Creating network and subnet for: ${tenant}"
 
-    if openstack network list 2>&1 | grep ${tenant}-net > /dev/null 2>&1; then
+    if openstack --os-cloud="${tenant_cloud}" network list 2>&1 | grep ${tenant}-net > /dev/null 2>&1; then
       echo "  ===> network already exists"
     else
-      openstack --os-cloud="${tenant}" network create \
-        --project="${tenant}" \
-        --provider-network-type=geneve \
+      openstack --os-cloud="${tenant_cloud}" network create \
         --internal \
         --enable-port-security \
         --enable \
-        "${tenant}-net" 2>/dev/null
+        "${tenant}-net"
     fi
 
-    if openstack subnet list 2>&1 | grep ${tenant}-subnet > /dev/null 2>&1; then
+    if openstack --os-cloud="${tenant_cloud}" subnet list 2>&1 | grep ${tenant}-subnet > /dev/null 2>&1; then
       echo "  ===> subnet already exists"
     else
-      openstack --os-cloud="${tenant}" subnet create \
-        --project="${tenant}" \
+      openstack --os-cloud="${tenant_cloud}" subnet create \
         --dhcp \
         --network="${tenant}-net" \
         --subnet-range=${SUBNET_CIDR} \
         --gateway="${SUBNET_CIDR:0:10}.1" \
         --dns-nameserver 1.1.1.1 \
         --dns-nameserver 8.8.8.8 \
-        "${tenant}-subnet" 2>/dev/null
+        "${tenant}-subnet"
     fi
 
     # Trove (and any service that needs floating IPs / external reach) requires
     # the user-facing subnet to be attached to a router with an external gateway.
     # Without this, `openstack database instance create --is-public` fails with:
     #   Subnet ... is not associated with router.
-    if openstack router list 2>&1 | grep ${tenant}-router > /dev/null 2>&1; then
+    if openstack --os-cloud="${tenant_cloud}" router list 2>&1 | grep ${tenant}-router > /dev/null 2>&1; then
       echo "  ===> router already exists"
     else
-      openstack --os-cloud="${tenant}" router create \
-        --project="${tenant}" \
+      openstack --os-cloud="${tenant_cloud}" router create \
         --external-gateway flat \
-        "${tenant}-router" 2>/dev/null
+        "${tenant}-router"
     fi
 
-    openstack --os-cloud="${tenant}" router add subnet \
-      "${tenant}-router" "${tenant}-subnet" 2>/dev/null \
+    openstack --os-cloud="${tenant_cloud}" router add subnet \
+      "${tenant}-router" "${tenant}-subnet" 2>/dev/null\
       || echo "  ===> subnet already attached to router"
 
     echo "  Network: ${tenant}-net / ${tenant}-subnet (${SUBNET_CIDR}) / ${tenant}-router → flat"
@@ -418,7 +377,7 @@ echo ""
 echo "Tenant credentials written to: ${CUSTOMER_DIR}/clouds.yaml"
 echo ""
 echo "Test with:"
-echo "  openstack --os-cloud=acme-corp token issue"
-echo "  openstack --os-cloud=acme-corp network list"
+echo "  openstack --os-cloud=acme-corp-member token issue"
+echo "  openstack --os-cloud=acme-corp-member network list"
 echo ""
 echo ""

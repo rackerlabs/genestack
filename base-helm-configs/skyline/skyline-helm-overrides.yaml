@@ -74,6 +74,7 @@ conf:
   skyline:
     default:
       debug: true
+      prometheus_endpoint: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
     openstack:
       interface_type: internal
       default_region: RegionOne
@@ -139,6 +140,12 @@ conf:
       shared_file_systems_servers: true
       shared_file_systems_instances: true
       shared_file_systems_backends: true
+      rating: false
+      rating_summary: true
+      rating_reporting: true
+      rating_modules: true
+      rating_hashmap: true
+      rating_pyscripts: true
 
 manifests:
   certificates: false

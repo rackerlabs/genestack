@@ -144,3 +144,7 @@ AGENTS.md
 .mcp*
 .claude
 .opencode
+
+# Observability 
+base-helm-configs/observability
+base-kustomize/observability
