@@ -115,6 +115,16 @@ ENVIRONMENT VARIABLES:
                         enablement step. Equivalent to including the
                         'manila-share' pseudo service via -i; '-e manila-share'
                         overrides both. Default "false" installs no manila.
+    HYPERCONVERGED_ROOK_CEPH_LOOP_SIZE
+                        Whole number of GiB (kubespray only, default: 0).
+                        0 skips the billing setup entirely (Redis, Postgres,
+                        Rook-Ceph, Gnocchi, Ceilometer). A positive value runs
+                        it, deploying Rook-Ceph (generated rook-operator and
+                        rook-cluster overlays) with OSDs
+                        on /dev/loop500 on each
+                        \${LAB_NAME_PREFIX}-N.\${GATEWAY_DOMAIN} node. loop500 is
+                        created on each node, backed by a sparse file of this
+                        size, and re-attached at boot by ceph-loop500.service.
     HYPERCONVERGED_ENVOY_GATEWAY_CONFIG
                         If set to "true", deploys Envoy using the internal/external
                         gateway config file path instead of the legacy flex-gateway.
