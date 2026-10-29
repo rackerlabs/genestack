@@ -15,3 +15,20 @@ cinder_storage_cert_filenames:
   - "ontap-vserver-host.crt"
 
 cinder_volume_package_state: latest
+
+# cinder-rxt repository and release branch configuration
+cinder_rxt_git_repo: "https://github.com/rackerlabs/cinder-rxt.git"
+cinder_rxt_release_branch: "main"
+
+# Cinder Internal Tenant & Image-Volume Cache
+cinder_enable_internal_tenant: true
+cinder_openstack_cloud: "{{ openstack_cloud | default('default') }}"
+cinder_openstack_delegate_host: "localhost"
+cinder_internal_project_name: "internal_cinder"
+cinder_internal_user_name: "internal_cinder"
+
+cinder_internal_tenant_project_id: ""
+cinder_internal_tenant_user_id: ""
+cinder_image_volume_cache_enabled: true
+cinder_image_volume_cache_max_size_gb: 400
+cinder_image_volume_cache_max_count: 10
