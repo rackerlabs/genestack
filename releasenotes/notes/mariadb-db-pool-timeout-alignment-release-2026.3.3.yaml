@@ -1,0 +1,55 @@
+---
+fixes:
+  - |
+    Aligned the MariaDB server idle-connection timeouts with the OpenStack
+    service DB pool recycle intervals so that pooled connections are closed
+    gracefully by the client pool before the server aborts them. The Galera
+    MariaDB overlay previously set ``wait_timeout=360`` while every service's
+    oslo DB pool held connections idle up to ``connection_recycle_time=600``,
+    so the server dropped idle pooled connections mid-read and logged
+    ``Aborted connection ... Got timeout reading communication packets``
+    warnings. The service ``use_db_reconnect`` retry path healed the
+    connection, but the server-side abort remained logged.
+  - |
+    Raised ``wait_timeout`` and ``interactive_timeout`` in the Galera MariaDB
+    overlay (``base-kustomize/mariadb-cluster/galera/kustomization.yaml``)
+    from 360 to 3600 to match the replication base
+    (``base-kustomize/mariadb-cluster/base/mariadb-replication.yaml``).
+    The replication base was already at 3600.
+  - |
+    The service ``connection_recycle_time`` (600) is intentionally left
+    unchanged in the ``database:`` / ``api_database:`` / ``cell0_database:``
+    sections of all 17 OpenStack service Helm override files under
+    ``base-helm-configs/<svc>/<svc>-helm-overrides.yaml`` (barbican, blazar,
+    ceilometer, cinder, designate, freezer, glance, heat, ironic, keystone,
+    magnum, masakari, neutron, nova (3 sections), octavia, placement,
+    trove). With the server ceiling now at 3600s, the pool's existing 600s
+    recycle interval closes idle connections gracefully long before the
+    server ever aborts them.
+other:
+  - |
+    **Operator note:** these values take effect on the next rollout of the
+    MariaDB ``mariadb-cluster`` pods and the affected service deployments.
+    Existing pooled connections will not be re-evaluated until the pods are
+    restarted. **Invariant:** the service ``connection_recycle_time`` must
+    remain lower than the MariaDB ``wait_timeout`` / ``interactive_timeout``
+    for the pool to handle idle-connection cleanup gracefully. The current
+    600 / 3600 pairing keeps a conservative recycle interval well under the
+    server ceiling. ``pool_timeout`` (60s) is the wait-for-free-connection
+    timeout, not the idle timeout, and was intentionally left unchanged.
+    The Grafana MariaDB cluster
+    (``base-kustomize/grafana/base/grafana-database.yaml``) was already at
+    3600 and was not modified.
+  - |
+    **Known issue (pre-existing, unrelated to this change):** ``reno lint``
+    fails on a UID collision among three release notes added together in
+    PR #1758 (commit ``a600950``): ``ops-tools-check-octavia-ovn-installer-release-2026.3.0.yaml``,
+    ``ops-tools-check-octavia-ovn-release-2026.3.0.yaml``, and
+    ``ops-tools-check-octavia-ovn-script-release-2026.3.0.yaml``. Reno's
+    UID is the first 16 characters of the filename stem (when that slice
+    contains a dash), and all three share the prefix ``ops-tools-check-``,
+    so reno sees them as the same note added in the same commit. The
+    collision is baked into git history and cannot be fixed by a forward
+    rename. A separate issue should be filed to either rewrite the
+    historical commit or delete-then-readd the three notes under distinct
+    names.
