@@ -69,7 +69,7 @@ dependencies:
 conf:
   barbican:
     DEFAULT:
-      host_href: http://barbican-api.openstack.svc.cluster.local:9311
+      host_href: ""
     database:
       connection_debug: 0
       connection_recycle_time: 600
