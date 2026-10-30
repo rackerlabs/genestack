@@ -73,7 +73,7 @@
 # Derive the trove release branch to clone for DIB elements + guest-agent which
 # must match the trove server-side image (api/taskmanager/conductor).
 # Use the chart version actually being installed on the control plane;
-# /etc/genestack/helm-chart-versions.yaml is what install-trove.sh uses to deploy.
+# /etc/genestack/helm-chart-versions.yaml is what install.sh --service trove uses to deploy.
 # example derivation: 2026.1.9+abc (chart) -> stable/2026.1 (branch).
 - name: Derive trove release branch
   ansible.builtin.shell:

@@ -88,7 +88,7 @@ Refer to additional information for Cinder API:
 ```shell
 openstack --os-cloud default volume type create netapp-iscsi --property volume_backend_name=netapp-iscsi
 
-/opt/genestack/bin/install-cinder.sh
+/opt/genestack/bin/install.sh --service cinder
 ```
 
 ## Install cinder-volume on bare metal node

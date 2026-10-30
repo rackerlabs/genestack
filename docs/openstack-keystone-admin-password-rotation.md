@@ -747,7 +747,7 @@
 
     ```
     cd /opt/genestack
-    bin/install-octavia.sh
+    bin/install.sh --service octavia
     ```
 
 1. Post-check _Octavia_ to ensure all pods running, etc.

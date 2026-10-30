@@ -1,0 +1,244 @@
+---
+prelude: >
+  Replace the per-service bin/install-*.sh bootstrap scripts with a
+  single install.sh entry point driven by the per-service YAML configs
+  in bin/services/. Secrets remain managed in Kubernetes, as introduced
+  by the per-service secret bootstrapping work.
+features:
+  - |
+    A new unified installer replaces the 50 individual install-*.sh
+    scripts. The entry point is bin/install.sh with shared library code
+    in bin/helpers.sh and per-service configuration in
+    bin/services/*.yaml. The service YAMLs already on the cluster
+    (introduced with per-service secret bootstrapping) are now the
+    single source of truth for install-time chart selection, secret
+    wiring, kustomize post-rendering, and Helm timeouts.
+    Barbican-specific KEK and SoftHSM implementation now lives in
+    bin/lib/barbican.sh, sourced through bin/helpers.sh. This extraction
+    has no intended behavior change.
+  - |
+    Chart sources and versions resolve from merged service configuration.
+    Configuration precedence is repository family defaults, repository service
+    defaults, site family overrides, then site service overrides. Site files
+    live in /etc/genestack/service-configs/; bootstrap creates this directory.
+    Explicit service.family: "" skips family files.
+  - |
+    HTTP(S) Helm repositories, full OCI chart URLs, and local charts share the
+    same resolver. An empty chart.repo_url selects
+    base-helm-configs/<chart.service_name> under GENESTACK_BASE_DIR. MariaDB
+    CRD charts follow the operator's repository, registry, or local directory.
+upgrade:
+  - |
+    All bin/install-*.sh bootstrap scripts have been removed. Use
+    install.sh with --service to install any component:
+
+    install.sh --service nova
+    install.sh --service nova --wait --timeout 30m
+    install.sh --rotate-secrets --service nova
+
+    --service is the only required flag; every other --* flag after
+    the service name is passed through directly to helm upgrade
+    --install.
+  - |
+    install.sh --service envoyproxy-gateway --config <file> (or
+    --gateway-config) deploys Envoy Gateway in config mode, as
+    install-envoy-gateway.sh did. A service may define
+    kustomize.gateway_config_overlay_path; when --config is passed that
+    overlay replaces kustomize.overlay_path. envoyproxy-gateway uses
+    envoyproxy-gateway/config-mode, which omits the legacy flex-gateway
+    resources. If the overlay is missing under /etc/genestack/kustomize it
+    is linked from base-kustomize, otherwise the install stops before running
+    Helm. After a successful Helm install, the installer waits up to 5 minutes
+    for deployments.apps/envoy-gateway to become available, then runs
+    setup-envoy-gateway.sh --config <file>. If the deployment does not become
+    available, the gateway configuration is not applied and install.sh exits
+    with an error. Services without gateway_config_overlay_path keep
+    their normal overlay.
+  - |
+    The helm overrides chain is now explicit:
+
+    1. Upstream chart values (defaults from the chart)
+    2. -f base-helm-configs/<svc>/*.yaml (genestack default values)
+    3. -f /etc/genestack/helm-configs/global_overrides/*.yaml
+       (cluster-wide overrides; skipped when chart.global_overrides is false)
+    4. -f /etc/genestack/helm-configs/<svc>/*.yaml (per-cluster overrides)
+    5. --set (injected secrets)
+    6. User-passed flags
+
+    Later files override earlier ones for the same key. Directory files are
+    loaded alphabetically. Service-configs contain installer metadata and
+    are never passed to Helm as values files. Values directory names retain
+    chart.service_name, falling back to service.name when unset.
+  - |
+    Version precedence is CLI --version, merged service.version, then the
+    charts.<service> entry in /etc/genestack/helm-chart-versions.yaml, with
+    chart.service_name kept as a fallback key. Installation stops if no
+    version resolves. Set service.version in a site service file to pin one
+    service. A version set in a site family file applies to all services
+    inheriting that family, unless overridden by a site service file.
+    No existing helm-chart-versions.yaml keys were renamed;
+    envoyproxy-gateway keeps its key. The openstack-exporter service resolves
+    through its chart.service_name, so helm-chart-versions.yaml now includes an
+    openstack-api-exporter entry. A tempest entry was also added. Add both to
+    an existing /etc/genestack/helm-chart-versions.yaml, or set
+    service.version in a site service file, before installing those services.
+  - |
+    Move chart.repo_url, chart.repo_name, and chart.service_name from
+    /etc/genestack/helm-configs/<service>/*.yaml to
+    /etc/genestack/service-configs/<service>.yaml. The helm-configs files remain
+    Helm values only. OCI chart.repo_url must be the complete chart path, for
+    example oci://registry.example.com/charts/nova. HTTP(S) URLs require
+    chart.repo_name.
+  - |
+    Neutron and Octavia pass their OVN TLS values file
+    (base-helm-configs/<service>/ssl/<service>-ovn-tls-overrides.yaml) to Helm
+    when Kube-OVN has networking.ENABLE_SSL=true, as the old installers did.
+    The file is placed after the base values and before the global and site
+    overrides. This is done by the new ovn_tls_values pre_install_check action
+    in bin/services/neutron.yaml and octavia.yaml. If SSL is enabled and the
+    file is missing, the install fails.
+  - |
+    A service can name its own Helm post-renderer with kustomize.post_renderer
+    (a path relative to the Genestack checkout). Octavia uses
+    base-kustomize/octavia/post-renderer.sh, as the old install-octavia.sh did,
+    so the OVN TLS mount is added to the octavia-agent sidecar when Kube-OVN
+    uses SSL. The ovn_tls detection now exports
+    GENESTACK_KUBE_OVN_ENABLE_SSL for post-renderers. A missing or
+    non-executable script fails the install.
+  - |
+    install.sh --service mariadb-operator honors CLUSTER_NAME again, as
+    install-mariadb-operator.sh did. When CLUSTER_NAME is set to something
+    other than cluster.local, the new cluster_name_site_value pre-install
+    action sets clusterName in
+    /etc/genestack/helm-configs/mariadb-operator/mariadb-operator-helm-overrides.yaml,
+    keeping other settings in that file. Without CLUSTER_NAME nothing is
+    written. Other services take the cluster domain from their own values
+    files; the Redis operator uses redisOperator.serviceDNSDomain.
+  - |
+    install.sh --service kube-ovn pre-generates the kube-system/kube-ovn-tls
+    secret again, as install-kube-ovn.sh did. The new kube_ovn_tls_secret
+    pre-install action creates a private CA and a 3650-day server certificate
+    with the DNS names ovn, ovn-nb, ovn-sb and ovn-northd (plain and
+    .kube-system.svc), then annotates and labels the secret so the chart
+    adopts it. The chart's own certificate has no subject alternative names.
+    An existing kube-ovn-tls secret is never changed or deleted, and the
+    install stops if kubectl cannot tell whether it exists, so a live secret
+    is never generated over. The names are set in bin/services/kube-ovn.yaml.
+    When the secret is kept, the installer logs the certificate's subject,
+    validity dates, days left and DNS names so operators can decide
+    whether to replace it. To replace it on purpose, run the install once
+    with KUBE_OVN_REGENERATE_CERTS=true, or set regenerate_certs: true in
+    /etc/genestack/service-configs/kube-ovn.yaml (false by default). Then
+    restart the OVN components and rerun the neutron and octavia installs.
+  - |
+    install.sh now ensures and reports the service namespace before the
+    pre-install hooks run, so hooks can create secrets in it.
+  - |
+    install.sh --service barbican handles the SoftHSM2 (PKCS#11) backend
+    again, as install-barbican.sh did, using the new barbican_hsm_setup and
+    barbican_hsm_init actions. With SoftHSM p11 enabled (the base values
+    enable it, or BARBICAN_HSM_ENABLED / HYPERCONVERGED_BARBICAN_HSM is
+    true) it creates the barbican-hsm-credentials secret once and never
+    changes an existing PIN. Whenever that secret holds a pin, it is
+    injected as conf.barbican.p11_crypto_plugin.login, so the chart no
+    longer renders an empty login. With the lab flags and no site values
+    file, the SoftHSM overlay is generated. After Helm, the token, MKEK
+    and HMAC key are initialized (idempotent; skipped for --dry-run, and
+    not run when Helm fails). A failing initialization now fails the
+    install through the new post_install_fatal service setting. The
+    install stops, without touching the PIN, when kubectl cannot tell
+    whether barbican-hsm-credentials exists.
+    --dry-run skips post-install HSM token and key initialization, but
+    pre-install secret management still runs and may create HSM
+    credentials or create/adopt the managed simple_crypto KEK. It is
+    not a read-only installer preview.
+  - |
+    install.sh --service barbican manages the Barbican simple_crypto kek
+    again, as install-barbican.sh did, using the new
+    barbican_simple_crypto_kek pre-install action. A kek set in a values
+    file is deployed as is. Otherwise the kek lives in the
+    barbican-simple-crypto-kek secret: a new install generates a random
+    kek, an existing deployment adopts the kek already rendered into
+    barbican-etc (so the running kek is never replaced), and the kek and
+    old_keks history are injected with --set-string. When no override
+    or managed KEK exists and an older deployment has a readable
+    barbican.conf in barbican-etc with no kek line, the installer
+    adopts the historical well-known default KEK and emits a warning;
+    this preserves access to existing encrypted keys without rotating
+    the KEK. When the secret's kek
+    differs from the deployed one, the deploy continues only if the
+    deployed kek is listed in old_keks (a staged rotation, which warns
+    about the one-way rewrap); otherwise the install stops, because the
+    db-sync rewrap could not succeed. The install also stops, without
+    touching any secret, when kubectl cannot tell whether
+    barbican-simple-crypto-kek or barbican-etc exists, when barbican-etc
+    exists but its barbican.conf cannot be read, or when an existing
+    barbican-simple-crypto-kek has no readable kek. Without this, a new
+    install would run on the chart's well-known default kek and an
+    upgrade would lose the rewrap guard.
+  - |
+    install.sh --service keystone syncs the keystone-shibd-etc secret from
+    /etc/genestack/keystone-sp/shibboleth/ again, as install-keystone.sh
+    did, using the new secret_sync_directory pre-install action. It runs
+    when the Keystone overlay
+    (/etc/genestack/kustomize/keystone/overlay/kustomization.yaml) lists the
+    federation base. It stops the install when the directory or one of
+    shibboleth2.xml, sp-cert.pem, sp-key.pem or idp-metadata.xml is
+    missing. KEYSTONE_SHIBBOLETH_DIR points it at another directory,
+    and SKIP_SHIBBOLETH_SECRET=1 or --dry-run skips the sync. Federation is
+    detected from the overlay file, not from a rendered chart as before, so
+    a federation base wired in another way is not detected.
+    Upgrade impact: an existing deployment that uses federation now needs the
+    directory and all four files (shibboleth2.xml, sp-cert.pem, sp-key.pem and
+    idp-metadata.xml) present on every install.sh --service keystone run, or
+    the install stops before Helm. If the keystone-shibd-etc secret was
+    created by hand from a different file layout, check the directory before
+    you rerun the installer, or set SKIP_SHIBBOLETH_SECRET=1 to leave the
+    secret alone. Deployments without the federation base are not affected.
+  - |
+    bin/services/neutron.yaml now sets the OVN connections for the Neutron
+    metadata agent again, as install-neutron.sh did. Two entries were added to
+    its ovn_connection_set_args action:
+    conf.ovn_metadata_agent.ovn.ovn_nb_connection (from OVN_NB_CONNECTION) and
+    conf.ovn_metadata_agent.ovn.ovn_sb_connection (from OVN_SB_CONNECTION).
+    Without them the metadata agent kept the chart's default OVN connection
+    instead of the cluster's ssl: or tcp: endpoints.
+  - |
+    Neutron and Octavia copy the Kube-OVN client secret to the openstack
+    namespace only when Kube-OVN uses SSL, so a tcp cluster no longer gets a
+    copy of the Kube-OVN private key. With SSL on they stop if
+    kube-system/kube-ovn-tls is missing, and they stop when the ovn-nb or
+    ovn-sb service or the ovn-central deployment cannot be read, instead of
+    falling back to tcp or chart-default connections.
+  - |
+    A failing pre_install_actions or pre_install_check_actions entry now
+    stops install.sh before Helm runs and exits non-zero. Before, install.sh
+    logged the error and ran Helm anyway. This restores the legacy
+    installers' behavior for a Neutron or Octavia OVN TLS secret that lacks
+    cacert, cert or key, and for a missing OVN TLS values file. Kube-OVN now
+    also stops when no node carries the kube-ovn/role=master label, as the
+    old install-kube-ovn.sh did, instead of installing with zero replicas.
+  - |
+    Standalone Fluent Bit, Kube-OVN, Longhorn, MetalLB, Postgres Operator,
+    Pushgateway, Redis Sentinel, and Envoy Gateway now skip common families.
+    Put their chart settings in service-specific site files. Set
+    chart.global_overrides: true explicitly to include shared global Helm
+    values for services whose defaults disable them.
+  - |
+    qonos is a kustomize-based deployment and no longer ships as a
+    bin/install-*.sh script. Its installer moved to
+    ops-tools/qonos/install-qonos.sh and is invoked from
+    setup-openstack.sh like the other ops-tool-managed components.
+deprecations:
+  - |
+    All binary/install-*.sh bootstrap scripts are removed. Use
+    install.sh --service <name> instead. Rotation workflows that
+    previously fanned out to install-*.sh now invoke install.sh
+    directly.
+critical:
+  - |
+    All services must have a corresponding bin/services/<name>.yaml
+    file. New services should be created from
+    bin/services/example-service.yaml. The unified-installer-regression
+    test (tests/test_unified_installer.sh) validates every service YAML
+    and the install.sh flows.

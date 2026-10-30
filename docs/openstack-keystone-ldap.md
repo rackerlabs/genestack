@@ -16,7 +16,7 @@ Auth happens against AD, but Keystone still manages projects, roles, tokens.
 ## Install/Reinstall Keystone Service
 
 ```bash
-/opt/genestack/bin/install-keystone.sh
+/opt/genestack/bin/install.sh --service keystone
 ```
 
 ## Validate functionality

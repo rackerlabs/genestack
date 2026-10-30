@@ -1,4 +1,27 @@
 #!/usr/bin/env bash
+# -----------------------------------------------
+#                             _             _
+#                            | |           | |
+#   __ _  ___ _ __   ___  ___| |_ __ _  ___| | __
+#  / _` |/ _ \ '_ \ / _ \/ __| __/ _` |/ __| |/ /
+# | (_| |  __/ | | |  __/\__ \ || (_| | (__|   <
+#  \__, |\___|_| |_|\___||___/\__\__,_|\___|_|\_\
+#   __/ |            ops tools
+#  |___/         install_qonos
+# -----------------------------------------------
+#
+# Installs QonoS (Scheduled Actions) for Genestack.
+#
+# QonoS is deployed from kustomize manifests rather than a Helm chart, so it
+# is not installed through bin/install.sh. This tool renders qonos.conf with
+# the qonos-owned Kubernetes secrets into the qonos-etc secret, applies the
+# base-kustomize/qonos manifests, and waits for jobs and deployments.
+#
+# Usage:
+#   ./install-qonos.sh
+#
+# Env overrides:
+#   GENESTACK_BASE_DIR=/opt/genestack, GENESTACK_OVERRIDES_DIR=/etc/genestack
 set -euo pipefail
 
 SERVICE_NAME="qonos"

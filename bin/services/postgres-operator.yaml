@@ -3,10 +3,11 @@ service:
   name: postgres-operator
   namespace: postgres-system
   version: ~
+  family: ""
 
 chart:
-  repo_name: cloudnative-pg
-  repo_url: https://cloudnative-pg.github.io/charts
+  repo_name: postgres-operator-charts
+  repo_url: https://opensource.zalando.com/postgres-operator/charts/postgres-operator
   global_overrides: false
 
 kustomize:
