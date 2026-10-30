@@ -50,6 +50,27 @@ and ensure that the service operates correctly within your OpenStack environment
 
     In other cases such as a multi-region deployment you may want to view the [Multi-Region Support](multi-region-support.md) guide to for a workflow solution.
 
+## SoftHSM2 (PKCS#11) PIN and keys
+
+The base values enable the `p11_crypto` plugin on SoftHSM2 next to `simple_crypto`, and it needs a token PIN. `install.sh
+--service barbican` handles it:
+
+- When SoftHSM p11 is configured (the base values do this, or `BARBICAN_HSM_ENABLED` or `HYPERCONVERGED_BARBICAN_HSM` is
+  `true`), the `barbican-hsm-credentials` Secret is created once with a random 32-character `pin`. An existing PIN is never
+  changed, because it protects the token that already holds your keys.
+- Whenever that Secret holds a `pin`, the installer injects it as `conf.barbican.p11_crypto_plugin.login`.
+- After Helm, the installer creates the SoftHSM token, the MKEK and the HMAC key inside the `barbican-api` pod. This is
+  idempotent and is skipped for `--dry-run` or when Helm fails. If it fails, the install fails.
+- With the lab flags and no site values file, the SoftHSM overlay is generated into
+  `/etc/genestack/helm-configs/barbican/`. An existing site file is never rewritten.
+- If `kubectl` cannot tell whether `barbican-hsm-credentials` exists, the install stops without touching the PIN.
+
+!!! warning "Installer dry runs can still create secrets"
+
+    `--dry-run` skips post-install HSM token and key initialization. Pre-install secret management still runs and
+    may create the HSM credentials or create/adopt the managed `simple_crypto` KEK. It is not a read-only installer
+    preview.
+
 ## Simple crypto master KEK
 
 Barbican's `simple_crypto` plugin wraps every project key with a master key-encryption-key (KEK). Since Gazpacho there is
@@ -63,13 +84,22 @@ every deploy together with the `old_keks` rotation history.
 
     - If a running deployment already rendered a KEK into the `barbican-etc` Secret, the installer adopts that KEK into
       `barbican-simple-crypto-kek` before any random generation is considered.
-    - If no override, managed Secret, or deployed `barbican-etc` KEK exists, the installer treats the deployment as a
-      first install and generates a fresh KEK into the Secret.
+    - If an older deployment has a readable `barbican.conf` in `barbican-etc` but no `kek` line, the installer adopts
+      the historical well-known default KEK into `barbican-simple-crypto-kek` and emits a warning. This preserves
+      access to existing encrypted keys; it does not rotate the KEK.
+    - If no override supplies a KEK and both `barbican-simple-crypto-kek` and `barbican-etc` are confirmed absent,
+      the installer treats the deployment as a first install and generates a fresh KEK into the Secret.
 
 When the Secret holds a KEK that differs from the deployed one, the deploy only proceeds if the deployed KEK is listed
 in the Secret's `old_keks`, which `--stage` always records. Otherwise the script refuses, because the db-sync rewrap
 could not succeed. A KEK from an override file gets no such check: on that path the chart's db-sync job is the only
 safeguard, and it fails the deploy rather than losing data when the KEK cannot unwrap the existing project keys.
+
+!!! note "The installer never guesses"
+    `install.sh --service barbican` stops, without writing or changing any Secret, when `kubectl` cannot tell whether
+    `barbican-simple-crypto-kek` or `barbican-etc` exists (for example an API outage), when `barbican-etc` exists but its
+    `barbican.conf` cannot be read, or when an existing `barbican-simple-crypto-kek` has no readable `kek`. A random KEK is
+    generated only when both Secrets are confirmed absent.
 
 ### Rotate the KEK
 

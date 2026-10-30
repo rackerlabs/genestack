@@ -275,7 +275,14 @@ main() {
     if [[ "$(echo "$svc_yaml_content" | yq e '.post_install_actions | length // 0' -)" -gt 0 ]]; then
         if [[ "$helm_status" -eq 0 ]]; then
             log_header "Running post-install hook for '${service_name}'"
-            run_service_actions "$svc_yaml_content" '.post_install_actions' "$service_name"
+            if ! run_service_actions "$svc_yaml_content" '.post_install_actions' "$service_name"; then
+                # Most post-install steps only report; a service that sets
+                # post_install_fatal: true fails the install when one fails.
+                if [[ "$(echo "$svc_yaml_content" | yq e '.post_install_fatal // false' -)" == "true" ]]; then
+                    log_error "Post-install hook for '${service_name}' failed."
+                    return 1
+                fi
+            fi
         else
             log_warn "Skipping post-install hook for '${service_name}' due to Helm failure."
         fi

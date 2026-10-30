@@ -13,6 +13,9 @@ features:
     (introduced with per-service secret bootstrapping) are now the
     single source of truth for install-time chart selection, secret
     wiring, kustomize post-rendering, and Helm timeouts.
+    Barbican-specific KEK and SoftHSM implementation now lives in
+    bin/lib/barbican.sh, sourced through bin/helpers.sh. This extraction
+    has no intended behavior change.
   - |
     Chart sources and versions resolve from merged service configuration.
     Configuration precedence is repository family defaults, repository service
@@ -130,6 +133,49 @@ upgrade:
   - |
     install.sh now ensures and reports the service namespace before the
     pre-install hooks run, so hooks can create secrets in it.
+  - |
+    install.sh --service barbican handles the SoftHSM2 (PKCS#11) backend
+    again, as install-barbican.sh did, using the new barbican_hsm_setup and
+    barbican_hsm_init actions. With SoftHSM p11 enabled (the base values
+    enable it, or BARBICAN_HSM_ENABLED / HYPERCONVERGED_BARBICAN_HSM is
+    true) it creates the barbican-hsm-credentials secret once and never
+    changes an existing PIN. Whenever that secret holds a pin, it is
+    injected as conf.barbican.p11_crypto_plugin.login, so the chart no
+    longer renders an empty login. With the lab flags and no site values
+    file, the SoftHSM overlay is generated. After Helm, the token, MKEK
+    and HMAC key are initialized (idempotent; skipped for --dry-run, and
+    not run when Helm fails). A failing initialization now fails the
+    install through the new post_install_fatal service setting. The
+    install stops, without touching the PIN, when kubectl cannot tell
+    whether barbican-hsm-credentials exists.
+    --dry-run skips post-install HSM token and key initialization, but
+    pre-install secret management still runs and may create HSM
+    credentials or create/adopt the managed simple_crypto KEK. It is
+    not a read-only installer preview.
+  - |
+    install.sh --service barbican manages the Barbican simple_crypto kek
+    again, as install-barbican.sh did, using the new
+    barbican_simple_crypto_kek pre-install action. A kek set in a values
+    file is deployed as is. Otherwise the kek lives in the
+    barbican-simple-crypto-kek secret: a new install generates a random
+    kek, an existing deployment adopts the kek already rendered into
+    barbican-etc (so the running kek is never replaced), and the kek and
+    old_keks history are injected with --set-string. When no override
+    or managed KEK exists and an older deployment has a readable
+    barbican.conf in barbican-etc with no kek line, the installer
+    adopts the historical well-known default KEK and emits a warning;
+    this preserves access to existing encrypted keys without rotating
+    the KEK. When the secret's kek
+    differs from the deployed one, the deploy continues only if the
+    deployed kek is listed in old_keks (a staged rotation, which warns
+    about the one-way rewrap); otherwise the install stops, because the
+    db-sync rewrap could not succeed. The install also stops, without
+    touching any secret, when kubectl cannot tell whether
+    barbican-simple-crypto-kek or barbican-etc exists, when barbican-etc
+    exists but its barbican.conf cannot be read, or when an existing
+    barbican-simple-crypto-kek has no readable kek. Without this, a new
+    install would run on the chart's well-known default kek and an
+    upgrade would lose the rewrap guard.
   - |
     install.sh --service keystone syncs the keystone-shibd-etc secret from
     /etc/genestack/keystone-sp/shibboleth/ again, as install-keystone.sh

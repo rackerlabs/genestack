@@ -194,6 +194,9 @@ helm:
 #   - kube_ovn_tls_secret
 #   - cluster_name_site_value
 #   - secret_sync_directory
+#   - barbican_simple_crypto_kek
+#   - barbican_hsm_setup
+#   - barbican_hsm_init (post-install)
 #
 # kube_ovn_tls_secret creates the Kube-OVN TLS secret (cacert, cert and key) with
 # a private CA and a server certificate that lists dns_names as subject
@@ -215,6 +218,22 @@ helm:
 # certificate (subject, dates, days left, DNS names) so the operator can
 # decide whether to regenerate. After a regeneration restart the OVN
 # components and rerun the neutron and octavia installs.
+#
+# barbican_simple_crypto_kek manages the Barbican simple_crypto master kek (used
+# by barbican.yaml). It takes no fields. A kek set in a values file is deployed as
+# is. Otherwise the kek lives in the barbican-simple-crypto-kek secret: it is
+# generated on a new install, adopted from the deployed barbican-etc on an
+# existing one, guarded against a rewrap that could not succeed, and injected with
+# --set-string (kek and old_kek). See docs/openstack-barbican.md.
+#
+# barbican_hsm_setup and barbican_hsm_init handle the Barbican SoftHSM2 (PKCS#11)
+# backend (used by barbican.yaml). They take no fields. The setup creates the
+# barbican-hsm-credentials secret once (an existing PIN is never changed), injects
+# the PIN as conf.barbican.p11_crypto_plugin.login, and with the lab flags
+# BARBICAN_HSM_ENABLED or HYPERCONVERGED_BARBICAN_HSM generates the SoftHSM overlay
+# when no site values file exists. barbican_hsm_init runs after Helm and creates
+# the token, MKEK and HMAC key; it is skipped for --dry-run. A service that sets
+# post_install_fatal: true fails the install when a post-install action fails.
 #
 # secret_sync_directory creates or updates a Kubernetes secret from every file in
 # a directory on the host, on each run. Fields: secret_name and directory (a path

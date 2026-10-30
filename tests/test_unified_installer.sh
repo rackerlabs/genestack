@@ -153,6 +153,77 @@ if [[ -n "${KUBECTL_LOG_FILE:-}" ]]; then
     printf '%s\n' "$*" >> "${KUBECTL_LOG_FILE}"
 fi
 
+if [[ -n "${KUBECTL_SECRET_DIR:-}" ]]; then
+    # In-memory store for the Barbican kek secrets: $KUBECTL_SECRET_DIR/<namespace>/<name>/<key>
+    # holds the decoded value of each data key. Other secrets use the fakes below.
+    _store_ns="default"
+    _store_args=("$@")
+    for ((_i = 0; _i < ${#_store_args[@]}; _i++)); do
+        case "${_store_args[_i]}" in
+            --namespace|-n) _store_ns="${_store_args[_i + 1]:-default}" ;;
+        esac
+    done
+    if [[ "${1:-}" == "get" && "${2:-}" == "secret" ]] &&
+       [[ "${3:-}" == "barbican-simple-crypto-kek" || "${3:-}" == "barbican-etc" || "${3:-}" == "barbican-hsm-credentials" ]]; then
+        if [[ "${KUBECTL_STORE_API_ERROR:-}" == "1" || "${KUBECTL_STORE_API_ERROR:-}" == "${3}" ]]; then
+            echo "Unable to connect to the server: dial tcp 10.0.0.1:6443: connect: connection refused" >&2
+            exit 1
+        fi
+        _store_dir="${KUBECTL_SECRET_DIR}/${_store_ns}/${3}"
+        if [[ ! -d "$_store_dir" ]]; then
+            echo "Error from server (NotFound): secrets \"${3}\" not found" >&2
+            exit 1
+        fi
+        for _a in "$@"; do
+            case "$_a" in
+                "jsonpath={.data['"*)
+                    _k="${_a#"jsonpath={.data['"}"
+                    _k="${_k%"']}"}"
+                    _k="${_k//\\\\./.}"
+                    _k="${_k//\\./.}"
+                    if [[ -f "${_store_dir}/${_k}" ]]; then
+                        base64 < "${_store_dir}/${_k}" | tr -d '\n'
+                    fi
+                    exit 0
+                    ;;
+            esac
+        done
+        if [[ " $* " == *" json "* ]]; then
+            _json="{"
+            for _f in "${_store_dir}"/*; do
+                [[ -f "$_f" ]] || continue
+                _json+="\"$(basename "$_f")\":\"$(base64 < "$_f" | tr -d '\n')\","
+            done
+            printf '{"data":%s}\n' "${_json%,}}"
+            exit 0
+        fi
+        echo "secret/${3}"
+        exit 0
+    fi
+    if [[ "${1:-}" == "create" && "${2:-}" == "secret" && "${3:-}" == "generic" && "${4:-}" == "barbican-hsm-credentials" ]]; then
+        # secret_ensure: record the literal so later lookups see it.
+        mkdir -p "${KUBECTL_SECRET_DIR}/${_store_ns}/${4}"
+        for _a in "$@"; do
+            case "$_a" in
+                --from-literal=*) _kv="${_a#--from-literal=}"; printf '%s' "${_kv#*=}" > "${KUBECTL_SECRET_DIR}/${_store_ns}/${4}/${_kv%%=*}" ;;
+            esac
+        done
+        exit 0
+    fi
+    if [[ " $* " == *" apply "* && " $* " == *" -f - "* ]]; then
+        _manifest="$(cat)"
+        _name="$(yq e '.metadata.name' - <<< "$_manifest")"
+        _mns="$(yq e '.metadata.namespace // "default"' - <<< "$_manifest")"
+        mkdir -p "${KUBECTL_SECRET_DIR}/${_mns}/${_name}"
+        while IFS='|' read -r _dk _dv; do
+            [[ -n "$_dk" ]] || continue
+            printf '%s' "$_dv" | base64 -d > "${KUBECTL_SECRET_DIR}/${_mns}/${_name}/${_dk}"
+        done < <(yq e '.data | to_entries | .[] | .key + "|" + .value' - <<< "$_manifest")
+        echo "secret/${_name} configured"
+        exit 0
+    fi
+fi
+
 lookup_secret() {
     local namespace="$1"
     local secret_name="$2"
@@ -451,6 +522,10 @@ validate_action_schemas() {
                            -n "$(yq e "${action_path}[]? | select(.type == \"${type}\") | .secret_name // \"\"" "$f" 2>/dev/null | sed '/^$/d;/^null$/d')" &&
                            -n "$(yq e "${action_path}[]? | select(.type == \"${type}\") | .directory // \"\"" "$f" 2>/dev/null | sed '/^$/d;/^null$/d')" ]] ||
                             failures+="${svc}:${action_path}:${type}:secret_name-and-directory-required"$'\n'
+                        ;;
+                    barbican_simple_crypto_kek)
+                        ;;
+                    barbican_hsm_setup|barbican_hsm_init)
                         ;;
                     cluster_name_site_value)
                         [[ -n "$(yq e "${action_path}[]? | select(.type == \"${type}\") | .helm_key // \"\"" "$f" 2>/dev/null | sed '/^$/d;/^null$/d')" ]] ||
@@ -2498,6 +2573,497 @@ test_install_keystone_shibboleth_secret() {
     rm -rf "$fakebin"
 }
 
+# barbican_simple_crypto_kek is a port of the kek handling in the old
+# install-barbican.sh. These tests run its cases against an in-memory secret
+# store: a new install generates a kek, an existing deployment adopts the kek it
+# already runs, a staged rotation is allowed and an impossible rewrap is refused.
+test_barbican_simple_crypto_kek() (
+    local fakebin tmp_root store etc svc_yaml log rc output kek_a kek_b kek_c well_known conf
+    local GENESTACK_OVERRIDES_DIR GENESTACK_BASE_DIR
+    # shellcheck source=../bin/helpers.sh
+    source "${REPO_ROOT}/bin/helpers.sh"
+    # shellcheck source=../bin/lib/barbican.sh
+    source "${REPO_ROOT}/bin/lib/barbican.sh"
+    fakebin="$(mktemp -d)"
+    create_fake_installer_binaries "$fakebin"
+    tmp_root="$(mktemp -d)"
+    store="${tmp_root}/store"
+    etc="${tmp_root}/etc"
+    log="${tmp_root}/kubectl.log"
+    GENESTACK_OVERRIDES_DIR="$etc"
+    GENESTACK_BASE_DIR="$REPO_ROOT"
+    mkdir -p "$store" "${etc}/helm-configs/barbican"
+    CL_EXTRA_HELM_ARGS=()
+    PATH="${fakebin}:$PATH"
+    export PATH KUBECTL_BIN=kubectl KUBECTL_LOG_FILE="$log" KUBECTL_SECRET_DIR="$store"
+    # Only the kek action: the SoftHSM actions have their own test.
+    svc_yaml="$(yq e '{"service": .service, "chart": .chart, "pre_install_actions": [.pre_install_actions[] | select(.type == "barbican_simple_crypto_kek")]}' "${REPO_ROOT}/bin/services/barbican.yaml")"
+    [[ "$(yq e '.pre_install_actions[0].type' - <<< "$svc_yaml")" == "barbican_simple_crypto_kek" ]] ||
+        fail "barbican.yaml must carry the barbican_simple_crypto_kek action"
+
+    new_key() { head -c 32 /dev/urandom | base64 | tr -d '\n' | tr '+/' '-_'; }
+    put() { mkdir -p "${store}/$1/$2"; printf '%s' "$4" > "${store}/$1/$2/$3"; }
+    get() { cat "${store}/$1/$2/$3" 2>/dev/null || true; }
+    reset() { rm -rf "$store"; mkdir -p "$store"; rm -f "${etc}/helm-configs/barbican/"*.yaml; }
+    run_kek() {
+        helm_set_args=()
+        : > "$log"
+        rc=0
+        run_service_actions "$svc_yaml" '.pre_install_actions' barbican >"${tmp_root}/out" 2>&1 || rc=$?
+        output="$(cat "${tmp_root}/out")"
+    }
+    conf_with() { printf '[DEFAULT]\ndebug = true\n[simple_crypto_plugin]\nplugin_name = Software Only Crypto\nkek = %s\n[other]\nkek = not-this-one\n' "$1"; }
+
+    kek_a="$(new_key)"; kek_b="$(new_key)"; kek_c="$(new_key)"
+    well_known="$(barbican_kek_well_known)"
+    [[ "$well_known" != "$kek_a" ]] || fail "test keys must differ from the default"
+    assert_eq "44" "${#well_known}" "the well-known default must be a 44-char key"
+
+    # Case 4: new install. A random kek is generated, stored and injected.
+    reset
+    run_kek
+    assert_eq "0" "$rc" "a new install must succeed"
+    assert_contains "$output" "generating a fresh kek" "a new install must say it generates a kek"
+    kek_new="$(get openstack barbican-simple-crypto-kek kek)"
+    barbican_kek_format_ok "$kek_new" || fail "the generated kek must be a valid Fernet key"
+    assert_eq "" "$(get openstack barbican-simple-crypto-kek old_keks)" "a new install has no old keks"
+    assert_eq "--set-string conf.barbican.simple_crypto_plugin.kek=${kek_new}" "${helm_set_args[*]}" \
+        "the generated kek must be injected as the only argument"
+    assert_not_contains "$(cat "$log")" "$kek_new" "the kek must never appear on a kubectl command line"
+    assert_contains "$(cat "$log")" "apply -f -" "the secret must be written over stdin"
+
+    # Rerun after the release exists: nothing is rewrapped and nothing is rewritten.
+    put openstack barbican-etc barbican.conf "$(conf_with "$kek_new")"
+    run_kek
+    assert_eq "0" "$rc" "a rerun must succeed"
+    assert_contains "$output" "Secret kek matches the deployed kek" "a rerun must find the kek unchanged"
+    assert_eq "--set-string conf.barbican.simple_crypto_plugin.kek=${kek_new}" "${helm_set_args[*]}" "a rerun must inject the same kek"
+    assert_not_contains "$(cat "$log")" "apply" "a rerun must not rewrite the secret"
+    assert_eq "$kek_new" "$(get openstack barbican-simple-crypto-kek kek)" "a rerun must keep the stored kek"
+
+    # Case 3: an existing deployment without the secret adopts the kek it runs.
+    reset
+    put openstack barbican-etc barbican.conf "$(conf_with "$kek_a")"
+    run_kek
+    assert_eq "0" "$rc" "adopting the deployed kek must succeed"
+    assert_contains "$output" "adopting the deployed simple_crypto kek" "the adoption must be announced"
+    assert_eq "$kek_a" "$(get openstack barbican-simple-crypto-kek kek)" "the deployed kek must be stored"
+    assert_eq "--set-string conf.barbican.simple_crypto_plugin.kek=${kek_a}" "${helm_set_args[*]}" "the adopted kek must be injected"
+    assert_not_contains "$output" "generating a fresh kek" "an existing deployment must never get a random kek"
+
+    # Case 3, pre-Gazpacho: no kek line means the upstream default, adopted with a warning.
+    reset
+    put openstack barbican-etc barbican.conf "$(printf '[DEFAULT]\ndebug = true\n[simple_crypto_plugin]\nplugin_name = Software Only Crypto\n')"
+    run_kek
+    assert_eq "0" "$rc" "adopting the implicit default kek must succeed"
+    assert_contains "$output" "WELL-KNOWN DEFAULT SIMPLE_CRYPTO KEK" "the default kek must be flagged loudly"
+    assert_eq "$well_known" "$(get openstack barbican-simple-crypto-kek kek)" "the implicit default must be adopted, not replaced"
+
+    # Case 3 with an unusable deployed kek: refuse, write nothing.
+    reset
+    put openstack barbican-etc barbican.conf "$(conf_with "too-short")"
+    run_kek
+    assert_eq "1" "$rc" "an invalid deployed kek must stop the install"
+    assert_contains "$output" "refusing to replace it with a random value" "the refusal must be explained"
+    [[ ! -d "${store}/openstack/barbican-simple-crypto-kek" ]] || fail "nothing may be written for an invalid deployed kek"
+
+    # barbican-etc exists but barbican.conf is unreadable: never guess "new install".
+    reset
+    put openstack barbican-etc other.conf "x"
+    run_kek
+    assert_eq "1" "$rc" "an unreadable barbican.conf must stop the install"
+    assert_contains "$output" "barbican.conf could not be read" "the unreadable conf must be reported"
+    [[ ! -d "${store}/openstack/barbican-simple-crypto-kek" ]] || fail "no kek may be generated over an unreadable deployment"
+
+    # Case 1: a kek in a values file is deployed as is.
+    reset
+    printf 'conf:\n  barbican:\n    simple_crypto_plugin:\n      kek: %s\n' "$kek_a" > "${etc}/helm-configs/barbican/barbican-helm-overrides.yaml"
+    put openstack barbican-simple-crypto-kek kek "$kek_b"
+    run_kek
+    assert_eq "0" "$rc" "an override kek must succeed"
+    assert_contains "$output" "deploying it as is" "the override must be announced"
+    assert_contains "$output" "NOTICE: barbican-simple-crypto-kek exists but is ignored" "the ignored secret must be noted"
+    assert_eq "0" "${#helm_set_args[@]}" "an override kek must inject nothing"
+    assert_not_contains "$(cat "$log")" "apply" "an override kek must write no secret"
+    printf 'conf:\n  barbican:\n    simple_crypto_plugin:\n      kek: %s\n' "$well_known" > "${etc}/helm-configs/barbican/barbican-helm-overrides.yaml"
+    run_kek
+    assert_contains "$output" "WELL-KNOWN DEFAULT SIMPLE_CRYPTO KEK" "an override with the default kek must be flagged"
+
+    # Case 2: the secret is not a Fernet key.
+    reset
+    put openstack barbican-simple-crypto-kek kek "not-a-fernet-key"
+    run_kek
+    assert_eq "1" "$rc" "an invalid secret kek must stop the install"
+    assert_contains "$output" "not a 44-char Fernet key" "the invalid kek must be reported"
+    assert_eq "0" "${#helm_set_args[@]}" "an invalid kek must not be injected"
+
+    # Case 2: a secret holding the default kek is flagged.
+    reset
+    put openstack barbican-simple-crypto-kek kek "$well_known"
+    run_kek
+    assert_eq "0" "$rc" "the default kek in the secret must still deploy"
+    assert_contains "$output" "WELL-KNOWN DEFAULT SIMPLE_CRYPTO KEK" "the default kek in the secret must be flagged"
+
+    # Guard: a staged rotation. The deployed kek is in old_keks, so the rewrap can succeed.
+    reset
+    put openstack barbican-simple-crypto-kek kek "$kek_b"
+    put openstack barbican-simple-crypto-kek old_keks "${kek_a},${kek_c}"
+    put openstack barbican-etc barbican.conf "$(conf_with "$kek_a")"
+    run_kek
+    assert_eq "0" "$rc" "a staged rotation must succeed"
+    assert_contains "$output" "ONE-WAY rewrap" "a staged rotation must warn about the rewrap"
+    assert_contains "$output" "Back up the barbican DB first" "a staged rotation must say to back up the database"
+    assert_eq "--set-string conf.barbican.simple_crypto_plugin.kek=${kek_b} --set-string conf.simple_crypto_kek_rewrap.old_kek=${kek_a}\\,${kek_c}" \
+        "${helm_set_args[*]}" "a staged rotation must inject the kek and the comma-escaped history"
+    assert_not_contains "$(cat "$log")" "apply" "a staged rotation must not rewrite the secret"
+
+    # Guard: the deployed kek is not in old_keks, so the rewrap could not succeed.
+    reset
+    put openstack barbican-simple-crypto-kek kek "$kek_b"
+    put openstack barbican-simple-crypto-kek old_keks "$kek_c"
+    put openstack barbican-etc barbican.conf "$(conf_with "$kek_a")"
+    run_kek
+    assert_eq "1" "$rc" "an impossible rewrap must stop the install"
+    assert_contains "$output" "the db-sync rewrap could not unwrap the existing project" "the refusal must be explained"
+    assert_contains "$output" "rotate-barbican-kek.py --stage" "the refusal must point at the rotation tool"
+    assert_eq "0" "${#helm_set_args[@]}" "nothing may be injected when the rewrap is impossible"
+
+    # Guard: no release yet.
+    reset
+    put openstack barbican-simple-crypto-kek kek "$kek_b"
+    run_kek
+    assert_eq "0" "$rc" "a secret without a release must deploy"
+    assert_contains "$output" "no barbican release yet" "the missing release must be reported"
+
+    # kubectl cannot answer: never act on a guess. Each lookup is broken on its own,
+    # because either one alone must stop the install.
+    reset
+    put openstack barbican-simple-crypto-kek kek "$kek_a"
+    export KUBECTL_STORE_API_ERROR=barbican-simple-crypto-kek
+    run_kek
+    unset KUBECTL_STORE_API_ERROR
+    assert_eq "1" "$rc" "an API error on the kek secret must stop the install"
+    assert_contains "$output" "Cannot tell whether openstack/barbican-simple-crypto-kek exists" "the API error must be reported"
+    assert_not_contains "$(cat "$log")" "apply" "nothing may be written after an API error"
+    assert_eq "$kek_a" "$(get openstack barbican-simple-crypto-kek kek)" "the stored kek must be untouched"
+    reset
+    put openstack barbican-etc barbican.conf "$(conf_with "$kek_a")"
+    export KUBECTL_STORE_API_ERROR=barbican-etc
+    run_kek
+    unset KUBECTL_STORE_API_ERROR
+    assert_eq "1" "$rc" "an API error on barbican-etc must stop the install"
+    assert_contains "$output" "Cannot tell whether openstack/barbican-etc exists" "the barbican-etc API error must be reported"
+    assert_not_contains "$output" "generating a fresh kek" "an API error must never lead to a random kek"
+    [[ ! -d "${store}/openstack/barbican-simple-crypto-kek" ]] || fail "no secret may be written after a barbican-etc API error"
+
+    # An existing secret with no readable kek is never overwritten.
+    reset
+    put openstack barbican-simple-crypto-kek old_keks "$kek_a"
+    run_kek
+    assert_eq "1" "$rc" "a secret without a kek must stop the install"
+    assert_contains "$output" "refusing to overwrite it" "the refusal must be explained"
+    assert_eq "$kek_a" "$(get openstack barbican-simple-crypto-kek old_keks)" "the existing secret must be untouched"
+    rm -rf "$tmp_root" "$fakebin"
+)
+
+# install.sh --service barbican injects the kek, and stops before Helm when the
+# rewrap could not succeed.
+test_install_barbican_kek() {
+    local fakebin tmp_root tmp_base tmp_overrides store helm_log out rc mode kek_a kek_b
+    fakebin="$(mktemp -d)"
+    create_fake_installer_binaries "$fakebin"
+    kek_a="$(head -c 32 /dev/urandom | base64 | tr -d '\n' | tr '+/' '-_')"
+    kek_b="$(head -c 32 /dev/urandom | base64 | tr -d '\n' | tr '+/' '-_')"
+    for mode in new brownfield rotation refused; do
+        tmp_root="$(mktemp -d)"
+        tmp_base="${tmp_root}/base"
+        tmp_overrides="${tmp_root}/overrides"
+        store="${tmp_root}/store"
+        helm_log="${tmp_root}/helm.log"
+        mkdir -p "${tmp_base}/base-helm-configs" "${tmp_base}/base-kustomize" "${tmp_overrides}/kustomize" "$store"
+        cp -R "${REPO_ROOT}/base-helm-configs/barbican" "${tmp_base}/base-helm-configs/"
+        # SoftHSM key initialization has its own test; here it only has to succeed.
+        mkdir -p "${tmp_base}/scripts/lib"
+        printf 'initBarbicanHSMKeys() { return 0; }\n' > "${tmp_base}/scripts/lib/hyperconverged-common.sh"
+        printf '#!/bin/bash\nexit 0\n' > "${tmp_overrides}/kustomize/kustomize.sh"
+        chmod +x "${tmp_overrides}/kustomize/kustomize.sh"
+        printf 'charts:\n  barbican: 1.0.0\n' > "${tmp_overrides}/helm-chart-versions.yaml"
+        : > "$helm_log"
+        case "$mode" in
+            brownfield)
+                mkdir -p "${store}/openstack/barbican-etc"
+                printf '[simple_crypto_plugin]\nkek = %s\n' "$kek_a" > "${store}/openstack/barbican-etc/barbican.conf"
+                ;;
+            rotation|refused)
+                mkdir -p "${store}/openstack/barbican-etc" "${store}/openstack/barbican-simple-crypto-kek"
+                printf '[simple_crypto_plugin]\nkek = %s\n' "$kek_a" > "${store}/openstack/barbican-etc/barbican.conf"
+                printf '%s' "$kek_b" > "${store}/openstack/barbican-simple-crypto-kek/kek"
+                if [[ "$mode" == rotation ]]; then
+                    printf '%s' "$kek_a" > "${store}/openstack/barbican-simple-crypto-kek/old_keks"
+                else
+                    printf '' > "${store}/openstack/barbican-simple-crypto-kek/old_keks"
+                fi
+                ;;
+        esac
+        rc=0
+        out="$(env PATH="${fakebin}:$PATH" \
+            KUBECTL_BIN=kubectl \
+            KUBECTL_SECRET_DIR="$store" \
+            HELM_LOG_FILE="$helm_log" \
+            GENESTACK_BASE_DIR="$tmp_base" \
+            GENESTACK_OVERRIDES_DIR="$tmp_overrides" \
+            GENESTACK_SERVICES_DIR="${REPO_ROOT}/bin/services" \
+            GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
+            "${REPO_ROOT}/bin/install.sh" --service barbican 2>&1)" || rc=$?
+        case "$mode" in
+            new)
+                assert_eq "0" "$rc" "a new barbican install must succeed"
+                assert_contains "$(cat "$helm_log")" "--set-string conf.barbican.simple_crypto_plugin.kek=$(cat "${store}/openstack/barbican-simple-crypto-kek/kek")" \
+                    "Helm must receive the generated kek"
+                assert_not_contains "$(cat "$helm_log")" "old_kek" "a new install has no old_kek"
+                ;;
+            brownfield)
+                assert_eq "0" "$rc" "a brownfield barbican install must succeed"
+                assert_contains "$(cat "$helm_log")" "--set-string conf.barbican.simple_crypto_plugin.kek=${kek_a}" \
+                    "Helm must receive the kek the deployment already runs"
+                ;;
+            rotation)
+                assert_eq "0" "$rc" "a staged rotation must succeed"
+                assert_contains "$(cat "$helm_log")" "--set-string conf.barbican.simple_crypto_plugin.kek=${kek_b}" "Helm must receive the new kek"
+                assert_contains "$(cat "$helm_log")" "--set-string conf.simple_crypto_kek_rewrap.old_kek=${kek_a}" "Helm must receive the old kek"
+                ;;
+            refused)
+                [[ "$rc" -ne 0 ]] || fail "an impossible rewrap must stop the barbican install"
+                assert_contains "$out" "Pre-install hook for 'barbican' failed; not running Helm." "the stop must be reported"
+                assert_not_contains "$(cat "$helm_log")" "upgrade --install" "Helm must not run when the rewrap could not succeed"
+                ;;
+        esac
+        rm -rf "$tmp_root"
+    done
+    rm -rf "$fakebin"
+}
+
+# barbican_hsm_setup and barbican_hsm_init are a port of the SoftHSM handling in
+# the old install-barbican.sh: the PIN secret is created once and never changed,
+# the PIN is injected whenever the secret holds one, the lab overlay is generated
+# only when no site file exists, and the keys are initialized after Helm.
+test_barbican_hsm() (
+    local fakebin tmp_root store etc base svc_yaml log rc output pin_a pin_b site
+    local GENESTACK_OVERRIDES_DIR GENESTACK_BASE_DIR
+    # shellcheck source=../bin/helpers.sh
+    source "${REPO_ROOT}/bin/helpers.sh"
+    fakebin="$(mktemp -d)"
+    create_fake_installer_binaries "$fakebin"
+    tmp_root="$(mktemp -d)"
+    store="${tmp_root}/store"
+    etc="${tmp_root}/etc"
+    base="${tmp_root}/base"
+    log="${tmp_root}/kubectl.log"
+    site="${etc}/helm-configs/barbican/barbican-helm-overrides.yaml"
+    GENESTACK_OVERRIDES_DIR="$etc"
+    GENESTACK_BASE_DIR="$base"
+    mkdir -p "$store" "${etc}/helm-configs/barbican" "${base}/base-helm-configs" "${base}/scripts/lib"
+    cp -R "${REPO_ROOT}/base-helm-configs/barbican" "${base}/base-helm-configs/"
+    # Stand-in for the lab library: record the calls, fail on request.
+    cat > "${base}/scripts/lib/hyperconverged-common.sh" <<'EOS'
+writeServiceHelmOverrides() { printf 'overlay %s\n' "$1" >> "${HSM_CALL_LOG}"; mkdir -p "$1/barbican"; : > "$1/barbican/barbican-helm-overrides.yaml"; }
+initBarbicanHSMKeys() { printf 'init\n' >> "${HSM_CALL_LOG}"; [[ "${HSM_INIT_FAIL:-0}" != "1" ]]; }
+EOS
+    export HSM_CALL_LOG="${tmp_root}/hsm-calls.log"
+    CL_EXTRA_HELM_ARGS=()
+    PATH="${fakebin}:$PATH"
+    export PATH KUBECTL_BIN=kubectl KUBECTL_LOG_FILE="$log" KUBECTL_SECRET_DIR="$store"
+    svc_yaml="$(yq e '{"service": .service, "chart": .chart, "pre_install_actions": .pre_install_actions, "post_install_actions": .post_install_actions}' "${REPO_ROOT}/bin/services/barbican.yaml")"
+    [[ "$(yq e '.pre_install_actions[0].type' - <<< "$svc_yaml")" == "barbican_hsm_setup" ]] ||
+        fail "barbican.yaml must run barbican_hsm_setup first, as the old script did"
+    [[ "$(yq e '.post_install_actions[0].type' - <<< "$svc_yaml")" == "barbican_hsm_init" ]] ||
+        fail "barbican.yaml must carry the barbican_hsm_init post-install action"
+    assert_eq "true" "$(yq e '.post_install_fatal' "${REPO_ROOT}/bin/services/barbican.yaml")" \
+        "barbican.yaml must fail the install when the SoftHSM initialization fails"
+
+    put() { mkdir -p "${store}/$1/$2"; printf '%s' "$4" > "${store}/$1/$2/$3"; }
+    get() { cat "${store}/$1/$2/$3" 2>/dev/null || true; }
+    reset() {
+        rm -rf "$store" "${etc}/helm-configs" "$HSM_CALL_LOG"
+        mkdir -p "$store" "${etc}/helm-configs/barbican"
+        unset BARBICAN_HSM_ENABLED HYPERCONVERGED_BARBICAN_HSM GENESTACK_BARBICAN_SOFTHSM_P11 HSM_INIT_FAIL
+    }
+    run_setup() {
+        helm_set_args=()
+        : > "$log"
+        rc=0
+        run_service_action "$svc_yaml" '.pre_install_actions' 0 barbican >"${tmp_root}/out" 2>&1 || rc=$?
+        output="$(cat "${tmp_root}/out")"
+    }
+    run_init() {
+        : > "$log"
+        rc=0
+        run_service_action "$svc_yaml" '.post_install_actions' 0 barbican >"${tmp_root}/out" 2>&1 || rc=$?
+        output="$(cat "${tmp_root}/out")"
+    }
+    pin_a="pinAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA1"
+    pin_b="pinBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB2"
+
+    # p11 is on through the base values: a missing PIN secret is created once and injected.
+    reset
+    run_setup
+    assert_eq "0" "$rc" "a new SoftHSM setup must succeed"
+    assert_contains "$output" "Creating barbican-hsm-credentials" "a missing PIN secret must be created"
+    assert_contains "$(cat "$log")" "create secret generic barbican-hsm-credentials --namespace openstack --from-literal=pin=" \
+        "the PIN secret must be created with a pin"
+    pin_new="$(get openstack barbican-hsm-credentials pin)"
+    assert_eq "32" "${#pin_new}" "the generated PIN must be 32 characters"
+    assert_eq "--set conf.barbican.p11_crypto_plugin.login=${pin_new}" "${helm_set_args[*]}" "the PIN must be injected with --set"
+    assert_eq "true" "$GENESTACK_BARBICAN_SOFTHSM_P11" "p11 must be reported as enabled for the post-install step"
+    assert_contains "$output" "HSM credentials found - injecting p11_crypto_plugin.login" "the injection must be announced"
+
+    # Rerun: the existing PIN is left alone and injected again.
+    run_setup
+    assert_eq "0" "$rc" "a rerun must succeed"
+    assert_contains "$output" "already present — leaving PIN unchanged" "an existing PIN must be left alone"
+    assert_not_contains "$(cat "$log")" "create secret" "an existing PIN secret must not be recreated"
+    assert_eq "$pin_new" "$(get openstack barbican-hsm-credentials pin)" "an existing PIN must never change"
+    assert_eq "--set conf.barbican.p11_crypto_plugin.login=${pin_new}" "${helm_set_args[*]}" "the existing PIN must be injected"
+
+    # p11 off (values without it): nothing is created, but an existing PIN is still injected.
+    rm -rf "${base}/base-helm-configs/barbican"; mkdir -p "${base}/base-helm-configs/barbican"
+    printf 'conf:\n  barbican:\n    DEFAULT:\n      debug: true\n' > "${base}/base-helm-configs/barbican/barbican-helm-overrides.yaml"
+    reset
+    run_setup
+    assert_eq "0" "$rc" "a setup without p11 must succeed"
+    assert_eq "0" "${#helm_set_args[@]}" "no PIN may be injected when none exists and p11 is off"
+    [[ ! -d "${store}/openstack/barbican-hsm-credentials" ]] || fail "no PIN secret may be created when p11 is off"
+    assert_eq "false" "$GENESTACK_BARBICAN_SOFTHSM_P11" "p11 must be reported as off"
+    put openstack barbican-hsm-credentials pin "$pin_a"
+    run_setup
+    assert_eq "--set conf.barbican.p11_crypto_plugin.login=${pin_a}" "${helm_set_args[*]}" "an existing PIN is injected even when p11 is off"
+    # ...and the post-install step is skipped.
+    run_init
+    assert_eq "0" "$rc" "the init must be a no-op when p11 is off"
+    [[ ! -s "$HSM_CALL_LOG" ]] || fail "SoftHSM keys must not be initialized when p11 is off"
+    rm -rf "${base}/base-helm-configs/barbican"; cp -R "${REPO_ROOT}/base-helm-configs/barbican" "${base}/base-helm-configs/"
+
+    # Lab flags: the overlay is generated only when no site file exists.
+    for flag in BARBICAN_HSM_ENABLED HYPERCONVERGED_BARBICAN_HSM; do
+        reset
+        export "${flag}=true"
+        run_setup
+        assert_eq "0" "$rc" "${flag}=true must succeed"
+        assert_contains "$output" "Generating SoftHSM overlay" "${flag}=true must generate the overlay when the site file is missing"
+        assert_contains "$(cat "$HSM_CALL_LOG")" "overlay ${etc}/helm-configs" "the overlay must be written under helm-configs"
+        rm -f "$HSM_CALL_LOG"
+        printf '# existing site values\n' > "$site"
+        run_setup
+        [[ ! -s "$HSM_CALL_LOG" ]] || fail "${flag}=true must never regenerate an existing site file"
+        assert_eq "# existing site values" "$(cat "$site")" "an existing site file must stay untouched"
+    done
+    reset
+    run_setup
+    [[ ! -s "$HSM_CALL_LOG" ]] || fail "no overlay may be generated without the lab flags"
+
+    # kubectl cannot say whether the PIN secret exists: never act on a guess.
+    reset
+    put openstack barbican-hsm-credentials pin "$pin_a"
+    export KUBECTL_STORE_API_ERROR=barbican-hsm-credentials
+    run_setup
+    unset KUBECTL_STORE_API_ERROR
+    assert_eq "1" "$rc" "an API error on the PIN secret must stop the install"
+    assert_contains "$output" "Cannot tell whether openstack/barbican-hsm-credentials exists" "the API error must be reported"
+    assert_not_contains "$(cat "$log")" "create secret" "no PIN may be created after an API error"
+    assert_eq "$pin_a" "$(get openstack barbican-hsm-credentials pin)" "the stored PIN must be untouched"
+
+    # Post-install key initialization.
+    reset
+    export GENESTACK_BARBICAN_SOFTHSM_P11=true
+    run_init
+    assert_eq "0" "$rc" "the key initialization must succeed"
+    assert_eq "init" "$(cat "$HSM_CALL_LOG")" "initBarbicanHSMKeys must run when p11 is enabled"
+    rm -f "$HSM_CALL_LOG"
+    export HSM_INIT_FAIL=1
+    run_init
+    assert_eq "1" "$rc" "a failing key initialization must fail the action"
+    unset HSM_INIT_FAIL
+    rm -f "$HSM_CALL_LOG"
+    CL_EXTRA_HELM_ARGS=(--dry-run)
+    run_init
+    CL_EXTRA_HELM_ARGS=()
+    assert_eq "0" "$rc" "--dry-run must skip the key initialization"
+    assert_contains "$output" "--dry-run is set" "the --dry-run skip must be reported"
+    [[ ! -s "$HSM_CALL_LOG" ]] || fail "SoftHSM keys must not be initialized for --dry-run"
+    mv "${base}/scripts/lib/hyperconverged-common.sh" "${base}/scripts/lib/hyperconverged-common.sh.off"
+    run_init
+    mv "${base}/scripts/lib/hyperconverged-common.sh.off" "${base}/scripts/lib/hyperconverged-common.sh"
+    assert_eq "1" "$rc" "a missing initBarbicanHSMKeys must fail the action"
+    assert_contains "$output" "initBarbicanHSMKeys not found" "the missing function must be reported"
+    rm -rf "$tmp_root" "$fakebin"
+)
+
+# install.sh --service barbican injects the PIN, initializes the SoftHSM keys
+# after Helm, and fails when the initialization fails.
+test_install_barbican_hsm() {
+    local fakebin tmp_root tmp_base tmp_overrides store helm_log order_log out rc mode
+    fakebin="$(mktemp -d)"
+    create_fake_installer_binaries "$fakebin"
+    for mode in ok init-fails helm-fails dry-run; do
+        tmp_root="$(mktemp -d)"
+        tmp_base="${tmp_root}/base"
+        tmp_overrides="${tmp_root}/overrides"
+        store="${tmp_root}/store"
+        helm_log="${tmp_root}/helm.log"
+        order_log="${tmp_root}/order.log"
+        mkdir -p "${tmp_base}/base-helm-configs" "${tmp_base}/base-kustomize" "${tmp_base}/scripts/lib" "${tmp_overrides}/kustomize" "$store/openstack/barbican-hsm-credentials"
+        cp -R "${REPO_ROOT}/base-helm-configs/barbican" "${tmp_base}/base-helm-configs/"
+        printf 'existing-pin-0123456789abcdef0123' > "${store}/openstack/barbican-hsm-credentials/pin"
+        mkdir -p "${store}/openstack/barbican-etc"
+        printf '[simple_crypto_plugin]\nkek = %s\n' "$(head -c 32 /dev/urandom | base64 | tr -d '\n' | tr '+/' '-_')" > "${store}/openstack/barbican-etc/barbican.conf"
+        cat > "${tmp_base}/scripts/lib/hyperconverged-common.sh" <<EOS
+initBarbicanHSMKeys() {
+    if grep -q '^upgrade --install' "${helm_log}"; then echo init-after-helm >> "${order_log}"; else echo init-before-helm >> "${order_log}"; fi
+    [[ "\${HSM_INIT_FAIL:-0}" != "1" ]]
+}
+EOS
+        printf '#!/bin/bash\nexit 0\n' > "${tmp_overrides}/kustomize/kustomize.sh"
+        chmod +x "${tmp_overrides}/kustomize/kustomize.sh"
+        printf 'charts:\n  barbican: 1.0.0\n' > "${tmp_overrides}/helm-chart-versions.yaml"
+        : > "$helm_log"
+        : > "$order_log"
+        rc=0
+        out="$(env PATH="${fakebin}:$PATH" \
+            KUBECTL_BIN=kubectl \
+            KUBECTL_SECRET_DIR="$store" \
+            HELM_LOG_FILE="$helm_log" \
+            HSM_INIT_FAIL="$([[ "$mode" == init-fails ]] && echo 1 || echo 0)" \
+            HELM_FAIL_UPGRADE="$([[ "$mode" == helm-fails ]] && echo 1 || echo 0)" \
+            GENESTACK_BASE_DIR="$tmp_base" \
+            GENESTACK_OVERRIDES_DIR="$tmp_overrides" \
+            GENESTACK_SERVICES_DIR="${REPO_ROOT}/bin/services" \
+            GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
+            "${REPO_ROOT}/bin/install.sh" --service barbican $([[ "$mode" == dry-run ]] && echo --dry-run) 2>&1)" || rc=$?
+        case "$mode" in
+            ok)
+                assert_eq "0" "$rc" "barbican install must succeed"
+                assert_contains "$(cat "$helm_log")" "--set conf.barbican.p11_crypto_plugin.login=existing-pin-0123456789abcdef0123" \
+                    "Helm must receive the SoftHSM PIN"
+                assert_eq "init-after-helm" "$(cat "$order_log")" "the SoftHSM keys must be initialized after Helm"
+                ;;
+            init-fails)
+                [[ "$rc" -ne 0 ]] || fail "a failing SoftHSM initialization must fail the install"
+                assert_contains "$out" "Post-install hook for 'barbican' failed." "the failure must be reported"
+                ;;
+            helm-fails)
+                [[ "$rc" -ne 0 ]] || fail "a failing Helm upgrade must fail the install"
+                assert_eq "" "$(cat "$order_log")" "the SoftHSM keys must not be initialized after a failed Helm upgrade"
+                ;;
+            dry-run)
+                assert_eq "0" "$rc" "barbican --dry-run must succeed"
+                assert_eq "" "$(cat "$order_log")" "the SoftHSM keys must not be initialized for --dry-run"
+                ;;
+        esac
+        rm -rf "$tmp_root"
+    done
+    rm -rf "$fakebin"
+}
+
 # Isolate configuration fixtures and resolver mocks from the secret tests.
 test_config_layer_precedence() (
     local root merged sources
@@ -2779,6 +3345,10 @@ main() {
     test_install_hook_failures_stop_install
     test_secret_sync_directory
     test_install_keystone_shibboleth_secret
+    test_barbican_simple_crypto_kek
+    test_install_barbican_kek
+    test_barbican_hsm
+    test_install_barbican_hsm
     echo "PASS: unified installer regression checks"
 }
 

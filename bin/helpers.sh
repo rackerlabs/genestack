@@ -588,6 +588,17 @@ append_helm_set_arg() {
     helm_set_args+=("--set" "${helm_key}=${value}")
 }
 
+append_helm_set_string_arg() {
+    local helm_key="$1"
+    local value="$2"
+
+    if ! declare -p helm_set_args >/dev/null 2>&1; then
+        helm_set_args=()
+    fi
+
+    helm_set_args+=("--set-string" "${helm_key}=${value}")
+}
+
 run_service_actions() {
     local svc_yaml_content="$1"
     local actions_path="$2"
@@ -901,6 +912,31 @@ run_service_action() {
                 log_error "Failed to sync secret ${sd_ns}/${sd_name} from ${sd_dir}."
                 return 1
             fi
+            ;;
+        barbican_simple_crypto_kek)
+            # shellcheck source=lib/barbican.sh
+            source "${GENESTACK_HELPERS_DIR}/lib/barbican.sh" || return 1
+            # Keeps the Barbican simple_crypto kek in barbican-simple-crypto-kek
+            # and injects it, as the old install-barbican.sh did. See
+            # ensure_barbican_simple_crypto_kek for the cases and the guard.
+            local kek_ns
+            kek_ns=$(echo "$svc_yaml_content" | yq e '.service.namespace // "openstack"' -)
+            ensure_barbican_simple_crypto_kek "$svc_yaml_content" "$kek_ns" || return 1
+            ;;
+        barbican_hsm_setup)
+            # shellcheck source=lib/barbican.sh
+            source "${GENESTACK_HELPERS_DIR}/lib/barbican.sh" || return 1
+            # SoftHSM2 PIN secret, PIN injection and the lab overlay, as the old
+            # install-barbican.sh did. See ensure_barbican_hsm_setup.
+            local hsm_ns
+            hsm_ns=$(echo "$svc_yaml_content" | yq e '.service.namespace // "openstack"' -)
+            ensure_barbican_hsm_setup "$svc_yaml_content" "$hsm_ns" "$service_name" || return 1
+            ;;
+        barbican_hsm_init)
+            # shellcheck source=lib/barbican.sh
+            source "${GENESTACK_HELPERS_DIR}/lib/barbican.sh" || return 1
+            # Post-install SoftHSM2 token and key initialization.
+            run_barbican_hsm_init || return 1
             ;;
         cluster_name_site_value)
             # Records the cluster DNS domain in the service's site values file,
