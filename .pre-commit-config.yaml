@@ -15,7 +15,7 @@ repos:
         pass_filenames: false
         stages:
           - manual
-        files: ^(bin/(helpers\.sh|install\.sh|services/.*\.(yaml|yml))|tests/test_unified_installer\.sh|\.pre-commit-config\.yaml)$
+        files: ^(bin/(helpers\.sh|install\.sh|lib/.*\.sh|services/.*\.(yaml|yml))|tests/test_unified_installer\.sh|\.pre-commit-config\.yaml)$
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v4.0.0
     hooks:
