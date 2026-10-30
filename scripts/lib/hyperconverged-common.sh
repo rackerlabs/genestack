@@ -2266,6 +2266,499 @@ ANSIBLE_EOF
     } | _ssh bash
 }
 
+function setupForBilling() {
+    # Install/configure the prerequisites the lab needs for billing.
+    # Usage: setupForBilling <rook_ceph_loop_size_gib>
+    #
+    # <rook_ceph_loop_size_gib> = 0 (the default) skips the whole function.
+    # A positive value runs every step below, with an N GiB loop device per
+    # node for Rook-Ceph.
+    #
+    # Steps:
+    #   1. Redis, in dependency order, each followed by a wait:
+    #      - install-redis-operator.sh    -> deployment/redis-operator
+    #      - install-redis-replication.sh -> statefulset/redis-replication
+    #      - install-redis-sentinel.sh    -> statefulset/redis-sentinel-sentinel
+    #      (all in the redis-systems namespace)
+    #   2. Postgres:
+    #      - install-postgres-operator.sh -> deployment/postgres-operator
+    #        (postgres-system), then the postgresqls.acid.zalan.do CRD
+    #      - postgresql/postgres-cluster (openstack) -> status Running
+    #   3. Rook-Ceph, then the services that depend on it:
+    #      - Creates /dev/loop500 on every lab node, backed by a sparse file at
+    #        /var/lib/ceph-loop/loop500.img and re-attached at boot by
+    #        ceph-loop500.service (losetup alone does not survive a reboot,
+    #        which would take the OSDs with it).
+    #      - Writes and applies the rook-operator overlay (base + a generated
+    #        patch allowing loop devices, token automount re-enabled on the
+    #        rook-ceph-default/osd/rgw ServiceAccounts, image pinned to
+    #        rook/ceph:v1.16.5) and waits for its rollout.
+    #      - Labels ${LAB_NAME_PREFIX}-{0,1,2}.${GATEWAY_DOMAIN} with
+    #        role=storage-node.
+    #      - Writes and applies the rook-cluster overlay (base + one generated
+    #        patch: useAllNodes/useAllDevices false and the lab node list, OSDs
+    #        on loop500 only) and waits up to 20m for cephcluster/rook-ceph
+    #        to reach phase Ready, failing fast with the prepare pod's logs
+    #        if an OSD prepare pod crash-loops or its job fails.
+    #      - Creates the openstack/ceph-etc ConfigMap with mon_host set to the
+    #        running (non-canary) rook-ceph mon pod IPs (port 6789) and
+    #        prints its ceph.conf. Fails if no mons are found.
+    #      - Installs Gnocchi, then Ceilometer, each with
+    #        helm --wait --wait-for-jobs --timeout 30m.
+    #      - pip installs python-ceilometerclient and gnocchiclient into the
+    #        jump host's ~/.venvs/genestack venv.
+    #      The base variants are never applied, so the operator never runs
+    #      rook/ceph:master and OSDs are never created on other disks.
+    #
+    # Requires: _ssh, LAB_NAME_PREFIX, GATEWAY_DOMAIN. Must run after the full
+    # Genestack setup (runGenestackSetupRemote): Redis and Postgres need the
+    # infrastructure's node labels (node-role.kubernetes.io/worker), the
+    # openstack namespace and the default (Longhorn) StorageClass for their
+    # PVCs, and Gnocchi needs Keystone from setup-openstack.sh. The kubespray
+    # lab calls it after deployTrove.
+
+    local rook_ceph_loop_size="${1:-0}"
+
+    if ! [[ "${rook_ceph_loop_size}" =~ ^[0-9]+$ ]]; then
+        echo "ERROR: setupForBilling: rook-ceph loop size must be 0 or a positive whole number of GiB (got '${rook_ceph_loop_size}')" >&2
+        return 1
+    fi
+    rook_ceph_loop_size=$((10#${rook_ceph_loop_size}))
+
+    # Gate for the whole function: 0 (the default) means billing is not
+    # wanted, and Gnocchi/Ceilometer need Rook-Ceph anyway.
+    if [ "${rook_ceph_loop_size}" -eq 0 ]; then
+        echo "Skipping billing setup: HYPERCONVERGED_ROOK_CEPH_LOOP_SIZE is 0"
+        return 0
+    fi
+
+    echo "Running billing setup..."
+
+    #########################################################################
+    # Redis: operator, replication cluster, sentinel
+    #
+    # Order matters: sentinel requires the operator and replication cluster
+    # (see docs/infrastructure-redis.md). The replication and sentinel
+    # StatefulSets are created asynchronously by the operator after helm
+    # returns, so wait for each to exist before waiting on its rollout.
+    #########################################################################
+    echo "Installing Redis (operator, replication, sentinel)..."
+    _ssh <<'EOC'
+set -e
+
+function waitForStatefulSet() {
+    # Usage: waitForStatefulSet <namespace> <name> [timeout_seconds]
+    local ns="$1"
+    local name="$2"
+    local timeout="${3:-300}"
+    local waited=0
+
+    echo "Waiting for statefulset ${ns}/${name} to be created"
+    until kubectl -n "${ns}" get statefulset "${name}" >/dev/null 2>&1; do
+        if [ "${waited}" -ge "${timeout}" ]; then
+            echo "ERROR: statefulset ${ns}/${name} was not created within ${timeout}s" >&2
+            kubectl -n "${ns}" get pods -o wide || true
+            return 1
+        fi
+        sleep 5
+        waited=$((waited + 5))
+    done
+
+    echo "Waiting for statefulset ${ns}/${name} to be ready"
+    kubectl -n "${ns}" rollout status "statefulset/${name}" --timeout="${timeout}s"
+}
+
+sudo /opt/genestack/bin/install-redis-operator.sh
+echo "Waiting for the redis-operator to be available"
+kubectl -n redis-systems wait --timeout=5m deployments.apps/redis-operator --for=condition=available
+
+sudo /opt/genestack/bin/install-redis-replication.sh
+waitForStatefulSet redis-systems redis-replication 300
+
+sudo /opt/genestack/bin/install-redis-sentinel.sh
+waitForStatefulSet redis-systems redis-sentinel-sentinel 300
+EOC
+
+    #########################################################################
+    # Postgres: zalando operator + postgres-cluster
+    #
+    # The operator registers the postgresqls.acid.zalan.do CRD itself after it
+    # starts, so wait for the CRD to exist and be established before applying
+    # the cluster CR, then wait for the operator to report it Running.
+    #########################################################################
+    echo "Installing Postgres (operator, postgres-cluster)..."
+    _ssh <<'EOC'
+set -e
+
+sudo /opt/genestack/bin/install-postgres-operator.sh
+echo "Waiting for the postgres-operator to be available"
+kubectl -n postgres-system wait --timeout=5m deployments.apps/postgres-operator --for=condition=available
+
+echo "Waiting for the postgresqls.acid.zalan.do CRD to be created"
+waited=0
+until kubectl get crd postgresqls.acid.zalan.do >/dev/null 2>&1; do
+    if [ "${waited}" -ge 300 ]; then
+        echo "ERROR: CRD postgresqls.acid.zalan.do was not created within 300s" >&2
+        kubectl -n postgres-system get pods -o wide || true
+        exit 1
+    fi
+    sleep 5
+    waited=$((waited + 5))
+done
+kubectl wait --timeout=2m crd/postgresqls.acid.zalan.do --for=condition=established
+
+kubectl apply -f - <<EOF
+apiVersion: "acid.zalan.do/v1"
+kind: postgresql
+metadata:
+  name: postgres-cluster
+  namespace: openstack
+spec:
+  dockerImage: ghcr.io/zalando/spilo-16:3.2-p3
+  teamId: "acid"
+  numberOfInstances: 3
+  postgresql:
+    version: "16"
+    parameters:
+      log_autovacuum_min_duration: "1000"
+      log_connections: "off"
+      log_destination: csvlog
+      log_directory: ../pg_log
+      log_disconnections: "off"
+      log_filename: postgresql-%u.log
+      log_min_duration_statement: "500"
+      log_rotation_age: "1440"
+      log_rotation_size: "0"
+      log_statement: none
+      log_temp_files: "10240"
+      log_truncate_on_rotation: "on"
+      # Lab sizing: 4096 would OOM the 1Gi pods well before being reached.
+      max_connections: "500"
+      # Lab sizing: ~25% of the pod memory limit below. The lab nodes are
+      # 16-24GB and also run the OpenStack control plane, so 8GB per
+      # instance (x3) does not fit; it would also exceed the operator's
+      # small default memory limit and the pods would OOM/fail to start.
+      shared_buffers: "256MB"
+  # Explicit resources so the operator's small defaults don't apply.
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  # Lab sizing: 3 instances x 10Gi of Longhorn storage on ~100GB nodes.
+  volume:
+    size: 10Gi
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+          - key: node-role.kubernetes.io/worker
+            operator: In
+            values:
+            - worker
+EOF
+
+echo "Waiting for postgresql/postgres-cluster to be Running"
+kubectl -n openstack wait --timeout=15m postgresql/postgres-cluster \
+    --for=jsonpath='{.status.PostgresClusterStatus}'=Running
+EOC
+
+    #########################################################################
+    # Rook-Ceph
+    #########################################################################
+    echo "Creating /dev/loop500 on each lab node (size: ${rook_ceph_loop_size}G)..."
+    {
+        # Only these two values are expanded locally; everything below the
+        # quoted 'EOLOOP' delimiter is sent to the jump host verbatim.
+        echo "LAB_NAME_PREFIX='${LAB_NAME_PREFIX}'"
+        echo "ROOK_LOOP_SIZE='${rook_ceph_loop_size}G'"
+        cat <<'EOLOOP'
+set -e
+cat > /tmp/install-loop500.sh <<'EOINSTALL'
+#!/usr/bin/env bash
+# Usage: install-loop500.sh <size>   (run as root on a lab node)
+set -euo pipefail
+LOOP_SIZE="${1:-20G}"
+
+cat > /usr/local/sbin/setup-loop500.sh <<'EOSETUP'
+#!/usr/bin/env bash
+# Attach /dev/loop500 to its backing file (idempotent).
+set -euo pipefail
+LOOP_SIZE="${1:-20G}"
+LOOP_DIR=/var/lib/ceph-loop
+LOOP_FILE="${LOOP_DIR}/loop500.img"
+LOOP_DEV=/dev/loop500
+
+modprobe loop
+mkdir -p "${LOOP_DIR}"
+# Sparse file: only consumes disk as Ceph writes to it.
+[ -f "${LOOP_FILE}" ] || truncate -s "${LOOP_SIZE}" "${LOOP_FILE}"
+if [ ! -b "${LOOP_DEV}" ]; then
+    mknod -m 0660 "${LOOP_DEV}" b 7 500
+    chown root:disk "${LOOP_DEV}"
+fi
+# losetup <dev> exits non-zero when the device is not attached.
+if ! losetup "${LOOP_DEV}" >/dev/null 2>&1; then
+    losetup "${LOOP_DEV}" "${LOOP_FILE}"
+fi
+losetup "${LOOP_DEV}"
+EOSETUP
+chmod 0755 /usr/local/sbin/setup-loop500.sh
+
+cat > /etc/systemd/system/ceph-loop500.service <<EOUNIT
+[Unit]
+Description=Attach /dev/loop500 for the Rook-Ceph lab OSD
+DefaultDependencies=no
+After=local-fs.target
+Before=kubelet.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/setup-loop500.sh ${LOOP_SIZE}
+
+[Install]
+WantedBy=multi-user.target
+EOUNIT
+
+systemctl daemon-reload
+systemctl enable --now ceph-loop500.service
+EOINSTALL
+
+# -0 is the jump host itself; -1 and -2 are reached over SSH from here.
+echo "  ${LAB_NAME_PREFIX}-0: creating /dev/loop500"
+sudo bash /tmp/install-loop500.sh "${ROOK_LOOP_SIZE}"
+for node in ${LAB_NAME_PREFIX}-1 ${LAB_NAME_PREFIX}-2; do
+    echo "  ${node}: creating /dev/loop500"
+    ssh -o StrictHostKeyChecking=no "${node}" "sudo bash -s -- '${ROOK_LOOP_SIZE}'" < /tmp/install-loop500.sh
+done
+rm -f /tmp/install-loop500.sh
+EOLOOP
+    } | _ssh bash
+
+    echo "Deploying Rook-Ceph with hyperconverged lab patches..."
+    _ssh <<EOC
+set -e
+ROOK_OPERATOR_OVERLAY=/etc/genestack/kustomize/rook-operator/overlay
+ROOK_CLUSTER_OVERLAY=/etc/genestack/kustomize/rook-cluster/overlay
+mkdir -p \${ROOK_OPERATOR_OVERLAY} \${ROOK_CLUSTER_OVERLAY}
+
+# Operator overlay: base + a patch allowing loop devices (Rook refuses to
+# use them otherwise), token automount re-enabled on the Rook
+# ServiceAccounts, and the image pinned to rook/ceph:v1.16.5 instead of
+# the base's floating rook/ceph:master (matches
+# docs/storage-ceph-rook-internal.md).
+cat > \${ROOK_OPERATOR_OVERLAY}/rook-operator-hyperconverged-patch.yaml <<EOF
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: rook-ceph-operator-config
+  namespace: rook-ceph
+data:
+  ROOK_CEPH_ALLOW_LOOP_DEVICES: "true"
+EOF
+
+cat > \${ROOK_OPERATOR_OVERLAY}/kustomization.yaml <<EOF
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../base
+patches:
+  - path: rook-operator-hyperconverged-patch.yaml
+    target:
+      kind: ConfigMap
+      name: rook-ceph-operator-config
+  # The base common.yaml disables token automount on these ServiceAccounts
+  # (genestack PR #1746), but OSD prepare pods run as rook-ceph-osd and call
+  # the Kubernetes API, so without this they crash with "failed to get k8s
+  # cluster config: open
+  # /var/run/secrets/kubernetes.io/serviceaccount/token".
+  - target:
+      kind: ServiceAccount
+      name: "rook-ceph-(default|osd|rgw)"
+    patch: |-
+      - op: replace
+        path: /automountServiceAccountToken
+        value: true
+images:
+  - name: rook/ceph
+    newTag: v1.16.5
+EOF
+
+# Cluster overlay: base + a patch so only the listed nodes and their loop500
+# device are used, never every node/device (the base sets
+# useAllNodes/useAllDevices). Generated here because the node names depend
+# on LAB_NAME_PREFIX/GATEWAY_DOMAIN, and kustomize has no variable
+# substitution.
+cat > \${ROOK_CLUSTER_OVERLAY}/rook-cluster-hyperconverged-patch.yaml <<EOF
+---
+apiVersion: ceph.rook.io/v1
+kind: CephCluster
+metadata:
+  name: rook-ceph
+  namespace: rook-ceph
+spec:
+  storage:
+    useAllNodes: false
+    useAllDevices: false
+    nodes:
+      - name: "${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN}"
+        devices:
+          - name: "loop500"
+      - name: "${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN}"
+        devices:
+          - name: "loop500"
+      - name: "${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN}"
+        devices:
+          - name: "loop500"
+EOF
+
+cat > \${ROOK_CLUSTER_OVERLAY}/kustomization.yaml <<EOF
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../base
+patches:
+  - path: rook-cluster-hyperconverged-patch.yaml
+    target:
+      kind: CephCluster
+      name: rook-ceph
+EOF
+
+kubectl apply -k \${ROOK_OPERATOR_OVERLAY}
+echo "Waiting for the rook-ceph-operator rollout to complete"
+kubectl -n rook-ceph rollout status deploy/rook-ceph-operator --timeout=5m
+
+kubectl label node --overwrite ${LAB_NAME_PREFIX}-0.${GATEWAY_DOMAIN} role=storage-node
+kubectl label node --overwrite ${LAB_NAME_PREFIX}-1.${GATEWAY_DOMAIN} role=storage-node
+kubectl label node --overwrite ${LAB_NAME_PREFIX}-2.${GATEWAY_DOMAIN} role=storage-node
+
+# Cluster: overlay = base + generated lab storage patch (loop500 only).
+kubectl apply -k \${ROOK_CLUSTER_OVERLAY}
+EOC
+
+    # Wait for cephcluster/rook-ceph to be Ready, failing fast instead of
+    # waiting out the timeout when OSD prepare is broken. The operator does
+    # not notice a failed prepare job; it just keeps "Configuring Ceph OSDs".
+    echo "Waiting for cephcluster/rook-ceph to be Ready"
+    _ssh <<'EOC'
+set -e
+timeout=1200
+waited=0
+while :; do
+    phase=$(kubectl -n rook-ceph get cephcluster rook-ceph -o jsonpath='{.status.phase}' 2>/dev/null || true)
+    if [ "${phase}" = "Ready" ]; then
+        echo "cephcluster/rook-ceph is Ready"
+        break
+    fi
+
+    # A prepare pod crash-looping (restarts >= 2) or a prepare job marked
+    # Failed means OSDs will never come up; show why and stop.
+    bad_pod=$(kubectl -n rook-ceph get pods -l app=rook-ceph-osd-prepare \
+        -o jsonpath='{range .items[*]}{.metadata.name} {.status.containerStatuses[0].restartCount}{"\n"}{end}' 2>/dev/null \
+        | awk '$2 >= 2 {print $1; exit}')
+    failed_job=$(kubectl -n rook-ceph get jobs -l app=rook-ceph-osd-prepare \
+        -o jsonpath='{range .items[*]}{.metadata.name} {.status.failed}{"\n"}{end}' 2>/dev/null \
+        | awk '$2 != "" && $2 > 0 {print $1; exit}')
+    if [ -n "${bad_pod}" ] || [ -n "${failed_job}" ]; then
+        echo "ERROR: Rook OSD prepare is failing (pod: ${bad_pod:-none}, job: ${failed_job:-none})" >&2
+        if [ -n "${bad_pod}" ]; then
+            kubectl -n rook-ceph get pod "${bad_pod}" \
+                -o jsonpath='{range .status.containerStatuses[*]}{.name}: {.lastState.terminated.reason} {.lastState.terminated.message}{"\n"}{end}' >&2 || true
+            kubectl -n rook-ceph logs "${bad_pod}" -c provision --previous --tail=40 >&2 || true
+        fi
+        if [ -n "${failed_job}" ]; then
+            kubectl -n rook-ceph get job "${failed_job}" \
+                -o jsonpath='{range .status.conditions[*]}{.type} {.reason}: {.message}{"\n"}{end}' >&2 || true
+        fi
+        exit 1
+    fi
+
+    if [ "${waited}" -ge "${timeout}" ]; then
+        echo "ERROR: cephcluster/rook-ceph not Ready after ${timeout}s (phase: ${phase:-unknown})" >&2
+        kubectl -n rook-ceph get cephcluster rook-ceph >&2 || true
+        kubectl -n rook-ceph get pods -o wide >&2 || true
+        exit 1
+    fi
+    sleep 10
+    waited=$((waited + 10))
+done
+EOC
+
+    # ceph-etc ConfigMap: points OpenStack clients at the Rook mons.
+    # Quoted 'EOC' so the mon lookup runs on the jump host, not locally.
+    echo "Creating the openstack/ceph-etc ConfigMap..."
+    _ssh <<'EOC'
+set -e
+# Running mon pods only, selected by label (not grep) so Rook's
+# rook-ceph-mon-*-canary pods (labelled mon_canary=true) are excluded.
+MON_HOST=$(kubectl -n rook-ceph get pods \
+    -l 'app=rook-ceph-mon,!mon_canary' \
+    --field-selector=status.phase=Running \
+    -o jsonpath='{range .items[*]}{.status.podIP}{"\n"}{end}' \
+    | sed '/^$/d; s/$/:6789/' | paste -sd, -)
+
+if [ -z "${MON_HOST}" ]; then
+    echo "ERROR: no running rook-ceph mon pods found; refusing to write ceph-etc with an empty mon_host" >&2
+    kubectl -n rook-ceph get pods -l app=rook-ceph-mon -o wide || true
+    exit 1
+fi
+echo "Ceph mon_host: ${MON_HOST}"
+
+kubectl apply -n openstack -f - <<EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ceph-etc
+  namespace: openstack
+data:
+  ceph.conf: |
+    [global]
+    mon_host = ${MON_HOST}
+EOF
+kubectl get configmap -n openstack ceph-etc -o "jsonpath={.data['ceph\.conf']}"
+echo
+EOC
+
+    # Gnocchi: needs everything above (redis-sentinel for incoming and
+    # coordination, postgres-cluster, rook-ceph-admin-keyring, ceph-etc)
+    # plus Keystone (installed earlier by setup-openstack.sh) for its
+    # ks-user/ks-service/ks-endpoints jobs.
+    #
+    # Wait: install-gnocchi.sh forwards extra args to helm, so --wait
+    # --wait-for-jobs blocks until all of the chart's Deployments,
+    # DaemonSets and Jobs are ready/complete (the later --timeout
+    # overrides the installer's default 120m).
+    echo "Installing Gnocchi..."
+    _ssh <<'EOC'
+set -e
+sudo /opt/genestack/bin/install-gnocchi.sh --wait --wait-for-jobs --timeout 30m
+EOC
+
+    # Ceilometer: publishes to Gnocchi, so it goes after the Gnocchi wait.
+    # Same helm --wait --wait-for-jobs wait as Gnocchi.
+    echo "Installing Ceilometer..."
+    _ssh <<'EOC'
+set -e
+sudo /opt/genestack/bin/install-ceilometer.sh --wait --wait-for-jobs --timeout 30m
+EOC
+
+    # Ceilometer/Gnocchi CLI clients, installed into the jump host's
+    # genestack venv (the one genestack.rc activates, alongside the
+    # openstack CLI). Pinned to the latest releases on PyPI;
+    # python-ceilometerclient is retired upstream (last release 2017).
+    echo "Installing python-ceilometerclient and gnocchiclient..."
+    _ssh <<'EOC'
+set -e
+~/.venvs/genestack/bin/pip install python-ceilometerclient==2.9.0 gnocchiclient==7.2.0
+EOC
+
+    echo "Billing setup complete"
+}
+
 function install_preconf_octavia() {
     echo "Installing Octavia preconf"
     _ssh << 'EOC'
