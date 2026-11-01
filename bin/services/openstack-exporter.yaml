@@ -3,7 +3,6 @@ service:
   name: openstack-exporter
   namespace: monitoring
   version: ~
-
   family: ""
 
 chart:

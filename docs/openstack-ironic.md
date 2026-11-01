@@ -12,10 +12,10 @@ In this document, we will discuss the deployment of OpenStack Ironic using Genes
 
 ## Run the package deployment
 
-!!! example "Run the Heat deployment Script `/opt/genestack/bin/install-ironic.sh`"
+!!! example "Run the Heat deployment: `/opt/genestack/bin/install.sh --service ironic`"
 
     ``` shell
-    --8<-- "bin/install-ironic.sh"
+    /opt/genestack/bin/install.sh --service ironic
     ```
 
 !!! tip

@@ -10,10 +10,10 @@ The Blazar Reservation Splitter is a companion service for OpenStack Blazar that
 
 ## Run the package deployment
 
-!!! example "Run the Blazar Reservation Splitter deployment Script `/opt/genestack/bin/install-blazar-reservation-splitter.sh`"
+!!! example "Run the Blazar Reservation Splitter deployment: `/opt/genestack/bin/install.sh --service blazar-reservation-splitter`"
 
     ``` shell
-    --8<-- "bin/install-blazar-reservation-splitter.sh"
+    /opt/genestack/bin/install.sh --service blazar-reservation-splitter
     ```
 
 !!! tip

@@ -13,7 +13,7 @@ security groups, a guest image that carries the Trove guest agent, a datastore r
 and a per-chassis bridge that lets guest VMs reach RabbitMQ and Keystone. In Genestack that
 entire
 lifecycle is driven by the `trove_enablement_techpreview` Ansible role, which wraps the
-`bin/install-trove.sh` Helm deployment.
+`bin/install.sh --service trove` Helm deployment.
 
 > Genestack facilitates the deployment by leveraging Kubernetes' orchestration capabilities
 > together with an Ansible role that stitches Trove into Nova, Neutron, Cinder, Glance and
@@ -26,7 +26,7 @@ Reference the full online [OpenStack Trove documentation](https://docs.openstack
 The `trove_enablement_techpreview` role performs the end-to-end enablement. At a high level it:
 
 1. **Ensures secret prerequisites** — chart-derived Trove passwords are owned by
-   `bin/install-trove.sh` and `bin/services/trove.yaml`; the role ensures they exist before
+   `bin/install.sh --service trove` and `bin/services/trove.yaml`; the role ensures they exist before
    pre-install work needs them. The role owns only the `trove-ssh` ed25519 keypair secret.
 2. **Creates the Trove management overlay network** — a geneve network (`trove-mgmt-net`),
    its subnet, and a router with an external gateway to the public provider network.
@@ -73,7 +73,7 @@ is normally required**.
 !!! note "Information about the secrets used"
 
     Trove chart-derived secrets such as `trove-rabbitmq-password`, `trove-db-password`,
-    and `trove-admin` are managed by `bin/install-trove.sh` through the shared
+    and `trove-admin` are managed by `bin/install.sh --service trove` through the shared
     `bin/services/trove.yaml` schema. Existing secret values are reused.
 
     The techpreview role also manages the `trove-ssh` keypair secret used by the
@@ -111,7 +111,7 @@ is normally required**.
 ## Run the enablement
 
 The recommended path is to run the Ansible role end to end. It performs the pre-install
-scaffolding, calls `bin/install-trove.sh` for the Helm release, and then finishes the
+scaffolding, calls `bin/install.sh --service trove` for the Helm release, and then finishes the
 post-install steps (datastore registration, keypair, SSH key distribution).
 
 !!! example "Run the Trove enablement playbook"
@@ -184,13 +184,13 @@ specific work:
 
 ## The Helm deployment script
 
-The role installs the Trove chart with `bin/install-trove.sh`. You can also run it directly
+The role installs the Trove chart with `bin/install.sh --service trove`. You can also run it directly
 if you only need to (re)deploy the chart after the scaffolding is in place.
 
-!!! example "Run the Trove deployment script `/opt/genestack/bin/install-trove.sh`"
+!!! example "Run the Trove deployment: `/opt/genestack/bin/install.sh --service trove`"
 
     ``` shell
-    --8<-- "bin/install-trove.sh"
+    /opt/genestack/bin/install.sh --service trove
     ```
 
 **What it does:** the script reads the pinned Trove chart version from
@@ -452,7 +452,7 @@ through the Trove kustomize overlay — no custom image build is required:
   `paste.filter_factory` above therefore references the bare module name
   `genestack_trove_flavor_filter`, not a dotted `trove.common.*` path.
 
-Both resources are applied by the Trove overlay's post-renderer (`bin/install-trove.sh`), so
+Both resources are applied by the Trove overlay's post-renderer (`bin/install.sh --service trove`), so
 they ship with every `helm upgrade --install trove`.
 
 !!! note "Naming convention, not Nova flavor access"

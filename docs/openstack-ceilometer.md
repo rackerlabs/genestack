@@ -25,10 +25,10 @@ are all resolved.
 
 ## Run the package deployment
 
-!!! example "Run the Ceilometer deployment Script `/opt/genestack/bin/install-ceilometer.sh`"
+!!! example "Run the Ceilometer deployment: `/opt/genestack/bin/install.sh --service ceilometer`"
 
     ``` shell
-    --8<-- "bin/install-ceilometer.sh"
+    /opt/genestack/bin/install.sh --service ceilometer
     ```
 
 !!! tip
@@ -42,7 +42,7 @@ are all resolved.
 Run the install script a second time and confirm it completes without error.
 
 ``` shell
-sudo /opt/genestack/bin/install-ceilometer.sh
+sudo /opt/genestack/bin/install.sh --service ceilometer
 ```
 
 ### Confirm Ceilometer pods are running

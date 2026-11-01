@@ -232,7 +232,7 @@
         ACTION REQUIRED
       ================================================================
       The /etc/genestack git tree is likely dirty with uncommitted
-      changes. Before proceeding with install-manila.sh, please:
+      changes. Before proceeding with install.sh --service manila, please:
 
         cd /etc/genestack
         git status

@@ -6,6 +6,12 @@ service:
 chart:
   ignore_paths:
     - "conf.simple_crypto_kek_rewrap.old_kek"
+post_install_fatal: true
+pre_install_actions:
+  - type: barbican_hsm_setup
+  - type: barbican_simple_crypto_kek
+post_install_actions:
+  - type: barbican_hsm_init
 
 default_password_warning:
   message: |

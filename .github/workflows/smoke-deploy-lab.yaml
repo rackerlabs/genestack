@@ -107,6 +107,13 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Fix git safe.directory for self-hosted runner
+        run: |
+          git config --global --add safe.directory /__w/genestack/genestack
+          git config --global --add safe.directory /__w/genestack/genestack/submodules/kubespray
+          git config --global --add safe.directory /__w/genestack/genestack/submodules/openstack-exporter
+          git config --global --add safe.directory /__w/genestack/genestack/submodules/genestack-console
+
       - name: Dynamically set MY_DATE environment variable
         if: ${{ github.event_name == 'pull_request' }}
         run: echo "LAB_NAME_PREFIX=smoke-$(date +%s)" >> "$GITHUB_ENV"

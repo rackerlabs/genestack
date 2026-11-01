@@ -309,7 +309,7 @@ grep mariadb-operator /etc/genestack/helm-chart-versions.yaml
 
 ```bash
 helm uninstall mariadb-operator -n mariadb-system
-/opt/genestack/bin/install-mariadb-operator.sh
+/opt/genestack/bin/install.sh --service mariadb-operator
 ```
 
 ### :material-check-circle: Step 4: Verify deployment
@@ -633,5 +633,5 @@ cert secret and deployment, then re-run the install script:
 ```bash
 kubectl delete secret mariadb-operator-webhook-cert -n mariadb-system
 kubectl delete deployment mariadb-operator-webhook -n mariadb-system
-/opt/genestack/bin/install-mariadb-operator.sh
+/opt/genestack/bin/install.sh --service mariadb-operator
 ```

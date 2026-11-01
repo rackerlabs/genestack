@@ -153,7 +153,7 @@ function parseCommonArgs() {
     # HYPERCONVERGED_MANILA_SHARE=true environment variable, and disabled with
     # '-e manila-share' (which wins over both). Like cinder-volume, the
     # implied control plane is installed by the enablement step (deployManila
-    # runs install-manila.sh after pre_deploy) - NOT by adding manila to the
+    # runs install.sh --service manila after pre_deploy) - NOT by adding manila to the
     # batch - so the chart is installed once, after its preconf, instead of a
     # bare batch install followed by an upgrade.
     MANILA_SHARE_ENABLED="${HYPERCONVERGED_MANILA_SHARE:-false}"
@@ -1650,17 +1650,17 @@ EOF
 function initBarbicanHSMKeys() {
     # Initializes SoftHSM2 token + generates MKEK/HMAC keys inside barbican pod.
     # Idempotent — skips if token/keys already exist.
-    # Caller (install-barbican.sh) decides when to invoke this.
+    # Caller (install.sh --service barbican) decides when to invoke this.
 
     echo "=== Barbican SoftHSM2 Key Initialization ==="
 
-    local hsm_pin token_label library_path mkek_label hmac_label pod
+    local hsm_pin token_label library_path mkek_label hmac_label pod token_slots
 
     hsm_pin="$(kubectl --namespace openstack get secret barbican-hsm-credentials \
         -o jsonpath='{.data.pin}' 2>/dev/null | base64 -d)" || true
     if [[ -z "${hsm_pin}" ]]; then
         echo "ERROR: barbican-hsm-credentials not found."
-        echo "       install-barbican.sh creates this when SoftHSM p11 is enabled."
+        echo "       install.sh --service barbican creates this when SoftHSM p11 is enabled."
         return 1
     fi
 
@@ -1671,23 +1671,40 @@ function initBarbicanHSMKeys() {
 
     echo "Waiting for barbican-api pod..."
     kubectl --namespace openstack wait --for=condition=ready pod \
-        -l application=barbican,component=api --timeout=300s
+        -l application=barbican,component=api --timeout=300s || {
+        echo "ERROR: Barbican API pod did not become ready." >&2
+        return 1
+    }
 
     pod="$(kubectl --namespace openstack get pod \
         -l application=barbican,component=api \
-        -o jsonpath='{.items[0].metadata.name}')"
+        -o jsonpath='{.items[0].metadata.name}')" || {
+        echo "ERROR: Failed to find the Barbican API pod." >&2
+        return 1
+    }
+    if [[ -z "$pod" ]]; then
+        echo "ERROR: No Barbican API pod was found." >&2
+        return 1
+    fi
     echo "Using pod: ${pod}"
 
     # Initialize SoftHSM2 token
     echo "Checking SoftHSM2 token (${token_label})..."
-    if ! kubectl --namespace openstack exec "${pod}" -- \
-        softhsm2-util --show-slots 2>/dev/null | grep -q "${token_label}"; then
+    token_slots="$(kubectl --namespace openstack exec "${pod}" -- \
+        softhsm2-util --show-slots)" || {
+        echo "ERROR: Failed to inspect SoftHSM2 tokens." >&2
+        return 1
+    }
+    if ! grep -Fq -- "${token_label}" <<< "$token_slots"; then
         echo "Initializing token..."
         kubectl --namespace openstack exec "${pod}" -- \
             softhsm2-util --init-token --free \
                 --label "${token_label}" \
                 --pin "${hsm_pin}" \
-                --so-pin "${hsm_pin}"
+                --so-pin "${hsm_pin}" || {
+            echo "ERROR: Failed to initialize the SoftHSM2 token." >&2
+            return 1
+        }
     else
         echo "Token exists — OK"
     fi
@@ -1707,7 +1724,10 @@ function initBarbicanHSMKeys() {
                 --library-path "${library_path}" \
                 --passphrase "${hsm_pin}" \
                 --label "${mkek_label}" \
-                --length 32
+                --length 32 || {
+            echo "ERROR: Failed to generate the Barbican MKEK." >&2
+            return 1
+        }
     fi
 
     # Generate HMAC key (SoftHSM + Barbican: CKK_GENERIC_SECRET + CKM_SHA256_HMAC).
@@ -1752,7 +1772,10 @@ if handle is not None:
     print("Destroyed leftover AES HMAC key")
 p.return_session(session)
 p.finalize()
-'
+' || {
+                echo "ERROR: Failed to remove the legacy AES HMAC key." >&2
+                return 1
+            }
         fi
         echo "Generating HMAC key (CKK_GENERIC_SECRET)..."
         kubectl --namespace openstack exec "${pod}" -- \
@@ -1763,10 +1786,14 @@ p.finalize()
                 --key-type CKK_GENERIC_SECRET \
                 --length 32 \
                 --mechanism CKM_GENERIC_SECRET_KEY_GEN \
-                --hmac-wrap-mechanism CKM_SHA256_HMAC
+                --hmac-wrap-mechanism CKM_SHA256_HMAC || {
+            echo "ERROR: Failed to generate the Barbican HMAC key." >&2
+            return 1
+        }
     fi
 
     echo "=== SoftHSM2 initialization complete ==="
+    return 0
 }
 
 function createPostSetupResources() {
@@ -1882,6 +1909,7 @@ function configureGenestackRemote() {
         declare -f writeEndpointsConfig
         declare -f writeOpenstackComponentsConfig
         declare -f detectPlatform
+        declare -f ensureTool
         declare -f ensureYq
         declare -f installYq
 
@@ -1929,6 +1957,7 @@ function runGenestackSetupRemote() {
     {
         declare -f runGenestackSetup
         declare -f detectPlatform
+        declare -f ensureTool
         declare -f ensureYq
         declare -f installYq
 
@@ -2075,6 +2104,7 @@ function createPostSetupResourcesRemote() {
     {
         declare -f createPostSetupResources
         declare -f detectPlatform
+        declare -f ensureTool
         declare -f ensureYq
         declare -f installYq
 
@@ -2224,7 +2254,7 @@ set -e
 source /opt/genestack/scripts/genestack.rc
 
 echo "[JUMP_HOST] Running cinder install script"
-sudo /opt/genestack/bin/install-cinder.sh
+sudo /opt/genestack/bin/install.sh --service cinder
 
 # Single run: the cinder_volumes role now waits for apt/dpkg locks and uses
 # run_once for the delegated python3-kubernetes install, which eliminated the
@@ -2232,7 +2262,7 @@ sudo /opt/genestack/bin/install-cinder.sh
 echo "[JUMP_HOST] Running cinder volumes playbook"
 # Derive the cinder release branch from the chart version actually being
 # installed on the control plane (/etc/genestack/helm-chart-versions.yaml is
-# what install-cinder.sh deploys from), e.g. 2026.1.9+abc -> stable/2026.1.
+# what install.sh --service cinder deploys from), e.g. 2026.1.9+abc -> stable/2026.1.
 CINDER_RELEASE_BRANCH="stable/\$(yq '.charts.cinder' /etc/genestack/helm-chart-versions.yaml | cut -d. -f1,2)"
 if [ "\${CINDER_RELEASE_BRANCH}" = "stable/" ] || [ "\${CINDER_RELEASE_BRANCH}" = "stable/null" ]; then
     echo "ERROR: could not derive cinder release branch from /etc/genestack/helm-chart-versions.yaml" >&2
@@ -2291,7 +2321,7 @@ sudo ANSIBLE_SSH_PIPELINING=0 /root/.venvs/genestack/bin/ansible-playbook /opt/g
     -e endpoint_type=internal
 
 echo "Installing Octavia"
-sudo /opt/genestack/bin/install-octavia.sh -f $OCTAVIA_HELM_FILE
+sudo /opt/genestack/bin/install.sh --service octavia -f $OCTAVIA_HELM_FILE
 EOC
 }
 
@@ -2327,7 +2357,7 @@ function deployManila() {
     echo "Running manila deployment ..."
 
     # The caller gates this on MANILA_SHARE_ENABLED. deployManila performs the
-    # single manila install itself (install-manila.sh after pre_deploy), so
+    # single manila install itself (install.sh --service manila after pre_deploy), so
     # manila is intentionally NOT in the openstack batch - do not re-add a
     # components.yaml gate here or it will exit without installing.
     _ssh << 'EOC'
@@ -2348,7 +2378,7 @@ ansible-playbook /opt/genestack/ansible/playbooks/manila-enablement-techpreview.
     --tags pre_deploy
 
 echo "Installing Manila via Helm chart"
-sudo /opt/genestack/bin/install-manila.sh
+sudo /opt/genestack/bin/install.sh --service manila
 
 echo "Running playbook for manila post_deploy"
 ansible-playbook /opt/genestack/ansible/playbooks/manila-enablement-techpreview.yaml \
@@ -2399,7 +2429,7 @@ ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.y
     -e "trove_region_name=${trove_region_name} trove_gateway_hostname=${trove_gateway_hostname}"
 
 echo "Installing Trove via Helm chart"
-/opt/genestack/bin/install-trove.sh
+/opt/genestack/bin/install.sh --service trove
 
 # on jump host, may need to run
 # > kubectl get pods -A | grep "trove-api\|trove-cond\|trove-task\|trove-mgmt" | awk '{print$2}' | xargs kubectl delete pod -n openstack

@@ -13,10 +13,10 @@ This document outlines the deployment of OpenStack Cloudkitty using Genestack.
 
 ## Run the package deployment
 
-!!! example "Run the Cloudkitty deployment Script `/opt/genestack/bin/install-cloudkitty.sh`"
+!!! example "Run the Cloudkitty deployment: `/opt/genestack/bin/install.sh --service cloudkitty`"
 
     ``` shell
-    --8<-- "bin/install-cloudkitty.sh"
+    /opt/genestack/bin/install.sh --service cloudkitty
     ```
 
 !!! tip

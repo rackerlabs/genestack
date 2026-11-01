@@ -146,7 +146,7 @@ Environment-specific changes should be placed in an override under
 apply it by upgrading the Ironic deployment:
 
 ```shell
-/opt/genestack/bin/install-ironic.sh
+/opt/genestack/bin/install.sh --service ironic
 ```
 
 ## Exporter Deployment
@@ -192,7 +192,7 @@ cp \
   /opt/genestack/base-helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-ironic-overrides.yaml.example \
   /etc/genestack/helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-ironic-overrides.yaml
 
-/opt/genestack/bin/install-opentelemetry-kube-stack.sh
+/opt/genestack/bin/install-observability.sh opentelemetry-kube-stack
 ```
 
 The override adds the `prometheus/ironic` receiver to the deployment

@@ -5,6 +5,9 @@ service:
 
 chart: {}
 
+kustomize:
+  post_renderer: base-kustomize/octavia/post-renderer.sh
+
 pre_install_check_actions:
   - type: detect_kube_ovn_tls
     namespace: kube-system
@@ -13,6 +16,8 @@ pre_install_check_actions:
     target_namespace: openstack
     source_secret: kube-ovn-tls
     target_secret: ovn-client-tls
+  - type: ovn_tls_values
+    file: ssl/octavia-ovn-tls-overrides.yaml
   - type: ovn_connection_set_args
     entries:
       - helm_key: conf.octavia.ovn.ovn_nb_connection

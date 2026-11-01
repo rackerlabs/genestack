@@ -451,7 +451,7 @@ Because this service is in LA, the following constraints apply:
 
   - `server_snapshot` — Glance image snapshot of a Nova server - `volume_backup_full` — full Cinder volume backup - `volume_backup_incremental` — incremental Cinder backup
 
-  Enable during `bin/setup-openstack.sh` or install with `/opt/genestack/bin/install-qonos.sh`. See `docs/openstack-qonos.md` for secrets, config overrides, Gateway exposure, Skyline integration, and validation.
+  Enable during `bin/setup-openstack.sh` or install with `/opt/genestack/ops-tools/qonos/install-qonos.sh`. See `docs/openstack-qonos.md` for secrets, config overrides, Gateway exposure, Skyline integration, and validation.
 
 #### Upgrade Notes
 

@@ -5,6 +5,19 @@ service:
 
 chart: {}
 
+pre_install_actions:
+  - type: secret_sync_directory
+    namespace: openstack
+    secret_name: keystone-shibd-etc
+    directory: keystone-sp/shibboleth
+    directory_env: KEYSTONE_SHIBBOLETH_DIR
+    skip_env: SKIP_SHIBBOLETH_SECRET
+    when_overlay_includes: federation
+    required_files:
+      - shibboleth2.xml
+      - sp-cert.pem
+      - sp-key.pem
+      - idp-metadata.xml
 secrets:
   - helm_key: "endpoints.identity.auth.admin.password"
     source_secret: keystone-admin

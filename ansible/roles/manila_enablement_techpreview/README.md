@@ -10,7 +10,7 @@ This role handles the full lifecycle of getting Manila operational:
 
 1. **Secret prerequisites** — Ensures install-script managed Manila secrets
    exist before the service image workflow needs them. Chart-derived passwords
-   are owned by `bin/install-manila.sh` and `bin/services/manila.yaml`; this
+   are owned by `bin/install.sh --service manila` and `bin/services/manila.yaml`; this
    role may force recreation only for the Manila service SSH keypair.
 
 2. **Service Image** — Builds an Ubuntu-based Manila service VM image

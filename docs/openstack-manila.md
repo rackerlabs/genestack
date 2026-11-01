@@ -82,10 +82,10 @@ manifests:
 
 ## Run the package deployment
 
-!!! example "Run the Manila deployment Script `/opt/genestack/bin/install-manila.sh`"
+!!! example "Run the Manila deployment: `/opt/genestack/bin/install.sh --service manila`"
 
     ``` shell
-    --8<-- "bin/install-manila.sh"
+    /opt/genestack/bin/install.sh --service manila
     ```
 
 !!! tip

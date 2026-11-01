@@ -14,10 +14,10 @@ Guest OS failures (detected through monitoring agents). This document outlines t
 
 ## Run the package deployment
 
-!!! example "Run the Masakari deployment Script `/opt/genestack/bin/install-masakari.sh`"
+!!! example "Run the Masakari deployment: `/opt/genestack/bin/install.sh --service masakari`"
 
     ``` shell
-    --8<-- "bin/install-masakari.sh"
+    /opt/genestack/bin/install.sh --service masakari
     ```
 
 !!! tip

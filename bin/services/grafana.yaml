@@ -3,7 +3,6 @@ service:
   name: grafana
   namespace: monitoring
   version: ~
-
   family: ""
 
 chart:

@@ -14,4 +14,8 @@ chart:
 kustomize:
   enabled: false
 
+pre_install_actions:
+  - type: cluster_name_site_value
+    helm_key: redisOperator.serviceDNSDomain
+
 secrets: []

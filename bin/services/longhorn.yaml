@@ -3,6 +3,7 @@ service:
   name: longhorn
   namespace: longhorn-system
   version: ~
+  family: ""
 
 chart:
   service_name: longhorn

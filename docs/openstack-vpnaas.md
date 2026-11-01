@@ -79,7 +79,7 @@ command loads the shared Neutron and OVN configuration files in addition to
 Apply the configuration:
 
 ``` shell
-/opt/genestack/bin/install-neutron.sh
+/opt/genestack/bin/install.sh --service neutron
 ```
 
 ## Validate the deployment

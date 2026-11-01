@@ -150,10 +150,10 @@ deployed and reachable from the `openstack` namespace before continuing.
 
 ## Run the package deployment
 
-!!! example "Run the Gnocchi deployment Script `/opt/genestack/bin/install-gnocchi.sh`"
+!!! example "Run the Gnocchi deployment: `/opt/genestack/bin/install.sh --service gnocchi`"
 
     ``` shell
-    --8<-- "bin/install-gnocchi.sh"
+    /opt/genestack/bin/install.sh --service gnocchi
     ```
 
 !!! tip

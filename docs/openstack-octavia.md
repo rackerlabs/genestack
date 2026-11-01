@@ -123,10 +123,10 @@ mv /tmp/octavia_amphora_provider.yaml /etc/genestack/helm-configs/octavia/
 
 ## Run the Helm deployment
 
-??? example "Run the Octavia deployment Script `/opt/genestack/bin/install-octavia.sh`"
+??? example "Run the Octavia deployment: `/opt/genestack/bin/install.sh --service octavia`"
 
     ``` shell
-    --8<-- "bin/install-octavia.sh"
+    /opt/genestack/bin/install.sh --service octavia
     ```
 
 !!! tip

@@ -115,7 +115,7 @@ cp -r /opt/genestack/etc/keystone-sp /etc/genestack
 
 #### Update the `shibboleth2.xml` file
 
-The files will be created and stored in a kubernetes secret named `keystone-shib-etc` and mounted to `/etc/shibboleth` in the `keystone` pod. The files are:
+The files will be created and stored in a kubernetes secret named `keystone-shibd-etc` and mounted to `/etc/shibboleth` in the `keystone` pod. The files are:
 
 Store the SAML metadata and configure the SAML identity provider at `/etc/genestack/keystone-sp/shibboleth/idp-metadata.xml`.
 
@@ -386,11 +386,11 @@ openssl req -x509 -newkey rsa:2048 -keyout sp-key.pem -out sp-cert.pem -days 182
 
 The `keystone-shibd-etc` secret holds every file under `/etc/genestack/keystone-sp/shibboleth/` and is mounted at `/etc/shibboleth/` inside the keystone pod.
 
-`install-keystone.sh` manages this secret automatically. When the script renders the chart it inspects the post-rendered manifests for `keystone-shibd-etc`; if the federation overlay is in use, the script re-creates the secret from the shibboleth directory on every run using the shared Genestack secret sync helper. The helper renders a dry-run secret manifest, applies it, and cleans up temporary files after the run. That means updating any file under `/etc/genestack/keystone-sp/shibboleth/` and re-running the installer is sufficient to roll the change out.
+`install.sh --service keystone` manages this secret automatically. Before it runs Helm, the installer checks whether the Keystone overlay at `/etc/genestack/kustomize/keystone/overlay/kustomization.yaml` lists the `federation` base under `resources`; if it does, the installer re-creates the secret from the shibboleth directory on every run using the shared Genestack secret sync helper. The helper renders a dry-run secret manifest, applies it, and cleans up temporary files after the run. That means updating any file under `/etc/genestack/keystone-sp/shibboleth/` and re-running the installer is sufficient to roll the change out.
 
 !!! note "Required files"
 
-    The installer preflights the shibboleth directory for the following files and aborts with a clear error if any are missing:
+    When the Keystone overlay includes the `federation` base, the installer preflights the shibboleth directory for the following files and aborts with a clear error if any are missing:
 
     * `shibboleth2.xml`
     * `sp-cert.pem`
@@ -403,6 +403,7 @@ The `keystone-shibd-etc` secret holds every file under `/etc/genestack/keystone-
 
     * Set `KEYSTONE_SHIBBOLETH_DIR` to point the installer at a different shibboleth source directory.
     * Set `SKIP_SHIBBOLETH_SECRET=1` (or pass `--dry-run` through to helm) to skip the secret sync entirely.
+    * Without the `federation` base in the overlay, the installer logs that and does not touch the secret.
 
 ??? example "Manual fallback"
 
@@ -523,7 +524,7 @@ resources:
 Now run the helm deployment to update keystone to use the new federation setup.
 
 ``` shell
-/opt/genestack/bin/install-keystone.sh
+/opt/genestack/bin/install.sh --service keystone
 ```
 
 ### Redeploy the Skyline UI with SSO Enabled
@@ -546,7 +547,7 @@ the Keystone API.
 Rerun the helm deployment to update the Skyline UI with SSO support.
 
 ``` shell
-/opt/genestack/bin/install-skyline.sh
+/opt/genestack/bin/install.sh --service skyline
 ```
 
 !!! genestack "Using the API with WebSSO and Federation"
