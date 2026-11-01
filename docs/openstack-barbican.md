@@ -60,7 +60,9 @@ The base values enable the `p11_crypto` plugin on SoftHSM2 next to `simple_crypt
   changed, because it protects the token that already holds your keys.
 - Whenever that Secret holds a `pin`, the installer injects it as `conf.barbican.p11_crypto_plugin.login`.
 - After Helm, the installer creates the SoftHSM token, the MKEK and the HMAC key inside the `barbican-api` pod. This is
-  idempotent and is skipped for `--dry-run` or when Helm fails. If it fails, the install fails.
+  idempotent and is skipped for `--dry-run` or when Helm fails. A failure during pod readiness, pod lookup, token
+  inspection or initialization, MKEK generation, or HMAC cleanup or generation stops initialization and fails the install.
+  This does not roll back Helm or earlier successful initialization steps.
 - With the lab flags and no site values file, the SoftHSM overlay is generated into
   `/etc/genestack/helm-configs/barbican/`. An existing site file is never rewritten.
 - If `kubectl` cannot tell whether `barbican-hsm-credentials` exists, the install stops without touching the PIN.

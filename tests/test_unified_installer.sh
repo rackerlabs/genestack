@@ -2998,13 +2998,98 @@ EOS
     rm -rf "$tmp_root" "$fakebin"
 )
 
-# install.sh --service barbican injects the PIN, initializes the SoftHSM keys
-# after Helm, and fails when the initialization fails.
+# Exercise the real initializer through install.sh with mocked Kubernetes
+# commands, including failure propagation and stopping at the failed operation.
 test_install_barbican_hsm() {
     local fakebin tmp_root tmp_base tmp_overrides store helm_log order_log out rc mode
+    local expected_steps step failed_step
+    local -a steps
     fakebin="$(mktemp -d)"
     create_fake_installer_binaries "$fakebin"
-    for mode in ok init-fails helm-fails dry-run; do
+    mv "${fakebin}/kubectl" "${fakebin}/kubectl-base"
+    cat > "${fakebin}/kubectl" <<'EOF'
+#!/bin/bash
+set -euo pipefail
+
+record_step() {
+    grep -q '^upgrade --install' "$HELM_LOG_FILE" || {
+        echo "ERROR: HSM initialization ran before Helm." >&2
+        exit 1
+    }
+    printf '%s\n' "$1" >> "$HSM_ORDER_LOG"
+    if [[ "$HSM_CASE" == "$1-fails" ]]; then
+        echo "Simulated HSM failure: $1" >&2
+        exit 1
+    fi
+}
+
+# The shared initializer uses a leading namespace flag. Other installer
+# operations are handled by the existing Secret and Helm fixtures.
+if [[ "${1:-}" == --namespace && "${2:-}" == openstack ]]; then
+    shift 2
+    case "${1:-}:${2:-}" in
+        get:secret)
+            [[ "${3:-}" == barbican-hsm-credentials ]] || exit 1
+            base64 < "$KUBECTL_SECRET_DIR/openstack/barbican-hsm-credentials/pin"
+            exit 0
+            ;;
+        wait:*)
+            record_step readiness
+            exit 0
+            ;;
+        get:pod)
+            record_step pod
+            [[ "$HSM_CASE" == pod-empty ]] || echo barbican-api-test
+            exit 0
+            ;;
+        exec:barbican-api-test)
+            shift 3
+            case "${1:-}:${2:-}" in
+                softhsm2-util:--show-slots)
+                    record_step slots
+                    [[ "$HSM_CASE" != keys-exist ]] || echo 'Label: barbican_token'
+                    exit 0
+                    ;;
+                softhsm2-util:--init-token)
+                    record_step token
+                    exit 0
+                    ;;
+                barbican-manage:hsm)
+                    case "${3:-}" in
+                        check_mkek)
+                            record_step mkek-check
+                            [[ "$HSM_CASE" == keys-exist ]]
+                            exit $?
+                            ;;
+                        gen_mkek) record_step mkek; exit 0 ;;
+                        check_hmac)
+                            if [[ " $* " == *" --key-type CKK_AES "* ]]; then
+                                record_step aes-check
+                                [[ "$HSM_CASE" == legacy-hmac || "$HSM_CASE" == cleanup-fails ]]
+                            else
+                                record_step hmac-check
+                                [[ "$HSM_CASE" == keys-exist ]]
+                            fi
+                            exit $?
+                            ;;
+                        gen_hmac) record_step hmac; exit 0 ;;
+                    esac
+                    ;;
+                env:*)
+                    record_step cleanup
+                    exit 0
+                    ;;
+            esac
+            ;;
+    esac
+    exec "$(dirname "$0")/kubectl-base" --namespace openstack "$@"
+fi
+exec "$(dirname "$0")/kubectl-base" "$@"
+EOF
+    chmod +x "${fakebin}/kubectl"
+
+    for mode in ok keys-exist legacy-hmac readiness-fails pod-fails pod-empty \
+        slots-fails token-fails mkek-fails cleanup-fails hmac-fails helm-fails dry-run; do
         tmp_root="$(mktemp -d)"
         tmp_base="${tmp_root}/base"
         tmp_overrides="${tmp_root}/overrides"
@@ -3013,15 +3098,11 @@ test_install_barbican_hsm() {
         order_log="${tmp_root}/order.log"
         mkdir -p "${tmp_base}/base-helm-configs" "${tmp_base}/base-kustomize" "${tmp_base}/scripts/lib" "${tmp_overrides}/kustomize" "$store/openstack/barbican-hsm-credentials"
         cp -R "${REPO_ROOT}/base-helm-configs/barbican" "${tmp_base}/base-helm-configs/"
+        cp "${REPO_ROOT}/scripts/lib/hyperconverged-common.sh" \
+            "${REPO_ROOT}/scripts/lib/functions.sh" "${tmp_base}/scripts/lib/"
         printf 'existing-pin-0123456789abcdef0123' > "${store}/openstack/barbican-hsm-credentials/pin"
         mkdir -p "${store}/openstack/barbican-etc"
         printf '[simple_crypto_plugin]\nkek = %s\n' "$(head -c 32 /dev/urandom | base64 | tr -d '\n' | tr '+/' '-_')" > "${store}/openstack/barbican-etc/barbican.conf"
-        cat > "${tmp_base}/scripts/lib/hyperconverged-common.sh" <<EOS
-initBarbicanHSMKeys() {
-    if grep -q '^upgrade --install' "${helm_log}"; then echo init-after-helm >> "${order_log}"; else echo init-before-helm >> "${order_log}"; fi
-    [[ "\${HSM_INIT_FAIL:-0}" != "1" ]]
-}
-EOS
         printf '#!/bin/bash\nexit 0\n' > "${tmp_overrides}/kustomize/kustomize.sh"
         chmod +x "${tmp_overrides}/kustomize/kustomize.sh"
         printf 'charts:\n  barbican: 1.0.0\n' > "${tmp_overrides}/helm-chart-versions.yaml"
@@ -3032,33 +3113,65 @@ EOS
             KUBECTL_BIN=kubectl \
             KUBECTL_SECRET_DIR="$store" \
             HELM_LOG_FILE="$helm_log" \
-            HSM_INIT_FAIL="$([[ "$mode" == init-fails ]] && echo 1 || echo 0)" \
+            HSM_ORDER_LOG="$order_log" \
+            HSM_CASE="$mode" \
             HELM_FAIL_UPGRADE="$([[ "$mode" == helm-fails ]] && echo 1 || echo 0)" \
             GENESTACK_BASE_DIR="$tmp_base" \
             GENESTACK_OVERRIDES_DIR="$tmp_overrides" \
             GENESTACK_SERVICES_DIR="${REPO_ROOT}/bin/services" \
             GENESTACK_SKIP_DEFAULT_PASSWORD_SCAN=1 \
             "${REPO_ROOT}/bin/install.sh" --service barbican $([[ "$mode" == dry-run ]] && echo --dry-run) 2>&1)" || rc=$?
+        steps=(readiness pod slots token mkek-check mkek hmac-check aes-check hmac)
         case "$mode" in
-            ok)
-                assert_eq "0" "$rc" "barbican install must succeed"
-                assert_contains "$(cat "$helm_log")" "--set conf.barbican.p11_crypto_plugin.login=existing-pin-0123456789abcdef0123" \
-                    "Helm must receive the SoftHSM PIN"
-                assert_eq "init-after-helm" "$(cat "$order_log")" "the SoftHSM keys must be initialized after Helm"
+            keys-exist) steps=(readiness pod slots mkek-check hmac-check) ;;
+            legacy-hmac|cleanup-fails)
+                steps=(readiness pod slots token mkek-check mkek hmac-check aes-check cleanup hmac)
                 ;;
-            init-fails)
-                [[ "$rc" -ne 0 ]] || fail "a failing SoftHSM initialization must fail the install"
-                assert_contains "$out" "Post-install hook for 'barbican' failed." "the failure must be reported"
-                ;;
+        esac
+        expected_steps=""
+        failed_step="${mode%-fails}"
+        for step in "${steps[@]}"; do
+            expected_steps+="${step}|"
+            [[ "$step" != "$failed_step" && ! ( "$mode" == pod-empty && "$step" == pod ) ]] || break
+        done
+        case "$mode" in
             helm-fails)
                 [[ "$rc" -ne 0 ]] || fail "a failing Helm upgrade must fail the install"
-                assert_eq "" "$(cat "$order_log")" "the SoftHSM keys must not be initialized after a failed Helm upgrade"
+                assert_eq "" "$(cat "$order_log")" "HSM initialization must not run after Helm failure"
                 ;;
             dry-run)
                 assert_eq "0" "$rc" "barbican --dry-run must succeed"
-                assert_eq "" "$(cat "$order_log")" "the SoftHSM keys must not be initialized for --dry-run"
+                assert_eq "" "$(cat "$order_log")" "HSM initialization must not run for --dry-run"
+                ;;
+            *)
+                assert_eq "$expected_steps" "$(tr '\n' '|' < "$order_log")" \
+                    "${mode}: initialization must stop at the failed operation"
+                case "$mode" in
+                    ok|keys-exist|legacy-hmac)
+                        assert_eq "0" "$rc" "${mode}: HSM initialization must succeed"
+                        assert_contains "$out" "=== SoftHSM2 initialization complete ===" \
+                            "${mode}: successful initialization must report completion"
+                        ;;
+                    *)
+                        [[ "$rc" -ne 0 ]] || fail "${mode}: HSM failure must fail the install"
+                        assert_contains "$out" "ERROR:" "${mode}: the failed operation must be reported"
+                        assert_contains "$out" "Post-install hook for 'barbican' failed." \
+                            "${mode}: initialization failure must propagate to install.sh"
+                        ;;
+                esac
                 ;;
         esac
+        case "$mode" in
+            ok|keys-exist|legacy-hmac) ;;
+            *)
+                assert_not_contains "$out" "=== SoftHSM2 initialization complete ===" \
+                    "${mode}: incomplete or skipped initialization must not report completion"
+                ;;
+        esac
+        assert_contains "$(cat "$helm_log")" "--set conf.barbican.p11_crypto_plugin.login=existing-pin-0123456789abcdef0123" \
+            "${mode}: Helm must receive the existing SoftHSM PIN"
+        assert_file_content "${store}/openstack/barbican-hsm-credentials/pin" \
+            "existing-pin-0123456789abcdef0123" "${mode}: the existing PIN must remain unchanged"
         rm -rf "$tmp_root"
     done
     rm -rf "$fakebin"

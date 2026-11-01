@@ -1654,7 +1654,7 @@ function initBarbicanHSMKeys() {
 
     echo "=== Barbican SoftHSM2 Key Initialization ==="
 
-    local hsm_pin token_label library_path mkek_label hmac_label pod
+    local hsm_pin token_label library_path mkek_label hmac_label pod token_slots
 
     hsm_pin="$(kubectl --namespace openstack get secret barbican-hsm-credentials \
         -o jsonpath='{.data.pin}' 2>/dev/null | base64 -d)" || true
@@ -1671,23 +1671,40 @@ function initBarbicanHSMKeys() {
 
     echo "Waiting for barbican-api pod..."
     kubectl --namespace openstack wait --for=condition=ready pod \
-        -l application=barbican,component=api --timeout=300s
+        -l application=barbican,component=api --timeout=300s || {
+        echo "ERROR: Barbican API pod did not become ready." >&2
+        return 1
+    }
 
     pod="$(kubectl --namespace openstack get pod \
         -l application=barbican,component=api \
-        -o jsonpath='{.items[0].metadata.name}')"
+        -o jsonpath='{.items[0].metadata.name}')" || {
+        echo "ERROR: Failed to find the Barbican API pod." >&2
+        return 1
+    }
+    if [[ -z "$pod" ]]; then
+        echo "ERROR: No Barbican API pod was found." >&2
+        return 1
+    fi
     echo "Using pod: ${pod}"
 
     # Initialize SoftHSM2 token
     echo "Checking SoftHSM2 token (${token_label})..."
-    if ! kubectl --namespace openstack exec "${pod}" -- \
-        softhsm2-util --show-slots 2>/dev/null | grep -q "${token_label}"; then
+    token_slots="$(kubectl --namespace openstack exec "${pod}" -- \
+        softhsm2-util --show-slots)" || {
+        echo "ERROR: Failed to inspect SoftHSM2 tokens." >&2
+        return 1
+    }
+    if ! grep -Fq -- "${token_label}" <<< "$token_slots"; then
         echo "Initializing token..."
         kubectl --namespace openstack exec "${pod}" -- \
             softhsm2-util --init-token --free \
                 --label "${token_label}" \
                 --pin "${hsm_pin}" \
-                --so-pin "${hsm_pin}"
+                --so-pin "${hsm_pin}" || {
+            echo "ERROR: Failed to initialize the SoftHSM2 token." >&2
+            return 1
+        }
     else
         echo "Token exists — OK"
     fi
@@ -1707,7 +1724,10 @@ function initBarbicanHSMKeys() {
                 --library-path "${library_path}" \
                 --passphrase "${hsm_pin}" \
                 --label "${mkek_label}" \
-                --length 32
+                --length 32 || {
+            echo "ERROR: Failed to generate the Barbican MKEK." >&2
+            return 1
+        }
     fi
 
     # Generate HMAC key (SoftHSM + Barbican: CKK_GENERIC_SECRET + CKM_SHA256_HMAC).
@@ -1752,7 +1772,10 @@ if handle is not None:
     print("Destroyed leftover AES HMAC key")
 p.return_session(session)
 p.finalize()
-'
+' || {
+                echo "ERROR: Failed to remove the legacy AES HMAC key." >&2
+                return 1
+            }
         fi
         echo "Generating HMAC key (CKK_GENERIC_SECRET)..."
         kubectl --namespace openstack exec "${pod}" -- \
@@ -1763,10 +1786,14 @@ p.finalize()
                 --key-type CKK_GENERIC_SECRET \
                 --length 32 \
                 --mechanism CKM_GENERIC_SECRET_KEY_GEN \
-                --hmac-wrap-mechanism CKM_SHA256_HMAC
+                --hmac-wrap-mechanism CKM_SHA256_HMAC || {
+            echo "ERROR: Failed to generate the Barbican HMAC key." >&2
+            return 1
+        }
     fi
 
     echo "=== SoftHSM2 initialization complete ==="
+    return 0
 }
 
 function createPostSetupResources() {

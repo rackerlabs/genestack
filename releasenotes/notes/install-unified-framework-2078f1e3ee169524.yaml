@@ -144,9 +144,15 @@ upgrade:
     longer renders an empty login. With the lab flags and no site values
     file, the SoftHSM overlay is generated. After Helm, the token, MKEK
     and HMAC key are initialized (idempotent; skipped for --dry-run, and
-    not run when Helm fails). A failing initialization now fails the
-    install through the new post_install_fatal service setting. The
-    install stops, without touching the PIN, when kubectl cannot tell
+    not run when Helm fails). Pod readiness, pod lookup, token inspection
+    or initialization, MKEK generation, and legacy HMAC cleanup or HMAC
+    generation failures now stop initialization immediately and fail the
+    install through the new post_install_fatal service setting. Previously,
+    these failures could be followed by an initialization-complete message
+    and a successful installer exit. Existing tokens and keys are still
+    skipped when their checks succeed. A failure does not roll back Helm
+    or earlier successful HSM operations.
+    The install stops, without touching the PIN, when kubectl cannot tell
     whether barbican-hsm-credentials exists.
     --dry-run skips post-install HSM token and key initialization, but
     pre-install secret management still runs and may create HSM
