@@ -209,15 +209,26 @@ trove_gateway_hostname: "trove.cluster.local"
 #   Forces creation of datastore version and load of configuration parameters.
 #
 # force_full_recreation=true:
-#   Recreates the techpreview Trove SSH secret, OpenStack keypair, security
-#   group, guest image, and datastore resources. Chart-derived passwords are
-#   owned by /opt/genestack/bin/services/trove.yaml and are not regenerated here.
+#   Recreates the techpreview Trove SSH key (trove-ssh secret, Nova keypair,
+#   compute-node copy), security group, guest image, and datastore resources.
+#   Chart-derived passwords are owned by /opt/genestack/bin/services/trove.yaml
+#   and are not regenerated here.
 force_rebuild_image: false
 force_create_flavors: false
 force_create_dsv: false
 force_full_recreation: false
 
+# force_create_keys=true:
+#   Regenerates the Trove SSH key: re-creates the trove-ssh K8s secret and the
+#   Nova keypair {{ trove_keypair_name }}, and pushes the new private key to the
+#   compute nodes — all in the trove_keypair step.
+#   Default (false): the key and Nova keypair are only created if missing.
+#   Existing Trove instances keep the key they were booted with.
+#   Run with: --tags trove_keypair -e force_create_keys=true
+force_create_keys: false
+
 # trove_force_recreate_secrets=true:
-#   Deletes and regenerates only the techpreview trove-ssh keypair secret.
-#   Use service-specific password rotation tooling for chart-derived passwords.
+#   Legacy alias of force_create_keys (regenerates only the trove-ssh key;
+#   applied in the trove_keypair step). Use service-specific password rotation
+#   tooling for chart-derived passwords.
 trove_force_recreate_secrets: false

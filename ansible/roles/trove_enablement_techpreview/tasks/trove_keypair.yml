@@ -1,11 +1,88 @@
 ---
-# Trove keypair creation (post-deploy): must run AFTER the Trove helm chart
-# is installed, because the trove-ks-user job creates the Keystone user.
-# Nova keypairs are scoped to user+project — the keypair must be created
-# as the 'trove' user in the 'service' project.
+# Trove SSH key lifecycle (post-deploy), handled in one step (OSPC-2431):
+#   1. trove-ssh K8s secret                   SSH keypair (source of truth)
+#   2. Nova keypair {{ trove_keypair_name }}  public key, injected into new guests
+#   3. compute nodes ~/.ssh/<key file>        private key, used by trove-guest-ssh.sh
+#
+# Default: the secret and the Nova keypair are only created if missing.
+# force_create_keys=true: regenerate the SSH key and replace all three.
+# The key is always distributed at the end of this step, so a new key can
+# never be left off the compute nodes. trove_ssh_key_distribute (separate
+# tag) only re-pushes the existing key.
+#
+# Must run AFTER the Trove helm chart is installed, because the trove-ks-user
+# job creates the Keystone user. Nova keypairs are scoped to user+project —
+# the keypair must be created as the 'trove' user in the 'service' project.
+
+- name: Derive effective Trove SSH key regeneration flag
+  ansible.builtin.set_fact:
+    _force_trove_ssh_key: "{{ (force_create_keys | default(false) | bool) or (trove_force_recreate_secrets | default(false) | bool) or (force_full_recreation | default(false) | bool) }}"
 
 # =========================================================================
-# PART 1: GET TROVE CREDENTIALS FROM K8S SECRETS
+# PART 1: SSH KEY (trove-ssh K8s secret)
+# =========================================================================
+
+- name: Delete existing Trove SSH keypair secret (forced)
+  ansible.builtin.shell: |
+    source {{ genestack_venv }}/bin/activate
+    set -a
+    source {{ genestack_rc }}
+    set +a
+    kubectl -n openstack delete secret trove-ssh --ignore-not-found=true
+  args:
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: _force_trove_ssh_key | bool
+
+- name: Check if Trove SSH keypair secret exists
+  ansible.builtin.shell: |
+    source {{ genestack_venv }}/bin/activate
+    set -a
+    source {{ genestack_rc }}
+    set +a
+    kubectl -n openstack get secret trove-ssh -o name 2>/dev/null
+  args:
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_ssh_secret_check
+  changed_when: false
+  failed_when: false
+
+- name: Determine if the Trove SSH key is (re)generated in this run
+  ansible.builtin.set_fact:
+    _trove_ssh_key_regenerated: "{{ _trove_ssh_secret_check.rc != 0 }}"
+
+- name: Create Trove SSH keypair secret
+  ansible.builtin.shell: |
+    set -euo pipefail
+    source {{ genestack_venv }}/bin/activate
+    set -a
+    source {{ genestack_rc }}
+    set +a
+
+    tmp_dir="$(mktemp -d)"
+    cleanup() {
+      rm -rf "${tmp_dir}"
+    }
+    trap cleanup EXIT
+
+    # Fresh per-run directory and no stdin: ssh-keygen can never prompt.
+    ssh-keygen -q -t ed25519 -N '' -C "trove_ssh" -f "${tmp_dir}/trove_ssh_key" </dev/null
+
+    kubectl -n openstack create secret generic trove-ssh \
+      --from-file=public-key="${tmp_dir}/trove_ssh_key.pub" \
+      --from-file=private-key="${tmp_dir}/trove_ssh_key" \
+      --dry-run=client -o yaml | kubectl apply -f -
+  args:
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when: _trove_ssh_key_regenerated | bool
+
+# =========================================================================
+# PART 2: GET TROVE CREDENTIALS AND WRITE TROVE OPENRC
 # =========================================================================
 
 - name: Get trove SSH public key from K8s secret
@@ -40,9 +117,6 @@
   changed_when: false
   no_log: true
 
-# =========================================================================
-# PART 2: WRITE TROVE OPENRC
-# =========================================================================
 - name: Get Keystone URL
   ansible.builtin.shell:
     cmd: |
@@ -73,8 +147,11 @@
   no_log: true
 
 # =========================================================================
-# PART 3: CREATE KEYPAIR (as trove service user)
+# PART 3: NOVA KEYPAIR (as trove service user)
 # =========================================================================
+# Nova keypairs cannot be updated in place: when the SSH key was
+# (re)generated in this run, the keypair is deleted and re-created under
+# the same name. Trove references it by name, so no Trove/Helm change is needed.
 
 - name: Check if trove keypair exists (as trove service user)
   ansible.builtin.shell:
@@ -89,12 +166,29 @@
   changed_when: false
   failed_when: false
 
+- name: Delete existing trove keypair (SSH key was regenerated)
+  ansible.builtin.shell:
+    cmd: >
+      source {{ genestack_venv }}/bin/activate &&
+      source {{ ubuntu_home }}/openrc-trove &&
+      openstack keypair delete {{ trove_keypair_name }}
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when:
+    - _trove_ssh_key_regenerated | bool
+    - _trove_keypair_check.rc == 0
+
+- name: Determine if trove keypair needs to be created
+  ansible.builtin.set_fact:
+    _do_create_keypair: "{{ (_trove_keypair_check.rc != 0) or (_trove_ssh_key_regenerated | bool) }}"
+
 - name: Write trove SSH public key to temp file
   ansible.builtin.copy:
     content: "{{ _trove_ssh_public_key.stdout }}"
     dest: /tmp/trove-access-key.pub
     mode: "0644"
-  when: _trove_keypair_check.rc != 0
+  when: _do_create_keypair | bool
 
 - name: Create trove access keypair (as trove service user)
   ansible.builtin.shell:
@@ -106,9 +200,19 @@
     executable: /bin/bash
   environment:
     HOME: "{{ ubuntu_home }}"
-  when: _trove_keypair_check.rc != 0
+  when: _do_create_keypair | bool
 
 - name: Remove temp public key file
   ansible.builtin.file:
     path: /tmp/trove-access-key.pub
     state: absent
+
+# =========================================================================
+# PART 4: DISTRIBUTE PRIVATE KEY TO COMPUTE NODES
+# =========================================================================
+# Always part of this step, so a (re)generated key is pushed to the computes
+# in the same run. The same file is also imported on its own in main.yml
+# (tag trove_ssh_key_distribute) to re-push the existing key only.
+
+- name: Distribute Trove SSH key to nodes
+  import_tasks: trove_ssh_key_distribute.yml
