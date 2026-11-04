@@ -1,4 +1,5 @@
-{{- if .Values.persistence.create }}
+# yamllint disable-file
+{{ if .Values.persistence.create }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
