@@ -123,6 +123,8 @@ all:
                 controller-01.env1.example.local: null
                 controller-02.env1.example.local: null
                 controller-03.env1.example.local: null
+        swift_storage_nodes:  # nodes used for Swift account/container/object servers labeled as swift-storage-node=enabled
+          hosts: {}
         openstack_compute_nodes:  # nodes used for nova compute labeled as openstack-compute-node=enabled
           hosts:
             compute-01.env1.example.local: null

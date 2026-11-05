@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: swift-bin
+data:
+  storage-init.sh: |
+    #!/bin/bash
+    # Genestack: validate the devices mounted on this node. Devices are spread
+    # across nodes, so the ring device list cannot be checked on every node.
+    set -e
+    export HOME=/tmp
+    getent group swift >/dev/null || groupadd -r swift
+    getent passwd swift >/dev/null || useradd -r -g swift -d /var/lib/swift -s /sbin/nologin swift
+    mkdir -p /var/cache/swift /var/run/swift /var/lock /var/log/swift
+    ERRORS=0
+    FOUND=0
+    for STOREDIR in /srv/node/*/; do
+      [ -d "${STOREDIR}" ] || continue
+      FOUND=$((FOUND + 1))
+      if ! touch "${STOREDIR}.swift_test" 2>/dev/null; then
+        echo "ERROR: ${STOREDIR} is not writable"
+        ERRORS=$((ERRORS + 1))
+        continue
+      fi
+      rm -f "${STOREDIR}.swift_test"
+      echo "OK: ${STOREDIR}"
+    done
+    if [ "${FOUND}" -eq 0 ]; then
+      echo "ERROR: no devices mounted under /srv/node on this node."
+      echo "Mount each Swift device at /srv/node/<device> (see docs/openstack-swift.md)."
+      exit 1
+    fi
+    if [ "${ERRORS}" -gt 0 ]; then
+      exit 1
+    fi
+    chown -R swift:swift /srv/node /var/cache/swift /var/run/swift /var/lock /var/log/swift
+    echo "=== Mount points ==="
+    mount | grep /srv/node || echo "(no dedicated mounts found - using directory storage)"
+    echo "Storage validation complete: ${FOUND} device(s)"

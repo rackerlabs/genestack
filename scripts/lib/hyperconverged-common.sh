@@ -690,7 +690,7 @@ function writeEnvoyGatewayConfig() {
     local external_routes=(
         barbican blazar cinder cloudformation cloudkitty designate freezer glance
         gnocchi heat ironic keystone magnum manila masakari metadata neutron nova
-        novnc octavia placement skyline trove zaqar
+        novnc octavia placement skyline swift trove zaqar
     )
     local route
 
