@@ -92,6 +92,21 @@ ansible-playbook ansible/playbooks/trove-enablement-techpreview.yaml \
   -e force_full_recreation=true
 ```
 
+### Force SSH Key Regeneration
+
+By default the Trove SSH key (`trove-ssh` K8s secret) and the Nova keypair
+(`trove_keypair_name`) are only created if they do not exist. To regenerate
+the key, re-create the Nova keypair and push the new private key to the
+compute nodes in one step:
+
+```bash
+ansible-playbook ansible/playbooks/trove-enablement-techpreview.yaml \
+  --tags trove_keypair \
+  -e force_create_keys=true
+```
+
+Existing Trove instances keep the key they were booted with.
+
 ## Variables
 
 | Variable                         | Default                 | Description                                                                                                                                                                                                                 |
@@ -107,6 +122,8 @@ ansible-playbook ansible/playbooks/trove-enablement-techpreview.yaml \
 | `force_create_flavors`           | `false`                 | Force rebuild of flavors                                                                                                                                                                                                    |
 | `force_create_dsv`               | `false`                 | Force rebuild of datastore version                                                                                                                                                                                          |
 | `force_full_recreation`          | `false`                 | Nuclear option — rebuild everything                                                                                                                                                                                         |
+| `force_create_keys`              | `false`                 | Regenerate the Trove SSH key, re-create the Nova keypair and redistribute the private key; otherwise the key is only created if missing                                                                                     |
+| `trove_force_recreate_secrets`   | `false`                 | Legacy alias of `force_create_keys`                                                                                                                                                                                         |
 
 ## Tags
 
@@ -115,25 +132,25 @@ ansible-playbook ansible/playbooks/trove-enablement-techpreview.yaml \
 | Tag | Scope |
 |-----|-------|
 | `trove_pre_install` | Runs before the Helm install: install-script managed secrets, mgmt network, security groups, helm config, gateway/kustomize |
-| `trove_post_install` | Runs after Trove is up: image build, datastore version, client, keypair, ssh-key distribute |
+| `trove_post_install` | Runs after Trove is up: image build, datastore version, client, SSH key + keypair + distribute |
 | `deploy_swift` | Deploy Swift (object-store) for backup/restore |
 
 ### Granular tags
 
 ## Trove Setup Tasks
 
-| **Tag**                    | **Task**                                   |
-| :------------------------- | :----------------------------------------- |
-| `trove_secrets`            | Ensure Trove secret prerequisites          |
-| `trove_mgmt_network`       | Create Management Network, Subnet & Router |
-| `trove_security_groups`    | Create Trove Security Groups               |
-| `trove_helm_config`        | Deep-Merge Trove Helm Values               |
-| `trove_gateway`            | Configure Gateway, Kustomize & Endpoints   |
-| `trove_image_build`        | Build & Upload the Trove Guest Image       |
-| `trove_datastore`          | Create Datastore Type & Version            |
-| `trove_client`             | Install `python-troveclient`               |
-| `trove_keypair`            | Create Trove Keypair                       |
-| `trove_ssh_key_distribute` | Distribute Trove SSH Key to Nodes          |
+| **Tag**                    | **Task**                                                     |
+| :------------------------- | :----------------------------------------------------------- |
+| `trove_secrets`            | Ensure Trove secret prerequisites                            |
+| `trove_mgmt_network`       | Create Management Network, Subnet & Router                   |
+| `trove_security_groups`    | Create Trove Security Groups                                 |
+| `trove_helm_config`        | Deep-Merge Trove Helm Values                                 |
+| `trove_gateway`            | Configure Gateway, Kustomize & Endpoints                     |
+| `trove_image_build`        | Build & Upload the Trove Guest Image                         |
+| `trove_datastore`          | Create Datastore Type & Version                              |
+| `trove_client`             | Install `python-troveclient`                                 |
+| `trove_keypair`            | Create Trove SSH Key & Nova Keypair, Distribute Key to Nodes |
+| `trove_ssh_key_distribute` | Re-distribute the existing Trove SSH Key to Nodes            |
 
 ## License
 

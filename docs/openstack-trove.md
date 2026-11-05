@@ -27,7 +27,8 @@ The `trove_enablement_techpreview` role performs the end-to-end enablement. At a
 
 1. **Ensures secret prerequisites** — chart-derived Trove passwords are owned by
    `bin/install-trove.sh` and `bin/services/trove.yaml`; the role ensures they exist before
-   pre-install work needs them. The role owns only the `trove-ssh` ed25519 keypair secret.
+   pre-install work needs them. The role owns only the `trove-ssh` ed25519 keypair secret,
+   which is created in the post-install `trove_keypair` step together with the Nova keypair.
 2. **Creates the Trove management overlay network** — a geneve network (`trove-mgmt-net`),
    its subnet, and a router with an external gateway to the public provider network.
 3. **Creates the security groups** — `trove-access-secgroup` (ICMP, SSH, 3306 for guests)
@@ -46,8 +47,9 @@ The `trove_enablement_techpreview` role performs the end-to-end enablement. At a
    `service` projects.
 7. **Registers the datastore version** (post-deploy) — links the Glance image to the Trove
    `mysql` datastore and loads the configuration validation rules.
-8. **Installs `python-troveclient`**, creates the Nova keypair as the `trove` service user,
-   and distributes the guest SSH key to the compute nodes.
+8. **Installs `python-troveclient`**, creates the `trove-ssh` SSH key (if missing) and the
+   Nova keypair as the `trove` service user, and distributes the guest SSH key to the
+   compute nodes in the same step.
 9. **Deploys Swift** (`swift_all_in_one`) for backup/restore support, unless disabled.
 
 !!! note "This is a tech preview focused on MySQL 8.4"
@@ -77,9 +79,13 @@ is normally required**.
     `bin/services/trove.yaml` schema. Existing secret values are reused.
 
     The techpreview role also manages the `trove-ssh` keypair secret used by the
-    post-install access workflow. `trove_force_recreate_secrets=true` and
-    `force_full_recreation=true` recreate only this SSH keypair secret; they do not
-    rotate Trove database, RabbitMQ, or Keystone service-user passwords.
+    post-install access workflow. It is created, together with the Nova keypair
+    `trove-access-keypair` and the copy on the compute nodes, in the `trove_keypair`
+    step, and only if it does not already exist. `force_create_keys=true` (or its
+    legacy alias `trove_force_recreate_secrets=true`, or `force_full_recreation=true`)
+    regenerates the key, re-creates the Nova keypair and redistributes the private
+    key in one run; they do not rotate Trove database, RabbitMQ, or Keystone
+    service-user passwords.
 
 ## Define policy configuration
 
@@ -112,7 +118,7 @@ is normally required**.
 
 The recommended path is to run the Ansible role end to end. It performs the pre-install
 scaffolding, calls `bin/install-trove.sh` for the Helm release, and then finishes the
-post-install steps (datastore registration, keypair, SSH key distribution).
+post-install steps (datastore registration, SSH key and keypair, SSH key distribution).
 
 !!! example "Run the Trove enablement playbook"
 
@@ -133,21 +139,21 @@ The role's tasks are tagged so you can run just part of the flow. This is useful
 Trove API is not yet up (defer the post-install steps) or when you only need to rebuild one
 piece.
 
-| Tag                       | What runs                                                            |
-|---------------------------|----------------------------------------------------------------------|
-| `trove_pre_install`       | Install-script managed secrets, mgmt network, security groups, Helm config, gateway/kustomize |
-| `trove_secrets`           | Install-script managed secret prerequisites                          |
-| `trove_mgmt_network`      | Management overlay network, subnet, router                           |
-| `trove_security_groups`   | `trove-access` and `trove-services` security groups                  |
-| `trove_helm_config`       | Deep-merge Helm overrides, mgmt-bridge DaemonSet, guest ConfigMaps   |
-| `trove_gateway`           | Envoy listener, HTTPRoute, kustomize overlay, endpoints merge        |
-| `trove_post_install`      | Image build, datastore setup, client install, keypair, SSH key       |
-| `trove_image_build`       | Build/upload the guest image only                                    |
-| `trove_datastore`         | Register the datastore version (requires the Trove API to be up)     |
-| `trove_client`            | Install `python-troveclient`                                         |
-| `trove_keypair`           | Create the Nova keypair as the `trove` service user                  |
-| `trove_ssh_key_distribute`| Copy the guest SSH key to compute nodes                              |
-| `deploy_swift`            | Deploy Swift for backup/restore                                      |
+ Tag                       | What runs                                                            |
+---------------------------|----------------------------------------------------------------------|
+ `trove_pre_install`       | Install-script managed secrets, mgmt network, security groups, Helm config, gateway/kustomize |
+ `trove_secrets`           | Install-script managed secret prerequisites                          |
+ `trove_mgmt_network`      | Management overlay network, subnet, router                           |
+ `trove_security_groups`   | `trove-access` and `trove-services` security groups                  |
+ `trove_helm_config`       | Deep-merge Helm overrides, mgmt-bridge DaemonSet, guest ConfigMaps   |
+ `trove_gateway`           | Envoy listener, HTTPRoute, kustomize overlay, endpoints merge        |
+ `trove_post_install`      | Image build, datastore setup, client install, SSH key + keypair, SSH key distribution |
+ `trove_image_build`       | Build/upload the guest image only                                    |
+ `trove_datastore`         | Register the datastore version (requires the Trove API to be up)     |
+ `trove_client`            | Install `python-troveclient`                                         |
+ `trove_keypair`           | Create the Trove SSH key (`trove-ssh`) and the Nova keypair as the `trove` service user, then copy the key to compute nodes. Use `-e force_create_keys=true` to regenerate the key |
+ `trove_ssh_key_distribute`| Re-copy the existing guest SSH key to compute nodes (requires `trove-ssh`, created by `trove_keypair`) |
+ `deploy_swift`            | Deploy Swift for backup/restore                                      |
 
 !!! example "Run only the post-install steps after Trove is up"
 
@@ -164,23 +170,35 @@ piece.
 ### Force / recreation flags
 
 By default the role is idempotent — it skips work that is already done (for example, it will
-not rebuild the guest image if it already exists in Glance). Pass these flags to force
+not rebuild the guest image if it already exists in Glance, and it will not regenerate the
+Trove SSH key if the `trove-ssh` secret already exists). Pass these flags to force
 specific work:
 
-| Flag                                     | Effect                                                              |
-|------------------------------------------|---------------------------------------------------------------------|
-| `-e force_rebuild_image=true`            | Delete and rebuild the guest image, then re-upload to Glance        |
-| `-e force_create_dsv=true`               | Recreate the datastore version and reload configuration parameters  |
-| `-e trove_force_recreate_secrets=true`   | Recreate only the `trove-ssh` keypair secret                         |
-| `-e trove_force_recreate_mgmt_network=true` | Delete and recreate the management network/subnet/router         |
-| `-e trove_force_recreate_security_groups=true` | Delete and recreate the security groups                       |
-| `-e force_full_recreation=true`          | Nuclear option — recreate SSH keypair, network, security groups, image and datastore |
+ Flag                                     | Effect                                                              |
+------------------------------------------|---------------------------------------------------------------------|
+ `-e force_rebuild_image=true`            | Delete and rebuild the guest image, then re-upload to Glance        |
+ `-e force_create_dsv=true`               | Recreate the datastore version and reload configuration parameters  |
+ `-e force_create_keys=true`              | Regenerate the Trove SSH key (`trove-ssh`), re-create the Nova keypair and redistribute the key (use with `--tags trove_keypair`) |
+ `-e trove_force_recreate_secrets=true`   | Legacy alias of `force_create_keys`                                  |
+ `-e trove_force_recreate_mgmt_network=true` | Delete and recreate the management network/subnet/router         |
+ `-e trove_force_recreate_security_groups=true` | Delete and recreate the security groups                       |
+ `-e force_full_recreation=true`          | Nuclear option — recreate SSH key (secret, Nova keypair, compute copy), network, security groups, image and datastore |
 
 !!! example "Force a guest image rebuild"
 
     ``` shell
     ansible-playbook trove-enablement-techpreview.yaml -e force_rebuild_image=true
     ```
+
+!!! example "Regenerate the Trove SSH key"
+
+    ``` shell
+    ansible-playbook trove-enablement-techpreview.yaml --tags trove_keypair -e force_create_keys=true
+    ```
+
+    The new key is stored in `trove-ssh`, registered as the Nova keypair
+    `trove-access-keypair`, and copied to the compute nodes in the same run. Existing
+    Trove instances keep the key they were booted with.
 
 ## The Helm deployment script
 
@@ -343,21 +361,22 @@ Debian bookworm is the tested configuration.
 Common variables (see `ansible/roles/trove_enablement_techpreview/defaults/main.yml` for the
 full list):
 
-| Variable                          | Default                          | Description                                              |
-|-----------------------------------|----------------------------------|----------------------------------------------------------|
-| `trove_mysql_version`             | `8.4`                            | MySQL version to build and register                      |
-| `trove_guest_image_os_release`    | `bookworm`                       | Debian release for the guest image                       |
-| `trove_guest_image_name`          | `trove-mysql-8.4-bookworm`       | Glance image name (derived from the two above)           |
-| `trove_datastore_name`            | `mysql`                          | Trove datastore type name                                |
-| `trove_datastore_version_name`    | `8.4`                            | Trove datastore version                                  |
-| `trove_keypair_name`              | `trove-access-keypair`           | Nova keypair for instance access                         |
-| `trove_secgroup_name`             | `trove-access-secgroup`          | Security group applied to guest instances                |
-| `trove_services_secgroup_name`    | `trove-services-secgroup`        | Security group for the services (RabbitMQ/Keystone) VIP  |
-| `trove_mgmt_public_network_name`  | `flat`                           | Public provider network for the mgmt router's gateway    |
-| `trove_mgmt_network_name`         | `trove-mgmt-net`                 | Management overlay network name                          |
-| `trove_mgmt_subnet_cidr`          | `10.0.0.0/20`                    | Management subnet CIDR                                   |
-| `trove_services_anchor_ip`        | `10.0.0.10`                      | Anchor IP guests use for RabbitMQ/Keystone               |
-| `trove_deploy_swift`              | `true`                           | Deploy Swift for backup/restore support                  |
+ Variable                          | Default                          | Description                                              |
+-----------------------------------|----------------------------------|----------------------------------------------------------|
+ `trove_mysql_version`             | `8.4`                            | MySQL version to build and register                      |
+ `trove_guest_image_os_release`    | `bookworm`                       | Debian release for the guest image                       |
+ `trove_guest_image_name`          | `trove-mysql-8.4-bookworm`       | Glance image name (derived from the two above)           |
+ `trove_datastore_name`            | `mysql`                          | Trove datastore type name                                |
+ `trove_datastore_version_name`    | `8.4`                            | Trove datastore version                                  |
+ `trove_keypair_name`              | `trove-access-keypair`           | Nova keypair for instance access                         |
+ `trove_secgroup_name`             | `trove-access-secgroup`          | Security group applied to guest instances                |
+ `trove_services_secgroup_name`    | `trove-services-secgroup`        | Security group for the services (RabbitMQ/Keystone) VIP  |
+ `trove_mgmt_public_network_name`  | `flat`                           | Public provider network for the mgmt router's gateway    |
+ `trove_mgmt_network_name`         | `trove-mgmt-net`                 | Management overlay network name                          |
+ `trove_mgmt_subnet_cidr`          | `10.0.0.0/20`                    | Management subnet CIDR                                   |
+ `trove_services_anchor_ip`        | `10.0.0.10`                      | Anchor IP guests use for RabbitMQ/Keystone               |
+ `trove_deploy_swift`              | `true`                           | Deploy Swift for backup/restore support                  |
+ `force_create_keys`               | `false`                          | Regenerate the Trove SSH key, re-create the Nova keypair and redistribute the key |
 
 ## Troubleshooting
 
@@ -393,6 +412,10 @@ kubectl --namespace openstack rollout status ds/trove-mgmt-bridge
    (`openstack image show trove-mysql-8.4-bookworm`); rebuild with `-e force_rebuild_image=true`.
 4. **Instance creation fails on dependencies** — ensure Nova, Neutron, Cinder and Glance are
    healthy and the `trove` service user has the roles it needs.
+5. **Trove keypair creation fails or SSH to new guests is refused** — the `trove-ssh` key,
+   the Nova keypair `trove-access-keypair` and the key on the compute nodes are out of sync
+   or the key is invalid. Regenerate all three in one run with
+   `--tags trove_keypair -e force_create_keys=true`.
 
 ## Configuration options
 
