@@ -1,0 +1,16 @@
+---
+service:
+  name: ovn-backup
+  version: 0.1.0
+  family: ""
+
+chart:
+  repo_name: ~
+  repo_url: ~
+  service_name: ovn-backup
+  global_overrides: false
+
+kustomize:
+  enabled: false
+
+secrets: []
