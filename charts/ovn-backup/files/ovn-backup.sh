@@ -115,7 +115,8 @@ timestamp_metric run_timestamp
 
 finalize_and_upload_metrics() {
     local FILE_COUNT
-    FILE_COUNT=$(find "$BACKUP_DIR" -name \*.backup | wc -l)
+    FILE_COUNT=$(find "$BACKUP_DIR" -type f \
+        \( -name "*.backup" -o -name "*.backup.gz" \) | wc -l)
     update_metric disk_files_gauge "$FILE_COUNT"
     local DISK_PERCENT_USED
     DISK_PERCENT_USED=$(df "$BACKUP_DIR" | perl -lane 'next unless $. == 2; print int($F[4])')
@@ -153,7 +154,9 @@ trap finalize_and_upload_metrics EXIT INT TERM HUP
 # Delete old backup files on volume.
 cd "$BACKUP_DIR" || exit 2
 [[ -e "$BACKUP_DIR/last_upload" ]] || touch "$BACKUP_DIR/last_upload" || exit 3
-find "$BACKUP_DIR" -ctime +"$RETENTION_DAYS" -delete;
+find "$BACKUP_DIR" -type f \
+    \( -name "*.backup" -o -name "*.backup.gz" \) \
+    -ctime +"$RETENTION_DAYS" -delete
 
 # Make a backup in YYYY/MM/DD directory in $BACKUP_DIR
 YMD="$(date +"%Y/%m/%d")"
@@ -225,9 +228,9 @@ upload_file() {
     # but stops shellcheck from identifying this as trying to read and write
     # the same file.
     OBJECT_NAME="$FILE"
-    # Delete swift uploaded object after calculated seconds for RETENTION_DAYS, ie. 30 days from now.
-    SECONDS=$(date -d "+$RETENTION_DAYS days" +%s)
-    if $SWIFT upload "$CONTAINER" --object-name "$OBJECT_NAME" -H "X-Delete-After:$SECONDS" - < "$FILE"
+    # Delete the Swift object RETENTION_DAYS after upload.
+    DELETE_AFTER=$((RETENTION_DAYS * 86400))
+    if $SWIFT upload "$CONTAINER" --object-name "$OBJECT_NAME" -H "X-Delete-After:$DELETE_AFTER" - < "$FILE"
     then
       log_line INFO "SUCCESSFUL UPLOAD $FILE as object $OBJECT_NAME to container $CONTAINER"
     else
@@ -240,11 +243,10 @@ upload_file() {
 cd "$BACKUP_DIR" || exit 2
 
 FAILED_UPLOAD=false
-find "$YMD" -type f -newer "$BACKUP_DIR/last_upload" | \
 while read -r file
 do
     upload_file "$file"
-done
+done < <(find "$YMD" -type f -newer "$BACKUP_DIR/last_upload")
 
 if [[ "$FAILED_UPLOAD" == "true" ]]
 then

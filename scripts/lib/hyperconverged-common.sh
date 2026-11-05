@@ -802,6 +802,7 @@ function writeServiceHelmOverrides() {
       "${config_base}/neutron" \
       "${config_base}/nova" \
       "${config_base}/octavia" \
+      "${config_base}/ovn-backup" \
       "${config_base}/placement" \
       "${config_base}/trove" \
       "${config_base}/zaqar"
@@ -1338,6 +1339,18 @@ conf:
   zaqar:
     oslo_messaging_notifications:
       driver: noop
+EOF
+    fi
+
+    if [ ! -f "${config_base}/ovn-backup/ovn-backup-helm-overrides.yaml" ]; then
+        cat > "${config_base}/ovn-backup/ovn-backup-helm-overrides.yaml" <<EOF
+---
+prometheus:
+  enabled: false
+swift:
+  enabled: false
+  authUrl: ""
+  user: ""
 EOF
     fi
 }

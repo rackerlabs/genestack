@@ -1,16 +1,27 @@
 # Background
 
-By default, _Genestack_ creates a pod that runs _OVN_ snapshots daily in the `kube-system` namespace where you find other centralized _OVN_ things. These get stored on a persistent storage volume associated with the `ovndb-backup` _PersistentVolumeClaim_. Snapshots older than 30 days get deleted.
+_Genestack_ includes an optional `ovn-backup` Helm chart. When installed with
+its default values, it runs _OVN_ snapshots daily in the `kube-system`
+namespace, stores them on the externally managed `ovndb-backup`
+_PersistentVolumeClaim_, and deletes snapshots older than 30 days. The chart
+can optionally create the claim instead.
 
 You should primarily follow the [Kube-OVN documentation on backup and recovery](https://kubeovn.github.io/docs/stable/en/ops/recover-db/) and consider the information here supplementary.
 
 ## Backup
 
-A default _Genestack_ installation creates a _k8s_ _CronJob_ in the `kube-system` namespace along side the other central OVN components that will store snapshots of the OVN NB and SB in the _PersistentVolume_ for the _PersistentVolumeClaim_ named `ovndb-backup`. Storing these on the persistent volume like this matches the conventions for _MariaDB_ in _Genestack_.
+The chart creates a _k8s_ _CronJob_ alongside the other central OVN components
+that stores snapshots of the OVN NB and SB databases on an existing
+_PersistentVolume_. By default, the chart references an externally managed
+PVC; it can optionally create a retained PVC. Follow
+[Deploy Open vSwitch OVN](infrastructure-ovn-setup.md#back-up-the-ovn-databases)
+for storage, configuration, and installation instructions.
 
 ## Restoration and recovery
 
-You may wish to implement shipping these off of the cluster to a permanent location, as you might have cluster problems that could interfere with your ability to get these off of the _PersistentVolume_ when you need these backups.
+Consider enabling the chart's optional Swift upload or otherwise copying
+backups off the cluster, because cluster problems could interfere with access
+to the _PersistentVolume_ during recovery.
 
 ### Recovering when a majority of OVN DB nodes work fine
 
@@ -96,11 +107,18 @@ You also have to make sure to get the pod on the _k8s_ node with the first IP of
 
 You can save this to a YAML file, and `kubectl apply -f <file>`.
 
-You may need to delete the `backup` stuff under `.spec.volumes` and `.spec.containers[].volumeMounts` if you don't have that volume (although a default _Genestack_ installation does the scheduled snapshots there) or trying to use it causes problems, but if it works, you can possibly `kubectl cp` a previous backup off it to restore.
+You may need to delete the `backup` entries under `.spec.volumes` and
+`.spec.containers[].volumeMounts` if the backup chart and PVC were not set up,
+or if mounting the volume causes problems. If it works, you can use
+`kubectl cp` to retrieve a previous backup for restoration.
 
 Additionally, you may need to delete the tolerations in the manifest if you untainted your controllers.
 
-To reiterate, if you reached this step, this pod creation may not work because of your `ovn-central` problems, but a default `Genestack` can't `docker run` the container directly as shown in the `Kube-OVN` documentation because it probably uses _containerd_ instead of _Docker_. I tried creating a pod like this with `ovn-central` scaled to 0 pods, and the pod stays in `ContainerCreating` status.
+To reiterate, if you reached this step, this pod creation may not work because
+of your `ovn-central` problems. A typical `Genestack` installation also cannot
+use `docker run` as shown in the `Kube-OVN` documentation because it uses
+_containerd_ instead of _Docker_. Pod creation has been observed to remain in
+`ContainerCreating` with `ovn-central` scaled to 0 pods.
 
 If creating this pod worked, **scale your replicas to 0**, use `ovsdb-tool` to make the files you will use for restore (both north and south DB), then jump to _Full Recovery_ as described below here and in the _Kube-OVN_ documentation.
 

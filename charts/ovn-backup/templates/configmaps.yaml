@@ -1,0 +1,27 @@
+# yamllint disable-file
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ovn-backup-config
+  labels:
+    app: ovn-backup
+data:
+  RETENTION_DAYS: {{ .Values.backup.retentionDays | quote }}
+  BACKUP_DIR: {{ .Values.backup.directory | quote }}
+  LOG_FILE: {{ .Values.backup.logFile | quote }}
+  LOG_LEVEL: {{ .Values.backup.logLevel | quote }}
+  PROMETHEUS_PUSHGATEWAY_URL: {{ .Values.prometheus.pushgatewayUrl | quote }}
+  PROMETHEUS_JOB_NAME: {{ .Values.prometheus.jobName | quote }}
+  PROMETHEUS_UPLOAD: {{ .Values.prometheus.enabled | quote }}
+  SWIFT_TEMPAUTH_UPLOAD: {{ .Values.swift.enabled | quote }}
+  CONTAINER: {{ .Values.swift.container | quote }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ovn-backup-script
+  labels:
+    app: ovn-backup
+data:
+  ovn-backup.sh: |
+{{ .Files.Get "files/ovn-backup.sh" | indent 4 }}

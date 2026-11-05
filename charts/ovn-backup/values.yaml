@@ -1,0 +1,39 @@
+schedule: "0 0 * * *"
+
+image:
+  repository: ghcr.io/rackerlabs/genestack-images/kube-ovn
+  tag: v1.15.4
+  pullPolicy: IfNotPresent
+
+serviceAccountName: ovn
+nodeSelector:
+  kube-ovn/role: master
+
+persistence:
+  create: false
+  claimName: ovndb-backup
+  storageClass: general
+  size: 1Gi
+  accessMode: ReadWriteOnce
+
+backup:
+  retentionDays: 30
+  directory: /backup
+  logFile: /backup/upload.log
+  logLevel: INFO
+
+prometheus:
+  enabled: false
+  pushgatewayUrl: http://prometheus-pushgateway.monitoring.svc.cluster.local:9091
+  jobName: ovn-backup
+
+swift:
+  enabled: false
+  authUrl: ""
+  user: ""
+  container: test-ovn-backup
+  existingSecret: ovn-backup-swift-tempauth-account
+
+job:
+  backoffLimit: 5
+  failedJobsHistoryLimit: 1

@@ -1,0 +1,58 @@
+# yamllint disable-file
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ovn-snapshot-cron
+  labels:
+    app: ovn-backup
+spec:
+  schedule: {{ .Values.schedule | quote }}
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: {{ .Values.job.failedJobsHistoryLimit }}
+  jobTemplate:
+    spec:
+      backoffLimit: {{ .Values.job.backoffLimit }}
+      template:
+        metadata:
+          labels:
+            app: ovn-backup
+        spec:
+          serviceAccountName: {{ .Values.serviceAccountName | quote }}
+          automountServiceAccountToken: true
+          restartPolicy: Never
+          nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 12 }}
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: {{ .Values.persistence.claimName | quote }}
+            - name: backup-script
+              configMap:
+                name: ovn-backup-script
+                defaultMode: 484
+          containers:
+            - name: ovn-central-backup
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command:
+                - /backup-script/ovn-backup.sh
+              envFrom:
+                - configMapRef:
+                    name: ovn-backup-config
+{{- if .Values.swift.enabled }}
+              env:
+                - name: ST_AUTH
+                  value: {{ .Values.swift.authUrl | quote }}
+                - name: ST_USER
+                  value: {{ .Values.swift.user | quote }}
+                - name: ST_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.swift.existingSecret | quote }}
+                      key: ST_KEY
+{{- end }}
+              volumeMounts:
+                - name: backup
+                  mountPath: {{ .Values.backup.directory | quote }}
+                - name: backup-script
+                  mountPath: /backup-script
