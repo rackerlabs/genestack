@@ -166,6 +166,13 @@ volume:
   accessModes:
     - ReadWriteMany
 
+# change the defaults for the tmp pvc to use general-multi-attach sc
+volume_staging:
+  class_name: general-multi-attach
+  size: 5Gi
+  accessModes:
+    - ReadWriteMany
+
 dependencies:
   static:
     api:
