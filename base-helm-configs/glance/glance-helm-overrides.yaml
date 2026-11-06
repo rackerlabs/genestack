@@ -171,7 +171,7 @@ volume_staging:
   class_name: general-multi-attach
   size: 5Gi
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
 
 dependencies:
   static:
