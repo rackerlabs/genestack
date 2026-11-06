@@ -52,6 +52,18 @@ fi
 
 export LAB_NAME_PREFIX="${LAB_NAME_PREFIX:-hyperconverged}"
 
+# Billing setup / Rook-Ceph loop device size in GiB: 0 (default) skips the
+# whole billing setup, N > 0 runs it with an N GiB loop device per node for
+# Rook-Ceph. Validated here, before any
+# infrastructure is created, so a bad value fails fast.
+ROOK_CEPH_LOOP_SIZE="${HYPERCONVERGED_ROOK_CEPH_LOOP_SIZE:-0}"
+if ! [[ "${ROOK_CEPH_LOOP_SIZE}" =~ ^[0-9]+$ ]]; then
+    echo "ERROR: HYPERCONVERGED_ROOK_CEPH_LOOP_SIZE must be 0 or a positive whole number of GiB (got '${ROOK_CEPH_LOOP_SIZE}')" >&2
+    exit 1
+fi
+# Force base 10 so values like "08" aren't parsed as octal.
+ROOK_CEPH_LOOP_SIZE=$((10#${ROOK_CEPH_LOOP_SIZE}))
+
 #############################################################################
 # Create OpenStack Infrastructure (Common)
 #############################################################################
@@ -1041,6 +1053,16 @@ if [ "${TEST_LEVEL}" = "off" ]; then
     # Trove Setup & Installation
     # Must be run after the flat network has been created
     deployTrove "RegionOne" "flat" "false" "trove.cluster.local" "internal"
+
+    # Billing Setup (common function)
+    # Runs last, after OpenStack and Trove, matching the manual workflow.
+    # Does nothing when HYPERCONVERGED_ROOK_CEPH_LOOP_SIZE is 0 (the
+    # default). When it is N > 0, installs Redis (operator, replication,
+    # sentinel), Postgres (operator, postgres-cluster), Rook-Ceph with an
+    # N GiB loop device per node, the ceph-etc ConfigMap, Gnocchi, Ceilometer
+    # and their CLI clients. ROOK_CEPH_LOOP_SIZE is validated near the top of
+    # this script.
+    setupForBilling "${ROOK_CEPH_LOOP_SIZE}"
 
 else
     # Wait for Nova and Neutron APIs to be ready before proceeding
