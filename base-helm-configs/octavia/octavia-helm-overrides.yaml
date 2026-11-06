@@ -151,6 +151,10 @@ conf:
       ovn_nb_connection: "tcp:127.0.0.1:6641"
       ovn_sb_connection: "tcp:127.0.0.1:6642"
     service_auth:
+      project_domain_name: service
+      project_name: service
+      user_domain_name: service
+      username: octavia
       insecure: true
     task_flow:
       jobboard_enabled: false

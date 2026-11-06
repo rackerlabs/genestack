@@ -3,8 +3,8 @@
   vars:
     octavia_os_endpoint_type: publicURL
     octavia_os_interface: "{{ octavia_os_endpoint_type }}"
-    octavia_os_username: admin
-    octavia_os_project_name: admin
+    octavia_os_username: octavia
+    octavia_os_project_name: service
     octavia_os_tenant_name: '{{ octavia_os_project_name }}'
     octavia_os_auth_type: password
     octavia_os_auth_url: http://keystone-api.openstack.svc.cluster.local:5000/v3
@@ -23,7 +23,7 @@
     OS_USERNAME: "{{ octavia_os_username }}"
     OS_PASSWORD: "{{ octavia_os_password }}"
     OS_PROJECT_NAME: "{{ octavia_os_project_name}}"
-    OS_TENANT_NAME: 'admin'
+    OS_TENANT_NAME: 'octavia'
     OS_AUTH_TYPE: password
     OS_AUTH_URL: "{{ octavia_os_auth_url }}"
     OS_USER_DOMAIN_NAME: "{{ octavia_os_user_domain_name }}"
