@@ -735,6 +735,7 @@ all:
         kube_ovn_central_hosts: '{{ groups["ovn_network_nodes"] }}'
         kube_ovn_default_interface_name: br-mgmt
         kube_ovn_iface: br-mgmt
+        lab_tenant_egress_snat_enabled: true
       children:
         broken_etcd:
           children: null
@@ -818,6 +819,7 @@ all:
         kube_ovn_central_hosts: '{{ groups["ovn_network_nodes"] }}'
         kube_ovn_default_interface_name: br-mgmt
         kube_ovn_iface: br-mgmt
+        lab_tenant_egress_snat_enabled: true
       children:
         broken_etcd:
           children: null
