@@ -105,6 +105,22 @@
     - _trove_do_build | bool
     - _trove_release_branch.rc == 0 or _trove_release_branch.stdout | trim | length != 0
 
+- name: Patch for backup with trust token patch
+  ansible.builtin.shell:
+    cmd: |
+      source {{ genestack_venv }}/bin/activate
+      set -a
+      source {{ genestack_rc }}
+      set +a
+      patch --batch --forward --fuzz=0 --directory="{{ trove_build_dir }}/trove" --strip=1 \
+          < "{{ role_path }}/files/patches/trove-backup-with-trust-token.patch"
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when:
+    - _trove_do_build | bool
+    - _trove_release_branch.rc == 0 or _trove_release_branch.stdout | trim | length != 0
+
 # qemu-utils provides qemu-img; debootstrap and kpartx are required by
 # diskimage-builder for base image creation and partition handling.
 - name: Install QEMU and image-build system dependencies

@@ -1,0 +1,34 @@
+--- a/backup/storage/swift.py
++++ b/backup/storage/swift.py
+@@ -40,6 +40,31 @@ def _get_user_keystone_session(auth_url, token, tenant_id):
+ 
+ 
+ def _get_service_client(auth_url, token, tenant_id, region_name=None):
++    # Trust tokens cannot be re-scoped. Validate the existing token and
++    # use it as a preauth token against the catalog Swift URL.
++    try:
++        token_data = session.Session(verify=False).get(
++            (auth_url or '').rstrip('/') + '/auth/tokens',
++            headers={'X-Auth-Token': token, 'X-Subject-Token': token},
++            authenticated=False,
++        ).json()['token']
++        for svc in token_data.get('catalog') or []:
++            if svc.get('type') != 'object-store':
++                continue
++            for ep in svc.get('endpoints') or []:
++                if ep.get('interface') not in ('public', 'publicURL'):
++                    continue
++                if region_name and ep.get('region') != region_name:
++                    continue
++                if ep.get('url'):
++                    return swiftclient.Connection(
++                        preauthurl=ep['url'],
++                        preauthtoken=token,
++                        insecure=True)
++    except Exception:
++        LOG.warning('Failed to create preauth Swift client, falling back '
++                    'to token re-scoping.', exc_info=True)
++
+     sess = _get_user_keystone_session(auth_url, token, tenant_id)
+     os_options = None
+     if region_name:
