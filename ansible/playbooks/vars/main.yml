@@ -6,7 +6,7 @@ os_project_name: admin
 os_tenant_name: '{{ os_project_name }}'
 os_auth_type: password
 os_admin_password: ''
-os_auth_url: http://keystone.pikachu.jabronis.dev/v3
+os_auth_url: 'https://keystone-api:5000/v3'
 os_user_domain_name: default
 os_project_domain_name: default
 os_region_name: RegionOne
@@ -38,7 +38,7 @@ os_admin_env:
 capi_mgmt_env:
   OS_ENDPOINT_TYPE: "{{ os_endpoint_type | default('public') }}"
   OS_INTERFACE: "{{ os_interface | default('public') }}"
-  OS_AUTH_URL: http://keystone.pikachu.jabronis.dev/v3
+  OS_AUTH_URL: "{{ os_auth_url }}"
   OS_USERNAME: "{{ capi_mgmt_user_name }}"
   OS_PASSWORD: "{{ os_user_password }}"
   OS_PROJECT_NAME: "{{ capi_mgmt_project_name }}"
