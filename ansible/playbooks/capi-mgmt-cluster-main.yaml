@@ -6,6 +6,44 @@
     - vars/{{ ansible_distribution | lower }}.yml
   environment: "{{ os_admin_env | default({}) }}"
   pre_tasks:
+    - name: Retrieve Keystone admin password from Kubernetes
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        name: keystone-admin
+        namespace: openstack
+      register: keystone_secret
+      no_log: true
+      tags:
+        - always
+    - name: Set os_admin_password from K8s secret keystone-admin
+      ansible.builtin.set_fact:
+        os_admin_password: "{{ keystone_secret.resources[0].data.password | b64decode }}"
+      no_log: true
+      when: keystone_secret.resources | length > 0
+      tags:
+        - always
+    - name: Retrieve public Keystone endpoint from openstack CLI
+      ansible.builtin.shell: |
+        openstack endpoint list --interface public --service keystone -f value -c url
+      register: openstack_cli
+      tags:
+        - always
+    - name: Set os_auth_url from the openstack CLI
+      ansible.builtin.set_fact:
+        os_auth_url: "{{ openstack_cli.stdout | default('') }}"
+      no_log: true
+      when: openstack_cli.stdout_lines | length > 0
+      tags:
+        - always
+    - name: check that the Keystone auth url is provided
+      ansible.builtin.assert:
+        that:
+          - os_auth_url is defined
+          - os_auth_url | length > 0
+        fail_msg: >
+          The URL to keystone is required
+          provide the admin password with -e os_auth_url="https://<url>"
     - name: check that the admin password is provided
       ansible.builtin.assert:
         that:
