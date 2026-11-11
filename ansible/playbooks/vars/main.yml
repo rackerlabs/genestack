@@ -6,7 +6,7 @@ os_project_name: admin
 os_tenant_name: '{{ os_project_name }}'
 os_auth_type: password
 os_admin_password: ''
-os_auth_url: 'https://keystone-api:5000/v3'
+os_auth_url: ''
 os_user_domain_name: default
 os_project_domain_name: default
 os_region_name: RegionOne
