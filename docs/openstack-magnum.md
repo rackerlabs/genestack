@@ -89,7 +89,7 @@ The management cluster infrastructure (project, network, instances, load balance
     cd /opt/genestack/ansible/playbooks
 
     ansible-playbook capi-mgmt-cluster-main.yaml \
-      -e os_admin_password=<keystone_admin_password> \
+      -e os_auth_url=`openstack endpoint list --interface public --service keystone -f value -c url` \
       -e os_user_password=<capi_mgmt_user_password> \
       -e ext_net_id='<external_network_uuid>'
     ```
