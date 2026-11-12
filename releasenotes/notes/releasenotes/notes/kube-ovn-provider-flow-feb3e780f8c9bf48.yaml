@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    Kube-OVN is upgraded to v1.15.33 due to the upstream issue kubeovn/kube-ovn#7673
+    To upgrade a previous v1.15.x version must be installed prior to upgrading to v1.15.33
