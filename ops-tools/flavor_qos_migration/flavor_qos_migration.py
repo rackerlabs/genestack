@@ -146,6 +146,7 @@ class InstancePlan:
     old_hex: str
     new_hex: str | None
     action: str
+    warning: str | None = None
 
 
 @dataclass
@@ -371,8 +372,6 @@ def migrate_cached_flavor(serialized: str, policy_id: str) -> tuple[str, bool]:
         raise MigrationError(f"cached flavor is invalid JSON: {exc}") from exc
     if not isinstance(primitive, dict):
         raise MigrationError("cached flavor JSON root is not an object")
-    if primitive.get("old") is not None or primitive.get("new") is not None:
-        raise MigrationError("cached flavor has non-null old or new resize flavor")
     updated = copy.deepcopy(primitive)
     data = flavor_data(updated)
     extra_specs = data.get("extra_specs")
@@ -439,10 +438,10 @@ class MariaDBClient:
             raise MigrationError(f"MariaDB command failed: {detail}")
         return result.stdout
 
-    def read_instances(self, database: str) -> list[tuple[str, str, str]]:
+    def read_instances(self, database: str) -> list[tuple[str, str, str, str]]:
         db = quoted_database(database)
         sql = f"""
-SELECT i.uuid, IFNULL(i.task_state, ''), HEX(ie.flavor)
+SELECT i.uuid, IFNULL(i.vm_state, ''), IFNULL(i.task_state, ''), HEX(ie.flavor)
 FROM {db}.instances AS i
 JOIN {db}.instance_extra AS ie ON ie.instance_uuid = i.uuid
 WHERE i.deleted = 0 AND ie.deleted = 0 AND ie.flavor IS NOT NULL;
@@ -450,22 +449,34 @@ WHERE i.deleted = 0 AND ie.deleted = 0 AND ie.flavor IS NOT NULL;
         rows = []
         for line in self.execute(sql).splitlines():
             parts = line.split("\t")
-            if len(parts) != 3:
+            if len(parts) != 4:
                 raise MigrationError(f"unexpected MariaDB instance row: {line!r}")
-            rows.append((parts[0], parts[1], parts[2]))
+            rows.append((parts[0], parts[1], parts[2], parts[3]))
         return rows
 
-    def active_migrations(self, database: str) -> set[str]:
+    def active_migrations(self, database: str) -> dict[str, list[str]]:
         db = quoted_database(database)
         terminal = ", ".join(sql_string(value) for value in TERMINAL_MIGRATION_STATES)
         sql = f"""
-SELECT DISTINCT instance_uuid
+SELECT instance_uuid, id, IFNULL(migration_type, ''), IFNULL(status, ''),
+       IFNULL(updated_at, created_at)
 FROM {db}.migrations
 WHERE deleted = 0
   AND instance_uuid IS NOT NULL
-  AND LOWER(IFNULL(status, '')) NOT IN ({terminal});
+  AND LOWER(IFNULL(status, '')) NOT IN ({terminal})
+ORDER BY instance_uuid, id;
 """
-        return {line.strip() for line in self.execute(sql).splitlines() if line.strip()}
+        migrations: dict[str, list[str]] = {}
+        for line in self.execute(sql).splitlines():
+            parts = line.split("\t")
+            if len(parts) != 5:
+                raise MigrationError(f"unexpected MariaDB migration row: {line!r}")
+            instance_uuid, migration_id, migration_type, status, updated_at = parts
+            migrations.setdefault(instance_uuid, []).append(
+                f"id={migration_id} type={migration_type or 'unknown'} "
+                f"status={status or 'unknown'} updated_at={updated_at}"
+            )
+        return migrations
 
     def apply_cached_flavors(
         self, database: str, changes: list[InstancePlan], reverse: bool = False
@@ -488,6 +499,7 @@ WHERE deleted = 0
             )
         joined_values = ",\n".join(values)
         sql = f"""
+USE {db};
 CREATE TEMPORARY TABLE flavor_qos_updates (
   instance_uuid varchar(36) PRIMARY KEY,
   old_hex longtext NOT NULL,
@@ -497,10 +509,15 @@ INSERT INTO flavor_qos_updates (instance_uuid, old_hex, new_hex) VALUES
 {joined_values};
 START TRANSACTION;
 UPDATE {db}.instance_extra AS ie
+JOIN {db}.instances AS i
+  ON i.uuid = ie.instance_uuid AND i.deleted = 0
 JOIN flavor_qos_updates AS u ON u.instance_uuid = ie.instance_uuid
 SET ie.flavor = CONVERT(UNHEX(u.new_hex) USING utf8mb4),
     ie.updated_at = UTC_TIMESTAMP()
-WHERE ie.deleted = 0 AND HEX(ie.flavor) = u.old_hex;
+WHERE ie.deleted = 0
+  AND i.task_state IS NULL
+  AND LOWER(IFNULL(i.vm_state, '')) <> 'resized'
+  AND HEX(ie.flavor) = u.old_hex;
 SET @flavor_qos_changed = ROW_COUNT();
 SET @flavor_qos_tx = IF(
   @flavor_qos_changed = {len(actionable)}, 'COMMIT', 'ROLLBACK'
@@ -771,7 +788,9 @@ def plan_instances(
     seen: set[str] = set()
     for database in databases:
         active_migrations = client.active_migrations(database)
-        for instance_uuid, task_state, flavor_hex in client.read_instances(database):
+        for instance_uuid, vm_state, task_state, flavor_hex in client.read_instances(
+            database
+        ):
             try:
                 serialized = bytes.fromhex(flavor_hex).decode("utf-8")
                 primitive = json.loads(serialized)
@@ -797,9 +816,18 @@ def plan_instances(
                 raise MigrationError(
                     f"instance {instance_uuid} has active task_state {task_state!r}"
                 )
-            if instance_uuid in active_migrations:
+            if vm_state.casefold() == "resized":
                 raise MigrationError(
-                    f"instance {instance_uuid} has an active migration"
+                    f"instance {instance_uuid} has vm_state 'resized' and is awaiting "
+                    "resize confirm or revert"
+                )
+            migration_rows = active_migrations.get(instance_uuid, [])
+            warning = None
+            if migration_rows:
+                warning = (
+                    "ignored stale non-terminal migration row(s) because the instance "
+                    f"has vm_state={vm_state!r} and no task_state: "
+                    + "; ".join(migration_rows)
                 )
             if not flavor.policy_id:
                 new_serialized = None
@@ -828,6 +856,7 @@ def plan_instances(
                         else None
                     ),
                     "update" if changed else "noop",
+                    warning,
                 )
             )
     return plans
@@ -1035,6 +1064,7 @@ def rollback(
 
 
 def report_dict(plan: RunPlan) -> dict[str, Any]:
+    warnings = [item.warning for item in plan.instances if item.warning]
     return {
         "summary": {
             "region": plan.region,
@@ -1045,12 +1075,14 @@ def report_dict(plan: RunPlan) -> dict[str, Any]:
             "instance_count": len(plan.instances),
             "port_count": len(plan.ports),
             "conflict_count": len(plan.conflicts),
+            "warning_count": len(warnings),
         },
         "policies": [asdict(item) for item in plan.policies],
         "flavors": [asdict(item) for item in plan.flavors],
         "instances": [asdict(item) for item in plan.instances],
         "ports": [asdict(item) for item in plan.ports],
         "conflicts": plan.conflicts,
+        "warnings": warnings,
     }
 
 
@@ -1094,6 +1126,11 @@ def print_report(plan: RunPlan, output_format: str) -> None:
         f"\nCached instances: {len(plan.instances)}; ports: {len(plan.ports)}; "
         f"ports overriding inherited network QoS: {inherited}"
     )
+    warnings = [item.warning for item in plan.instances if item.warning]
+    if warnings:
+        print("\nWarnings:")
+        for warning in warnings:
+            print(f"  {warning}")
 
 
 def build_parser() -> argparse.ArgumentParser:

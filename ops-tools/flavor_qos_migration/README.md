@@ -10,6 +10,9 @@ The tool is dry-run first and fails closed on conflicts. The runtime Nova and
 Neutron flavor QoS plugins remain fail-open; that behavior is independent of
 this administrative migration.
 
+After applying the migration, validate that assigned policies survive the
+instance lifecycle with the procedure in [VALIDATION.md](VALIDATION.md).
+
 ## Rate conversion
 
 Nova's legacy values are kB/s while Neutron bandwidth-limit rules use kbps.
@@ -83,9 +86,16 @@ python3 ops-tools/flavor_qos_migration/flavor_qos_migration.py \
   --apply --yes-im-really-sure
 ```
 
-The tool refuses active task states and migrations, conflicting explicit port
-policies, changed flavor properties, mismatched live policies, and database
-compare-and-swap races. Rerunning after success is a no-op.
+The tool refuses non-null instance task states and instances in `resized`
+state, conflicting explicit port policies, changed flavor properties,
+mismatched live policies, and database compare-and-swap races. A
+non-terminal row in Nova's `migrations` table does not block an otherwise
+stable instance; it is reported as a stale-data warning in the text and JSON
+reports. Cached `old` and `new` flavor objects are preserved, while only
+`cur.nova_object.data.extra_specs` is changed. The database update rechecks
+the instance task and VM states so a lifecycle operation starting after
+preflight causes the transaction to roll back. Rerunning after success is a
+no-op.
 
 Do not pass database passwords on the command line. Prefer
 `--defaults-file`, or set a restricted environment variable and name it with

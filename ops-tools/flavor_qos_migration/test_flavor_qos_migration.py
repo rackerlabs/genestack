@@ -144,9 +144,16 @@ class CachedFlavorTests(unittest.TestCase):
         self.assertFalse(changed)
         self.assertEqual(updated, source)
 
-    def test_active_resize_flavors_are_rejected(self):
-        with self.assertRaisesRegex(MODULE.MigrationError, "non-null old or new"):
-            MODULE.migrate_cached_flavor(serialized_flavor(old={}), self.POLICY_ID)
+    def test_only_current_flavor_is_changed_when_old_or_new_are_present(self):
+        old = {"marker": "old"}
+        new = {"marker": "new"}
+        updated, changed = MODULE.migrate_cached_flavor(
+            serialized_flavor(old=old, new=new), self.POLICY_ID
+        )
+        self.assertTrue(changed)
+        result = json.loads(updated)
+        self.assertEqual(result["old"], old)
+        self.assertEqual(result["new"], new)
 
 
 class FakeNetwork:
@@ -404,9 +411,10 @@ class DatabaseTests(unittest.TestCase):
             "update",
         )
         client.apply_cached_flavors("nova_cell1", [plan])
-        self.assertIn(
-            "WHERE ie.deleted = 0 AND HEX(ie.flavor) = u.old_hex", captured["sql"]
-        )
+        self.assertIn("USE `nova_cell1`;", captured["sql"])
+        self.assertIn("AND HEX(ie.flavor) = u.old_hex", captured["sql"])
+        self.assertIn("i.task_state IS NULL", captured["sql"])
+        self.assertIn("i.vm_state, '')) <> 'resized'", captured["sql"])
         self.assertIn("ROLLBACK", captured["sql"])
 
     def test_compare_and_swap_race_fails_closed(self):
@@ -443,12 +451,12 @@ class DatabaseTests(unittest.TestCase):
 
         class Client:
             def active_migrations(self, _database):
-                return set()
+                return {}
 
             def read_instances(self, database):
                 instance = "instance-1" if database == "cell1" else "instance-2"
                 payload = serialized_flavor().encode().hex()
-                return [(instance, "", payload)]
+                return [(instance, "active", "", payload)]
 
         plans = MODULE.plan_instances(Client(), ["cell1", "cell2"], [flavor_plan])
         self.assertEqual({plan.database for plan in plans}, {"cell1", "cell2"})
@@ -470,15 +478,86 @@ class DatabaseTests(unittest.TestCase):
 
         class Client:
             def active_migrations(self, _database):
-                return set()
+                return {}
 
             def read_instances(self, _database):
                 return [
-                    ("instance-1", "rebuilding", serialized_flavor().encode().hex())
+                    (
+                        "instance-1",
+                        "active",
+                        "rebuilding",
+                        serialized_flavor().encode().hex(),
+                    )
                 ]
 
         with self.assertRaisesRegex(MODULE.MigrationError, "active task_state"):
             MODULE.plan_instances(Client(), ["cell1"], [flavor_plan])
+
+    def test_resized_vm_state_fails_preflight(self):
+        flavor_plan = MODULE.FlavorPlan(
+            "gp.test",
+            "flavor-id",
+            "lite",
+            "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+            {},
+            {},
+            125000,
+            1000000,
+            1000000,
+            0.0,
+            "update",
+        )
+
+        class Client:
+            def active_migrations(self, _database):
+                return {"instance-1": ["id=7 status=finished"]}
+
+            def read_instances(self, _database):
+                return [
+                    (
+                        "instance-1",
+                        "resized",
+                        "",
+                        serialized_flavor().encode().hex(),
+                    )
+                ]
+
+        with self.assertRaisesRegex(MODULE.MigrationError, "awaiting resize"):
+            MODULE.plan_instances(Client(), ["cell1"], [flavor_plan])
+
+    def test_stale_migration_is_reported_but_does_not_block_stable_instance(self):
+        flavor_plan = MODULE.FlavorPlan(
+            "gp.test",
+            "flavor-id",
+            "lite",
+            "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+            {},
+            {},
+            125000,
+            1000000,
+            1000000,
+            0.0,
+            "update",
+        )
+
+        class Client:
+            def active_migrations(self, _database):
+                return {
+                    "instance-1": [
+                        "id=440 type=migration status=pre-migrating "
+                        "updated_at=2026-06-23 17:51:20"
+                    ]
+                }
+
+            def read_instances(self, _database):
+                payload = serialized_flavor(new={"marker": "stale"}).encode().hex()
+                return [("instance-1", "active", "", payload)]
+
+        plan = MODULE.plan_instances(Client(), ["cell1"], [flavor_plan])[0]
+        self.assertIn("ignored stale non-terminal migration", plan.warning)
+        self.assertIn("id=440", plan.warning)
+        result = json.loads(bytes.fromhex(plan.new_hex).decode())
+        self.assertEqual(result["new"], {"marker": "stale"})
 
 
 class PortTests(unittest.TestCase):
