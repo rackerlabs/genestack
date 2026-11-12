@@ -2,14 +2,46 @@
 
 set -euo pipefail
 
+# This script works for both MariaDB topologies supported by Genestack:
+# Primary/Replica (replication) and Galera. Galera is enabled by patching
+# the *same* MariaDB CR (see base-kustomize/mariadb-cluster/galera), it is
+# not a separate resource -- so the name/namespace below are correct for
+# either topology. The actual topology is detected at runtime further down
+# (purely for logging/sanity-checking); database discovery and Backup CR
+# generation are identical either way.
 NAMESPACE="openstack"
 MARIADB_NAME="mariadb-cluster"
 
 # Base directory that already holds the MariaDB cluster's kustomization.
 # Generated Backup CRs are written to a "mariadb-backups" subdirectory
 # here, and that subdirectory is wired into this base's kustomization.yaml.
+#
+# This defaults to the Primary/Replica base, but it also covers Galera
+# clusters: base-kustomize/mariadb-cluster/galera/kustomization.yaml lists
+# "../base" among its own resources, so anything added to the base's
+# kustomization.yaml (including the generated "mariadb-backups" resource)
+# is pulled in transitively, regardless of whether a given site deploys
+# the base or galera overlay. If your site's mariadb-cluster kustomize
+# tree doesn't follow that layout, point this at the correct directory
+# explicitly via the MARIADB_BASE_DIR env var -- the runtime check below
+# will warn if the detected topology doesn't match what it finds here.
 MARIADB_BASE_DIR="${MARIADB_BASE_DIR:-/opt/genestack/base-kustomize/mariadb-cluster/base}"
 BACKUP_DIR="${BACKUP_DIR:-${MARIADB_BASE_DIR}/mariadb-backups}"
+
+# Space/comma separated list of additional database names to always skip,
+# on top of the system databases below. Use this to permanently opt a
+# database out of per-database backup generation. This is the supported
+# way to do so -- deleting a generated Backup CR from the cluster is NOT
+# sufficient, since it will be regenerated on the next run as long as the
+# database still exists (see "skip if exists" logic below).
+EXCLUDE_DATABASES="${EXCLUDE_DATABASES:-}"
+
+# Set to "true" to delete the local manifest (and, if S3 patches are
+# enabled, the matching S3 patch) for a database that no longer exists in
+# MariaDB, and to also delete its live Backup CR from the cluster. Off by
+# default: orphaned databases are only reported as a warning, since
+# deleting a Backup CR is a destructive, hard-to-reverse action.
+PRUNE_ORPHANED_BACKUPS="${PRUNE_ORPHANED_BACKUPS:-false}"
 
 SCHEDULE="${SCHEDULE:-0 0 * * *}"
 PVC_SIZE="${PVC_SIZE:-1Gi}"
@@ -26,7 +58,8 @@ S3_OVERLAY_DIR="${S3_OVERLAY_DIR:-/etc/genestack/kustomize/mariadb-cluster/overl
 S3_PREFIX_BASE="${S3_PREFIX_BASE:-cron}"
 S3_SECRET_NAME="${S3_SECRET_NAME:-mariadb-backup-secrets}"
 
-# Required only when GENERATE_S3_PATCHES=true.
+# Required only when GENERATE_S3_PATCHES=true. Plain literals, no
+# ConfigMap -- baked directly into each generated patch file.
 S3_ENDPOINT="${S3_ENDPOINT:-}"
 S3_REGION="${S3_REGION:-}"
 S3_BUCKET="${S3_BUCKET:-}"
@@ -39,21 +72,30 @@ SCHEDULE_STAGGER_MINUTES="${SCHEDULE_STAGGER_MINUTES:-5}"
 SERVICE_ACCOUNT="backup"
 COMPRESSION="gzip"
 
-# Arguments currently used by Genestack's Backup CR
+# Arguments currently used by Genestack's Backup CR. Matches the dump
+# options used by scripts/backup-mariadb.sh and docs/infrastructure-mariadb-ops.md
+# (--routines/--triggers/--events are required so that stored procedures,
+# triggers and scheduled events -- used by services such as keystone and
+# nova -- aren't silently dropped from per-database dumps).
 DUMP_ARGS=(
   "--single-transaction"
+  "--routines"
+  "--triggers"
+  "--events"
   "--verbose"
 )
 
-# Labels applied to every generated Backup CR.
+# Labels applied to every generated Backup CR. Each per-database Backup
+# is matched by name in the S3 overlay's patches (see "patches:" target
+# below), so these labels are informational/discovery-oriented only --
+# the S3 overlay patches do not select or modify them.
 COMMON_LABELS=(
   "app.kubernetes.io/instance=${MARIADB_NAME}"
   "app.kubernetes.io/component=mariadb-backup"
   "app.kubernetes.io/managed-by=mariadb-backup-discovery"
 )
 
-# System databases which will be skipped for backup.
-SYSTEM_DATABASES_REGEX='^(information_schema|performance_schema|sys)$'
+SYSTEM_DATABASES_REGEX='^(information_schema|mysql|performance_schema|sys|test)$'
 
 log() {
     echo "[INFO] $*"
@@ -95,9 +137,16 @@ stagger_cron_schedule() {
         return
     fi
 
-    local total_minutes=$(( (hour * 60 + minute + offset_minutes) % (24 * 60) ))
+    local raw_total_minutes=$(( hour * 60 + minute + offset_minutes ))
+    local total_minutes=$(( raw_total_minutes % (24 * 60) ))
     local new_hour=$(( total_minutes / 60 ))
     local new_minute=$(( total_minutes % 60 ))
+
+    if [ "$raw_total_minutes" -ge "$((24 * 60))" ]; then
+        log "WARNING: stagger offset for index $index wraps past midnight" \
+            "(base \"$base_schedule\" + ${offset_minutes}m -> \"${new_minute} ${new_hour} ${rest}\")," \
+            "this backup now runs on the following day relative to the base schedule."
+    fi
 
     echo "${new_minute} ${new_hour} ${rest}"
 }
@@ -119,6 +168,38 @@ kubectl get namespace "$NAMESPACE" >/dev/null 2>&1 ||
 
 kubectl -n "$NAMESPACE" get mariadb "$MARIADB_NAME" >/dev/null 2>&1 ||
     die "MariaDB CR $MARIADB_NAME not found"
+
+# --------------------------------------------------------------------
+# Detect cluster topology (Galera vs Primary/Replica). This is purely
+# informational/sanity-checking -- discovery and generation below work
+# the same way for both, since Galera is a patch on top of the same
+# MariaDB CR rather than a different resource.
+# --------------------------------------------------------------------
+GALERA_ENABLED="$(
+    kubectl -n "$NAMESPACE" get mariadb "$MARIADB_NAME" \
+        -o jsonpath='{.spec.galera.enabled}' 2>/dev/null || true
+)"
+
+if [ "$GALERA_ENABLED" = "true" ]; then
+    log "Detected topology: Galera"
+
+    # Sanity-check that the directory we're about to wire "mariadb-backups"
+    # into (MARIADB_BASE_DIR) is actually reachable from the Galera overlay.
+    # The default layout satisfies this via base-kustomize/mariadb-cluster/galera's
+    # "../base" resource entry; warn loudly if a customized layout doesn't.
+    GALERA_DIR="$(dirname "$MARIADB_BASE_DIR")/galera"
+    GALERA_KUSTOMIZATION="$GALERA_DIR/kustomization.yaml"
+    BASE_DIR_NAME="$(basename "$MARIADB_BASE_DIR")"
+    if [ -f "$GALERA_KUSTOMIZATION" ] &&
+        ! grep -qE "^\s*-\s*\.\./${BASE_DIR_NAME}\s*$" "$GALERA_KUSTOMIZATION"; then
+        log "WARNING: Galera cluster detected, but $GALERA_KUSTOMIZATION does not" \
+            "reference \"../${BASE_DIR_NAME}\" as a resource. Generated Backup CRs" \
+            "may not be picked up unless MARIADB_BASE_DIR is pointed at the" \
+            "kustomization directory actually deployed for this cluster."
+    fi
+else
+    log "Detected topology: Primary/Replica (replication)"
+fi
 
 # --------------------------------------------------------------------
 # Find MariaDB pod
@@ -175,7 +256,6 @@ ROOT_PASSWORD="$(
     base64 -d
 )"
 
-
 [ -n "$ROOT_PASSWORD" ] ||
     die "Could not retrieve MariaDB root password"
 
@@ -208,6 +288,35 @@ log "Discovered databases:"
 printf '%s\n' "$DATABASES"
 
 # --------------------------------------------------------------------
+# Apply EXCLUDE_DATABASES (comma/space separated) on top of the system
+# database filter above, so operators can permanently opt a database out
+# of generation.
+# --------------------------------------------------------------------
+is_excluded_database() {
+    local db="$1"
+    local excluded
+    for excluded in ${EXCLUDE_DATABASES//,/ }; do
+        [ "$excluded" = "$db" ] && return 0
+    done
+    return 1
+}
+
+if [ -n "$EXCLUDE_DATABASES" ]; then
+    FILTERED_DATABASES=""
+    while IFS= read -r DB; do
+        if is_excluded_database "$DB"; then
+            log "Excluding database (EXCLUDE_DATABASES): $DB"
+            continue
+        fi
+        FILTERED_DATABASES="${FILTERED_DATABASES}${DB}"$'\n'
+    done <<< "$DATABASES"
+    DATABASES="$(printf '%s' "$FILTERED_DATABASES" | sed '/^[[:space:]]*$/d')"
+
+    [ -n "$DATABASES" ] ||
+        die "No application databases remain after applying EXCLUDE_DATABASES"
+fi
+
+# --------------------------------------------------------------------
 # Discover Backup CRs that already exist in the cluster, so we can
 # skip regenerating/reapplying a Backup for a database that already
 # has one. This avoids clobbering an existing Backup CR (and any
@@ -230,22 +339,32 @@ existing_backup_exists() {
 }
 
 # --------------------------------------------------------------------
-# Recreate generated directory
+# Ensure the generated directory exists.
+#
+# NOTE: earlier versions of this script wiped *all* mariadb-backup-*.yaml
+# (and, for S3, all *-s3.yaml patch) files here on every run, then only
+# rewrote files for databases generated in that particular run. That
+# left the nested kustomization.yaml / the S3 overlay's "patches:"
+# entries pointing at files that had just been deleted and never
+# recreated (for every database skipped because its Backup CR already
+# existed), breaking `kubectl apply -k` / `kubectl kustomize` on the
+# very next run. Nothing is deleted here anymore -- see the orphan
+# handling below for the (opt-in) way to clean up files/CRs for
+# databases that no longer exist.
 # --------------------------------------------------------------------
 mkdir -p "$BACKUP_DIR"
-rm -f "$BACKUP_DIR"/mariadb-backup-*.yaml
 
 # --------------------------------------------------------------------
 # Generate one Backup CR per database (skipping ones that already exist)
 # --------------------------------------------------------------------
-RESOURCE_LIST=()
+NEW_RESOURCE_LIST=()
 SKIPPED_LIST=()
 S3_PATCH_LIST=()
+DISCOVERED_SAFE_NAMES=()
 DB_INDEX=0
 
 if [ "$GENERATE_S3_PATCHES" = "true" ]; then
     mkdir -p "$S3_OVERLAY_DIR/patches"
-    rm -f "$S3_OVERLAY_DIR/patches"/mariadb-backup-*-s3.yaml
 fi
 
 while IFS= read -r DB; do
@@ -256,6 +375,7 @@ while IFS= read -r DB; do
         tr '[:upper:]' '[:lower:]' |
         sed 's/[^a-z0-9-]/-/g'
     )"
+    DISCOVERED_SAFE_NAMES+=("$SAFE_NAME")
 
     FILE="$BACKUP_DIR/mariadb-backup-${SAFE_NAME}.yaml"
     RESOURCE_NAME="mariadb-backup-${SAFE_NAME}"
@@ -333,13 +453,22 @@ while IFS= read -r DB; do
         echo "            topologyKey: kubernetes.io/hostname"
     } > "$FILE"
 
-    RESOURCE_LIST+=("$(basename "$FILE")")
+    NEW_RESOURCE_LIST+=("$(basename "$FILE")")
 
     # ----------------------------------------------------------------
     # Generate the matching S3 overlay patch for this database.
     # Each Backup CR gets its own prefix (one per database) so that
     # backups land in distinct S3 locations:
     #   s3://<bucket>/<S3_PREFIX_BASE>/<db-name>/
+    #
+    # A single JSON6902 "replace" on /spec/storage swaps the entire
+    # PVC storage block for the S3 block in one operation (no separate
+    # remove/add pair). Labels are left untouched by this patch.
+    #
+    # Note: the mariadb-operator Backup CRD nests S3 settings under
+    # spec.storage.s3 (bucket/prefix/endpoint/... are fields of that
+    # "s3" object, not direct children of "storage"), so the "s3:" key
+    # below is required for the resulting Backup CR to validate.
     # ----------------------------------------------------------------
     if [ "$GENERATE_S3_PATCHES" = "true" ]; then
         PATCH_FILE="$S3_OVERLAY_DIR/patches/${RESOURCE_NAME}-s3.yaml"
@@ -397,11 +526,12 @@ add_s3_patch_entry_to_overlay() {
 
     local entry
     entry="$(
-        printf '  - path: patches/%s\n' "$patch_basename"
-        printf '    target:\n'
+        printf '  - target:\n'
+        printf '      group: k8s.mariadb.com\n'
+        printf '      version: v1alpha1\n'
         printf '      kind: Backup\n'
         printf '      name: %s\n' "$resource_name"
-        printf '      namespace: openstack\n'
+        printf '    path: patches/%s\n' "$patch_basename"
     )"
 
     if ! grep -qE '^patches:\s*$' "$overlay_file"; then
@@ -440,6 +570,102 @@ add_s3_patch_entry_to_overlay() {
     mv "$tmp_file" "$overlay_file"
 }
 
+# --------------------------------------------------------------------
+# Inverse of add_s3_patch_entry_to_overlay: removes the "patches:" list
+# entry (if any) pointing at the given patch file, for a database that
+# is being pruned. Leaves every other entry, and every other top-level
+# key, untouched.
+# --------------------------------------------------------------------
+remove_s3_patch_entry_from_overlay() {
+    local overlay_file="$1"
+    local patch_basename="$2"
+
+    [ -f "$overlay_file" ] || return 0
+
+    grep -qE "^\s*path:\s*patches/${patch_basename}\s*$" "$overlay_file" || return 0
+
+    local tmp_file
+    tmp_file="$(mktemp)"
+    PATCH_BASENAME="$patch_basename" awk '
+        BEGIN { buf = ""; drop = 0; patch = "patches/" ENVIRON["PATCH_BASENAME"] }
+        /^[[:space:]]*-[[:space:]]*target:[[:space:]]*$/ {
+            if (buf != "" && !drop) printf "%s", buf
+            buf = $0 "\n"
+            drop = 0
+            next
+        }
+        {
+            if (buf != "") {
+                buf = buf $0 "\n"
+                if ($0 ~ ("^[[:space:]]*path:[[:space:]]*" patch "[[:space:]]*$")) drop = 1
+            } else {
+                print
+            }
+        }
+        END { if (buf != "" && !drop) printf "%s", buf }
+    ' "$overlay_file" > "$tmp_file"
+    mv "$tmp_file" "$overlay_file"
+}
+
+# --------------------------------------------------------------------
+# Orphan handling: a "mariadb-backup-*.yaml" file in BACKUP_DIR whose
+# database is no longer in the current (filtered) discovery list means
+# that database was dropped from MariaDB (or newly added to
+# EXCLUDE_DATABASES). Report these always; only act on them -- deleting
+# the file, the S3 patch, the overlay's patches: entry, and the live
+# Backup CR -- when PRUNE_ORPHANED_BACKUPS=true, since removing a
+# Backup CR is destructive and hard to reverse.
+# --------------------------------------------------------------------
+ORPHANED_LIST=()
+
+is_discovered_safe_name() {
+    local name="$1"
+    local candidate
+    for candidate in "${DISCOVERED_SAFE_NAMES[@]}"; do
+        [ "$candidate" = "$name" ] && return 0
+    done
+    return 1
+}
+
+if [ -d "$BACKUP_DIR" ]; then
+    for EXISTING_FILE in "$BACKUP_DIR"/mariadb-backup-*.yaml; do
+        [ -e "$EXISTING_FILE" ] || continue
+        EXISTING_BASENAME="$(basename "$EXISTING_FILE")"
+        EXISTING_SAFE_NAME="${EXISTING_BASENAME#mariadb-backup-}"
+        EXISTING_SAFE_NAME="${EXISTING_SAFE_NAME%.yaml}"
+
+        is_discovered_safe_name "$EXISTING_SAFE_NAME" && continue
+
+        ORPHANED_LIST+=("$EXISTING_SAFE_NAME")
+
+        if [ "$PRUNE_ORPHANED_BACKUPS" = "true" ]; then
+            ORPHAN_RESOURCE_NAME="mariadb-backup-${EXISTING_SAFE_NAME}"
+            log "Pruning orphaned backup: $ORPHAN_RESOURCE_NAME (database no longer discovered)"
+
+            rm -f "$EXISTING_FILE"
+
+            kubectl -n "$NAMESPACE" delete backups.k8s.mariadb.com \
+                "$ORPHAN_RESOURCE_NAME" --ignore-not-found >/dev/null 2>&1 || true
+
+            if [ "$GENERATE_S3_PATCHES" = "true" ]; then
+                ORPHAN_PATCH_BASENAME="${ORPHAN_RESOURCE_NAME}-s3.yaml"
+                rm -f "$S3_OVERLAY_DIR/patches/${ORPHAN_PATCH_BASENAME}"
+                remove_s3_patch_entry_from_overlay \
+                    "$S3_OVERLAY_DIR/kustomization.yaml" "$ORPHAN_PATCH_BASENAME"
+            fi
+        fi
+    done
+fi
+
+if [ "${#ORPHANED_LIST[@]}" -gt 0 ]; then
+    if [ "$PRUNE_ORPHANED_BACKUPS" = "true" ]; then
+        log "Pruned ${#ORPHANED_LIST[@]} orphaned backup(s): ${ORPHANED_LIST[*]}"
+    else
+        log "WARNING: ${#ORPHANED_LIST[@]} generated backup(s) no longer match a discovered database: ${ORPHANED_LIST[*]}"
+        log "WARNING: their Backup CRs are left running as-is. Re-run with PRUNE_ORPHANED_BACKUPS=true to delete them, or ignore if intentional."
+    fi
+fi
+
 if [ "$GENERATE_S3_PATCHES" = "true" ] && [ "${#S3_PATCH_LIST[@]}" -gt 0 ]; then
     for ENTRY in "${S3_PATCH_LIST[@]}"; do
         PATCH_RESOURCE_NAME="${ENTRY%%|*}"
@@ -452,15 +678,30 @@ if [ "$GENERATE_S3_PATCHES" = "true" ] && [ "${#S3_PATCH_LIST[@]}" -gt 0 ]; then
 fi
 
 # --------------------------------------------------------------------
-# Generate nested kustomization.yaml (only if there is anything new)
+# (Re)generate the nested kustomization.yaml from the full, current set
+# of per-database manifests on disk -- not just the ones generated in
+# this run -- so that databases skipped this run (because their Backup
+# CR already exists) stay referenced, and pruned ones drop out.
 # --------------------------------------------------------------------
-if [ "${#RESOURCE_LIST[@]}" -gt 0 ]; then
+FINAL_RESOURCE_LIST=()
+if [ -d "$BACKUP_DIR" ]; then
+    for EXISTING_FILE in "$BACKUP_DIR"/mariadb-backup-*.yaml; do
+        [ -e "$EXISTING_FILE" ] || continue
+        FINAL_RESOURCE_LIST+=("$(basename "$EXISTING_FILE")")
+    done
+fi
+
+if [ "${#FINAL_RESOURCE_LIST[@]}" -gt 0 ]; then
     {
+        echo "sortOptions:"
+        echo "  order: fifo"
         echo "resources:"
-        for RESOURCE in "${RESOURCE_LIST[@]}"; do
+        for RESOURCE in "${FINAL_RESOURCE_LIST[@]}"; do
             echo "  - ${RESOURCE}"
         done
     } > "$BACKUP_DIR/kustomization.yaml"
+else
+    log "WARNING: no per-database Backup manifests remain in $BACKUP_DIR; leaving kustomization.yaml untouched"
 fi
 
 # --------------------------------------------------------------------
@@ -468,7 +709,8 @@ fi
 # "mariadb-backups" subdirectory, so `kubectl apply -k` on the base
 # also picks up every generated per-database Backup CR. Only appends
 # the entry if it isn't already present, leaving all existing
-# resources untouched.
+# resources (mariadb-configmap.yaml, mariadb-replication.yaml, etc.)
+# untouched.
 # --------------------------------------------------------------------
 BASE_KUSTOMIZATION="$MARIADB_BASE_DIR/kustomization.yaml"
 BACKUP_SUBDIR_NAME="$(basename "$BACKUP_DIR")"
@@ -499,7 +741,7 @@ else
     log "WARNING: base kustomization not found at $BASE_KUSTOMIZATION, skipping update"
 fi
 
-log "Generated ${#RESOURCE_LIST[@]} new Backup CRs"
+log "Generated ${#NEW_RESOURCE_LIST[@]} new Backup CRs"
 log "Skipped ${#SKIPPED_LIST[@]} database(s) with existing Backup CRs"
 
 if [ "${#SKIPPED_LIST[@]}" -gt 0 ]; then
@@ -508,14 +750,21 @@ if [ "${#SKIPPED_LIST[@]}" -gt 0 ]; then
     printf '  %s\n' "${SKIPPED_LIST[@]}"
 fi
 
-if [ "${#RESOURCE_LIST[@]}" -eq 0 ]; then
-    log "Nothing new to generate or apply."
+PRUNED_SOMETHING=false
+if [ "$PRUNE_ORPHANED_BACKUPS" = "true" ] && [ "${#ORPHANED_LIST[@]}" -gt 0 ]; then
+    PRUNED_SOMETHING=true
+fi
+
+if [ "${#NEW_RESOURCE_LIST[@]}" -eq 0 ] && [ "$PRUNED_SOMETHING" = "false" ]; then
+    log "Nothing new to generate, prune, or apply."
     exit 0
 fi
 
-echo
-echo "Generated files:"
-printf '  %s\n' "${RESOURCE_LIST[@]}"
+if [ "${#NEW_RESOURCE_LIST[@]}" -gt 0 ]; then
+    echo
+    echo "Generated files:"
+    printf '  %s\n' "${NEW_RESOURCE_LIST[@]}"
+fi
 echo
 log "Generated Kustomization: $BACKUP_DIR/kustomization.yaml"
 
