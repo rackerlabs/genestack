@@ -1,0 +1,20 @@
+--- a/trove/common/cfg.py
++++ b/trove/common/cfg.py
+@@ -629,6 +629,17 @@
+     'percona', title='Percona options',
+     help="Oslo option group designed for Percona datastore")
+ percona_opts = [
++    # GENESTACK: percona datastore runs as a docker container; these options
++    # are absent from the upstream percona group. Without docker_image the
++    # guest agent raises NoSuchOptError in mysql_common/service.py start_db()
++    # for a percona datastore. Values are supplied by the [percona] section of
++    # trove-guestagent.conf (docker_image=percona/percona-server).
++    cfg.StrOpt('docker_image', default='percona/percona-server',
++               help='Database docker image (GENESTACK: Percona datastore).'),
++    cfg.StrOpt('backup_docker_image',
++               sample_default='your-registry/your-repo/db-backup-percona',
++               help='The docker image used for backup and restore '
++                    '(GENESTACK: Percona datastore).'),
+     cfg.StrOpt('database_service_uname', default='database',
+                help='The name of database service user.'),
+     cfg.StrOpt('database_service_uid',

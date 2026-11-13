@@ -2,10 +2,11 @@
 
 End-to-end enablement of OpenStack Trove (Database as a Service) for Genestack deployments.
 
-Supports two datastores, selected with `trove_datastore_name`:
+Supports three datastores, selected with `trove_datastore_name`:
 
 - `mysql` (default) — MySQL 8.4, `docker.io/library/mysql:8.4`
 - `mariadb` — MariaDB 11.8 LTS, `docker.io/library/mariadb:11.8`
+- `percona` — Percona Server for MySQL 8.4, `docker.io/percona/percona-server:8.4`
 
 ## What It Does
 
@@ -64,6 +65,27 @@ ansible-playbook ansible/playbooks/trove-enablement-techpreview.yaml \
 This builds the `trove-mariadb-11.8-bookworm` Glance image and registers the
 MariaDB 11.8 datastore version.
 
+### Enable the Percona Server 8.4 datastore
+
+Percona Server for MySQL 8.4 is a drop-in fork of Oracle MySQL 8.4. It reuses
+the MySQL guest-agent manager, GTID replication, InnoBackupEx backups, and the
+`trove-mysql-*` my.cnf templates; only the container registry
+(`docker.io/percona/percona-server`) and the datastore name differ. Select it
+on the standard playbook with `trove_datastore_name=percona`:
+
+```bash
+ansible-playbook ansible/playbooks/trove-enablement-techpreview.yaml \
+  --tags trove_image_build,trove_datastore \
+  -e trove_datastore_name=percona
+
+ansible-playbook ansible/playbooks/trove-enablement-techpreview.yaml \
+  --tags trove_post_install \
+  -e trove_datastore_name=percona
+```
+
+This builds the `trove-percona-8.4-bookworm` Glance image and registers the
+`percona` datastore with version `8.4`.
+
 ### Force Rebuild Image
 
 ```bash
@@ -111,7 +133,7 @@ Existing Trove instances keep the key they were booted with.
 
 | Variable                         | Default                 | Description                                                                                                                                                                                                                 |
 |----------------------------------|-------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `trove_datastore_name`           | `mysql`                 | Datastore to enable: `mysql` or `mariadb`                                                                                                                                                                                   |
+| `trove_datastore_name`           | `mysql`                 | Datastore to enable: `mysql`, `mariadb`, or `percona`                                                                                                                                                                       |
 | `trove_flavor_profiles`          | see `defaults/main.yml` | Per-flavor settings map. Each flavor carries `name`, `cores` (number of logical cores), `ram` (amount of RAM in gigabytes), and `root_disk` (amount of root partition in gigabytes).                                        |
 | `trove_datastore_profiles`       | see `defaults/main.yml` | Per-datastore settings map. Each profile carries `name`, `version` (engine/docker tag), `version_name` (Trove datastore-version label), `docker_image`, `guest_manager`, backup/replication strategy, and config templates. |
 | `trove_guest_image_name`         | `trove-<name>-<version_name>-<os>` | Glance image name, derived from the selected profile (e.g. `trove-mariadb-11.8-bookworm`)                                                                                                                                   |

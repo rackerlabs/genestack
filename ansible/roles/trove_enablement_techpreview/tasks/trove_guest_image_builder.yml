@@ -205,7 +205,7 @@
       set -o pipefail
       rm -f {{ trove_build_dir }}/datastore-image.tar
       skopeo copy --override-os linux --override-arch amd64 \
-        docker://docker.io/library/{{ _trove_ds_profile.docker_image }}:{{ _trove_ds_profile.version }} \
+        docker://{{ _trove_ds_profile.docker_image_repo | default('docker.io/library') }}/{{ _trove_ds_profile.docker_image }}:{{ _trove_ds_profile.version }} \
         docker-archive:{{ trove_build_dir }}/datastore-image.tar:{{ _trove_ds_profile.docker_image }}:{{ _trove_ds_profile.version }}
     executable: /bin/bash
   become: true
@@ -251,7 +251,7 @@
       rm -f {{ trove_build_dir }}/datastore-backup-image.tar
       cd {{ trove_build_dir }}/trove/backup
       docker build \
-        --build-arg DATASTORE={{ _trove_ds_profile.name }} \
+        --build-arg DATASTORE={{ _trove_ds_profile.backup_build_datastore | default(_trove_ds_profile.name) }} \
         --build-arg DATASTORE_VERSION={{ _trove_ds_profile.version }} \
         -t {{ _trove_ds_profile.docker_image }}-backup:{{ _trove_ds_profile.version }} .
       docker image save {{ _trove_ds_profile.docker_image }}-backup:{{ _trove_ds_profile.version }} \

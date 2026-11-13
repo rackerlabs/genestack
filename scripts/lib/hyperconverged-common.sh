@@ -2943,6 +2943,20 @@ ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.y
     --tags trove_datastore \
     -e "trove_region_name=${trove_region_name} trove_datastore_name=mariadb"
 
+# Build + upload the Percona guest image, then register the datastore version
+# (Percona Server 8.4 - a drop-in MySQL 8.4 fork; reuses the MySQL guest-agent
+# manager and my.cnf templates. MySQL remains the default datastore.)
+echo "Running playbook for trove_image_build (Percona Server 8.4)"
+# add force_rebuild_image=true when needed
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_image_build \
+    -e "trove_region_name=${trove_region_name} trove_datastore_name=percona"
+echo "Running playbook for trove_datastore (Percona Server 8.4)"
+# add force_create_dsv=true when needed
+ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
+    --tags trove_datastore \
+    -e "trove_region_name=${trove_region_name} trove_datastore_name=percona"
+
 echo "Running playbook for trove_keypair"
 ansible-playbook /opt/genestack/ansible/playbooks/trove-enablement-techpreview.yaml \
     --tags trove_keypair \
