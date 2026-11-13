@@ -1,6 +1,6 @@
 # OpenStack Ironic Operational Guide
 
-OpenStack Ironic is the bare metal provisioning service in OpenStack. This guide provides a practical operational workflow for operators who already have a working OpenStack environment. It covers preparing the environment, enrolling hardware, validating node readiness, and launching instances using either PXE/iPXE or virtual media boot.
+This guide provides a practical operational workflow for operators who already have a working OpenStack environment. It covers preparing the environment, enrolling hardware, validating node readiness, and launching instances using either PXE/iPXE or virtual media boot.
 
 ## Scope And Assumptions
 
@@ -22,27 +22,33 @@ The prerequisites in this guide source the administrative credentials, create th
 The provisioning flow typically follows this sequence:
 
 ```text
-Create provisioning network
-   ->
-Create flavor
-   ->
-Set bare metal resource class mapping
-   ->
-Enroll node in Ironic
-   ->
-Set node properties / driver info / boot interface
-   ->
-Create port(s)
-   ->
-Validate node
-   ->
-Manage node
-   ->
-Optionally perform manual cleaning
-   ->
-Provide node
-   ->
-Create server with matching flavor and required image
+┌─ Prerequisites ──────────────────────────────────────────────────────────┐
+│                                                                          │
+│ 1.  Create provisioning network                                          │
+│ 2.  Create flavor                                                        │
+│ 3.  Associate flavor with custom resource class                          │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─ Enroll A Bare Metal Node ───────────────────────────────────────────────┐
+│                                                                          │
+│ 4.  Enroll node in Ironic                                                │
+│ 5.  Set node properties / driver info / boot interface                   │
+│ 6.  Create port(s)                                                       │
+│ 7.  Validate node                                                        │
+│ 8.  Manage node                                                          │
+│ 9.  Optionally perform manual cleaning                                   │
+│ 10. Provide node                                                         │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─ Create A Bare Metal Server ─────────────────────────────────────────────┐
+│                                                                          │
+│ 11. Create server with matching flavor and required image                │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
 Ironic supports multiple boot interfaces. PXE is the standard network boot mechanism, while virtual media typically relies on the BMC to mount boot media remotely instead of using traditional PXE infrastructure.
@@ -210,7 +216,6 @@ openstack baremetal node create --driver redfish \
   --driver-info redfish_password=<REPLACE_WITH_PASSWORD> \
   --driver-info redfish_address=https://${node_oob} \
   --driver-info redfish_verify_ca=False \
-  --driver-info redfish_system_id=/redfish/v1/Systems/System.Embedded.1 \
   --driver-info deploy_kernel=$(openstack image show "$deploy_aki" -c id -f value) \
   --driver-info deploy_ramdisk=$(openstack image show "$deploy_ari" -c id -f value) \
   --management-interface redfish \

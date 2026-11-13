@@ -1,0 +1,64 @@
+---
+# IPA log redactor add-on for the OpenStack-Helm ironic 2026.1.0+ chart.
+# Layer this file after the normal Genestack Ironic overrides.
+#
+# The conductor StatefulSet already defines host-var-lib-ironic as the host's
+# /var/lib/ironic directory. Mount only its logs subdirectory here so the
+# redactor cannot see Ironic certificates, images, or other conductor data.
+# The /var/lib/ironic/logs directory needs no manual setup: Ironic creates it
+# when it stores the first bundle, and the kubelet creates a missing subPath
+# directory when the pod starts.
+conductor:
+  extraContainers:
+    - name: ipa-log-redactor
+      # Replace this with the immutable tag or digest published by your build.
+      image: ghcr.io/rackerlabs/genestack-images/ipa-log-redactor:latest
+      imagePullPolicy: IfNotPresent
+
+      env:
+        - name: LOGS_DIR
+          value: /var/lib/ironic/logs
+        - name: INTERVAL
+          value: "30"
+        - name: STABILITY_SECONDS
+          value: "60"
+        - name: STATUS_INTERVAL_SECONDS
+          value: "300"
+        - name: FORWARDED_RETENTION_DAYS
+          value: "90"
+        - name: FAILED_RETENTION_DAYS
+          value: "90"
+        - name: CLEANUP_INTERVAL_SECONDS
+          value: "3600"
+        # Keep deletion disabled for the initial rollout. Change to "false"
+        # after retention events have been verified in the monitoring system.
+        - name: RETENTION_DRY_RUN
+          value: "true"
+
+      securityContext:
+        # The conductor creates the logs directory and archives as root:root.
+        # Run as root so the redactor can perform its rename, hard-link,
+        # timestamp, and retention operations without elevated capabilities.
+        runAsUser: 0
+        runAsGroup: 0
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+        seccompProfile:
+          type: RuntimeDefault
+
+      resources:
+        requests:
+          cpu: 250m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+
+      volumeMounts:
+        - name: host-var-lib-ironic
+          mountPath: /var/lib/ironic/logs
+          subPath: logs
+          readOnly: false

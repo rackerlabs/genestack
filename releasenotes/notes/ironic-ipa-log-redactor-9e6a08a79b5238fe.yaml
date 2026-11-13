@@ -1,0 +1,25 @@
+---
+features:
+  - |
+    Added an optional ``ipa-log-redactor`` sidecar for the Ironic conductors.
+    The sidecar reads the Ironic Python Agent diagnostic bundles that Ironic
+    stores in ``/var/lib/ironic/logs``, redacts known secrets, and writes the
+    result to standard output. The OpenTelemetry filelog receiver collects
+    it and forwards it to Loki for search in Grafana.
+
+    To enable it, copy the example override and upgrade Ironic:
+
+    .. code-block:: shell
+
+      cp /opt/genestack/base-helm-configs/ironic/ipa-log-redactor-helm-overrides.yaml.example \
+        /etc/genestack/helm-configs/ironic/ipa-log-redactor-helm-overrides.yaml
+      /opt/genestack/bin/install-ironic.sh
+
+    See the new OpenStack Ironic Python Agent Log Redactor guide for details.
+other:
+  - |
+    The example override sets ``RETENTION_DRY_RUN`` to ``"true"``, so the first
+    rollout reports what it would delete and removes nothing. Set it to
+    ``"false"`` after verifying the cleanup records. The sidecar requires
+    ``deploy_logs_storage_backend`` to be ``local``, which the base Ironic
+    overrides already set.
