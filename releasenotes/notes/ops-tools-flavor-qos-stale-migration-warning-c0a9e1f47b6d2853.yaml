@@ -1,4 +1,5 @@
 ---
+component: neutron
 fixes:
   - |
     ``ops-tools/flavor_qos_migration`` preflight now distinguishes live
