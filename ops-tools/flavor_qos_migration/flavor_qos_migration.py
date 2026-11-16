@@ -4,13 +4,16 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import copy
 import json
 import os
 import re
+import selectors
 import subprocess
 import sys
 import tempfile
+import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -45,6 +48,7 @@ UUID_RE = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
     re.IGNORECASE,
 )
+PORT_FORWARD_RE = re.compile(r"Forwarding from 127\.0\.0\.1:(\d+) -> 3306")
 TERMINAL_MIGRATION_STATES = {
     "completed",
     "confirmed",
@@ -146,6 +150,7 @@ class InstancePlan:
     old_hex: str
     new_hex: str | None
     action: str
+    warning: str | None = None
 
 
 @dataclass
@@ -371,8 +376,6 @@ def migrate_cached_flavor(serialized: str, policy_id: str) -> tuple[str, bool]:
         raise MigrationError(f"cached flavor is invalid JSON: {exc}") from exc
     if not isinstance(primitive, dict):
         raise MigrationError("cached flavor JSON root is not an object")
-    if primitive.get("old") is not None or primitive.get("new") is not None:
-        raise MigrationError("cached flavor has non-null old or new resize flavor")
     updated = copy.deepcopy(primitive)
     data = flavor_data(updated)
     extra_specs = data.get("extra_specs")
@@ -439,10 +442,10 @@ class MariaDBClient:
             raise MigrationError(f"MariaDB command failed: {detail}")
         return result.stdout
 
-    def read_instances(self, database: str) -> list[tuple[str, str, str]]:
+    def read_instances(self, database: str) -> list[tuple[str, str, str, str]]:
         db = quoted_database(database)
         sql = f"""
-SELECT i.uuid, IFNULL(i.task_state, ''), HEX(ie.flavor)
+SELECT i.uuid, IFNULL(i.vm_state, ''), IFNULL(i.task_state, ''), HEX(ie.flavor)
 FROM {db}.instances AS i
 JOIN {db}.instance_extra AS ie ON ie.instance_uuid = i.uuid
 WHERE i.deleted = 0 AND ie.deleted = 0 AND ie.flavor IS NOT NULL;
@@ -450,22 +453,34 @@ WHERE i.deleted = 0 AND ie.deleted = 0 AND ie.flavor IS NOT NULL;
         rows = []
         for line in self.execute(sql).splitlines():
             parts = line.split("\t")
-            if len(parts) != 3:
+            if len(parts) != 4:
                 raise MigrationError(f"unexpected MariaDB instance row: {line!r}")
-            rows.append((parts[0], parts[1], parts[2]))
+            rows.append((parts[0], parts[1], parts[2], parts[3]))
         return rows
 
-    def active_migrations(self, database: str) -> set[str]:
+    def active_migrations(self, database: str) -> dict[str, list[str]]:
         db = quoted_database(database)
         terminal = ", ".join(sql_string(value) for value in TERMINAL_MIGRATION_STATES)
         sql = f"""
-SELECT DISTINCT instance_uuid
+SELECT instance_uuid, id, IFNULL(migration_type, ''), IFNULL(status, ''),
+       IFNULL(updated_at, created_at)
 FROM {db}.migrations
 WHERE deleted = 0
   AND instance_uuid IS NOT NULL
-  AND LOWER(IFNULL(status, '')) NOT IN ({terminal});
+  AND LOWER(IFNULL(status, '')) NOT IN ({terminal})
+ORDER BY instance_uuid, id;
 """
-        return {line.strip() for line in self.execute(sql).splitlines() if line.strip()}
+        migrations: dict[str, list[str]] = {}
+        for line in self.execute(sql).splitlines():
+            parts = line.split("\t")
+            if len(parts) != 5:
+                raise MigrationError(f"unexpected MariaDB migration row: {line!r}")
+            instance_uuid, migration_id, migration_type, status, updated_at = parts
+            migrations.setdefault(instance_uuid, []).append(
+                f"id={migration_id} type={migration_type or 'unknown'} "
+                f"status={status or 'unknown'} updated_at={updated_at}"
+            )
+        return migrations
 
     def apply_cached_flavors(
         self, database: str, changes: list[InstancePlan], reverse: bool = False
@@ -488,6 +503,7 @@ WHERE deleted = 0
             )
         joined_values = ",\n".join(values)
         sql = f"""
+USE {db};
 CREATE TEMPORARY TABLE flavor_qos_updates (
   instance_uuid varchar(36) PRIMARY KEY,
   old_hex longtext NOT NULL,
@@ -497,10 +513,15 @@ INSERT INTO flavor_qos_updates (instance_uuid, old_hex, new_hex) VALUES
 {joined_values};
 START TRANSACTION;
 UPDATE {db}.instance_extra AS ie
+JOIN {db}.instances AS i
+  ON i.uuid = ie.instance_uuid AND i.deleted = 0
 JOIN flavor_qos_updates AS u ON u.instance_uuid = ie.instance_uuid
 SET ie.flavor = CONVERT(UNHEX(u.new_hex) USING utf8mb4),
     ie.updated_at = UTC_TIMESTAMP()
-WHERE ie.deleted = 0 AND HEX(ie.flavor) = u.old_hex;
+WHERE ie.deleted = 0
+  AND i.task_state IS NULL
+  AND LOWER(IFNULL(i.vm_state, '')) <> 'resized'
+  AND HEX(ie.flavor) = u.old_hex;
 SET @flavor_qos_changed = ROW_COUNT();
 SET @flavor_qos_tx = IF(
   @flavor_qos_changed = {len(actionable)}, 'COMMIT', 'ROLLBACK'
@@ -523,6 +544,139 @@ SELECT CONCAT('__FLAVOR_QOS_CHANGED__', @flavor_qos_changed);
                 f"cached flavor compare-and-swap failed in {database}: "
                 f"expected {len(actionable)} rows, matched {actual}; transaction rolled back"
             )
+
+
+class KubectlMariaDBTunnel:
+    """Manage an ephemeral kubectl port-forward and database credentials."""
+
+    def __init__(self, args: argparse.Namespace):
+        self.args = args
+        self.process: subprocess.Popen[str] | None = None
+        self.original = {
+            "mysql_host": args.mysql_host,
+            "mysql_port": args.mysql_port,
+            "mysql_user": args.mysql_user,
+            "mysql_password": args.mysql_password,
+        }
+
+    def kubectl_base(self) -> list[str]:
+        command = [self.args.kubectl_command]
+        if self.args.kube_context:
+            command.extend(["--context", self.args.kube_context])
+        command.extend(["--namespace", self.args.kube_namespace])
+        return command
+
+    def read_password(self) -> str:
+        command = self.kubectl_base() + [
+            "get",
+            "secret",
+            self.args.mariadb_secret,
+            "--output",
+            f"jsonpath={{.data.{self.args.mariadb_secret_key}}}",
+        ]
+        try:
+            result = subprocess.run(
+                command,
+                text=True,
+                capture_output=True,
+                timeout=self.args.command_timeout,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise MigrationError(
+                f"unable to read MariaDB Kubernetes Secret: {exc}"
+            ) from exc
+        if result.returncode:
+            detail = result.stderr.strip() or f"exit code {result.returncode}"
+            raise MigrationError(f"unable to read MariaDB Kubernetes Secret: {detail}")
+        try:
+            password = base64.b64decode(result.stdout.strip(), validate=True).decode(
+                "utf-8"
+            )
+        except (ValueError, UnicodeDecodeError) as exc:
+            raise MigrationError(
+                "MariaDB Kubernetes Secret contains an invalid base64 password"
+            ) from exc
+        if not password:
+            raise MigrationError("MariaDB Kubernetes Secret password is empty")
+        return password
+
+    def wait_until_ready(self) -> int:
+        if not self.process or not self.process.stdout:
+            raise MigrationError("kubectl port-forward did not expose an output stream")
+        deadline = time.monotonic() + self.args.port_forward_timeout
+        selector = selectors.DefaultSelector()
+        selector.register(self.process.stdout, selectors.EVENT_READ)
+        try:
+            while time.monotonic() < deadline:
+                if self.process.poll() is not None:
+                    detail = self.process.stdout.read().strip()
+                    raise MigrationError(
+                        "kubectl port-forward exited before becoming ready"
+                        + (f": {detail}" if detail else "")
+                    )
+                remaining = max(0.0, deadline - time.monotonic())
+                if not selector.select(timeout=min(0.25, remaining)):
+                    continue
+                line = self.process.stdout.readline()
+                match = PORT_FORWARD_RE.search(line)
+                if match:
+                    return int(match.group(1))
+            raise MigrationError(
+                f"kubectl port-forward was not ready within "
+                f"{self.args.port_forward_timeout} seconds"
+            )
+        finally:
+            selector.close()
+
+    def start(self) -> None:
+        password = self.read_password()
+        command = self.kubectl_base() + [
+            "port-forward",
+            f"service/{self.args.mariadb_service}",
+            ":3306",
+            "--address",
+            "127.0.0.1",
+        ]
+        log(
+            self.args,
+            f"Starting MariaDB port-forward to service/{self.args.mariadb_service}",
+        )
+        try:
+            self.process = subprocess.Popen(
+                command,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                bufsize=1,
+            )
+            port = self.wait_until_ready()
+            self.args.mysql_host = "127.0.0.1"
+            self.args.mysql_port = port
+            self.args.mysql_user = self.args.mariadb_secret_user
+            self.args.mysql_password = password
+            log(self.args, f"MariaDB port-forward is ready on 127.0.0.1:{port}")
+        except Exception:
+            self.stop()
+            raise
+
+    def stop(self) -> None:
+        process = self.process
+        self.process = None
+        if process is not None and process.poll() is None:
+            try:
+                process.terminate()
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=5)
+            except (OSError, subprocess.TimeoutExpired) as exc:
+                log(self.args, f"Warning: unable to reap MariaDB port-forward: {exc}")
+        for name, value in self.original.items():
+            setattr(self.args, name, value)
+        if process is not None:
+            log(self.args, "MariaDB port-forward stopped")
 
 
 def connect_openstack(cloud: str, timeout: int):
@@ -771,7 +925,9 @@ def plan_instances(
     seen: set[str] = set()
     for database in databases:
         active_migrations = client.active_migrations(database)
-        for instance_uuid, task_state, flavor_hex in client.read_instances(database):
+        for instance_uuid, vm_state, task_state, flavor_hex in client.read_instances(
+            database
+        ):
             try:
                 serialized = bytes.fromhex(flavor_hex).decode("utf-8")
                 primitive = json.loads(serialized)
@@ -797,9 +953,18 @@ def plan_instances(
                 raise MigrationError(
                     f"instance {instance_uuid} has active task_state {task_state!r}"
                 )
-            if instance_uuid in active_migrations:
+            if vm_state.casefold() == "resized":
                 raise MigrationError(
-                    f"instance {instance_uuid} has an active migration"
+                    f"instance {instance_uuid} has vm_state 'resized' and is awaiting "
+                    "resize confirm or revert"
+                )
+            migration_rows = active_migrations.get(instance_uuid, [])
+            warning = None
+            if migration_rows:
+                warning = (
+                    "ignored stale non-terminal migration row(s) because the instance "
+                    f"has vm_state={vm_state!r} and no task_state: "
+                    + "; ".join(migration_rows)
                 )
             if not flavor.policy_id:
                 new_serialized = None
@@ -828,6 +993,7 @@ def plan_instances(
                         else None
                     ),
                     "update" if changed else "noop",
+                    warning,
                 )
             )
     return plans
@@ -1035,6 +1201,7 @@ def rollback(
 
 
 def report_dict(plan: RunPlan) -> dict[str, Any]:
+    warnings = [item.warning for item in plan.instances if item.warning]
     return {
         "summary": {
             "region": plan.region,
@@ -1045,12 +1212,14 @@ def report_dict(plan: RunPlan) -> dict[str, Any]:
             "instance_count": len(plan.instances),
             "port_count": len(plan.ports),
             "conflict_count": len(plan.conflicts),
+            "warning_count": len(warnings),
         },
         "policies": [asdict(item) for item in plan.policies],
         "flavors": [asdict(item) for item in plan.flavors],
         "instances": [asdict(item) for item in plan.instances],
         "ports": [asdict(item) for item in plan.ports],
         "conflicts": plan.conflicts,
+        "warnings": warnings,
     }
 
 
@@ -1094,6 +1263,11 @@ def print_report(plan: RunPlan, output_format: str) -> None:
         f"\nCached instances: {len(plan.instances)}; ports: {len(plan.ports)}; "
         f"ports overriding inherited network QoS: {inherited}"
     )
+    warnings = [item.warning for item in plan.instances if item.warning]
+    if warnings:
+        print("\nWarnings:")
+        for warning in warnings:
+            print(f"  {warning}")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1116,20 +1290,44 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--mysql-command", default="mariadb")
     parser.add_argument("--defaults-file")
     parser.add_argument("--mysql-host")
-    parser.add_argument("--mysql-port", type=int, default=3306)
+    parser.add_argument("--mysql-port", type=int)
     parser.add_argument("--mysql-user")
     parser.add_argument("--mysql-password")
     parser.add_argument("--mysql-password-env")
     parser.add_argument("--mysql-socket")
+    parser.add_argument("--kubectl-port-forward", action="store_true")
+    parser.add_argument("--kubectl-command", default="kubectl")
+    parser.add_argument("--kube-context")
+    parser.add_argument("--kube-namespace", default="openstack")
+    parser.add_argument("--mariadb-service", default="mariadb-cluster-primary")
+    parser.add_argument("--mariadb-secret", default="mariadb")
+    parser.add_argument("--mariadb-secret-key", default="root-password")
+    parser.add_argument("--mariadb-secret-user", default="root")
+    parser.add_argument("--port-forward-timeout", type=int, default=30)
     return parser
 
 
 def validate_args(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
-    for option in ("api_timeout", "command_timeout"):
+    for option in ("api_timeout", "command_timeout", "port_forward_timeout"):
         if getattr(args, option) <= 0:
             parser.error(f"--{option.replace('_', '-')} must be positive")
     if args.apply and not args.yes_im_really_sure:
         parser.error("--apply requires --yes-im-really-sure")
+    if args.kubectl_port_forward:
+        conflicts = {
+            "--defaults-file": args.defaults_file,
+            "--mysql-host": args.mysql_host,
+            "--mysql-port": args.mysql_port,
+            "--mysql-user": args.mysql_user,
+            "--mysql-password": args.mysql_password,
+            "--mysql-password-env": args.mysql_password_env,
+            "--mysql-socket": args.mysql_socket,
+        }
+        selected = [name for name, value in conflicts.items() if value]
+        if selected:
+            parser.error(
+                "--kubectl-port-forward cannot be combined with " + ", ".join(selected)
+            )
     if args.rollback_state and not (args.apply and args.yes_im_really_sure):
         parser.error("--rollback-state requires --apply --yes-im-really-sure")
     if args.rollback_state:
@@ -1160,8 +1358,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     mutation_started = False
+    tunnel: KubectlMariaDBTunnel | None = None
     try:
         validate_args(args, parser)
+        if args.kubectl_port_forward and not args.validate_map_only:
+            tunnel = KubectlMariaDBTunnel(args)
+            tunnel.start()
         if args.rollback_state:
             conn = connect_openstack(args.os_cloud, args.api_timeout)
             require_admin_scope(conn)
@@ -1264,6 +1466,9 @@ def main(argv: list[str] | None = None) -> int:
     except Exception as exc:
         print(f"error: unexpected failure: {exc}", file=sys.stderr)
         return EXIT_APPLY_FAILED if mutation_started else EXIT_ERROR
+    finally:
+        if tunnel is not None:
+            tunnel.stop()
 
 
 if __name__ == "__main__":

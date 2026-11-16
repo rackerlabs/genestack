@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    ``ops-tools/flavor_qos_migration`` preflight now distinguishes live
+    lifecycle state from stale Nova migration history. A non-terminal row
+    in a cell database's ``migrations`` table no longer blocks an instance
+    whose ``vm_state`` is stable and whose ``task_state`` is null; the row
+    is reported as a stale-data warning in the text and JSON reports. An
+    instance in ``resized`` state awaiting resize confirm or revert is
+    refused explicitly, and the cached-flavor update transaction rechecks
+    ``task_state`` and ``vm_state`` so a lifecycle operation starting after
+    preflight rolls the transaction back. Cached resize ``old`` and ``new``
+    flavor objects are preserved; only the current flavor's
+    ``extra_specs`` policy entry is changed.
