@@ -46,3 +46,11 @@ See `ops-tools/flavor_qos_migration/README.md` for the cutover procedure and `op
 * `076f994562a394e37950b41a95eea6c36c7db96a`: Fix lab_tenant_egress_snat_enabled to default to false (#1895) (#1898)
 * `cf3599e1a5d882768223a7b017b5034cde321ae7`: feat: add flavor QoS cutover migration tool (#1900) (#1901)
 * `ff0aac576556c2cfd0d3d304492237795d15cac9`: Release 2026.3.2 rc cp (#1909)
+Release notes generated from the exact git diff `release-2026.3.1..release-2026.3.2-rc`.
+
+- Release notes: `docs/release-2026.3.2.md`
+- Product matrix: `docs/product-matrix-2026.3.2.md`
+- Reno note files included: `4`
+- Commit-history supplement groups included: `6`
+
+See the generated release notes document for the full per-service details.
