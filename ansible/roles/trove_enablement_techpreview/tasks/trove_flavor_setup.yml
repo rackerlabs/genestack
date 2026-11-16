@@ -1,0 +1,140 @@
+---
+# Post-deploy: create the Trove flavors
+#
+# Run with: ansible-playbook ... --tags trove_flavors
+# This requires the OpenStack API to be running.
+
+# =========================================================================
+# CHECK OPENSTACK API AVAILABILITY
+# =========================================================================
+
+- name: Check if OpenStack API is reachable
+  openstack.cloud.compute_flavor_info:
+    interface: "{{ trove_os_endpoint_type }}"
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _openstack_api_check
+  changed_when: false
+  failed_when: false
+
+- name: Determine if OpenStack API Call Succeeded
+  ansible.builtin.set_fact:
+    _openstack_api_ok: "{{ _openstack_api_check.failed is not defined or not _openstack_api_check.failed }}"
+
+- name: Skip flavor setup if OpenStack API is not reachable
+  ansible.builtin.debug:
+    msg: >-
+      OpenStack API is not reachable (rc={{ _openstack_api_check.msg }}).
+      Skipping flavor setup. Run again with --tags trove_flavors
+      after Trove has been deployed and is running.
+  when: not _openstack_api_ok
+
+# =========================================================================
+# CREATE FLAVOR
+# =========================================================================
+
+- name: Check if flavors exist
+  openstack.cloud.compute_flavor_info:
+    interface: "{{ trove_os_endpoint_type }}"
+    name: "{{ trove_flavor_default }}"
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _trove_flavor_check
+  changed_when: false
+  failed_when: false
+  when: _openstack_api_ok
+
+- name: Derive action flags
+  ansible.builtin.set_fact:
+    _trove_flavors_exist: "{{ _trove_flavor_check.flavors is defined and (_trove_flavor_check.flavors | length > 0) }}"
+    _trove_do_flavors: >-
+      {{
+        (_trove_flavor_check.flavors is not defined or (_trove_flavor_check.flavors | length == 0))
+        or (force_create_flavors | bool)
+        or (force_full_recreation | bool)
+      }}
+
+- name: Report action flags
+  ansible.builtin.debug:
+    msg: >-
+      Flavors exist={{ _trove_flavors_exist }},
+      do_flavors={{ _trove_do_flavors }},
+      force_rebuild={{ force_create_flavors }},
+      force_full={{ force_full_recreation }}
+
+- name: Delete existing flavors
+  openstack.cloud.compute_flavor:
+    interface: "{{ trove_os_endpoint_type }}"
+    state: absent
+    name: "{{ item }}"
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  loop: "{{ trove_flavor_profiles.keys() | list }}"
+  when:
+    - _trove_do_flavors | bool
+    - _trove_flavors_exist | bool
+
+- name: Check if Trove flavor overrides file exists
+  ansible.builtin.stat:
+    path: "{{ trove_flavor_overrides_file }}"
+  register: _overrides_file
+  delegate_to: localhost
+
+- name: Override Trove flavor defaults
+  ansible.builtin.include_vars:
+    file: "{{ trove_flavor_overrides_file }}"
+  when:
+    - _overrides_file.stat.exists
+    - _trove_do_flavors | bool
+
+- name: Create flavors
+  openstack.cloud.compute_flavor:
+    interface: "{{ trove_os_endpoint_type }}"
+    name: "{{ item.key }}"
+    ram: "{{ item.value.ram }}"
+    vcpus: "{{ item.value.cores }}"
+    disk: "{{ item.value.root_disk }}"
+    state: present
+    is_public: false
+    extra_specs: "{{ item.value.extra_specs }}"
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  loop: "{{ trove_flavor_profiles | dict2items }}"
+  when: _trove_do_flavors | bool
+
+- name: Grant access to flavors
+  openstack.cloud.compute_flavor_access:
+    interface: "{{ trove_os_endpoint_type }}"
+    name: "{{ item }}"
+    project: service
+    state: present
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  loop: "{{ trove_flavor_profiles.keys() | list }}"
+  when: _trove_do_flavors | bool
+
+# =========================================================================
+# VERIFY AND REPORT
+# =========================================================================
+
+- name: List flavors for verification
+  openstack.cloud.compute_flavor_info:
+    interface: "{{ trove_os_endpoint_type }}"
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  register: _flavor_list
+  changed_when: false
+  when: _openstack_api_ok
+
+- name: Display flavor setup results
+  ansible.builtin.debug:
+    msg: |
+      ================================================================
+        TROVE FLAVOR SETUP — COMPLETE
+      ================================================================
+
+      Flavors:
+      {{ _flavor_list.flavors | default('(not available)') }}
+
+      ================================================================
+  when: _openstack_api_ok

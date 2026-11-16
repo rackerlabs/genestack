@@ -7,3 +7,9 @@ resources:
   - all.yaml
   - hpa-trove-api.yaml
   - policies.yaml
+  - trove-flavor-filter-configmap.yaml
+patches:
+  - path: trove-api-flavor-filter-patch.yaml
+    target:
+      kind: Deployment
+      name: trove-api

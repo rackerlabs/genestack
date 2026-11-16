@@ -1,0 +1,187 @@
+---
+schema_version: 1
+expected_flavor_count: 80
+
+# Source values use the legacy Nova flavor units. The tool multiplies these
+# kB values by eight and floors max_kbps to a whole 1,000,000-kbps boundary.
+policies:
+  lite:
+    max_kbytes_per_second: 150000
+    burst_kbytes: 250000
+  plus:
+    max_kbytes_per_second: 250000
+    burst_kbytes: 500000
+  pro:
+    max_kbytes_per_second: 375000
+    burst_kbytes: 750000
+  elite:
+    max_kbytes_per_second: 500000
+    burst_kbytes: 1000000
+
+# Anchors keep the 80 mappings reviewable. Every alias expands to the complete
+# expected legacy extra-spec mapping before validation.
+legacy_profiles:
+  rate_125_250_250: &rate_125_250_250
+    quota:vif_outbound_average: 125000
+    quota:vif_outbound_burst: 250000
+    quota:vif_outbound_peak: 250000
+  rate_125_250_500: &rate_125_250_500
+    quota:vif_outbound_average: 125000
+    quota:vif_outbound_burst: 250000
+    quota:vif_outbound_peak: 500000
+  rate_250_500_500: &rate_250_500_500
+    quota:vif_outbound_average: 250000
+    quota:vif_outbound_burst: 500000
+    quota:vif_outbound_peak: 500000
+  rate_312500_500_500: &rate_312500_500_500
+    quota:vif_outbound_average: 312500
+    quota:vif_outbound_burst: 500000
+    quota:vif_outbound_peak: 500000
+  rate_375_750_750: &rate_375_750_750
+    quota:vif_outbound_average: 375000
+    quota:vif_outbound_burst: 750000
+    quota:vif_outbound_peak: 750000
+  rate_437500_750_750: &rate_437500_750_750
+    quota:vif_outbound_average: 437500
+    quota:vif_outbound_burst: 750000
+    quota:vif_outbound_peak: 750000
+  rate_500_1000_1000: &rate_500_1000_1000
+    quota:vif_outbound_average: 500000
+    quota:vif_outbound_burst: 1000000
+    quota:vif_outbound_peak: 1000000
+  rate_500_1250_1250: &rate_500_1250_1250
+    quota:vif_outbound_average: 500000
+    quota:vif_outbound_burst: 1250000
+    quota:vif_outbound_peak: 1250000
+  rate_625_1250_1250: &rate_625_1250_1250
+    quota:vif_outbound_average: 625000
+    quota:vif_outbound_burst: 1250000
+    quota:vif_outbound_peak: 1250000
+  rate_687500_1250_1250: &rate_687500_1250_1250
+    quota:vif_outbound_average: 687500
+    quota:vif_outbound_burst: 1250000
+    quota:vif_outbound_peak: 1250000
+  rate_750_1250_1250: &rate_750_1250_1250
+    quota:vif_outbound_average: 750000
+    quota:vif_outbound_burst: 1250000
+    quota:vif_outbound_peak: 1250000
+  rate_875_1250_1250: &rate_875_1250_1250
+    quota:vif_outbound_average: 875000
+    quota:vif_outbound_burst: 1250000
+    quota:vif_outbound_peak: 1250000
+  rate_937500_1250_1250: &rate_937500_1250_1250
+    quota:vif_outbound_average: 937500
+    quota:vif_outbound_burst: 1250000
+    quota:vif_outbound_peak: 1250000
+  rate_1000_1250_1250: &rate_1000_1250_1250
+    quota:vif_outbound_average: 1000000
+    quota:vif_outbound_burst: 1250000
+    quota:vif_outbound_peak: 1250000
+  rate_1062500_1250_1250: &rate_1062500_1250_1250
+    quota:vif_outbound_average: 1062500
+    quota:vif_outbound_burst: 1250000
+    quota:vif_outbound_peak: 1250000
+  dfw_dev_inbound: &dfw_dev_inbound
+    quota:vif_outbound_average: 125000
+    quota:vif_outbound_burst: 250000
+    quota:vif_outbound_peak: 250000
+    quota:vif_inbound_average: 10240
+    quota:vif_inbound_burst: 1024
+    quota:vif_inbound_peak: 20480
+
+regions:
+  dfw-dev:
+    expected_flavor_count: 16
+    flavors:
+      gp.7.1.2: {policy: lite, legacy: *rate_125_250_250}
+      gp.7.2.4: {policy: lite, legacy: *dfw_dev_inbound}
+      gp.7.4.8: {policy: plus, legacy: *rate_375_750_750}
+      gp.7.8.16: {policy: plus, legacy: *rate_500_1000_1000}
+      gp.7.16.32: {policy: elite, legacy: *rate_500_1250_1250}
+      gp.8.1.2: {policy: lite, legacy: *rate_125_250_250}
+      gp.8.2.4: {policy: lite, legacy: *rate_125_250_250}
+      gp.8.4.8: {policy: plus, legacy: *rate_375_750_750}
+      gp.8.8.16: {policy: plus, legacy: *rate_500_1000_1000}
+      gp.8.16.32: {policy: elite, legacy: *rate_500_1250_1250}
+      db.0.2.2: {policy: lite, legacy: *rate_125_250_250}
+      db.0.4.4: {policy: plus, legacy: *rate_250_500_500}
+      db.0.4.8: {policy: plus, legacy: *rate_375_750_750}
+      db.0.8.16: {policy: pro, legacy: *rate_500_1000_1000}
+      db.0.8.32: {policy: pro, legacy: *rate_750_1250_1250}
+      db.0.16.64: {policy: elite, legacy: *rate_875_1250_1250}
+
+  dfw-prod:
+    expected_flavor_count: 23
+    flavors:
+      gp.5.1.2: {policy: lite, legacy: *rate_125_250_250}
+      gp.5.1.4: {policy: lite, legacy: *rate_250_500_500}
+      gp.5.2.2: {policy: lite, legacy: *rate_125_250_250}
+      gp.5.2.4: {policy: lite, legacy: *rate_250_500_500}
+      gp.5.2.6: {policy: lite, legacy: *rate_312500_500_500}
+      gp.5.2.8: {policy: lite, legacy: *rate_375_750_750}
+      gp.5.4.4: {policy: plus, legacy: *rate_250_500_500}
+      gp.5.4.8: {policy: plus, legacy: *rate_375_750_750}
+      gp.5.4.12: {policy: plus, legacy: *rate_437500_750_750}
+      gp.5.4.16: {policy: plus, legacy: *rate_500_1000_1000}
+      gp.5.8.16: {policy: pro, legacy: *rate_500_1000_1000}
+      gp.5.8.24: {policy: pro, legacy: *rate_687500_1250_1250}
+      gp.5.8.32: {policy: pro, legacy: *rate_750_1250_1250}
+      gp.5.16.64: {policy: elite, legacy: *rate_875_1250_1250}
+      gp.5.24.96: {policy: elite, legacy: *rate_937500_1250_1250}
+      gp.5.32.128: {policy: elite, legacy: *rate_1000_1250_1250}
+      gp.5.48.192: {policy: elite, legacy: *rate_1062500_1250_1250}
+      mo.6.2.12: {policy: plus, legacy: *rate_437500_750_750}
+      mo.6.2.16: {policy: plus, legacy: *rate_500_1000_1000}
+      mo.6.4.20: {policy: plus, legacy: *rate_625_1250_1250}
+      mo.6.4.24: {policy: plus, legacy: *rate_687500_1250_1250}
+      mo.6.4.32: {policy: plus, legacy: *rate_750_1250_1250}
+      mo.6.8.64: {policy: pro, legacy: *rate_875_1250_1250}
+
+  sjc-prod:
+    expected_flavor_count: 24
+    flavors:
+      gp.0.1.2: {policy: lite, legacy: *rate_125_250_250}
+      gp.0.1.4: {policy: lite, legacy: *rate_250_500_500}
+      gp.0.2.2: {policy: lite, legacy: *rate_125_250_250}
+      gp.0.2.4: {policy: lite, legacy: *rate_250_500_500}
+      gp.0.2.6: {policy: lite, legacy: *rate_312500_500_500}
+      gp.0.2.8: {policy: lite, legacy: *rate_375_750_750}
+      gp.0.4.4: {policy: plus, legacy: *rate_250_500_500}
+      gp.0.4.8: {policy: plus, legacy: *rate_375_750_750}
+      gp.0.4.12: {policy: plus, legacy: *rate_437500_750_750}
+      gp.0.4.16: {policy: plus, legacy: *rate_500_1000_1000}
+      gp.0.8.16: {policy: pro, legacy: *rate_500_1000_1000}
+      gp.0.8.24: {policy: pro, legacy: *rate_687500_1250_1250}
+      gp.0.8.32: {policy: pro, legacy: *rate_750_1250_1250}
+      gp.0.16.64: {policy: elite, legacy: *rate_875_1250_1250}
+      gp.0.24.96: {policy: elite, legacy: *rate_937500_1250_1250}
+      gp.0.32.128: {policy: elite, legacy: *rate_1000_1250_1250}
+      gp.0.48.192: {policy: elite, legacy: *rate_1062500_1250_1250}
+      mo.1.2.12: {policy: plus, legacy: *rate_437500_750_750}
+      mo.1.2.16: {policy: plus, legacy: *rate_500_1000_1000}
+      mo.1.4.20: {policy: plus, legacy: *rate_625_1250_1250}
+      mo.1.4.24: {policy: plus, legacy: *rate_687500_1250_1250}
+      mo.1.4.32: {policy: plus, legacy: *rate_750_1250_1250}
+      mo.1.8.64: {policy: pro, legacy: *rate_875_1250_1250}
+      ao.3.48.128_H100: {policy: pro, legacy: {}}
+
+  iad-prod:
+    expected_flavor_count: 17
+    flavors:
+      gp.0.1.2: {policy: lite, legacy: *rate_125_250_250}
+      gp.0.1.4: {policy: lite, legacy: *rate_125_250_500}
+      gp.0.2.2: {policy: lite, legacy: *rate_125_250_250}
+      gp.0.2.4: {policy: lite, legacy: *rate_250_500_500}
+      gp.0.2.6: {policy: lite, legacy: *rate_312500_500_500}
+      gp.0.2.8: {policy: lite, legacy: *rate_375_750_750}
+      gp.0.4.4: {policy: plus, legacy: *rate_250_500_500}
+      gp.0.4.8: {policy: plus, legacy: *rate_375_750_750}
+      gp.0.4.12: {policy: plus, legacy: *rate_437500_750_750}
+      gp.0.4.16: {policy: plus, legacy: *rate_500_1000_1000}
+      gp.0.8.16: {policy: pro, legacy: *rate_500_1000_1000}
+      gp.0.8.24: {policy: pro, legacy: *rate_687500_1250_1250}
+      gp.0.8.32: {policy: pro, legacy: *rate_750_1250_1250}
+      gp.0.16.64: {policy: elite, legacy: *rate_875_1250_1250}
+      gp.0.24.96: {policy: elite, legacy: *rate_937500_1250_1250}
+      gp.0.32.128: {policy: elite, legacy: *rate_1000_1250_1250}
+      gp.0.48.192: {policy: elite, legacy: *rate_1062500_1250_1250}

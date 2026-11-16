@@ -1,0 +1,154 @@
+---
+# Genestack WSGI middleware that filters Trove's /flavors responses so only
+# flavors intended for database instances (name prefixed with database_flavor_prefix,
+# default "db.") are returned. Delivered as a ConfigMap and mounted onto the
+# trove-api PYTHONPATH so no custom image build is required.
+#
+# NOTE: this is a top-level module (NOT under the trove.* namespace) so it never
+# shadows the real trove package on sys.path.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trove-flavor-filter
+  namespace: openstack
+  labels:
+    application: trove
+    component: api
+  annotations:
+    helm.sh/resource-policy: keep
+data:
+  genestack_trove_flavor_filter.py: |
+    #    Copyright 2026 Rackspace
+    #
+    #    Licensed under the Apache License, Version 2.0 (the "License"); you may
+    #    not use this file except in compliance with the License. You may obtain
+    #    a copy of the License at
+    #
+    #         http://www.apache.org/licenses/LICENSE-2.0
+    #
+    #    Unless required by applicable law or agreed to in writing, software
+    #    distributed under the License is distributed on an "AS IS" BASIS,
+    #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    #    See the License for the specific language governing permissions and
+    #    limitations under the License.
+    """WSGI middleware that filters the Trove flavors endpoint so that only
+    flavors intended for database instances are returned.
+
+    Trove's ``/flavors`` endpoint lists every Nova flavor the tenant can see,
+    including general-purpose compute flavors. In Genestack, flavors meant for
+    database instances follow a dedicated naming convention (``db.*`` by
+    default, e.g. ``db.1.1``, ``db.4.4``). This middleware inspects the JSON
+    response for the flavors list/show routes and drops any flavor whose name
+    does not match the configured prefix, so callers only ever see database
+    flavors.
+
+    Wire it into ``api-paste.ini`` as a filter in the ``troveapi`` pipeline::
+
+        [filter:dbflavorfilter]
+        paste.filter_factory = genestack_trove_flavor_filter:DatabaseFlavorFilter.factory
+        # Optional override (default shown):
+        # database_flavor_prefix = db.
+
+        [pipeline:troveapi]
+        pipeline = ... extensions dbflavorfilter troveapp
+    """
+
+    import json
+    import re
+
+    from oslo_log import log as logging
+    import webob
+    import webob.dec
+    import webob.exc
+
+    LOG = logging.getLogger(__name__)
+
+    # Match the Trove flavors routes: ``/<tenant>/flavors`` and
+    # ``/<tenant>/flavors/<id>`` (with or without the ``/v1.0`` version prefix,
+    # which PasteDeploy may or may not have stripped by the time we see it).
+    _FLAVORS_PATH_RE = re.compile(r"/flavors(/[^/]+)?/?$")
+
+
+    class DatabaseFlavorFilter(object):
+        """Strip non-database flavors from Trove flavor responses."""
+
+        def __init__(self, app, prefix="db."):
+            self.app = app
+            self.prefix = (prefix or "db.").strip()
+
+        @classmethod
+        def factory(cls, global_config, **local_config):
+            prefix = local_config.get(
+                "database_flavor_prefix",
+                global_config.get("database_flavor_prefix", "db."),
+            )
+
+            def _factory(app):
+                return cls(app, prefix=prefix)
+
+            return _factory
+
+        def _is_database_flavor(self, flavor):
+            name = (flavor or {}).get("name") or ""
+            return name.lower().startswith(self.prefix.lower())
+
+        def _filter_payload(self, payload):
+            """Filter a decoded JSON payload.
+
+            Returns ``(payload, changed, hide_single)``. ``hide_single`` is
+            True when a single, non-database flavor was requested so the caller
+            can turn it into a 404.
+            """
+            if not isinstance(payload, dict):
+                return payload, False, False
+
+            if "flavors" in payload and isinstance(payload["flavors"], list):
+                original = payload["flavors"]
+                kept = [f for f in original if self._is_database_flavor(f)]
+                changed = len(kept) != len(original)
+                payload["flavors"] = kept
+                return payload, changed, False
+
+            if "flavor" in payload and isinstance(payload["flavor"], dict):
+                if not self._is_database_flavor(payload["flavor"]):
+                    return payload, True, True
+
+            return payload, False, False
+
+        @webob.dec.wsgify
+        def __call__(self, req):
+            resp = req.get_response(self.app)
+
+            if _FLAVORS_PATH_RE.search(req.path or "") is None:
+                return resp
+            if resp.status_int != 200:
+                return resp
+            if "json" not in (resp.content_type or "").lower():
+                return resp
+
+            body = resp.body
+            if not body:
+                return resp
+
+            try:
+                payload = json.loads(body)
+            except (ValueError, TypeError):
+                LOG.debug("Flavor response was not valid JSON; passing through.")
+                return resp
+
+            payload, changed, hide_single = self._filter_payload(payload)
+
+            if hide_single:
+                LOG.debug("Hiding non-database flavor from %s", req.path)
+                return webob.exc.HTTPNotFound(
+                    explanation="The requested flavor is not a database flavor."
+                )
+
+            if not changed:
+                return resp
+
+            new_body = json.dumps(payload).encode("utf-8")
+            resp.body = new_body
+            resp.content_length = len(new_body)
+            LOG.debug("Filtered non-database flavors from %s", req.path)
+            return resp

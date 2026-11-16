@@ -152,9 +152,6 @@ sed -i 's/numberOfReplicas.*/numberOfReplicas: "'"${LONGHORN_STORAGE_REPLICAS:-2
        /etc/genestack/manifests/longhorn/longhorn-general-storageclass.yaml
 kubectl apply -f /etc/genestack/manifests/longhorn/longhorn-general-storageclass.yaml
 
-# Deploy prometheus
-/opt/genestack/bin/install-kube-prometheus-stack.sh
-
 # Deploy cert-manager
 /opt/genestack/bin/install-cert-manager.sh
 

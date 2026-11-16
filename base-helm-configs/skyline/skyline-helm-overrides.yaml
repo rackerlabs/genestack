@@ -74,6 +74,7 @@ conf:
   skyline:
     default:
       debug: true
+      prometheus_endpoint: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
     openstack:
       interface_type: internal
       default_region: RegionOne

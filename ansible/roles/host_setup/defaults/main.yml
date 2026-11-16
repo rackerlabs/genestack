@@ -30,16 +30,14 @@ ca_bundle_path: /etc/ssl/certs/ca-certificates.crt
 # cleans that legacy state up on existing labs. If you port to an
 # outer cloud that filters on source IP, add the MASQUERADE back.)
 #
-# Keep `lab_tenant_egress_snat_enabled: true` for labs. Disable for
-# production deployments where upstream routing handles the flat
-# external network properly. The variable name is kept (despite no
-# longer mentioning SNAT in implementation) for in-place compatibility
-# with prior lab inventories.
+# Enable `lab_tenant_egress_snat_enabled: true` for labs.
+# The variable name is kept (despite no longer mentioning SNAT in implementation)
+# for in-place compatibility with prior lab inventories.
 #
 # Only ONE host can hold the gateway IP (no IP conflicts allowed). For
 # the lab we pin it to the overseer (`hyperconverged-0`); for HA you
 # would layer keepalived on top.
-lab_tenant_egress_snat_enabled: true
+lab_tenant_egress_snat_enabled: false
 lab_flat_external_cidr: "192.168.102.0/24"
 lab_flat_external_gateway_ip: "192.168.102.1"
 lab_flat_external_bridge: "br-ex"

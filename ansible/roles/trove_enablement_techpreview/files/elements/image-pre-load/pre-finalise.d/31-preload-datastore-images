@@ -2,12 +2,30 @@
 
 set -euo pipefail
 
+# Fallback mechanism if TMP_BUILD_DIR is stale or unmounted
+if [ ! -d "$TMP_BUILD_DIR/mnt" ] || ! mountpoint -q "$TMP_BUILD_DIR/mnt"; then
+    echo "Warning: TMP_BUILD_DIR ($TMP_BUILD_DIR) is stale or unmounted. Searching for active DIB mount..."
+
+    # Dynamically find the active DIB mount point on the system
+    ACTIVE_MNT=$(findmnt -n -o TARGET | grep 'dib_build.*\/mnt' | head -n 1)
+
+    if [ -n "$ACTIVE_MNT" ]; then
+        TARGET_ROOT="$ACTIVE_MNT"
+        echo "Found active build target at: $TARGET_ROOT"
+    else
+        echo "Error: Could not locate active DIB target filesystem."
+        exit 1
+    fi
+else
+    TARGET_ROOT="$TMP_BUILD_DIR/mnt"
+fi
+
 # Spin up a temporary docker daemon pointing its data-root
 #  directly into the mounted DIB disk image root
 echo "===> Starting Docker daemon"
 dockerd \
     --storage-driver=overlay2 \
-    --data-root="$TMP_BUILD_DIR/mnt/var/lib/docker" \
+    --data-root="$TARGET_ROOT/var/lib/docker" \
     --pidfile="/tmp/dib-target-dockerd.pid" \
     --host="unix:///tmp/dib-target-docker.sock" > /tmp/dockerd-preload.log 2>&1 &
 
@@ -29,7 +47,7 @@ fi
 
 # Force the host daemon to load the images into the VM's storage path
 echo "===> Preloading datastore images into docker cache"
-for tarball in /tmp/trove-image-build/*.tar; do
+for tarball in "$TMP_DIR"/trove-image-build/*.tar; do
     echo "===>    Loading $tarball"
     docker -H unix:///tmp/dib-target-docker.sock load -i "$tarball"
 done
@@ -39,7 +57,9 @@ docker -H unix:///tmp/dib-target-docker.sock images
 
 # Cleanly shut down the background daemon
 echo "===> Shutting down Docker daemon"
-kill $(cat /tmp/dib-target-dockerd.pid)
+kill $(cat /tmp/dib-target-dockerd.pid) || true
+killall dockerd || true
+rm -f /tmp/dib-target-docker.sock /tmp/dib-target-dockerd.pid || true
 
 # Wait up to 30 seconds for the daemon process to fully terminate safely
 echo "===> Waiting for Docker daemon to fully terminate ..."
@@ -56,4 +76,4 @@ echo "===> Flushing dirty buffers"
 sync
 
 echo "===> Docker overlay2 directory contents"
-sudo ls -la $TMP_BUILD_DIR/mnt/var/lib/docker/overlay2/
+sudo ls -la $TARGET_ROOT/var/lib/docker/overlay2/

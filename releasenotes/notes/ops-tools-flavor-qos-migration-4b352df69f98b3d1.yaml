@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Added the dry-run-first ``ops-tools/flavor_qos_migration`` utility. It
+    creates the four flavor QoS policies, migrates flavor extra specs and Nova
+    cached flavor data, updates existing compute ports, and records guarded
+    rollback state for the 80 mapped regional flavors.
