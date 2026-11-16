@@ -1,7 +1,30 @@
 ---
+component: neutron
 features:
+  - |
+    Genestack 2026.3.2 moves flavor-based network bandwidth enforcement from
+    Nova/libvirt ``quota:vif_*`` extra specs to the Rackspace-designed
+    Neutron ``flavor_qos`` plugin. Flavors now reference a Neutron QoS policy
+    through the ``flavor_qos:policy_id`` extra spec, allowing Neutron to apply
+    the corresponding bandwidth policy to instance ports throughout their
+    lifecycle.
   - |
     Added the dry-run-first ``ops-tools/flavor_qos_migration`` utility. It
     creates the four flavor QoS policies, migrates flavor extra specs and Nova
     cached flavor data, updates existing compute ports, and records guarded
     rollback state for the 80 mapped regional flavors.
+upgrade:
+  - |
+    Existing deployments must perform the one-time cutover documented in
+    ``ops-tools/flavor_qos_migration/README.md``. Review the dry-run report,
+    quiesce instance lifecycle operations, back up every affected Nova cell,
+    and supply every cell database when applying the migration. The cutover
+    removes the legacy ``quota:vif_*`` properties, installs
+    ``flavor_qos:policy_id`` on the mapped flavors and cached instance flavors,
+    and assigns the matching Neutron QoS policy to existing compute ports.
+    The new policies enforce egress bandwidth; legacy inbound properties are
+    removed without replacement. Nova's kB/s values are converted to Neutron
+    kbps, with policy limits normalized to the documented ``lite``, ``plus``,
+    ``pro``, and ``elite`` tiers.
+    Validate create, rebuild, resize, cold-migrate, and live-migrate behavior
+    afterward with ``ops-tools/flavor_qos_migration/VALIDATION.md``.
