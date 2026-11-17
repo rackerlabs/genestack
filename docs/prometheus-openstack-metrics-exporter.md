@@ -10,73 +10,49 @@ We are using Prometheus for monitoring and metrics collection along with the ope
 
 The OpenStack metrics exporter implementation and base Helm configuration are maintained in the `genestack-observability` repository.
 
-### Create clouds-yaml secret
+### Create os-metrics user
 
-Modify `/etc/genestack/helm-configs/openstack-metrics-exporter/clouds-yaml` with the appropriate settings and create the secret.
-
-!!! tip
-
-    See the [documentation](openstack-clouds.md) on generating your own `clouds.yaml` file which can be used to populate the monitoring configuration file.
-
-!!! tip
-
-    Collecting all metrics typically requires the admin role, but you may make another user with the admin role, perhaps named `os-metrics`. This decouples this running service from the `admin` user of the installation, which can facilitate ease of changing the `admin` password
-
-    [Keystone Admin Password Rotation](openstack-keystone-admin-password-rotation.md) shows how to do this with an user named `breakglass`, which can use the same project and domain as the `admin` user for the installation
-
-From your generated `clouds.yaml` file, create a new manifest for your cloud config:
+The openstack metrics exporter should utilize a service user with admin role to query the various openstack services. 
 
 ```shell
-printf -v m "$(cat ~/.config/openstack/clouds.yaml)"; \
-  t=$(echo "$m" | yq '.[] |= pick(["clouds", "default"])' | yq 'del(.cache)'); \
-  t="$t" yq -I6 -n '."clouds.yaml" = strenv(t)' | tee /tmp/generated-clouds-yaml
+# Generate a secure random password.
+OS_METRICS_PASSWORD="$(openssl rand -hex 32)"
+
+# Create the Keystone user in the service domain.
+openstack user create os-metrics \
+    --domain service \
+    --password "${OS_METRICS_PASSWORD}" \
+    --description "Prometheus OpenStack Metrics Exporter"
+
+# Assign admin role on the service project.
+openstack role add \
+    --user os-metrics \
+    --user-domain service \
+    --project service \
+    --project-domain service \
+    admin
+
+# Ensure monitoring namespace exists.
+kubectl create namespace monitoring \
+    --dry-run=client -o yaml | kubectl apply -f -
+
+# Store the password in Kubernetes.
+kubectl -n monitoring create secret generic os-metrics-user \
+    --from-literal=password="${OS_METRICS_PASSWORD}" \
+    --dry-run=client -o yaml | kubectl apply -f -
+
+# Clear password from shell variable.
+unset OS_METRICS_PASSWORD
 ```
 
-generated file will look similar to this
 
-```yaml
-clouds.yaml: |
-  clouds:
-    default:
-      region_name: RegionOne
-      auth:
-        username: admin
-        password: <admin-password>
-        project_name: admin
-        project_domain_name: default
-        user_domain_name: default
-        auth_url: 'http://keystone-api.openstack.svc.cluster.local:5000/v3'
-```
-
-If you're using self-signed certs then you may need to add keystone certificates to the generated clouds yaml:
-
-```shell
-ks_cert="$(kubectl get secret -n openstack keystone-tls-public -o json | jq -r '.data."tls.crt"' | base64 -d)" \
-  yq -I6 '."clouds.yaml" |= (from_yaml | .clouds.default.cacert = strenv(ks_cert) | to_yaml)' \
-  </tmp/generated-clouds-yaml | tee /tmp/generated-clouds-certs-yaml
-```
-
-=== "Create a secret from your manifest"
-
-    ```shell
-    kubectl --namespace openstack create secret generic clouds-yaml-secret \
-            --from-file /tmp/generated-clouds-yaml
-    ```
-
-=== "Create secrets for self-signed certs"
-
-    ```shell
-    kubectl --namespace openstack create secret generic clouds-yaml-secret \
-            --from-file /tmp/generated-clouds-certs-yaml
-    ```
-
-With the secret created you can now deploy the openstack-metrics-exporter through the observability installer:
+With the `os-metrics` user secret created you can now deploy the openstack-metrics-exporter through the observability installer:
 
 ```shell
 /opt/genestack/bin/install-observability.sh openstack-metrics-exporter
 ```
 
-The component implementation and base Helm values are owned by `/opt/genestack-observability`; site-specific configuration remains under `/etc/genestack/helm-configs/openstack-metrics-exporter/`.
+The component implementation and base Helm values are owned by `/opt/genestack-observability`; site-specific configuration remains under `/etc/genestack/helm-configs/observability/openstack-metrics-exporter/`.
 
 !!! success
 
