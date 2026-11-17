@@ -29,7 +29,7 @@ charts:
   manila: 2026.1.9+a2a343968
   memcached: 2026.1.23+0ee5adeff
   metallb: v0.15.2
-  neutron: 2026.1.9+a2a343968
+  neutron: 2026.1.111+50205d6ca
   nova: 2026.1.8+a2a343968
   opentelemetry-kube-stack: 0.13.1
   placement: 2026.1.8+50c697fc3

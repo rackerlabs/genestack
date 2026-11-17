@@ -68,6 +68,11 @@ The flavors used within our Genestack environment have been built to provide the
 
 Flavor properties provide some additional configuration to highlight placement and create hardware functionality.
 
+The `quota:vif_*` properties listed below are optional Nova/libvirt bandwidth
+controls. They are not required by Genestack and may be omitted from flavors
+when a deployment does not use Nova/libvirt virtual-interface shaping or uses
+another bandwidth-management mechanism.
+
 | Property | Value | Description |
 | ---------|-------|-------------|
 | hw:mem_page_size | any | Defines how hughpages are used within the instance type, our default is auto, acceptible options could also be `small` or `large` |
@@ -138,9 +143,12 @@ openstack --os-cloud default flavor set intel.medium \
           --property capabilities:cpu_info:vendor='Intel'
 ```
 
-### Example: Network Bandwidth Limits
+### Optional: Nova/libvirt `quota:vif_*` Network Bandwidth Limits
 
-This example configures a flavor to use network traffic bandwidth limits for outbound and inbound traffic
+The `quota:vif_*` extra specs are optional. This example configures a flavor to
+use Nova/libvirt network traffic bandwidth limits for outbound and inbound
+traffic. Operators may omit these properties when their deployment does not
+use this mechanism.
 
 ``` shell
 openstack --os-cloud default flavor create gp.0.8.24 \
@@ -163,6 +171,27 @@ openstack --os-cloud default flavor set gp.0.8.24 \
     --property "quota:vif_outbound_burst"="1250000" \
     --property "quota:vif_outbound_average"="687500"
 ```
+
+#### Optional: Neutron `flavor_qos` integration
+
+The Rackspace-designed Neutron `flavor_qos` integration is an optional,
+deployment-specific extension. It is not enabled by default in Genestack and
+does not change Genestack's default flavor behavior. Clouds that install the
+companion Nova and Neutron plugins and enable them through deployment overrides
+can use it instead of the optional `quota:vif_*` mechanism by associating a
+flavor with an existing Neutron QoS policy. Set its policy UUID in the
+`flavor_qos:policy_id` extra spec:
+
+``` shell
+openstack --os-cloud default flavor set gp.0.8.24 \
+          --property "flavor_qos:policy_id"="<neutron-qos-policy-uuid>"
+```
+
+The plugins apply the referenced policy to instance ports throughout their
+lifecycle. Operators using this extension should follow their deployment's
+plugin configuration, policy-management, migration, and validation procedures;
+the extra spec has no effect in a standard Genestack deployment where the
+plugins are not installed and enabled.
 
 ### Example: NUMA Preferred Affinity Policy
 
