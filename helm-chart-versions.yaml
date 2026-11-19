@@ -41,6 +41,7 @@ charts:
   redis-sentinel: 0.16.12
   sealed-secrets: 2.17.4
   skyline: 2025.2.9+c665eedfa
+  swift: 2026.1.26+0ee5adeff
   tempo: 1.24.4
   topolvm: 16.1.1
   trove: 2026.1.7+789d868ff

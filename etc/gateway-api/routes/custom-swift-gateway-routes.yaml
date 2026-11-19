@@ -1,0 +1,21 @@
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: custom-swift-gateway-route
+  namespace: openstack
+  labels:
+    application: gateway-api
+    service: HTTPRoute
+    route: swift
+spec:
+  parentRefs:
+    - name: flex-gateway
+      sectionName: swift-https
+      namespace: envoy-gateway
+  hostnames:
+    - "swift.your.domain.tld"
+  rules:
+    - backendRefs:
+        - name: swift-proxy
+          port: 8080
