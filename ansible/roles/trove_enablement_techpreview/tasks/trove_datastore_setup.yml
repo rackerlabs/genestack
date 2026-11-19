@@ -90,7 +90,7 @@
       openstack --os-cloud {{ os_cloud }} datastore version create
       "{{ _trove_ds_profile.version_name }}"
       "{{ _trove_ds_profile.name }}"
-      "{{ _trove_ds_profile.name }}"
+      "{{ _trove_ds_profile.version_manager | default(_trove_ds_profile.name) }}"
       ""
       --image-tags trove,{{ _trove_ds_profile.name }},{{ _trove_ds_profile.version }},{{ trove_guest_image_os_release }}
       --active
@@ -100,14 +100,53 @@
     HOME: "{{ ubuntu_home }}"
   when: _trove_do_dsv | bool
 
+# When a profile defines validation_rules_file, overwrite the datastore's
+# templates/<template_family>/validation-rules.json ON the taskmanager pod with
+# that file before loading it. For percona this replaces the Trove image's
+# stale ~36-parameter rules with the full Percona Server 8.4 surface.
+#
+# The Trove package dir in the pod (/var/lib/openstack/.../site-packages) is a
+# READ-ONLY filesystem, so we cannot overwrite the bundled rules file in place
+# (earlier attempts hit "patch: not found", kubectl cp's "File exists", then
+# "Read-only file system"). Instead we stream our JSON to a WRITABLE path in
+# the pod (/tmp) over stdin, and point `db_load_datastore_config_parameters`
+# (next task) at that path -- the loader accepts any readable file, it does not
+# have to be the in-image template. The companion unified diff under
+# files/patches/ is kept only as the reviewable/upstream-PR artifact and is NOT
+# applied at runtime. Idempotent (same file each run).
+- name: Stage validation-rules file for '{{ _trove_ds_profile.version_name }}' into the taskmanager pod
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      source {{ genestack_venv }}/bin/activate
+      pod=$(kubectl get pods -A | grep trove-task -m 1 | awk '{print $2}')
+      dst="/tmp/validation-rules-{{ _trove_ds_profile.name }}.json"
+      src="{{ role_path }}/files/{{ _trove_ds_profile.validation_rules_file }}"
+      # /tmp is writable; stream the file in over stdin (no patch, no kubectl
+      # cp, no write to the read-only package dir), then verify it parses and
+      # was expanded beyond the stale upstream subset.
+      kubectl exec -i "${pod}" -n openstack -c trove-taskmanager -- \
+        sh -c "cat > \"${dst}\"" < "${src}"
+      kubectl exec -i "${pod}" -n openstack -c trove-taskmanager -- \
+        python3 -c "import json; d=json.load(open(\"${dst}\")); assert len(d[\"configuration-parameters\"]) > 40, len(d[\"configuration-parameters\"])"
+    executable: /bin/bash
+  environment:
+    HOME: "{{ ubuntu_home }}"
+  when:
+    - _trove_do_dsv | bool
+    - _trove_ds_profile.validation_rules_file is defined
+
+# Load the validation rules. When the profile staged a custom file above, load
+# from the writable /tmp copy; otherwise load the image's bundled template.
 - name: Load default configuration parameter validation rules for '{{ _trove_ds_profile.version_name }}'
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
       source {{ genestack_venv }}/bin/activate
       trove_taskmanager_pod_name=$(kubectl get pods -A | grep trove-task -m 1 | awk '{print $2}')
+      rules_path="{% if _trove_ds_profile.validation_rules_file is defined %}/tmp/validation-rules-{{ _trove_ds_profile.name }}.json{% else %}/var/lib/openstack/lib/python3.12/site-packages/trove/templates/{{ _trove_ds_profile.template_family | default(_trove_ds_profile.name) }}/validation-rules.json{% endif %}"
       CMD_STDOUT=$(kubectl exec -it ${trove_taskmanager_pod_name} -n openstack -- \
-        trove-manage db_load_datastore_config_parameters {{ _trove_ds_profile.name }} {{ _trove_ds_profile.version_name }} /var/lib/openstack/lib/python3.12/site-packages/trove/templates/{{ _trove_ds_profile.name }}/validation-rules.json)
+        trove-manage db_load_datastore_config_parameters {{ _trove_ds_profile.name }} {{ _trove_ds_profile.version_name }} "${rules_path}")
       # echo "CMD_STDOUT: ${CMD_STDOUT}"
     executable: /bin/bash
   environment:

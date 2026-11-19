@@ -1,0 +1,88 @@
+#!/bin/bash
+# Add docker_image and backup_docker_image options to Trove's percona
+# config group so the guest agent can launch Percona containers.
+# Apply the change directly using Python instead of patch(1), which is
+# unavailable during DIB pre-install.d and caused image builds to fail.
+# WHY HERE: The guest agent is installed from /opt/guest-agent, a fresh
+# DIB clone, so the change must be applied before install.d/31-guest-agent-install.
+# WHY NEEDED: The percona config group lacks docker_image, causing
+# NoSuchOptError in start_db() and preventing Percona instance preparation.
+# The change only affects the percona config group, is idempotent,
+# and leaves MySQL/MariaDB runtime behavior unchanged.
+
+set -eu
+set -o xtrace
+
+TARGET=/opt/guest-agent/trove/common/cfg.py
+
+if [ ! -f "${TARGET}" ]; then
+    echo "ERROR: ${TARGET} not found; cannot patch percona config group" >&2
+    exit 1
+fi
+
+# Pick an available Python. DIB guest images always have python3.
+PYBIN="$(command -v python3 || command -v python || true)"
+if [ -z "${PYBIN}" ]; then
+    echo "ERROR: no python interpreter found in build chroot" >&2
+    exit 1
+fi
+
+"${PYBIN}" - "${TARGET}" <<'PYEOF'
+import io
+import re
+import sys
+
+path = sys.argv[1]
+src = io.open(path, encoding="utf-8").read()
+
+anchor = "percona_opts = ["
+idx = src.find(anchor)
+if idx == -1:
+    sys.stderr.write(
+        "ERROR: 'percona_opts = [' not found in %s; Trove layout changed, "
+        "refusing to edit\n" % path
+    )
+    sys.exit(1)
+
+# Isolate the percona_opts list body (balanced brackets) so an idempotency
+# check does not false-match a docker_image option in a later group.
+list_start = idx + len(anchor)
+depth = 1
+i = list_start
+while i < len(src) and depth > 0:
+    c = src[i]
+    if c == "[":
+        depth += 1
+    elif c == "]":
+        depth -= 1
+    i += 1
+list_body = src[list_start:i - 1]
+
+if re.search(r"""['"]docker_image['"]""", list_body):
+    sys.stderr.write("percona group already defines docker_image; nothing to do\n")
+    sys.exit(0)
+
+injection = (
+    "\n"
+    "    # GENESTACK: percona datastore runs as a container; these options are\n"
+    "    # absent from the upstream percona group. Without docker_image the\n"
+    "    # guest agent raises NoSuchOptError in start_db() for a percona\n"
+    "    # datastore. Values come from the [percona] section of\n"
+    "    # trove-guestagent.conf (docker_image=percona/percona-server).\n"
+    "    cfg.StrOpt('docker_image', default='percona/percona-server',\n"
+    "               help='Database docker image (GENESTACK: Percona datastore).'),\n"
+    "    cfg.StrOpt('backup_docker_image',\n"
+    "               sample_default='your-registry/your-repo/db-backup-percona',\n"
+    "               help='The docker image used for backup and restore '\n"
+    "                    '(GENESTACK: Percona datastore).'),"
+)
+
+patched = src[:list_start] + injection + src[list_start:]
+
+# Validate the result parses as Python before writing it back.
+import ast
+ast.parse(patched)
+
+io.open(path, "w", encoding="utf-8").write(patched)
+sys.stderr.write("percona cfg edit applied: docker_image added to percona group\n")
+PYEOF

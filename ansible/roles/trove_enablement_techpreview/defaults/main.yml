@@ -71,6 +71,18 @@ trove_flavor_overrides_file: "/etc/genestack/ansible-ext-vars/trove-flavor-overr
 trove_datastore_name: mysql
 # Per-datastore settings. Keyed by trove_datastore_name. Add a new key
 # here to teach the role about another datastore.
+# Each profile is self-describing. Three optional fields support datastores
+# whose packaging differs from the canonical datastore:
+#   docker_image_repo  Registry namespace for pulling the datastore image.
+#                      Defaults to docker.io/library; Percona uses
+#                      docker.io/percona.
+#   version_manager    Trove config group used by the guest for manager
+#                      lookup and docker_image configuration. Defaults to
+#                      the datastore name; Percona uses "percona", while
+#                      its manager maps to mysql.manager.Manager.
+#   template_family    Trove template directory used for validation rules.
+#                      Defaults to the datastore name; Percona uses
+#                      "percona" (templates/percona/).
 trove_datastore_profiles:
   mysql:
     name: mysql
@@ -89,9 +101,14 @@ trove_datastore_profiles:
     # Backup strategy (guest-agent [<datastore>] section).
     backup_strategy: InnoBackupEx
     backup_incremental_strategy: InnoBackupExIncremental
-    # Docker image name pulled from docker.io/library/<docker_image>:<version>
+    # Docker image name pulled from <docker_image_repo>/<docker_image>:<version>
     # and re-tagged into the guest's local registry.
+    docker_image_repo: docker.io/library
     docker_image: mysql
+    # mysql is itself a real Trove config group and ships templates/mysql/,
+    # so version_manager/template_family just mirror the name.
+    version_manager: mysql
+    template_family: mysql
     # my.cnf config templates shipped to the trove-taskmanager pod as an
     # overlay (see trove_helm_config.yml PART 5). MySQL 8.4 needs the
     # patched template to avoid the default_authentication_plugin panic.
@@ -108,7 +125,10 @@ trove_datastore_profiles:
     replication_namespace: trove.guestagent.strategies.replication.mariadb_gtid
     backup_strategy: mariabackup
     backup_incremental_strategy: mariabackup
+    docker_image_repo: docker.io/library
     docker_image: mariadb
+    version_manager: mariadb
+    template_family: mariadb
     # MariaDB renders a valid my.cnf on its own (no
     # default_authentication_plugin issue), so no taskmanager overlay is
     # strictly needed. We still ship a lab-tuned template
@@ -117,6 +137,48 @@ trove_datastore_profiles:
     needs_config_template_override: true
     config_template_file: trove-mariadb-config-template
     replica_config_template_file: trove-mariadb-replica-config-template
+  # Percona Server for MySQL 8.4 — a drop-in fork of Oracle MySQL 8.4.
+  # It reuses the MySQL guest-agent manager, GTID replication, InnoBackupEx
+  # backups, and the trove-mysql-* my.cnf templates verbatim. Only the
+  # container registry namespace (docker.io/percona) and the datastore
+  # name differ, which is exactly what the three optional fields above
+  # exist to express.
+  percona:
+    name: percona
+    # Percona's official image tag on Docker Hub.
+    version: "8.4"
+    version_name: "8.4"
+    # Guest imports the live MySQL manager class — Percona is MySQL-compatible
+    # and the experimental percona manager was removed from Trove.
+    guest_manager: trove.guestagent.datastore.mysql.manager.Manager
+    notification_service_id: 3c4ff179-3cfc-4a81-0b0e-b7cc76cd195c
+    replication_strategy: MysqlGTIDReplication
+    replication_namespace: trove.guestagent.strategies.replication.mysql_gtid
+    backup_strategy: InnoBackupEx
+    backup_incremental_strategy: InnoBackupExIncremental
+    # Datastore name passed as the DATASTORE build-arg when building the backup
+    # image (trove/backup/install.sh). That script only knows mysql/mariadb/
+    # postgresql; `percona` matches no branch and installs NO backup tool,
+    # yielding a backup image without xtrabackup (backups fail with "Cannot
+    # parse backup output"). Percona Server 8.4 uses Percona XtraBackup 8.4,
+    # which install.sh installs under the `mysql` + 8.4 branch, so build the
+    # backup image as `mysql`. Defaults to `name` for mysql/mariadb.
+    backup_build_datastore: mysql
+    # Keep the canonical Docker Hub namespace in the runtime image name. The
+    # guest normally uses the preloaded local archive, but if the cache is
+    # absent Docker can now fall back to the real public repository
+    # docker.io/percona/percona-server:8.4 instead of incorrectly resolving
+    # the short `percona-server:8.4` as docker.io/library/percona-server.
+    docker_image_repo: docker.io
+    docker_image: percona/percona-server
+    version_manager: percona
+    template_family: percona
+    validation_rules_file: validation-rules-percona-8.4.json
+    # Reuse the MySQL my.cnf templates (mounted at templates/percona/ for
+    # this datastore, but sourced from the trove-mysql-* files).
+    needs_config_template_override: true
+    config_template_file: trove-mysql-config-template
+    replica_config_template_file: trove-mysql-replica-config-template
 
 # Resolved active profile for trove_datastore_name. Referenced throughout
 # the role so datastore-specific values come from one place.
