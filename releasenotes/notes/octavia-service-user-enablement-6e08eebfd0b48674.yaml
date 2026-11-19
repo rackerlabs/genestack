@@ -1,0 +1,15 @@
+---
+prelude: >
+    Octavia will now use the 'octavia' service user by default
+features:
+  - |
+    Adjusts pre-conf and default configuration to utilize
+    Octavia service user.
+upgrade:
+  - |
+    Upgrading requires rebuilding related admin resources under the
+    Octavia service user and issuing failovers to rebuild all
+    load balancers under the new service user resources.
+
+    Existing routes and admin resources will need to be cleaned up
+    after all amphora have been successfully migrated.

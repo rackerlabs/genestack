@@ -63,14 +63,14 @@ This is an example playbook for running the role:
   environment:
     OS_ENDPOINT_TYPE: publicURL
     OS_INTERFACE: publicURL
-    OS_USERNAME: 'admin'
+    OS_USERNAME: 'octavia'
     OS_PASSWORD: 'XXXXX'
-    OS_PROJECT_NAME: 'admin'
-    OS_TENANT_NAME: 'admin'
+    OS_PROJECT_NAME: 'service'
+    OS_TENANT_NAME: 'service'
     OS_AUTH_TYPE: password
     OS_AUTH_URL: 'https://keystone.lab.local/v3'
-    OS_USER_DOMAIN_NAME: 'default'
-    OS_PROJECT_DOMAIN_NAME: 'default'
+    OS_USER_DOMAIN_NAME: 'service'
+    OS_PROJECT_DOMAIN_NAME: 'service'
     OS_REGION_NAME: 'RegionOne'
     OS_IDENTITY_API_VERSION: 3
     OS_AUTH_VERSION: 3

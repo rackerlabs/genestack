@@ -22,7 +22,7 @@
 - name: modify the quotas for the admin tenant to suit to production environments
   block:
     - openstack.cloud.quota:
-        name: "{{ admin_project_name | default('admin') }}"
+        name: "{{ admin_project_name | default('octavia') }}"
         instances: "{{ num_amphora_instances }}"
         cores: "{{ num_amphora_cores }}"
         server_groups: "{{ num_amphora_server_groups }}"
@@ -38,5 +38,5 @@
     - name: set the quota to defaults for the admin tenant
       openstack.cloud.quota:
         state: absent
-        name: "{{ admin_project_name | default('admin') }}"
+        name: "{{ admin_project_name | default('octavia') }}"
         interface: public

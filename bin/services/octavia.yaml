@@ -21,6 +21,12 @@ pre_install_check_actions:
         env: OVN_SB_CONNECTION
 
 secrets:
+  - helm_key: "conf.octavia.service_auth.password"
+    source_secret: octavia-admin
+    source_namespace: openstack
+    data_key: password
+    helm_flag: --set
+
   - helm_key: "endpoints.identity.auth.admin.password"
     source_secret: keystone-admin
     source_namespace: openstack
