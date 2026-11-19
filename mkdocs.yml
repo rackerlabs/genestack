@@ -274,7 +274,6 @@ nav:
               - Custom Node Metrics: prometheus-custom-node-metrics.md
               - Pushgateway: prometheus-pushgateway.md
               - Barbican Exporter: openstack-barbican-exporter.md
-              - Designate Exporter: openstack-designate-exporter.md
               - Alert Manager Examples:
                   - alertmanager-slack.md
                   - alertmanager-msteams.md
