@@ -1,9 +1,8 @@
 #!/bin/bash
 
-if [[ "$LOG_LEVEL" == "DEBUG" ]]
-then
-    set -x
-fi
+# The Swift client image runs as GID 42424. Files created by the root-running
+# snapshot container must remain writable through the Pod's fsGroup.
+umask 0002
 
 log_level() {
     local LEVEL="$1"
@@ -40,13 +39,6 @@ log_line() {
     fi
 }
 
-# Stats files init. These mostly get used to send to Prometheus, but you could
-# just read them if you want to.
-
-STATS_DIR="${BACKUP_DIR}/stats"
-
-[[ -d "$STATS_DIR" ]] || mkdir "$STATS_DIR"
-
 declare -A metric_types=(
     ["run_count"]="counter"
     ["run_timestamp"]="counter"
@@ -65,12 +57,17 @@ declare -A metric_types=(
     ["swift_objects_gauge"]="gauge"
 )
 
-# Initialize metrics/stats files with 0 if they don't exist
-for metric_filename in "${!metric_types[@]}"
-do
-    metric_file_fullname="${STATS_DIR}/$metric_filename"
-    [[ -e "$metric_file_fullname" ]] || echo "0" > "$metric_file_fullname"
-done
+init_metrics() {
+    STATS_DIR="${BACKUP_DIR}/stats"
+    [[ -d "$STATS_DIR" ]] || mkdir "$STATS_DIR"
+
+    # Initialize metrics/stats files with 0 if they don't exist.
+    for metric_filename in "${!metric_types[@]}"
+    do
+        metric_file_fullname="${STATS_DIR}/$metric_filename"
+        [[ -e "$metric_file_fullname" ]] || echo "0" > "$metric_file_fullname"
+    done
+}
 
 # get_metric takes the metric name, reads the metric file, and echos the value
 get_metric() {
@@ -110,9 +107,6 @@ timestamp_metric() {
     update_metric "$METRIC_NAME" "$(date +%s)"
 }
 
-increment run_count
-timestamp_metric run_timestamp
-
 finalize_and_upload_metrics() {
     local FILE_COUNT
     FILE_COUNT=$(find "$BACKUP_DIR" -type f \
@@ -122,7 +116,7 @@ finalize_and_upload_metrics() {
     DISK_PERCENT_USED=$(df "$BACKUP_DIR" | perl -lane 'next unless $. == 2; print int($F[4])')
     update_metric disk_used_percent_gauge "$DISK_PERCENT_USED"
     local OBJECT_COUNT
-    if [[ "$SWIFT_TEMPAUTH_UPLOAD" == "true" ]]
+    if [[ "${PHASE:-}" == "upload" ]]
     then
         OBJECT_COUNT=$($SWIFT stat "$CONTAINER" | awk '/Objects:/ { print $2 }')
         update_metric swift_objects_gauge "$OBJECT_COUNT"
@@ -149,112 +143,133 @@ $metric{label=\"ovn-backup\"} $(get_metric "$metric")" | \
         log_line DEBUG "run end metric $read_metric"
     done
 }
-trap finalize_and_upload_metrics EXIT INT TERM HUP
 
-# Delete old backup files on volume.
-cd "$BACKUP_DIR" || exit 2
-[[ -e "$BACKUP_DIR/last_upload" ]] || touch "$BACKUP_DIR/last_upload" || exit 3
-find "$BACKUP_DIR" -type f \
-    \( -name "*.backup" -o -name "*.backup.gz" \) \
-    -ctime +"$RETENTION_DAYS" -delete
+run_snapshot() {
+    PHASE="snapshot"
+    init_metrics
+    trap finalize_and_upload_metrics EXIT INT TERM HUP
 
-# Make a backup in YYYY/MM/DD directory in $BACKUP_DIR
-YMD="$(date +"%Y/%m/%d")"
-# kubectl-ko creates backups in $PWD, so we cd first.
-mkdir -p "$YMD" && cd "$YMD" || exit 2
+    increment run_count
+    timestamp_metric run_timestamp
 
-# This treats the saved failed and success count as a single metric for both
-# backups; if either one fails, we increment the failure count, otherwise,
-# the success count.
-FAILED=false
-if ! /kube-ovn/kubectl-ko nb backup
-then
-    log_line ERROR "nb backup failed"
-    FAILED=true
-fi
-if ! /kube-ovn/kubectl-ko sb backup
-then
-    log_line ERROR "sb backup failed"
-    FAILED=true
-fi
-if [[ "$FAILED" == "true" ]]
-then
-    increment save_pairs_to_disk_failure_count
-    timestamp_metric save_pairs_to_disk_failure_timestamp
-else
-    increment save_pairs_to_disk_success_count
-    timestamp_metric save_pairs_to_disk_success_timestamp
-fi
+    # Delete old backup files on volume.
+    cd "$BACKUP_DIR" || exit 2
+    [[ -e "$BACKUP_DIR/last_upload" ]] || touch "$BACKUP_DIR/last_upload" || exit 3
+    find "$BACKUP_DIR" -type f \
+        \( -name "*.backup" -o -name "*.backup.gz" \) \
+        -ctime +"$RETENTION_DAYS" -delete
 
-# compressing the OVN backups, if created successfully, before uploading to swift container
-find . -name "*.backup" | \
-while read -r file
-do
-    if gzip "$file"
+    # Make a backup in YYYY/MM/DD directory in $BACKUP_DIR.
+    YMD="$(date +"%Y/%m/%d")"
+    # kubectl-ko creates backups in $PWD, so we cd first.
+    mkdir -p "$YMD" && cd "$YMD" || exit 2
+
+    # This treats the saved failed and success count as a single metric for both
+    # backups; if either one fails, we increment the failure count, otherwise,
+    # the success count.
+    FAILED=false
+    if ! /kube-ovn/kubectl-ko nb backup
     then
-      log_line INFO "$file compressed successfully to ${file}.gz"
-    else
-      log_line ERROR "Error compressing file"
+        log_line ERROR "nb backup failed"
+        FAILED=true
     fi
-done
-
-if [[ "$SWIFT_TEMPAUTH_UPLOAD" != "true" ]]
-then
-    exit 0
-fi
-
-# Everything from here forward deals with uploading to a Swift with tempauth.
-
-cd "$BACKUP_DIR" || exit 2
-
-increment upload_attempt_count
-timestamp_metric upload_attempt_timestamp
-
-# Make a working "swift" command
-SWIFT="kubectl -n openstack exec -i openstack-admin-client --
-env -i ST_AUTH=$ST_AUTH ST_USER=$ST_USER ST_KEY=$ST_KEY
-/var/lib/openstack/bin/swift"
-
-# Create the container if it doesn't exist
-if ! $SWIFT stat "$CONTAINER" > /dev/null
-then
-  $SWIFT post "$CONTAINER"
-fi
-
-# upload_file uploads $1 to the container
-upload_file() {
-    FILE="$1"
-    # Using OBJECT_NAME instead of FILE every time doesn't change the behavior,
-    # but stops shellcheck from identifying this as trying to read and write
-    # the same file.
-    OBJECT_NAME="$FILE"
-    # Delete the Swift object RETENTION_DAYS after upload.
-    DELETE_AFTER=$((RETENTION_DAYS * 86400))
-    if $SWIFT upload "$CONTAINER" --object-name "$OBJECT_NAME" -H "X-Delete-After:$DELETE_AFTER" - < "$FILE"
+    if ! /kube-ovn/kubectl-ko sb backup
     then
-      log_line INFO "SUCCESSFUL UPLOAD $FILE as object $OBJECT_NAME to container $CONTAINER"
-    else
-      log_line ERROR "FAILURE API swift exited $? uploading $FILE as $OBJECT_NAME to container $CONTAINER"
-      FAILED_UPLOAD=true
+        log_line ERROR "sb backup failed"
+        FAILED=true
     fi
+    if [[ "$FAILED" == "true" ]]
+    then
+        increment save_pairs_to_disk_failure_count
+        timestamp_metric save_pairs_to_disk_failure_timestamp
+    else
+        increment save_pairs_to_disk_success_count
+        timestamp_metric save_pairs_to_disk_success_timestamp
+    fi
+
+    # Compress the OVN backups, if created successfully, before uploading.
+    find . -name "*.backup" | \
+    while read -r file
+    do
+        if gzip "$file"
+        then
+          log_line INFO "$file compressed successfully to ${file}.gz"
+        else
+          log_line ERROR "Error compressing file"
+        fi
+    done
+
+    [[ "$FAILED" != "true" ]]
 }
 
-# find created backups and upload them
-cd "$BACKUP_DIR" || exit 2
+run_upload() {
+    PHASE="upload"
+    SWIFT="/var/lib/openstack/bin/swift"
+    init_metrics
+    trap finalize_and_upload_metrics EXIT INT TERM HUP
 
-FAILED_UPLOAD=false
-while read -r file
-do
-    upload_file "$file"
-done < <(find "$YMD" -type f -newer "$BACKUP_DIR/last_upload")
+    cd "$BACKUP_DIR" || exit 2
+    YMD="$(date +"%Y/%m/%d")"
 
-if [[ "$FAILED_UPLOAD" == "true" ]]
+    increment upload_attempt_count
+    timestamp_metric upload_attempt_timestamp
+
+    # Create the container if it doesn't exist.
+    if ! $SWIFT stat "$CONTAINER" > /dev/null
+    then
+      $SWIFT post "$CONTAINER"
+    fi
+
+    # upload_file uploads $1 to the container.
+    upload_file() {
+        FILE="$1"
+        # Using OBJECT_NAME instead of FILE every time doesn't change the behavior,
+        # but stops shellcheck from identifying this as trying to read and write
+        # the same file.
+        OBJECT_NAME="$FILE"
+        # Delete the Swift object RETENTION_DAYS after upload.
+        DELETE_AFTER=$((RETENTION_DAYS * 86400))
+        if $SWIFT upload "$CONTAINER" --object-name "$OBJECT_NAME" -H "X-Delete-After:$DELETE_AFTER" - < "$FILE"
+        then
+          log_line INFO "SUCCESSFUL UPLOAD $FILE as object $OBJECT_NAME to container $CONTAINER"
+        else
+          log_line ERROR "FAILURE API swift exited $? uploading $FILE as $OBJECT_NAME to container $CONTAINER"
+          FAILED_UPLOAD=true
+        fi
+    }
+
+    FAILED_UPLOAD=false
+    while read -r file
+    do
+        upload_file "$file"
+    done < <(find "$YMD" -type f -newer "$BACKUP_DIR/last_upload")
+
+    if [[ "$FAILED_UPLOAD" == "true" ]]
+    then
+        increment upload_pairs_failure_count
+        timestamp_metric upload_pairs_failure_timestamp
+    else
+        increment upload_pairs_success_count
+        timestamp_metric upload_pairs_success_timestamp
+    fi
+
+    touch "$BACKUP_DIR/last_upload"
+}
+
+if [[ "$LOG_LEVEL" == "DEBUG" ]]
 then
-    increment upload_pairs_failure_count
-    timestamp_metric upload_pairs_failure_timestamp
-else
-    increment upload_pairs_success_count
-    timestamp_metric upload_pairs_success_timestamp
+    set -x
 fi
 
-touch "$BACKUP_DIR/last_upload"
+case "${1:-}" in
+  snapshot)
+    run_snapshot
+    ;;
+  upload)
+    run_upload
+    ;;
+  *)
+    echo "Usage: $0 {snapshot|upload}" >&2
+    exit 2
+    ;;
+esac

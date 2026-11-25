@@ -393,10 +393,11 @@ remain in place because the updated CronJob reads only `ST_KEY` from the
 Secret. The authentication URL and username must still be configured through
 `swift.authUrl` and `swift.user` in the Helm overrides.
 
-Swift upload uses the existing script's `kubectl exec` workflow against the
-`openstack-admin-client` pod in the `openstack` namespace. That pod and its
-Swift client must exist, and the `ovn` ServiceAccount must be authorized to
-exec into it. No Swift Secret is required while `swift.enabled` is `false`.
+When Swift upload is enabled, the Kube-OVN image runs the snapshot phase as an
+init container and the OpenStack client image uploads the resulting files from
+the shared backup volume. The backup job does not depend on the
+`openstack-admin-client` pod. No Swift Secret or OpenStack client container is
+required while `swift.enabled` is `false`.
 
 Install or upgrade the release from the Genestack checkout:
 

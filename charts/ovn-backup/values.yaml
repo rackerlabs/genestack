@@ -9,6 +9,10 @@ serviceAccountName: ovn
 nodeSelector:
   kube-ovn/role: master
 
+podSecurityContext:
+  fsGroup: 42424
+  fsGroupChangePolicy: OnRootMismatch
+
 persistence:
   create: false
   claimName: ovndb-backup
@@ -29,6 +33,10 @@ prometheus:
 
 swift:
   enabled: false
+  image:
+    repository: ghcr.io/rackerlabs/genestack-images/openstack-client
+    tag: 2026.1-latest
+    pullPolicy: IfNotPresent
   authUrl: ""
   user: ""
   container: test-ovn-backup

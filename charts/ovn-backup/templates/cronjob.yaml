@@ -20,6 +20,10 @@ spec:
           serviceAccountName: {{ .Values.serviceAccountName | quote }}
           automountServiceAccountToken: true
           restartPolicy: Never
+{{- if .Values.swift.enabled }}
+          securityContext:
+{{ toYaml .Values.podSecurityContext | indent 12 }}
+{{- end }}
           nodeSelector:
 {{ toYaml .Values.nodeSelector | indent 12 }}
           volumes:
@@ -29,17 +33,33 @@ spec:
             - name: backup-script
               configMap:
                 name: ovn-backup-script
-                defaultMode: 484
-          containers:
+                defaultMode: 493
+{{- if .Values.swift.enabled }}
+          initContainers:
             - name: ovn-central-backup
               image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
               imagePullPolicy: {{ .Values.image.pullPolicy }}
               command:
                 - /backup-script/ovn-backup.sh
+                - snapshot
               envFrom:
                 - configMapRef:
                     name: ovn-backup-config
-{{- if .Values.swift.enabled }}
+              volumeMounts:
+                - name: backup
+                  mountPath: {{ .Values.backup.directory | quote }}
+                - name: backup-script
+                  mountPath: /backup-script
+          containers:
+            - name: swift-upload
+              image: "{{ .Values.swift.image.repository }}:{{ .Values.swift.image.tag }}"
+              imagePullPolicy: {{ .Values.swift.image.pullPolicy }}
+              command:
+                - /backup-script/ovn-backup.sh
+                - upload
+              envFrom:
+                - configMapRef:
+                    name: ovn-backup-config
               env:
                 - name: ST_AUTH
                   value: {{ .Values.swift.authUrl | quote }}
@@ -50,9 +70,25 @@ spec:
                     secretKeyRef:
                       name: {{ .Values.swift.existingSecret | quote }}
                       key: ST_KEY
-{{- end }}
               volumeMounts:
                 - name: backup
                   mountPath: {{ .Values.backup.directory | quote }}
                 - name: backup-script
                   mountPath: /backup-script
+{{- else }}
+          containers:
+            - name: ovn-central-backup
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command:
+                - /backup-script/ovn-backup.sh
+                - snapshot
+              envFrom:
+                - configMapRef:
+                    name: ovn-backup-config
+              volumeMounts:
+                - name: backup
+                  mountPath: {{ .Values.backup.directory | quote }}
+                - name: backup-script
+                  mountPath: /backup-script
+{{- end }}
