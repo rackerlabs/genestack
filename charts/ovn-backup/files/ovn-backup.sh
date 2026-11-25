@@ -124,7 +124,7 @@ finalize_and_upload_metrics() {
 
     if [[ "$PROMETHEUS_UPLOAD" != "true" ]]
     then
-        exit 0
+        return 0
     fi
 
     for metric in "${!metric_types[@]}"
@@ -209,8 +209,6 @@ run_upload() {
     trap finalize_and_upload_metrics EXIT INT TERM HUP
 
     cd "$BACKUP_DIR" || exit 2
-    YMD="$(date +"%Y/%m/%d")"
-
     increment upload_attempt_count
     timestamp_metric upload_attempt_timestamp
 
@@ -222,13 +220,10 @@ run_upload() {
 
     # upload_file uploads $1 to the container.
     upload_file() {
-        FILE="$1"
-        # Using OBJECT_NAME instead of FILE every time doesn't change the behavior,
-        # but stops shellcheck from identifying this as trying to read and write
-        # the same file.
-        OBJECT_NAME="$FILE"
+        local FILE="$1"
+        local OBJECT_NAME="${FILE#./}"
         # Delete the Swift object RETENTION_DAYS after upload.
-        DELETE_AFTER=$((RETENTION_DAYS * 86400))
+        local DELETE_AFTER=$((RETENTION_DAYS * 86400))
         if $SWIFT upload "$CONTAINER" --object-name "$OBJECT_NAME" -H "X-Delete-After:$DELETE_AFTER" - < "$FILE"
         then
           log_line INFO "SUCCESSFUL UPLOAD $FILE as object $OBJECT_NAME to container $CONTAINER"
@@ -239,21 +234,21 @@ run_upload() {
     }
 
     FAILED_UPLOAD=false
-    while read -r file
+    while IFS= read -r -d '' file
     do
         upload_file "$file"
-    done < <(find "$YMD" -type f -newer "$BACKUP_DIR/last_upload")
+    done < <(find . -type f -name "*.backup.gz" -newer "$BACKUP_DIR/last_upload" -print0)
 
     if [[ "$FAILED_UPLOAD" == "true" ]]
     then
         increment upload_pairs_failure_count
         timestamp_metric upload_pairs_failure_timestamp
+        return 1
     else
         increment upload_pairs_success_count
         timestamp_metric upload_pairs_success_timestamp
+        touch "$BACKUP_DIR/last_upload"
     fi
-
-    touch "$BACKUP_DIR/last_upload"
 }
 
 if [[ "$LOG_LEVEL" == "DEBUG" ]]
