@@ -164,9 +164,8 @@ run_snapshot() {
     # kubectl-ko creates backups in $PWD, so we cd first.
     mkdir -p "$YMD" && cd "$YMD" || exit 2
 
-    # This treats the saved failed and success count as a single metric for both
-    # backups; if either one fails, we increment the failure count, otherwise,
-    # the success count.
+    # Treat creating and compressing both backups as one operation. If any step
+    # fails, increment the failure count and return a nonzero status.
     FAILED=false
     if ! /kube-ovn/kubectl-ko nb backup
     then
@@ -178,6 +177,18 @@ run_snapshot() {
         log_line ERROR "sb backup failed"
         FAILED=true
     fi
+    # Compress the OVN backups, if created successfully, before uploading.
+    while IFS= read -r -d '' file
+    do
+        if gzip "$file"
+        then
+          log_line INFO "$file compressed successfully to ${file}.gz"
+        else
+          log_line ERROR "Error compressing $file"
+          FAILED=true
+        fi
+    done < <(find . -type f -name "*.backup" -print0)
+
     if [[ "$FAILED" == "true" ]]
     then
         increment save_pairs_to_disk_failure_count
@@ -186,18 +197,6 @@ run_snapshot() {
         increment save_pairs_to_disk_success_count
         timestamp_metric save_pairs_to_disk_success_timestamp
     fi
-
-    # Compress the OVN backups, if created successfully, before uploading.
-    find . -name "*.backup" | \
-    while read -r file
-    do
-        if gzip "$file"
-        then
-          log_line INFO "$file compressed successfully to ${file}.gz"
-        else
-          log_line ERROR "Error compressing file"
-        fi
-    done
 
     [[ "$FAILED" != "true" ]]
 }
