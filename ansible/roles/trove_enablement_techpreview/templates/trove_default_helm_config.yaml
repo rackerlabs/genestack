@@ -49,6 +49,12 @@ conf:
       nova_keypair: "{{ trove_keypair_name }}"
       default_datastore: "{{ trove_datastore_name }}"
       datastore_manager: "{{ trove_datastore_name }}"
+      # The openstack-helm trove chart sets this to "mysql:<uuid>" only, which
+      # replaces Trove's built-in map. Every non-mysql datastore then logs
+      # "Datastore ID for Manager (<ds>) is not configured" and its usage
+      # notifications carry service_id=unknown-service-id-error. Render the
+      # full map from trove_datastore_profiles, matching trove-guestagent.conf.
+      notification_service_id: "{% for _ds, _p in trove_datastore_profiles.items() %}{{ _ds }}:{{ _p.notification_service_id }}{% if not loop.last %},{% endif %}{% endfor %}"
       network_driver: trove.network.neutron.NeutronDriver
       taskmanager_manager: trove.taskmanager.manager.Manager
       use_nova_server_config_drive: true

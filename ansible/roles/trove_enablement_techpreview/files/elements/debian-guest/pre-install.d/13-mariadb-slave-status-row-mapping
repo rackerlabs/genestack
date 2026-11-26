@@ -1,0 +1,56 @@
+#!/bin/bash
+# Fix MariaDB get_last_txn() under SQLAlchemy 2.x.
+# Apply the change directly using Python instead of patch(1), which is
+# unavailable during DIB pre-install.d.
+# WHY HERE: The guest agent is installed from /opt/guest-agent, a fresh
+# DIB clone, so the change must be applied before install.d/31-guest-agent-install.
+# WHY NEEDED: MariaDBApp._get_master_UUID() indexes the SHOW SLAVE STATUS row
+# by column name (slave_status['Master_Server_Id']). SQLAlchemy 2.x Row objects
+# are tuple-like and raise "TypeError: tuple indices must be integers or
+# slices, not str". get_last_txn() is called on every replica during
+# "trove instance eject", so eject fails and the replicas go to ERROR.
+# Row._mapping provides name-based access on SQLAlchemy 1.4 and 2.x.
+# The change is idempotent and only touches the MariaDB datastore.
+set -eu
+set -o xtrace
+
+TARGET=/opt/guest-agent/trove/guestagent/datastore/mariadb/service.py
+
+if [ ! -f "${TARGET}" ]; then
+    echo "ERROR: ${TARGET} not found; cannot patch MariaDB slave status lookup" >&2
+    exit 1
+fi
+
+PYBIN="$(command -v python3 || command -v python || true)"
+if [ -z "${PYBIN}" ]; then
+    echo "ERROR: no python interpreter found in build chroot" >&2
+    exit 1
+fi
+
+"${PYBIN}" - "${TARGET}" <<'PYEOF'
+import ast
+import io
+import sys
+
+path = sys.argv[1]
+src = io.open(path, encoding="utf-8").read()
+
+old = "slave_status and slave_status['Master_Server_Id'] or None"
+new = "slave_status and slave_status._mapping['Master_Server_Id'] or None"
+
+if new in src:
+    sys.stderr.write("MariaDB slave status lookup already patched; nothing to do\n")
+    sys.exit(0)
+
+if src.count(old) != 1:
+    sys.stderr.write(
+        "ERROR: expected exactly one occurrence of %r in %s; Trove layout "
+        "changed, refusing to edit\n" % (old, path)
+    )
+    sys.exit(1)
+
+patched = src.replace(old, new)
+ast.parse(patched)
+io.open(path, "w", encoding="utf-8").write(patched)
+sys.stderr.write("MariaDB edit applied: _get_master_UUID uses Row._mapping\n")
+PYEOF
