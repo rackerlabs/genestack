@@ -182,24 +182,29 @@ that name to select the correct endpoint port.
 
 ## Enable OpenTelemetry Collection
 
-Ironic collection is supplied as an optional OpenTelemetry values example. Copy
-it into the service override directory before installing or upgrading the
-OpenTelemetry stack:
+Ironic collection is supplied as an optional OpenTelemetry values example. It
+is part of the `genestack-observability` repository, which
+`bootstrap-observability.sh` clones to `/opt/genestack-observability`. Complete
+the bootstrap described in
+[Monitoring Getting Started](monitoring-getting-started.md) first, then copy
+the example into the service override directory before installing or upgrading
+the OpenTelemetry stack:
 
 ```shell
 
 cp \
-  /opt/genestack/base-helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-ironic-overrides.yaml.example \
-  /etc/genestack/helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-ironic-overrides.yaml
+  /opt/genestack-observability/helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-ironic-overrides.yaml.example \
+  /etc/genestack/helm-configs/observability/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-ironic-overrides.yaml
 
-/opt/genestack/bin/install-opentelemetry-kube-stack.sh
+/opt/genestack/bin/install-observability.sh opentelemetry-kube-stack
 ```
 
 The override adds the `prometheus/ironic` receiver to the deployment
-collector's metrics pipeline. Its scrape configuration is:
+collector's metrics pipeline. The scrape configuration is maintained in the
+observability repository:
 
-```yaml
---8<-- "base-helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-ironic-overrides.yaml.example"
+```text
+/opt/genestack-observability/helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-ironic-overrides.yaml.example
 ```
 
 ### Why Endpoint Discovery Is Used
@@ -335,7 +340,8 @@ metric families received for the job, use:
 
 ## References
 
-For upstream details, see the
+For upstream details, see:
+
 - [Ironic Prometheus Exporter documentation](https://docs.openstack.org/ironic-prometheus-exporter/latest/)
 - [configuration reference](https://docs.openstack.org/ironic-prometheus-exporter/latest/configuration.html)
 - [limitations](https://docs.openstack.org/ironic-prometheus-exporter/latest/limitations.html)

@@ -64,7 +64,7 @@ OpenTelemetry collector configuration rather than in per-service exporters.
 ### How collection is wired
 
 Everything lives in
-`base-helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-overrides.yaml`:
+`/opt/genestack-observability/helm-configs/opentelemetry-kube-stack/opentelemetry-kube-stack-helm-overrides.yaml`:
 
 | Component | Purpose |
 |---|---|

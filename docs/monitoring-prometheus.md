@@ -5,8 +5,9 @@ Genestack uses the `kube-prometheus-stack` chart to deploy Prometheus, Alertmana
 ## Paths
 
 * Base Helm values: `/opt/genestack-observability/helm-configs/kube-prometheus-stack/`
-* Service overrides: `/etc/genestack/helm-configs/kube-prometheus-stack/`
-* Kustomize overlay: `/etc/genestack/kustomize/kube-prometheus-stack/overlay/`
+* Service overrides: `/etc/genestack/helm-configs/observability/kube-prometheus-stack/`
+* Base Kustomize: `/opt/genestack-observability/kustomize/kube-prometheus-stack/base/`
+* Kustomize overlay: `/etc/genestack/kustomize/observability/kube-prometheus-stack/overlay/`
 
 ## Install
 
@@ -29,17 +30,17 @@ The base Alertmanager example is stored at:
 
 If you want to customize Alertmanager, place your override file in:
 
-* `/etc/genestack/helm-configs/kube-prometheus-stack/`
+* `/etc/genestack/helm-configs/observability/kube-prometheus-stack/`
 
 Example:
 
 ```shell
 read -p "webhook_url: " webhook_url
 sed -i -e "s#https://webhook_url.example#${webhook_url}#" \
-  /etc/genestack/helm-configs/kube-prometheus-stack/alertmanager_config.yaml
+  /etc/genestack/helm-configs/observability/kube-prometheus-stack/alertmanager_config.yaml
 ```
 
-Site-specific Helm values placed in `/etc/genestack/helm-configs/kube-prometheus-stack/` continue to be included by the service installer.
+Site-specific Helm values placed in `/etc/genestack/helm-configs/observability/kube-prometheus-stack/` continue to be included by the service installer.
 
 Custom Genestack Prometheus alerting and recording rules are maintained separately in:
 

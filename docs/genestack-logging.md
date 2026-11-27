@@ -794,7 +794,7 @@ processors:
 
 ### Configuration Files
 
-- Loki Helm values: `genestack/base-helm-configs/loki`
-- OpenTelemetry Helm values: `genestack/base-helm-configs/opentelemetry`
+- Loki Helm values: `/opt/genestack-observability/helm-configs/loki`
+- OpenTelemetry Helm values: `/opt/genestack-observability/helm-configs/opentelemetry-kube-stack`
 
 ---

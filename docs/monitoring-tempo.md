@@ -5,8 +5,9 @@ Tempo is Genestack's distributed tracing backend. It is deployed into the `monit
 ## Paths
 
 * Base Helm values: `/opt/genestack-observability/helm-configs/tempo/`
-* Service overrides: `/etc/genestack/helm-configs/tempo/`
-* Kustomize overlay: `/etc/genestack/kustomize/tempo/overlay/`
+* Service overrides: `/etc/genestack/helm-configs/observability/tempo/`
+* Base Kustomize: `/opt/genestack-observability/kustomize/tempo/base/`
+* Kustomize overlay: `/etc/genestack/kustomize/observability/tempo/overlay/`
 
 ## Default Behavior
 
@@ -14,7 +15,7 @@ The default base file, `/opt/genestack-observability/helm-configs/tempo/tempo-he
 
 ## Optional Object Storage
 
-Add an override file to `/etc/genestack/helm-configs/tempo/` before installation if you want object storage.
+Add an override file to `/etc/genestack/helm-configs/observability/tempo/` before installation if you want object storage.
 
 Available examples:
 

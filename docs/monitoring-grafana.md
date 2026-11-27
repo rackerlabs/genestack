@@ -5,8 +5,9 @@ Grafana is deployed into the `monitoring` namespace with the upstream Grafana He
 ## Paths
 
 * Base Helm values: `/opt/genestack-observability/helm-configs/grafana/`
-* Service overrides: `/etc/genestack/helm-configs/grafana/`
-* Kustomize overlay: `/etc/genestack/kustomize/grafana/overlay/`
+* Service overrides: `/etc/genestack/helm-configs/observability/grafana/`
+* Base Kustomize: `/opt/genestack-observability/kustomize/grafana/base/`
+* Kustomize overlay: `/etc/genestack/kustomize/observability/grafana/overlay/`
 
 ## Secrets
 
@@ -24,7 +25,7 @@ kubectl -n monitoring create secret generic grafana-db \
 
 ## Custom Values
 
-Set `custom_host` in `/etc/genestack/helm-configs/grafana/grafana-helm-overrides.yaml` if you want Grafana exposed by a gateway or ingress:
+Set `custom_host` in `/etc/genestack/helm-configs/observability/grafana/grafana-helm-overrides.yaml` if you want Grafana exposed by a gateway or ingress:
 
 ```yaml
 custom_host: grafana.api.example.tld
