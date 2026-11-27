@@ -5,8 +5,9 @@ Loki is Genestack's log backend. It is deployed into the `monitoring` namespace 
 ## Paths
 
 * Base Helm values: `/opt/genestack-observability/helm-configs/loki/`
-* Service overrides: `/etc/genestack/helm-configs/loki/`
-* Kustomize overlay: `/etc/genestack/kustomize/loki/overlay/`
+* Service overrides: `/etc/genestack/helm-configs/observability/loki/`
+* Base Kustomize: `/opt/genestack-observability/kustomize/loki/base/`
+* Kustomize overlay: `/etc/genestack/kustomize/observability/loki/overlay/`
 
 ## Default Behavior
 
@@ -16,7 +17,7 @@ It also assumes the cluster DNS service is named `coredns`. If your environment 
 
 ## Storage Backends
 
-Add one or more override files to `/etc/genestack/helm-configs/loki/` before installing Loki.
+Add one or more override files to `/etc/genestack/helm-configs/observability/loki/` before installing Loki.
 
 ### Swift
 

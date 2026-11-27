@@ -21,13 +21,13 @@ Complete overview of the monitoring and observability stack for Rackspace Genest
 ## Component Guide Map
 
 The monitoring implementation and base configuration are maintained in the
-`genestack-observability` repository. Site-specific overrides continue to use
-the normal Genestack layout:
+`genestack-observability` repository. Site-specific overrides live under
+`/etc/genestack`:
 
 - Base Helm values: `/opt/genestack-observability/helm-configs/<service>/`
-- Base Kustomize resources: `/opt/genestack-observability/kustomize/<service>/`
-- Site Helm overrides: `/etc/genestack/helm-configs/<service>/`
-- Site Kustomize overlays: `/etc/genestack/kustomize/<service>/overlay/`
+- Base Kustomize resources: `/opt/genestack-observability/kustomize/<service>/base/`
+- Site Helm overrides: `/etc/genestack/helm-configs/observability/<service>/`
+- Site Kustomize overlays: `/etc/genestack/kustomize/observability/<service>/overlay/`
 
 The observability repository is bootstrapped with
 `/opt/genestack/bin/bootstrap-observability.sh` and components are installed

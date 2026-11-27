@@ -1,6 +1,7 @@
 # OpenStack Ironic Python Agent Log Redactor
 
-Genestack can run an `ipa-log-redactor` sidecar in each Ironic conductor Pod.
+Genestack deploys an `ipa-log-redactor` sidecar alongside the OpenStack Ironic
+conductors.
 During deployment and cleaning, the Ironic Python Agent (IPA) sends a
 compressed diagnostic bundle to the conductor, which stores it in
 `/var/lib/ironic/logs`. The sidecar reads those bundles, redacts known secrets,

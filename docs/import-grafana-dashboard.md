@@ -30,7 +30,7 @@ In the Grafana UI, go to Administration → Users and access → Service account
 To do the same from the CLI, create the service account once using the admin credentials, then use only the token from that point on:
 
 ```shell
-GRAFANA_URL=$(awk -F': ' '/custom_host/{print "https://" $2}' /etc/genestack/helm-configs/grafana/grafana-helm-overrides.yaml)
+GRAFANA_URL=$(awk -F': ' '/custom_host/{print "https://" $2}' /etc/genestack/helm-configs/observability/grafana/grafana-helm-overrides.yaml)
 GRAFANA_ADMIN_PASSWORD=$(kubectl -n monitoring get secret grafana -o jsonpath='{.data.admin-password}' | base64 -d)
 
 # Create the service account
@@ -101,7 +101,7 @@ options:
 ```
 
 ```shell
-export GRAFANA_URL=`awk -F': ' '/custom_host/{print "https://" $2}' /etc/genestack/helm-configs/grafana/grafana-helm-overrides.yaml`
+export GRAFANA_URL=`awk -F': ' '/custom_host/{print "https://" $2}' /etc/genestack/helm-configs/observability/grafana/grafana-helm-overrides.yaml`
 export GRAFANA_TOKEN=<your_service_account_token>
 ```
 
@@ -130,7 +130,7 @@ The importer also converts Grafana `dashboard.grafana.app/v2beta1` dashboard exp
 `export-grafana-dashboards.py` writes every dashboard currently in Grafana to a directory as JSON, in the format the importer expects. It uses the same environment variables, so a `Viewer` service account token is enough.
 
 ```shell
-export GRAFANA_URL=`awk -F': ' '/custom_host/{print "https://" $2}' /etc/genestack/helm-configs/grafana/grafana-helm-overrides.yaml`
+export GRAFANA_URL=`awk -F': ' '/custom_host/{print "https://" $2}' /etc/genestack/helm-configs/observability/grafana/grafana-helm-overrides.yaml`
 export GRAFANA_TOKEN=<your_service_account_token>
 python3 /opt/genestack-observability/scripts/export-grafana-dashboards.py --dir <output_directory_path>
 ```

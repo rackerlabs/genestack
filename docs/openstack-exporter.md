@@ -5,8 +5,9 @@ OpenStack Exporter probes OpenStack API endpoints and exposes their availability
 ## Paths
 
 * Base chart/configuration: `/opt/genestack-observability/helm-configs/openstack-api-exporter-chart/`
-* Service overrides: `/etc/genestack/helm-configs/openstack-api-exporter-chart/`
-* Kustomize overlay: `/etc/genestack/kustomize/openstack-api-exporter-chart/overlay/`
+* Service overrides: `/etc/genestack/helm-configs/observability/openstack-api-exporter-chart/`
+* Base Kustomize: `/opt/genestack-observability/kustomize/openstack-api-exporter-chart/base/`
+* Kustomize overlay: `/etc/genestack/kustomize/observability/openstack-api-exporter-chart/overlay/`
 
 ## Prerequisites
 

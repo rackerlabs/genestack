@@ -41,7 +41,7 @@ Prometheus alerting rule source files are now maintained in the observability re
 /opt/genestack-observability/alerts/recording/
 ```
 
-They are rendered into native `PrometheusRule` resources by the separate Genestack Prometheus rules release. Alertmanager defaults are stored at `/opt/genestack-observability/helm-configs/kube-prometheus-stack/alertmanager_config.yaml`, while site-specific Alertmanager overrides remain under `/etc/genestack/helm-configs/kube-prometheus-stack/`.
+They are rendered into native `PrometheusRule` resources by the separate Genestack Prometheus rules release. Alertmanager defaults are stored at `/opt/genestack-observability/helm-configs/kube-prometheus-stack/alertmanager_config.yaml`, while site-specific Alertmanager overrides remain under `/etc/genestack/helm-configs/observability/kube-prometheus-stack/`.
 
 To deploy or update Genestack-managed Prometheus rules:
 
