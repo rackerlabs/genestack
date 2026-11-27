@@ -137,6 +137,17 @@
   retries: 5
   delay: 2
 
+# NOTE: Templated AFTER the bulk apt install so the first run is free to
+# restart whatever it wants (no live iSCSI sessions or multipath maps exist
+# during host_setup). The override_rc takes effect on subsequent apt runs.
+- name: Configure apt needrestart override_rc
+  ansible.builtin.include_tasks: apt_needsrestart.yml
+  when:
+    - ansible_facts['distribution'] | lower == 'ubuntu'
+  tags:
+    - hosts-config
+    - needrestart
+
 # NOTE(cloudnull): This configuration will ensure that LLDP is working on all interfaces
 #                  except our overlay and tenant networks.
 - name: Create base LLDPD configuration
