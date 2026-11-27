@@ -182,9 +182,13 @@ that name to select the correct endpoint port.
 
 ## Enable OpenTelemetry Collection
 
-Ironic collection is supplied as an optional OpenTelemetry values example. Copy
-it into the service override directory before installing or upgrading the
-OpenTelemetry stack:
+Ironic collection is supplied as an optional OpenTelemetry values example. It
+is part of the `genestack-observability` repository, which
+`bootstrap-observability.sh` clones to `/opt/genestack-observability`. Complete
+the bootstrap described in
+[Monitoring Getting Started](monitoring-getting-started.md) first, then copy
+the example into the service override directory before installing or upgrading
+the OpenTelemetry stack:
 
 ```shell
 
